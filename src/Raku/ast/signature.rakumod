@@ -1449,17 +1449,10 @@ class RakuAST::ParameterTarget::Var
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups;
-
-        @lookups.push(self.sigil eq '&'
-            ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
-            !! nqp::null
-        );
-
-        self.IMPL-WRAP-LIST(@lookups)
+        [ self.IMPL-SIGIL-LOOKUP ]
     }
 
-    method IMPL-CALLABLE() {
+    method IMPL-SIGIL-TYPE() {
        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 

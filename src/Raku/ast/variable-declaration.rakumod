@@ -112,32 +112,125 @@ class RakuAST::Initializer::CallAssign
     }
 }
 
+# Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
+# for the lookup created by IMPL-SIGIL-LOOKUP.
 class RakuAST::ContainerCreator {
-    has Mu $!container-base-type;
+    has Mu $!explicit-container-base-type;
     has Mu $!conflicting-base-type;
     has Bool $.forced-dynamic;
+    has Bool $!initialized;
+    has Mu $.container-base-type;
+    has Mu $.container-type;
+    has Mu $.bind-constraint;
 
-    method IMPL-SET-CONTAINER-BASE-TYPE(Mu $type) {
-        if self.IMPL-HAS-CONTAINER-BASE-TYPE {
-            nqp::bindattr(self, RakuAST::ContainerCreator, '$!conflicting-base-type', $!container-base-type);
+    method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(Mu $type) {
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+            nqp::bindattr(self, RakuAST::ContainerCreator, '$!conflicting-base-type', $!explicit-container-base-type);
         }
-        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $type);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!explicit-container-base-type', $type);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', False);
     }
 
-    method IMPL-HAS-CONTAINER-BASE-TYPE() {
-        !nqp::eqaddr($!container-base-type, Mu)
+    method IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE() {
+        !nqp::eqaddr($!explicit-container-base-type, Mu)
     }
 
     method IMPL-HAS-CONFLICTING-BASE-TYPE() {
         !nqp::eqaddr($!conflicting-base-type, Mu)
     }
 
-    method IMPL-CONTAINER-BASE-TYPE() {
-        $!container-base-type
+    method IMPL-EXPLICIT-CONTAINER-BASE-TYPE() {
+        $!explicit-container-base-type
     }
 
     method IMPL-CONFLICTING-BASE-TYPE() {
         $!conflicting-base-type
+    }
+
+    method IMPL-SIGIL-LOOKUP() {
+        my $types := nqp::hash(
+            '@', 'Positional',
+            '%', 'Associative',
+            '&', 'Callable',
+        );
+        my $sigil := self.sigil;
+
+        nqp::existskey($types, $sigil)
+            ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($types{$sigil}))
+            !! nqp::null
+    }
+
+    method IMPL-CALCULATE-TYPES(Mu $of, Mu :$key-type) {
+        return Nil if $!initialized;
+
+        # Form the container type.
+        my str $sigil := self.sigil;
+        my $container-base-type;
+        my $container-type;
+        my $bind-constraint := Mu;
+        if nqp::eqaddr($!explicit-container-base-type, Mu) {
+            if $sigil eq '@' {
+                $bind-constraint := self.IMPL-SIGIL-TYPE;
+                $container-base-type := nqp::objprimspec($of) ?? array !! Array;
+                if self.type {
+                    $container-type := $container-base-type.HOW.parameterize($container-base-type, $of);
+                    $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
+                }
+                else {
+                    $container-type := Array;
+                }
+            }
+            elsif $sigil eq '%' {
+                $container-base-type := Hash;
+                $bind-constraint := self.IMPL-SIGIL-TYPE;
+                if $key-type =:= NQPMu {
+                    if self.type {
+                        $container-type := Hash.HOW.parameterize(Hash, $of);
+                        $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
+                    }
+                    else {
+                        $container-type := Hash;
+                    }
+                }
+                else {
+                    if self.type {
+                        $container-type := Hash.HOW.parameterize(Hash, $of, $key-type);
+                        $bind-constraint := $bind-constraint.HOW.parameterize(
+                            $bind-constraint, $of, $key-type);
+                    }
+                    else {
+                        $container-type := Hash.HOW.parameterize(
+                            Hash, $!explicit-container-base-type, $key-type);
+                        $bind-constraint := $bind-constraint.HOW.parameterize(
+                            $bind-constraint, $!explicit-container-base-type, $key-type);
+                    }
+                }
+            }
+            elsif $sigil eq '&' {
+                $container-base-type := Scalar;
+                my $Callable := self.IMPL-SIGIL-TYPE;
+                $container-type := self.type
+                    ?? $Callable.HOW.parameterize($Callable, $of)
+                    !! $Callable;
+                $bind-constraint := $container-type;
+            }
+            else {
+                $container-base-type := Scalar;
+                $container-type := $of; #FIXME pretty sure container-type should also be Scalar
+            }
+        }
+        else {
+            $container-type := self.type
+                ?? $!explicit-container-base-type.HOW.parameterize($!explicit-container-base-type, $of)
+                !! $!explicit-container-base-type;
+        }
+
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $container-base-type);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-type', $container-type);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!bind-constraint', $bind-constraint);
+
+        Nil
     }
 
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
@@ -158,85 +251,39 @@ class RakuAST::ContainerCreator {
         ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
     }
 
-    method IMPL-CONTAINER-TYPE(Mu $of, Mu :$key-type) {
-        # Form the container type.
-        my str $sigil := self.sigil;
-        my $container-type;
-        if nqp::eqaddr($!container-base-type, Mu) {
-            if $sigil eq '@' {
-                my $container-base-type := nqp::objprimspec($of) ?? array !! Array;
-                $container-type := self.type
-                    ?? $container-base-type.HOW.parameterize($container-base-type, $of)
-                    !! Array;
-            }
-            elsif $sigil eq '%' {
-                $container-type := $key-type =:= NQPMu
-                  ?? self.type
-                    ?? Hash.HOW.parameterize(Hash, $of)
-                    !! Hash
-                  !! Hash.HOW.parameterize(
-                       Hash,
-                       self.type ?? $of !! $!container-base-type,
-                       $key-type
-                     )
-            }
-            elsif $sigil eq '&' {
-                my $Callable := self.IMPL-CALLABLE;
-                $container-type := self.type
-                    ?? $Callable.HOW.parameterize($Callable, $of)
-                    !! $Callable;
-            }
-            else {
-                $container-type := $of
-            }
-            $container-type
-        }
-        else {
-            self.type
-                ?? $!container-base-type.HOW.parameterize($!container-base-type, $of)
-                !! $!container-base-type
-        }
+    method IMPL-CONTAINER-TYPE(Mu $of) {
+        self.IMPL-CALCULATE-TYPES($of);
+
+        self.container-type
     }
 
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc, Bool :$attribute) {
+        self.IMPL-CALCULATE-TYPES($of);
+
+        my $container-type := self.container-type;
         # Form the container.
         my str $sigil := self.sigil;
         my $default := self.type
-            ?? $sigil eq '&' ?? self.IMPL-CALLABLE !! RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of)
+            ?? $sigil eq '&' ?? self.IMPL-SIGIL-TYPE !! RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of)
             !! Any;
-        my $container-base-type;
-        my $container-type;
-        if nqp::eqaddr($!container-base-type, Mu) {
-            if $sigil eq '@' {
-                $container-base-type := nqp::objprimspec($of) ?? array !! Array;
-                $container-type := self.type
-                    ?? $container-base-type.HOW.parameterize($container-base-type, $of)
-                    !! Array;
-            }
-            elsif $sigil eq '%' {
-                $container-base-type := Hash;
-                $container-type := self.type
-                    ?? Hash.HOW.parameterize(Hash, $of)
-                    !! Hash;
-            }
-            else {
+        if nqp::eqaddr($!explicit-container-base-type, Mu) {
+            if $sigil ne '@' && $sigil ne '%' {
                 if nqp::objprimspec($of) {
                     nqp::die("Natively typed state variables not yet implemented") if self.scope eq 'state';
                     return nqp::null unless $attribute;
                 }
 
-                $container-base-type := Scalar;
                 $container-type := Scalar;
             }
             my $container := nqp::create($container-type);
-            try nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
+            try nqp::bindattr($container, $!container-base-type, '$!descriptor', $cont-desc);
             unless $sigil eq '@' || $sigil eq '%' {
-                nqp::bindattr($container, $container-base-type, '$!value', $default);
+                nqp::bindattr($container, $!container-base-type, '$!value', $default);
             }
             $container
         }
         else {
-            $!container-base-type
+            $!explicit-container-base-type
         }
     }
 }
@@ -623,6 +670,13 @@ class RakuAST::VarDeclaration::Simple
           !! Mu;
     }
 
+    method IMPL-CALCULATE-TYPES(Mu $of) {
+        my &calculate-types := nqp::findmethod(RakuAST::ContainerCreator, 'IMPL-CALCULATE-TYPES');
+        $!shape && self.sigil eq '%'
+            ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
+            !! &calculate-types(self, $of);
+    }
+
     method PERFORM-BEGIN(
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
@@ -654,7 +708,7 @@ class RakuAST::VarDeclaration::Simple
 
                 # an actual type
                 if nqp::isconcrete($type) && !$_.argument && $type.is-resolved {
-                    self.IMPL-SET-CONTAINER-BASE-TYPE($type.resolution.compile-time-value);
+                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.resolution.compile-time-value);
                     next;
                 }
             }
@@ -675,7 +729,7 @@ class RakuAST::VarDeclaration::Simple
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
         if $scope eq 'has' || $scope eq 'HAS' {
-            if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-CONTAINER-BASE-TYPE || $subset {
+            if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
                         RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
@@ -688,9 +742,7 @@ class RakuAST::VarDeclaration::Simple
                         :compile-time-value(
                             $!sigil eq '$'
                                 ?? self.meta-object
-                                !! $!shape && self.sigil eq '%'
-                                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-                                    !! self.IMPL-CONTAINER-TYPE($of)
+                                !! self.IMPL-CONTAINER-TYPE($of)
                         )
                     ),
                     postfix => RakuAST::Call::Method.new(
@@ -805,7 +857,7 @@ class RakuAST::VarDeclaration::Simple
         self.add-sorry(
           $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             outer => self.IMPL-CONFLICTING-BASE-TYPE,
-            inner => self.IMPL-CONTAINER-BASE-TYPE,
+            inner => self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE,
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
         my $type := self.type;
@@ -847,10 +899,7 @@ class RakuAST::VarDeclaration::Simple
           !! nqp::null
         );
 
-        @lookups.push(self.sigil eq '&'
-            ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
-            !! nqp::null
-        );
+        @lookups.push(self.IMPL-SIGIL-LOOKUP);
 
         @lookups.push(
             RakuAST::Var::Lexical.new(
@@ -863,7 +912,7 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-WRAP-LIST(@lookups)
     }
 
-    method IMPL-CALLABLE() {
+    method IMPL-SIGIL-TYPE() {
        self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value
     }
 
@@ -875,8 +924,8 @@ class RakuAST::VarDeclaration::Simple
         my $of := self.IMPL-OF-TYPE;
         my $default := self.sigil eq '&'
             ?? $!type
-                ?? self.IMPL-CALLABLE.HOW.parameterize(self.IMPL-CALLABLE, $of)
-                !! self.IMPL-CALLABLE
+                ?? self.IMPL-SIGIL-TYPE.HOW.parameterize(self.IMPL-SIGIL-TYPE, $of)
+                !! self.IMPL-SIGIL-TYPE
             !! $of;
         my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($default);
 
@@ -890,13 +939,7 @@ class RakuAST::VarDeclaration::Simple
         #   )
         # )
         my $object-hash := $!shape && self.sigil eq '%';
-        my $type        := self.IMPL-CONTAINER-TYPE(
-          $of,
-          :key-type($object-hash
-            ?? $!shape.code-statements[0].expression.compile-time-value
-            !! NQPMu
-          )
-        );
+        my $type        := self.IMPL-CONTAINER-TYPE($of);
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
@@ -964,10 +1007,8 @@ class RakuAST::VarDeclaration::Simple
                     :scope('lexical'), :decl('contvar'), :name(self.name),
                     :value($container)
                 );
-                if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
-                    my $value := $!shape && self.sigil eq '%'
-                        ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-                        !! self.IMPL-CONTAINER-TYPE($of);
+                if $!shape || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+                    my $value := self.IMPL-CONTAINER-TYPE($of);
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
@@ -1062,10 +1103,16 @@ class RakuAST::VarDeclaration::Simple
                 my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
                 my $perform-init-qast;
                 if $!initializer.is-binding {
-                    # TODO type checking of source
                     my $source := $sigil eq '@' || $sigil eq '%'
                       ?? QAST::Op.new( :op('decont'), $init-qast)
                       !! $init-qast;
+                    my $type := self.bind-constraint;
+                    $context.ensure-sc($type);
+                    if !nqp::eqaddr($type, Mu) {
+                        $source := QAST::Op.new(
+                            :op('p6bindassert'),
+                            $source, QAST::WVal.new( :value($type) ))
+                    }
                     $perform-init-qast := QAST::Op.new(
                       :op('bind'), $var-access, $source
                     );

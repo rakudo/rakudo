@@ -1527,6 +1527,11 @@ class RakuAST::ApplyDottyInfix
         $obj
     }
 
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!right.add-colonpair($pair);
+        Nil
+    }
+
     method properties() { $!infix.properties }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

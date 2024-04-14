@@ -663,6 +663,14 @@ role Raku::Common {
           unless $*LANG.pragma('p5isms');
         self
     }
+    method worryobs($old, $new, $when = 'in Raku') {
+        self.typed-worry('X::Obsolete',
+            old         => $old,
+            replacement => $new,
+            when        => $when,
+        ) unless $*LANG.pragma('p5isms');
+        self
+    }
     method obsbrace() {
         self.obs: 'curlies around escape argument', 'square brackets';
     }
@@ -2992,6 +3000,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         'nqp::const::' $<const>=[\w+]
     }
 
+    my %deftrap := nqp::hash(
+        'say', 1, 'print', 1, 'abs', 1, 'chomp', 1, 'chop', 1, 'chr', 1, 'cos', 1,
+        'defined', 1, 'exp', 1, 'lc', 1, 'log', 1, 'mkdir', 1, 'ord', 1, 'reverse', 1,
+        'rmdir', 1, 'sin', 1, 'split', 1, 'sqrt', 1, 'uc', 1, 'unlink', 1, 'fc', 1,
+
+        'WHAT', 2, 'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2, 'any', 2,
+        'all', 2, 'none', 2, 'one', 2, 'set', 2, 'bag', 2, 'tclc', 2, 'wordcase', 2, 'put', 2,
+    );
+
     token term:sym<name> {
         :my $*IS-TYPE;
         <longname>
@@ -3038,26 +3055,45 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || [ \\ <?before '('> ]?
              <args(1)>
              {
-                 my $name := ~$<longname>;
-                 unless $<args><invocant> {
-                     if $*BORG<block> {
-                         unless $*BORG<name> {
-                             $*BORG<name> := $*BORG<name> // $name;
-                         }
-                     }
-                 }
-                 unless $*LANG.pragma('p5isms') {
-                     if $name eq 'say' || $name eq 'put' || $name eq 'print' {
-                         my $al := $<args><arglist>;
-                         my int $ok;
-                         $ok := 1 unless $al<EXPR> eq '';
-                         $ok := 1 if $<args><semiarglist>;
-                         unless $ok {
-                             $<longname>.sorryobs: "bare \"$name\"", ".$name if to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun";
-                         }
-                     }
-                 }
-             }
+                my $name := ~$<longname>;
+                unless $<args>.ast.invocant {
+                    if $*BORG<block> {
+                        unless $*BORG<name> {
+                            $*BORG<name> := $*BORG<name> // $name;
+                        }
+                    }
+                    my $nextch := nqp::substr($/.orig, $/.pos, 1) || ' ';
+                    if %deftrap{$name} {
+                        my $al := $<args><arglist>;
+                        my int $ok := 0;
+                        $ok := 1 unless $al<EXPR> eq '';
+                        $ok := 1 if $<args><semiarglist>;
+                        unless $ok {
+                            my $trap := %deftrap{$name};
+                            if nqp::index('<[{', $nextch) >= 0 {
+                                $/.typed-panic('X::Syntax::Confused', reason => "Use of non-subscript brackets after \"$name\" where postfix is expected; please use whitespace before any arguments")
+                            }
+                            elsif nqp::index('$@%&+-/*', $nextch) >= 0 {
+                                $/.typed-panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
+                            }
+                            else {
+                                my $missing := $/.terminator() || $/.infixish();
+                                $/.'!clear_highwater'();  # don't have suppose
+                                my $orry := $missing ?? "sorry" !! "worry";
+                                if $trap == 1 {        # probably misused P5ism
+                                    $<longname>."{$orry}obs"("bare \"$name\"", ".$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
+                                }
+                                elsif $trap == 2 {        # probably misused P6ism
+                                    $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
+                                }
+                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
+                                  if $orry eq 'worry'
+                                  && !$*LANG.pragma('p5isms');
+                            }
+                        }
+                    }
+                }
+            }
         ]
     }
 

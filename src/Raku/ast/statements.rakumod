@@ -1847,8 +1847,8 @@ class RakuAST::Statement::Require
             my $top := @components.shift.name;
             $existing-path := QAST::Op.new(:op<call>, :name('&infix:<,>'));
             my $existing-lookup := $!existing-lookup;
-            if $existing-lookup.is-resolved {
-                my $existing := $existing-lookup.resolution.compile-time-value;
+            if $existing-lookup && nqp::istype($existing-lookup, RakuAST::CompileTimeValue) {
+                my $existing := $existing-lookup.compile-time-value;
                 $current := nqp::who($existing);
                 $top-existing := QAST::WVal.new(:value($existing));
                 $existing-path.push: QAST::SVal.new(:value($top));

@@ -36,13 +36,26 @@ role Perl6::Metamodel::ConcretizationCache {
 
     method add_conc_to_cache($class, $role, @pos, %named, $concretization) {
         my $capture := self.'!make_capture'(@pos, %named);
+
         unless nqp::isnull($capture) {
-            my $obj-id := ~nqp::objectid($role);
-            nqp::scwbdisable();
-            %!conc_cache{$obj-id} := [] unless %!conc_cache{$obj-id};
-            nqp::push(%!conc_cache{$obj-id}, [$capture, $concretization]);
-            nqp::scwbenable();
+            self.protect({
+                my %conc_cache := nqp::clone(%!conc_cache);
+                my str $obj-id := ~nqp::objectid($role);
+
+                nqp::push(
+                  nqp::ifnull(
+                    nqp::atkey(%conc_cache, $obj-id),
+                    nqp::bindkey(%conc_cache, $obj-id, nqp::list)
+                  ),
+                  nqp::list($capture, $concretization)
+                );
+
+                nqp::scwbdisable;
+                %!conc_cache := %conc_cache;
+                nqp::scwbenable;
+            });
         }
+
         $concretization
     }
 

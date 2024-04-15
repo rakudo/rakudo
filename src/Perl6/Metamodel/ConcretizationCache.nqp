@@ -62,17 +62,27 @@ role Perl6::Metamodel::ConcretizationCache {
     method get_cached_conc($class, $role, @pos, %named) {
         my $capture := self.'!make_capture'(@pos, %named);
         unless nqp::isnull($capture) {
-            my $obj-id := ~nqp::objectid($role);
-            if nqp::existskey(%!conc_cache, $obj-id) {
-                for %!conc_cache{$obj-id} {
-                    return $_[1] if try $capture.ACCEPTS($_[0]);
+            my %conc_cache := %!conc_cache;
+            my str $obj-id := ~nqp::objectid($role);
+
+            if nqp::existskey(%conc_cache, $obj-id) {
+                my @cached := nqp::atkey(%conc_cache, $obj-id);
+
+                my int $m := nqp::elems(@cached);
+                my int $i;
+                while $i < $m {
+                    my $entry := nqp::atpos(@cached, $i);
+                    (try $capture.ACCEPTS(nqp::atpos($entry, 0)))
+                      ?? (return nqp::atpos($entry, 1))
+                      !! ++$i;
                 }
             }
         }
-        nqp::null()
+
+        nqp::null
     }
 
-    method wipe_conc_cache() { %!conc_cache := nqp::hash() }
+    method wipe_conc_cache() { %!conc_cache := nqp::hash }
 }
 
 # vim: expandtab sw=4

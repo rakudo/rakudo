@@ -237,10 +237,6 @@ class RakuAST::ContainerCreator {
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
         # If it's a natively typed scalar, no container.
         my str $sigil := self.sigil;
-        my int $is-native := nqp::objprimspec($of);
-        if $sigil eq '$' && $is-native {
-            return Nil;
-        }
 
         # Form container descriptor.
         my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;

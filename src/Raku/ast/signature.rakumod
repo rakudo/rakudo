@@ -1327,6 +1327,7 @@ class RakuAST::ParameterTarget::Var
                    :scope('anon'),
                    :sigil($name),
                    :type(Mu),
+                   :is-parameter,
                  )
               !! RakuAST::VarDeclaration::Simple.new(
                   :scope($obj.scope),
@@ -1335,6 +1336,7 @@ class RakuAST::ParameterTarget::Var
                   :$twigil,
                   :type(Mu),
                   :$forced-dynamic,
+                  :is-parameter,
                 )
         );
         $obj

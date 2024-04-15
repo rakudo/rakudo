@@ -121,6 +121,7 @@ class RakuAST::ContainerCreator {
     has Bool $!initialized;
     has Mu $.container-base-type;
     has Mu $.container-type;
+    has ContainerDescriptor $.container-descriptor;
     has Mu $.bind-constraint;
 
     method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(Mu $type) {
@@ -231,21 +232,23 @@ class RakuAST::ContainerCreator {
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-type', $container-type);
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!bind-constraint', $bind-constraint);
 
+        # Form container descriptor.
+        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
+        my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
+                nqp::eqaddr($of, Mu)
+                ?? ContainerDescriptor::Untyped
+                !! ContainerDescriptor
+            ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
+        );
+
         Nil
     }
 
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
-        # If it's a natively typed scalar, no container.
-        my str $sigil := self.sigil;
+        self.IMPL-CALCULATE-TYPES($of);
 
-        # Form container descriptor.
-        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
-        my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
-        (
-            nqp::eqaddr($of, Mu)
-            ?? ContainerDescriptor::Untyped
-            !! ContainerDescriptor
-        ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
+        self.container-descriptor
     }
 
     method IMPL-CONTAINER-TYPE(Mu $of) {
@@ -517,6 +520,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Type        $!conflicting-type;
     has RakuAST::Expression  $.where;
     has RakuAST::Type        $.original-type;
+    has Bool                 $!is-parameter;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -530,6 +534,7 @@ class RakuAST::VarDeclaration::Simple
         RakuAST::Initializer :$initializer,
            RakuAST::SemiList :$shape,
                         Bool :$forced-dynamic,
+                        Bool :$is-parameter,
          RakuAST::Expression :$where,
     RakuAST::Doc::Declarator :$WHY
     ) {
@@ -554,6 +559,8 @@ class RakuAST::VarDeclaration::Simple
           RakuAST::Method);
         nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
           $forced-dynamic ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
+          $is-parameter ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
           $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
@@ -879,6 +886,26 @@ class RakuAST::VarDeclaration::Simple
                           $resolver.build-exception: 'X::Syntax::Number::LiteralType',
                             :varname(self.name), :$vartype, :$value;
                     }
+                }
+            }
+        }
+
+        if self.sigil eq '$' && !self.initializer && !$!is-parameter {
+            my $descriptor := self.container-descriptor;
+            my $ddefault := $descriptor.default;
+            my $bind-constraint := self.bind-constraint;
+            unless $ddefault.HOW.archetypes.generic || $bind-constraint.HOW.archetypes.generic {
+                my $matches;
+                my $maybe := 0;
+                try {
+                    $matches := nqp::istype($ddefault, $bind-constraint);
+                }
+                unless $matches {
+                    self.add-sorry(
+                        $resolver.build-exception: 'X::Syntax::Variable::MissingInitializer',
+                            what => self.scope eq 'has' || self.scope eq 'HAS' ?? 'attribute' !! 'variable',
+                            type => nqp::how($bind-constraint).name($bind-constraint),
+                    );
                 }
             }
         }
@@ -1383,7 +1410,7 @@ class RakuAST::VarDeclaration::Anonymous
   is RakuAST::VarDeclaration::Simple
 {
     method new(str :$sigil!, str :$twigil, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
-               str :$scope) {
+               str :$scope, Bool :$is-parameter) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname',
             self.IMPL-GENERATE-NAME());
@@ -1393,6 +1420,8 @@ class RakuAST::VarDeclaration::Anonymous
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
+          $is-parameter ?? True !! False);
         $obj
     }
 

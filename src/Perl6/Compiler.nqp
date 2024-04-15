@@ -282,43 +282,6 @@ class Perl6::Compiler is HLL::Compiler {
 
     method usage($name?, :$use-stderr = False) {
 	my $print-func := $use-stderr ?? &note !! &say;
-    my $compiler := nqp::getcomp("Raku").backend.name;
-    my $moar-options := '';
-    if nqp::getcomp("Raku").backend.name eq 'moar' {
-        $moar-options := q♥  --profile[=name]     write profile information to a file
-                       Extension controls format:
-                           .json outputs in JSON
-                           .sql  outputs in SQL
-                           any other extension outputs in HTML
-  --profile-compile[=name]
-                       write compile-time profile information to a file
-                       Extension controls format:
-                         .json outputs in JSON
-                         .sql  outputs in SQL
-                         any other extension outputs in HTML
-  --profile-kind[=name]
-                       choose the type of profile to generate
-                         instrumented - performance measurements (default)
-                         heap - record heap snapshots after every garbage
-                         collector run
-  --profile-filename=name
-                       provide a different filename for profile.
-                       Extension controls format:
-                         .json outputs in JSON
-                         .sql  outputs in SQL
-                         any other extension outputs in HTML
-                       This option will go away in a future Rakudo release
-  --profile-stage=stage
-                       write profile information for the given compilation
-                       stage to a file. Use --profile-compile to set name
-                       and format
-  --full-cleanup       try to free all memory and exit cleanly
-  --debug-port=port    listen for incoming debugger connections
-  --debug-suspend      pause execution at the entry point
-  --tracing            output a line to stderr on every interpreter instr
-                       (only if enabled in MoarVM)
-♥;
-    }
     $print-func(($name ?? $name !! "") ~ qq♥ [switches] [--] [programfile] [arguments]
 
 With no arguments, enters a REPL (see --repl-mode option).
@@ -354,7 +317,40 @@ and, by default, also executes the compiled code.
                        a program, without any extra output (in fact, no REPL
                        machinery is even loaded). This option allows to bypass
                        TTY detection and force one of the REPL modes.
-$moar-options
+#?if moar
+  --profile[=name]     write profile information to a file
+                       Extension controls format:
+                           .json outputs in JSON
+                           .sql  outputs in SQL
+                           any other extension outputs in HTML
+  --profile-compile[=name]
+                       write compile-time profile information to a file
+                       Extension controls format:
+                         .json outputs in JSON
+                         .sql  outputs in SQL
+                         any other extension outputs in HTML
+  --profile-kind[=name]
+                       choose the type of profile to generate
+                         instrumented - performance measurements (default)
+                         heap - record heap snapshots after every garbage
+                         collector run
+  --profile-filename=name
+                       provide a different filename for profile.
+                       Extension controls format:
+                         .json outputs in JSON
+                         .sql  outputs in SQL
+                         any other extension outputs in HTML
+                       This option will go away in a future Rakudo release
+  --profile-stage=stage
+                       write profile information for the given compilation
+                       stage to a file. Use --profile-compile to set name
+                       and format
+  --full-cleanup       try to free all memory and exit cleanly
+  --debug-port=port    listen for incoming debugger connections
+  --debug-suspend      pause execution at the entry point
+  --tracing            output a line to stderr on every interpreter instr
+                       (only if enabled in MoarVM)
+#?endif
 Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:

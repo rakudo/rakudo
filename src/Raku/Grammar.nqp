@@ -1688,6 +1688,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<eager> {
         <.stmt-prefix-eager> <.kok> <blorst>
     }
+    token statement-prefix:sym<sink> {
+        <.stmt-prefix-sink> <.kok> <blorst>
+    }
     token statement-prefix:sym<gather> {
         <.stmt-prefix-gather> <.kok> <blorst>
     }

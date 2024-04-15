@@ -903,6 +903,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Simple prefixes that just take a blorst
     method statement-prefix:sym<do>($/)      { self.SP-prefix($/, 'Do')      }
     method statement-prefix:sym<eager>($/)   { self.SP-prefix($/, 'Eager')   }
+    method statement-prefix:sym<sink>($/)    { self.SP-prefix($/, 'Sink')   }
     method statement-prefix:sym<gather>($/)  { self.SP-prefix($/, 'Gather')  }
     method statement-prefix:sym<once>($/)    { self.SP-prefix($/, 'Once')    }
     method statement-prefix:sym<quietly>($/) { self.SP-prefix($/, 'Quietly') }

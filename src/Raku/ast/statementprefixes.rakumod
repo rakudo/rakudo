@@ -117,6 +117,13 @@ class RakuAST::StatementPrefix::Eager
     method allowed-on-for-statement() { True }
 }
 
+# The `eager` statement prefix.
+class RakuAST::StatementPrefix::Sink
+  is RakuAST::StatementPrefix::CallMethod
+{
+    method type() { "sink" }
+}
+
 # The `try` statement prefix.
 class RakuAST::StatementPrefix::Try
   is RakuAST::StatementPrefix

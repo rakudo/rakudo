@@ -815,6 +815,12 @@ class RakuAST::Type::Subset
         self.IMPL-INSTALL-PACKAGE(
           $resolver, self.scope, $!name, $package, :meta-object(Mu)
         );
+
+        self.meta-object; # Finish meta-object setup so compile time type-checks will be correct
+        if $block && $block.IMPL-CURRIED {
+            # Cache QAST with expression as the BEGIN time stub wont know how to get that
+            $block.IMPL-CURRIED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
+        }
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

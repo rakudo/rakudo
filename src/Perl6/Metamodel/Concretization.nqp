@@ -5,7 +5,11 @@ role Perl6::Metamodel::Concretization {
     has %!conc_table;
 
     method add_concretization($XXX, $role, $concrete) {
-        nqp::push(@!concretizations, nqp::list($role, $concrete))
+        self.protect({
+            my @concretizations := nqp::clone(@!concretizations);
+            nqp::push(@concretizations, nqp::list($role, $concrete));
+            @!concretizations := @concretizations;
+        });
     }
 
     method concretizations($target, :$local, :$transitive = 1) {
@@ -75,7 +79,7 @@ role Perl6::Metamodel::Concretization {
             # thread-safe context, e.g. MRO-based method dispatch. Parsing
             # a grammar from a start block can lead to a concurrent access
             # and modification, for instance.
-            my %conc_table := %!conc_table;
+            my %conc_table := nqp::clone(%!conc_table);
             my int $cached := nqp::elems(%conc_table);
 
             if $cached < $captured {

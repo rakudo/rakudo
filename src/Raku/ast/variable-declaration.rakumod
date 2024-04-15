@@ -217,6 +217,7 @@ class RakuAST::ContainerCreator {
             else {
                 $container-base-type := Scalar;
                 $container-type := $of; #FIXME pretty sure container-type should also be Scalar
+                $bind-constraint := $of;
             }
         }
         else {

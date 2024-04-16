@@ -349,7 +349,8 @@ class RakuAST::Resolver {
 
                 else {
                     return RakuAST::Declaration::External.new(
-                      :lexical-name($name)
+                      :lexical-name($name),
+                      :maybe-compile-time-value(nqp::atkey($context, $name))
                     );
                 }
             }

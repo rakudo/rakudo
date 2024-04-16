@@ -428,11 +428,14 @@ class RakuAST::Declaration::External
 {
     has str $.lexical-name;
     has Mu $!native-type;
+    has Mu $.maybe-compile-time-value; # Must not be assumed constant in this base-class.
 
-    method new(str :$lexical-name, Mu :$native-type) {
+    method new(str :$lexical-name, Mu :$native-type, Mu :$maybe-compile-time-value) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::External, '$!native-type', $native-type);
+        nqp::bindattr($obj, RakuAST::Declaration::External,
+            '$!maybe-compile-time-value', $maybe-compile-time-value);
         $obj
     }
 

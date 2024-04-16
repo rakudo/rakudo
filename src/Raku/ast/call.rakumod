@@ -206,6 +206,7 @@ class RakuAST::Call {
 class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
+  is RakuAST::CheckTime
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
@@ -252,6 +253,50 @@ class RakuAST::Call::Name
 
     method undeclared-symbol-details() {
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if self.is-resolved && (
+            nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+            || nqp::can(self.resolution, 'maybe-compile-time-value')
+        ) {
+            my $routine := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                ?? self.resolution.compile-time-value
+                !! self.resolution.maybe-compile-time-value;
+            if nqp::isconcrete($routine) && nqp::istype($routine, Code) {
+                my $sig := $routine.signature;
+                my @types;
+                my @flags;
+                my $ok := 1;
+                for self.IMPL-UNWRAP-LIST(self.args.args) {
+                    my $type := $_.type;
+                    nqp::push(@types, $type);
+                    $ok := 0 if $type =:= Mu; # Don't know the type
+                    nqp::push(@flags, nqp::objprimspec($type));
+                }
+                if $ok {
+                    my $ct_result := nqp::p6trialbind($sig, @types, @flags);
+                    if $ct_result == -1 {
+                        my @arg_names;
+                        my int $i := -1;
+                        while ++$i < +@types {
+                            @arg_names.push(
+                                @flags[$i] == 1  ?? 'int' !!
+                                @flags[$i] == 2  ?? 'num' !!
+                                @flags[$i] == 3  ?? 'str' !!
+                                @flags[$i] == 10 ?? 'uint' !!
+                                @types[$i].HOW.name(@types[$i]));
+                        }
+
+                        self.add-sorry(
+                            $resolver.build-exception: 'X::TypeCheck::Argument',
+                                :objname($!name.canonicalize),
+                                :arguments(@arg_names),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

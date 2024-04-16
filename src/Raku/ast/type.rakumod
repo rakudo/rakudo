@@ -66,6 +66,7 @@ class RakuAST::Type
     }
 
     method is-native() { False }
+    method is-coercive() { False }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.
@@ -118,6 +119,11 @@ class RakuAST::Type::Simple
         nqp::lc($name) eq $name
     }
 
+    method is-coercive() {
+        my $type := self.resolution.compile-time-value;
+        $type.HOW.archetypes($type).coercive
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
     }
@@ -149,6 +155,10 @@ class RakuAST::Type::Derived
         Nil
     }
 
+    method is-coercive() {
+        self.base-type.is-coercive
+    }
+
     method IMPL-BASE-TYPE() {
         nqp::istype($!base-type, RakuAST::Type::Derived) ?? $!base-type.IMPL-BASE-TYPE !! $!base-type
     }
@@ -170,6 +180,8 @@ class RakuAST::Type::Coercion
         );
         $obj
     }
+
+    method is-coercive() { True }
 
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::CoercionHOW.new_type(
@@ -746,6 +758,12 @@ class RakuAST::Type::Subset
 
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
+
+    method is-coercive() {
+        $!of
+            ?? $!of.type.is-coercive
+            !! False
+    }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.meta-object;

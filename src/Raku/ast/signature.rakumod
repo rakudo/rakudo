@@ -705,7 +705,7 @@ class RakuAST::Parameter
               !! nqp::const::SIG_ELEM_UNDEFINED_ONLY
             );
         }
-        if nqp::istype($!type, RakuAST::Type::Coercion) {
+        if $!type.is-coercive {
             $flags := $flags +| nqp::const::SIG_ELEM_IS_COERCIVE;
         }
         if $!type {

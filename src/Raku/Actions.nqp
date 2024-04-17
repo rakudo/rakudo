@@ -205,7 +205,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
         if $version {
             my @vparts         := $HLL-COMPILER.lvs.from-public-repr($version);
-            my $vWant          := $HLL-COMPILER.lvs.from-public-repr($version, :as-version);
             my %lang-revisions := $HLL-COMPILER.language_revisions;
             my @final-version;
             my $modifier-deprecated;
@@ -295,9 +294,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
 
             $HLL-COMPILER.set_language_version(@final-version);
-            my $can_rev := nqp::unbox_i($vWant.parts.AT-POS(0));
-            $HLL-COMPILER.set_language_revision: $can_rev;
             $language-revision := @final-version[0];
+            $HLL-COMPILER.set_language_revision: $language-revision;
             resolver-from-revision();
 
             # Now the resolver is final, express our modifier concern!

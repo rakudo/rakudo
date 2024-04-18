@@ -521,6 +521,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Expression  $.where;
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
+    has Bool                 $!is-rw;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -565,6 +566,7 @@ class RakuAST::VarDeclaration::Simple
           $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
           $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
 
         if $WHY {
             $scope && $scope eq 'has'
@@ -590,6 +592,10 @@ class RakuAST::VarDeclaration::Simple
 
     method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
+    }
+
+    method set-rw() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
     }
 
     # Generate a lookup of this variable, already resolved to this declaration.
@@ -1014,7 +1020,7 @@ class RakuAST::VarDeclaration::Simple
             if $sigil eq '$' && nqp::objprimspec($of) {
                 # Natively typed; just declare it.
                 QAST::Var.new(
-                    :scope('lexical'), :decl('var'), :name(self.name),
+                    :scope($!is-rw ?? 'lexicalref' !! 'lexical'), :decl('var'), :name(self.name),
                     :returns($of)
                 )
             }
@@ -1212,10 +1218,11 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         my str $scope := self.scope;
+        my $native := nqp::objprimspec(self.IMPL-OF-TYPE);
         nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my' || $scope eq 'state';
         QAST::Op.new(
             :op('bind'),
-            QAST::Var.new( :name(self.name), :scope('lexical') ),
+            QAST::Var.new( :name(self.name), :scope($native && $!is-rw ?? 'lexicalref' !! 'lexical') ),
             $source-qast
         )
     }

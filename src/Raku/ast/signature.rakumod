@@ -643,6 +643,7 @@ class RakuAST::Parameter
                 {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+                    $!target.set-rw;
                     last;
                 }
             }
@@ -1288,6 +1289,7 @@ class RakuAST::Parameter
 class RakuAST::ParameterTarget
   is RakuAST::Node
 {
+    method set-rw() { }
     method sigil() { '' }
     method name() { '' }
 }
@@ -1408,6 +1410,10 @@ class RakuAST::ParameterTarget::Var
     method set-container-type(Mu $type, Mu $of) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
+    }
+
+    method set-rw() {
+        $!declaration.set-rw;
     }
 
     method attach(RakuAST::Resolver $resolver) {

@@ -256,6 +256,8 @@ class RakuAST::Call::Name
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my int $ARG_IS_LITERAL := 32;
+
         if self.is-resolved && (
             nqp::istype(self.resolution, RakuAST::CompileTimeValue)
             || nqp::can(self.resolution, 'maybe-compile-time-value')
@@ -268,11 +270,16 @@ class RakuAST::Call::Name
                 my @types;
                 my @flags;
                 my $ok := 1;
-                for self.IMPL-UNWRAP-LIST(self.args.args) {
+                my @args := self.IMPL-UNWRAP-LIST(self.args.args);
+                for @args {
                     my $type := $_.type;
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
                     nqp::push(@flags, nqp::objprimspec($type));
+                }
+                if nqp::elems(@types) == 1 && nqp::istype(@args[0], RakuAST::Literal) {
+                    my $rev := @args[0].native-type-flag;
+                    @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
                 }
                 if $ok {
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);

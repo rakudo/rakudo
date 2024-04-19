@@ -30,6 +30,7 @@ class RakuAST::Literal
 
     method expression() { self }
     method type() { $!value.WHAT }
+    method native-type-flag() { Nil }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
@@ -64,6 +65,8 @@ class RakuAST::Constant
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
+    method native-type-flag() { 1 }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
         $context.ensure-sc($value);
@@ -81,6 +84,8 @@ class RakuAST::IntLiteral
 class RakuAST::NumLiteral
   is RakuAST::Literal
 {
+    method native-type-flag() { 2 }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
         $context.ensure-sc($value);
@@ -115,6 +120,8 @@ class RakuAST::MapLiteral
 class RakuAST::StrLiteral
   is RakuAST::Literal
 {
+    method native-type-flag() { 3 }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
         $context.ensure-sc($value);

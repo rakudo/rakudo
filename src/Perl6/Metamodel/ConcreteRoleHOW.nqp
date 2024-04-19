@@ -71,7 +71,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method compose($target) {
-        unless self.is_composed {
+        self.protect({
             $target := nqp::decont($target);
             my @roles_to_compose := self.roles_to_compose;
 
@@ -113,7 +113,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
             self.publish_type_cache($target);
             self.set_composed;
-        }
+        }) unless self.is_composed;
+
         $target
     }
 

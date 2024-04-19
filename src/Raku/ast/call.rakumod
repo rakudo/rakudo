@@ -283,7 +283,11 @@ class RakuAST::Call::Name
                 }
                 if $ok {
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
-                    if $ct_result == -1 {
+                    my @ct_result_multi;
+                    if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && $routine.onlystar {
+                        @ct_result_multi := $routine.analyze_dispatch(@types, @flags);
+                    }
+                    if $ct_result == -1 || @ct_result_multi && @ct_result_multi[0] == -1 {
                         my @arg_names;
                         my int $i := -1;
                         while ++$i < +@types {
@@ -299,6 +303,7 @@ class RakuAST::Call::Name
                             $resolver.build-exception: 'X::TypeCheck::Argument',
                                 :objname($!name.canonicalize),
                                 :arguments(@arg_names),
+                                :protoguilt(@ct_result_multi && $ct_result == -1 ?? True !! False),
                         );
                     }
                 }

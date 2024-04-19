@@ -6,7 +6,11 @@ role Perl6::Metamodel::Trusting {
 
     # Adds a type that we trust.
     method add_trustee($XXX, $trustee) {
-        nqp::push(@!trustees, $trustee);
+        self.protect({
+            my @trustees := nqp::clone(@!trustees);
+            nqp::push(@trustees, $trustee);
+            @!trustees := @trustees;
+        });
     }
 
     # Introspect the types that we trust.

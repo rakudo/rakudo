@@ -7,7 +7,9 @@ plan 14;
 throws-like q<sub foo ( ::T $val ) { my T $a is default($val); }; foo(42)>,
         X::Parameter::Default::TypeCheck,
         "exception isn't lost",
-        message => q<Default value '(Mu)' will never bind to a variable of type T>;
+        # Default type should be Any but as an implementation artefact of the old compiler frontend
+        # at compile time it's Mu. The RakuAST frontend fares better. For now don't be picky.
+        message => rx:s/Default value \'\(\w+\)\' will never bind to a variable of type T/;
 
 # https://github.com/Raku/old-issue-tracker/issues/5728
 throws-like q[multi sub f(int $foo is rw) { }; f(42)],

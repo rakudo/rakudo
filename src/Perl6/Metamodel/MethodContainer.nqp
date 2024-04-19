@@ -23,10 +23,6 @@ role Perl6::Metamodel::MethodContainer {
         $code := nqp::decont(  $code);
         $name := nqp::decont_s($name);
 
-        self.throw_duplicate($target, $name, $code)
-          if nqp::existskey(%!methods, $name)
-          || nqp::existskey(%!submethods, $name);
-
         my str $attr_name :=
 #?if jvm
           !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) &&
@@ -38,6 +34,10 @@ role Perl6::Metamodel::MethodContainer {
         # Add to correct table depending on if it's a Submethod.
         my %table;
         self.protect({
+            self.throw_duplicate($target, $name, $code)
+              if nqp::existskey(%!methods, $name)
+              || nqp::existskey(%!submethods, $name);
+
             %table := nqp::clone(nqp::getattr(self, $?CLASS, $attr_name));
             nqp::bindkey(%table, $name, $code);
             nqp::bindattr(self, $?CLASS, $attr_name, %table);

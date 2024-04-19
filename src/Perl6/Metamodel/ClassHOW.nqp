@@ -113,15 +113,18 @@ class Perl6::Metamodel::ClassHOW
     # and if it is calls $calculator with the object and method name to
     # calculate an invokable object.
     method add_fallback($target, $condition, $calculator) {
+        self.protect({
 #?if !moar
-        # Adding a fallback means any method cache is no longer authoritative.
-        nqp::setmethcacheauth($target, 0);
+            # Adding a fallback means any method cache is no longer
+            # authoritative.
+            nqp::setmethcacheauth($target, 0);
 #?endif
 
-        # Add it in a threadsafe manner
-        my @fallbacks := nqp::clone(@!fallbacks);
-        nqp::push(@fallbacks, Fallback.new($condition, $calculator));
-        @!fallbacks := @fallbacks;
+            # Add it in a threadsafe manner
+            my @fallbacks := nqp::clone(@!fallbacks);
+            nqp::push(@fallbacks, Fallback.new($condition, $calculator));
+            @!fallbacks := @fallbacks;
+        });
     }
 
     # Does the type declare a method by the given name

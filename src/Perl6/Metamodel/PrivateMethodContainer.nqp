@@ -8,11 +8,12 @@ role Perl6::Metamodel::PrivateMethodContainer {
     # Adds a private method.
     method add_private_method($target, $name, $code) {
         $name := nqp::decont_s($name);
-        nqp::die("Private method '$name' already declared in package "
-          ~ self.name($target)
-        ) if nqp::existskey(%!private_methods, $name);
 
         self.protect({
+            nqp::die("Private method '$name' already declared in package "
+              ~ self.name($target)
+            ) if nqp::existskey(%!private_methods, $name);
+
             my %private_methods      := nqp::clone(%!private_methods);
             my @private_methods      := nqp::clone(@!private_methods);
             my @private_method_names := nqp::clone(@!private_method_names);

@@ -30,11 +30,13 @@ role Perl6::Metamodel::BaseType {
             @!mro
         }
         else {
-            my @mro := nqp::clone($!base_type.HOW.mro(
-              $!base_type, :$roles, :$concretizations, :$unhidden
-            ));
-            nqp::unshift(@mro, $target);
-            @!mro := @mro
+            self.protect({
+                my @mro := nqp::clone($!base_type.HOW.mro(
+                  $!base_type, :$roles, :$concretizations, :$unhidden
+                ));
+                nqp::unshift(@mro, $target);
+                @!mro := @mro
+            })
         }
     }
 

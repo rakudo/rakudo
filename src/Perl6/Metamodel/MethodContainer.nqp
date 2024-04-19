@@ -41,38 +41,42 @@ role Perl6::Metamodel::MethodContainer {
             %table := nqp::clone(nqp::getattr(self, $?CLASS, $attr_name));
             nqp::bindkey(%table, $name, $code);
             nqp::bindattr(self, $?CLASS, $attr_name, %table);
-        });
 
-        # See if trait `handles` has been applied and we can use it on the
-        # target type.
-        # XXX Also skip this step if method is being added under a different
-        # name but the original code object has been installed earlier. This
-        # step is here until Method::Also incorporates support for :!handles
-        # argument.
-        if $handles
-          && nqp::can($code, 'apply_handles')
-          && nqp::can(self,  'find_method_fallback') {
-            my @method_order := @!method_order;
+            # See if trait `handles` has been applied and we can use it on
+            # the target type.
+            # XXX Also skip this step if method is being added under a
+            # different name but the original code object has been installed
+            # earlier. This step is here until Method::Also incorporates
+            # support for :!handles argument.
+            if $handles
+              && nqp::can($code, 'apply_handles')
+              && nqp::can(self,  'find_method_fallback') {
+                my @method_order := @!method_order;
 
-            my int $m := nqp::elems(@method_order);
-            my int $i;
-            while $i < $m {
-                nqp::eqaddr(nqp::atpos(@method_order, $i), $code)
-                  ?? (last)
-                  !! ++$i;
+                my int $m := nqp::elems(@method_order);
+                my int $i;
+                while $i < $m {
+                    nqp::eqaddr(nqp::atpos(@method_order, $i), $code)
+                      ?? (last)
+                      !! ++$i;
+                }
+
+                # Apply if none of the methods matched
+                $code.apply_handles($target) if $i == $m;
             }
 
-            # Apply if none of the methods matched
-            $code.apply_handles($target) if $i == $m;
-        }
+            # Adding a method means any cache is no longer authoritative.
+            self.invalidate_method_caches($target)
+              if nqp::can(self, "invalidate_method_caches");
+            %!cache := nqp::hash;
 
-        # Adding a method means any cache is no longer authoritative.
-        self.invalidate_method_caches($target)
-          if nqp::can(self, "invalidate_method_caches");
-        %!cache := nqp::hash;
-
-        nqp::push(@!method_order, $code);
-        nqp::push(@!method_names, $name);
+            my @method_order := nqp::clone(@!method_order);
+            my @method_names := nqp::clone(@!method_names);
+            nqp::push(@method_order, $code);
+            nqp::push(@method_names, $name);
+            @!method_order := @method_order;
+            @!method_names := @method_names;
+        });
 
         # Return updated (sub)method table
         %table

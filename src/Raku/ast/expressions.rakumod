@@ -411,6 +411,52 @@ class RakuAST::Infix
     }
 }
 
+class RakuAST::Mixin
+  is RakuAST::Infix
+{
+    method new(str $operator) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
+        $obj
+    }
+
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        my $qast := QAST::Op.new(
+            :op('call'),
+            :name('&infix:<' ~ self.operator ~ '>'),
+            $left-qast
+        );
+        if nqp::istype($right-qast, QAST::Op) && $right-qast.op eq 'call' {
+            if $right-qast.name && +@($right-qast) == 1 {
+                $qast.push($right-qast);
+            }
+            else {
+                if +@($right-qast) == 2 && $right-qast[0].has_compile_time_value {
+                    $qast.push($right-qast[0]); $right-qast[1].named('value');
+                    $qast.push($right-qast[1]);
+                }
+                else {
+                    $qast.push($right-qast);
+                }
+            }
+        }
+        elsif nqp::istype($right-qast, QAST::Stmts) && +@($right-qast) == 1 &&
+                nqp::istype($right-qast[0], QAST::Op) && $right-qast[0].name eq '&infix:<,>' {
+            for @($right-qast[0]) {
+                $qast.push($_);
+            }
+        }
+        else {
+            $qast.push($right-qast);
+        }
+        $qast
+    }
+}
+
 class RakuAST::Feed
   is RakuAST::Infix
   is RakuAST::BeginTime

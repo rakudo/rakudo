@@ -1353,7 +1353,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Infix').new('before')
     }
     method infix:sym<but>($/) {
-        self.attach: $/, Nodify('Infix').new('but')
+        self.attach: $/, Nodify('Mixin').new('but')
     }
     method infix:sym<cmp>($/) {
         self.attach: $/, Nodify('Infix').new('cmp')
@@ -1368,7 +1368,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Infix').new('div')
     }
     method infix:sym<does>($/) {
-        self.attach: $/, Nodify('Infix').new('does')
+        self.attach: $/, Nodify('Mixin').new('does')
     }
     method infix:sym<(elem)>($/) {
         self.attach: $/, Nodify('Infix').new('(elem)')

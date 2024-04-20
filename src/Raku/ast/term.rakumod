@@ -37,6 +37,11 @@ class RakuAST::Term::Name
         Nil
     }
 
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $resolver.build-exception: 'X::Bind::Rebind',
+            :target(self.name.canonicalize)
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if $!name.is-pseudo-package {
             $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);

@@ -1258,7 +1258,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             :my $*GOAL := '{';
             <.enter-block-scope('PointyBlock')>
             {}
-            :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->';
+            :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->' ?? 2 !! 0;
             <signature>
             <blockoid>
             <.leave-block-scope>
@@ -3625,7 +3625,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <variable-declarator>
 
-          | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+          | [
+              :my $*DEFAULT-RW := 1;
+              '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+          ]
 
           | <routine-declarator>
 

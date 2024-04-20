@@ -386,8 +386,10 @@ class RakuAST::Parameter
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type',
           $type // RakuAST::Type);
-        $target.set-type($type)
-          if $target && nqp::can($target, 'set-type') && $type;
+        if $target {
+            $target.set-type($type)
+              if nqp::can($target, 'set-type') && $type;
+        }
         nqp::bindattr($obj, RakuAST::Parameter, '$!target',
           $target // RakuAST::ParameterTarget);
         nqp::bindattr($obj, RakuAST::Parameter, '$!names',
@@ -462,8 +464,14 @@ class RakuAST::Parameter
         Nil
     }
 
+    method set-bindable() {
+        $!target.set-bindable;
+        Nil
+    }
+
     method set-default-rw() {
         nqp::bindattr(self, RakuAST::Parameter, '$!default-rw', True);
+        $!target.set-rw;
         Nil
     }
 
@@ -643,6 +651,7 @@ class RakuAST::Parameter
                 {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+                    $!target.set-bindable;
                     $!target.set-rw;
                     last;
                 }
@@ -1310,12 +1319,14 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::Package $!attribute-package;
     has RakuAST::VarDeclaration::Simple $!declaration;
     has str $!scope;
+    has Bool $!is-bindable;
 
     method new(str :$name!, Bool :$forced-dynamic) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
         nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
           $forced-dynamic ?? True !! False);
         my $sigil := $obj.sigil;
@@ -1394,7 +1405,12 @@ class RakuAST::ParameterTarget::Var
     }
 
     method can-be-bound-to() {
-        True #TODO only when parameter is copy
+        $!is-bindable
+    }
+
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $resolver.build-exception: 'X::Bind::Rebind',
+            :target(self.lexical-name)
     }
 
     method set-type(RakuAST::Type $type) {
@@ -1410,6 +1426,10 @@ class RakuAST::ParameterTarget::Var
     method set-container-type(Mu $type, Mu $of) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
+    }
+
+    method set-bindable() {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', True);
     }
 
     method set-rw() {

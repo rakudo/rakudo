@@ -1402,8 +1402,7 @@ class RakuAST::ApplyInfix
         # a "normal" infix op
         elsif nqp::istype($infix,RakuAST::Infix) {
             if $infix.operator eq ':=' && !$left.can-be-bound-to {
-                self.add-sorry:
-                  $resolver.build-exception: 'X::Bind';
+                self.add-sorry: $left.build-bind-exception($resolver);
             }
         }
         True
@@ -2307,6 +2306,10 @@ class RakuAST::ApplyPostfix
 
     method can-be-bound-to() {
         $!postfix.can-be-bound-to
+    }
+
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $!postfix.build-bind-exception($resolver)
     }
 
     method on-topic() {

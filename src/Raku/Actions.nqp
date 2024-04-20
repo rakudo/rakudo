@@ -2901,7 +2901,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $parameter := $parameter ?? $parameter.ast !! Nodify('Parameter').new;
 
         if $*DEFAULT-RW {
-            $parameter.set-default-rw;
+            $parameter.set-bindable;
+            $parameter.set-default-rw if $*DEFAULT-RW > 1;
         }
 
         my $capture := Nodify('Type', 'Capture');

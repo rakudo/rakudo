@@ -40,6 +40,12 @@ class RakuAST::Var::Lexical
         self.is-resolved ?? self.resolution.can-be-bound-to !! False
     }
 
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        self.is-resolved
+            ?? self.resolution.build-bind-exception($resolver)
+            !! nqp::findmethod(RakuAST::Node, 'build-bind-exception')(self, $resolver)
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(self.name);
         if $resolved {
@@ -519,6 +525,12 @@ class RakuAST::Var::Package
 
     method can-be-bound-to() {
         self.is-resolved ?? self.resolution.can-be-bound-to !! $!name.is-pseudo-package
+    }
+
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        self.is-resolved
+            ?? self.resolution.build-bind-exception($resolver)
+            !! nqp::findmethod(RakuAST::Node, 'build-bind-exception')(self, $resolver)
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {

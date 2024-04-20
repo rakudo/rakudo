@@ -45,6 +45,12 @@ class RakuAST::Node {
     # and False otherwise.
     method can-be-bound-to() { False }
 
+    # Builds the exception thrown when this cannot be bound to, but someone
+    # tries to do so anyway.
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $resolver.build-exception: 'X::Bind'
+    }
+
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

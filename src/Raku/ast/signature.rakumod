@@ -465,7 +465,7 @@ class RakuAST::Parameter
     }
 
     method set-bindable() {
-        $!target.set-bindable;
+        $!target.set-bindable(True);
         Nil
     }
 
@@ -651,7 +651,7 @@ class RakuAST::Parameter
                 {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
-                    $!target.set-bindable;
+                    $!target.set-bindable(True);
                     $!target.set-rw;
                     last;
                 }
@@ -1428,8 +1428,9 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
     }
 
-    method set-bindable() {
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', True);
+    method set-bindable(Bool $bindable) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
+        $!declaration.set-bindable($bindable);
     }
 
     method set-rw() {

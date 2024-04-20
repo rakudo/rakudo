@@ -522,6 +522,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
     has Bool                 $!is-rw;
+    has Bool                 $!is-bindable;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -567,6 +568,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
           $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
 
         if $WHY {
             $scope && $scope eq 'has'
@@ -598,6 +600,10 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
     }
 
+    method set-bindable(Bool $bindable) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-bindable', $bindable);
+    }
+
     # Generate a lookup of this variable, already resolved to this declaration.
     method generate-lookup() {
         if self.is-lexical {
@@ -612,7 +618,7 @@ class RakuAST::VarDeclaration::Simple
 
     method can-be-bound-to() {
         # Must be lexical and non-native.
-        if self.scope eq 'my' || self.scope eq 'state' {
+        if $!is-bindable && (self.scope eq 'my' || self.scope eq 'state') {
             my str $sigil := self.sigil;
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
@@ -1348,7 +1354,9 @@ class RakuAST::VarDeclaration::Signature
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $traits := self.IMPL-UNWRAP-LIST(self.traits);
         my $scope := self.scope;
+        my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+            $param.target.set-bindable(False) if $binding;
             for $traits {
                 $param.target.replace-scope($scope);
                 $param.target.add-trait(nqp::clone($_)) if $param.target;

@@ -1862,6 +1862,7 @@ my class X::Role::BodyReturn is Exception {
 }
 
 my class X::Role::Initialization is Exception {
+    has Mu $.role is required;
     method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }
 }
 

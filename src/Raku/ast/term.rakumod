@@ -38,8 +38,13 @@ class RakuAST::Term::Name
     }
 
     method build-bind-exception(RakuAST::Resolver $resolver) {
-        $resolver.build-exception: 'X::Bind::Rebind',
-            :target(self.name.canonicalize)
+        if self.name.is-pseudo-package {
+            $resolver.build-exception: 'X::Bind'
+        }
+        else {
+            $resolver.build-exception: 'X::Bind::Rebind',
+                :target(self.name.canonicalize)
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -1130,6 +1130,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # All parsed so far
         [
           $                                         # all ok, reach the end
+          || <?before <.[ } ) \] > » ]>>
+             <.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'>
           || <.typed-panic: 'X::Syntax::Confused'>  # huh??
         ]
         { $*R.leave-scope }

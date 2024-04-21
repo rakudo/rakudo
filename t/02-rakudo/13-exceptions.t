@@ -145,11 +145,11 @@ subtest 'Sigilless "variables" can never be rebound', {
 subtest "Code items can never be rebound", {
     plan 2;
     throws-like {
-        'sub f() { }; &f := &say; }'.EVAL },
+        'sub f() { }; &f := &say;'.EVAL },
         X::Bind::Rebind, message => /'&f'/ & /'signature'/.none,
         "A sub cannot be rebound";
     throws-like {
-        'my regex reg-exp { old }; &reg-exp := /new/; }'.EVAL },
+        'my regex reg-exp { old }; &reg-exp := /new/;'.EVAL },
         X::Bind::Rebind, message => /'&reg-exp'/ & /'signature'/.none,
         "A regex cannot be rebound";
 }
@@ -157,15 +157,15 @@ subtest "Code items can never be rebound", {
 subtest "Terms can never be rebound", {
     plan 4;
     throws-like {
-        'my class C { has $.old }; C := class { has $.new } }'.EVAL },
+        'my class C { has $.old }; C := class { has $.new }'.EVAL },
         X::Bind::Rebind, message => /'C'/ & /'signature'/.none,
         "A class cannot be rebound";
     throws-like {
-        'my role R { has $.old }; R := role { has $.new } }'.EVAL },
+        'my role R { has $.old }; R := role { has $.new }'.EVAL },
         X::Bind::Rebind, message => /'R'/ & /'signature'/.none,
         "A role cannot be rebound";
     throws-like {
-        'my grammar G {  }; G := grammar { } }'.EVAL },
+        'my grammar G {  }; G := grammar { }'.EVAL },
         X::Bind::Rebind, message => /'G'/ & /'signature'/.none,
         "A grammar cannot be rebound";
     throws-like {

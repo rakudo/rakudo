@@ -881,6 +881,14 @@ class RakuAST::VarDeclaration::Simple
             my $initializer := self.initializer;
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
+
+                my $of := self.IMPL-OF-TYPE;
+                if self.sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) && $initializer.is-binding {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Bind::NativeType',
+                            :name(self.name);
+                }
+
                 my $expression := $initializer.expression;
                 if nqp::istype($expression,RakuAST::Literal) {
                     my $vartype := $type.PRODUCE-META-OBJECT;

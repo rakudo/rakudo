@@ -1445,6 +1445,8 @@ class RakuAST::VarDeclaration::Anonymous
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
           $is-parameter ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
         $obj
     }
 

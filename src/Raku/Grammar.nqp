@@ -579,7 +579,7 @@ role Raku::Common {
         # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
-            $file := '<unknown-file>';
+            $file := '<unknown file>';
         }
         elsif !nqp::eqat($file,'/', 0)    # does not start with /
           &&  !nqp::eqat($file,'-e',0)    # and it's not -e

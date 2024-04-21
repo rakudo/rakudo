@@ -1514,6 +1514,11 @@ class RakuAST::Routine
         Nil
     }
 
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $resolver.build-exception: 'X::Bind::Rebind',
+            :target(self.lexical-name)
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))

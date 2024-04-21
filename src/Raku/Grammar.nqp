@@ -502,6 +502,13 @@ role Raku::Common {
         my $pos    := $marked ?? $marked.from !! self.pos;
         my $block  := $borg<block>;
 
+        # If the highwater is beyond the current position, force the cursor to
+        # that location.  (Maybe.)
+        my $high := self.'!highwater'();
+        if $high >= self.pos() {
+            self.'!cursor_pos'($high);
+        }
+
         if $block {
             my $name := $borg<name> // '';
             self.typed-sorry-at: $block.pos, 'X::Syntax::BlockGobbled',

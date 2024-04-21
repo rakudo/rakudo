@@ -90,6 +90,11 @@ class RakuAST::Type::Simple
         Nil
     }
 
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $resolver.build-exception: 'X::Bind::Rebind',
+            :target(self.meta-object.raku), :is-type(1)
+    }
+
     method PRODUCE-META-OBJECT() {
         self.resolution.compile-time-value
     }

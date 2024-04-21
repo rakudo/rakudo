@@ -594,7 +594,7 @@ role Raku::Common {
           pos  => $cursor.pos,
           pre  => @prepost[0],
           post => @prepost[1],
-          file => $file,
+          filename => $file,
           |%opts
     }
 

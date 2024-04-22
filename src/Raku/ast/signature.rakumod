@@ -664,6 +664,9 @@ class RakuAST::Parameter
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
         }
+        if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) { # Not really a type at all
+            nqp::push(@post_constraints, $!type.meta-object);
+        }
         if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
             nqp::push(@post_constraints, $!type.meta-object);
         }

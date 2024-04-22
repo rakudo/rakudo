@@ -616,8 +616,14 @@ class RakuAST::Resolver {
         my %types;
         my %routines;
         my @exceptions;
+        my $filename := nqp::null;
         if $!nodes-unresolved-after-check-time {
             for $!nodes-unresolved-after-check-time -> $node {
+                if nqp::isnull($filename) {
+                    $filename := $node.origin
+                        ?? $node.origin.source.original-file
+                        !! '<unknown file>';
+                }
                 my $problem := $node.undeclared-symbol-details();
                 if $problem {
                     $problem.IMPL-REPORT($node, %types, %routines, @exceptions);
@@ -626,6 +632,7 @@ class RakuAST::Resolver {
         }
         if %routines || %types {
             @exceptions.push: self.build-exception: 'X::Undeclared::Symbols',
+                :$filename,
                 :unk_types(nqp::hllizefor(%types, 'Raku')),
                 :unk_routines(nqp::hllizefor(%routines, 'Raku'));
         }

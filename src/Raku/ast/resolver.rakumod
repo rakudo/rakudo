@@ -631,8 +631,17 @@ class RakuAST::Resolver {
             }
         }
         if %routines || %types {
+            my %routine-suggestion;
+            my %type-suggestion;
+            for %routines {
+                my $name := $_.key;
+                my @suggestions := self.suggest-routines($name);
+                %routine-suggestion{$name} := @suggestions;
+            }
             @exceptions.push: self.build-exception: 'X::Undeclared::Symbols',
                 :$filename,
+                :routine_suggestion(nqp::hllizefor(%routine-suggestion, 'Raku')),
+                :type_suggestion(nqp::hllizefor(%type-suggestion, 'Raku')),
                 :unk_types(nqp::hllizefor(%types, 'Raku')),
                 :unk_routines(nqp::hllizefor(%routines, 'Raku'));
         }
@@ -1109,19 +1118,7 @@ class RakuAST::Resolver::Compile
         }
     }
 
-    method suggest-lexicals(Str $name) {
-        my @suggestions;
-        my @candidates := [[], [], []];
-        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
-        my %seen;
-        %seen{$name} := 1;
-        sub evaluate($name, $value, $has_value) {
-            # the descriptor identifies variables.
-            return 1 if nqp::existskey(%seen, $name);
-            %seen{$name} := 1;
-            return &inner-evaluator($name);
-        }
-
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);
@@ -1129,23 +1126,82 @@ class RakuAST::Resolver::Compile
             my $scope := @scopes[$i];
             for $scope.lexical-declarations {
                 my $name := $_.lexical-name;
-                next if nqp::existskey(%seen, $name);
-                %seen{$name} := 1;
-                &inner-evaluator($name);
+                next if nqp::existskey($seen, $name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
             }
         }
 
         my $ctx := nqp::getattr(self, RakuAST::Resolver, '$!outer');
         while !nqp::isnull($ctx) {
             for $ctx -> $name {
-                next if nqp::existskey(%seen, $name);
-                %seen{$name} := 1;
-                &inner-evaluator($name);
+                next if nqp::existskey($seen, $name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
             }
             $ctx := nqp::ctxouter($ctx);
         }
+    }
+
+    method suggest-lexicals(Str $name) {
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+
+        self.walk-scopes(%seen, &inner-evaluator);
 
         self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+        return @suggestions;
+    }
+
+    method suggest-routines(Str $name) {
+        my $with_sigil := nqp::eqat($name, '&', 0);
+        $name := '&' ~ $name unless $with_sigil;
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+
+        # RT 126264
+        # Since there's no programmatic way to get a list of all phasers
+        # applicable to the current scope, just check against this list
+        # of all of them that aren't already the names of routines
+        for <&BEGIN &CHECK &INIT &ENTER &LEAVE &KEEP &UNDO &PRE &POST &CATCH &CONTROL> -> $phaser {
+            &inner-evaluator($phaser);
+        }
+
+        self.walk-scopes(%seen, &inner-evaluator);
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+        if !$with_sigil {
+            my @no_sigils;  # can't do in-place $_ alteration
+            for @suggestions {
+                nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
+            }
+            @suggestions := @no_sigils;
+        }
+        if $name eq '&length' {
+            @suggestions.push: $with_sigil ?? '&elems'  !! 'elems';
+            @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
+            @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
+        }
+        elsif $name eq '&bytes' {
+            @suggestions.push: '.encode($encoding).bytes';
+        }
+        elsif $name eq '&break' {
+            @suggestions.push: 'last';
+        }
+        elsif $name eq '&skip' {
+            @suggestions.push: 'next';
+        }
+        elsif $name eq '&continue' {
+            @suggestions.push: 'NEXT';
+            @suggestions.push: 'proceed';
+            @suggestions.push: 'succeed';
+        }
         return @suggestions;
     }
 }

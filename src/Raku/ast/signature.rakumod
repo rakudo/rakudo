@@ -639,7 +639,7 @@ class RakuAST::Parameter
         }
         nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS);
         my $type := self.IMPL-NOMINAL-TYPE();
-        nqp::bindattr($parameter, Parameter, '$!type', $type);
+        nqp::bindattr($parameter, Parameter, '$!type', $type.WHAT); # "Type" could be a concrete value
         if $!target {
             my $name := $!target.introspection-name;
             for self.IMPL-UNWRAP-LIST(self.traits) {

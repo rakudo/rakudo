@@ -1185,7 +1185,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast;
 
         if $<longname> -> $longname {
-            $ast     := $longname.ast;
+            $ast     := $longname.ast.without-colonpairs;
             my $name := $ast.canonicalize;
 
             if $*DOTTY {
@@ -1204,7 +1204,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 $ast := Nodify('Call','Method').new(
-                  :name($longname.core2ast), :$args
+                  :name($longname.core2ast.without-colonpairs), :$args
                 );
             }
         }

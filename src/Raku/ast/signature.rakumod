@@ -1024,6 +1024,19 @@ class RakuAST::Parameter
                     $temp-qast-var,
                 )));
             }
+            if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) {
+                my $value := $!type.meta-object;
+                $context.ensure-sc($value);
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op<istrue>,
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<ACCEPTS>,
+                        QAST::WVal.new( :$value ),
+                        $get-decont-var(),
+                    )
+                )));
+            }
         }
 
         my $inst-param;

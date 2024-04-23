@@ -20,7 +20,6 @@
 class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RoleContainer
@@ -37,6 +36,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     has $!candidate;  # Will contain matching candidate from curried role group
     has @!role_typecheck_list;
     has @!parent_typecheck_list;  # Only for parents instantiated from generics
+    has $!is_complete;
 
     my $archetypes_generic := Perl6::Metamodel::Archetypes.new(
                 :composable, :inheritalizable, :parametric, :generic
@@ -97,15 +97,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         nqp::settypecheckmode($type, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     }
 
-    # Make the curried role ready for use and return the candidate found
-    # if any.  Don't bother composing again if already composed.
-    method compose($target) {
-        self.run_if_not_composed({
-
-            # XXX Needs to be set here because otherwise we start to
-            # infiniloop on the .type_check logic.  There should be a
-            # better way to do this, but I'm not seeing one at the moment.
-            self.set_composed;
+    method complete_parameterization($target) {
+        self.protect({ unless $!is_complete {  # in case we were raced
+            $!is_complete := 1;
 
             if nqp::istype(
               $!curried_role.HOW,
@@ -211,9 +205,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 ++$i;
             }
             @!role_typecheck_list := @role_typecheck_list;
-        });
-
-        $!candidate
+        }}) unless $!is_complete;
     }
 
     method instantiate_generic($XXX, $type_env) {
@@ -260,21 +252,23 @@ class Perl6::Metamodel::CurriedRoleHOW
     method role_arguments($XXX?) { @!pos_args     }
 
     method roles($target, :$transitive = 1, :$mro = 0) {
-        self.compose($target);
+        self.complete_parameterization($target);
         self.roles-ordered(self.roles_to_compose, :$transitive, :$mro)
     }
 
     method role_typecheck_list($target) {
-        self.compose($target);
+        self.complete_parameterization($target);
         @!role_typecheck_list
     }
 
     method type_check($target, $checkee) {
+        self.complete_parameterization($target);
+
         $checkee := nqp::decont($checkee);
         nqp::eqaddr($checkee, $target.WHAT)
           || nqp::eqaddr($checkee, $!curried_role)
           || self.checkee_eqaddr_list($checkee, self.pretending_to_be)
-          || (nqp::not_i(nqp::isnull(self.compose($target)))
+          || (nqp::not_i(nqp::isnull($!candidate))
                && $!candidate.HOW.type_check_parents($!candidate, $checkee)
              )
           || self.checkee_istype_list($checkee, @!parent_typecheck_list)

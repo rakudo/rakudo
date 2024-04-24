@@ -219,6 +219,80 @@ my class Match is Capture is Cool does NQPMatchRole {
         $!regexsub($new)
     }
 
+    ##### / <:General_Category{$property}> /
+    my $general-category-property-lookup := nqp::hash(
+        "Uppercase_Letter", "Lu",
+        "Lowercase_Letter", "Ll",
+        "Cased_Letter", "LC",
+        "Titlecase_Letter", "Lt",
+        "Modifier_Letter", "Lm",
+        "Other_Letter", "Lo",
+        "Nonspacing_Mark", "Mn",
+        "Spacing_Mark", "Mc",
+        "Enclosing_Mark", "Me",
+        "Decimal_Number", "Nd",
+        "digit", "Nd",
+        "Connector_Punctuation", "Pc",
+        "Dash_Punctuation", "Pd",
+        "Open_Punctuation", "Po",
+        "Close_Punctuation", "Pe",
+        "Initial_Punctuation", "Pi",
+        "Final_Punctuation", "Pf",
+        "Other_Punctuation", "Po",
+        "Math_Symbol", "Sm",
+        "Currency_Symbol", "Sc",
+        "Modifier_Symbol", "Sk",
+        "Other_Symbol", "So",
+        "Space_Separator", "Zs",
+        "Line_Separator", "Zl",
+        "Paragraph_Separator", "Zp",
+        "cntrl", "Cc",
+        "Control", "Cc",
+        "Format", "Cf",
+        "Surrogate", "Cs",
+        "Private_Use", "Co",
+        "Unassigned", "Cn"
+    );
+    my $general-category-family-lookup := nqp::hash(
+        "Letter", "L",
+        "L", "L",
+        "Mark", "M",
+        "M", "M",
+        "Number", "N",
+        "N", "N",
+        "Punctuation", "P",
+        "punct", "P",
+        "Symbol", "S",
+        "S", "S",
+        "Separator", "Z",
+        "Z", "Z",
+        "Other", "C",
+        "C", "C"
+    );
+
+    method DELEGATE-ACCEPTS($obj, $target) is implementation-detail {
+        if nqp::istype($obj, Regex) {
+            $obj.ACCEPTS($target) ?? 1 !! 0
+        } else {
+            my $constraint-property := nqp::istype($obj, Block)
+                        ?? $obj()  # / <:General_Category{"Category"}> /
+                        !! $obj;   # / <:General_Category("Category") + <:General_Category<Category_Property>> /
+
+            if  nqp::istype($constraint-property, Str) && nqp::istype($target, Str) {
+                nqp::iseq_s($constraint-property, $target)
+                        ?? 1
+                        !! (my $family := nqp::atkey($general-category-family-lookup, $constraint-property))
+                                ?? nqp::iseq_s($family, nqp::substr($target, 0, 1))
+                                !! (my $property := nqp::atkey($general-category-property-lookup, $constraint-property))
+                                    && nqp::iseq_s($property, $target)
+                                            ?? 1
+                                            !! 0; # XXX Could throw about missing property
+            } else {
+                $constraint-property.ACCEPTS($target) ?? 1 !! 0
+            }
+        }
+    }
+
     submethod BUILD(
         :$orig = '',
         :$from = 0,

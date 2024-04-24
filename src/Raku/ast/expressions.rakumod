@@ -881,6 +881,11 @@ class RakuAST::MetaInfix
     }
 
     method IMPL-CURRIES { self.infix.IMPL-CURRIES }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands)
+    }
 }
 
 # An assign meta-operator, operator on another infix.
@@ -1582,6 +1587,10 @@ class RakuAST::DottyInfixish
     method new() { nqp::create(self) }
 
     method IMPL-CURRIES() { 0 }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands) {
+    }
 }
 
 # The `.` dotty infix.

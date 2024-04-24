@@ -735,7 +735,7 @@ class RakuAST::UndeclaredSymbolDescription::Routine
   is RakuAST::UndeclaredSymbolDescription
 {
     method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
-        nqp::bindkey($routines, self.name, [-1]);
+        nqp::bindkey($routines, self.name, [$node.origin.as-match.line]);
     }
 }
 

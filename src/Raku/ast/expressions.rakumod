@@ -868,7 +868,7 @@ class RakuAST::MetaInfix
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        self.properties.fiddly
+        self.infix.properties.fiddly
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "negate",
@@ -903,7 +903,7 @@ class RakuAST::MetaInfix::Assign
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $properties := self.properties;
+        my $properties := self.infix.properties;
         $properties.fiddly || $properties.diffy
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
@@ -1594,6 +1594,8 @@ class RakuAST::DottyInfix::Call
         $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast)
     }
 
+    method operator() { '.' }
+
     method default-operator-properties() {
         OperatorProperties.infix('.')
     }
@@ -1603,6 +1605,7 @@ class RakuAST::DottyInfix::Call
 class RakuAST::DottyInfix::CallAssign
   is RakuAST::DottyInfixish
 {
+    method operator() { '.=' }
 
     method default-operator-properties() {
         OperatorProperties.infix('.=')

@@ -132,6 +132,10 @@ class RakuAST::OperatorProperties
           ?? $properties
           !! self.default-operator-properties
     }
+
+    method reducer-name() {
+        self.properties.reducer-name
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -1576,6 +1580,8 @@ class RakuAST::DottyInfixish
   is RakuAST::OperatorProperties
 {
     method new() { nqp::create(self) }
+
+    method IMPL-CURRIES() { 0 }
 }
 
 # The `.` dotty infix.

@@ -173,7 +173,9 @@ my class Rakudo::Unicodey is implementation-detail {
           nqp::getuniprop_str($code,$prop),
           nqp::if(
             nqp::iseq_s($pref,'I'),
-            nqp::getuniprop_int($code,$prop),
+            # 'I' is the pref that is set by codename2proppref when a uniprop is not found,
+            #   so we only need to do the return-it-or-Nil dance here
+            (my $prop-int := nqp::getuniprop_int($code,$prop)) ?? $prop-int !! Nil,
             nqp::if(
               nqp::iseq_s($pref,'B'),
               nqp::hllbool(nqp::getuniprop_bool($code,$prop)),

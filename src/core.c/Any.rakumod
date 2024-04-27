@@ -625,7 +625,7 @@ sub dd(|c) {  # is implementation-detail
                 my $type := $name
                   ?? nqp::istype($var,Failure)
                     ?? 'Failure'
-                    !! (try $var.VAR.of.raku) // 'Mu'
+                    !! $var.VAR.of.raku
                   !! '';
                 my $what := nqp::can($var,'raku')
                   ?? $var.raku

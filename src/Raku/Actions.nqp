@@ -1185,7 +1185,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast;
 
         if $<longname> -> $longname {
-            $ast     := $longname.ast;
+            $ast     := $longname.ast.without-colonpairs;
             my $name := $ast.canonicalize;
 
             if $*DOTTY {
@@ -1204,7 +1204,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 $ast := Nodify('Call','Method').new(
-                  :name($longname.core2ast), :$args
+                  :name($longname.core2ast.without-colonpairs), :$args
                 );
             }
         }
@@ -1650,21 +1650,36 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<name>($/) {
         my $name := $<longname>.core2ast;
-        if $<args> {
-            my $args := $<args>.ast;
-            self.attach: $/, (my $invocant := $args.invocant)
-              # Indirect method call syntax, e.g. new Int: 1
-              ?? Nodify('ApplyPostfix').new(
-                   operand => $invocant,
-                   postfix => Nodify('Call','Method').new(:$name, :$args)
-                 )
-              # Normal named method call
-              !! Nodify('Call','Name','WithoutParentheses').new(:$name, :$args)
+        if $*META-OP {
+            my $META := $*META-OP.ast;
+            $META.IMPL-CHECK($*R, $*CU.context, 1);
+
+            my $meta-op := $META.IMPL-HOP-INFIX;
+            my $op := Nodify('Constant').new($meta-op);
+            self.attach: $/, Nodify('ApplyPostfix').new(
+                operand => $op,
+                postfix => Nodify('Call', 'Term').new(args => $<args>.ast),
+            )
         }
         else {
-            self.attach: $/, $*IS-TYPE
-              ?? self.type-for-name($/, $name)
-              !! Nodify('Term', 'Name').new($name)
+            if $<args> {
+                my $args := $<args>.ast;
+                self.attach: $/, (my $invocant := $args.invocant)
+                  # Indirect method call syntax, e.g. new Int: 1
+                  ?? Nodify('ApplyPostfix').new(
+                       operand => $invocant,
+                       postfix => Nodify('Call','Method').new(:$name, :$args)
+                     )
+                  # Normal named call
+                  !! $name.is-identifier && !$name.has-colonpairs
+                    ?? Nodify('Call','Name','WithoutParentheses').new(:$name, :$args)
+                    !! Nodify('Call','Name').new(:$name, :$args)
+            }
+            else {
+                self.attach: $/, $*IS-TYPE
+                  ?? self.type-for-name($/, $name)
+                  !! Nodify('Term', 'Name').new($name)
+            }
         }
     }
 

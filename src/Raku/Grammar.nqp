@@ -502,6 +502,13 @@ role Raku::Common {
         my $pos    := $marked ?? $marked.from !! self.pos;
         my $block  := $borg<block>;
 
+        # If the highwater is beyond the current position, force the cursor to
+        # that location.  (Maybe.)
+        my $high := self.'!highwater'();
+        if $high >= self.pos() {
+            self.'!cursor_pos'($high);
+        }
+
         if $block {
             my $name := $borg<name> // '';
             self.typed-sorry-at: $block.pos, 'X::Syntax::BlockGobbled',
@@ -572,7 +579,7 @@ role Raku::Common {
         # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
-            $file := '<unknown-file>';
+            $file := '<unknown file>';
         }
         elsif !nqp::eqat($file,'/', 0)    # does not start with /
           &&  !nqp::eqat($file,'-e',0)    # and it's not -e
@@ -587,7 +594,7 @@ role Raku::Common {
           pos  => $cursor.pos,
           pre  => @prepost[0],
           post => @prepost[1],
-          file => $file,
+          filename => $file,
           |%opts
     }
 
@@ -675,32 +682,14 @@ role Raku::Common {
         self.obs: 'curlies around escape argument', 'square brackets';
     }
 
-    # Check the validity of a variable, handle meta-ops for Callables
-    method check-variable($var) {
-        my $ast := $var.ast;
-
-        # Not capable of checking
-        return Nil
-          unless nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT);
-
-        return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
-
-        # Nothing to do?
-        $ast.resolve-with($*R);
-        return Nil if $ast.is-resolved;
-
-        my $name := $ast.name;
-        if $ast.sigil eq '&' {
-
-            # Nothing to do?
-            return Nil unless $ast.IMPL-IS-META-OP;
-            my $op := $ast.desigilname.colonpairs[0].literal-value;
-            return Nil if $op eq '!=' || $op eq '≠';
-
+    # Return the name of the meta op if any
+    method meta-op-name($desigilname) {
+        my $op := $desigilname.colonpairs[0].literal-value;
+        if $op ne '!=' && $op ne '≠' {
             my $lang := self.'!cursor_init'($op, :p(0));
             $lang.clone_braid_from(self);
 
-            my $category := $ast.desigilname.canonicalize(:colonpairs(0));
+            my $category := $desigilname.canonicalize(:colonpairs(0));
             my $method   := $category eq 'infix'
               ?? 'infixish'
               !! $category eq 'prefix'
@@ -721,19 +710,46 @@ role Raku::Common {
                   || $match<postfix-prefix-meta-operator>
                   || $match<op>
                 {
-
-                    my $META := $match.ast;
-                    $META.IMPL-CHECK($*R, $*CU.context, 1);
-
-                    my $meta-op := $META.IMPL-HOP-INFIX;
-                    $ast.set-resolution(
-                      self.actions.r('Declaration','External','Constant').new(
-                        lexical-name       => $name,
-                        compile-time-value => $meta-op
-                      )
-                    );
+                    return $match;
                 }
             }
+        }
+
+        NQPMu
+    }
+
+    # Check the validity of a variable, handle meta-ops for Callables
+    method check-variable($var) {
+        my $ast := $var.ast;
+
+        # Not capable of checking
+        return Nil
+          unless nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT);
+
+        return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
+
+        # Nothing to do?
+        $ast.resolve-with($*R);
+        return Nil if $ast.is-resolved;
+
+        my $name := $ast.name;
+        if $ast.sigil eq '&' {
+            # Nothing to do?
+            return Nil unless $ast.IMPL-IS-META-OP;
+            my $desigilname := $ast.desigilname;
+            my $meta-op-name := self.meta-op-name($desigilname);
+            return Nil unless nqp::isconcrete($meta-op-name);
+
+            my $META := $meta-op-name.ast;
+            $META.IMPL-CHECK($*R, $*CU.context, 1);
+
+            my $meta-op := $META.IMPL-HOP-INFIX;
+            $ast.set-resolution(
+              self.actions.r('Declaration','External','Constant').new(
+                lexical-name       => $name,
+                compile-time-value => $meta-op
+              )
+            );
         }
 
         # Not resolved and not a Callable
@@ -1123,6 +1139,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # All parsed so far
         [
           $                                         # all ok, reach the end
+          || <?before <.[ } ) \] > » ]>>
+             <.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'>
           || <.typed-panic: 'X::Syntax::Confused'>  # huh??
         ]
         { $*R.leave-scope }
@@ -3014,6 +3032,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<name> {
         :my $*IS-TYPE;
+        :my $*META-OP;
         <longname>
         :my $base-name;
         [
@@ -3058,6 +3077,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || [ \\ <?before '('> ]?
              <args(1)>
              {
+                my $desigilname := $<longname>.ast;
+                if nqp::elems($desigilname.colonpairs) == 1
+                    && nqp::istype($desigilname.colonpairs[0], self.actions.r('QuotedString'))
+                {
+                    my $meta-op-name := self.meta-op-name($desigilname);
+                    if nqp::isconcrete($meta-op-name) {
+                        $*META-OP := $meta-op-name;
+                    }
+                }
                 my $name := ~$<longname>;
                 unless $<args>.ast.invocant {
                     if $*BORG<block> {

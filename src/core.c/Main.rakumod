@@ -438,6 +438,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     elsif !$provided-g-u && !$provided-a-to-c && %caller-my<&USAGE> -> &usage {
         # DEPRECATED message here
         usage;
+        exit $capture<help> ?? 0 !! 2;
     }
 
     # Display the default USAGE message on either STDOUT/STDERR

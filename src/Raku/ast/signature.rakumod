@@ -639,7 +639,7 @@ class RakuAST::Parameter
         }
         nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS);
         my $type := self.IMPL-NOMINAL-TYPE();
-        nqp::bindattr($parameter, Parameter, '$!type', $type);
+        nqp::bindattr($parameter, Parameter, '$!type', $type.WHAT); # "Type" could be a concrete value
         if $!target {
             my $name := $!target.introspection-name;
             for self.IMPL-UNWRAP-LIST(self.traits) {
@@ -663,6 +663,9 @@ class RakuAST::Parameter
         }
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
+        }
+        if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) { # Not really a type at all
+            nqp::push(@post_constraints, $!type.meta-object);
         }
         if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
             nqp::push(@post_constraints, $!type.meta-object);
@@ -1019,6 +1022,19 @@ class RakuAST::Parameter
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('isrwcont'),
                     $temp-qast-var,
+                )));
+            }
+            if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) {
+                my $value := $!type.meta-object;
+                $context.ensure-sc($value);
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op<istrue>,
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<ACCEPTS>,
+                        QAST::WVal.new( :$value ),
+                        $get-decont-var(),
+                    )
                 )));
             }
         }

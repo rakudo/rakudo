@@ -85,6 +85,10 @@ class RakuAST::Name
         }
     }
 
+    method has-colonpairs() {
+        nqp::hllboolfor(nqp::elems($!colonpairs), 'Raku')
+    }
+
     method has-colonpair($key) {
         for $!colonpairs {
             return True if $_.key eq $key;

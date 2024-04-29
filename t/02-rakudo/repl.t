@@ -225,7 +225,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm';
+    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || %*ENV<RAKUDO_RAKUAST>;
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),

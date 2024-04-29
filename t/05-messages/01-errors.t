@@ -53,7 +53,7 @@ subtest 'chr with large codepoints throws useful error' => {
 }
 
 # https://colabti.org/irclogger/irclogger_log/perl6?date=2017-03-14#l1018
-throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
+throws-like ｢my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 

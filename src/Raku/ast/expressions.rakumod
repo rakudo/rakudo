@@ -132,6 +132,10 @@ class RakuAST::OperatorProperties
           ?? $properties
           !! self.default-operator-properties
     }
+
+    method reducer-name() {
+        self.properties.reducer-name
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -163,6 +167,10 @@ class RakuAST::Infixish
     # %curried == 2 means curry WhateverCode only
     # %curried == 3 means curry both Whatever and WhateverCode (default)
     method IMPL-CURRIES() { 0 }
+
+    method IMPL-OPERATOR() {
+        nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
+    }
 }
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
@@ -199,6 +207,10 @@ class RakuAST::Infix
     }
 
     method reducer-name() { self.properties.reducer-name }
+
+    method IMPL-OPERATOR() {
+        self.resolution.compile-time-value
+    }
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
@@ -848,7 +860,7 @@ class RakuAST::MetaInfix
 {
     method IMPL-HOP-INFIX() {
         self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
-            self.infix.resolution.compile-time-value
+            self.infix.IMPL-OPERATOR
         )
     }
 
@@ -856,7 +868,7 @@ class RakuAST::MetaInfix
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        self.properties.fiddly
+        self.infix.properties.fiddly
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "negate",
@@ -891,7 +903,7 @@ class RakuAST::MetaInfix::Assign
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $properties := self.properties;
+        my $properties := self.infix.properties;
         $properties.fiddly || $properties.diffy
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
@@ -905,10 +917,16 @@ class RakuAST::MetaInfix::Assign
 
     method properties() { OperatorProperties.infix('$=') }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ASSIGN')),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-CURRIES() { 0 }
@@ -982,10 +1000,16 @@ class RakuAST::MetaInfix::Negate
 
     method properties() { $!infix.properties }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_NEGATE')),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1018,6 +1042,8 @@ class RakuAST::MetaInfix::Reverse
         $obj
     }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
@@ -1026,6 +1052,10 @@ class RakuAST::MetaInfix::Reverse
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_REVERSE')),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1057,10 +1087,17 @@ class RakuAST::MetaInfix::Cross
 
     method properties() { OperatorProperties.infix('X') }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_CROSS')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1076,6 +1113,14 @@ class RakuAST::MetaInfix::Cross
             :op('callstatic'), :name('&METAOP_CROSS'),
             $!infix.IMPL-HOP-INFIX-QAST($context),
             QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+    }
+
+    method IMPL-HOP-INFIX() {
+        my $lookups := self.get-implicit-lookups;
+        $lookups.AT-POS(0).resolution.compile-time-value()(
+            self.infix.IMPL-OPERATOR,
+            $lookups.AT-POS(1).resolution.compile-time-value,
+        )
     }
 }
 
@@ -1097,10 +1142,17 @@ class RakuAST::MetaInfix::Zip
 
     method properties() { OperatorProperties.infix('Z') }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ZIP')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1116,6 +1168,14 @@ class RakuAST::MetaInfix::Zip
             :op('callstatic'), :name('&METAOP_ZIP'),
             $!infix.IMPL-HOP-INFIX-QAST($context),
             QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+    }
+
+    method IMPL-HOP-INFIX() {
+        my $lookups := self.get-implicit-lookups;
+        $lookups.AT-POS(0).resolution.compile-time-value()(
+            self.infix.IMPL-OPERATOR,
+            $lookups.AT-POS(1).resolution.compile-time-value,
+        )
     }
 }
 
@@ -1143,10 +1203,16 @@ class RakuAST::MetaInfix::Hyper
 
     method properties() { $!infix.properties }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER')),
         ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1514,6 +1580,8 @@ class RakuAST::DottyInfixish
   is RakuAST::OperatorProperties
 {
     method new() { nqp::create(self) }
+
+    method IMPL-CURRIES() { 0 }
 }
 
 # The `.` dotty infix.
@@ -1526,6 +1594,8 @@ class RakuAST::DottyInfix::Call
         $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast)
     }
 
+    method operator() { '.' }
+
     method default-operator-properties() {
         OperatorProperties.infix('.')
     }
@@ -1535,6 +1605,7 @@ class RakuAST::DottyInfix::Call
 class RakuAST::DottyInfix::CallAssign
   is RakuAST::DottyInfixish
 {
+    method operator() { '.=' }
 
     method default-operator-properties() {
         OperatorProperties.infix('.=')

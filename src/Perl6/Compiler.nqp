@@ -147,7 +147,7 @@ class Perl6::Compiler is HLL::Compiler {
         my $execname           := nqp::execname;
         my $path-sep           := nqp::backendconfig<osname> eq 'MSWin32' ?? '\\' !! '/';
         my $install-dir        := nqp::substr($execname, 0, nqp::rindex($execname, $path-sep, nqp::rindex($execname, $path-sep) - 1));
-        my $flavor-file        := $install-dir ~ $path-sep ~ "share" ~ $path-sep ~ "perl6" ~ $path-sep ~ "site" ~ $path-sep ~"FLAVOR";
+        my $flavor-file        := $install-dir ~ $path-sep ~ "etc" ~ $path-sep ~ "FLAVOR";
         my $rakudo-core-flavor := " v";
 
         my $raku;

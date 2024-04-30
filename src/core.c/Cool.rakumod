@@ -331,11 +331,6 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.split(|c);
     }
 
-    multi method match(Cool:D: |c) {
-        $/ := nqp::getlexcaller('$/');
-        self.Str.match(|c)
-    }
-
     proto method comb(|) {*}
     multi method comb(Cool:D: --> Seq:D) {
         self.Str.comb

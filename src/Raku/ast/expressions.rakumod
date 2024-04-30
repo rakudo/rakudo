@@ -1128,6 +1128,40 @@ class RakuAST::MetaInfix::Cross
             $lookups.AT-POS(1).resolution.compile-time-value,
         )
     }
+
+    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                               RakuAST::Expression $expression, str $type) {
+        # Circumfix::Parentheses  ⎡((say(\"ooh\"),),)⎤
+        #   SemiList  ⎡(say(\"ooh\"),),⎤
+        #     Statement::Expression  ⎡(say(\"ooh\"),),⎤
+        #       ApplyListInfix  ⎡,⎤
+        #         Infix 【,】  ⎡,⎤
+        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $expression.semilist;
+            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
+                my $expr := $semilist.code-statements[0].expression;
+                if nqp::istype($expr, RakuAST::ApplyListInfix) {
+                    my $infix := $expr.infix;
+                    if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
+                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type);
+                    }
+               }
+           }
+        }
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        my $thunky := self.infix.properties.thunky;
+        my int $i;
+        for @operands {
+            my $type := nqp::substr($thunky, $i, $i + 1);
+            if $type && $type ne '.' {
+                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+            }
+            ++$i if $i < nqp::chars($thunky) - 1;
+        }
+    }
 }
 
 # A zip meta-operator.
@@ -1182,6 +1216,40 @@ class RakuAST::MetaInfix::Zip
             self.infix.IMPL-OPERATOR,
             $lookups.AT-POS(1).resolution.compile-time-value,
         )
+    }
+
+    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                               RakuAST::Expression $expression, str $type) {
+        # Circumfix::Parentheses  ⎡((say(\"ooh\"),),)⎤
+        #   SemiList  ⎡(say(\"ooh\"),),⎤
+        #     Statement::Expression  ⎡(say(\"ooh\"),),⎤
+        #       ApplyListInfix  ⎡,⎤
+        #         Infix 【,】  ⎡,⎤
+        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $expression.semilist;
+            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
+                my $expr := $semilist.code-statements[0].expression;
+                if nqp::istype($expr, RakuAST::ApplyListInfix) {
+                    my $infix := $expr.infix;
+                    if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
+                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type);
+                    }
+               }
+           }
+        }
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        my $thunky := self.infix.properties.thunky;
+        my int $i;
+        for @operands {
+            my $type := nqp::substr($thunky, $i, $i + 1);
+            if $type && $type ne '.' {
+                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+            }
+            ++$i if $i < nqp::chars($thunky) - 1;
+        }
     }
 }
 

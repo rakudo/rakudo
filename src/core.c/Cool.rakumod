@@ -331,7 +331,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.split(|c);
     }
 
-    method match(Cool:D: |c) {
+    multi method match(Cool:D: |c) {
         $/ := nqp::getlexcaller('$/');
         self.Str.match(|c)
     }

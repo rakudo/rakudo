@@ -145,8 +145,16 @@ my class Any { # declared in BOOTSTRAP
 
     multi method iterator(Any:) { self.list.iterator }
 
-    proto method match(|)         {*}
-    multi method match(Any:U: |)  { self.Str; nqp::getlexcaller('$/') = Nil }
+#?if moar
+    proto method match(|) {*}
+#?endif
+#?if !moar
+    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
+    multi method match(Any:U: |)  {
+        self.Str;   # Warns if the type cannot handle stringification
+        nqp::getlexcaller('$/') = Nil;
+    }
     multi method match(Any:D: |c) { self.Str.match(|c) }
 
     proto method classify(|) is nodal {*}

@@ -159,7 +159,7 @@ class RakuAST::Infixish
     }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands) {
+                                RakuAST::Expression *@operands, Bool :$meta) {
     }
 
     # %curried == 0 means do not curry
@@ -228,11 +228,12 @@ class RakuAST::Infix
     }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands) {
+                                RakuAST::Expression *@operands, Bool :$meta) {
         if (
                $!operator eq 'xx'     || $!operator eq 'andthen'
             || $!operator eq 'orelse' || $!operator eq 'notandthen'
             || $!operator eq 'with'   || $!operator eq 'without'
+            || $meta
         ) {
             my $thunky := self.properties.thunky;
             my int $i;
@@ -883,8 +884,8 @@ class RakuAST::MetaInfix
     method IMPL-CURRIES { self.infix.IMPL-CURRIES }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands)
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 }
 
@@ -1589,7 +1590,7 @@ class RakuAST::DottyInfixish
     method IMPL-CURRIES() { 0 }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands) {
+                                RakuAST::Expression *@operands, Bool :$meta) {
     }
 }
 

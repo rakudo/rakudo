@@ -885,7 +885,7 @@ class RakuAST::MetaInfix
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands)
     }
 }
 
@@ -1031,6 +1031,11 @@ class RakuAST::MetaInfix::Negate
           :name<&METAOP_NEGATE>, $!infix.IMPL-HOP-INFIX-QAST($context)
         )
     }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+    }
 }
 
 # A reverse meta-operator.
@@ -1072,6 +1077,11 @@ class RakuAST::MetaInfix::Reverse
         QAST::Op.new:
             :op('callstatic'), :name('&METAOP_REVERSE'),
             $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta) #TODO reverse
     }
 }
 
@@ -1316,6 +1326,11 @@ class RakuAST::MetaInfix::Hyper
             :dwim-left($!dwim-left),
             :dwim-right($!dwim-right)
         )
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 }
 

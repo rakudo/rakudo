@@ -9,7 +9,6 @@ my constant $cpp-name-manglers = nqp::list(
   &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
   &NativeCall::Compiler::GNU::mangle_cpp_symbol,
 );
-my int $manglers = nqp::elems($cpp-name-manglers);
 
 #- re-export constants ---------------------------------------------------------
 use NativeCall::Types;
@@ -105,10 +104,6 @@ my role NativeCallEncoded[$name] {
 my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
-
-# Throwaway type just to get us some way to get at the NativeCall
-# representation.
-my class native_callsite is repr('NativeCall') { }
 
 #- NativeCall ------------------------------------------------------------------
 # The namespace for much of NativeCall's functionality
@@ -244,32 +239,35 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-multi guess_library_name(IO::Path $lib) is export(:TEST) {
+proto guess_library_name(|) is export(:TEST) {*}
+multi guess_library_name(IO::Path $lib) {
     guess_library_name($lib.absolute)
 }
-multi guess_library_name(Distribution::Resource $lib) is export(:TEST) {
-    $lib.platform-library-name.Str;
+multi guess_library_name(Distribution::Resource $lib) {
+    $lib.platform-library-name.Str
 }
-multi guess_library_name(Callable $lib) is export(:TEST) {
-    $lib();
+multi guess_library_name(Callable $lib) {
+    $lib()
 }
-multi guess_library_name(List $lib) is export(:TEST) {
+multi guess_library_name(List $lib) {
     guess_library_name($lib[0], $lib[1])
 }
-multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
+multi guess_library_name(Str $libname, $apiversion='') {
     $libname.DEFINITE
-        ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
-            ?? $libname #Already a full name?
-            !! $*VM.platform-library-name(
-                $libname.IO, :version($apiversion || Version)).Str
-        !! ''
+      ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
+          ?? $libname                          # Already a full name
+          !! $*VM.platform-library-name(
+               $libname.IO, :version($apiversion || Version)
+             ).Str
+      !! ''
 }
 
 sub guess-name-mangler(Routine $r, $name, Str $libname) {
 
     my sub mangler-for($sym) {
+        my int $m = nqp::elems($cpp-name-manglers);
         my int $i;
-        while $i < $manglers {
+        while $i < $m {
             my &mangler := nqp::atpos($cpp-name-manglers, $i);
             (try cglobal($libname, mangler($r, $sym), Pointer))
               ?? (return &mangler)
@@ -293,85 +291,91 @@ sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
-my %lib;
+#- Native ----------------------------------------------------------------------
+# Role mixed in to any routine that is marked as being a native call
 
-# This role is mixed in to any routine that is marked as being a
-# native call.
-our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
-    has native_callsite $!call is box_target;
-    has Mu $!rettype;
-    has $!cpp-name-mangler;
-    has Pointer $!entry-point;
-    has int $!arity;
-    has int $!any-optionals;
-    has int $!any-callbacks;
-    has $!name;
+# Throwaway type just to get us some way to get at the NativeCall
+# representation.
+my class Callsite is repr('NativeCall') { }
 
-    method CUSTOM-DISPATCHER(--> str) {
-        'raku-nativecall'
-    }
+my $mangler-for-lib := nqp::hash;
+our role Native[
+  Routine $routine,
+  $libname where Str | Callable | List | IO::Path | Distribution::Resource
+] {
+    has Callsite $!call is box_target;
+    has Mu       $!rettype;
+    has          $!cpp-name-mangler;
+    has Pointer  $!entry-point;
+    has int      $!arity;
+    has int      $!any-optionals;
+    has int      $!any-callbacks;
+    has str      $!name;
 
-    method call() {
-        $!call
-    }
+    method CUSTOM-DISPATCHER(--> 'raku-nativecall') { }
 
-    method rettype() {
-        $!rettype
-    }
+    method call()    { $!call    }
+    method rettype() { $!rettype }
 
     method !setup() {
         $setup-lock.protect: {
             nqp::neverrepossess(self);
             return if nqp::unbox_i($!call);
 
-            # Make sure that C++ methods are treated as mangled (unless set otherwise)
-            if self.package.REPR eq 'CPPStruct' and not self.does(NativeCallMangled) {
-              self does NativeCallMangled[True];
+            # Make sure that C++ methods are treated as mangled
+            # (unless set otherwise)
+            self does NativeCallMangled[True]
+              if self.package.REPR eq 'CPPStruct'
+              && !self.does(NativeCallMangled);
+
+            # if needed, try to guess mangler
+            my str $guessed-libname = guess_library_name($libname);
+            $!cpp-name-mangler := nqp::ifnull(
+              nqp::atkey($mangler-for-lib,$guessed-libname),
+              nqp::bindkey(
+                $mangler-for-lib,
+                $guessed-libname,
+                guess-name-mangler($routine, $!name, $guessed-libname)
+              )
+            ) if self.does(NativeCallMangled) && $routine.?native_call_mangled;
+
+            my $signature := $routine.signature;
+            my $params := nqp::getattr($signature.params, List, '$!reified');
+
+            my Mu $arg_info := param_list_for($signature, $routine);
+            my str $conv     = self.?native_call_convention || '';
+
+            $!rettype := nqp::decont(map_return_type($routine.returns))
+              unless $!rettype;
+            $!arity    = $signature.arity;
+
+            my int $m = nqp::elems($params);
+            my int $i;
+            while $i < $m {
+                my $param := nqp::atpos($params, $i++);
+                $!any-optionals = 1 if $param.optional;
+                $!any-callbacks = 1 if nqp::istype($param.type,Callable);
             }
 
-            my $guessed_libname = guess_library_name($libname);
-            if self.does(NativeCallMangled) and $r.?native_call_mangled {
-              # if needed, try to guess mangler
-              $!cpp-name-mangler  = %lib{$guessed_libname} //
-                  (%lib{$guessed_libname} = guess-name-mangler($r, $!name, $guessed_libname));
-            }
-            my Mu $arg_info := param_list_for($r.signature, $r);
-            my $conv = self.?native_call_convention || '';
-
-            $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
-            $!arity = $r.signature.arity;
-            $!any-optionals = self!any-optionals;
-            $!any-callbacks = self!any-callbacks;
-
-            nqp::buildnativecall(self,
-                nqp::unbox_s($guessed_libname),                           # library name
-                nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
-                nqp::unbox_s($conv),        # calling convention
-                $arg_info,
-                ($libname and $libname ~~ Distribution::Resource)
-                    ?? return_hash_for(
-                        $r.signature,
-                        $r,
-                        :$!entry-point,
-                        :&resolve-libname,
-                        :resolve-libname-arg($libname),
-                    )
-                    !! return_hash_for($r.signature, $r, :$!entry-point));
+            nqp::buildnativecall(
+              self,
+              $guessed-libname,  # library name
+              nqp::unbox_s(      # symbol to call
+                gen_native_symbol($routine, $!name, :$!cpp-name-mangler)
+              ),
+              $conv,             # calling convention
+              $arg_info,
+              ($libname && nqp::istype($libname,Distribution::Resource))
+                ?? return_hash_for(
+                     $signature,
+                     $routine,
+                     :$!entry-point,
+                     :&resolve-libname,
+                     :resolve-libname-arg($libname),
+                   )
+                !! return_hash_for($signature, $routine, :$!entry-point)
+            );
         }
-    }
-
-    method !any-optionals() {
-        for $r.signature.params -> $p {
-            return True if $p.optional
-        }
-        return False
-    }
-
-    method !any-callbacks() {
-        for $r.signature.params -> $p {
-            return True if nqp::istype($p.type,Callable)
-        }
-        return False
     }
 
     method !decont-for-type($type) {
@@ -388,7 +392,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         X::TypeCheck::Argument.new(
             :objname($.name),
             :arguments(args.list.map(*.^name)),
-            :signature(try $r.signature.gist),
+            :signature(try $routine.signature.gist),
         ).throw
     }
 

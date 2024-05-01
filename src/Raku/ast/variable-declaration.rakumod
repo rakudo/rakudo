@@ -257,6 +257,12 @@ class RakuAST::ContainerCreator {
         self.container-type
     }
 
+    method IMPL-BIND-CONSTRAINT(Mu $of) {
+        self.IMPL-CALCULATE-TYPES($of);
+
+        self.bind-constraint
+    }
+
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc, Bool :$attribute) {
         self.IMPL-CALCULATE-TYPES($of);
 
@@ -684,6 +690,10 @@ class RakuAST::VarDeclaration::Simple
                !! self.get-implicit-lookups.AT-POS(0)
              ).resolution.compile-time-value
           !! Mu;
+    }
+
+    method return-type() {
+        self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
     method IMPL-CALCULATE-TYPES(Mu $of) {

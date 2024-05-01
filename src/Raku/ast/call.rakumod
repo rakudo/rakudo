@@ -272,7 +272,7 @@ class RakuAST::Call::Name
                 my $ok := 1;
                 my @args := self.IMPL-UNWRAP-LIST(self.args.args);
                 for @args {
-                    my $type := $_.type;
+                    my $type := $_.return-type;
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
                     nqp::push(@flags, nqp::objprimspec($type));

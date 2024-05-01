@@ -464,7 +464,7 @@ class RakuAST::Declaration::External
 class RakuAST::Declaration::Mergeable {
     method is-stub() {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
-        my $how  := self.type.HOW;
+        my $how  := self.return-type.HOW;
         my $name := $how.HOW.name($how);
         $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
     }
@@ -551,7 +551,7 @@ class RakuAST::Declaration::External::Constant
             '$!compile-time-value', $compile-time-value);
     }
 
-    method type() { $!compile-time-value.WHAT }
+    method return-type() { $!compile-time-value.WHAT }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
         my $value := $!compile-time-value;
@@ -583,7 +583,7 @@ class RakuAST::Declaration::External::Setting
             '$!compile-time-value', $compile-time-value);
     }
 
-    method type() { $!compile-time-value.WHAT }
+    method return-type() { $!compile-time-value.WHAT }
 }
 
 # An imported lexical declaration. Has a compile-time value. Must create a
@@ -632,7 +632,7 @@ class RakuAST::Declaration::LexicalPackage
         $!package.is-stub
     }
 
-    method type() { $!compile-time-value.WHAT }
+    method return-type() { $!compile-time-value.WHAT }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         $context.ensure-sc($!compile-time-value);
@@ -665,7 +665,7 @@ class RakuAST::Declaration::ResolvedConstant
         $obj
     }
 
-    method type() { $!compile-time-value.WHAT }
+    method return-type() { $!compile-time-value.WHAT }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)

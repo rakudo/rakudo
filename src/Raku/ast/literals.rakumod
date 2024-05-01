@@ -29,7 +29,7 @@ class RakuAST::Literal
     }
 
     method expression() { self }
-    method type() { $!value.WHAT }
+    method return-type() { $!value.WHAT }
     method native-type-flag() { Nil }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
@@ -208,7 +208,7 @@ class RakuAST::QuotedString
         False
     }
 
-    method type {
+    method return-type {
         if $!processors {
             # Can probably figure some of these out.
             Mu
@@ -396,7 +396,7 @@ class RakuAST::QuotedString
         # Otherwise, needs compilation.
         my @segment-asts;
         for $!segments {
-            if $_.type =:= Str || nqp::istype($_, RakuAST::QuoteWordsAtom) {
+            if $_.return-type =:= Str || nqp::istype($_, RakuAST::QuoteWordsAtom) {
                 @segment-asts.push($_.IMPL-TO-QAST($context));
             }
             else {
@@ -634,8 +634,8 @@ class RakuAST::QuoteWordsAtom
         $obj
     }
 
-    method type {
-        $!atom.type
+    method return-type {
+        $!atom.return-type
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

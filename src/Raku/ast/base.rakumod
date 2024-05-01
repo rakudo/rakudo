@@ -3,7 +3,7 @@ class RakuAST::Node {
     has RakuAST::Origin $.origin;
 
     # What type does evaluating this node produce, if known?
-    method type() { Mu }
+    method return-type() { Mu }
 
     # Is evaluating this pure (that is, if its evaluation is elided due to
     # not being used, then the program will behave the same)?

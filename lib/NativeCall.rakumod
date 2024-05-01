@@ -133,12 +133,12 @@ sub param_hash_for(Parameter $p) {
     my $type := $p.type();
     nqp::bindkey($result, 'typeobj', nqp::decont($type));
     nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
-    if $type ~~ Str {
+    if nqp::istype($type,Str) {
         my $enc := $p.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
         nqp::bindkey($result, 'free_str', nqp::unbox_i(1));
     }
-    elsif $type ~~ Callable {
+    elsif nqp::istype($type,Callable) {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
         my $info := param_list_for($p.sub_signature);
         nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
@@ -178,7 +178,7 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point, :$resolve-
     nqp::bindkey($result, 'entry_point', nqp::decont($entry-point)) if $entry-point;
     nqp::bindkey($result, 'resolve_lib_name_arg', nqp::decont($resolve-libname-arg)) if $resolve-libname-arg;
     nqp::bindkey($result, 'resolve_lib_name', nqp::getattr(nqp::decont($resolve-libname), Code, '$!do')) if $resolve-libname;
-    if $returns ~~ Str {
+    if nqp::istype($returns,Str) {
         my $enc := &r.?native_call_encoded() || 'utf8';
         nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
         nqp::bindkey($result, 'free_str', nqp::unbox_i(0));
@@ -369,16 +369,19 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
     method !any-callbacks() {
         for $r.signature.params -> $p {
-            return True if $p.type ~~ Callable
+            return True if nqp::istype($p.type,Callable)
         }
         return False
     }
 
     method !decont-for-type($type) {
-           $type ~~ Str ?? 'decont_s'
-        !! $type ~~ Int ?? 'decont_i'
-        !! $type ~~ Num ?? 'decont_n'
-        !! 'decont';
+        nqp::istype($type,Str)
+          ?? 'decont_s'
+          !! nqp::istype($type,Int)
+            ?? 'decont_i'
+            !! nqp::istype($type,Num)
+              ?? 'decont_n'
+              !! 'decont';
     }
 
     method !arity-error(\args) {
@@ -553,12 +556,12 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
     }
     my $sig = $r.signature;
     for @($sig.params).kv -> $i, $param {
-        next if $r ~~ Method and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
-        if $param.type ~~ Callable {
+        next if nqp::istype($r,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
+        if nqp::istype($param.type,Callable) {
           # We probably want to check the given routine type too here. but I don't know how
           next;
         }
-        next unless $param.type ~~ Buf | Blob #Buf are Uninstantiable, make this buggy
+        next unless nqp::istype($param.type,Blob) #Buf are Uninstantiable, make this buggy
         || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
         if !validnctype($param.type) {
            warn "In '{$r.name}' routine declaration - Not an accepted NativeCall type"

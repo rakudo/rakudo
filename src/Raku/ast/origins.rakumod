@@ -85,9 +85,6 @@ class RakuAST::Origin::Source {
             if nqp::isnull($file := nqp::getlexdyn('$?FILES')) {
                 $file := '<unknown file>';
             }
-            elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
-                $file := nqp::cwd ~ '/' ~ $file;
-            }
         }
         nqp::bindattr($obj, RakuAST::Origin::Source, '$!line-file', nqp::list(nqp::list(0, 0, $file)));
         $obj.SETUP-LINE-POSITIONS();

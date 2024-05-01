@@ -16,7 +16,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 # MUST be the first test to handle EVAL_n counter
 subtest 'Special compiler variable $?FILE' => {
-    my $file := $*CWD.absolute ~ '/EVAL_1';
+    my $file := 'EVAL_1';
     # $?FILE
     ast RakuAST::Var::Compiler::File.new($file);
 

@@ -2205,6 +2205,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method routine-def($/) {
         my $routine := $*BLOCK;
+        my $return-type := $*OFTYPE.ast if $*OFTYPE;
         if $<signature> {
             $routine.replace-signature($<signature>.ast);
         }
@@ -2907,6 +2908,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             $returns := Nodify('Node');
+        }
+        if $*OFTYPE {
+            $/.typed-sorry('X::Redeclaration', :what('return type for'))
+                if $returns;
+            $returns := $*OFTYPE.ast;
         }
         self.attach: $/, Nodify('Signature').new(:@parameters, :$returns);
     }

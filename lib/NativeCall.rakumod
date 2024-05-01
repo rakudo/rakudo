@@ -437,25 +437,39 @@ our role Native[
     method soft(--> True) {} # prevent inlining of the original function body
 }
 
-multi sub postcircumfix:<[ ]>(CArray:D \array, $pos) is raw is export(:DEFAULT, :types) is default {
-    nqp::istype($pos, Iterable) ?? $pos.map: { array.AT-POS($_) } !! array.AT-POS($pos);
+#-------------------------------------------------------------------------------
+# CArray as a positional
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array, $pos
+) is raw is export(:DEFAULT, :types) is default {
+    nqp::istype($pos, Iterable)
+      ?? $pos.map: { array.AT-POS($_) }
+      !! array.AT-POS($pos);
 }
-multi sub postcircumfix:<[ ]>(CArray:D \array, *@pos) is raw is export(:DEFAULT, :types) {
-    @pos.map: { array.AT-POS($_) };
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array, *@pos
+) is raw is export(:DEFAULT, :types) {
+    @pos.map: { array.AT-POS($_) }
 }
-multi sub postcircumfix:<[ ]>(CArray:D \array, Callable:D $block) is raw is export(:DEFAULT, :types) {
-    nqp::stmts(
-      (my $*INDEX = 'Effective index'),
-      array[$block.POSITIONS(array)]
-    )
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array, Callable:D $block
+) is raw is export(:DEFAULT, :types) {
+    my $*INDEX := 'Effective index';
+    array[$block.POSITIONS(array)]
 }
-multi sub postcircumfix:<[ ]>(CArray:D \array) is export(:DEFAULT, :types) {
-    array.ZEN-POS
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array
+) is export(:DEFAULT, :types) {
+    nqp::decont(array)
 }
-multi sub postcircumfix:<[ ]>(CArray:D \array, Whatever:D) is export(:DEFAULT, :types) {
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array, Whatever:D
+) is export(:DEFAULT, :types) {
     array[^array.elems]
 }
-multi sub postcircumfix:<[ ]>(CArray:D \array, HyperWhatever:D) is export(:DEFAULT, :types) {
+multi sub postcircumfix:<[ ]>(
+  CArray:D \array, HyperWhatever:D
+) is export(:DEFAULT, :types) {
     NYI('HyperWhatever in CArray index').throw;
 }
 
@@ -472,34 +486,36 @@ multi trait_mod:<is>(Routine $r, :$nativeconv!) is export(:DEFAULT, :traits) {
 multi trait_mod:<is>(Parameter $p, :$encoded!) is export(:DEFAULT, :traits) {
     $p does NativeCallEncoded[$encoded];
 }
-multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
-    $p does NativeCallEncoded[$encoded];
+multi trait_mod:<is>(Routine $r, :$encoded!) is export(:DEFAULT, :traits) {
+    $r does NativeCallEncoded[$encoded];
 }
 
-multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
-    $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
+multi trait_mod:<is>(Routine $r, :$mangled!) is export(:DEFAULT, :traits) {
+    $r does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
-multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
-:utils) {
+multi explicitly-manage(
+  Str $x, :$encoding = 'utf8'
+) is export(:DEFAULT, :utils) {
+    my class CStr is repr<CStr> {
+        method encoding() { $encoding }
+    }
+
     $x does ExplicitlyManagedString;
-    my $class = class CStr is repr('CStr') { method encoding() { $encoding; } };
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont($class));
+    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont(CStr))
 }
 
-role CPPConst {
-    method cpp-const(--> 1) { }
-}
-multi trait_mod:<is>(Routine $p, :cpp-const($)!) is export(:DEFAULT, :traits) {
-    $p does CPPConst;
+role CPPConst { method cpp-const(--> 1) { } }
+multi trait_mod:<is>(
+  Routine $r, :cpp-const($)!
+) is export(:DEFAULT, :traits) {
+    $r does CPPConst;
 }
 multi trait_mod:<is>(Parameter $p, :cpp-const($)!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
 
-role CPPRef {
-    method cpp-ref(--> 1) { }
-}
+role CPPRef { method cpp-ref(--> 1) { } }
 multi trait_mod:<is>(Parameter $p, :cpp-ref($)!) is export(:DEFAULT, :traits) {
     $p does CPPRef;
 }

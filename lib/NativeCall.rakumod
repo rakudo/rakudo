@@ -1,7 +1,15 @@
 use nqp;
 use QAST:from<NQP>;
+
+#- C compiler specfic ----------------------------------------------------------
 use NativeCall::Compiler::GNU;
 use NativeCall::Compiler::MSVC;
+
+my constant $cpp-name-manglers = nqp::list(
+  &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
+  &NativeCall::Compiler::GNU::mangle_cpp_symbol,
+);
+my int $manglers = nqp::elems($cpp-name-manglers);
 
 #- re-export constants ---------------------------------------------------------
 use NativeCall::Types;
@@ -252,26 +260,24 @@ multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
         !! ''
 }
 
-my %lib;
-my @cpp-name-mangler =
-    &NativeCall::Compiler::MSVC::mangle_cpp_symbol,
-    &NativeCall::Compiler::GNU::mangle_cpp_symbol,
-;
-
 sub guess-name-mangler(Routine $r, $name, Str $libname) {
-    if $r.package.REPR eq 'CPPStruct' {
-        my $sym = $r.?native_symbol // ($r.package.^name ~ '::' ~ $name);
-        for @cpp-name-mangler -> &mangler {
-            return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
+
+    my sub mangler-for($sym) {
+        my int $i;
+        while $i < $manglers {
+            my &mangler := nqp::atpos($cpp-name-manglers, $i);
+            (try cglobal($libname, mangler($r, $sym), Pointer))
+              ?? (return &mangler)
+              !! ++$i;
         }
-        die "Don't know how to mangle symbol '$sym' for library '$libname'"
+        die "Don't know how to mangle symbol '$sym' for library '$libname'";
+    }
+
+    if $r.package.REPR eq 'CPPStruct' {
+        mangler-for $r.?native_symbol // ($r.package.^name ~ '::' ~ $name)
     }
     elsif $r.?native_call_mangled {
-        my $sym = $r.?native_symbol // $name;
-        for @cpp-name-mangler -> &mangler {
-            return &mangler if try cglobal($libname, mangler($r, $sym), Pointer)
-        }
-        die "Don't know how to mangle symbol '$sym' for library '$libname'"
+        mangler-for $r.?native_symbol // $name
     }
 }
 
@@ -287,6 +293,8 @@ my $use-dispatcher := BEGIN {
         ?? do { require NativeCall::Dispatcher; True }
         !! False
 };
+
+my %lib;
 
 # This role is mixed in to any routine that is marked as being a
 # native call.

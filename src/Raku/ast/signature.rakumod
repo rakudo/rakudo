@@ -352,6 +352,7 @@ class RakuAST::Parameter
   is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type              $.type;
+    has RakuAST::Type              $!conflicting-type;
     has RakuAST::ParameterTarget   $.target;
     has Mu                         $!names;
     has Bool                       $.invocant;
@@ -430,6 +431,9 @@ class RakuAST::Parameter
     }
 
     method set-type(RakuAST::Type $type) {
+        if $!type {
+            nqp::bindattr(self, RakuAST::Parameter, '$!conflicting-type', $!type);
+        }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
         $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
         Nil
@@ -816,6 +820,12 @@ class RakuAST::Parameter
                     }
                 }
             }
+        }
+
+        if $!conflicting-type {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Parameter::MultipleTypeConstraints',
+                    parameter => $!target.name;
         }
 
         if $!default {

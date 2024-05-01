@@ -84,6 +84,11 @@ my constant $type_map = nqp::hash(
   "ulonglong",  "ulonglong",
 );
 
+my constant $use-dispatcher := 
+    $*RAKU.compiler.?supports-op('dispatch_v')
+      ?? do { require NativeCall::Dispatcher; True }
+      !! False;
+
 #- lexical roles ---------------------------------------------------------------
 
 # Role for carrying extra calling convention information.
@@ -288,12 +293,6 @@ sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
-my $use-dispatcher := BEGIN {
-    $*RAKU.compiler.?supports-op('dispatch_v')
-        ?? do { require NativeCall::Dispatcher; True }
-        !! False
-};
-
 my %lib;
 
 # This role is mixed in to any routine that is marked as being a
@@ -397,28 +396,31 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method setup-nativecall() {
         $!name = self.name;
 
-        unless ($use-dispatcher) {
+        unless $use-dispatcher {
+
             # finish compilation of the original routine so our changes won't
             # become undone right afterwards
-            $*W.unstub_code_object(self, Code) if $*W;
+            $*W.unstub_code_object(self, Code) if $*W;  # XXX RakuAST
 
-            my $replacement := -> |args {
-                self!setup() unless nqp::unbox_i($!call);
+            my $replacement := -> |c {
+                self!setup unless nqp::unbox_i($!call);
 
-                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-                self!arity-error(args) if nqp::elems($args) != $!arity;
+                my Mu $args := nqp::getattr(nqp::decont(c), Capture, '@!list');
+                my int $nr-args = nqp::elems($args);
+                self!arity-error(c) if $nr-args != $!arity;
+
                 if $!any-callbacks {
-                    my int $i = 0;
-                    while $i < nqp::elems($args) {
+                    my int $i;
+                    while $i < $nr-args {
                         my $arg := nqp::decont(nqp::atpos($args, $i));
-                        if nqp::istype_nd($arg, Code) {
-                            nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
-                        }
-                        $i++;
+                        nqp::bindpos($args,$i,nqp::getattr($arg,Code,'$!do'))
+                          if nqp::istype_nd($arg,Code);
+                        ++$i;
                     }
                 }
                 nqp::nativecall($!rettype, self, $args)
-            };
+            }
+
             my $do := nqp::getattr($replacement, Code, '$!do');
             nqp::bindattr(self, Code, '$!do', $do);
             nqp::setcodename($do, $!name);

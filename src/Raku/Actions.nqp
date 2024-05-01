@@ -2190,6 +2190,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $var.add-trait($_.ast);
         }
 
+        if $var.is-attribute && !$var.twigil {
+            $*R.declare-lexical:
+                Nodify('VarDeclaration', 'AttributeAlias').new(
+                    :desigilname($var.desigilname),
+                    :sigil($var.sigil),
+                    :attribute($var),
+                );
+        }
+
         self.attach: $/, $var;
     }
 

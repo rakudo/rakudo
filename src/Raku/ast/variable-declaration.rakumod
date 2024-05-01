@@ -520,7 +520,7 @@ class RakuAST::VarDeclaration::Simple
     has str                  $!storage-name;
     has RakuAST::Initializer $.initializer;
     has RakuAST::SemiList    $.shape;
-    has RakuAST::Package     $!attribute-package;
+    has RakuAST::Package     $.attribute-package;
     has RakuAST::Role        $!generics-package;
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
@@ -577,7 +577,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
 
         if $WHY {
-            $scope && $scope eq 'has'
+            $scope && $obj.is-attribute
               ?? $obj.set-WHY($WHY)
               !! nqp::die("Declarator doc only supported on scope 'has'");
         }
@@ -591,7 +591,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method name() {
-        self.sigil ~ self.twigil ~ $!desigilname.canonicalize;
+        self.sigil ~ (self.twigil // (self.is-attribute ?? '!' !! '')) ~ $!desigilname.canonicalize;
     }
 
     method lexical-name() {
@@ -660,9 +660,13 @@ class RakuAST::VarDeclaration::Simple
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method is-attribute() {
         my str $scope := self.scope;
-        if $scope eq 'has' || $scope eq 'HAS' || self.twigil eq '.' {
+        $scope eq 'has' || $scope eq 'HAS'
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        if self.is-attribute || self.twigil eq '.' {
             my $attribute-package := $resolver.find-attach-target('package');
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
@@ -672,7 +676,7 @@ class RakuAST::VarDeclaration::Simple
                 # TODO check-time error
             }
         }
-        elsif $scope eq 'our' || $!desigilname.is-multi-part {
+        elsif self.scope eq 'our' || $!desigilname.is-multi-part {
             my $package := $resolver.current-package;
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
@@ -707,8 +711,7 @@ class RakuAST::VarDeclaration::Simple
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my str $scope := self.scope;
-        if $!attribute-package && ($scope eq 'has' || $scope eq 'HAS') {
+        if $!attribute-package && self.is-attribute {
             $!attribute-package.can-have-attributes
               ?? $!attribute-package.ATTACH-ATTRIBUTE(self)
               !! $resolver.add-worry:  # XXX should be self.add-worry
@@ -754,7 +757,7 @@ class RakuAST::VarDeclaration::Simple
         # Apply any traits.
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
-        if $scope eq 'has' || $scope eq 'HAS' {
+        if self.is-attribute {
             if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
@@ -1232,7 +1235,7 @@ class RakuAST::VarDeclaration::Simple
             }
             QAST::Var.new( :name(self.name), :$scope )
         }
-        elsif $scope eq 'has' || $scope eq 'HAS' {
+        elsif self.is-attribute {
             nqp::die('Cannot compile lookup of attributes yet')
         }
         else {
@@ -1481,6 +1484,60 @@ class RakuAST::VarDeclaration::Anonymous
                       QAST::Node $source-qast
     ) {
         $source-qast
+    }
+}
+
+class RakuAST::VarDeclaration::AttributeAlias
+  is RakuAST::Declaration
+{
+    has RakuAST::Name $.desigilname;
+    has str $.sigil;
+    has RakuAST::VarDeclaration::Simple $.attribute;
+
+    method new(RakuAST::Name :$desigilname!, str :$sigil!, RakuAST::VarDeclaration::Simple :$attribute!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!desigilname', $desigilname);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::AttributeAlias, '$!sigil', $sigil);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!attribute', $attribute);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!desigilname);
+    }
+
+    method generate-lookup() {
+        RakuAST::Var::Attribute.new(self.IMPL-ATTRIBUTE-NAME);
+    }
+
+    method lexical-name() {
+        $!sigil ~ $!desigilname.canonicalize
+    }
+
+    method default-scope() {
+        'my'
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<null>)
+    }
+
+    method IMPL-ATTRIBUTE-NAME() {
+        $!sigil ~ '!' ~ $!desigilname.canonicalize
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $package := $!attribute.attribute-package.meta-object;
+        my $name := self.IMPL-ATTRIBUTE-NAME;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $name).type;
+        $context.ensure-sc($package);
+        QAST::Var.new(
+            :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
+            :name($name), :returns($attr-type),
+            QAST::Var.new(:scope('lexical'), :name('self')),
+            QAST::WVal.new( :value($package) ),
+        )
     }
 }
 

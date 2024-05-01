@@ -1,10 +1,38 @@
 use nqp;
 use QAST:from<NQP>;
-
-use NativeCall::Types;
 use NativeCall::Compiler::GNU;
 use NativeCall::Compiler::MSVC;
 
+#- re-export constants ---------------------------------------------------------
+use NativeCall::Types;
+
+my constant long          is export(:types, :DEFAULT) =
+  NativeCall::Types::long;
+my constant longlong      is export(:types, :DEFAULT) =
+  NativeCall::Types::longlong;
+my constant ulong         is export(:types, :DEFAULT) =
+  NativeCall::Types::ulong;
+my constant ulonglong     is export(:types, :DEFAULT) =
+  NativeCall::Types::ulonglong;
+my constant bool          is export(:types, :DEFAULT) =
+  NativeCall::Types::bool;
+my constant size_t        is export(:types, :DEFAULT) =
+  NativeCall::Types::size_t;
+my constant ssize_t       is export(:types, :DEFAULT) =
+  NativeCall::Types::ssize_t;
+my constant void          is export(:types, :DEFAULT) =
+  NativeCall::Types::void;
+my constant CArray        is export(:types, :DEFAULT) =
+  NativeCall::Types::CArray;
+my constant Pointer       is export(:types, :DEFAULT) =
+  NativeCall::Types::Pointer;
+my constant OpaquePointer is export(:types, :DEFAULT) =
+  NativeCall::Types::Pointer;
+my constant ExplicitlyManagedString =
+  NativeCall::Types::ExplicitlyManagedString;
+
+#- constants -------------------------------------------------------------------
+# Compile time lookup structures and aliases
 my constant $repr_map = nqp::hash(
   "CArray",    "carray",
   "CPPStruct", "cppstruct",
@@ -14,21 +42,41 @@ my constant $repr_map = nqp::hash(
   "VMArray",   "vmarray",
 );
 
-module NativeCall {
+my constant $signed_ints_by_size =
+  nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
+my constant $unsigned_ints_by_size =
+  nqp::list_s( "", "uchar", "ushort", "", "uint", "", "", "", "ulonglong" );
 
-my constant long          is export(:types, :DEFAULT) = NativeCall::Types::long;
-my constant longlong      is export(:types, :DEFAULT) = NativeCall::Types::longlong;
-my constant ulong         is export(:types, :DEFAULT) = NativeCall::Types::ulong;
-my constant ulonglong     is export(:types, :DEFAULT) = NativeCall::Types::ulonglong;
-my constant bool          is export(:types, :DEFAULT) = NativeCall::Types::bool;
-my constant size_t        is export(:types, :DEFAULT) = NativeCall::Types::size_t;
-my constant ssize_t       is export(:types, :DEFAULT) = NativeCall::Types::ssize_t;
-my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
-my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
-my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
-my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
-my constant ExplicitlyManagedString = NativeCall::Types::ExplicitlyManagedString;
+# Gets the NCI type code to use based on a given Raku type.
+my constant $type_map = nqp::hash(
+  "Bool",       nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(bool)),
+  "bool",       nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(bool)),
+  "Callable",   "callback",
+  "Int",        "longlong",
+  "int",        "long",
+  "int16",      "short",
+  "int32",      "int",
+  "int64",      "longlong",
+  "int8",       "char",
+  "long",       "long",
+  "longdouble", "longdouble",
+  "longlong",   "longlong",
+  "Num",        "double",
+  "num",        "double",
+  "num32",      "float",
+  "num64",      "double",
+  "size_t",  nqp::atpos_s($unsigned_ints_by_size,nqp::nativecallsizeof(size_t)),
+  "ssize_t", nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(ssize_t)),
+  "uint",       "ulong",
+  "uint16",     "ushort",
+  "uint32",     "uint",
+  "uint64",     "ulonglong",
+  "uint8",      "uchar",
+  "ulong",      "ulong",
+  "ulonglong",  "ulonglong",
+);
 
+#- lexical roles ---------------------------------------------------------------
 
 # Role for carrying extra calling convention information.
 my role NativeCallingConvention[$name] {
@@ -40,6 +88,7 @@ my role NativeCallEncoded[$name] {
     method native_call_encoded() { $name };
 }
 
+# Role for carrying a mangled library name
 my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
@@ -47,6 +96,11 @@ my role NativeCallMangled[$name] {
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
 my class native_callsite is repr('NativeCall') { }
+
+#- NativeCall ------------------------------------------------------------------
+# The namespace for much of NativeCall's functionality
+
+module NativeCall {
 
 # Maps a chosen string encoding to a type recognized by the native call engine.
 sub string_encoding_to_nci_type(\encoding) {
@@ -128,40 +182,6 @@ sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point, :$resolve-
 sub nativesizeof($obj) is export(:DEFAULT) {
     nqp::nativecallsizeof($obj)
 }
-
-my constant $signed_ints_by_size =
-  nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
-my constant $unsigned_ints_by_size =
-  nqp::list_s( "", "uchar", "ushort", "", "uint", "", "", "", "ulonglong" );
-
-# Gets the NCI type code to use based on a given Raku type.
-my constant $type_map = nqp::hash(
-  "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
-  "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
-  "Callable",   "callback",
-  "Int",        "longlong",
-  "int",        "long",
-  "int16",      "short",
-  "int32",      "int",
-  "int64",      "longlong",
-  "int8",       "char",
-  "long",       "long",
-  "longdouble", "longdouble",
-  "longlong",   "longlong",
-  "Num",        "double",
-  "num",        "double",
-  "num32",      "float",
-  "num64",      "double",
-  "size_t",     nqp::atpos_s($unsigned_ints_by_size,nativesizeof(size_t)),
-  "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
-  "uint",       "ulong",
-  "uint16",     "ushort",
-  "uint32",     "uint",
-  "uint64",     "ulonglong",
-  "uint8",      "uchar",
-  "ulong",      "ulong",
-  "ulonglong",  "ulonglong",
-);
 
 sub type_code_for(Mu ::T) {
     if nqp::atkey($type_map,T.^shortname) -> $type {
@@ -510,6 +530,7 @@ sub cglobal($libname, $symbol, $target-type) is export is rw {
 
 }
 
+#- other exportable code -------------------------------------------------------
 sub check_routine_sanity(Routine $r) is export(:TEST) {
     #Maybe this should use the hash already existing?
     sub validnctype (Mu ::T) {

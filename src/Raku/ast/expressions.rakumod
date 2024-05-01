@@ -1539,7 +1539,7 @@ class RakuAST::ApplyInfix
         my $right := self.right;
 
         # handle op=
-        if nqp::eqaddr($infix.WHAT,RakuAST::MetaInfix::Assign) {
+        if nqp::istype($infix, RakuAST::MetaInfix::Assign) {
             my str $operator := $infix.infix.operator;
             if $operator eq ',' || $operator eq 'xx' {
                 my $sigil := (try $left.sigil) // '';
@@ -1555,9 +1555,27 @@ class RakuAST::ApplyInfix
         }
 
         # a "normal" infix op
-        elsif nqp::istype($infix,RakuAST::Infix) {
+        elsif nqp::istype($infix, RakuAST::Infix) {
             if $infix.operator eq ':=' && !$left.can-be-bound-to {
                 self.add-sorry: $left.build-bind-exception($resolver);
+            }
+
+            my $type := self.left.return-type;
+            if nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) {
+                my $right := self.right;
+                if nqp::istype($right,RakuAST::Literal) {
+                    if nqp::objprimspec($type) {
+                        $type := $type.HOW.mro($type)[1];
+                    }
+
+                    my $value := $right.compile-time-value;
+                    if !nqp::istype($value, $type)
+                      && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
+                        self.add-sorry:
+                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
+                            :vartype($type), :$value;
+                    }
+                }
             }
         }
         True

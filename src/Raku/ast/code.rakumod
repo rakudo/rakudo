@@ -2854,7 +2854,7 @@ class RakuAST::CurryThunk
     method new(Str $original-expression) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CurryThunk, '$!parameters', []);
-        nqp::bindattr($obj, RakuAST::CurryThunk, '$!original-expression', $original-expression);
+        nqp::bindattr($obj, RakuAST::CurryThunk, '$!original-expression', nqp::hllizefor($original-expression, 'Raku'));
         $obj
     }
 

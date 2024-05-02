@@ -100,7 +100,12 @@ class RakuAST::ColonPair
         my $value := self.simple-compile-time-quote-value;
         $value := self.value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
             if !$value && self.value.IMPL-CAN-INTERPRET;
-        $!key ~ ($value ?? self.IMPL-QUOTE-VALUE($value) !! self.value.DEPARSE)
+        $!key ~ (
+            $value
+                ?? self.IMPL-QUOTE-VALUE($value)
+                !! self.value.origin
+                    ?? self.value.origin.Str
+                    !! self.value.DEPARSE)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

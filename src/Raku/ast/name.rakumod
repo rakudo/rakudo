@@ -141,7 +141,8 @@ class RakuAST::Name
                 }
                 else {
                     nqp::push_s($canon-parts, '') if nqp::elems($!parts) == 1;
-                    nqp::push_s($canon-parts, '(' ~ $_.expr.DEPARSE ~ ')');
+                    my $expr := $_.expr;
+                    nqp::push_s($canon-parts, '(' ~ ($expr.origin ?? $expr.origin.Str !! $expr.DEPARSE) ~ ')');
                 }
             }
             else {

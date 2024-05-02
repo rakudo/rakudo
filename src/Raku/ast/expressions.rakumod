@@ -70,7 +70,7 @@ class RakuAST::Expression
 
     # This creates the curry. Parameters are always added via CurryThunk.IMPL-ADD-PARAM
     method IMPL-CURRY() {
-        my $thunk := RakuAST::CurryThunk.new(self.DEPARSE);
+        my $thunk := RakuAST::CurryThunk.new(self.origin ?? self.origin.Str !! self.DEPARSE);
         self.wrap-with-thunk($thunk);
         $thunk
     }

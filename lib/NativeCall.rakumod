@@ -49,15 +49,15 @@ my constant $repr_map = nqp::hash(
   "VMArray",   "vmarray",
 );
 
-my constant $signed_ints_by_size =
+my constant $ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
-my constant $unsigned_ints_by_size =
+my constant $uints_by_size =
   nqp::list_s( "", "uchar", "ushort", "", "uint", "", "", "", "ulonglong" );
 
 # Gets the NCI type code to use based on a given Raku type.
 my constant $type_map = nqp::hash(
-  "Bool",       nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(bool)),
-  "bool",       nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(bool)),
+  "Bool",       nqp::atpos_s($ints_by_size,nqp::nativecallsizeof(bool)),
+  "bool",       nqp::atpos_s($ints_by_size,nqp::nativecallsizeof(bool)),
   "Callable",   "callback",
   "Int",        "longlong",
   "int",        "long",
@@ -72,8 +72,8 @@ my constant $type_map = nqp::hash(
   "num",        "double",
   "num32",      "float",
   "num64",      "double",
-  "size_t",  nqp::atpos_s($unsigned_ints_by_size,nqp::nativecallsizeof(size_t)),
-  "ssize_t", nqp::atpos_s($signed_ints_by_size,nqp::nativecallsizeof(ssize_t)),
+  "size_t",     nqp::atpos_s($uints_by_size,nqp::nativecallsizeof(size_t)),
+  "ssize_t",    nqp::atpos_s($ints_by_size,nqp::nativecallsizeof(ssize_t)),
   "uint",       "ulong",
   "uint16",     "ushort",
   "uint32",     "uint",
@@ -105,13 +105,10 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
-#- NativeCall ------------------------------------------------------------------
-# The namespace for much of NativeCall's functionality
-
-module NativeCall {
+#- local helper subs -----------------------------------------------------------
 
 # Maps a chosen string encoding to a type recognized by the native call engine.
-sub string_encoding_to_nci_type(str $enc) {
+my sub string_encoding_to_nci_type(str $enc) {
     nqp::iseq_s($enc,"utf8")
       ?? "utf8str"
       !! nqp::iseq_s($enc,"ascii")
@@ -122,7 +119,7 @@ sub string_encoding_to_nci_type(str $enc) {
 }
 
 # Builds a hash of type information for the specified parameter.
-sub param_hash_for(Parameter $p) {
+my sub param_hash_for(Parameter $p) {
     my Mu $result := nqp::hash;
     my    $type   := $p.type;
 
@@ -153,7 +150,7 @@ sub param_hash_for(Parameter $p) {
 }
 
 # Builds the list of parameter information for a callback argument.
-sub param_list_for(Signature $sig, &r?) {
+my sub param_list_for(Signature $sig, &r?) {
     my $params   := nqp::getattr($sig.params,List,'$!reified');
     my int $elems = nqp::elems($params);
 
@@ -177,7 +174,7 @@ sub param_list_for(Signature $sig, &r?) {
 }
 
 # Builds a hash of type information for the specified return type.
-sub return_hash_for(
+my sub return_hash_for(
   Signature $s,
             &r?,
            :$with-typeobj,
@@ -221,46 +218,46 @@ sub return_hash_for(
     $result
 }
 
-sub nativesizeof($obj) is export(:DEFAULT) {
-    nqp::nativecallsizeof($obj)
-}
+my sub type_code_for(Mu ::T) {
+    nqp::ifnull(
+      nqp::atkey($type_map,T.^shortname),
+      nqp::ifnull(
+        nqp::atkey($repr_map,T.REPR),
 
-sub type_code_for(Mu ::T) {
-    if nqp::atkey($type_map,T.^shortname) -> $type {
-        $type
-    }
-    elsif nqp::atkey($repr_map,T.REPR) -> $type {
-        $type
-    }
     # the REPR of a Buf or Blob type object is Uninstantiable, so
     # needs an extra special case here that isn't covered in the
     # hash lookup above.
-    elsif nqp::istype(T,Blob) {
-        "vmarray"
-    }
-    elsif nqp::istype(T,Pointer) {
-        "cpointer"
-    }
-    else {
-        die
-"Unknown type {T.^name} used in native call.\n" ~
-"If you want to pass a struct, be sure to use the CStruct or\n" ~
-"CPPStruct representation.\n" ~
-"If you want to pass an array, be sure to use the CArray type.";
-    }
+        nqp::istype(T,Blob)
+          ?? "vmarray"
+          !! nqp::istype(T,Pointer)
+            ?? "cpointer"
+            !! die qq:to/ERROR/.naive-word-wrapper))
+Unknown type {T.^name} used in native call.  If you want to pass a struct, be sure to use the CStruct or CPPStruct representation.  If you want to pass an array, be sure to use the CArray type.
+ERROR
 }
 
-sub gen_native_symbol(Routine $r, $name, :$cpp-name-mangler) {
-    if ! $r.?native_call_mangled {
-        # Native symbol or name is said to be already mangled
-        $r.?native_symbol // $name;
-    } elsif $r.package.REPR eq 'CPPStruct' {
-        # Mangle C++ classes
-        $cpp-name-mangler($r, $r.?native_symbol // ($r.package.^name ~ '::' ~ $name));
-    } else {
+my sub gen_native_symbol(Routine $r, $name, :$cpp-name-mangler) {
+    my $symbol := $r.?native_symbol;
+
+    # Native symbol or name is said to be already mangled
+    !$r.?native_call_mangled
+      ?? ($symbol // $name)
+      # Mangle C++ classes
+      !! $r.package.REPR eq 'CPPStruct'
+        ?? $cpp-name-mangler(
+             $r, $symbol // ($r.package.^name ~ '::' ~ $name)
+           )
         # Mangle C
-        $cpp-name-mangler($r, $r.?native_symbol // $name)
-    }
+        !!  $cpp-name-mangler($r, $symbol // $name)
+}
+
+#- NativeCall ------------------------------------------------------------------
+# The namespace for much of NativeCall's functionality
+
+module NativeCall {
+
+sub nativesizeof($obj) is export(:DEFAULT) {
+    nqp::nativecallsizeof($obj)
 }
 
 multi sub map_return_type(Mu $type) { Mu }

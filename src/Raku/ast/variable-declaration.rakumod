@@ -1519,6 +1519,13 @@ class RakuAST::VarDeclaration::AttributeAlias
         'my'
     }
 
+    method can-be-bound-to() {
+        my $package := $!attribute.attribute-package.meta-object;
+        my $name := self.IMPL-ATTRIBUTE-NAME;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $name).type;
+        nqp::objprimspec($attr-type) ?? False !! True
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(:op<null>)
     }
@@ -1537,6 +1544,29 @@ class RakuAST::VarDeclaration::AttributeAlias
             :name($name), :returns($attr-type),
             QAST::Var.new(:scope('lexical'), :name('self')),
             QAST::WVal.new( :value($package) ),
+        )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        my $package := $!attribute.attribute-package.meta-object;
+        my $name := self.IMPL-ATTRIBUTE-NAME;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $name).type;
+        unless nqp::eqaddr($attr-type, Mu) {
+            $context.ensure-sc($attr-type);
+            $source-qast := QAST::Op.new(
+                :op('p6bindassert'),
+                $source-qast,
+                QAST::WVal.new( :value($attr-type) )
+            );
+        }
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new(
+                :scope('attribute'), :name($name), :returns($attr-type),
+                QAST::Var.new(:scope('lexical'), :name('self')),
+                QAST::WVal.new( :value($package) ),
+            ),
+            $source-qast
         )
     }
 }

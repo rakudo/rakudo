@@ -438,13 +438,9 @@ my sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
-my sub map_return_type(Mu $type) {
-    nqp::istype($type, Int)
-      ?? Int
-      !! nqp::istype($type, Num)
-        ?? Num
-        !! $type
-}
+my multi sub map_return_type(Mu $type) { $type }
+my multi sub map_return_type(Int     ) { Int   }
+my multi sub map_return_type(Num     ) { Num   }
 
 #- exportable subs -------------------------------------------------------------
 

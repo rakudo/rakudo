@@ -111,8 +111,7 @@ my role NativeCallMangled[$name] {
 module NativeCall {
 
 # Maps a chosen string encoding to a type recognized by the native call engine.
-sub string_encoding_to_nci_type(\encoding) {
-    my str $enc = encoding;
+sub string_encoding_to_nci_type(str $enc) {
     nqp::iseq_s($enc,"utf8")
       ?? "utf8str"
       !! nqp::iseq_s($enc,"ascii")
@@ -124,24 +123,32 @@ sub string_encoding_to_nci_type(\encoding) {
 
 # Builds a hash of type information for the specified parameter.
 sub param_hash_for(Parameter $p) {
-    my Mu $result := nqp::hash();
-    my $type := $p.type();
+    my Mu $result := nqp::hash;
+    my    $type   := $p.type;
+
     nqp::bindkey($result, 'typeobj', nqp::decont($type));
-    nqp::bindkey($result, 'rw', nqp::unbox_i(1)) if $p.rw;
+    nqp::bindkey($result, 'rw', nqp::unbox_i(1))
+      if $p.rw;
+
     if nqp::istype($type,Str) {
-        my $enc := $p.?native_call_encoded() || 'utf8';
-        nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
+        my $enc := $p.?native_call_encoded // 'utf8';
+        nqp::bindkey(
+          $result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc))
+        );
         nqp::bindkey($result, 'free_str', nqp::unbox_i(1));
     }
+
     elsif nqp::istype($type,Callable) {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
         my $info := param_list_for($p.sub_signature);
         nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
         nqp::bindkey($result, 'callback_args', $info);
     }
+
     else {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
     }
+
     $result
 }
 
@@ -153,36 +160,63 @@ sub param_list_for(Signature $sig, &r?) {
     # not sending Method's default slurpy *%_ (which is always last)
     --$elems
       if nqp::istype(&r,Method)
-      && nqp::iseq_s(nqp::atpos($params,$elems - 1).name,'%_');
+      && nqp::atpos($params,$elems - 1).name eq '%_';
 
     # build list
     my $result := nqp::setelems(nqp::list,$elems);
-    my int $i   = -1;
-    nqp::bindpos($result,$i,
-      param_hash_for(nqp::atpos($params,$i))
-    ) while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+    my int $i;
+    nqp::while(
+      $i < $elems,
+      nqp::stmts(
+        nqp::bindpos($result,$i, param_hash_for(nqp::atpos($params,$i))),
+        ++$i
+      )
+    );
 
     $result
 }
 
 # Builds a hash of type information for the specified return type.
-sub return_hash_for(Signature $s, &r?, :$with-typeobj, :$entry-point, :$resolve-libname, :$resolve-libname-arg) {
-    my Mu $result := nqp::hash();
-    my $returns := $s.returns;
-    nqp::bindkey($result, 'typeobj',     nqp::decont($returns))     if $with-typeobj;
-    nqp::bindkey($result, 'entry_point', nqp::decont($entry-point)) if $entry-point;
-    nqp::bindkey($result, 'resolve_lib_name_arg', nqp::decont($resolve-libname-arg)) if $resolve-libname-arg;
-    nqp::bindkey($result, 'resolve_lib_name', nqp::getattr(nqp::decont($resolve-libname), Code, '$!do')) if $resolve-libname;
+sub return_hash_for(
+  Signature $s,
+            &r?,
+           :$with-typeobj,
+           :$entry-point,
+           :$resolve-libname,
+           :$resolve-libname-arg
+) {
+    my Mu $result := nqp::hash;
+    my $returns   := $s.returns;
+
+    nqp::bindkey(
+      $result, 'typeobj', nqp::decont($returns)
+    ) if $with-typeobj;
+    nqp::bindkey(
+      $result, 'entry_point', nqp::decont($entry-point)
+    ) if $entry-point;
+    nqp::bindkey(
+      $result, 'resolve_lib_name_arg', nqp::decont($resolve-libname-arg)
+    ) if $resolve-libname-arg;
+    nqp::bindkey(
+      $result, 'resolve_lib_name', nqp::getattr(nqp::decont($resolve-libname), Code, '$!do')
+    ) if $resolve-libname;
+
     if nqp::istype($returns,Str) {
-        my $enc := &r.?native_call_encoded() || 'utf8';
-        nqp::bindkey($result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc)));
+        my $enc := &r.?native_call_encoded // 'utf8';
+        nqp::bindkey(
+          $result, 'type', nqp::unbox_s(string_encoding_to_nci_type($enc))
+        );
         nqp::bindkey($result, 'free_str', nqp::unbox_i(0));
     }
+
     # TODO: If we ever want to handle function pointers returned from C, this
     # bit of code needs to handle that.
     else {
-        nqp::bindkey($result, 'type',
-            $returns =:= Mu ?? 'void' !! nqp::unbox_s(type_code_for($returns)));
+        nqp::bindkey(
+          $result, 'type', nqp::eqaddr($returns,Mu)
+            ?? 'void'
+            !! nqp::unbox_s(type_code_for($returns))
+        );
     }
     $result
 }

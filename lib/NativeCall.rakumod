@@ -105,6 +105,157 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
+#- NativeCall ------------------------------------------------------------------
+# The namespace for much of NativeCall's functionality
+
+module NativeCall {
+
+# Throwaway type just to get us some way to get at the NativeCall
+# representation.
+    my class Callsite is repr('NativeCall') { }
+
+# Role mixed in to any routine that is marked as being a native call
+    my $mangler-for-lib := nqp::hash;
+    our role Native[
+      Routine $routine,
+      $libname where Str | Callable | List | IO::Path | Distribution::Resource
+    ] {
+        has Callsite $!call is box_target;
+        has Mu       $!rettype;
+        has          $!cpp-name-mangler;
+        has Pointer  $!entry-point;
+        has int      $!arity;
+        has int      $!any-optionals;
+        has int      $!any-callbacks;
+        has str      $!name;
+
+        method CUSTOM-DISPATCHER(--> str) { 'raku-nativecall' }
+
+        method call()    { $!call    }
+        method rettype() { $!rettype }
+
+        INIT my Lock $setup-lock .= new;
+        method !setup() {
+            $setup-lock.protect: {
+                nqp::neverrepossess(self);
+                return if nqp::unbox_i($!call);
+
+                # Make sure that C++ methods are treated as mangled
+                # (unless set otherwise)
+                self does NativeCallMangled[True]
+                  if self.package.REPR eq 'CPPStruct'
+                  && !self.does(NativeCallMangled);
+
+                # if needed, try to guess mangler
+                my str $guessed-libname = guess_library_name($libname);
+                $!cpp-name-mangler := nqp::ifnull(
+                  nqp::atkey($mangler-for-lib,$guessed-libname),
+                  nqp::bindkey(
+                    $mangler-for-lib,
+                    $guessed-libname,
+                    guess-name-mangler($routine, $!name, $guessed-libname)
+                  )
+                ) if self.does(NativeCallMangled) && $routine.?native_call_mangled;
+
+                my $signature := $routine.signature;
+                my $params := nqp::getattr($signature.params, List, '$!reified');
+
+                my Mu $arg_info := param_list_for($signature, $routine);
+                my str $conv     = self.?native_call_convention || '';
+
+                $!rettype := nqp::decont(map_return_type($routine.returns))
+                  unless $!rettype;
+                $!arity    = $signature.arity;
+
+                my int $m = nqp::elems($params);
+                my int $i;
+                while $i < $m {
+                    my $param := nqp::atpos($params, $i++);
+                    $!any-optionals = 1 if $param.optional;
+                    $!any-callbacks = 1 if nqp::istype($param.type,Callable);
+                }
+
+                nqp::buildnativecall(
+                  self,
+                  $guessed-libname,  # library name
+                  nqp::unbox_s(      # symbol to call
+                    gen_native_symbol($routine, $!name, :$!cpp-name-mangler)
+                  ),
+                  $conv,             # calling convention
+                  $arg_info,
+                  ($libname && nqp::istype($libname,Distribution::Resource))
+                    ?? return_hash_for(
+                         $signature,
+                         $routine,
+                         :$!entry-point,
+                         :&resolve-libname,
+                         :resolve-libname-arg($libname),
+                       )
+                    !! return_hash_for($signature, $routine, :$!entry-point)
+                );
+            }
+        }
+
+        method !decont-for-type($type) {
+            nqp::istype($type,Str)
+              ?? 'decont_s'
+              !! nqp::istype($type,Int)
+                ?? 'decont_i'
+                !! nqp::istype($type,Num)
+                  ?? 'decont_n'
+                  !! 'decont';
+        }
+
+        method !arity-error(\args) {
+            X::TypeCheck::Argument.new(
+                :objname($.name),
+                :arguments(args.list.map(*.^name)),
+                :signature(try $routine.signature.gist),
+            ).throw
+        }
+
+        method setup() {
+            self!setup() unless nqp::unbox_i($!call);
+        }
+
+        method setup-nativecall() {
+            $!name = self.name;
+
+            unless $use-dispatcher {
+
+                # finish compilation of the original routine so our changes won't
+                # become undone right afterwards
+                $*W.unstub_code_object(self, Code) if $*W;  # XXX RakuAST
+
+                my $replacement := -> |c {
+                    self!setup unless nqp::unbox_i($!call);
+
+                    my Mu $args := nqp::getattr(nqp::decont(c), Capture, '@!list');
+                    my int $nr-args = nqp::elems($args);
+                    self!arity-error(c) if $nr-args != $!arity;
+
+                    if $!any-callbacks {
+                        my int $i;
+                        while $i < $nr-args {
+                            my $arg := nqp::decont(nqp::atpos($args, $i));
+                            nqp::bindpos($args,$i,nqp::getattr($arg,Code,'$!do'))
+                              if nqp::istype_nd($arg,Code);
+                            ++$i;
+                        }
+                    }
+                    nqp::nativecall($!rettype, self, $args)
+                }
+
+                my $do := nqp::getattr($replacement, Code, '$!do');
+                nqp::bindattr(self, Code, '$!do', $do);
+                nqp::setcodename($do, $!name);
+            }
+        }
+
+        method soft(--> True) {} # prevent inlining of original function body
+    }
+}
+
 #- local helper subs -----------------------------------------------------------
 
 # Maps a chosen string encoding to a type recognized by the native call engine.
@@ -313,157 +464,6 @@ my sub guess-name-mangler(Routine $r, $name, Str $libname) {
 sub resolve-libname($libname) {
     CATCH { default { note $_ } }
     $libname.platform-library-name.Str
-}
-
-#- NativeCall ------------------------------------------------------------------
-# The namespace for much of NativeCall's functionality
-
-module NativeCall {
-
-# Throwaway type just to get us some way to get at the NativeCall
-# representation.
-    my class Callsite is repr('NativeCall') { }
-
-# Role mixed in to any routine that is marked as being a native call
-    my $mangler-for-lib := nqp::hash;
-    our role Native[
-      Routine $routine,
-      $libname where Str | Callable | List | IO::Path | Distribution::Resource
-    ] {
-        has Callsite $!call is box_target;
-        has Mu       $!rettype;
-        has          $!cpp-name-mangler;
-        has Pointer  $!entry-point;
-        has int      $!arity;
-        has int      $!any-optionals;
-        has int      $!any-callbacks;
-        has str      $!name;
-
-        method CUSTOM-DISPATCHER(--> str) { 'raku-nativecall' }
-
-        method call()    { $!call    }
-        method rettype() { $!rettype }
-
-        INIT my Lock $setup-lock .= new;
-        method !setup() {
-            $setup-lock.protect: {
-                nqp::neverrepossess(self);
-                return if nqp::unbox_i($!call);
-
-                # Make sure that C++ methods are treated as mangled
-                # (unless set otherwise)
-                self does NativeCallMangled[True]
-                  if self.package.REPR eq 'CPPStruct'
-                  && !self.does(NativeCallMangled);
-
-                # if needed, try to guess mangler
-                my str $guessed-libname = guess_library_name($libname);
-                $!cpp-name-mangler := nqp::ifnull(
-                  nqp::atkey($mangler-for-lib,$guessed-libname),
-                  nqp::bindkey(
-                    $mangler-for-lib,
-                    $guessed-libname,
-                    guess-name-mangler($routine, $!name, $guessed-libname)
-                  )
-                ) if self.does(NativeCallMangled) && $routine.?native_call_mangled;
-
-                my $signature := $routine.signature;
-                my $params := nqp::getattr($signature.params, List, '$!reified');
-
-                my Mu $arg_info := param_list_for($signature, $routine);
-                my str $conv     = self.?native_call_convention || '';
-
-                $!rettype := nqp::decont(map_return_type($routine.returns))
-                  unless $!rettype;
-                $!arity    = $signature.arity;
-
-                my int $m = nqp::elems($params);
-                my int $i;
-                while $i < $m {
-                    my $param := nqp::atpos($params, $i++);
-                    $!any-optionals = 1 if $param.optional;
-                    $!any-callbacks = 1 if nqp::istype($param.type,Callable);
-                }
-
-                nqp::buildnativecall(
-                  self,
-                  $guessed-libname,  # library name
-                  nqp::unbox_s(      # symbol to call
-                    gen_native_symbol($routine, $!name, :$!cpp-name-mangler)
-                  ),
-                  $conv,             # calling convention
-                  $arg_info,
-                  ($libname && nqp::istype($libname,Distribution::Resource))
-                    ?? return_hash_for(
-                         $signature,
-                         $routine,
-                         :$!entry-point,
-                         :&resolve-libname,
-                         :resolve-libname-arg($libname),
-                       )
-                    !! return_hash_for($signature, $routine, :$!entry-point)
-                );
-            }
-        }
-
-        method !decont-for-type($type) {
-            nqp::istype($type,Str)
-              ?? 'decont_s'
-              !! nqp::istype($type,Int)
-                ?? 'decont_i'
-                !! nqp::istype($type,Num)
-                  ?? 'decont_n'
-                  !! 'decont';
-        }
-
-        method !arity-error(\args) {
-            X::TypeCheck::Argument.new(
-                :objname($.name),
-                :arguments(args.list.map(*.^name)),
-                :signature(try $routine.signature.gist),
-            ).throw
-        }
-
-        method setup() {
-            self!setup() unless nqp::unbox_i($!call);
-        }
-
-        method setup-nativecall() {
-            $!name = self.name;
-
-            unless $use-dispatcher {
-
-                # finish compilation of the original routine so our changes won't
-                # become undone right afterwards
-                $*W.unstub_code_object(self, Code) if $*W;  # XXX RakuAST
-
-                my $replacement := -> |c {
-                    self!setup unless nqp::unbox_i($!call);
-
-                    my Mu $args := nqp::getattr(nqp::decont(c), Capture, '@!list');
-                    my int $nr-args = nqp::elems($args);
-                    self!arity-error(c) if $nr-args != $!arity;
-
-                    if $!any-callbacks {
-                        my int $i;
-                        while $i < $nr-args {
-                            my $arg := nqp::decont(nqp::atpos($args, $i));
-                            nqp::bindpos($args,$i,nqp::getattr($arg,Code,'$!do'))
-                              if nqp::istype_nd($arg,Code);
-                            ++$i;
-                        }
-                    }
-                    nqp::nativecall($!rettype, self, $args)
-                }
-
-                my $do := nqp::getattr($replacement, Code, '$!do');
-                nqp::bindattr(self, Code, '$!do', $do);
-                nqp::setcodename($do, $!name);
-            }
-        }
-
-        method soft(--> True) {} # prevent inlining of original function body
-    }
 }
 
 #-------------------------------------------------------------------------------

@@ -105,6 +105,15 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
+# Role for setting the native symbol to be used
+my role NativeCallSymbol[Str $name] {
+    method native_symbol()  { $name }
+}
+
+# Roles for marking C++ properties
+my role CPPConst { method cpp-const(--> 1) { } }
+my role CPPRef   { method cpp-ref(  --> 1) { } }
+
 #- NativeCall ------------------------------------------------------------------
 # The namespace for much of NativeCall's functionality
 
@@ -402,43 +411,6 @@ my sub gen_native_symbol(Routine $r, $name, :$cpp-name-mangler) {
         !!  $cpp-name-mangler($r, $symbol // $name)
 }
 
-sub nativesizeof($obj) is export(:DEFAULT) {
-    nqp::nativecallsizeof($obj)
-}
-
-multi sub map_return_type(Mu $type) { Mu }
-multi sub map_return_type($type) {
-    nqp::istype($type, Int) ?? Int
-                            !! nqp::istype($type, Num) ?? Num !! $type;
-}
-
-my role NativeCallSymbol[Str $name] {
-    method native_symbol()  { $name }
-}
-
-proto guess_library_name(|) is export(:TEST) {*}
-multi guess_library_name(IO::Path $lib) {
-    guess_library_name($lib.absolute)
-}
-multi guess_library_name(Distribution::Resource $lib) {
-    $lib.platform-library-name.Str
-}
-multi guess_library_name(Callable $lib) {
-    $lib()
-}
-multi guess_library_name(List $lib) {
-    guess_library_name($lib[0], $lib[1])
-}
-multi guess_library_name(Str $libname, $apiversion='') {
-    $libname.DEFINITE
-      ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
-          ?? $libname                          # Already a full name
-          !! $*VM.platform-library-name(
-               $libname.IO, :version($apiversion || Version)
-             ).Str
-      !! ''
-}
-
 my sub guess-name-mangler(Routine $r, $name, Str $libname) {
 
     my sub mangler-for($sym) {
@@ -461,12 +433,136 @@ my sub guess-name-mangler(Routine $r, $name, Str $libname) {
     }
 }
 
-sub resolve-libname($libname) {
+my sub resolve-libname($libname) {
     CATCH { default { note $_ } }
     $libname.platform-library-name.Str
 }
 
-#-------------------------------------------------------------------------------
+my sub map_return_type(Mu $type) {
+    nqp::istype($type, Int)
+      ?? Int
+      !! nqp::istype($type, Num)
+        ?? Num
+        !! $type
+}
+
+#- exportable subs -------------------------------------------------------------
+
+my sub nativesizeof($obj) is export(:DEFAULT) {
+    nqp::nativecallsizeof($obj)
+}
+
+my proto guess_library_name(|) is export(:TEST) {*}
+my multi guess_library_name(IO::Path $lib) {
+    guess_library_name($lib.absolute)
+}
+my multi guess_library_name(Distribution::Resource $lib) {
+    $lib.platform-library-name.Str
+}
+my multi guess_library_name(Callable $lib) {
+    $lib()
+}
+my multi guess_library_name(List $lib) {
+    guess_library_name($lib[0], $lib[1])
+}
+my multi guess_library_name(Str $libname, $apiversion='') {
+    $libname.DEFINITE
+      ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
+          ?? $libname                          # Already a full name
+          !! $*VM.platform-library-name(
+               $libname.IO, :version($apiversion || Version)
+             ).Str
+      !! ''
+}
+
+my sub explicitly-manage(
+  Str $x, :$encoding = 'utf8'
+) is export(:DEFAULT, :utils) {
+    my class CStr is repr<CStr> {
+        method encoding() { $encoding }
+    }
+
+    $x does ExplicitlyManagedString;
+    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont(CStr))
+}
+
+my multi refresh($obj --> 1) is export(:DEFAULT, :utils) {
+    nqp::nativecallrefresh($obj);
+}
+
+my proto sub nativecast(|) is export(:DEFAULT) {*}
+my multi sub nativecast(Signature $target-type, $source) {
+    my $r := sub { };
+    $r does NativeCall::Native[$r, Str];
+    $r.setup-nativecall;
+    nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
+    nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
+    $r
+}
+
+my multi sub nativecast(Int $target-type, $source) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Int, nqp::decont($source));
+}
+
+my multi sub nativecast(Num $target-type, $source) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        Num, nqp::decont($source));
+}
+
+my multi sub nativecast($target-type, $source) {
+    nqp::nativecallcast(nqp::decont($target-type),
+        nqp::decont($target-type), nqp::decont($source));
+}
+
+my sub cglobal($libname, $symbol, $target-type) is export is rw {
+    Proxy.new(
+        FETCH => -> $ {
+            nqp::nativecallglobal(
+                nqp::unbox_s(guess_library_name($libname)),
+                nqp::unbox_s($symbol),
+                nqp::decont($target-type),
+                nqp::decont(map_return_type($target-type)))
+        },
+        STORE => -> | { die "Writing to C globals NYI" }
+    )
+}
+
+my sub check_routine_sanity(Routine $r) is export(:TEST) {
+    #Maybe this should use the hash already existing?
+    sub validnctype (Mu ::T) {
+      return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
+      return True if T.^name eq 'Str' | 'str' | 'Bool';
+      return False if T.REPR eq 'P6opaque';
+      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
+      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
+      return True;
+    }
+    my $sig = $r.signature;
+    for @($sig.params).kv -> $i, $param {
+        next if nqp::istype($r,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
+        if nqp::istype($param.type,Callable) {
+          # We probably want to check the given routine type too here. but I don't know how
+          next;
+        }
+        next unless nqp::istype($param.type,Blob) #Buf are Uninstantiable, make this buggy
+        || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
+        if !validnctype($param.type) {
+           warn "In '{$r.name}' routine declaration - Not an accepted NativeCall type"
+            ~ " for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n"
+            ~ " --> For Numerical type, use the appropriate int32/int64/num64...";
+        }
+    }
+    return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
+    if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
+        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is erroneous."
+            ~ " You should not return a non NativeCall supported type (like Int inplace of int32),"
+            ~ " truncating errors can appear with different architectures";
+    }
+}
+
+#- exportable postcircumfixes --------------------------------------------------
+
 # CArray as a positional
 multi sub postcircumfix:<[ ]>(
   CArray:D \array, $pos
@@ -502,6 +598,7 @@ multi sub postcircumfix:<[ ]>(
     NYI('HyperWhatever in CArray index').throw;
 }
 
+#- exportable trait_mods -------------------------------------------------------
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {
     $r does NativeCallSymbol[$symbol];
 }
@@ -523,18 +620,6 @@ multi trait_mod:<is>(Routine $r, :$mangled!) is export(:DEFAULT, :traits) {
     $r does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
-multi explicitly-manage(
-  Str $x, :$encoding = 'utf8'
-) is export(:DEFAULT, :utils) {
-    my class CStr is repr<CStr> {
-        method encoding() { $encoding }
-    }
-
-    $x does ExplicitlyManagedString;
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont(CStr))
-}
-
-role CPPConst { method cpp-const(--> 1) { } }
 multi trait_mod:<is>(
   Routine $r, :cpp-const($)!
 ) is export(:DEFAULT, :traits) {
@@ -544,85 +629,11 @@ multi trait_mod:<is>(Parameter $p, :cpp-const($)!) is export(:DEFAULT, :traits) 
     $p does CPPConst;
 }
 
-role CPPRef { method cpp-ref(--> 1) { } }
 multi trait_mod:<is>(Parameter $p, :cpp-ref($)!) is export(:DEFAULT, :traits) {
     $p does CPPRef;
 }
 
-multi refresh($obj --> 1) is export(:DEFAULT, :utils) {
-    nqp::nativecallrefresh($obj);
-}
-
-multi sub nativecast(Signature $target-type, $source) is export(:DEFAULT) {
-    my $r := sub { };
-    $r does NativeCall::Native[$r, Str];
-    $r.setup-nativecall;
-    nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
-    nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
-    $r
-}
-
-multi sub nativecast(Int $target-type, $source) is export(:DEFAULT) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        Int, nqp::decont($source));
-}
-
-multi sub nativecast(Num $target-type, $source) is export(:DEFAULT) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        Num, nqp::decont($source));
-}
-
-multi sub nativecast($target-type, $source) is export(:DEFAULT) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont($target-type), nqp::decont($source));
-}
-
-sub cglobal($libname, $symbol, $target-type) is export is rw {
-    Proxy.new(
-        FETCH => -> $ {
-            nqp::nativecallglobal(
-                nqp::unbox_s(guess_library_name($libname)),
-                nqp::unbox_s($symbol),
-                nqp::decont($target-type),
-                nqp::decont(map_return_type($target-type)))
-        },
-        STORE => -> | { die "Writing to C globals NYI" }
-    )
-}
-
-#- other exportable code -------------------------------------------------------
-sub check_routine_sanity(Routine $r) is export(:TEST) {
-    #Maybe this should use the hash already existing?
-    sub validnctype (Mu ::T) {
-      return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
-      return True if T.^name eq 'Str' | 'str' | 'Bool';
-      return False if T.REPR eq 'P6opaque';
-      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
-      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
-      return True;
-    }
-    my $sig = $r.signature;
-    for @($sig.params).kv -> $i, $param {
-        next if nqp::istype($r,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
-        if nqp::istype($param.type,Callable) {
-          # We probably want to check the given routine type too here. but I don't know how
-          next;
-        }
-        next unless nqp::istype($param.type,Blob) #Buf are Uninstantiable, make this buggy
-        || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
-        if !validnctype($param.type) {
-           warn "In '{$r.name}' routine declaration - Not an accepted NativeCall type"
-            ~ " for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n"
-            ~ " --> For Numerical type, use the appropriate int32/int64/num64...";
-        }
-    }
-    return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
-    if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
-        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is erroneous."
-            ~ " You should not return a non NativeCall supported type (like Int inplace of int32),"
-            ~ " truncating errors can appear with different architectures";
-    }
-}
+#- handling exports ------------------------------------------------------------
 
 sub EXPORT(|) {
     # Specifies that the routine is actually a native call, into the

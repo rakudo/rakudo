@@ -312,7 +312,7 @@ our role Native[
     has int      $!any-callbacks;
     has str      $!name;
 
-    method CUSTOM-DISPATCHER(--> 'raku-nativecall') { }
+    method CUSTOM-DISPATCHER(--> str) { 'raku-nativecall' }
 
     method call()    { $!call    }
     method rettype() { $!rettype }

@@ -2466,6 +2466,7 @@ class RakuAST::MetaPostfix::Hyper
 class RakuAST::ApplyPostfix
   is RakuAST::Termish
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::WhateverApplicable
 {
     has RakuAST::Postfixish $.postfix;
@@ -2528,6 +2529,25 @@ class RakuAST::ApplyPostfix
                         $curried.IMPL-ADD-PARAM($resolver, $context, :name($_.target.lexical-name));
                     }
                 }
+            }
+        }
+    }
+
+    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        #  ApplyPostfix  ⎡(...)⎤
+        #    Block  ⎡{*.{}}⎤
+        #      Blockoid 𝄞 -e:1 ⎡{*.{}}⎤
+        #        StatementList 𝄞 -e:1 ⎡*.{}⎤
+        #          Statement::Expression ▪𝄞 -e:1 ⎡*.{}⎤
+        #            ... [curried]
+        #    Call::Term  ⎡(...)⎤
+        #      ArgList  ⎡...⎤
+        if nqp::istype($!operand, RakuAST::Block) && nqp::istype($!postfix, RakuAST::Call::Term) {
+            my $stmts := $!operand.body.statement-list;
+            if $stmts.IMPL-IS-SINGLE-EXPRESSION && $stmts.code-statements[0].expression.IMPL-CURRIED {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Syntax::Malformed',
+                        :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *')
             }
         }
     }

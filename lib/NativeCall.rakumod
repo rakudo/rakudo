@@ -119,11 +119,11 @@ my role CPPRef   { method cpp-ref(  --> 1) { } }
 
 module NativeCall {
 
-# Throwaway type just to get us some way to get at the NativeCall
-# representation.
-    my class Callsite is repr('NativeCall') { }
+    # Throwaway type just to get us some way to get at the NativeCall
+    # representation.
+    my class Callsite is repr<NativeCall> { }
 
-# Role mixed in to any routine that is marked as being a native call
+    # Role mixed in to any routine that is marked as being a native call
     my $mangler-for-lib := nqp::hash;
     our role Native[
       Routine $routine,
@@ -310,8 +310,8 @@ my sub param_hash_for(Parameter $p) {
 }
 
 # Builds the list of parameter information for a callback argument.
-my sub param_list_for(Signature $sig, &r?) {
-    my $params   := nqp::getattr($sig.params,List,'$!reified');
+my sub param_list_for(Signature $signature, &r?) {
+    my $params   := nqp::getattr($signature.params,List,'$!reified');
     my int $elems = nqp::elems($params);
 
     # not sending Method's default slurpy *%_ (which is always last)
@@ -461,7 +461,7 @@ my multi guess_library_name(Callable $lib) {
 my multi guess_library_name(List $lib) {
     guess_library_name($lib[0], $lib[1])
 }
-my multi guess_library_name(Str $libname, $apiversion='') {
+my multi guess_library_name(Str $libname, $apiversion = '') {
     $libname.DEFINITE
       ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
           ?? $libname                          # Already a full name
@@ -479,10 +479,10 @@ my sub explicitly-manage(
     }
 
     $x does ExplicitlyManagedString;
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), nqp::decont(CStr))
+    $x.cstr = nqp::box_s(nqp::unbox_s($x), CStr)
 }
 
-my multi refresh($obj --> 1) is export(:DEFAULT, :utils) {
+my sub refresh($obj --> 1) is export(:DEFAULT, :utils) {
     nqp::nativecallrefresh($obj);
 }
 
@@ -495,30 +495,33 @@ my multi sub nativecast(Signature $target-type, $source) {
     nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);
     $r
 }
-
 my multi sub nativecast(Int $target-type, $source) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        Int, nqp::decont($source));
+    nqp::nativecallcast(
+      nqp::decont($target-type), Int, nqp::decont($source)
+    )
 }
-
 my multi sub nativecast(Num $target-type, $source) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        Num, nqp::decont($source));
+    nqp::nativecallcast(
+      nqp::decont($target-type), Num, nqp::decont($source)
+    )
 }
-
 my multi sub nativecast($target-type, $source) {
-    nqp::nativecallcast(nqp::decont($target-type),
-        nqp::decont($target-type), nqp::decont($source));
+    nqp::nativecallcast(
+      nqp::decont($target-type),
+      nqp::decont($target-type),
+      nqp::decont($source)
+    )
 }
 
 my sub cglobal($libname, $symbol, $target-type) is export is rw {
     Proxy.new(
         FETCH => -> $ {
             nqp::nativecallglobal(
-                nqp::unbox_s(guess_library_name($libname)),
-                nqp::unbox_s($symbol),
-                nqp::decont($target-type),
-                nqp::decont(map_return_type($target-type)))
+              nqp::unbox_s(guess_library_name($libname)),
+              nqp::unbox_s($symbol),
+              nqp::decont($target-type),
+              nqp::decont(map_return_type($target-type))
+            )
         },
         STORE => -> | { die "Writing to C globals NYI" }
     )
@@ -656,19 +659,24 @@ multi trait_mod:<is>(Routine $r, :$encoded!) is export(:DEFAULT, :traits) {
     $r does NativeCallEncoded[$encoded];
 }
 
+# Specify how it was mangled
 multi trait_mod:<is>(Routine $r, :$mangled!) is export(:DEFAULT, :traits) {
     $r does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
 }
 
+# Specify C++ constants
 multi trait_mod:<is>(
   Routine $r, :cpp-const($)!
 ) is export(:DEFAULT, :traits) {
     $r does CPPConst;
 }
-multi trait_mod:<is>(Parameter $p, :cpp-const($)!) is export(:DEFAULT, :traits) {
+multi trait_mod:<is>(
+  Parameter $p, :cpp-const($)!
+) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
 
+# Specify C++ reference
 multi trait_mod:<is>(Parameter $p, :cpp-ref($)!) is export(:DEFAULT, :traits) {
     $p does CPPRef;
 }

@@ -524,7 +524,7 @@ my sub cglobal($libname, $symbol, $target-type) is export is rw {
     )
 }
 
-my sub check_routine_sanity(Routine $r) is export(:TEST) {
+my sub check_routine_sanity(Routine $routine) is export(:TEST) {
 
     # Maybe this should use the hash already existing?
     my sub validnctype(Mu ::T) {
@@ -548,9 +548,9 @@ my sub check_routine_sanity(Routine $r) is export(:TEST) {
               !! 1
     }
 
-    my $sig = $r.signature;
+    my $sig = $routine.signature;
     for @($sig.params).kv -> $i, $param {
-        next if nqp::istype($r,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
+        next if nqp::istype($routine,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
         if nqp::istype($param.type,Callable) {
           # We probably want to check the given routine type too here. but I don't know how
           next;
@@ -558,16 +558,25 @@ my sub check_routine_sanity(Routine $r) is export(:TEST) {
         next unless nqp::istype($param.type,Blob) #Buf are Uninstantiable, make this buggy
         || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
         if !validnctype($param.type) {
-           warn "In '{$r.name}' routine declaration - Not an accepted NativeCall type"
+           warn "In '{$routine.name}' routine declaration - Not an accepted NativeCall type"
             ~ " for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n"
             ~ " --> For Numerical type, use the appropriate int32/int64/num64...";
         }
     }
-    return True if $r.returns.REPR eq 'CPointer' | 'CStruct' | 'CPPStruct'; #Meh fix but 'imcomplete' type are a pain
-    if $r.returns.^name ne 'Mu' && !validnctype($r.returns) {
-        warn "The returning type of '{$r.name}' --> {$r.returns.^name} is erroneous."
-            ~ " You should not return a non NativeCall supported type (like Int inplace of int32),"
-            ~ " truncating errors can appear with different architectures";
+
+    my $returns := $routine.returns;
+    my str $REPR = $returns.REPR;
+
+    # Meh fix but 'incomplete' type are a pain
+    if $REPR eq 'CPointer' || $REPR eq 'CStruct' || $REPR eq 'CPPStruct' {
+        True
+    }
+    elsif $returns.^name ne 'Mu' && nqp::not_i(validnctype($returns)) {
+        warn qq:to/WARNING/.chomp.naive-word-wrapper;
+The returning type of '{$routine.name}' --> {$returns.^name} is erroneous.
+You should not return a non NativeCall supported type (like Int inplace
+of int32), truncating errors can appear with different architectures
+WARNING
     }
 }
 

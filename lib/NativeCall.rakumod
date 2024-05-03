@@ -83,7 +83,7 @@ my constant $type_map = nqp::hash(
   "ulonglong",  "ulonglong",
 );
 
-my constant $use-dispatcher := 
+my constant $use-dispatcher :=
     $*RAKU.compiler.?supports-op('dispatch_v')
       ?? do { require NativeCall::Dispatcher; True }
       !! False;
@@ -525,15 +525,29 @@ my sub cglobal($libname, $symbol, $target-type) is export is rw {
 }
 
 my sub check_routine_sanity(Routine $r) is export(:TEST) {
-    #Maybe this should use the hash already existing?
-    sub validnctype (Mu ::T) {
-      return True if nqp::existskey($repr_map,T.REPR) && T.REPR ne 'CArray' | 'CPointer';
-      return True if T.^name eq 'Str' | 'str' | 'Bool';
-      return False if T.REPR eq 'P6opaque';
-      return False if T.HOW.^can("nativesize") && !nqp::defined(T.^nativesize); #to disting int and int32 for example
-      return validnctype(T.of) if T.REPR eq 'CArray' | 'CPointer' and T.^can('of');
-      return True;
+
+    # Maybe this should use the hash already existing?
+    my sub validnctype(Mu ::T) {
+        my str $REPR = T.REPR;
+
+        return 1
+          if nqp::existskey($repr_map,$REPR)
+          && $REPR ne 'CArray'
+          && $REPR ne 'CPointer';
+
+        my str $name = T.^name;
+        $name eq 'Str' || $name eq 'str' || $name eq 'Bool'
+          ?? 1
+          !! $REPR eq 'P6opaque'
+            #to disting int and int32 for example
+            || (T.HOW.^can("nativesize")
+                 && nqp::not_i(nqp::defined(T.^nativesize)))
+            ?? 0
+            !! ($REPR eq 'CArray' || $REPR eq 'CPointer') && T.^can('of')
+              ?? validnctype(T.of)
+              !! 1
     }
+
     my $sig = $r.signature;
     for @($sig.params).kv -> $i, $param {
         next if nqp::istype($r,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters

@@ -107,107 +107,122 @@ nqp::register('raku-nativecall', $do);
 
 my sub raku-nativecall-core(Mu $capture is raw) {
     my $callee := nqp::captureposarg($capture, 0);
+    my $params := nqp::getattr($callee.signature.params, List, '$!reified');
 
     my Mu $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
     my int $pos-args = nqp::captureposelems($args);
     my int $i;
 
+    # Helper sub to replace the i-th positional argument with a value
+    # and update the $args capture accordingly
+    my sub set-arg-i-value(Mu $value is raw) {
+        $args := nqp::syscall('dispatcher-insert-arg',
+          nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+          nqp::unbox_i($i),
+          $value
+        );
+    }
+
+    # Helper sub to replace the i-th positional argument with a literal 0
+    # and update the $args capture accordingly
+    my sub set-arg-i-zero() {
+        $args := nqp::syscall("dispatcher-insert-arg-literal-int",
+          nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+          nqp::unbox_i($i),
+          0
+        );
+    }
+
+    # Helper sub to replace the i-th positional argument with a literal NaN
+    # and update the $args capture accordingly
+    my sub set-arg-i-NaN() {
+        $args := nqp::syscall("dispatcher-insert-arg-literal-num",
+          nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+          nqp::unbox_i($i),
+          NaN
+        );
+    }
+
     while $i < $pos-args {
+
         # If it should be passed read only, and it's an object...
-        if nqp::captureposprimspec($args, $i) == 0 {
+        unless nqp::captureposprimspec($args, $i) {
+
             # If it's in a Scalar container...
             my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
             nqp::guard('type', $Targ);
             nqp::guard('concreteness', $Targ);
-            my $arg := nqp::captureposarg($args, $i);
-            my $Tvalue;
-            my $cstr = False;
+
+            my $arg    := nqp::captureposarg($args, $i);
+            my $Tvalue := $Targ;
+            my int $cstr;
+
+            # Read it from the container and pass it decontainerized.
             if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Scalar) {
-                # Read it from the container and pass it decontainerized.
-                $Tvalue := nqp::track('attr', $Targ, Scalar, '$!value');
-                $args := nqp::syscall('dispatcher-insert-arg',
-                    nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $Tvalue);
+                set-arg-i-value(
+                  $Tvalue := nqp::track('attr', $Targ, Scalar, '$!value')
+                );
                 $arg := nqp::decont($arg);
             }
-            else {
-                $Tvalue := $Targ;
-            }
-            if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Code) {
-                $Tvalue := nqp::track('attr', $Tvalue, Code, '$!do');
-                $args := nqp::syscall('dispatcher-insert-arg',
-                    nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $Tvalue);
-            }
-            if nqp::isconcrete_nd($arg) && $arg.does(NativeCall::Types::ExplicitlyManagedString) {
-                $cstr = True;
-                $Tvalue := nqp::track('attr', $Tvalue, $arg.WHAT, '$!cstr');
-                $args := nqp::syscall('dispatcher-insert-arg',
-                    nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $Tvalue);
+
+            # Get to the actual low-level code if Code
+            set-arg-i-value(
+              $Tvalue := nqp::track('attr', $Tvalue, Code, '$!do')
+            ) if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Code);
+
+            # Handle explicitely managed strings
+            if nqp::isconcrete_nd($arg)
+              && $arg.does(NativeCall::Types::ExplicitlyManagedString) {
+                $cstr = 1;  # mark explicitely managed
+                set-arg-i-value(
+                  $Tvalue := nqp::track('attr', $Tvalue, $arg.WHAT, '$!cstr')
+                );
                 $arg := nqp::getattr($arg, $arg.WHAT, '$!cstr');
-                if nqp::isconcrete_nd($arg) && nqp::what_nd($arg) =:= Scalar {
-                    $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value');
-                    $args := nqp::syscall('dispatcher-insert-arg',
-                        nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                        nqp::unbox_i($i), $Tvalue);
+
+                # Decontainerize if possible
+                if nqp::isconcrete_nd($arg)
+                  && nqp::eqaddr(nqp::what_nd($arg),Scalar) {
+                    set-arg-i-value(
+                      $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value')
+                    );
                     $arg := nqp::decont($arg);
                 }
             }
 
-            my $param = $callee.signature.params[$i];
-            unless $param.rw or nqp::isrwcont($arg) {
-                if $param.type ~~ Int or $param.type.REPR eq 'CPointer' {
-                    if nqp::isconcrete_nd($arg) {
-                        $Tvalue := nqp::track('unbox-int', $Tvalue);
-                        $args := nqp::syscall('dispatcher-insert-arg',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $Tvalue);
-                    }
-                    else {
-                        $args := nqp::syscall('dispatcher-insert-arg-literal-int',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), 0); # 0 or NULL for undefined args
-                    }
+            # Done with argument checkinng, check on the associated parameter
+            my $param := nqp::atpos($params, $i);
+            unless nqp::isrwcont($arg) || $param.rw {
+                my $type := $param.type;
+
+                if nqp::istype($type, Int) || $type.REPR eq 'CPointer' {
+                    nqp::isconcrete_nd($arg)
+                      ?? set-arg-i-value(nqp::track('unbox-int', $Tvalue))
+                      !! set-arg-i-zero;
                 }
-                elsif $param.type ~~ Num {
-                    if nqp::isconcrete_nd($arg) {
-                        $Tvalue := nqp::track('unbox-num', $Tvalue);
-                        $args := nqp::syscall('dispatcher-insert-arg',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $Tvalue);
-                    }
-                    else {
-                        $args := nqp::syscall('dispatcher-insert-arg-literal-num',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), NaN);
-                    }
+                elsif nqp::istype($type, Str) && nqp::not_i($cstr) {
+                    nqp::isconcrete_nd($arg)
+                      ?? set-arg-i-value(nqp::track('unbox-str', $Tvalue))
+                      !! set-arg-i-zero;
                 }
-                elsif $param.type ~~ Str and not $cstr {
-                    if nqp::isconcrete_nd($arg) {
-                        $Tvalue := nqp::track('unbox-str', $Tvalue);
-                        $args := nqp::syscall('dispatcher-insert-arg',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $Tvalue);
-                    }
-                    else {
-                        $args := nqp::syscall('dispatcher-insert-arg-literal-int',
-                            nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), 0); # NULL for undefined args
-                    }
+                elsif nqp::istype($type, Num) {
+                    nqp::isconcrete_nd($arg)
+                      ?? set-arg-i-value(nqp::track('unbox-num', $Tvalue))
+                      !! set-arg-i-NaN;
                 }
             }
         }
         ++$i;
     }
 
-    my $new_capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
-      $args, 0, nqp::decont($callee.rettype)
+    nqp::delegate('boot-foreign-code',
+      nqp::syscall('dispatcher-insert-arg-literal-obj',
+        nqp::syscall('dispatcher-insert-arg-literal-obj',
+          $args, 0, nqp::decont($callee.rettype)
+        ),
+        0,
+        $callee.call
+      )
     );
-    my $delegate_capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
-       $new_capture, 0, $callee.call
-    );
-    nqp::delegate('boot-foreign-code', $delegate_capture);
 }
 
 $do := nqp::getattr(&raku-nativecall-core, Code, '$!do');

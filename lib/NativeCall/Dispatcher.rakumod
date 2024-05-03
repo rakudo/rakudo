@@ -4,7 +4,6 @@ use nqp;
 
 #- raku-nativecall-deproxy -----------------------------------------------------
 my sub raku-nativecall-deproxy(Mu $capture is raw) {
-    my $callee := nqp::captureposarg($capture, 1);
     # The resume init state drops the remover.
     nqp::syscall('dispatcher-set-resume-init-args',
       nqp::syscall('dispatcher-drop-arg', $capture, 0)
@@ -18,12 +17,12 @@ my sub raku-nativecall-deproxy(Mu $capture is raw) {
 }
 
 my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
-    my $Tkind := nqp::track('arg', $capture, 0);
-    nqp::guard('literal', $Tkind);
+    nqp::guard('literal', nqp::track('arg', $capture, 0));
 
     if nqp::captureposarg_i($capture, 0) == nqp::const::DISP_DECONT {
         my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
         nqp::guard('literal', nqp::track('arg', $orig-capture, 0));
+
         nqp::delegate('raku-nativecall-core',
           nqp::syscall('dispatcher-insert-arg-literal-obj',
             nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -34,6 +33,7 @@ my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
     }
 }
 
+# Set up actual dispatcher and its context
 my $do := nqp::getattr(&raku-nativecall-deproxy, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 my $do-resume := nqp::getattr(&raku-nativecall-deproxy-resume, Code, '$!do');
@@ -45,8 +45,9 @@ nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 my $PROXY-READERS := nqp::gethllsym('Raku', 'PROXY-READERS');
 my sub raku-nativecall(Mu $capture is raw) {
     nqp::guard('literal', nqp::track('arg', $capture, 0));
-    my $callee := nqp::captureposarg($capture, 0);
-    $callee.setup;
+
+    # Make sure the callee is ready
+    nqp::captureposarg($capture, 0).setup;
 
     my Mu $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
     my int $pos-args = nqp::captureposelems($args);
@@ -95,10 +96,14 @@ my sub raku-nativecall(Mu $capture is raw) {
           )
         );
     }
+
+    # No non-scalars
     else {
         nqp::delegate('raku-nativecall-core', $capture);
     }
 }
+
+# Set up actual dispatcher and its context
 $do := nqp::getattr(&raku-nativecall, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall', $do);
@@ -225,6 +230,7 @@ my sub raku-nativecall-core(Mu $capture is raw) {
     );
 }
 
+# Set up actual dispatcher and its context
 $do := nqp::getattr(&raku-nativecall-core, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-core', $do);

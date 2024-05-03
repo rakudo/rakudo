@@ -2,6 +2,7 @@ use NativeCall::Types;
 
 use nqp;
 
+#- raku-nativecall-deproxy -----------------------------------------------------
 my sub raku-nativecall-deproxy(Mu $capture is raw) {
     my $callee := nqp::captureposarg($capture, 1);
     # The resume init state drops the remover.
@@ -37,6 +38,8 @@ my $do-resume := nqp::getattr(&raku-nativecall-deproxy-resume, Code, '$!do');
 nqp::forceouterctx($do-resume, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 
+#- raku-nativecall -------------------------------------------------------------
+
 my $PROXY-READERS := nqp::gethllsym('Raku', 'PROXY-READERS');
 my sub raku-nativecall(Mu $capture is raw) {
     my $Tcallee := nqp::track('arg', $capture, 0);
@@ -46,21 +49,25 @@ my sub raku-nativecall(Mu $capture is raw) {
 
     my Mu $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
     my int $pos-args = nqp::captureposelems($args);
-    my int $i = 0;
+    my int $i;
 
-    my $non-scalar := nqp::list_i();
+    my $non-scalar := nqp::list_i;
     while $i < $pos-args {
         if nqp::captureposprimspec($args, $i) == 0 {
             my $value := nqp::captureposarg($args, $i);
-            if nqp::isconcrete_nd($value) &&
-                nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
-                !(nqp::iscont_i($value) || nqp::iscont_u($value) || nqp::iscont_n($value) || nqp::iscont_s($value))
-            {
-                nqp::push_i($non-scalar, nqp::unbox_i($i));
-            }
+            nqp::push_i($non-scalar, nqp::unbox_i($i))
+              if nqp::isconcrete_nd($value)
+              && nqp::iscont($value)
+              && nqp::not_i(nqp::istype_nd($value, Scalar))
+              && nqp::not_i(nqp::iscont_s($value)
+                   || nqp::iscont_i($value)
+                   || nqp::iscont_u($value)
+                   || nqp::iscont_n($value)
+                 );
         }
-        $i++;
+        ++$i;
     }
+
     if nqp::elems($non-scalar) {
         # Establish guards on types of all positionals, but not on the values
         # inside of them if they are Scalar containers; we just need to make
@@ -72,7 +79,7 @@ my sub raku-nativecall(Mu $capture is raw) {
                 my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
                 nqp::guard('type', $Targ);
             }
-            $i++;
+            ++$i;
         }
 
         # Need to strip the Proxy arguments and then try again. Produce a
@@ -82,23 +89,27 @@ my sub raku-nativecall(Mu $capture is raw) {
         my $reader := $PROXY-READERS.reader-for($args, $non-scalar);
         my $capture-delegate := nqp::syscall(
           'dispatcher-insert-arg-literal-obj',
-          $capture, 0, nqp::getattr($reader, $reader.WHAT, '$!do'));
+          $capture, 0, nqp::getattr($reader, $reader.WHAT, '$!do')
+        );
         nqp::delegate('raku-nativecall-deproxy', $capture-delegate);
-        return;
     }
-
-    nqp::delegate('raku-nativecall-core', $capture);
+    else {
+        nqp::delegate('raku-nativecall-core', $capture);
+    }
 }
 $do := nqp::getattr(&raku-nativecall, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall', $do);
+
+#- raku-nativecall-core --------------------------------------------------------
 
 my sub raku-nativecall-core(Mu $capture is raw) {
     my $callee := nqp::captureposarg($capture, 0);
 
     my Mu $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
     my int $pos-args = nqp::captureposelems($args);
-    my int $i = 0;
+    my int $i;
+
     while $i < $pos-args {
         # If it should be passed read only, and it's an object...
         if nqp::captureposprimspec($args, $i) == 0 {
@@ -185,16 +196,20 @@ my sub raku-nativecall-core(Mu $capture is raw) {
                 }
             }
         }
-        $i++;
+        ++$i;
     }
 
-    my $new_capture := nqp::syscall( 'dispatcher-insert-arg-literal-obj',
-      $args, 0, nqp::decont($callee.rettype));
+    my $new_capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
+      $args, 0, nqp::decont($callee.rettype)
+    );
     my $delegate_capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
-       $new_capture, 0, $callee.call);
+       $new_capture, 0, $callee.call
+    );
     nqp::delegate('boot-foreign-code', $delegate_capture);
-};
+}
 
 $do := nqp::getattr(&raku-nativecall-core, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-core', $do);
+
+# vim: expandtab shiftwidth=4

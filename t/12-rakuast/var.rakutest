@@ -15,6 +15,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 # MUST be the first test to handle EVAL_n counter
+todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
 subtest 'Special compiler variable $?FILE' => {
     my $file := 'EVAL_1';
     # $?FILE

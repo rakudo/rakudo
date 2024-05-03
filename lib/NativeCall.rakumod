@@ -548,20 +548,41 @@ my sub check_routine_sanity(Routine $routine) is export(:TEST) {
               !! 1
     }
 
-    my $sig = $routine.signature;
-    for @($sig.params).kv -> $i, $param {
-        next if nqp::istype($routine,Method) and ($i < 1 or $i == $sig.params.elems - 1); #Method have two extra parameters
-        if nqp::istype($param.type,Callable) {
-          # We probably want to check the given routine type too here. but I don't know how
-          next;
+    my $signature := $routine.signature;
+    my $params    := nqp::getattr($signature.params,List,'$!reified');
+
+    my int $m = nqp::elems($params);
+    my int $i;
+
+    # Methods have two extra parameters: self and %_, ignore those
+    if nqp::istype($routine,Method) {
+        ++$i;  # ignore self
+        --$m;  # ignore %_
+    }
+
+    while $i < $m {
+        my $param := nqp::atpos($params, $i);
+        my $type  := $param.type;
+
+        # We probably want to check the given routine type too here
+        if nqp::istype($type,Callable) {
         }
-        next unless nqp::istype($param.type,Blob) #Buf are Uninstantiable, make this buggy
-        || $param.type.^can('gist'); #FIXME, it's to handle case of class A { sub foo(A) is native) }, the type is not complete
-        if !validnctype($param.type) {
-           warn "In '{$routine.name}' routine declaration - Not an accepted NativeCall type"
-            ~ " for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$param.type.^name}\n"
-            ~ " --> For Numerical type, use the appropriate int32/int64/num64...";
+
+        #Buf are Uninstantiable, make this buggy
+        #FIXME, it's to handle case of class A { sub foo(A) is native) },
+        # the type is not complete
+        elsif nqp::not_i(nqp::istype($type,Blob)) && !$type.^can('gist') {
         }
+
+        elsif nqp::not_i(validnctype($type)) {
+            warn qq:to/WARNING/.chomp;
+In '{$routine.name}' routine declaration - Not an accepted NativeCall type
+for parameter [{$i + 1}] {$param.name ?? $param.name !! ''} : {$type.^name}
+ --> For Numerical type, use the appropriate int32/int64/num64...
+WARNING
+        }
+
+        ++$i;
     }
 
     my $returns := $routine.returns;

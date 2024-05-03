@@ -7,28 +7,30 @@ my sub raku-nativecall-deproxy(Mu $capture is raw) {
     my $callee := nqp::captureposarg($capture, 1);
     # The resume init state drops the remover.
     nqp::syscall('dispatcher-set-resume-init-args',
-      nqp::syscall('dispatcher-drop-arg', $capture, 0));
+      nqp::syscall('dispatcher-drop-arg', $capture, 0)
+    );
 
     # We then invoke the remover with the arguments (so need to drop the
     # original invokee).
     nqp::delegate('boot-code-constant',
-      nqp::syscall('dispatcher-drop-arg', $capture, 1));
+      nqp::syscall('dispatcher-drop-arg', $capture, 1)
+    );
 }
 
 my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
     my $Tkind := nqp::track('arg', $capture, 0);
     nqp::guard('literal', $Tkind);
-    my int $kind = nqp::captureposarg_i($capture, 0);
 
-    if $kind == nqp::const::DISP_DECONT {
+    if nqp::captureposarg_i($capture, 0) == nqp::const::DISP_DECONT {
         my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
-        my $Tcallee := nqp::track('arg', $orig-capture, 0);
-        nqp::guard('literal', $Tcallee);
-        my $callee := nqp::captureposarg($orig-capture, 0);
-        my $capture-delegate := nqp::syscall(
-          'dispatcher-insert-arg-literal-obj',
-          nqp::syscall('dispatcher-drop-arg', $capture, 0), 0, $callee);
-        nqp::delegate('raku-nativecall-core', $capture-delegate);
+        nqp::guard('literal', nqp::track('arg', $orig-capture, 0));
+        nqp::delegate('raku-nativecall-core',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-drop-arg', $capture, 0),
+            0,
+            nqp::captureposarg($orig-capture, 0)
+          )
+        );
     }
 }
 

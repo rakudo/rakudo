@@ -438,10 +438,6 @@ my sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
-my multi sub map_return_type(Mu $type) { $type }
-my multi sub map_return_type(Int     ) { Int   }
-my multi sub map_return_type(Num     ) { Num   }
-
 #- exportable subs -------------------------------------------------------------
 
 my sub nativesizeof($obj) is export(:DEFAULT) {

@@ -269,11 +269,10 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 }
 
-# duplicated code from NativeCall.pm to support Pointer.deref
-multi sub map_return_type(Mu $type) { Mu }
-multi sub map_return_type($type) {
-    nqp::istype($type, Int) ?? Int
-                            !! nqp::istype($type, Num) ?? Num !! $type;
-}
+# Helper sub for type mapping, used in NativeCall
+my proto sub map_return_type(|) is export {*}
+my multi sub map_return_type(Mu $type) { $type }
+my multi sub map_return_type(Int     ) { Int   }
+my multi sub map_return_type(Num     ) { Num   }
 
 # vim: expandtab shiftwidth=4

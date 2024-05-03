@@ -44,8 +44,7 @@ nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 
 my $PROXY-READERS := nqp::gethllsym('Raku', 'PROXY-READERS');
 my sub raku-nativecall(Mu $capture is raw) {
-    my $Tcallee := nqp::track('arg', $capture, 0);
-    nqp::guard('literal', $Tcallee);
+    nqp::guard('literal', nqp::track('arg', $capture, 0));
     my $callee := nqp::captureposarg($capture, 0);
     $callee.setup;
 
@@ -55,9 +54,11 @@ my sub raku-nativecall(Mu $capture is raw) {
 
     my $non-scalar := nqp::list_i;
     while $i < $pos-args {
-        if nqp::captureposprimspec($args, $i) == 0 {
+
+        # Not a native value
+        unless nqp::captureposprimspec($args, $i) {
             my $value := nqp::captureposarg($args, $i);
-            nqp::push_i($non-scalar, nqp::unbox_i($i))
+            nqp::push_i($non-scalar, $i)
               if nqp::isconcrete_nd($value)
               && nqp::iscont($value)
               && nqp::not_i(nqp::istype_nd($value, Scalar))
@@ -71,16 +72,15 @@ my sub raku-nativecall(Mu $capture is raw) {
     }
 
     if nqp::elems($non-scalar) {
+
         # Establish guards on types of all positionals, but not on the values
         # inside of them if they are Scalar containers; we just need to make
         # sure we have the appropriate tuple of Proxy vs non-Proxy for the
         # Proxy removal code we'll invoke.
         $i = 0;
         while $i < $pos-args {
-            if nqp::captureposprimspec($args, $i) == 0 {
-                my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
-                nqp::guard('type', $Targ);
-            }
+            nqp::guard('type', nqp::track('arg', $args, nqp::unbox_i($i)))
+              unless nqp::captureposprimspec($args, $i);
             ++$i;
         }
 
@@ -89,11 +89,11 @@ my sub raku-nativecall(Mu $capture is raw) {
         # and delegate to a dispatcher to manage reading the args and
         # then retrying with the outcome.
         my $reader := $PROXY-READERS.reader-for($args, $non-scalar);
-        my $capture-delegate := nqp::syscall(
-          'dispatcher-insert-arg-literal-obj',
-          $capture, 0, nqp::getattr($reader, $reader.WHAT, '$!do')
+        nqp::delegate('raku-nativecall-deproxy',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, nqp::getattr($reader, $reader.WHAT, '$!do')
+          )
         );
-        nqp::delegate('raku-nativecall-deproxy', $capture-delegate);
     }
     else {
         nqp::delegate('raku-nativecall-core', $capture);

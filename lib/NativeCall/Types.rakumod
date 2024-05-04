@@ -160,23 +160,40 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
             nqp::atposref_i(self, nqp::unbox_i($pos))
         }
+        multi method AT-POS(::?CLASS:D: Any:D $pos) is raw {
+            nqp::atposref_i(self, nqp::unbox_i($pos.Int))
+        }
 
+        multi method ASSIGN-POS(::?CLASS:D: int $pos, int $value) {
+            nqp::bindpos_i(self, $pos, $value)
+        }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, int $value) {
             nqp::bindpos_i(self, nqp::unbox_i($pos), $value)
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Int:D $value) {
             nqp::bindpos_i(self, nqp::unbox_i($pos), nqp::unbox_i($value))
         }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Any:D $value) {
+            nqp::bindpos_i(self, nqp::unbox_i($pos), nqp::unbox_i($value.Int))
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Any:D $pos, Any:D $value) {
+            nqp::bindpos_i(self,nqp::unbox_i($pos.Int),nqp::unbox_i($value.Int))
+        }
 
-        multi method allocate(::?CLASS:U: int $elems) {
+        method !allocate(::?CLASS:U: int $elems) {
             my $array := nqp::create(self);
             nqp::bindpos_i($array, $elems - 1, 0);
             $array
         }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            self!allocate($elems)
+        }
         multi method allocate(::?CLASS:U: Int:D $elems) {
-            my $array := nqp::create(self);
-            nqp::bindpos_i($array, nqp::unbox_i($elems) - 1, 0);
-            $array
+            self!allocate($elems)
+        }
+        multi method allocate(::?CLASS:U: Any:D $elems) {
+            self!allocate($elems.Int)
         }
     }
 
@@ -189,11 +206,20 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             nqp::atposref_u(self, $pos);
         }
         multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
-            nqp::atposref_u(self, $pos);
+            nqp::atposref_u(self, nqp::unbox_i($pos));
+        }
+        multi method AT-POS(::?CLASS:D: Any:D $pos) is raw {
+            nqp::atposref_u(self, nqp::unbox_i($pos.Int));
         }
 
+        multi method ASSIGN-POS(::?CLASS:D: int $pos, int $value) {
+            nqp::bindpos_u(self, $pos, $value)
+        }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, int $value) {
             nqp::bindpos_u(self, nqp::unbox_i($pos), $value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: int $pos, uint $value) {
+            nqp::bindpos_u(self, $pos, $value)
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, uint $value) {
             nqp::bindpos_u(self, nqp::unbox_i($pos), $value)
@@ -201,16 +227,27 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Int:D $value) {
             nqp::bindpos_u(self, nqp::unbox_i($pos), nqp::unbox_u($value))
         }
+        multi method ASSIGN-POS(::?CLASS:D: Any:D $pos, Int:D $value) {
+            nqp::bindpos_u(self, nqp::unbox_i($pos.Int), nqp::unbox_u($value))
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Any:D $pos, Any:D $value) {
+            nqp::bindpos_u(self,nqp::unbox_i($pos.Int),nqp::unbox_u($value.Int))
+        }
 
-        multi method allocate(::?CLASS:U: int $elems) {
+        method !allocate(::?CLASS:U: int $elems) {
             my $array := nqp::create(self);
             nqp::bindpos_u($array, $elems - 1, 0);
             $array
         }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            self!allocate($elems)
+        }
         multi method allocate(::?CLASS:U: Int:D $elems) {
-            my $array := nqp::create(self);
-            nqp::bindpos_u($array, nqp::unbox_i($elems) - 1, 0);
-            $array
+            self!allocate($elems)
+        }
+        multi method allocate(::?CLASS:U: Any:D $elems) {
+            self!allocate($elems.Int)
         }
     }
 
@@ -225,23 +262,37 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
             nqp::atposref_n(self, nqp::unbox_i($pos))
         }
+        multi method AT-POS(::?CLASS:D: Any:D $pos) is raw {
+            nqp::atposref_n(self, nqp::unbox_i($pos.Int))
+        }
 
+        multi method ASSIGN-POS(::?CLASS:D: int $pos, num $value) {
+            nqp::bindpos_n(self, $pos, $value)
+        }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, num $value) {
             nqp::bindpos_n(self, nqp::unbox_i($pos), $value)
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Num:D $value) {
             nqp::bindpos_n(self, nqp::unbox_i($pos), nqp::unbox_n($value))
         }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Any:D $value) {
+            nqp::bindpos_n(self, nqp::unbox_i($pos), nqp::unbox_n($value.Num))
+        }
 
-        multi method allocate(::?CLASS:U: int $elems) {
+        method !allocate(::?CLASS:U: int $elems) {
             my $array := nqp::create(self);
             nqp::bindpos_n($array, $elems - 1, 0e0);
             $array
         }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            self!allocate($elems)
+        }
         multi method allocate(::?CLASS:U: Int:D $elems) {
-            my $array := nqp::create(self);
-            nqp::bindpos_n($array, nqp::unbox_i($elems) - 1, 0e0);
-            $array
+            self!allocate($elems)
+        }
+        multi method allocate(::?CLASS:U: Any:D $elems) {
+            self!allocate($elems.Int)
         }
     }
 
@@ -250,14 +301,14 @@ our class CArray is repr('CArray') is array_type(Pointer) {
       does Positional[TValue]
       is   array_type(TValue)
     {
-        multi method AT-POS(::?CLASS:D: Any:D $pos) is rw {
+        multi method AT-POS(::?CLASS:D: int $pos) is rw {
             Proxy.new:
               FETCH => -> $ {
-                  nqp::atpos(self, nqp::unbox_i($pos.Int))
+                  nqp::atpos(self, $pos)
               },
-              STORE => -> $self, $value {
-                  nqp::bindpos(self,nqp::unbox_i($pos.Int),nqp::decont($value));
-                  $self
+              STORE => -> $invocant, $value {
+                  nqp::bindpos(self, $pos, nqp::decont($value));
+                  $invocant
               }
         }
         multi method AT-POS(::?CLASS:D: Int:D $pos) is rw {
@@ -270,6 +321,16 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                   $invocant
               }
         }
+        multi method AT-POS(::?CLASS:D: Any:D $pos) is rw {
+            Proxy.new:
+              FETCH => -> $ {
+                  nqp::atpos(self, nqp::unbox_i($pos.Int))
+              },
+              STORE => -> $self, $value {
+                  nqp::bindpos(self,nqp::unbox_i($pos.Int),nqp::decont($value));
+                  $self
+              }
+        }
 
         multi method ASSIGN-POS(::?CLASS:D: int $pos, \value) {
             nqp::bindpos(self, $pos, nqp::decont(value))
@@ -277,8 +338,11 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, \value) {
             nqp::bindpos(self, nqp::unbox_i($pos), nqp::decont(value))
         }
+        multi method ASSIGN-POS(::?CLASS:D: Any:D $pos, \value) {
+            nqp::bindpos(self, nqp::unbox_i($pos.Int), nqp::decont(value))
+        }
 
-        multi method allocate(::?CLASS:U: int $elems) {
+        method !allocate(int $elems) {
             my $array := nqp::create(self);
             my $type  := ::?CLASS.^array_type;
 
@@ -289,17 +353,15 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             );
             $array
         }
-        multi method allocate(::?CLASS:U: Int:D $elems) {
-            my $array := nqp::create(self);
-            my $type  := ::?CLASS.^array_type;
 
-            my int $m = $elems;
-            my int $i;
-            nqp::while(
-              $i < $elems,
-              nqp::bindpos($array, $i++, nqp::create($type))
-            );
-            $array
+        multi method allocate(::?CLASS:U: int $elems) {
+            self!allocate($elems)
+        }
+        multi method allocate(::?CLASS:U: Int:D $elems) {
+            self!allocate($elems)
+        }
+        multi method allocate(::?CLASS:U: Any:D $elems) {
+            self!allocate($elems.Int)
         }
     }
 

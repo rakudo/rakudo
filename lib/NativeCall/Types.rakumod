@@ -154,29 +154,27 @@ our class CArray is repr('CArray') is array_type(Pointer) {
       does Positional[TValue]
       is   array_type(TValue)
     {
-        multi method AT-POS(::?CLASS:D \array: int $pos) is raw {
-            nqp::atposref_i(nqp::decont(array), $pos)
+        multi method AT-POS(::?CLASS:D: int $pos) is raw {
+            nqp::atposref_i(self, $pos)
         }
-        multi method AT-POS(::?CLASS:D \array: Int:D $pos) is raw {
-            nqp::atposref_i(nqp::decont(array), $pos)
-        }
-
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, int $value) {
-            nqp::bindpos_i(nqp::decont(array), nqp::unbox_i($pos), $value)
-        }
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, Int:D $value) {
-            nqp::bindpos_i(
-              nqp::decont(array), nqp::unbox_i($pos), nqp::unbox_i($value)
-            )
+        multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
+            nqp::atposref_i(self, nqp::unbox_i($pos))
         }
 
-        multi method allocate(::?CLASS:U \type: int $elems) {
-            my $array := nqp::create(type);
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, int $value) {
+            nqp::bindpos_i(self, nqp::unbox_i($pos), $value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Int:D $value) {
+            nqp::bindpos_i(self, nqp::unbox_i($pos), nqp::unbox_i($value))
+        }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_i($array, $elems - 1, 0);
             $array
         }
-        multi method allocate(::?CLASS:U \type: Int:D $elems) {
-            my $array := nqp::create(type);
+        multi method allocate(::?CLASS:U: Int:D $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_i($array, nqp::unbox_i($elems) - 1, 0);
             $array
         }
@@ -187,32 +185,30 @@ our class CArray is repr('CArray') is array_type(Pointer) {
       does Positional[TValue]
       is   array_type(TValue)
     {
-        multi method AT-POS(::?CLASS:D \array: int $pos) is raw {
-            nqp::atposref_u(nqp::decont(array), $pos);
+        multi method AT-POS(::?CLASS:D: int $pos) is raw {
+            nqp::atposref_u(self, $pos);
         }
-        multi method AT-POS(::?CLASS:D \array: Int:D $pos) is raw {
-            nqp::atposref_u(nqp::decont(array), $pos);
-        }
-
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, int $value) {
-            nqp::bindpos_u(nqp::decont(array), nqp::unbox_i($pos), $value)
-        }
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, uint $value) {
-            nqp::bindpos_u(nqp::decont(array), nqp::unbox_i($pos), $value)
-        }
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, Int:D $value) {
-            nqp::bindpos_u(
-              nqp::decont(array), nqp::unbox_i($pos), nqp::unbox_u($value)
-            )
+        multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
+            nqp::atposref_u(self, $pos);
         }
 
-        multi method allocate(::?CLASS:U \type: int $elems) {
-            my $array := nqp::create(type);
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, int $value) {
+            nqp::bindpos_u(self, nqp::unbox_i($pos), $value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, uint $value) {
+            nqp::bindpos_u(self, nqp::unbox_i($pos), $value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Int:D $value) {
+            nqp::bindpos_u(self, nqp::unbox_i($pos), nqp::unbox_u($value))
+        }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_u($array, $elems - 1, 0);
             $array
         }
-        multi method allocate(::?CLASS:U \type: Int:D $elems) {
-            my $array := nqp::create(type);
+        multi method allocate(::?CLASS:U: Int:D $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_u($array, nqp::unbox_i($elems) - 1, 0);
             $array
         }
@@ -223,29 +219,27 @@ our class CArray is repr('CArray') is array_type(Pointer) {
       does Positional[TValue]
       is   array_type(TValue)
     {
-        multi method AT-POS(::?CLASS:D \array: int $pos) is raw {
-            nqp::atposref_n(nqp::decont(array), $pos);
+        multi method AT-POS(::?CLASS:D: int $pos) is raw {
+            nqp::atposref_n(self, $pos);
         }
-        multi method AT-POS(::?CLASS:D \array: Int:D $pos) is raw {
-            nqp::atposref_n(nqp::decont(array), nqp::unbox_i($pos))
-        }
-
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, num $value) {
-            nqp::bindpos_n(nqp::decont(array), nqp::unbox_i($pos), $value)
-        }
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, Num:D $value) {
-            nqp::bindpos_n(
-              nqp::decont(array), nqp::unbox_i($pos), nqp::unbox_n($value)
-            )
+        multi method AT-POS(::?CLASS:D: Int:D $pos) is raw {
+            nqp::atposref_n(self, nqp::unbox_i($pos))
         }
 
-        multi method allocate(::?CLASS:U \type: int $elems) {
-            my $array := nqp::create(type);
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, num $value) {
+            nqp::bindpos_n(self, nqp::unbox_i($pos), $value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, Num:D $value) {
+            nqp::bindpos_n(self, nqp::unbox_i($pos), nqp::unbox_n($value))
+        }
+
+        multi method allocate(::?CLASS:U: int $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_n($array, $elems - 1, 0e0);
             $array
         }
-        multi method allocate(::?CLASS:U \type: Int:D $elems) {
-            my $array := nqp::create(type);
+        multi method allocate(::?CLASS:U: Int:D $elems) {
+            my $array := nqp::create(self);
             nqp::bindpos_n($array, nqp::unbox_i($elems) - 1, 0e0);
             $array
         }
@@ -256,40 +250,32 @@ our class CArray is repr('CArray') is array_type(Pointer) {
       does Positional[TValue]
       is   array_type(TValue)
     {
-        multi method AT-POS(::?CLASS:D \array: Any:D $pos) is rw {
+        multi method AT-POS(::?CLASS:D: Any:D $pos) is rw {
             Proxy.new:
               FETCH => -> $ {
-                  nqp::atpos(nqp::decont(array), nqp::unbox_i($pos.Int))
+                  nqp::atpos(self, nqp::unbox_i($pos.Int))
               },
               STORE => -> $self, $value {
-                  nqp::bindpos(
-                    nqp::decont(array),
-                    nqp::unbox_i($pos.Int),
-                    nqp::decont($value)
-                  );
+                  nqp::bindpos(self,nqp::unbox_i($pos.Int),nqp::decont($value));
                   $self
               }
         }
-        multi method AT-POS(::?CLASS:D \array: Int:D $pos) is rw {
+        multi method AT-POS(::?CLASS:D: Int:D $pos) is rw {
             Proxy.new:
               FETCH => -> $ {
-                  nqp::atpos(nqp::decont(array), nqp::unbox_i($pos))
+                  nqp::atpos(self, nqp::unbox_i($pos))
               },
-              STORE => -> $self, $value {
-                  nqp::bindpos(
-                    nqp::decont(array), nqp::unbox_i($pos), nqp::decont($value)
-                  );
-                  $self
+              STORE => -> $invocant, $value {
+                  nqp::bindpos(self, nqp::unbox_i($pos), nqp::decont($value));
+                  $invocant
               }
         }
 
-        multi method ASSIGN-POS(::?CLASS:D \array: int $pos, \value) {
-            nqp::bindpos(nqp::decont(array), $pos, nqp::decont(value))
+        multi method ASSIGN-POS(::?CLASS:D: int $pos, \value) {
+            nqp::bindpos(self, $pos, nqp::decont(value))
         }
-        multi method ASSIGN-POS(::?CLASS:D \array: Int:D $pos, \value) {
-            nqp::bindpos(
-              nqp::decont(array), nqp::unbox_i($pos), nqp::decont(value)
-            )
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $pos, \value) {
+            nqp::bindpos(self, nqp::unbox_i($pos), nqp::decont(value))
         }
 
         multi method allocate(::?CLASS:U: int $elems) {

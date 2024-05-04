@@ -35,7 +35,7 @@ class RakuAST::CheckTime
     # compiler).
     method add-sorry(Any $exception) {
         if nqp::can($exception, 'SET_FILE_LINE') && my $origin := self.origin {
-            my $origin-match := self.origin.as-match;
+            my $origin-match := $origin.as-match;
             $exception.SET_FILE_LINE($origin-match.file, $origin-match.line);
         }
         nqp::push(
@@ -45,11 +45,11 @@ class RakuAST::CheckTime
         Nil
     }
 
-    # Add a worry check-time problem (which will produce a potential difficulties
-    # output in the compiler).
+    # Add a worry check-time problem (which will produce a potential
+    # difficulties output in the compiler).
     method add-worry(Any $exception) {
         if nqp::can($exception, 'SET_FILE_LINE') && my $origin := self.origin {
-            my $origin-match := self.origin.as-match;
+            my $origin-match := $origin.as-match;
             $exception.SET_FILE_LINE($origin-match.file, $origin-match.line);
         }
         nqp::push(

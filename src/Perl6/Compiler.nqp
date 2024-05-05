@@ -142,12 +142,12 @@ class Perl6::Compiler is HLL::Compiler {
     method lvs() { LanguageVersionServices }
 
     method version_string(:$shorten-versions, :$no-unicode) {
-        my $config-version     := self.config()<version>;
-        my $backend-version    := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
-        my $execname           := nqp::execname;
-        my $path-sep           := nqp::backendconfig<osname> eq 'MSWin32' ?? '\\' !! '/';
-        my $install-dir        := nqp::substr($execname, 0, nqp::rindex($execname, $path-sep, nqp::rindex($execname, $path-sep) - 1));
-        my $flavor-file        := $install-dir ~ $path-sep ~ "etc" ~ $path-sep ~ "FLAVOR";
+        my $config-version  := self.config()<version>;
+        my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
+        my $execname        := nqp::execname;
+        my $path-sep        := nqp::gethllsym('default', 'SysConfig').path-sep;
+        my $install-dir     := nqp::substr($execname, 0, nqp::rindex($execname, $path-sep, nqp::rindex($execname, $path-sep) - 1));
+        my $flavor-file     := $install-dir ~ $path-sep ~ "etc" ~ $path-sep ~ "FLAVOR";
         my $rakudo-core-flavor := " v";
 
         my $raku;

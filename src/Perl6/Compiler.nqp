@@ -174,14 +174,15 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         # Support different flavors of Rakudo, i.e. Star.
-        # Rakudo flavor can be either set by an environment variable 'RAKUDO_FLAVOR'
-        # or by the special file '$RAKUDO_PREFIX/etc/FLAVOR'
+        # Rakudo flavor can be either set by an environment variable
+        # 'RAKUDO_FLAVOR' or by the special file '$RAKUDO_PREFIX/etc/FLAVOR'
         if nqp::existskey(nqp::getenvhash(), 'RAKUDO_FLAVOR') {
             $rakudo-flavor := " " ~ (nqp::getenvhash<RAKUDO_FLAVOR>) ~ $rakudo-core-flavor;
         }
         elsif nqp::stat($flavor-file, nqp::const::STAT_EXISTS) {
             my $data := open($flavor-file, :r);
             $rakudo-flavor :=  " " ~ ($data.get) ~ $rakudo-core-flavor;
+            close($data);
         }
         else {
              $rakudo-flavor := $rakudo-core-flavor;

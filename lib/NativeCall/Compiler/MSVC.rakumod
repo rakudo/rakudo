@@ -1,7 +1,46 @@
+use nqp;
 unit class NativeCall::Compiler::MSVC;
 
 use NativeCall::Types;
 
+#- lookups ---------------------------------------------------------------------
+my constant $type2letter = nqp::hash(
+  'Bool',                         '_N',
+  'int16',                        'F',
+  'int32',                        'H',
+  'int64',                        '_J',
+  'int8',                         'c',
+  'NativeCall::Types::CArray',    'QEA*',   # recurse into .of
+  'NativeCall::Types::long',      'J',
+  'NativeCall::Types::longlong',  '_J',
+  'NativeCall::Types::Pointer',   'PEA*',   # recurse into .of
+  'NativeCall::Types::ulong',     'K',
+  'NativeCall::Types::ulonglong', '_K',
+  'NativeCall::Types::void',      'X',
+  'num32',                        'M',
+  'num64',                        'N',
+  'Str',                          'PEAD',
+  'uint16',                       'G',
+  'uint32',                       'I',
+  'uint64',                       '_K',
+  'uint8',                        'E',
+);
+
+#- helper sub ------------------------------------------------------------------
+my sub cpp_param_letter($type, str $PK = '') {
+    my str $name   = $type.^name;
+    my str $letter = $PK ~ nqp::ifnull(
+      nqp::atkey($type2letter, $name),
+      (nqp::chars($name) ~ $name)
+    );
+
+    $letter.ends-with('*')
+      ?? nqp::substr($letter, 0, nqp::chars($letter) - 1)
+           ~  cpp_param_letter($type.of)
+      !! $letter
+}
+
+#- mangle_cpp_symbol -----------------------------------------------------------
 our sub mangle_cpp_symbol(Routine $r, $symbol) {
     $r.signature.set_returns($r.package)
         if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
@@ -46,72 +85,6 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
         $mangled ~= 'Z';
     }
     $mangled
-}
-
-sub cpp_param_letter($type, str $PK = '') {
-    given $type {
-        when NativeCall::Types::void {
-            $PK ~ 'X'
-        }
-        when Bool {
-            $PK ~ '_N'
-        }
-        when int8 {
-            $PK ~ 'D'
-        }
-        when uint8 {
-            $PK ~ 'E'
-        }
-        when int16 {
-            $PK ~ 'F'
-        }
-        when uint16 {
-            $PK ~ 'G'
-        }
-        when int32 {
-            $PK ~ 'H'
-        }
-        when uint32 {
-            $PK ~ 'I'
-        }
-        when NativeCall::Types::long {
-            $PK ~ 'J'
-        }
-        when NativeCall::Types::ulong {
-            $PK ~ 'K'
-        }
-        when int64 {
-            '_J'
-        }
-        when NativeCall::Types::longlong {
-            '_J'
-        }
-        when uint64 {
-            '_K'
-        }
-        when NativeCall::Types::ulonglong {
-            '_K'
-        }
-        when num32 {
-            $PK ~ 'M'
-        }
-        when num64 {
-            $PK ~ 'N'
-        }
-        when Str {
-            'PEAD'
-        }
-        when NativeCall::Types::CArray {
-            'QEA' ~ cpp_param_letter(.of);
-        }
-        when NativeCall::Types::Pointer {
-            'PEA' ~ cpp_param_letter(.of);
-        }
-        default {
-            my $name  = .^name;
-            $PK ~ $name.chars ~ $name;
-        }
-    }
 }
 
 # vim: expandtab shiftwidth=4

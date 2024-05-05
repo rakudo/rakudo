@@ -41,50 +41,78 @@ my sub cpp_param_letter($type, str $PK = '') {
 }
 
 #- mangle_cpp_symbol -----------------------------------------------------------
-our sub mangle_cpp_symbol(Routine $r, $symbol) {
-    $r.signature.set_returns($r.package)
-        if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
+our sub mangle_cpp_symbol(Routine:D $routine, Str:D $symbol) {
+    my     $package    := $routine.package;
+    my     $signature  := $routine.signature;
+    my int $is-method   = nqp::istype($routine, Method);
+    my int $is-new      = $routine.name eq 'new';
+    my int $has-returns = $signature.has_returns;
 
-    my $mangled = '?';
-    if $r ~~ Method {
-        $mangled ~= $symbol.split('::').reverse.map({$_ eq 'new' ?? '?0' !! "$_@"}).join('')
-                  ~ '@'
-                  ~ ($r.name eq 'new' ?? 'QE' !! 'UE');
+    if $is-new && nqp::not_i($has-returns) && !($package ~~ GLOBAL) {
+        $signature.set_returns($package);
+        $has-returns = 1;
+    }
+
+    my str @mangled = '?';
+    if $is-method {
+        nqp::push_s(
+          @mangled,
+          $symbol.split('::').reverse.map({
+              $_ eq 'new' ?? '?0' !! "$_@"
+          }).join
+        );
+        nqp::push_s(@mangled, '@');
+        nqp::push_s(@mangled, $is-new ?? 'QE' !! 'UE');
     }
     else {
-        $mangled ~= $symbol.split('::').reverse.map({"$_@"}).join('')
-                  ~ '@'
-                  ~ 'Y'
-                  ~ 'A' # http://en.wikipedia.org/wiki/Visual_C%2B%2B_name_mangling#Function_Property
-                  ~ ($r.signature.has_returns ?? cpp_param_letter($r.returns) !! 'X');
+        nqp::push_s(
+          @mangled,
+          $symbol.split('::').reverse.map({"$_@"}).join
+        );
+        # http://en.wikipedia.org/wiki/Visual_C%2B%2B_name_mangling#Function_Property
+        nqp::push_s(@mangled, '@YA');
+        nqp::push_s(
+          @mangled,
+          $has-returns ?? cpp_param_letter($routine.returns) !! 'X'
+        );
     }
 
-    my @params  = $r.signature.params;
-    if $r ~~ Method {
-        @params.shift;
+    # Get parameters that matter
+    my @params = $signature.params;
+    if $is-method {
+        @params.shift;  # self
         @params.pop if @params.tail.name eq '%_';
     }
 
-    my $params = join '', @params.map: {
+    # Get any letters for parameters
+    my str $params = @params.map({
         my str $P = .rw ?? 'PE'                           !! ''; # pointer
         my str $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
         cpp_param_letter(.type, $P ~ $K)
-    };
-    if $r ~~ Method {
-        $mangled ~= 'AA';
-        $mangled ~= $r.signature.has_returns && $r.name ne 'new'
-          ?? cpp_param_letter($r.returns)
-          !! '';
-        $mangled ~= $params;
-        $mangled ~= '@' if $params || $r.name eq 'new';
-        $mangled ~= $params ?? 'Z' !! 'XZ';
+    }).join;
+
+    # Embed any parameters
+    if $is-method {
+        nqp::push_s(@mangled, 'AA');
+        nqp::push_s(@mangled, cpp_param_letter($routine.returns))
+          if $has-returns && nqp::not_i($is-new);
+
+        if nqp::chars($params) {
+            nqp::push_s(@mangled, $params);
+            nqp::push_s(@mangled, $is-new ?? '@Z' !! 'Z');
+        }
+        else {
+            nqp::push_s(@mangled, $is-new ?? '@XZ' !! 'XZ');
+        }
     }
+
+    # Not a method
     else {
-        $mangled ~= $params || 'X';
-        $mangled ~= '@' if $r.package.REPR eq 'CPPStruct';
-        $mangled ~= 'Z';
+        nqp::push_s(@mangled, $params || 'X');
+        nqp::push_s(@mangled, $package.REPR eq 'CPPStruct' ?? '@Z' !! 'Z');
     }
-    $mangled
+
+    nqp::join('', @mangled)
 }
 
 # vim: expandtab shiftwidth=4

@@ -144,15 +144,8 @@ class Perl6::Compiler is HLL::Compiler {
     method version_string(:$shorten-versions, :$no-unicode) {
         my $config-version  := self.config()<version>;
         my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
-        my $execname        := nqp::execname;
-        my $path-sep        := nqp::gethllsym('default', 'SysConfig').path-sep;
-        my $install-dir     := nqp::substr($execname, 0, nqp::rindex($execname, $path-sep, nqp::rindex($execname, $path-sep) - 1));
-        my $flavor-file     := $install-dir ~ $path-sep ~ "etc" ~ $path-sep ~ "FLAVOR";
-        my $rakudo-core-flavor := " v";
-
         my $raku;
         my $rakudo;
-        my $rakudo-flavor;
 
         if $shorten-versions {
             my $index := nqp::index($config-version,"-");
@@ -173,24 +166,10 @@ class Perl6::Compiler is HLL::Compiler {
             $rakudo := "Rakudo™";
         }
 
-        # Support different flavors of Rakudo, i.e. Star.
-        # Rakudo flavor can be either set by an environment variable
-        # 'RAKUDO_FLAVOR' or by the special file '$RAKUDO_PREFIX/etc/FLAVOR'
-        if nqp::existskey(nqp::getenvhash(), 'RAKUDO_FLAVOR') {
-            $rakudo-flavor := " " ~ (nqp::getenvhash<RAKUDO_FLAVOR>) ~ $rakudo-core-flavor;
-        }
-        elsif nqp::stat($flavor-file, nqp::const::STAT_EXISTS) {
-            my $data := open($flavor-file, :r);
-            $rakudo-flavor :=  " " ~ ($data.get) ~ $rakudo-core-flavor;
-            close($data);
-        }
-        else {
-             $rakudo-flavor := $rakudo-core-flavor;
-        }
-
         "Welcome to "
           ~ $rakudo
-          ~ $rakudo-flavor
+          ~ #RAKUDO_FLAVOR#
+          ~ " v"
           ~ $config-version
           ~ ".\nImplementing the "
           ~ $raku
@@ -381,7 +360,6 @@ The following environment variables are respected:
   PERL6LIB      Modify the module search path (DEPRECATED)
   NQP_HOME      Override the path of the NQP runtime files
   RAKUDO_HOME   Override the path of the Rakudo runtime files
-  RAKUDO_FLAVOR Set derived Rakudo compiler, i.e. "Star"
 
 
 ♥); # end of usage statement

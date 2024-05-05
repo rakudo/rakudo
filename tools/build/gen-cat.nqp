@@ -40,7 +40,8 @@ sub MAIN(*@ARGS) {
                 $in_cond := 1;
                 $in_omit := $x[0] && $x[1] eq $backend || !$x[0] && $x[1] ne $backend;
                 print("\n");
-            } elsif $_ ~~ /^ '#?endif' / {
+            }
+            elsif $_ ~~ /^ '#?endif' / {
                 unless $in_cond {
                     stderr().say(
                         "#?endif without matching #?if in file $file, line $line"
@@ -49,15 +50,26 @@ sub MAIN(*@ARGS) {
                 $in_cond := 0;
                 $in_omit := 0;
                 print("\n");
-            } elsif $in_omit {
+            }
+            elsif $in_omit {
                 print("\n");
-            } else {
-                if $backend eq 'js' && $_ ~~ /'#?js: NFG'/ {
-                    print(subst($_, /nqp\:\:[chars|substr|iseq_s|iscclass]/,
-                        -> $op {$op ~ 'nfg'}, :global));
-                } else {
-                    print($_) unless nqp::eqat($_,"# vim:",0);
-                }
+            }
+            elsif nqp::index($_, '#RAKUDO_FLAVOR#') > -1 {
+                my str $flavor := nqp::ifnull(
+                  nqp::atkey(nqp::getenvhash, 'RAKUDO_FLAVOR'),
+                  ""
+                );
+                $flavor := " $flavor" if $flavor;
+                print(
+                  nqp::join("'$flavor'", nqp::split('#RAKUDO_FLAVOR#', $_))
+                );
+            }
+            elsif $backend eq 'js' && $_ ~~ /'#?js: NFG'/ {
+                print(subst($_, /nqp\:\:[chars|substr|iseq_s|iscclass]/,
+                    -> $op {$op ~ 'nfg'}, :global));
+            }
+            else {
+                print($_) unless nqp::eqat($_,"# vim:",0);
             }
             $line++;
         }

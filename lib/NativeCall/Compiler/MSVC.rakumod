@@ -29,7 +29,7 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     my $params = join '', @params.map: {
         my str $P = .rw ?? 'PE'                           !! ''; # pointer
         my str $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
-        cpp_param_letter(.type, :$P, :$K)
+        cpp_param_letter(.type, $P ~ $K)
     };
     if $r ~~ Method {
         $mangled ~= 'AA';
@@ -48,37 +48,37 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     $mangled
 }
 
-sub cpp_param_letter($type, str :$P = '', str :$K = '') {
+sub cpp_param_letter($type, str $PK = '') {
     given $type {
         when NativeCall::Types::void {
-            $K ~ 'X'
+            $PK ~ 'X'
         }
         when Bool {
-            $K ~ '_N'
+            $PK ~ '_N'
         }
         when int8 {
-            $K ~ 'D'
+            $PK ~ 'D'
         }
         when uint8 {
-            $K ~ 'E'
+            $PK ~ 'E'
         }
         when int16 {
-            $K ~ 'F'
+            $PK ~ 'F'
         }
         when uint16 {
-            $K ~ 'G'
+            $PK ~ 'G'
         }
         when int32 {
-            $P ~ $K ~ 'H'
+            $PK ~ 'H'
         }
         when uint32 {
-            $P ~ $K ~ 'I'
+            $PK ~ 'I'
         }
         when NativeCall::Types::long {
-            $K ~ 'J'
+            $PK ~ 'J'
         }
         when NativeCall::Types::ulong {
-            $K ~ 'K'
+            $PK ~ 'K'
         }
         when int64 {
             '_J'
@@ -93,10 +93,10 @@ sub cpp_param_letter($type, str :$P = '', str :$K = '') {
             '_K'
         }
         when num32 {
-            $K ~ 'M'
+            $PK ~ 'M'
         }
         when num64 {
-            $K ~ 'N'
+            $PK ~ 'N'
         }
         when Str {
             'PEAD'
@@ -109,7 +109,7 @@ sub cpp_param_letter($type, str :$P = '', str :$K = '') {
         }
         default {
             my $name  = .^name;
-            $P ~ $K ~ $name.chars ~ $name;
+            $PK ~ $name.chars ~ $name;
         }
     }
 }

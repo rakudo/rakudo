@@ -556,7 +556,7 @@ my sub check_routine_sanity(Routine $routine) is export(:TEST) {
     # Methods have two extra parameters: self and %_, ignore those
     if nqp::istype($routine,Method) {
         ++$i;  # ignore self
-        --$m;  # ignore %_
+        --$m if nqp::atpos($params,$m - 1).name eq '%_';
     }
 
     while $i < $m {

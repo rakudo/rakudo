@@ -27,14 +27,15 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     }
 
     my $params = join '', @params.map: {
-        my $R = '';                                          # reference
-        my $P = .rw ?? 'PE'                           !! ''; # pointer
-        my $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
-        cpp_param_letter(.type, :$R, :$P, :$K)
+        my str $P = .rw ?? 'PE'                           !! ''; # pointer
+        my str $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
+        cpp_param_letter(.type, :$P, :$K)
     };
     if $r ~~ Method {
         $mangled ~= 'AA';
-        $mangled ~= $r.signature.has_returns && $r.name ne 'new' ?? cpp_param_letter($r.returns) !! '';
+        $mangled ~= $r.signature.has_returns && $r.name ne 'new'
+          ?? cpp_param_letter($r.returns)
+          !! '';
         $mangled ~= $params;
         $mangled ~= '@' if $params || $r.name eq 'new';
         $mangled ~= $params ?? 'Z' !! 'XZ';
@@ -47,25 +48,25 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     $mangled
 }
 
-sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
+sub cpp_param_letter($type, str :$P = '', str :$K = '') {
     given $type {
         when NativeCall::Types::void {
-            $R ~ $K ~ 'X'
+            $K ~ 'X'
         }
         when Bool {
-            $R ~ $K ~ '_N'
+            $K ~ '_N'
         }
         when int8 {
-            $R ~ $K ~ 'D'
+            $K ~ 'D'
         }
         when uint8 {
-            $R ~ $K ~ 'E'
+            $K ~ 'E'
         }
         when int16 {
-            $R ~ $K ~ 'F'
+            $K ~ 'F'
         }
         when uint16 {
-            $R ~ $K ~ 'G'
+            $K ~ 'G'
         }
         when int32 {
             $P ~ $K ~ 'H'
@@ -74,28 +75,28 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
             $P ~ $K ~ 'I'
         }
         when NativeCall::Types::long {
-            $R ~ $K ~ 'J'
+            $K ~ 'J'
         }
         when NativeCall::Types::ulong {
-            $R ~ $K ~ 'K'
+            $K ~ 'K'
         }
         when int64 {
-            $R ~ '_J'
+            '_J'
         }
         when NativeCall::Types::longlong {
-            $R ~ '_J'
+            '_J'
         }
         when uint64 {
-            $R ~ '_K'
+            '_K'
         }
         when NativeCall::Types::ulonglong {
-            $R ~ '_K'
+            '_K'
         }
         when num32 {
-            $R ~ $K ~ 'M'
+            $K ~ 'M'
         }
         when num64 {
-            $R ~ $K ~ 'N'
+            $K ~ 'N'
         }
         when Str {
             'PEAD'

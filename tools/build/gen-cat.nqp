@@ -59,7 +59,6 @@ sub MAIN(*@ARGS) {
                   nqp::atkey(nqp::getenvhash, 'RAKUDO_FLAVOR'),
                   ""
                 );
-                $flavor := " $flavor" if $flavor;
                 print(
                   nqp::join("'$flavor'", nqp::split('#RAKUDO_FLAVOR#', $_))
                 );

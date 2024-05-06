@@ -27,6 +27,7 @@ class Compiler does Systemic {
     }
 
     method backend() { $name }
+    method flavor()  { #RAKUDO_FLAVOR# }
 
     proto method id(|) {*}
     multi method id(Compiler:U:) { $compilation-id }

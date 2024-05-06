@@ -165,10 +165,12 @@ class Perl6::Compiler is HLL::Compiler {
             $raku   := "Raku®";
             $rakudo := "Rakudo™";
         }
+        my $flavor := #RAKUDO_FLAVOR#;
+        $flavor := " $flavor" if $flavor;
 
         "Welcome to "
           ~ $rakudo
-          ~ #RAKUDO_FLAVOR#
+          ~ $flavor
           ~ " v"
           ~ $config-version
           ~ ".\nImplementing the "

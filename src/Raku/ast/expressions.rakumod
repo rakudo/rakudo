@@ -1568,6 +1568,10 @@ class RakuAST::ApplyInfix
                 self.add-sorry: $left.build-bind-exception($resolver);
             }
 
+            if $infix.operator eq '~~' && $left.IMPL-CURRIED {
+                self.add-worry: $resolver.build-exception: 'X::WhateverCode::SmartMatch::LHS';
+            }
+
             my $type := self.left.return-type;
             if nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) {
                 my $right := self.right;

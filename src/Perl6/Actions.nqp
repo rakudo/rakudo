@@ -10719,6 +10719,7 @@ Did you mean a call like '"
                 := $*W.find_symbol: ['HyperWhatever'], :setting-only)
             !! $hyper_whatever_sym
     }
+
     method whatever_curry($/, $qast, $upto_arity) {
         my int $curried :=
             # It must be an op and...
@@ -10760,6 +10761,20 @@ Did you mean a call like '"
         my $Whatever      := self.whatever_sym;
         my $WhateverCode  := self.whatever_code_sym;
         my $HyperWhatever := self.hyper_whatever_sym;
+
+        # Provide some helpful feedback to those using a WhateverCode as LHS of a smartmatch
+        # (For a good cry, just compare this to the RakuAST implementation of the same worry)
+        if $qast.op eq 'chain' && $qast.name eq '&infix:<~~>'
+            && nqp::isconcrete($qast[0])
+            && nqp::istype($qast[0], QAST::Op)
+            && $qast[0].op eq 'p6capturelex'
+            && nqp::isconcrete($qast[0][0])
+            && nqp::istype($qast[0][0], QAST::Op)
+            && $qast[0][0].op eq 'callmethod' && $qast[0][0].name eq 'clone'
+            && nqp::isconcrete($qast[0][0][0])
+            && nqp::istype($qast[0][0][0], QAST::WVal)
+            && nqp::istype($qast[0][0][0].value, $WhateverCode)
+        { $/.typed_worry('X::WhateverCode::SmartMatch::LHS') }
 
         # Find anything we might need to curry and bail out if there's nothing
         while $i < $e {

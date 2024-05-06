@@ -3528,6 +3528,13 @@ my class X::HyperWhatever::Multiple is Exception {
     }
 }
 
+my class X::WhateverCode::SmartMatch::LHS {
+    method message() {
+        "WhateverCode on LHS of smart-match does not curry the smart-match expression.\n"
+            ~ "Try placing the WhateverCode expression on the RHS instead if results are not as expected."
+    }
+}
+
 my class X::EXPORTHOW::InvalidDirective does X::Comp {
     has $.directive;
     method message() {

@@ -64,6 +64,12 @@ augment class Complex {
 }
 
 #-------------------------------------------------------------------------------
+augment class Cool {
+    proto method nomark(|) {*}
+    multi method nomark(Cool:D:) { self.Str.nomark }
+}
+
+#-------------------------------------------------------------------------------
 augment class Int {
 
     # handle negative sqrts being Complex
@@ -222,6 +228,60 @@ augment class Str {
                Rakudo::Iterator.NGrams: self, $size, $limit, $step, $partial
 
     }
+
+#?if !jvm
+    my constant $gcprop = nqp::unipropcode("General_Category");
+    my constant $empty  = nqp::create(array[uint32]);
+    multi method nomark(Str:D: --> Str:D) {
+
+        # At least 1 char in the string
+        if nqp::chars($!value) -> int $c {
+            my $codes := nqp::strtocodes(
+              $!value,
+              nqp::const::NORMALIZE_NFD,
+              nqp::create(array[uint32])
+            );
+            my int $m = nqp::elems($codes);
+
+            # No codepoints that decomposed
+            if $m == $c {
+                self
+            }
+
+            # At least one codepoint that decomposed
+            else {
+                my $cleaned := nqp::setelems(
+                  nqp::setelems(nqp::create(array[uint32]), $c),
+                  0
+                );
+
+                my int $i = -1;
+                nqp::while(
+                  ++$i < $m,
+                  nqp::if(
+                    nqp::isne_i(
+                      nqp::getuniprop_int(
+                        nqp::atpos_i($codes, $i),
+                        $gcprop
+                      ),
+                      6   # mark
+                    ),
+                    nqp::push_i($cleaned, nqp::atpos_i($codes, $i))
+                  )
+                );
+                nqp::strfromcodes($cleaned);
+            }
+        }
+
+        # Nothing to work with
+        else {
+            self
+        }
+    }
+#?endif
+#?if jvm
+     method nomark(Str:D:) { NYI('nomark').throw }
+#?endif
 }
 
 #-------------------------------------------------------------------------------

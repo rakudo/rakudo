@@ -163,6 +163,7 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
+  is RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
 
@@ -175,6 +176,10 @@ class RakuAST::Type::Coercion
           )
         );
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!constraint.to-begin-time($resolver, $context);
     }
 
     method is-coercive() { True }

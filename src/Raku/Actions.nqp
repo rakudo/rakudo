@@ -2838,23 +2838,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method type-for-name($/, $base-name) {
         my $type := Nodify('Type','Simple').new(
           $base-name.without-colonpair('_').without-colonpair('D').without-colonpair('U')
-        );
+        ).to-begin-time($*R, $*CU.context);
 
         $type := $base-name.has-colonpair('D')
-          ?? Nodify('Type','Definedness').new(:base-type($type), :definite)
+          ?? Nodify('Type','Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
           !! $base-name.has-colonpair('U')
-            ?? Nodify('Type','Definedness').new(:base-type($type), :!definite)
+            ?? Nodify('Type','Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
             !! $type;
 
         $type := Nodify('Type','Parameterized').new(
           :base-type($type), :args($<arglist>.ast)
-        ) if $<arglist>;
+        ).to-begin-time($*R, $*CU.context) if $<arglist>;
 
         $<accept>
           ?? Nodify('Type','Coercion').new(
-               :base-type($type), :constraint($<accept>.ast))
+               :base-type($type), :constraint($<accept>.ast)).to-begin-time($*R, $*CU.context)
           !! $<accept_any>
-            ?? Nodify('Type','Coercion').new(:base-type($type))
+            ?? Nodify('Type','Coercion').new(:base-type($type)).to-begin-time($*R, $*CU.context)
             !! $type
     }
 

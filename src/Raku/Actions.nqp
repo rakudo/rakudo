@@ -73,7 +73,8 @@ role Raku::CommonActions {
     # information as we go. This factors out that process and attaches
     # the AST to the match object.
     method attach($/, $node, :$as-key-origin) {
-        $node.to-begin-time($*R, $*CU.context);
+        my $cu := $*CU; # Might be too early to even have a CompUnit
+        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
         make $node;
     }

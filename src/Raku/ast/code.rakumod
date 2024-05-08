@@ -2790,9 +2790,19 @@ class RakuAST::CurryThunk
     has Mu $!parameters;
     has Str $!original-expression;
 
-    method new(Str $original-expression) {
+    method new(Str $original-expression, @args) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::CurryThunk, '$!parameters', []);
+        my @params := [];
+        nqp::bindattr($obj, RakuAST::CurryThunk, '$!parameters', @params);
+        for @args {
+            # $name will usually be undefined, but sometimes we re-use references to existing * targets
+            my $target := RakuAST::ParameterTarget::Whatever.new($_.name);
+            $_.set-resolution($target);
+            my $param := RakuAST::Parameter.new(
+                target => $target
+            );
+            nqp::push(@params, $param);
+        }
         nqp::bindattr($obj, RakuAST::CurryThunk, '$!original-expression', nqp::hllizefor($original-expression, 'Raku'));
         $obj
     }
@@ -2815,27 +2825,8 @@ class RakuAST::CurryThunk
         ])
     }
 
-    method IMPL-ADD-PARAM(Resolver $resolver, RakuAST::IMPL::QASTContext $context, str :$name) {
-        my $param := RakuAST::Parameter.new(
-            # $name will usually be undefined, but sometimes we re-use references to existing * targets
-            target => RakuAST::ParameterTarget::Whatever.new($name)
-        );
-        nqp::push($!parameters, $param);
-        self.IMPL-UPDATE-SIGNATURE;
-        self.IMPL-CHECK($resolver, $context, True);
-        $param
-    }
-
     method IMPL-NUM-PARAMS() {
         nqp::elems($!parameters)
-    }
-
-    method IMPL-PARAMS() {
-        $!parameters
-    }
-
-    method IMPL-LAST-PARAM() {
-        $!parameters[nqp::elems($!parameters) - 1]
     }
 
     method IMPL-THUNK-SIGNATURE() {

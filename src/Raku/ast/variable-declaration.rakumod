@@ -817,7 +817,9 @@ class RakuAST::VarDeclaration::Simple
                   ))
                 ).to-begin-time($resolver, $context);
                 $!attribute-package.add-generated-lexical-declaration($method);
-                self.add-trait(RakuAST::Trait::Will.new('build', $method));
+                self.add-trait(
+                    RakuAST::Trait::Will.new('build', $method).to-begin-time($resolver, $context)
+                );
             }
 
             # For attributes our meta-object is an appropriate Attribute instance

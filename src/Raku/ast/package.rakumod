@@ -10,6 +10,7 @@ class RakuAST::Package
   is RakuAST::Declaration
   is RakuAST::AttachTarget
   is RakuAST::ParseTime
+  is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
@@ -94,23 +95,6 @@ class RakuAST::Package
         nqp::bindattr(self, RakuAST::Package, '$!is-stub', $is-stub ?? True !! False);
     }
 
-    method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
-
-    method clear-attachments() {
-        # Attributes and methods only attach once as a BEGIN effect, thus we
-        # don't have to deal with duplicates on them.
-        Nil
-    }
-
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
-        $type-object := self.stubbed-meta-object if nqp::eqaddr($type-object, Mu);
-        my $package := RakuAST::Declaration::LexicalPackage.new:
-            :lexical-name($name),
-            :compile-time-value($type-object),
-            :package(self);
-        $package
-    }
-
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!augmented {
             my $resolved := $resolver.resolve-name(self.name);
@@ -130,7 +114,20 @@ class RakuAST::Package
                 }
             }
         }
+    }
 
+    method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
+
+    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+        $type-object := self.stubbed-meta-object if nqp::eqaddr($type-object, Mu);
+        my $package := RakuAST::Declaration::LexicalPackage.new:
+            :lexical-name($name),
+            :compile-time-value($type-object),
+            :package(self);
+        $package
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Note that this early return is actually not effective as the begin handler will
         # already be run when the parser enters the package and we only know that it's a
         # stub when we are done parsing the body.
@@ -166,7 +163,7 @@ class RakuAST::Package
         # and declarations can go back into RakuAST::Actions
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
             $resolver.enter-scope(self);
-            self.declare-lexicals($resolver);
+            self.declare-lexicals($resolver, $context);
         }
 
         # Apply any traits
@@ -181,7 +178,7 @@ class RakuAST::Package
     }
 
     # Declare the lexicals for this type of package
-    method declare-lexicals(RakuAST::Resolver $resolver) {
+    method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.meta-object-as-lexicals($resolver, 'CLASS')
           unless self.declarator eq 'package';
     }
@@ -445,12 +442,12 @@ class RakuAST::Role
 
     method parameterization() { self.body.signature }
 
-    method declare-lexicals(RakuAST::Resolver $resolver) {
+    method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.meta-object-as-lexicals($resolver, 'ROLE');
 
         for '$?CLASS', '::?CLASS' {
             $resolver.declare-lexical(
-              RakuAST::Type::Capture.new(RakuAST::Name.from-identifier($_))
+              RakuAST::Type::Capture.new(RakuAST::Name.from-identifier($_)).to-begin-time($resolver, $context)
             );
         }
     }
@@ -622,7 +619,7 @@ class RakuAST::Module
     method declarator()  { "module"           }
     method default-how() { Metamodel::KnowHOW }
 
-    method declare-lexicals(RakuAST::Resolver $resolver) {
+    method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.meta-object-as-lexicals($resolver, 'MODULE');
     }
 

@@ -2014,6 +2014,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::istype($package, Nodify('ParseTime')) {
             $package.ensure-parse-performed($R, $*CU.context);
         }
+        $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
         $R.push-package($package);

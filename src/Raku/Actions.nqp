@@ -630,9 +630,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! Nodify($*SCOPE-KIND).new;
         $*R.enter-scope($block);
         $*BLOCK := $block;
-        if nqp::istype($block, Nodify('ParseTime')) {
-            $block.ensure-parse-performed($*R, $*CU.context);
-        }
 
         self.set-declarand($/, $block)
           if nqp::istype($block,Nodify('Doc','DeclaratorTarget'));

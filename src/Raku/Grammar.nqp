@@ -1276,6 +1276,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <pointy-block-starter>                 # block with signature
             :my $*GOAL := '{';
             <.enter-block-scope('PointyBlock')>
+            {
+                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                    $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                }
+            }
             {}
             :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->' ?? 2 !! 0;
             <signature>
@@ -1283,6 +1288,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.leave-block-scope>
           | <?[{]>                                  # block without signature
             <.enter-block-scope('Block')>
+            {
+                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                    $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                }
+            }
             <blockoid>
             <.leave-block-scope>
           || <.missing-block($borg, $has-mystery)>  # OR give up
@@ -1299,6 +1309,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           || <?[{]>                                 # block without signature
              <.enter-block-scope('Block')>
+             {
+                 if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                     $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                 }
+             }
              <blockoid>
              <.leave-block-scope>
           || <.missing-block($borg, $has-mystery)>  # OR give up
@@ -1334,6 +1349,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         { $*IN-DECL := ''; }                        # not inside declaration
         <.enter-block-scope('Block')>
+        {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+            }
+        }
         <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
     }
@@ -3809,6 +3829,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+            }
+        }
+        {
             my $deflongname := $<deflongname>;
             if $deflongname && $deflongname<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
@@ -3873,6 +3898,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
+        {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.to-parse-time($*R, $*CU.context);
+            }
+            $*R.create-scope-implicits();
+        }
         [ '(' <signature(1)> ')' ]?
         <trait($*BLOCK)>* :!s
         { $*IN-DECL := ''; }
@@ -3925,6 +3956,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($*IN-DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
+          {
+              if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                  $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+              }
+          }
           { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }
           { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?

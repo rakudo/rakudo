@@ -775,13 +775,15 @@ class RakuAST::VarDeclaration::Simple
                         name => RakuAST::Name.from-identifier('new'),
                         :$args
                     )
-                );
+                ).to-begin-time($resolver, $context);
 
                 my $thunk := RakuAST::BlockThunk.new(:expression($container-initializer-ast));
                 $container-initializer-ast.wrap-with-thunk($thunk);
-                $thunk.ensure-begin-performed($resolver, $context);
+                $thunk.to-begin-time($resolver, $context);
                 $resolver.current-scope.add-generated-lexical-declaration(
-                    RakuAST::VarDeclaration::Implicit::Block.new(:block($thunk))
+                    RakuAST::VarDeclaration::Implicit::Block.new(
+                        :block($thunk)
+                    ).to-begin-time($resolver, $context)
                 );
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!container-initializer',
                     $thunk.meta-object);
@@ -813,7 +815,7 @@ class RakuAST::VarDeclaration::Simple
                       )
                     )
                   ))
-                );
+                ).to-begin-time($resolver, $context);
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(RakuAST::Trait::Will.new('build', $method));
             }

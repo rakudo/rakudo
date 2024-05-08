@@ -538,6 +538,7 @@ class RakuAST::StatementPrefix::Phaser::Init
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-init-phaser(self);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -576,6 +577,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
             ).add-enter-phaser(self)
         );
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method IMPL-RESULT-NAME() {
@@ -599,6 +601,7 @@ class RakuAST::StatementPrefix::Phaser::End
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 }
 
@@ -628,6 +631,7 @@ class RakuAST::StatementPrefix::Phaser::Block
         $resolver.find-attach-target('block').add-phaser(
           self.type, self, :has-exit-handler(self.exit-handler));
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method exit-handler() { False }
@@ -665,6 +669,8 @@ class RakuAST::StatementPrefix::Phaser::First
     }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::First, '$!original-blorst', $blorst);
 

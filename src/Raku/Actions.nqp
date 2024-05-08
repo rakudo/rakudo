@@ -3018,7 +3018,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Build the parameter.
-        self.attach: $/, self.set-declarand($/, Nodify('Parameter').new(|%args));
+        make self.set-declarand($/, Nodify('Parameter').new(|%args));
     }
 
     method param-term($/) {
@@ -3028,11 +3028,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $decl := Nodify('ParameterTarget','Term').new($ast );
             $/.typed-panic('X::Redeclaration', :symbol($ast.canonicalize))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
-            self.attach: $/, Nodify('Parameter').new(target => $decl);
+            make Nodify('Parameter').new(target => $decl);
         }
         else {
             # Anonymous
-            self.attach: $/, Nodify('Parameter').new();
+            make Nodify('Parameter').new();
         }
     }
 
@@ -3051,7 +3051,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast     := $param-var.ast;
             $ast.add-name(~($param-var<name> // ''));
         }
-        self.attach: $/, $ast;
+        make $ast;
     }
 
     method default-value($/) {

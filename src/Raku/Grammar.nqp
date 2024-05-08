@@ -1284,6 +1284,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             {}
             :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->' ?? 2 !! 0;
             <signature>
+            { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
             <blockoid>
             <.leave-block-scope>
           | <?[{]>                                  # block without signature
@@ -3859,6 +3860,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ '(' <signature> ')' ]?
         :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
+        { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
         [
           || ';'
@@ -3906,6 +3908,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         [ '(' <signature(1)> ')' ]?
         <trait($*BLOCK)>* :!s
+        { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
         [
           || <onlystar>

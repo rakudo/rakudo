@@ -544,9 +544,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Helper method for attaching (pointy) blocks
-    method attach-block($/, $signature?) {
+    method attach-block($/) {
         my $block := $*BLOCK;
-        $block.replace-signature($signature.ast) if $signature;
         $block.replace-body($<blockoid>.ast);
         if $*IN-LOOP {
             $block.set-is-loop-body;
@@ -555,8 +554,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Action methods for handling (pointy) blocks
-    method pointy-block($/) { self.attach-block($/, $<signature>) }
-    method        block($/) { self.attach-block($/)               }
+    method pointy-block($/) { self.attach-block($/) }
+    method        block($/) { self.attach-block($/) }
 
     # Action method for handling the inside of (pointy) blocks
     method blockoid($/) {
@@ -2226,9 +2225,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method routine-def($/) {
         my $routine := $*BLOCK;
         my $return-type := $*OFTYPE.ast if $*OFTYPE;
-        if $<signature> {
-            $routine.replace-signature($<signature>.ast);
-        }
         $routine.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
@@ -2247,9 +2243,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               unless $sys-name eq $name;
         }
 
-        if $<signature> {
-            $method.replace-signature($<signature>.ast);
-        }
         if $<specials> {
             my $specials := ~$<specials>;
             if $specials eq '^' {

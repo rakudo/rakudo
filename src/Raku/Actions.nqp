@@ -390,6 +390,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             $statement-list := wrap-in-for-loop($statement-list);
         }
+        $RESOLVER.enter-scope($COMPUNIT);
 
         # Put the body in place.
         $COMPUNIT.replace-statement-list($statement-list);
@@ -403,13 +404,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::existskey(%OPTIONS,'doc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
               'Pod', %OPTIONS<doc> || 'Text'
-            );
+            ).to-begin-time($RESOLVER, $*CU.context);
         }
         elsif nqp::existskey(%OPTIONS,'rakudoc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
               'RakuDoc', %OPTIONS<rakudoc> || 'Text'
-            );
+            ).to-begin-time($RESOLVER, $*CU.context);
         }
+
+        self.attach: $/, $COMPUNIT, :as-key-origin;
 
         # Have check time.
         $COMPUNIT.check($RESOLVER);
@@ -425,7 +428,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        self.attach: $/, $COMPUNIT, :as-key-origin;
+        $RESOLVER.leave-scope();
     }
 
     # Action method to load any modules specified with -M

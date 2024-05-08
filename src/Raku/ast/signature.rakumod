@@ -198,7 +198,7 @@ class RakuAST::Signature
 
     method IMPL-RETURN-VALUE() {
         if nqp::istype($!returns, RakuAST::Type) {
-            $!returns.resolution.compile-time-value
+            $!returns.meta-object
         }
         elsif nqp::istype($!returns, RakuAST::CompileTimeValue) {
             $!returns.compile-time-value
@@ -761,7 +761,7 @@ class RakuAST::Parameter
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
-                        $!type.resolution.compile-time-value)
+                        $!type.meta-object)
                 !! $sigil-type
         }
         else {

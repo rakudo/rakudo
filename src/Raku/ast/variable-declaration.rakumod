@@ -440,7 +440,7 @@ class RakuAST::VarDeclaration::Constant
     ) {
         if $!type {
             my $type :=
-              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+              self.get-implicit-lookups.AT-POS(0).meta-object;
 
             unless nqp::istype($!value, $type) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
@@ -660,10 +660,13 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-OF-TYPE() {
         $!type
-          ?? ($!type.is-resolved
-               ?? $!type
-               !! self.get-implicit-lookups.AT-POS(0)
-             ).resolution.compile-time-value
+            ?? (nqp::istype($!type, RakuAST::Lookup)
+                ?? ($!type.is-resolved
+                    ?? $!type
+                    !! self.get-implicit-lookups.AT-POS(0)
+                ).resolution
+                !! $!type
+             ).compile-time-value
           !! Mu;
     }
 
@@ -728,8 +731,10 @@ class RakuAST::VarDeclaration::Simple
                 my $type := $_.type;
 
                 # an actual type
-                if nqp::isconcrete($type) && !$_.argument && $type.is-resolved {
-                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.resolution.compile-time-value);
+                if nqp::isconcrete($type) && !$_.argument
+                    && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
+                {
+                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.meta-object);
                     next;
                 }
             }

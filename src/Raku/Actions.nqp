@@ -367,6 +367,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Put the body in place.
         $COMPUNIT.replace-statement-list($<statementlist>.ast);
 
+        $COMPUNIT.begin($RESOLVER);
+
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
         $COMPUNIT.mark-sunk() unless nqp::existskey(%OPTIONS,'outer_ctx');

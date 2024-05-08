@@ -6,6 +6,7 @@ class RakuAST::CompUnit
   is RakuAST::ImplicitDeclarations
   is RakuAST::AttachTarget
   is RakuAST::ScopePhaser
+  is RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -316,6 +317,12 @@ class RakuAST::CompUnit
 
     method record-precompilation-dependencies() {
         $!precompilation-mode ?? True !! False
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.visit-children(-> $child {
+            $child.to-begin-time($resolver, $context);
+        });
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

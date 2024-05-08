@@ -613,12 +613,16 @@ class RakuAST::Type::Enum
             $enumeration-kind := 'StringyEnumeration';
         }
         self.add-trait(RakuAST::Trait::Does.new(
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Enumeration'))
-        ));
+            RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Enumeration')
+            ).to-begin-time($resolver, $context)
+        ).to-begin-time($resolver, $context));
         if $enumeration-kind {
             self.add-trait(RakuAST::Trait::Does.new(
-                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($enumeration-kind))
-            ));
+                RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier($enumeration-kind)
+                ).to-begin-time($resolver, $context)
+            ).to-begin-time($resolver, $context));
         }
         self.apply-traits($resolver, $context, self);
         $meta.HOW.compose($meta);

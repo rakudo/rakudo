@@ -1075,7 +1075,7 @@ class RakuAST::Block
         # and that we don't produce a topic parameter.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.to-begin-time($resolver, $context);
+            $placeholder-signature.IMPL-BEGIN($resolver, $context);
             if $!implicit-topic-mode > 0 {
                 my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
                 $topic.set-parameter(False);
@@ -1395,7 +1395,7 @@ class RakuAST::PointyBlock
         }
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.to-begin-time($resolver, $context);
+            $placeholder-signature.IMPL-BEGIN($resolver, $context);
             if nqp::getattr(self, RakuAST::Block, '$!implicit-topic-mode') {
                 my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
                 $topic.set-parameter(False);
@@ -1572,8 +1572,8 @@ class RakuAST::Routine
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS;
-            $placeholder-signature.to-begin-time($resolver, $context);
+            $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $placeholder-signature.IMPL-BEGIN($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
         if $!signature {
@@ -1582,7 +1582,7 @@ class RakuAST::Routine
                     RakuAST::Name.from-identifier('Any'),
                 ).to-begin-time($resolver, $context)
             );
-            $!signature.IMPL-ENSURE-IMPLICITS;
+            $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
         }
 
@@ -1648,7 +1648,6 @@ class RakuAST::Routine
         my int $underscore := 1;
         my @declarations;
         if $!signature {
-            $!signature.IMPL-ENSURE-IMPLICITS;
             my $implicit-invocant := $!signature.implicit-invocant;
             if $implicit-invocant {
                 my $type-captures := self.IMPL-UNWRAP-LIST($implicit-invocant.type-captures);
@@ -1981,7 +1980,7 @@ class RakuAST::Methodish
             $placeholder-signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
             $placeholder-signature.attach($resolver);
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS;
+            $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $placeholder-signature.IMPL-BEGIN($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
@@ -1996,7 +1995,7 @@ class RakuAST::Methodish
             $signature.set-is-on-named-method(True) if self.name;
             $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $signature.set-is-on-role-method(True) if $package-is-role;
-            $signature.IMPL-ENSURE-IMPLICITS;
+            $signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
         }
 
         my str $name := self.name ?? self.name.canonicalize !! '';

@@ -97,7 +97,7 @@ class RakuAST::Signature
         False
     }
 
-    method IMPL-ENSURE-IMPLICITS() {
+    method IMPL-ENSURE-IMPLICITS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
@@ -111,17 +111,19 @@ class RakuAST::Signature
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
                             $type.set-resolution($Class.resolution);
+                            $type.to-begin-time($resolver, $context);
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
                             $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(
                                 :name($package-name), :value($package), :scope<lexical>));
+                            $type.to-begin-time($resolver, $context);
                         }
                     }
                 }
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
-                    RakuAST::Parameter.new(:invocant, :$type));
+                    RakuAST::Parameter.new(:invocant, :$type).to-begin-time($resolver, $context));
             }
             unless $!is-on-meta-method {
                 my int $slurpy-hash-seen;
@@ -135,8 +137,10 @@ class RakuAST::Signature
                     nqp::bindattr(self, RakuAST::Signature, '$!implicit-slurpy-hash',
                         RakuAST::Parameter.new(
                           :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
-                          :target(RakuAST::ParameterTarget::Var.new(:name<%_>))
-                        )
+                          :target(
+                              RakuAST::ParameterTarget::Var.new(:name<%_>).to-begin-time($resolver, $context)
+                          )
+                        ).to-begin-time($resolver, $context)
                     );
                 }
             }
@@ -146,11 +150,16 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('$?CLASS'))
+                    RakuAST::Type::Capture.new(
+                        RakuAST::Name.from-identifier('$?CLASS').to-begin-time($resolver, $context)
+                    ).to-begin-time($resolver, $context)
                 );
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
+                    RakuAST::Type::Capture.new(
+                        RakuAST::Name.from-identifier('::?CLASS').to-begin-time($resolver, $context)
+                    ).to-begin-time($resolver, $context)
                 );
+                $invocant.to-begin-time($resolver, $context);
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
             }
         }
@@ -158,7 +167,6 @@ class RakuAST::Signature
 
     method PRODUCE-META-OBJECT() {
         # Produce meta-objects for each parameter.
-        self.IMPL-ENSURE-IMPLICITS();
         my @parameters;
         if $!implicit-invocant {
             @parameters.push($!implicit-invocant.meta-object);
@@ -205,7 +213,6 @@ class RakuAST::Signature
     }
 
     method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
-        self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
         if $needs-full-binder {
@@ -799,6 +806,7 @@ class RakuAST::Parameter
                     ),
                 ),
             );
+            $block.IMPL-BEGIN($resolver, $context);
             $block.IMPL-CHECK($resolver, $context, False);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
@@ -1491,6 +1499,7 @@ class RakuAST::ParameterTarget::Var
         for self.IMPL-UNWRAP-LIST(self.traits) {
             $var.add-trait($_);
         }
+        $var.to-begin-time($resolver, $context);
     }
 
     method PERFORM-CHECK(

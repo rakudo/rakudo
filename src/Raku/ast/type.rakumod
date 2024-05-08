@@ -800,7 +800,7 @@ class RakuAST::Type::Subset
                 ),
             );
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
-            $block.IMPL-CHECK($resolver, $context, False);
+            $block.IMPL-BEGIN($resolver, $context); # TODO maybe also check?
         }
 
         # set up the meta object

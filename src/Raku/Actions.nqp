@@ -781,7 +781,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := Nodify('Statement', 'Import').new(
           :module-name($<module-name>.ast), :$argument
         );
-        $ast.IMPL-CHECK($*R, $*CU.context, 1);
+        $ast.to-begin-time($*R, $*CU.context);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
             $/.add-categorical(
               $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
@@ -1646,7 +1646,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := $<longname>.core2ast;
         if $*META-OP {
             my $META := $*META-OP.ast;
-            $META.IMPL-CHECK($*R, $*CU.context, 1);
+            $META.to-begin-time($*R, $*CU.context);
 
             my $meta-op := $META.IMPL-HOP-INFIX;
             my $op := Nodify('Constant').new($meta-op);
@@ -1793,7 +1793,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method compile-variable-access($/, $sigil, $twigil, $desigilname) {
-        $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
+        $desigilname.to-begin-time($*R, $*CU.context);
         my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
         my $ast;
 
@@ -1960,7 +1960,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
-            $ast.IMPL-CHECK($*R, $*CU.context, 1);
+            $ast.to-begin-time($*R, $*CU.context);
             $ast.IMPL-COMPOSE;
         }
 
@@ -1986,7 +1986,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :$how, :$name, :$scope, :$augmented
         );
 
-        $package.IMPL-CHECK($*R, $*CU.context, 1) if $augmented;
+        if $augmented {
+            $package.to-begin-time($*R, $*CU.context);
+        }
+        else {
+            $package.to-parse-time($*R, $*CU.context);
+        }
 
         self.set-declarand($/, $*PACKAGE := $package);
     }
@@ -2139,7 +2144,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $desigilname<longname>
                 ?? $desigilname<longname>.ast
                 !! Nodify('Name').from-identifier(~$desigilname);
-            $ast.IMPL-CHECK($*R, $*CU.context, 1);
+            $ast.to-begin-time($*R, $*CU.context);
 
             my str $twigil := $<twigil> || '';
             my str $name   := $sigil ~ $twigil ~ $ast.canonicalize;
@@ -2217,7 +2222,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
         );
-        $routine.IMPL-CHECK($*R, $*CU.context, 1);
+        # Entering scope again would throw off proto installation
         self.attach: $/, $routine;
     }
 
@@ -2247,8 +2252,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
         );
-        $method.IMPL-CHECK($*R, $*CU.context, 1);
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($method);
         self.attach: $/, $method;
+        $*R.leave-scope;
     }
 
     method regex-declarator:sym<regex>($/) {
@@ -2270,8 +2277,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $regex.replace-signature($<signature>.ast);
         }
         $regex.replace-body($<nibble>.ast);
-        $regex.IMPL-CHECK($*R, $*CU.context, 1);
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($regex);
         self.attach: $/, $regex;
+        $*R.leave-scope;
     }
 
     method type-declarator:sym<constant>($/) {
@@ -2321,7 +2330,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl := Nodify('VarDeclaration','Constant').new(|%args);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 
@@ -2342,7 +2350,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $decl.add-trait($_.ast)
         }
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 
@@ -2361,7 +2368,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $decl.add-trait($_.ast);
         }
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 

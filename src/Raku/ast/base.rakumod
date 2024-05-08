@@ -115,6 +115,10 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::ImplicitLookups) {
             self.implicit-lookups-to-begin-time($resolver, $context);
         }
+        # Apply implicit block semantics.
+        if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
+            self.apply-implicit-block-semantics();
+        }
 
         # Ensure parse time was performed already before visiting children, when it is a
         # lexical scope that we are entering.
@@ -148,11 +152,6 @@ class RakuAST::Node {
     # Drive CHECK-time activities on this node and its children. Assumes that BEGIN time and
     # parse time has already completely happened.
     method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
-        # Apply implicit block semantics.
-        if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
-            self.apply-implicit-block-semantics();
-        }
-
         # Visit children and do their CHECK time.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);

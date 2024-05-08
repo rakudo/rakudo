@@ -253,16 +253,25 @@ class RakuAST::Term::Whatever
 class RakuAST::WhateverCode::Argument
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::BeginTime
 {
     has RakuAST::Name $!name;
 
-    method new(RakuAST::Name $name) {
+    method new() {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::WhateverCode::Argument, '$!name', $name);
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method set-name(RakuAST::Name $name) {
+        nqp::bindattr(self, RakuAST::WhateverCode::Argument, '$!name', $name);
+    }
+
+    method name() {
+        $!name.canonicalize
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::die('WhateverCode::Argument did not get a name') unless $!name;
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);

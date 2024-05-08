@@ -36,7 +36,7 @@ class RakuAST::Literal
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 
     method ast-type {
-        RakuAST::Type::Simple.new(
+        my $type := RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier(
             nqp::ifnull(
               $!typename,
@@ -44,7 +44,12 @@ class RakuAST::Literal
                 $!value.HOW.name($!value))
             )
           )
-        )
+        );
+        $type.set-resolution:
+            RakuAST::Declaration::ResolvedConstant.new(
+                compile-time-value => $!value.WHAT
+            );
+        $type
     }
 
     # default for non int/str/num literals
@@ -226,7 +231,12 @@ class RakuAST::QuotedString
         }
         else {
             # Always a string if no processors.
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+            my $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'));
+            $type.set-resolution:
+                RakuAST::Declaration::ResolvedConstant.new(
+                    compile-time-value => Str
+                );
+            $type
         }
     }
 

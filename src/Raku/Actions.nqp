@@ -2870,7 +2870,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<arglist> || $<typename> {
                 $/.panic("Cannot put type parameters on a type capture");
             }
-            if $<accepts> || $<accepts_any> {
+            if $<accept> || $<accept_any> {
                 $/.panic("Cannot base a coercion type on a type capture");
             }
             if $longname eq '::' {

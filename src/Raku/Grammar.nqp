@@ -741,7 +741,7 @@ role Raku::Common {
             return Nil unless nqp::isconcrete($meta-op-name);
 
             my $META := $meta-op-name.ast;
-            $META.IMPL-CHECK($*R, $*CU.context, 1);
+            $META.to-begin-time($*R, $*CU.context);
 
             my $meta-op := $META.IMPL-HOP-INFIX;
             $ast.set-resolution(

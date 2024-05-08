@@ -832,7 +832,7 @@ class RakuAST::VarDeclaration::Simple
             my $target := RakuAST::TraitTarget::Variable.new(self.name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
-            $target.IMPL-CHECK($resolver, $context, False);
+            $target.to-begin-time($resolver, $context); # TODO maybe also check?
 
             if self.twigil eq '.' {
                 my $variable-access := RakuAST::Var::Lexical.new(self.name);
@@ -847,7 +847,7 @@ class RakuAST::VarDeclaration::Simple
                     )),
                 );
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!accessor', $accessor);
-                $accessor.IMPL-CHECK($resolver, $context, False);
+                $accessor.to-begin-time($resolver, $context); # TODO maybe also check?
             }
 
             self.apply-traits($resolver, $context, $target);

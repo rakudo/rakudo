@@ -1809,7 +1809,7 @@ class RakuAST::Statement::Require
                 '$!module',
                 RakuAST::Package.new(:scope<my>, :name($!module-name), :is-require-stub),
             );
-            $!module.IMPL-CHECK($resolver, $context, 1);
+            $!module.to-begin-time($resolver, $context);
             $resolver.leave-scope;
             $!module.set-is-stub(True);
         }

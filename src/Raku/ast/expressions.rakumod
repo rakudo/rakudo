@@ -217,12 +217,12 @@ class RakuAST::Infix
                                RakuAST::Expression $expression, str $type) {
         if $type eq 'b' && !nqp::istype($expression, RakuAST::Code) {
             my $thunk := RakuAST::BlockThunk.new;
-            $thunk.IMPL-CHECK($resolver, $context, True);
+            $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);
         }
         elsif $type eq 't' && !nqp::istype($expression, RakuAST::Code) {
             my $thunk := RakuAST::ExpressionThunk.new;
-            $thunk.IMPL-CHECK($resolver, $context, True);
+            $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);
         }
         # TODO implement other thunk types

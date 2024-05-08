@@ -87,7 +87,7 @@ class RakuAST::Trait
     # and then applies it.
     method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         unless self.applied {
-            self.IMPL-CHECK($resolver, $context, False);
+            self.to-begin-time($resolver, $context);
             my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
                 compile-time-value => $target.compile-time-value;
             my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
@@ -97,7 +97,7 @@ class RakuAST::Trait
                     RakuAST::ColonPair::Value.new(:key(nqp::iterkey_s($_)), :value(nqp::iterval($_)))
                 );
             }
-            $args.IMPL-CHECK($resolver, $context, False);
+            $args.IMPL-BEGIN($resolver, $context);
             $target.IMPL-BEGIN-TIME-CALL(
               self.get-implicit-lookups.AT-POS(0),
               $args,

@@ -2926,7 +2926,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if $returns;
             $returns := $*OFTYPE.ast;
         }
-        self.attach: $/, Nodify('Signature').new(:@parameters, :$returns);
+        my $signature := Nodify('Signature').new(:@parameters, :$returns);
+        if $*ON-VARDECLARATION {
+            make $signature
+        }
+        else {
+            self.attach: $/, $signature
+        }
     }
 
     method parameter($/) {

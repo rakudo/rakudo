@@ -3697,7 +3697,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method atom($/) {
         self.attach: $/, (my $metachar := $<metachar>)
-          ?? $metachar.ast
+          ?? $metachar.ast // Nodify('Regex') # We'll error out later if no real AST
           !! Nodify('Regex','Literal').new(~$/);
     }
 

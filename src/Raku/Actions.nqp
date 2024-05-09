@@ -2995,7 +2995,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $parameter.set-sub-signature($post-constraint<signature>.ast);
             }
         }
-        self.attach: $/, $parameter;
+        # Leave the exact time of Parameter's BEGIN to the signature
+        make $parameter;
     }
 
     method param-var($/) {

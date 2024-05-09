@@ -45,6 +45,12 @@ class RakuAST::Signature
         # invocant parameter up correctly if we end up on a method.
         nqp::bindattr(self, RakuAST::Signature, '$!method-package',
             $resolver.find-attach-target('package'));
+
+        if $!parameters {
+            for $!parameters {
+                $_.to-begin-time($resolver, $context);
+            }
+        }
     }
 
     method set-is-on-method(Bool $is-on-method) {

@@ -74,8 +74,8 @@ role Raku::CommonActions {
     # the AST to the match object.
     method attach($/, $node, :$as-key-origin) {
         my $cu := $*CU; # Might be too early to even have a CompUnit
-        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
+        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         make $node;
     }
 

@@ -109,7 +109,7 @@ role Raku::CommonActions {
     }
 
     method quibble($/) {
-        self.attach: $/, $<nibble>.ast;
+        self.attach: $/, $<nibble>.ast // Nodify('Node');
     }
 
     # Grammars also need to be able to lookup RakuAST nodes.  Historically

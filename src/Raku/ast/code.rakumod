@@ -2124,7 +2124,6 @@ class RakuAST::Submethod
 # implies its own lexical scope.
 class RakuAST::RegexDeclaration
   is RakuAST::Methodish
-  is RakuAST::CheckTime
 {
     has RakuAST::Regex $.body;
     has            str $.source;
@@ -2163,15 +2162,12 @@ class RakuAST::RegexDeclaration
         Nil
     }
 
-    method PERFORM-CHECK(
-      RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        my $meta := self.meta-object;
+    method PRODUCE-META-OBJECT() {
+        my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);
         nqp::bindattr_s($meta, $meta.WHAT, '$!source',
           self.declarator ~ ' ' ~ $!source
         );
-        True
+        $meta
     }
 
     method IMPL-META-OBJECT-TYPE() { Regex }

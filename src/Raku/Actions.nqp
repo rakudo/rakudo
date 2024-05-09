@@ -1284,7 +1284,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # set the $*ITEM dynamic variable to a truthy value if item assignment
     # is to be assumed.
     method infix:sym<=>($/) {
-        make Nodify('Assignment').new(:item($*ITEM));
+        self.attach: $/, Nodify('Assignment').new(:item($*ITEM));
     }
 
     # These infix operators are purely a grammar construct at the moment
@@ -1448,7 +1448,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   !! nqp::die('Unknown kind of infix: ' ~ $/);
 
         self.attach: $/, $<infix-postfix-meta-operator>
-          ?? $<infix-postfix-meta-operator>.ast.new($ast)
+          ?? $<infix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           !! $ast;
     }
 

@@ -160,7 +160,7 @@ my role Dateish {
         nqp::push_s($parts,
           nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
         );
-        nqp::join(%_<sep> // $sep,$parts)
+        nqp::join($sep,$parts)
     }
 
     method dd-mm-yyyy(str $sep = "-" --> Str:D) {
@@ -175,7 +175,7 @@ my role Dateish {
           ?? self!year-Str
           !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
         );
-        nqp::join(%_<sep> // $sep,$parts)
+        nqp::join($sep,$parts)
     }
 
     method mm-dd-yyyy(str $sep = "-" --> Str:D) {
@@ -190,7 +190,7 @@ my role Dateish {
           ?? self!year-Str
           !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
         );
-        nqp::join(%_<sep> // $sep,$parts)
+        nqp::join($sep,$parts)
     }
 
     proto method earlier(|) {*}

@@ -1384,6 +1384,7 @@ class RakuAST::VarDeclaration::Signature
                 $param.target.add-trait(nqp::clone($_)) if $param.target;
             }
         }
+        self.signature.to-begin-time($resolver, $context);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

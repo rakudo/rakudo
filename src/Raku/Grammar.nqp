@@ -3676,7 +3676,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | [
               :my $*DEFAULT-RW := 1;
-              '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+              '(' ~ ')' <signature(:ON-VARDECLARATION)> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
           ]
 
           | <routine-declarator>
@@ -4593,7 +4593,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <signature(1, :DECLARE-TARGETS(0))>
     }
 
-    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1) {
+    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION) {
         :my $*MULTI-INVOCANT := 1;
         :my @*SEPS := nqp::list();
         <.ws>

@@ -410,25 +410,13 @@ our class CArray is repr('CArray') is array_type(Pointer) {
 
         # By counting down, we're effectively doing a setelems for the
         # right size on the first iteration
-        if $n {
-            # Fast path for lists
-            if nqp::istype(@values,List) {
-                my $reified := nqp::getattr(@values, List, '$!reified');
-
-                nqp::while(
-                  --$n >= 0,
-                  $result.ASSIGN-POS($n, nqp::atpos($reified, $n))
-                );
-            }
-
-            # Slow path
-            else {
-                nqp::while(
-                  --$n >= 0,
-                  $result.ASSIGN-POS($n, @values.AT-POS($n))
-                );
-            }
-        }
+        nqp::if(
+          $n,
+          nqp::while(
+            --$n >= 0,
+            $result.ASSIGN-POS($n, @values.AT-POS($n))
+          )
+        );
 
         $result
     }

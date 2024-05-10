@@ -3,7 +3,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 46;
+plan 47;
 
 BEGIN if $*VM.name eq 'jvm' {
     plan :skip-all<NullPointerException in sub ReturnADoubleArray>;
@@ -207,5 +207,9 @@ subtest 'CArray allocation' => {
     my @t2682 := CArray[int32].new(1,2,3);
     is-deeply @t2682[0..*-2], (1, 2), 'Indexing with WhateverStar works on CArray';
 }
+
+# https://irclogs.raku.org/raku/2024-05-09.html#23:55-0002
+is-deeply CArray[uint8].new("(b)".encode)[^3], (40,98,41),
+  "Make sure optimisation didn't break anything";
 
 # vim: expandtab shiftwidth=4

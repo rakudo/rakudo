@@ -405,19 +405,38 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     multi method new(::?CLASS:)          { nqp::create(self) }
     multi method new(::?CLASS: *@values) { self.new(@values) }
     multi method new(::?CLASS: @values) {
-        my $result  := nqp::create(self);
-        my int $n    = @values.elems;  # reifies
-        my $reified := nqp::getattr(@values, List, '$!reified');
+        my $result := nqp::create(self);
+        my int $n   = @values.elems;  # reifies
 
         # By counting down, we're effectively doing a setelems for the
         # right size on the first iteration
-        nqp::if(
-          $n,
-          nqp::while(
-            --$n >= 0,
-            $result.ASSIGN-POS($n, nqp::atpos($reified, $n))
-          )
-        );
+        if $n {
+            # Fast path for native ints
+            if nqp::istype(@values,Blob) {
+                nqp::while(
+                  --$n >= 0,
+                  $result.ASSIGN-POS($n, nqp::atpos_i(@values, $n))
+                );
+            }
+
+            # Fast path for lists
+            elsif nqp::istype(@values,List) {
+                my $reified := nqp::getattr(@values, List, '$!reified');
+
+                nqp::while(
+                  --$n >= 0,
+                  $result.ASSIGN-POS($n, nqp::atpos($reified, $n))
+                );
+            }
+
+            # Slow path
+            else {
+                nqp::while(
+                  --$n >= 0,
+                  $result.ASSIGN-POS($n, @values.AT-POS($n))
+                );
+            }
+        }
 
         $result
     }

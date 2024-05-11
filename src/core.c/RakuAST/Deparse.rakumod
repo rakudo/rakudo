@@ -811,13 +811,20 @@ CODE
         }
 
         # preprocess any config
-        my str $config = $ast.config.sort({
+        my %config := $ast.config;
+        my str $config = %config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
         }).map({
             my str $key = .key;
             if $key eq 'numbered' && $abbreviated {
                 '#'
             }
+
+            # =place url :config
+            elsif $key eq 'url' && $type eq 'place' {
+                Empty
+            }
+
             else {
                 my $deparsed := self.deparse(.value);
                 $deparsed eq 'True'
@@ -839,6 +846,11 @@ CODE
         # handle =config directive
         elsif $type eq 'config' {
             return "$prefix $ast.paragraphs.head()$config"
+        }
+        
+        # handle =place
+        elsif $type eq 'place' {
+            return "$prefix %config<url>.value()$config";
         }
 
         # set up paragraphs

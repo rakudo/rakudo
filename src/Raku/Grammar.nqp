@@ -5347,14 +5347,40 @@ Rakudo significantly on *every* run."
         \n?
     }
 
-    # handle =column / =place / =row
-    token doc-block:sym<column-place-row> {
+    # handle =column
+    token doc-block:sym<column> {
 
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # custom config madness
-        '=' $<type>=[ column | place | row ]
+        # fetch any configuration
+        '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =row
+    token doc-block:sym<row> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # fetch any configuration
+        '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =place
+    token doc-block:sym<place> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # needs a URL
+        '=place' \s+ $<url>=[ \w+ '://' \S+ ]
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

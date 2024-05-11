@@ -424,7 +424,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
         self!nameds:
-          <margin type level directive for  abbreviated config paragraphs>
+          <margin type level directive for abbreviated config paragraphs>
     }
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {

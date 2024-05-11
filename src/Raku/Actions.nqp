@@ -3270,7 +3270,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method extract-config($/) {
         my $config := nqp::hash;
-        $config<numbered> := 1 if $<doc-numbered>;
+        $config<numbered> := Nodify('IntLiteral').new(1)
+          if $<doc-numbered>;
+        $config<url> := Nodify('StrLiteral').new(~$<url>)
+          if $<url>;
 
         if $<colonpair> {
             for $<colonpair> -> $/ {
@@ -3337,10 +3340,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :lemma(~$<lemma>), :@paragraphs
     }
 
-    method doc-block:sym<column-place-row>($/) {
+    method doc-block:sym<column>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             $*SEEN{$/.from} := Nodify('Doc','Block').new:
-              :directive, :margin(~$<margin>), :type(~$<type>),
+              :directive, :margin(~$<margin>), :type<column>,
+              :config(self.extract-config($/))
+        }
+    }
+
+    method doc-block:sym<row>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+              :directive, :margin(~$<margin>), :type<row>,
+              :config(self.extract-config($/))
+        }
+    }
+
+    method doc-block:sym<place>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+              :directive, :margin(~$<margin>), :type<place>,
               :config(self.extract-config($/))
         }
     }

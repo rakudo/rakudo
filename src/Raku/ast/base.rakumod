@@ -100,6 +100,10 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::ParseTime) {
             self.ensure-parse-performed($resolver, $context);
         }
+        # Apply implicit block semantics.
+        if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
+            self.apply-implicit-block-semantics();
+        }
         if nqp::istype(self, RakuAST::BeginTime) {
             self.ensure-begin-performed($resolver, $context);
         }

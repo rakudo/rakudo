@@ -257,6 +257,10 @@ role Perl6::Metamodel::C3MRO {
         );
     }
 
+    method invalidate_mro_cache($target) {
+        $!mro := NQPMu;
+    }
+
     # Introspects the Method Resolution Order without anything that has
     # been hidden.
     method mro_unhidden($target, :$roles, :$concretizations) {

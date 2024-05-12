@@ -80,6 +80,9 @@ role Perl6::Metamodel::MultipleInheritance {
                   !! ++$i
             }
 
+            # Creating full method list needs a computed MRO.
+            self.invalidate_mro_cache($target)
+              if nqp::istype(self, Perl6::Metamodel::C3MRO);
             # With a new parent full method list would have to be refreshed.
             self.invalidate_method_caches($target)
               if nqp::istype(self, Perl6::Metamodel::MROBasedMethodDispatch);

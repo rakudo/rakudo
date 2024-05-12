@@ -285,7 +285,7 @@ my class IO::Socket::Async {
                                 # do nothing
                             }
                             elsif err {
-                                my $exc = X::AdHoc.new(payload => err);
+                                my $exc = X::AdHoc.new(payload => err ~ " (address: $!host:$!port)");
                                 quit($exc);
                                 $host-vow.break($exc) unless $host-vow.promise;
                                 $port-vow.break($exc) unless $port-vow.promise;

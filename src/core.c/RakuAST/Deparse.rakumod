@@ -850,7 +850,7 @@ CODE
         
         # handle =place
         elsif $type eq 'place' {
-            return "$prefix %config<url>.value()$config";
+            return "$prefix %config<uri>.value()$config";
         }
 
         # set up paragraphs

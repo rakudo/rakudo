@@ -5379,8 +5379,8 @@ Rakudo significantly on *every* run."
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # needs a URL
-        '=place' \s+ $<url>=[ \w+ '://' \S+ ]
+        # needs a schema
+        '=place' \s+ $<uri>=[ \w+ ':' \S+ ]
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

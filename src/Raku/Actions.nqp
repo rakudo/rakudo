@@ -3272,8 +3272,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $config := nqp::hash;
         $config<numbered> := Nodify('IntLiteral').new(1)
           if $<doc-numbered>;
-        $config<url> := Nodify('StrLiteral').new(~$<url>)
-          if $<url>;
+        $config<uri> := Nodify('StrLiteral').new(~$<uri>)
+          if $<uri>;
 
         if $<colonpair> {
             for $<colonpair> -> $/ {

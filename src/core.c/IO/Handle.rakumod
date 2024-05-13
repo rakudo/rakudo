@@ -1,6 +1,7 @@
 my class IO::Handle {
     has $.path;
     has $!PIO;
+    has $!mode;
     has $.chomp is rw = Bool::True;
     has $.nl-in = ["\x0A", "\r\n"];
     has Str:D $.nl-out is rw = "\n";
@@ -189,7 +190,7 @@ my class IO::Handle {
             );
         }
         self!set-out-buffer-size($out-buffer);
-
+        $!mode = $mode;
 
         self;
     }
@@ -633,6 +634,18 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
+        # Pre-filter guaranteed failures and provide clear explanations for them
+        my str $error-state = !$shared && nqp::iseq_s($!mode, 'ro')
+                                ?? "Cannot create a non-shared lock on a read-only file handle"
+                                !! $shared && nqp::iseq_s($!mode, 'wo')
+                                    ?? "Cannote create a shared lock on a write-only file handle"
+                                    !! "";
+        if $error-state {
+            fail X::IO::Lock.new: :os-error($error-state),
+                :lock-type( 'non-' x $non-blocking ~ 'blocking, '
+                    ~ ($shared ?? 'shared' !! 'exclusive') )
+        }
+
         CATCH { default {
 #?if moar
             self!remember-to-close;

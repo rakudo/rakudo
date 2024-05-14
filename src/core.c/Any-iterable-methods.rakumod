@@ -2137,18 +2137,22 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     method !slow-infer($iterator, Mu $type is copy, Mu $pulled is copy) {
-        # set up types to check
-        my $mro :=
-          nqp::clone(nqp::getattr($type.^mro(:roles),List,'$!reified'));
+        # If there are types to check
+        my $mro := nqp::clone(
+          nqp::getattr($type.^mro(:roles),List,'$!reified')
+        ) if nqp::can($type.HOW,"mro");
 
-        nqp::repeat_until(
-          nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
-            || nqp::eqaddr($type,Mu),
-          nqp::until(
-            nqp::istype($pulled,nqp::atpos($mro,0)),
-            nqp::stmts(                       # not the same base type
-              nqp::shift($mro),
-              ($type := nqp::atpos($mro,0)),  # assume next type for now
+        nqp::if(
+          $mro,
+          nqp::repeat_until(
+            nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
+              || nqp::eqaddr($type,Mu),
+            nqp::until(
+              nqp::istype($pulled,nqp::atpos($mro,0)),
+              nqp::stmts(                       # not the same base type
+                nqp::shift($mro),
+                ($type := nqp::atpos($mro,0)),  # assume next type for now
+              )
             )
           )
         );

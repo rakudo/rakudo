@@ -190,7 +190,6 @@ my class IO::Handle {
             );
         }
         self!set-out-buffer-size($out-buffer);
-        $!mode = $mode;
 
         self;
     }
@@ -634,10 +633,12 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
+#?if moar
         # Pre-filter guaranteed failures and provide clear explanations for them
-        my str $error-state = !$shared && nqp::iseq_s($!mode, 'ro')
+        my int $open-mode = nqp::syscall("handle-open-mode", $!PIO);
+        my str $error-state = !$shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_RO)
                                 ?? "Cannot create a non-shared lock on a read-only file handle"
-                                !! $shared && nqp::iseq_s($!mode, 'wo')
+                                !! $shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_WO)
                                     ?? "Cannote create a shared lock on a write-only file handle"
                                     !! "";
         if $error-state {
@@ -645,6 +646,7 @@ my class IO::Handle {
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') )
         }
+#?endif
 
         CATCH { default {
 #?if moar

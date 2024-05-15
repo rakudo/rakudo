@@ -311,6 +311,11 @@ my class Range is Cool does Iterable does Positional {
             Rakudo::Iterator.Empty
         }
 
+        # Can't reverse from Inf
+        elsif $!max === Inf {
+            self.fail-iterator-cannot-be-lazy('.reverse', "")
+        }
+
         # endpoints are same
         elsif $!min === $!max {
             $!excludes-min || $!excludes-max
@@ -340,7 +345,11 @@ my class Range is Cool does Iterable does Positional {
             )
         }
     }
-    method reverse(Range:D:) { Seq.new(self!reverse-iterator) }
+    method reverse(Range:D:) {
+        nqp::istype((my $iterator := self!reverse-iterator), Failure)
+          ?? $iterator
+          !! Seq.new($iterator)
+    }
     method first($test) {
         if %_<end> {
             my \res := self.reverse.first($test, |%_, :!end);

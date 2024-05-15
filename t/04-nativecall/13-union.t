@@ -39,7 +39,7 @@ sub SetShortMyStruct(MyStruct)          is native('./13-union') { * }
 sub SetCharMyStruct(MyStruct)           is native('./13-union') { * }
 
 is nativesizeof(MyStruct), SizeofMyStruct(), 'sizeof(MyStruct)';
-# Perl-side tests:
+# Raku-side tests:
 my MyStruct $obj .= new;
 
 is $obj.long,         42,     'getting long';

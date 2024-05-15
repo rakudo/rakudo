@@ -86,7 +86,7 @@ lives-ok {testr(&goodCStruct)}, "Taking a CStruct is fine";
 lives-ok {testr(&goodCArray)}, "Taking a CArray is fine";
 lives-ok {testr(&goodBuf)}, "Taking a Buf is fine";
 throws-like {testr(&badCArray)}, X::FailOnWarn, "Taking a CArray[int] is not fine";
-throws-like {testr(&badclass)}, X::FailOnWarn, "Taking a Perl6 class is NOT fine";
+throws-like {testr(&badclass)}, X::FailOnWarn, "Taking a Raku class is NOT fine";
 lives-ok {testr(&goodint)}, "Taking a int32 is fine";
 throws-like {testr(&badint)}, X::FailOnWarn, "Taking a Int is NOT fine";
 throws-like {testr(&badint2)}, X::FailOnWarn, "Taking a int is NOT fine";

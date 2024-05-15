@@ -120,7 +120,7 @@ sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { 
 sub TakeAInlinedArrayInStruct(InlinedArrayInStruct $s) returns int32 is native('./06-struct') { * };
 sub ReturnAInlinedArrayInStruct() returns InlinedArrayInStruct is native('./06-struct') { * };
 
-# Perl-side tests:
+# Raku-side tests:
 my MyStruct $obj .= new;
 
 is $obj.long,   42,     'getting long';

@@ -13,6 +13,6 @@ sub ReturnFunctionPointer() returns Pointer is native('./19-function-pointers') 
 my $ptr              = ReturnFunctionPointer();
 my &ReturnedFunction = nativecast(:(--> int32), $ptr);
 
-is ReturnedFunction(), 42, 'Pointer cast to Perl 6 Sub';
+is ReturnedFunction(), 42, 'Pointer cast to Raku Sub';
 
 # vim: expandtab shiftwidth=4

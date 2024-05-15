@@ -33,51 +33,51 @@ sub SetSizeT(size_t is rw)  is symbol('SetULongLong') is native('./15-rw-args') 
 sub PassSizeT(size_t is rw) returns size_t is symbol('PassULongLong') is native('./15-rw-args') { * }
 
 my int8 $c; SetChar($c);
-is $c, 97, 'Perl\'s rw variable was set by C (char)';
-is PassChar($c), 97, 'Perl\'s rw variable was passed and returned by C (char)';
+is $c, 97, 'Raku\'s rw variable was set by C (char)';
+is PassChar($c), 97, 'Raku\'s rw variable was passed and returned by C (char)';
 
 my int16 $s; SetShort($s);
-is $s, 387, 'Perl\'s rw variable was set by C (short)';
-is PassShort($s), 387, 'Perl\'s rw variable was passed and returned by C (short)';
+is $s, 387, 'Raku\'s rw variable was set by C (short)';
+is PassShort($s), 387, 'Raku\'s rw variable was passed and returned by C (short)';
 
 my long $l; SetLong($l);
-is $l, 777, 'Perl\'s rw variable was set by C (long)';
-is PassLong($l), 777, 'Perl\'s rw variable was passed and returned by C (long)';
+is $l, 777, 'Raku\'s rw variable was set by C (long)';
+is PassLong($l), 777, 'Raku\'s rw variable was passed and returned by C (long)';
 
 my longlong $ll; SetLongLong($ll);
-is $ll, 15324, 'Perl\'s rw variable was set by C (long long)';
-is PassLongLong($ll), 15324, 'Perl\'s rw variable was passed and returned by C (longlong)';
+is $ll, 15324, 'Raku\'s rw variable was set by C (long long)';
+is PassLongLong($ll), 15324, 'Raku\'s rw variable was passed and returned by C (longlong)';
 
 my num32 $f; SetFloat($f);
-is-approx $f, 6.66, 'Perl\'s rw variable was set by C (float)';
-is-approx PassFloat($f), 6.66, 'Perl\'s rw variable was passed and returned by C (float)';
+is-approx $f, 6.66, 'Raku\'s rw variable was set by C (float)';
+is-approx PassFloat($f), 6.66, 'Raku\'s rw variable was passed and returned by C (float)';
 
 my num64 $d; SetDouble($d);
-is-approx $d, 12.12, 'Perl\'s rw variable was set by C (double)';
-is PassDouble($d), 12.12, 'Perl\'s rw variable was passed and returned by C (double)';
+is-approx $d, 12.12, 'Raku\'s rw variable was set by C (double)';
+is PassDouble($d), 12.12, 'Raku\'s rw variable was passed and returned by C (double)';
 
 my uint8 $uc; SetUChar($uc);
-is $uc, 153, 'Perl\'s rw variable was set by C (unsigned char)';
-is PassUChar($uc), 153, 'Perl\'s rw variable was passed and returned by C (unsigned char)';
+is $uc, 153, 'Raku\'s rw variable was set by C (unsigned char)';
+is PassUChar($uc), 153, 'Raku\'s rw variable was passed and returned by C (unsigned char)';
 
 my uint16 $us; SetUShort($us);
-is $us, 387, 'Perl\'s rw variable was set by C (unsigned short)';
-is PassUShort($us), 387, 'Perl\'s rw variable was passed and returned by C (unsigned short)';
+is $us, 387, 'Raku\'s rw variable was set by C (unsigned short)';
+is PassUShort($us), 387, 'Raku\'s rw variable was passed and returned by C (unsigned short)';
 
 my ulong $ul; SetULong($ul);
-is $ul, 777, 'Perl\'s rw variable was set by C (unsigned long)';
-is PassULong($ul), 777, 'Perl\'s rw variable was passed and returned by C (unsigned long)';
+is $ul, 777, 'Raku\'s rw variable was set by C (unsigned long)';
+is PassULong($ul), 777, 'Raku\'s rw variable was passed and returned by C (unsigned long)';
 
 my ulonglong $ull; SetULongLong($ull);
-is $ull, 15324, 'Perl\'s rw variable was set by C (unsigned long long)';
-is PassULongLong($ull), 15324, 'Perl\'s rw variable was passed and returned by C (unsigned long long)';
+is $ull, 15324, 'Raku\'s rw variable was set by C (unsigned long long)';
+is PassULongLong($ull), 15324, 'Raku\'s rw variable was passed and returned by C (unsigned long long)';
 
 my size_t $size_t; SetSizeT($size_t);
-is $size_t, 15324, 'Perl\'s rw variable was set by C (size_t)';
-is PassSizeT($size_t), 15324, 'Perl\'s rw variable was passed and returned by C (size_t)';
+is $size_t, 15324, 'Raku\'s rw variable was set by C (size_t)';
+is PassSizeT($size_t), 15324, 'Raku\'s rw variable was passed and returned by C (size_t)';
 
 my Pointer $ptr .= new;
 ok SetPtrToPtr($ptr), 'Can pass an instantiated pointer with rw-trait to C';
-is +$ptr, 42, 'Perl\'s rw variable was set by C (pointer)';
+is +$ptr, 42, 'Raku\'s rw variable was set by C (pointer)';
 
 # vim: expandtab shiftwidth=4

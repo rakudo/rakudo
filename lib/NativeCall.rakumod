@@ -271,7 +271,7 @@ my sub guess-name-mangler(Routine $r, $name, Str $libname) {
         my int $i;
         while $i < $m {
             my &mangler := nqp::atpos($cpp-name-manglers, $i);
-            (try NativeCall::cglobal($libname, mangler($r, $sym), Pointer))
+            (try cglobal($libname, mangler($r, $sym), Pointer))
               ?? (return &mangler)
               !! ++$i;
         }
@@ -485,7 +485,7 @@ our sub refresh($obj --> 1) is export(:DEFAULT, :utils) {
 our proto sub nativecast(|) is export(:DEFAULT) {*}
 multi sub nativecast(Signature $target-type, $source) {
     my $r := sub { };
-    $r does NativeCall::Native[$r, Str];
+    $r does Native[$r, Str];
     $r.setup-nativecall;
     nqp::bindattr($r, Code, '$!signature', nqp::decont($target-type));
     nqp::bindattr($r, $r.WHAT, '$!entry-point', $source);

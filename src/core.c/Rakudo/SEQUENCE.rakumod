@@ -360,7 +360,7 @@ sub SEQUENCE(
         }
     });
     $infinite
-        ?? (gathered.Slip, Slip.from-iterator(righti)).lazy.iterator
+        ?? gathered.lazy.iterator
         !! (gathered.Slip, Slip.from-iterator(righti)).iterator
 }
 

@@ -679,8 +679,8 @@ augment class RakuAST::Doc::Paragraph {
                     ),
                     collector.add-atom($current),
                     nqp::if(
-                      nqp::istype(collector,RakuAST::Doc::Markup)
-                        && nqp::iseq_s(collector.letter,"V"),
+                      nqp::istype($current,RakuAST::Doc::Markup)
+                        && nqp::iseq_s($current.letter,"V"),
                       --$verbatims
                     ),
                     ($stopper =

@@ -623,7 +623,7 @@ sub dd(|c) {  # is implementation-detail
             }
             else {
                 my $name := nqp::not_i(nqp::istype($var.VAR,Failure))
-                  && try $var.VAR.name;
+                  && (try $var.VAR.name) // '';
                 $name := '' if $name && ($name eq 'element' | '%');
                 $name := $name
                   .subst('%', 'element of %')

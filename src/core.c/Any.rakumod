@@ -627,7 +627,9 @@ sub dd(|c) {  # is implementation-detail
                 $name := '' if $name && ($name eq 'element' | '%');
                 $name := $name
                   .subst('%', 'element of %')
-                  .subst('@', 'element of @');
+                  .subst('@', 'element of @')
+                  unless nqp::istype($var, Iterable)
+                    && nqp::not_i(nqp::iscont($var));
 
                 my $type := $name
                   ?? nqp::istype($var,Failure)

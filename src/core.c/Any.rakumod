@@ -625,11 +625,16 @@ sub dd(|c) {  # is implementation-detail
                 my $name := nqp::not_i(nqp::istype($var.VAR,Failure))
                   && try $var.VAR.name;
                 $name := '' if $name && ($name eq 'element' | '%');
+                $name := $name
+                  .subst('%', 'element of %')
+                  .subst('@', 'element of @');
+
                 my $type := $name
                   ?? nqp::istype($var,Failure)
                     ?? 'Failure'
                     !! $var.VAR.of.raku
                   !! '';
+
                 my $what := nqp::can($var,'raku')
                   ?? $var.raku
                   !! nqp::can($var,'perl')

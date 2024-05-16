@@ -72,10 +72,13 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         }
 
         sub thevalue(\a) {
-            my \type := ::(a) === CORE::(a) && GLOBAL::(a) !=== CORE::(a)
-                            ?? GLOBAL::(a)
+            my \core-a   := try CORE::(a);
+            my \global-a := try GLOBAL::(a);
+            my \type := ::(a) === core-a && global-a !=== core-a
+                            ?? global-a
                             !! ::(a);
-            Metamodel::EnumHOW.ACCEPTS(type.HOW)
+            # If it is an enum, ensure that it is an enum *value* and not "the" enum itself
+            Metamodel::EnumHOW.ACCEPTS(type.HOW) && type (elem) type.HOW.enum_value_list(type)
                     ?? type
                     !! coercer(a);
         }

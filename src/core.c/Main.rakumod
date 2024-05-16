@@ -72,9 +72,12 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         }
 
         sub thevalue(\a) {
-            ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
-              ?? type
-              !! coercer(a)
+            my \type := ::(a) === CORE::(a) && GLOBAL::(a) !=== CORE::(a)
+                            ?? GLOBAL::(a)
+                            !! ::(a);
+            Metamodel::EnumHOW.ACCEPTS(type.HOW)
+                    ?? type
+                    !! coercer(a);
         }
 
         my %options-with-req-arg = Hash.new;

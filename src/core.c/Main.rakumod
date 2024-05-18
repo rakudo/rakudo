@@ -74,13 +74,17 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         sub thevalue(\a) {
             my \core-a   := try CORE::(a);
             my \global-a := try GLOBAL::(a);
-            my \type := ::(a) === core-a && global-a !=== core-a
-                            ?? global-a
-                            !! ::(a);
-            # If it is an enum, ensure that it is an enum *value* and not "the" enum itself
-            Metamodel::EnumHOW.ACCEPTS(type.HOW) && type (elem) type.HOW.enum_value_list(type)
-                    ?? type
-                    !! coercer(a);
+            my \value-a  := try ::(a);
+            my \type := value-a === core-a && !(global-a === core-a)
+              ?? global-a
+              !! value-a;
+
+            # If it is an enum, ensure that it is an enum *value* and
+            # not "the" enum itself
+            Metamodel::EnumHOW.ACCEPTS(type.HOW)
+              && type (elem) type.HOW.enum_value_list(type)
+              ?? type
+              !! coercer(a);
         }
 
         my %options-with-req-arg = Hash.new;

@@ -615,29 +615,41 @@ sub dd(|c) {  # is implementation-detail
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
-            my $var  := nqp::shift($args);
+            my $var := nqp::shift($args);
+
+            # Determine any prefix to be shown
+            sub prefix() {
+                my $prefix = nqp::iscont($var)
+                  ?? ((try $var.VAR.name) // '')
+                  !! '';
+
+                $prefix = '' if $prefix eq 'element' || $prefix eq '%';
+
+                $prefix = $prefix
+                  .subst('%', 'element of %')
+                  .subst('@', 'element of @')
+                  unless nqp::istype($var, Iterable);
+
+                if try $var.VAR.of.raku -> $type {
+                    $prefix = "$type $prefix" if $type ne 'Mu';
+                }
+
+                $prefix ?? "$prefix = " !! $prefix
+            }
+
             if nqp::istype($var,RakuAST::Node) {
                 note nqp::isconcrete($var)
                   ?? $var.DEPARSE.chomp
                   !! $var.^name;
             }
+            elsif nqp::istype($var,Failure) {
+                note prefix() ~ $var.raku
+                  .subst('&CORE::infix:<orelse>(') # handle weird artefacts for
+                  .subst(', *.self)')              # my $a := Failure.new
+                  .subst(', backtrace => Backtrace.new'); # no information
+            }
             else {
-                my $name := nqp::not_i(nqp::istype($var.VAR,Failure))
-                  && (try $var.VAR.name) // '';
-                $name := '' if $name && ($name eq 'element' | '%');
-                $name := $name
-                  .subst('%', 'element of %')
-                  .subst('@', 'element of @')
-                  unless nqp::istype($var, Iterable)
-                    && nqp::not_i(nqp::iscont($var));
-
-                my $type := $name
-                  ?? nqp::istype($var,Failure)
-                    ?? 'Failure'
-                    !! $var.VAR.of.raku
-                  !! '';
-
-                my $what := nqp::can($var,'raku')
+                note prefix() ~ (nqp::can($var,'raku')
                   ?? $var.raku
                   !! nqp::can($var,'perl')
                     ?? $var.perl
@@ -649,9 +661,8 @@ sub dd(|c) {  # is implementation-detail
                           !! $var.^name.ends-with('Thread')
                             ?? BOOTThread($var)
                             !! "($var.^name() without .raku or .perl method)"
-                    !! "($var.^name() without .raku or .perl method)";
-
-                note $name ?? "$type $name = $what" !! $what;
+                    !! "($var.^name() without .raku or .perl method)"
+                );
             }
         }
     }

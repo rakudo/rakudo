@@ -1,6 +1,7 @@
 my class X::Immutable { ... }
 my class X::Range::InvalidArg { ... }
 my class X::Range::Incomparable { ... }
+my class X::Range::Rand::InvalidEndpoints { ... }
 
 my class Range is Cool does Iterable does Positional {
     has $.min;
@@ -695,16 +696,14 @@ my class Range is Cool does Iterable does Positional {
     method rand() {
         fail "Can only get a random value on Real values, did you mean .pick?"
           unless nqp::istype($!min,Real) && nqp::istype($!max,Real);
-        fail "Can only get a random value from numeric values"
-          if $!min === NaN || $!max === NaN;
-        fail "Can not get a random value from an infinite range"
-          if $!min === -Inf || $!max === Inf;
+        fail X::Range::Rand::InvalidEndpoints.new(:$!min, :$!max)
+            if   $!min === NaN  || $!max === NaN
+              || $!min === -Inf || $!max === Inf
+              || $!min == Inf   || $!max == -Inf
+              || $!min >= $!max
+              || $!max - $!min < 1e-15; # at < 1e-15, we get caught in an infinite loop or just return $!min = $!max
 
         my $range = $!max - $!min;
-        fail "Can only get a random value if the range is positive"
-          unless $range > 0;
-
-
         my $value = 0;
         if $!excludes-min || $!excludes-max {
             if $!excludes-min {

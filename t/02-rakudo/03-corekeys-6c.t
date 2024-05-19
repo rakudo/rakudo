@@ -1,5 +1,5 @@
 use v6.c;
-use lib 't/packages';
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 plan 1;

@@ -1,0 +1,9 @@
+{
+    "raku" : "6.*",
+    "name" : "Test-Helpers",
+    "description" : "Helper and utility modules used in rakudo tests. Note that this differs from Test::Helpers in the roast, which is probably not intentional.",
+    "provides" : {
+        "Test::Helpers" : "lib/Test/Helpers.rakumod",
+        "Test::Helpers::QAST" : "lib/Test/Helpers/QAST.rakumod"
+    }
+}

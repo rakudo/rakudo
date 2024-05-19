@@ -1,4 +1,4 @@
-use lib <t/packages/  t/04-nativecall  lib>;
+use lib <lib t/packages/Test-Helpers t/04-nativecall>;
 use NativeCall;
 use Test;
 use Test::Helpers;

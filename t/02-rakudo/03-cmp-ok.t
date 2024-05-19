@@ -1,4 +1,4 @@
-use lib <lib  t/packages t/02-rakudo/test-packages>;
+use lib <lib t/packages/Test-Helpers t/02-rakudo/test-packages>;
 use Test;
 use Test::Helpers;
 use CustomOps; # test cmp-ok handling custom infixes that we imported

@@ -1,6 +1,6 @@
 # Always be at the latest core.
 use v6.*;
-use lib 't/packages';
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 plan 3;

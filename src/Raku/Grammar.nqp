@@ -1928,6 +1928,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     method EXPR-reduce(@termstack, @opstack) {
+        # if there is no @opstack, we have nowhere for the contents of @termstack to go...
+        #   (@termstack comes in with size 1 for this edge-case, so we can just pass the first argument)
+        return self.typed-sorry("X::Syntax::AmbiguousAdverb", adverb => ~nqp::atpos(@termstack, 0))
+            unless nqp::elems(@opstack);
+
         my $op := nqp::pop(@opstack);
 
         # Give it a fresh capture list, since we'll have assumed it has

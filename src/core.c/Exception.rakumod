@@ -2134,8 +2134,15 @@ my class X::Syntax::CannotMeta does X::Syntax {
 
 my class X::Syntax::Adverb does X::Syntax {
     has $.what;
-
     method message() { "You can't adverb " ~ $.what }
+}
+
+my class X::Syntax::AmbiguousAdverb does X::Syntax {
+    has Str $.adverb;
+    method message() {
+        "Cannot determine the destination for named argument: $!adverb\n" ~
+            "Try placing parentheses around the desired callsite to disambiguate."
+    }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {

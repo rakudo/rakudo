@@ -1,4 +1,4 @@
-use lib $?FILE.IO.parent(2).add('packages');
+use lib $?FILE.IO.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 

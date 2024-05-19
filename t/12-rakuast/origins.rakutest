@@ -5,7 +5,7 @@ use NQPHLL:from<NQP>;
 use Perl6::Compiler:from<NQP>;
 use Raku::Grammar:from<NQP>;
 use Raku::Actions:from<NQP>;
-use lib $?FILE.IO.parent(2).add('packages');
+use lib $?FILE.IO.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 

@@ -696,12 +696,13 @@ my class Range is Cool does Iterable does Positional {
     method rand() {
         fail "Can only get a random value on Real values, did you mean .pick?"
           unless nqp::istype($!min,Real) && nqp::istype($!max,Real);
+
         fail X::Range::Rand::InvalidEndpoints.new(:$!min, :$!max)
-            if   $!min === NaN  || $!max === NaN
-              || $!min === -Inf || $!max === Inf
-              || $!min == Inf   || $!max == -Inf
-              || $!min >= $!max
-              || $!max - $!min < 1e-15; # at < 1e-15, we get caught in an infinite loop or just return $!min = $!max
+            if (nqp::istype($!min, Num) && nqp::isnanorinf($!min))
+                    || (nqp::istype($!max, Num) && nqp::isnanorinf($!max))
+                    || $!min >= $!max
+                    || $!max - $!min < 1e-15; # at < 1e-15, we get caught in an infinite loop (exclusive)
+                                              # or just return .rand == $!min == $!max (non-exclusive)
 
         my $range = $!max - $!min;
         my $value = 0;

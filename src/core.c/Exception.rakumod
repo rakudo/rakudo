@@ -2619,19 +2619,21 @@ my class X::Range::Rand::InvalidEndpoints is Exception {
     has $.max;
     method message() {
         if $!min > $!max {
-            "Impossible to get a random number from range containing no values.\n" ~
-            "Only the sequence (...) operator supports descension between $!min and $!max"
+            "Impossible to get a random number from range containing no values.\n"
+            ~ "The sequence (...) operator supports descension between $!min and $!max,\n"
+            ~ "but for a random number between $!min and $!max, ($!max..$!min).rand is\n"
+            ~ "likely to be functionally equivalent to what was meant by ($!min..$!max).rand"
         }
         elsif $!min == $!max {
             "Impossible to generate random numbers for a range where endpoints are equal"
         }
-        elsif $!max - $!min {
+        elsif $!max - $!min < 1e-15 {
             "Currently unable to generate random numbers for a range where endpoints are within 1e-15 of each other"
         }
         elsif $!min === NaN || $!max === NaN {
             "Impossible to get a random from a range with a NaN endpoint"
         }
-        elsif $!min === Inf || $!max === Inf || $!min === -Inf || $!max === -Inf
+        else # currently: $!min === Inf || $!max === Inf || $!min === -Inf || $!max === -Inf
         {
             "Impossible to get a random number from an infinite range"
         }

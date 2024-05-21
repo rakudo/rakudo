@@ -108,10 +108,9 @@ plan 22;
 
 # ???
 # https://github.com/rakudo/rakudo/issues/1516
-#?rakudo todo "These were reported as working but do not appear to be working any longer"
 {
-    lives-ok { Q| grammar A { token x(&a) { <.&a> } |.AST.EVAL }, "no error messages from code params to regexes (<.&a>)";
-    lives-ok { Q| grammar A { token x(&a) {  <&a> } |.AST.EVAL }, "no error messages from code params to regexes (<&a>)";
+    lives-ok { Q| { my grammar A { token x(&a) { <.&a> } } } |.AST.EVAL }, "no error messages from code params to regexes (<.&a>)";
+    lives-ok { Q| { my grammar A { token x(&a) {  <&a> } } } |.AST.EVAL }, "no error messages from code params to regexes (<&a>)";
 }
 
 # ???

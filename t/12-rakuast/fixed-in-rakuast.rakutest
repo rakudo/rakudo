@@ -1,0 +1,20 @@
+use Test;
+use lib <t/packages/Test-Helpers>;
+use Test::Helpers;
+
+plan 2;
+
+# S03-sequence/misc.t
+# https://github.com/rakudo/rakudo/issues/5520
+{
+    my @result;
+    Q| @result.push($_) for 1...5...3 |.AST.EVAL;
+    is-deeply @result, [1, 2, 3, 4, 5, 4, 3], ".say works with chained sequence and for";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/5546
+{
+    is-run 'Q| use trace; my %a{Str} |.AST.EVAL', :err("2 (EVAL_0 line 1)\nmy \%a\{Str} \n"),
+        "trace pragma works with hash shapes";
+}

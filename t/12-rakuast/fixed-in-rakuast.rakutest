@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 2;
+plan 23;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -17,4 +17,117 @@ plan 2;
 {
     is-run 'Q| use trace; my %a{Str} |.AST.EVAL', :err("2 (EVAL_0 line 1)\nmy \%a\{Str} \n"),
         "trace pragma works with hash shapes";
+}
+
+# S04-phasers/in-loop.t
+# https://github.com/rakudo/rakudo/issues/5517
+{
+    my @a;
+    Q| for () { FIRST @a.push: 'first'; ENTER @a.push: 'enter'; NEXT @a.push: 'next'; LEAVE @a.push: 'leave'; LAST @a.push: 'last'; } |.AST.EVAL;
+    is-deeply @a, [], "phasers do not fire for loop that did not run";
+}
+
+# S05-match/basics.t
+# https://github.com/rakudo/rakudo/issues/5454
+{
+    is Q| $_="0X"; m/\d/ ~ m/X/ |.AST.EVAL, "0X", "multiple m// works correctly";
+}
+
+# S09-hashes/objecthash.t
+# https://github.com/rakudo/rakudo/issues/5419
+{
+    is Q| my %h{Int}; %h.of |.AST.EVAL, Mu, "creating an object hash without specifying an 'of type' defaults to Mu";
+}
+
+# S06-currying/misc.t (?)
+# https://github.com/rakudo/rakudo/issues/5116
+{
+    nok Q| my &a = *.uc; my &b = *.lc; &a eqv &b |.AST.EVAL, "*.uc and *.lc are not considered equivalent";
+    ok  Q| my &a = *.uc; my &b = *.uc; &a eqv &b |.AST.EVAL, "*.uc and *.uc are considered equivalent";
+    #?rakudo todo "This was working but has regressed"
+    nok Q| my &a = *.uc ~ *.lc ~ (*.uc ~ *.lc); my &b = *.lc ~ *.lc ~ (*.lc ~ *.lc); &a eqv &b |.AST.EVAL,
+        "equivalence is still correct for more complicated WhateverCodes";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/2360
+# XXX: LIKELY DUE TO MISSING OPTIMIZATIONS
+{
+    lives-ok { Q| use nqp; my %*FOO is Set = <a b c> |.AST.EVAL }, "the :initialize flag is not sent to Set.STORE";
+}
+
+# S04-blocks-and-statements/pointy.t
+# https://github.com/rakudo/rakudo/issues/2295
+{
+    is Q| .WHAT given -> --> Int:D {} |.AST.EVAL, Block but Callable[Int:D],
+        "Pointy blocks are parameterized with return types";
+
+    ok Q| my Int:D &foo = -> --> Int:D {}; &foo.signature |.AST.EVAL ~~ :( --> Int:D),
+        "Pointy blocks can be assigned to a parameterized Callable container";
+}
+
+# S04-declarations/constant.t
+# https://github.com/rakudo/rakudo/issues/1587
+{
+    dies-ok { Q| my Int constant .= new: 42 |.AST.EVAL }, "creating a constant without a name dies";
+}
+
+# S06-advanced/wrap.t
+# https://github.com/rakudo/rakudo/issues/1561
+# XXX: Almost certainly just due to lack of optimizations
+{
+    my @result;
+    {
+        my $handle;
+        Q§ $handle = &infix:<|>.wrap: -> | { @result.push("ok"); True }; -> $ where {$_ ~~ Int|Num} {}(42) §.AST.EVAL;
+        is-deeply @result, ["ok"], "wrapping infix:<|> works";
+        Q§ &infix:<|>.unwrap($handle) §.AST.EVAL;
+    }
+
+    @result = [];
+    {
+        my $handle;
+        Q§ $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++ §.AST.EVAL;
+        is-deeply @result, ["ok2"], "wrapping postfix:<++> works";
+        Q§ &postfix:<++>.unwrap($handle) §.AST.EVAL;
+    }
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1532
+{
+    my @result;
+    Q| my $foo = "bar"; my %bar = :42foo, :70bar; @result = [:%::($foo)] |.AST.EVAL;
+    is-deeply @result, ["::(\$foo)" => {:bar(70), :foo(42)}],
+        "Colonpairs with indirect-lookup as variables work";
+
+    Q| my $foo = "bar"; my %bar = :42foo, :70bar; @result = [$foo => %::($foo)] |.AST.EVAL;
+    is-deeply @result, [:bar({:bar(70), :foo(42)})],
+        "Colonpairs with indirect-lookup as variables work (complex)"
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1516
+#?rakudo todo "These were reported as working but do not appear to be working any longer"
+{
+    lives-ok { Q| grammar A { token x(&a) { <.&a> } |.AST.EVAL }, "no error messages from code params to regexes (<.&a>)";
+    lives-ok { Q| grammar A { token x(&a) {  <&a> } |.AST.EVAL }, "no error messages from code params to regexes (<&a>)";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1463
+{
+    lives-ok { Q| eager (1..10) |.AST.EVAL }, "eager on parenthesized range works without issue";
+}
+
+# S12-introspection/definite.t (?)
+# https://github.com/rakudo/rakudo/issues/1412
+{
+    dies-ok  { Q| my Positional:D[Int] $x := ("x", "b") |.AST.EVAL }, "Parametarization with DefiniteHOWs is not ignored in binding";
+    is-deeply Q| my Positional:D[Int] $x := Array[Int].new(1, 2) |.AST.EVAL, Array[Int].new(1, 2),
+        "Parametarization with DefiniteHOWs works where it should";
+
+    #?rakudo todo "This should work"
+    ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
+        "Parameterization with DefiniteHOWs is propagated to scalar container"
 }

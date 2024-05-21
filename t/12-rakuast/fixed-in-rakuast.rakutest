@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 23;
+plan 22;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -127,7 +127,6 @@ plan 23;
     is-deeply Q| my Positional:D[Int] $x := Array[Int].new(1, 2) |.AST.EVAL, Array[Int].new(1, 2),
         "Parametarization with DefiniteHOWs works where it should";
 
-    #?rakudo todo "This should work"
     ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
-        "Parameterization with DefiniteHOWs is propagated to scalar container"
+        "Parameterization with DefiniteHOWs is propagated to scalar container";
 }

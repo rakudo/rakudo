@@ -146,6 +146,8 @@ my %formats =
 ;
 
 sub formatting2text($pod) {
+    return '' if $pod.type eq 'Z'; # Do not output a comment
+
     my $text = $pod.contents>>.&pod2text.join;
     $pod.type ~~ %formats
       ?? colored($text, %formats{$pod.type})

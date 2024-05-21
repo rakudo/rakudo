@@ -991,14 +991,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $infix := $/.ast;
+        my $node;
         if nqp::istype($infix, Nodify('DottyInfixish')) {
-            self.attach: $/, Nodify('ApplyDottyInfix').new:
+            $node := Nodify('ApplyDottyInfix').new:
               infix => $infix, left => $/[0].ast, right => $/[1].ast;
         }
         else {
-            self.attach: $/, Nodify('ApplyInfix').new:
+            $node := Nodify('ApplyInfix').new:
               infix => $infix, left => $/[0].ast, right => $/[1].ast;
         }
+        my $cu := $*CU; # Might be too early to even have a CompUnit
+        $node.set-origin(
+            Nodify('Origin').new(
+                :from($/[0].from),
+                :to($/[1].to),
+                :source($*ORIGIN-SOURCE)));
+        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
+        make $node;
     }
 
     # A listy expression

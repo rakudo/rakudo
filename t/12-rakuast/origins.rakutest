@@ -61,7 +61,7 @@ ORIG
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('$line = 2'),
-            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::Statement::Expression) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::ApplyInfix) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('++",'),
             %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::QuotedString) ),

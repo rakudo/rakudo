@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 23;
+plan 24;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -134,4 +134,10 @@ plan 23;
 # https://github.com/rakudo/rakudo/issues/1378
 {
     throws-like { Q| my %h = :1k; say 1 ~ %h<k>:exists ~ 1 |.AST.EVAL }, X::Syntax::AmbiguousAdverb, "Ambiguous adverb usage results in coherent exception";
+}
+
+# S32-array/multislice-6e.t (?)
+# https://github.com/rakudo/rakudo/issues/1297
+{
+    is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
 }

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 22;
+plan 23;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -128,4 +128,10 @@ plan 22;
 
     ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
         "Parameterization with DefiniteHOWs is propagated to scalar container";
+}
+
+# S03-operators/adverbial-modifiers.t
+# https://github.com/rakudo/rakudo/issues/1378
+{
+    throws-like { Q| my %h = :1k; say 1 ~ %h<k>:exists ~ 1 |.AST.EVAL }, X::Syntax::AmbiguousAdverb, "Ambiguous adverb usage results in coherent exception";
 }

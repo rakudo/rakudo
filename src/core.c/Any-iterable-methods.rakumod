@@ -175,6 +175,7 @@ augment class Any {
         method push-all(\target) {
             my $source := $!source;
             my &block  := &!block;
+            my $label  := $!label;
             my $pulled := $!pulled;
 
             self.push-rest(target) unless nqp::isnull($!slipper);
@@ -196,7 +197,7 @@ augment class Any {
                       ),
                       ($pulled := $source.pull-one)
                     ),
-                    'LABELED', $!label,
+                    'LABELED', $label,
                     'NEXT', nqp::stmts(
                       self.push-control-payload(target),
                       ($pulled := $source.pull-one),
@@ -231,7 +232,7 @@ augment class Any {
                       ),
                       ($pulled := $source.pull-one)
                     ),
-                    'LABELED', $!label,
+                    'LABELED', $label,
                     'NEXT', nqp::stmts(
                       self.push-control-payload(target),
                       ($pulled := $source.pull-one)
@@ -252,6 +253,7 @@ augment class Any {
         method sink-all() {
             my $source := $!source;
             my &block  := &!block;
+            my $label  := $!label;
             my $pulled := $!pulled;
 
             self.sink-rest unless nqp::isnull($!slipper);
@@ -268,7 +270,7 @@ augment class Any {
                       ),
                       ($pulled := $source.pull-one)
                     ),
-                    'LABELED', $!label,
+                    'LABELED', $label,
                     'NEXT', nqp::stmts(
                       ($pulled := $source.pull-one),
                       nqp::handle(
@@ -294,7 +296,7 @@ augment class Any {
                       block($pulled),
                       ($pulled := $source.pull-one)
                     ),
-                    'LABELED', $!label,
+                    'LABELED', $label,
                     'NEXT', ($pulled := $source.pull-one),
                     'REDO', nqp::null,
                     'LAST', ($pulled := IterationEnd)
@@ -369,7 +371,7 @@ augment class Any {
             my $label  := $!label;
             my &block  := &!block;
 
-            my $pulled := $!source.pull-one;
+            my $pulled := $source.pull-one;
             nqp::until(
               nqp::eqaddr($pulled,IterationEnd),
               nqp::handle(

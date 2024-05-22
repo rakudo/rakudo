@@ -365,23 +365,27 @@ augment class Any {
         method push-all(\target --> IterationEnd) {
             self.push-rest(target) unless nqp::isnull($!slipper);
 
+            my $source := $!source;
+            my $label  := $!label;
+            my &block  := &!block;
+
             my $pulled := $!source.pull-one;
             nqp::until(
               nqp::eqaddr($pulled,IterationEnd),
               nqp::handle(
                 nqp::stmts(
                   nqp::if(
-                    nqp::istype((my $value := &!block($pulled)),Slip),
+                    nqp::istype((my $value := &block($pulled)),Slip),
                     self.slip-all($value, target),
                     target.push($value)
                   ),
-                  ($pulled := $!source.pull-one),
+                  ($pulled := $source.pull-one),
                 ),
-                'LABELED', $!label,
+                'LABELED', $label,
                 'REDO', nqp::null,
                 'NEXT', nqp::stmts(
                   self.push-control-payload(target),
-                  ($pulled := $!source.pull-one)
+                  ($pulled := $source.pull-one)
                 ),
                 'LAST', nqp::stmts(
                   self.push-control-payload(target),
@@ -395,16 +399,20 @@ augment class Any {
         method sink-all(--> IterationEnd) {
             self.sink-rest unless nqp::isnull($!slipper);
 
-            my $pulled := $!source.pull-one;
+            my $source := $!source;
+            my $label  := $!label;
+            my &block  := &!block;
+
+            my $pulled := $source.pull-one;
             nqp::until(
               nqp::eqaddr($pulled,IterationEnd),
               nqp::handle(
                 nqp::stmts(
                   &!block($pulled),
-                  ($pulled := $!source.pull-one)
+                  ($pulled := $source.pull-one)
                 ),
-                'LABELED', $!label,
-                'NEXT', ($pulled := $!source.pull-one),
+                'LABELED', $label,
+                'NEXT', ($pulled := $source.pull-one),
                 'REDO', nqp::null,
                 'LAST', ($pulled := IterationEnd)
               ),
@@ -508,9 +516,13 @@ augment class Any {
         method push-all(\target --> IterationEnd) {
             self.push-rest(target) unless nqp::isnull($!slipper);
 
+            my $source := $!source;
+            my $label  := $!label;
+            my &block  := &!block;
+
             nqp::unless(
-              nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
-              (my $b := $!source.pull-one)
+              nqp::eqaddr((my $a := $source.pull-one),IterationEnd),
+              (my $b := $source.pull-one)
             );
 
             nqp::until(
@@ -520,14 +532,14 @@ augment class Any {
                   nqp::if(
                     nqp::eqaddr($b,IterationEnd),
                     nqp::stmts(
-                      (my $value := &!block($a)),
+                      (my $value := &block($a)),
                       ($a := IterationEnd)
                     ),
                     nqp::stmts(
-                      ($value := &!block($a, $b)),
+                      ($value := &block($a, $b)),
                       nqp::unless(
-                        nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
-                        ($b := $!source.pull-one)
+                        nqp::eqaddr(($a := $source.pull-one),IterationEnd),
+                        ($b := $source.pull-one)
                       )
                     )
                   ),
@@ -537,12 +549,12 @@ augment class Any {
                     target.push($value)
                   )
                 ),
-                'LABELED', $!label,
+                'LABELED', $label,
                 'NEXT', nqp::stmts(
                   self.push-control-payload(target),
                   nqp::unless(
-                    nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
-                    ($b := $!source.pull-one)
+                    nqp::eqaddr(($a := $source.pull-one),IterationEnd),
+                    ($b := $source.pull-one)
                   )
                 ),
                 'REDO', nqp::null,
@@ -558,9 +570,13 @@ augment class Any {
         method sink-all(--> IterationEnd) {
             self.sink-rest unless nqp::isnull($!slipper);
 
+            my $source := $!source;
+            my $label  := $!label;
+            my &block  := &!block;
+
             nqp::unless(
-              nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
-              (my $b := $!source.pull-one)
+              nqp::eqaddr((my $a := $source.pull-one),IterationEnd),
+              (my $b := $source.pull-one)
             );
 
             nqp::until(
@@ -569,21 +585,21 @@ augment class Any {
                 nqp::if(
                   nqp::eqaddr($b,IterationEnd),
                   nqp::stmts(
-                    &!block($a),
+                    &block($a),
                     ($a := IterationEnd)
                   ),
                   nqp::stmts(
-                    &!block($a, $b),
+                    &block($a, $b),
                     nqp::unless(
-                      nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
-                      ($b := $!source.pull-one)
+                      nqp::eqaddr(($a := $source.pull-one),IterationEnd),
+                      ($b := $source.pull-one)
                     )
                   )
                 ),
-                'LABELED', $!label,
+                'LABELED', $label,
                 'NEXT', nqp::unless(
-                  nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
-                  ($b := $!source.pull-one)
+                  nqp::eqaddr(($a := $source.pull-one),IterationEnd),
+                  ($b := $source.pull-one)
                 ),
                 'REDO', nqp::null,
                 'LAST', ($a := IterationEnd)
@@ -675,7 +691,12 @@ augment class Any {
         method push-all(\target --> IterationEnd) {
             self.push-rest(target) unless nqp::isnull($!slipper);
 
-            my $pulled := $!source.pull-one;
+            my     $source := $!source;
+            my     $label  := $!label;
+            my     &block  := &!block;
+            my int $count   = $!count;
+
+            my $pulled := $source.pull-one;
             my $params := nqp::list;
             nqp::until(
               nqp::eqaddr($pulled,IterationEnd),
@@ -686,8 +707,8 @@ augment class Any {
                     nqp::push($params,$pulled)
                   ),
                   nqp::until(
-                    nqp::iseq_i(nqp::elems($params),$!count)
-                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::iseq_i(nqp::elems($params),$count)
+                      || nqp::eqaddr(($pulled := $source.pull-one),IterationEnd),
                     nqp::push($params,$pulled)
                   ),
                   (my $value := nqp::p6invokeflat(&!block,$params)),
@@ -696,13 +717,13 @@ augment class Any {
                     self.slip-all($value,target),
                     target.push($value)
                   ),
-                  ($pulled := $!source.pull-one),
+                  ($pulled := $source.pull-one),
                   nqp::setelems($params,0)
                 ),
-                'LABELED', $!label,
+                'LABELED', $label,
                 'NEXT', nqp::stmts(
                   self.push-control-payload(target),
-                  ($pulled := $!source.pull-one),
+                  ($pulled := $source.pull-one),
                   nqp::setelems($params,0)
                 ),
                 'REDO', nqp::null,
@@ -717,7 +738,12 @@ augment class Any {
         method sink-all(--> IterationEnd) {
             self.sink-rest unless nqp::isnull($!slipper);
 
-            my $pulled := $!source.pull-one;
+            my     $source := $!source;
+            my     $label  := $!label;
+            my     &block  := &!block;
+            my int $count   = $!count;
+
+            my $pulled := $source.pull-one;
             my $params := nqp::list;
             nqp::until(
               nqp::eqaddr($pulled,IterationEnd),
@@ -728,17 +754,17 @@ augment class Any {
                     nqp::push($params,$pulled)
                   ),
                   nqp::until(
-                    nqp::iseq_i(nqp::elems($params),$!count)
-                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::iseq_i(nqp::elems($params),$count)
+                      || nqp::eqaddr(($pulled := $source.pull-one),IterationEnd),
                     nqp::push($params,$pulled)
                   ),
-                  nqp::p6invokeflat(&!block,$params),
-                  ($pulled := $!source.pull-one),
+                  nqp::p6invokeflat(&block,$params),
+                  ($pulled := $source.pull-one),
                   nqp::setelems($params,0)
                 ),
-                'LABELED', $!label,
+                'LABELED', $label,
                 'NEXT', nqp::stmts(
-                  ($pulled := $!source.pull-one),
+                  ($pulled := $source.pull-one),
                   nqp::setelems($params,0)
                 ),
                 'REDO', nqp::null,
@@ -749,15 +775,15 @@ augment class Any {
     }
 
     my class IterateMoreWithPhasers does Rakudo::SlippyIterator {
-        has &!block;
-        has $!source;
-        has $!count;
-        has $!label;
-        has $!value-buffer;
-        has $!did-init;
-        has $!did-iterate;
-        has $!NEXT;
-        has $!CAN_FIRE_PHASERS;
+        has     &!block;
+        has     $!source;
+        has     $!count;
+        has     $!label;
+        has     $!value-buffer;
+        has int $!did-init;
+        has int $!did-iterate;
+        has int $!CAN_FIRE_PHASERS;
+        has     $!NEXT;
 
         method new(&block, Iterator:D $source, $count, $label) {
             my $iter := nqp::create(self);
@@ -776,15 +802,15 @@ augment class Any {
               ?? nqp::setelems($!value-buffer,0)
               !! ($!value-buffer := nqp::create(IterationBuffer));
 
-            my int $redo = 1;
+            my &block := &!block;
             my $result;
 
-            if !$!did-init && nqp::can(&!block, 'fire_phasers') {
+            if !$!did-init && nqp::can(&block, 'fire_phasers') {
                 $!did-init         = 1;
                 $!CAN_FIRE_PHASERS = 1;
-                $!NEXT             = &!block.has-phaser('NEXT');
-                nqp::p6setfirstflag(nqp::getattr(&!block, Code, '$!do'))
-                  if &!block.has-phaser('FIRST');
+                $!NEXT             = &block.has-phaser('NEXT');
+                nqp::p6setfirstflag(nqp::getattr(&block, Code, '$!do'))
+                  if &block.has-phaser('FIRST');
             }
 
             if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
@@ -797,13 +823,19 @@ augment class Any {
                 $result := IterationEnd
             }
             else {
+                my     $source := $!source;
+                my     $label  := $!label;
+                my     $NEXT   := $!NEXT;
+                my int $count   = $!count;
+                my int $redo    = 1;
+
                 nqp::while(
                   $redo,
                   nqp::stmts(
                     $redo = 0,
                     nqp::handle(
                       nqp::stmts(
-                        ($result := nqp::p6invokeflat(&!block, $!value-buffer)),
+                        ($result := nqp::p6invokeflat(&block, $!value-buffer)),
                         ($!did-iterate = 1),
                         nqp::if(
                           nqp::istype($result, Slip),
@@ -815,26 +847,26 @@ augment class Any {
                                 (nqp::setelems($!value-buffer, 0)),
                                 ($redo = 1
                                   unless nqp::eqaddr(
-                                    $!source.push-exactly($!value-buffer, $!count),
+                                    $source.push-exactly($!value-buffer, $count),
                                     IterationEnd)
                                   && nqp::elems($!value-buffer) == 0)
                               )
                             )
                           )
                         ),
-                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                        nqp::if($NEXT, &block.fire_phasers('NEXT')),
                       ),
-                      'LABELED', $!label,
+                      'LABELED', $label,
                       'NEXT', nqp::stmts(
                         ($!did-iterate = 1),
-                        nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                        nqp::if($NEXT, &block.fire_phasers('NEXT')),
                         nqp::setelems($!value-buffer,0),
                         nqp::if(
                           nqp::isnull($result := nqp::getpayload(nqp::exception)),
                           nqp::stmts(
                             nqp::if(
                               nqp::eqaddr(
-                                $!source.push-exactly($!value-buffer, $!count),
+                                $source.push-exactly($!value-buffer, $count),
                                 IterationEnd
                               ) && nqp::elems($!value-buffer) == 0,
                               ($result := IterationEnd),
@@ -848,7 +880,7 @@ augment class Any {
                                    IterationEnd
                                  )
                               && nqp::not_i(nqp::eqaddr(  # an empty Slip
-                                   $!source.push-exactly($!value-buffer, $!count),
+                                   $source.push-exactly($!value-buffer, $!count),
                                    IterationEnd
                                  )),
                             ($redo = 1)                   # process these values
@@ -874,7 +906,7 @@ augment class Any {
                   ),
                 :nohandler);
             }
-            &!block.fire_if_phasers('LAST')
+            &block.fire_if_phasers('LAST')
               if $!CAN_FIRE_PHASERS
               && $!did-iterate
               && nqp::eqaddr($result, IterationEnd);

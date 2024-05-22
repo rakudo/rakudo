@@ -44,7 +44,7 @@ plan 22;
 {
     nok Q| my &a = *.uc; my &b = *.lc; &a eqv &b |.AST.EVAL, "*.uc and *.lc are not considered equivalent";
     ok  Q| my &a = *.uc; my &b = *.uc; &a eqv &b |.AST.EVAL, "*.uc and *.uc are considered equivalent";
-    #?rakudo todo "This was working but has regressed"
+    todo "This was working but has regressed";
     nok Q| my &a = *.uc ~ *.lc ~ (*.uc ~ *.lc); my &b = *.lc ~ *.lc ~ (*.lc ~ *.lc); &a eqv &b |.AST.EVAL,
         "equivalence is still correct for more complicated WhateverCodes";
 }

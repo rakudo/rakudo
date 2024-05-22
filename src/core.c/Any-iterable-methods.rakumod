@@ -994,16 +994,15 @@ Consider using a block if any of these are necessary for your mapping code."
             my int $i = $!index;
 
             nqp::until(
-              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::stmts(
                 ++$i,
                 nqp::if(
-                  $!test($_),
+                  $test($_),
                   target.push(nqp::p6box_i($i))
                 )
               )
             );
-            $!index = $i;
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method is-monotonically-increasing(--> Bool:D) {
@@ -1050,14 +1049,18 @@ Consider using a block if any of these are necessary for your mapping code."
             )
         }
         method push-all(\target --> IterationEnd) {
+            my     $iter := $!iter;   # lexicals are faster than attrs
+            my     $test := $!test;
+            my int $index = $!index;
+
             nqp::until(
-              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::stmts(
-                ++$!index,
+                ++$index,
                 nqp::if(
-                  $!test($_),
+                  $test($_),
                   nqp::stmts(  # doesn't sink
-                    target.push(nqp::p6box_i($!index));
+                    target.push(nqp::p6box_i($index));
                     target.push($_);
                   )
                 )
@@ -1094,21 +1097,20 @@ Consider using a block if any of these are necessary for your mapping code."
               !! Pair.new(++$!index,$_)
         }
         method push-all(\target --> IterationEnd) {
-            my $iter := $!iter;   # lexicals are faster than attrs
-            my $test := $!test;
-            my int $i = $!index;
+            my     $iter := $!iter;   # lexicals are faster than attrs
+            my     $test := $!test;
+            my int $index = $!index;
 
             nqp::until(
               nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::stmts(
-                ++$i,
+                ++$index,
                 nqp::if(
                   $test($_),
-                  target.push(Pair.new($i,$_))
+                  target.push(Pair.new($index,$_))
                 )
               )
             );
-            $!index = $i;
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method is-monotonically-increasing(--> Bool:D) {
@@ -1260,12 +1262,15 @@ Consider using a block if any of these are necessary for your mapping code."
             $_
         }
         method push-all(\target --> IterationEnd) {
+            my $iter := $!iter;   # lexicals are faster than attrs
+            my $test := $!test;
+
             nqp::until(
-              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::if(  # doesn't sink
                 nqp::isge_i(
                   nqp::getattr_i(
-                    $!test.(Match.'!cursor_init'(
+                    $test.(Match.'!cursor_init'(
                       .Str, :c(0), :$braid, :$fail_cursor
                     )),
                     Match,
@@ -1290,10 +1295,13 @@ Consider using a block if any of these are necessary for your mapping code."
             $_
         }
         method push-all(\target --> IterationEnd) {
+            my $iter := $!iter;   # lexicals are faster than attrs
+            my $test := $!test;
+
             nqp::until(
-              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::if(  # doesn't sink
-                $!test.ACCEPTS($_),
+                $test.ACCEPTS($_),
                 target.push($_)
               )
             );

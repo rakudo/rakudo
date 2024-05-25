@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 24;
+plan 25;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -140,4 +140,10 @@ plan 24;
 # https://github.com/rakudo/rakudo/issues/1297
 {
     is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
+}
+
+# S02-types/signed-unsigned-native.t (?)
+# <no open issue>
+{
+    is Q| sub a(uint $a) { $a }; a -1 |.AST.EVAL, (my uint $a = -1), "unsigned native parameters wrap around when provided with negative numbers";
 }

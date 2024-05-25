@@ -1679,7 +1679,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method reduce(|) is nodal {*}
     multi method reduce(Any:U: & --> Nil) { }
-    multi method reduce(Any:D: &with) {
+    multi method reduce(Any:D: &with) is raw {
         (&with.reducer)(&with)(self)
     }
 

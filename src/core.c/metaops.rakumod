@@ -178,7 +178,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 multi sub METAOP_REDUCE_LEFT(\op) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
-        sub (+values) {
+        sub (+values) is raw {
             my \iter = values.iterator;
             my \first = iter.pull-one;
             return op.() if nqp::eqaddr(first,IterationEnd);
@@ -198,7 +198,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         }
     }
     else {
-        sub (+values) {
+        sub (+values) is raw {
             my $iter := values.iterator;
             nqp::if(
               nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),

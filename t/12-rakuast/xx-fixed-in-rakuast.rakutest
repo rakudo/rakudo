@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 25;
+plan 28;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -146,4 +146,15 @@ plan 25;
 # <no open issue>
 {
     is Q| sub a(uint $a) { $a }; a -1 |.AST.EVAL, (my uint $a = -1), "unsigned native parameters wrap around when provided with negative numbers";
+}
+
+# S03-metaops/???
+# https://github.com/rakudo/rakudo/issues/4424
+{
+    is-run 'Q| [[&say]] "hello ", "world" |.AST.EVAL', :out("hello world"),
+        "No useless use of sink reporting for [[&say]]";
+    is-run 'Q| "hello" R[&say] "world " |.AST.EVAL', :out("worldhello"),
+        "No useless use of sink reporting for R[&say]";
+    is-run 'Q| sub equal($a, $b) { $a eqv $b };  say "hello" [&equal] "world" |.AST.EVAL', :out("False"),
+        "No useless use of sink reporting for user-declared function";
 }

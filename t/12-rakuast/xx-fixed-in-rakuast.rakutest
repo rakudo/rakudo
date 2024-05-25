@@ -151,10 +151,10 @@ plan 28;
 # S03-metaops/???
 # https://github.com/rakudo/rakudo/issues/4424
 {
-    is-run 'Q| [[&say]] "hello ", "world" |.AST.EVAL', :out("hello world"),
+    is-run 'Q| [[&say]] "hello ", "world" |.AST.EVAL', :out("hello world\n"),
         "No useless use of sink reporting for [[&say]]";
-    is-run 'Q| "hello" R[&say] "world " |.AST.EVAL', :out("worldhello"),
+    is-run 'Q| "hello" R[&say] "world " |.AST.EVAL', :out("world hello\n"),
         "No useless use of sink reporting for R[&say]";
-    is-run 'Q| sub equal($a, $b) { $a eqv $b };  say "hello" [&equal] "world" |.AST.EVAL', :out("False"),
+    is-run 'Q| sub equal($a, $b) { $a eqv $b };  say "hello" [&equal] "world" |.AST.EVAL', :out("False\n"),
         "No useless use of sink reporting for user-declared function";
 }

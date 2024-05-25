@@ -390,9 +390,8 @@ my class Proc::Async {
             $!ready_vow.keep($pid);
         });
 
-        nqp::bindkey($callbacks, 'error', -> Mu \err {
-            my $error := X::OS.new(os-error => err);
-            $!exit_promise.break($error);
+        nqp::bindkey($callbacks, 'error', -> Mu \err, $code = 0 {
+            $!exit_promise.break(my $error := X::OS.new(:os-error(err), :error-code($code)));
             $!ready_vow.break($error);
         });
 

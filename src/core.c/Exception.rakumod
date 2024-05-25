@@ -682,6 +682,7 @@ do {
 
 my role X::OS is Exception {
     has $.os-error;
+    has $.error-code;
     method message() { $.os-error }
 }
 
@@ -3757,6 +3758,7 @@ my class X::Proc::Unsuccessful is Exception {
     has $.proc;
     method message() {
         "The spawned command '{$.proc.command[0]}' exited unsuccessfully (exit code: $.proc.exitcode(), signal: $.proc.signal())"
+        ~ ($.proc.os-error ?? "\n(OS error = $.proc.os-error())" !! "")
     }
 }
 

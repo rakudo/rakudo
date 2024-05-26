@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 31;
+plan 32;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -172,4 +172,11 @@ plan 31;
     is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
             'say "{$_}"', :out("one\ntwo\nthree\n"),
             "topic variable is successfully lowered while using '-n'";
+}
+
+# t/spec/S06-currying/misc.t
+# https://github.com/rakudo/rakudo/issues/5004
+{
+    lives-ok { Q| sub problems($x) { (1 .. 100).roll(1) andthen .map(* + 2) andthen .grep(* %% $x) }; problems(16) |.AST.EVAL },
+        "andthen chaining does not disrupt WhateverCode construction";
 }

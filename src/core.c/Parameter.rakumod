@@ -63,6 +63,7 @@ my class Parameter { # declared in BOOTSTRAP
         Bool:D :$is-raw         = False,
         Bool:D :$is-rw          = False,
         Bool:D :$is-item        = False,
+        Bool:D :$invocant       = False,
         Bool:D :$multi-invocant = True,
                *%args  # type / default / where / sub_signature captured through %_
         --> Nil
@@ -194,6 +195,7 @@ my class Parameter { # declared in BOOTSTRAP
             $flags +|= nqp::const::SIG_ELEM_IS_OPTIONAL if $optional;
         }
 
+        $flags +|= nqp::const::SIG_ELEM_INVOCANT       if $invocant;
         $flags +|= nqp::const::SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
         $flags +|= nqp::const::SIG_ELEM_IS_COPY        if $is-copy;
         $flags +|= nqp::const::SIG_ELEM_IS_RAW         if $is-raw;
@@ -602,6 +604,7 @@ my class Parameter { # declared in BOOTSTRAP
 
         $name = "$prefix$name$.suffix";
         $raku ~= ($raku ?? ' ' !! '') ~ $name if $name;
+        $raku ~= ':' if $!flags +& nqp::const::SIG_ELEM_INVOCANT;
         $raku ~= $rest if $rest;
         $raku
     }

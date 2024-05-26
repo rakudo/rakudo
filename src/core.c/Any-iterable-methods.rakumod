@@ -2201,6 +2201,11 @@ Consider using a block if any of these are necessary for your mapping code."
         $type
     }
 
+    multi method are(Any:U: Mu:U $type --> Bool:D) {
+        nqp::istype(self,$type)
+          ?? True
+          !! fail("Expected '" ~ $type.^name ~ "' but got '" ~ self.^name ~ "'")
+    }
     multi method are(Any:D: Mu:U $type --> Bool:D) {
         my int $i;
         my $iterator := self.iterator;

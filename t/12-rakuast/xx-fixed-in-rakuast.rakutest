@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 28;
+plan 31;
 
 # S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -157,4 +157,19 @@ plan 28;
         "No useless use of sink reporting for R[&say]";
     is-run 'Q| sub equal($a, $b) { $a eqv $b };  say "hello" [&equal] "world" |.AST.EVAL', :out("False\n"),
         "No useless use of sink reporting for user-declared function";
+}
+
+# S19-command-line/arguments.t
+# https://github.com/rakudo/rakudo/issues/1915
+{
+    my %*ENV = :RAKUDO_RAKUAST(1), |%*ENV;
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
+            'state @a; @a.push: $_; @a.elems.say; note @a.join("|")', :out("1\n2\n3\n"), :err("one\none|two\none|two|three\n"),
+            "'-n' compiler option iterates once per newline of input";
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-p']),
+            '$_ .= tc ~= .uc', :out("OneONE\nTwoTWO\nThreeTHREE\n"),
+            "'-p' compiler option iterates once per newline of input and the topic is writeable";
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
+            'say "{$_}"', :out("one\ntwo\nthree\n"),
+            "topic variable is successfully lowered while using '-n'";
 }

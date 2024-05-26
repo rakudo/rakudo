@@ -43,6 +43,28 @@ sub Nodify(*@todo) {
     )
 }
 
+# Used by '-p' to print $_ on each iteration
+sub print-topic() {
+    Nodify('Statement', 'Expression').new(expression =>
+        Nodify('Call', 'Name').new(
+            name => Nodify('Name').from-identifier('say'),
+            args => Nodify('ArgList').new(Nodify('Var', 'Lexical').new('$_'))))
+}
+
+# Provide the functionality of '-n' and '-p'
+sub wrap-in-for-loop($ast) {
+    Nodify('StatementList').new(
+        Nodify('Statement', 'For').new(
+            source => Nodify('Call', 'Name').new(name => Nodify('Name').from-identifier('lines')),
+            body   => Nodify('PointyBlock').new(
+                signature => Nodify('Signature').new(
+                    parameters => (Nodify('Parameter').new(
+                        target => Nodify('ParameterTarget', 'Var').new(name => '$_'),
+                        traits => Nodify('Trait', 'Is').new(
+                            name => Nodify('Name').from-identifier('copy'))))),
+                body => Nodify('Blockoid').new($ast))));
+}
+
 #-------------------------------------------------------------------------------
 # Role for all Action classes associated with Raku grammar slangs
 
@@ -369,8 +391,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my %OPTIONS  := %*OPTIONS;
         my $RESOLVER := $*R;
 
+        # Do any requested wrapping (-n or -p)
+        my $statement-list := $<statementlist>.ast;
+        if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
+            $statement-list.add-statement(print-topic()) if $add-print-topic;
+            $statement-list := wrap-in-for-loop($statement-list);
+        }
+
         # Put the body in place.
-        $COMPUNIT.replace-statement-list($<statementlist>.ast);
+        $COMPUNIT.replace-statement-list($statement-list);
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.

@@ -174,9 +174,10 @@ my role Setty does QuantHash {
           nqp::concat(
             nqp::concat(
               nqp::concat(self.^name,'.new('),
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku))
-            ),
-            ')'
+              nqp::join(",", Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku)
+              ))
+            ), ')'
           )
         )
     }

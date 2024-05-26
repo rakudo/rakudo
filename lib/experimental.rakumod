@@ -7,11 +7,18 @@ package EXPORT::rakuast {
 package EXPORT::cached {
     multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my %cache;
+        my $lock = Lock.new;
         $r.wrap(-> |c {
-            my $key := c.gist;
-            %cache.EXISTS-KEY($key)
-              ?? %cache{$key}
-              !! (%cache{$key} := callsame);
+            my $value;
+            my $key := c.raku;
+            {
+                $lock.lock;
+                $value := %cache.EXISTS-KEY($key)
+                    ?? %cache{$key}
+                    !! (%cache{$key} := callsame);
+                LEAVE $lock.unlock;
+            }
+            $value
         });
     }
 

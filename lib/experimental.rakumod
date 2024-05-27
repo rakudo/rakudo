@@ -29,6 +29,30 @@ package EXPORT::cached {
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;
 }
 
+package EXPORT::synchronized-cached {
+    multi sub trait_mod:<is>(Routine $r, :$synchronized-cached!) {
+        my %cache;
+        my $read-lock = Lock.new;
+        $r.wrap(-> |c {
+            my $value;
+            my $key := c.raku;
+            my &callwrapped = nextcallee;
+            {
+                $read-lock.lock;
+                $value = %cache{$key} //= %cache{$key} = start { callwrapped(|c) };
+                LEAVE $read-lock.unlock;
+            }
+            $value.result;
+        });
+    }
+
+    multi sub trait_mod:<is>(Method $m, :$synchronized-cached!) {
+        NYI("'is cached' on methods").throw;
+    }
+
+    OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;
+}
+
 package EXPORT::macros {
     OUR::<EXPERIMENTAL-MACROS> := True;
 }

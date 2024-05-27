@@ -4,7 +4,7 @@ use Test::Helpers;
 
 plan 32;
 
-# S03-sequence/misc.t
+# t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
 {
     my @result;
@@ -19,7 +19,7 @@ plan 32;
         "trace pragma works with hash shapes";
 }
 
-# S04-phasers/in-loop.t
+# t/spec/S04-phasers/in-loop.t
 # https://github.com/rakudo/rakudo/issues/5517
 {
     my @a;
@@ -27,19 +27,19 @@ plan 32;
     is-deeply @a, [], "phasers do not fire for loop that did not run";
 }
 
-# S05-match/basics.t
+# t/spec/S05-match/basics.t
 # https://github.com/rakudo/rakudo/issues/5454
 {
     is Q| $_="0X"; m/\d/ ~ m/X/ |.AST.EVAL, "0X", "multiple m// works correctly";
 }
 
-# S09-hashes/objecthash.t
+# t/spec/S09-hashes/objecthash.t
 # https://github.com/rakudo/rakudo/issues/5419
 {
     is Q| my %h{Int}; %h.of |.AST.EVAL, Mu, "creating an object hash without specifying an 'of type' defaults to Mu";
 }
 
-# S06-currying/misc.t (?)
+# t/spec/S06-currying/misc.t (?)
 # https://github.com/rakudo/rakudo/issues/5116
 {
     nok Q| my &a = *.uc; my &b = *.lc; &a eqv &b |.AST.EVAL, "*.uc and *.lc are not considered equivalent";
@@ -56,7 +56,7 @@ plan 32;
     lives-ok { Q| use nqp; my %*FOO is Set = <a b c> |.AST.EVAL }, "the :initialize flag is not sent to Set.STORE";
 }
 
-# S04-blocks-and-statements/pointy.t
+# t/spec/S04-blocks-and-statements/pointy.t
 # https://github.com/rakudo/rakudo/issues/2295
 {
     is Q| .WHAT given -> --> Int:D {} |.AST.EVAL, Block but Callable[Int:D],
@@ -66,13 +66,13 @@ plan 32;
         "Pointy blocks can be assigned to a parameterized Callable container";
 }
 
-# S04-declarations/constant.t
+# t/spec/S04-declarations/constant.t
 # https://github.com/rakudo/rakudo/issues/1587
 {
     dies-ok { Q| my Int constant .= new: 42 |.AST.EVAL }, "creating a constant without a name dies";
 }
 
-# S06-advanced/wrap.t
+# t/spec/S06-advanced/wrap.t
 # https://github.com/rakudo/rakudo/issues/1561
 # XXX: Almost certainly just due to lack of optimizations
 {
@@ -119,7 +119,7 @@ plan 32;
     lives-ok { Q| eager (1..10) |.AST.EVAL }, "eager on parenthesized range works without issue";
 }
 
-# S12-introspection/definite.t (?)
+# t/spec/S12-introspection/definite.t (?)
 # https://github.com/rakudo/rakudo/issues/1412
 {
     dies-ok  { Q| my Positional:D[Int] $x := ("x", "b") |.AST.EVAL }, "Parametarization with DefiniteHOWs is not ignored in binding";
@@ -130,25 +130,25 @@ plan 32;
         "Parameterization with DefiniteHOWs is propagated to scalar container";
 }
 
-# S03-operators/adverbial-modifiers.t
+# t/spec/S03-operators/adverbial-modifiers.t
 # https://github.com/rakudo/rakudo/issues/1378
 {
     throws-like { Q| my %h = :1k; say 1 ~ %h<k>:exists ~ 1 |.AST.EVAL }, X::Syntax::AmbiguousAdverb, "Ambiguous adverb usage results in coherent exception";
 }
 
-# S32-array/multislice-6e.t (?)
+# t/spec/S32-array/multislice-6e.t (?)
 # https://github.com/rakudo/rakudo/issues/1297
 {
     is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
 }
 
-# S02-types/signed-unsigned-native.t (?)
+# t/spec/S02-types/signed-unsigned-native.t (?)
 # <no open issue>
 {
     is Q| sub a(uint $a) { $a }; a -1 |.AST.EVAL, (my uint $a = -1), "unsigned native parameters wrap around when provided with negative numbers";
 }
 
-# S03-metaops/???
+# t/spec/S03-metaops/???
 # https://github.com/rakudo/rakudo/issues/4424
 {
     is-run 'Q| [[&say]] "hello ", "world" |.AST.EVAL', :out("hello world\n"),
@@ -159,10 +159,11 @@ plan 32;
         "No useless use of sink reporting for user-declared function";
 }
 
-# S19-command-line/arguments.t
+# t/spec/S19-command-line/arguments.t
 # https://github.com/rakudo/rakudo/issues/1915
 {
-    my %*ENV = :RAKUDO_RAKUAST(1), |%*ENV;
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+
     is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
             'state @a; @a.push: $_; @a.elems.say; note @a.join("|")', :out("1\n2\n3\n"), :err("one\none|two\none|two|three\n"),
             "'-n' compiler option iterates once per newline of input";
@@ -179,4 +180,28 @@ plan 32;
 {
     lives-ok { Q| sub problems($x) { (1 .. 100).roll(1) andthen .map(* + 2) andthen .grep(* %% $x) }; problems(16) |.AST.EVAL },
         "andthen chaining does not disrupt WhateverCode construction";
+}
+
+# t/02-rakudo/repl.t
+# https://github.com/rakudo/rakudo/issues/1690
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+
+    my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
+    my $*REPL-SCRUBBER = -> $_ is copy {
+        .lines
+            .skip(4)
+            .join("\n")
+            .subst( /^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+        " or `zef install Terminal::LineEditor`"
+        " or use rlwrap for a line editor\n\n"/)
+            .subst( /^^ "To exit type 'exit' or $eof\n"/ )
+            .subst( /^^ '[' \d+ '] > '  /, :global)  # Strip out the prompts
+            .subst( /^^ "* "+ /,           :global)  # Strip out the continuation-prompts
+            .subst( /    ">" $ /,          :global)  # Strip out the final prompt
+    }
+
+    is-run-repl "use lib <t/packages/12-rakuast/lib>;\nuse Depth::One;\nuse Depth;\nDepth.new\n",
+        :out("Nil\nNil\nNil\nDepth.new\n"),
+        "repl can successfully use and instantiate a class ('Depth') that is shadowed and surpassed by an earlier used class ('Depth::One')";
 }

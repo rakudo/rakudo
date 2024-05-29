@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 33;
+plan 34;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -204,4 +204,11 @@ plan 33;
     is-run-repl "use lib <t/packages/12-rakuast/lib>;\nuse Depth::One;\nuse Depth;\nDepth.new\n",
         :out("Nil\nNil\nNil\nDepth.new\n"),
         "repl can successfully use and instantiate a class ('Depth') that is shadowed and surpassed by an earlier used class ('Depth::One')";
+}
+
+# ??? (useless useless use removed)
+# https://github.com/rakudo/rakudo/issues/1525
+{
+    is-run 'Q|subset Char of Str where (*.chars == 1)|.AST.EVAL', :out<>, :err<>,
+        "no worry of a useless 'useless use' for parenthesized prime expression in where clause";
 }

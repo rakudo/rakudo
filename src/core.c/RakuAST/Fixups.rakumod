@@ -862,7 +862,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
             $block!interpret-as-table(@paragraphs);
         }
 
-        elsif $type eq 'defn' {
+        elsif $type eq 'defn' | 'numdefn' {
             my @parts = @paragraphs;
             # first line is the lemma, separate that
             @parts.splice(0,1,@parts.head.split("\n",2));

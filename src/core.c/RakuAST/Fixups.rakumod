@@ -740,6 +740,11 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
+    # return True if a new, procedural table type
+    method procedural(RakuAST::Doc::Block:D:) {
+        $!type eq 'table' && !nqp::istype($!paragraphs[0],RakuAST::Doc::Row)
+    }
+
     # return a Map with allowed markup codes as keys, conceptually
     method allowed-markup(RakuAST::Doc::Block:D:) {
 
@@ -859,7 +864,12 @@ does not have enough whitespace to allow for a margin of $margin positions";
         }
 
         elsif $type eq 'table' {
-            $block!interpret-as-table(@paragraphs);
+            if nqp::istype(@paragraphs.head,Str) {
+                $block!interpret-as-table(@paragraphs);
+            }
+            else {
+                $block.add-paragraph($_) for @paragraphs;
+            }
         }
 
         elsif $type eq 'defn' | 'numdefn' {

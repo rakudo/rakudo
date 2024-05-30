@@ -212,3 +212,10 @@ plan 34;
     is-run 'Q|subset Char of Str where (*.chars == 1)|.AST.EVAL', :out<>, :err<>,
         "no worry of a useless 'useless use' for parenthesized prime expression in where clause";
 }
+
+# ???
+# https://github.com/rakudo/rakudo/issues/4925
+{
+    lives-ok { Q|class A { class A::B { ... }; class A::B { has $.c } }|.AST.EVAL },
+        "stubbed classes that belong to parent package cause no issues when stubbed and defined within parent package scope";
+}

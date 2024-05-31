@@ -1026,6 +1026,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LEFTSIGIL;              # sigil of LHS for item vs list assignment
         my $*IN-META := '';          # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;         # attempting to parse an [op] construct
+        my $*IN_TABLE := 0;          # > 0 if inside a =table
         my %*QUOTE-LANGS;            # quote language cache
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
@@ -5360,7 +5361,7 @@ Rakudo significantly on *every* run."
 
         # fetch column and any configuration
         '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
-        { $/.panic("=column outside of table") unless $*TABLE }
+        { $/.panic("=column outside of table") unless $*IN_TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5374,7 +5375,7 @@ Rakudo significantly on *every* run."
 
         # fetch row and any configuration
         '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
-        { $/.panic("=row outside of table") unless $*TABLE }
+        { $/.panic("=row outside of table") unless $*IN_TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5457,8 +5458,15 @@ Rakudo significantly on *every* run."
         # identifier indicates type of block
         $<type>=<.doc-identifier>
 
-        :my $*TABLE;
-        { $*TABLE := 1 if ~$<type> eq 'table' }
+        {
+            my str $type := ~$<type>;
+            if $type eq 'table' {
+                $*IN_TABLE++;
+            }
+            elsif $type eq 'cell' {
+                $/.panic("=begin cell outside of table") unless $*IN_TABLE;
+            }
+        }
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
@@ -5484,6 +5492,8 @@ Rakudo significantly on *every* run."
                instead => $<instead> ?? ~$<instead> !! ''
               )>
         ]
+
+        { $*IN_TABLE-- if ~$<type> eq 'table' }
     }
 
     token doc-block:sym<for> {
@@ -5513,6 +5523,12 @@ Rakudo significantly on *every* run."
         # identifier indicates type of block
         $<type>=<.doc-identifier>
 
+        # cells not allowed outside table
+        {
+            $/.panic("=for cell outside of table")
+              if ~$<type> eq 'cell' && !$*IN_TABLE;
+        }
+
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
@@ -5534,6 +5550,12 @@ Rakudo significantly on *every* run."
         # start of an abbreviated doc block with an optional hash
         # char to indicate :numbered in config, or just a string
         $<type>=<.doc-identifier> [\h+ <doc-numbered>]?
+
+        # cells not allowed outside table
+        {
+            $/.panic("=cell outside of table")
+              if ~$<type> eq 'cell' && !$*IN_TABLE;
+        }
 
         # the rest of the line is considered content
         [ [ \h+ $<header>=[\N+ \n?]? ] | <.doc-newline> ]

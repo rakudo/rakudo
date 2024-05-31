@@ -5358,8 +5358,9 @@ Rakudo significantly on *every* run."
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # fetch any configuration
+        # fetch column and any configuration
         '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        { $/.panic("=column outside of table") unless $*TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5371,8 +5372,9 @@ Rakudo significantly on *every* run."
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # fetch any configuration
+        # fetch row and any configuration
         '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        { $/.panic("=row outside of table") unless $*TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5454,6 +5456,9 @@ Rakudo significantly on *every* run."
 
         # identifier indicates type of block
         $<type>=<.doc-identifier>
+
+        :my $*TABLE;
+        { $*TABLE := 1 if ~$<type> eq 'table' }
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

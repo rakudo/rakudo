@@ -9,7 +9,7 @@ my constant $type2letter = nqp::hash(
   'int16',                        'F',
   'int32',                        'H',
   'int64',                        '_J',
-  'int8',                         'c',
+  'int8',                         'D',
   'NativeCall::Types::CArray',    'QEA*',   # recurse into .of
   'NativeCall::Types::long',      'J',
   'NativeCall::Types::longlong',  '_J',

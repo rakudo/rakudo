@@ -311,7 +311,7 @@ class RakuAST::LegacyPodify {
 
     method podify-table(RakuAST::Doc::Block:D $ast) {
         my $config := $ast.resolved-config;
-        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
+        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::LegacyRow);
 
         # Make sure that all rows have the same number of cells
         my $nr-columns := @rows.map(*.cells.elems).max;

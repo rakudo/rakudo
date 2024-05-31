@@ -220,7 +220,7 @@ my multi sub rakudoc2text(RakuAST::Doc::Paragraph:D $ast --> Str:D) {
 }
 
 # handle a row in a table
-my multi sub rakudoc2text(RakuAST::Doc::Row:D $ast --> Str:D) {
+my multi sub rakudoc2text(RakuAST::Doc::LegacyRow:D $ast --> Str:D) {
     $ast.DEPARSE
 }
 

@@ -179,7 +179,7 @@ augment class RakuAST::Node {
     }
 }
 
-my class RakuAST::Doc::Row is RakuAST::Node {
+my class RakuAST::Doc::LegacyRow is RakuAST::Node {
     has str  $.column-dividers;
     has      $.column-offsets is built(:bind);  # native int array
     has      $.cells          is built(:bind);  # Str or Markup
@@ -188,7 +188,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
     # Merge the cells of one or more rows with the current, by
     # concatenating the corresponding cells with a newline,
     # assuming no markup in cells.
-    method merge-rows(RakuAST::Doc::Row:D: *@rows --> Nil) {
+    method merge-rows(RakuAST::Doc::LegacyRow:D: *@rows --> Nil) {
         if @rows && nqp::istype($!cells.are,Str) {
             my str @merged = $!cells;
             $!multi-line := True;
@@ -223,7 +223,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         }
     }
 
-    multi method raku(RakuAST::Doc::Row:D:) {
+    multi method raku(RakuAST::Doc::LegacyRow:D:) {
         my sub nameds() {
             RakuAST::Node.^find_private_method('nameds')(
               self, <column-dividers column-offsets cells>
@@ -242,7 +242,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         }
     }
 
-    multi method Str(RakuAST::Doc::Row:D:) {
+    multi method Str(RakuAST::Doc::LegacyRow:D:) {
         my str $dividers = nqp::hllizefor($!column-dividers,'Raku') // '';
 
         # Stringify the given strings with the current dividers / offsets
@@ -299,6 +299,8 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         $!cells.head.leading-whitespace
     }
 }
+
+class RakuAST::Doc::Row is RakuAST::Doc::LegacyRow is DEPRECATED { }
 
 augment class RakuAST::Doc {
 
@@ -742,7 +744,8 @@ augment class RakuAST::Doc::Block {
 
     # return True if a new, procedural table type
     method procedural(RakuAST::Doc::Block:D:) {
-        $!type eq 'table' && !nqp::istype($!paragraphs[0],RakuAST::Doc::Row)
+        $!type eq 'table'
+          && !nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
     }
 
     # return a Map with allowed markup codes as keys, conceptually
@@ -961,8 +964,8 @@ in line '$line'";
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
         # virtual dividers, or any empty array if none were found so far.
-        # Otherwise returns a Seq of RakuAST::Doc::Row objects with Str
-        # row dividers.
+        # Otherwise returns a Seq of RakuAST::Doc::LegacyRow objects with
+        # Str row dividers.
         my sub parse-assuming-virtual-dividers() {
             my int   $start;
             my @codes-per-row;
@@ -1084,7 +1087,9 @@ in line '$line'";
                       !! RakuAST::Doc::Paragraph.from-string(
                            nqp::substr($line,$start)
                          );
-                    RakuAST::Doc::Row.new(:@column-offsets, :cells($cells.List))
+                    RakuAST::Doc::LegacyRow.new(
+                      :@column-offsets, :cells($cells.List)
+                    )
                 }
 
                 #divider
@@ -1170,7 +1175,7 @@ in line '$line'";
                   nqp::substr($line,$start)
                 ) unless $start > $chars;
 
-                RakuAST::Doc::Row.new(
+                RakuAST::Doc::LegacyRow.new(
                   :column-dividers(@dividers.join),
                   :column-offsets(@offsets),
                   :cells($cells.List)

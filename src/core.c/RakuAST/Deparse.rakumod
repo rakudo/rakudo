@@ -825,6 +825,11 @@ CODE
                 Empty
             }
 
+            # =table with header
+            elsif $key eq 'header-row' && $type eq 'table' {
+                Empty
+            }
+
             else {
                 my $deparsed := self.deparse(.value);
                 $deparsed eq 'True'

@@ -1184,7 +1184,7 @@ in line '$line'";
 
             # not a row, so a row divider, so return as is
             else {
-                $line
+                $line ~ "\n"
             }
         }
 

@@ -34,10 +34,11 @@ my sub cpp_param_letter($type, str $PK = '') {
       (nqp::chars($name) ~ $name)
     );
 
-    $letter.ends-with('*')
+    $PK ~ ($letter.ends-with('*')
       ?? nqp::substr($letter, 0, nqp::chars($letter) - 1)
            ~  cpp_param_letter($type.of)
       !! $letter
+    )
 }
 
 #- mangle_cpp_symbol -----------------------------------------------------------

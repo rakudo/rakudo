@@ -185,6 +185,11 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
     has      $.cells          is built(:bind);  # Str or Markup
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
+    # Stringify all cells (needed for headers)
+    method stringify-cells(RakuAST::Doc::LegacyRow:D: --> Nil) {
+        $!cells := $!cells.map(*.Str).List;
+    }
+
     # Merge the cells of one or more rows with the current, by
     # concatenating the corresponding cells with a newline,
     # assuming no markup in cells.
@@ -1195,7 +1200,7 @@ in line '$line'";
 
         # Add the rows collected so far, merge them if so specified
         # or implied by the occurrence of multiple dividers
-        sub add-rows-collected-sofar(:$merge = $merge-multi-row--> Nil) {
+        sub add-rows-collected-sofar(:$merge = $merge-multi-row --> Nil) {
             if $merge && @sofar > 1 {
                 my $first := @sofar.shift;
                 $first.merge-rows(@sofar.splice);
@@ -1231,6 +1236,7 @@ in line '$line'";
 
                 # first divider will *always* merge multiple rows
                 elsif @sofar {
+                    .stringify-cells for @sofar;
                     add-rows-collected-sofar(:merge);
                     @paragraphs.push: $_;
                 }

@@ -5397,6 +5397,22 @@ Rakudo significantly on *every* run."
         <.doc-newline>
     }
 
+    # handle =formula
+    token doc-block:sym<formula> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # needs an actual formula
+        '=formula' \s+ $<formula>=<-[ \v : ]>+
+
+        # fetch any configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
     # handle =config
     token doc-block:sym<config> {
 

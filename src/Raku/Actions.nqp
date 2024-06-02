@@ -3393,6 +3393,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method doc-block:sym<formula>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            my @paragraphs := nqp::list(~$<formula>);
+            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+              :abbreviated, :margin(~$<margin>), :type<formula>,
+              :config(self.extract-config($/)), :@paragraphs
+        }
+    }
+
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             $*SEEN{$/.from} := Nodify('Doc','Block').from-config:

@@ -371,7 +371,7 @@ augment class RakuAST::Doc::Markup {
                           !! $atom;
                     }
                     else {
-                        .set-atoms(.atoms.join) if $letter eq 'V';
+#                        .set-atoms(.atoms.join) if $letter eq 'V';
                         @meta.push($_);
                     }
                 }
@@ -466,7 +466,7 @@ augment class RakuAST::Doc::Markup {
 
         for self.atoms -> $atom {
             if nqp::istype($atom,RakuAST::Doc::Markup) {
-                $atom.verbatimize;  # recurse first
+                $atom.splat-letterless;  # recurse first
 
                 if $atom.letter {
                     splat($atom)
@@ -482,13 +482,6 @@ augment class RakuAST::Doc::Markup {
             }
         }
         self.set-atoms(@atoms.List);
-    }
-
-    # recursively verbatimize any V<> markups and splay <> markup
-    method verbatimize(RakuAST::Doc::Markup:D: --> Nil) {
-        $!letter eq 'V'
-          ?? self.set-atoms(self.flatten.List)
-          !! self.splat-letterless
     }
 
     multi method Str(RakuAST::Doc::Markup:D:) {
@@ -727,7 +720,7 @@ augment class RakuAST::Doc::Paragraph {
         # some markup created
         else {
             add-graphemes($paragraph);
-            .verbatimize for $paragraph.atoms.grep(RakuAST::Doc::Markup);
+            .splat-letterless for $paragraph.atoms.grep(RakuAST::Doc::Markup);
             $paragraph
         }
     }

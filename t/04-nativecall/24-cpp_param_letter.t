@@ -186,24 +186,9 @@ plan 4 * @types;
     for @types -> $type {
         my ($R, $P, $K) = ("a".."z").pick(3);
 
-        # Apparently R is never set for these types
-        $R = '' if $type ~~ int32 | uint32 | Str
-                          | NativeCall::Types::CArray
-                          | NativeCall::Types::Pointer;
-
-        # Apparently P is never set
-        $P = '';
-
-        # Apparently K is never set for these types
-        $K = '' if $type ~~ int64 | uint64 | Str
-                          | NativeCall::Types::CArray
-                          | NativeCall::Types::longlong
-                          | NativeCall::Types::Pointer
-                          | NativeCall::Types::ulonglong;
-
         my $expected := MSVC_cpp_param_letter($type, :$R, :$P, :$K);
         isa-ok $expected, Str;
-        is cpp_param_letter($type, "$R$P$K"), $expected,
+        is cpp_param_letter($type, :$R, :$P, :$K), $expected,
            "test MSVC $type.^name() with :$R, :$P, :$K";
     }
 }

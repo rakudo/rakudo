@@ -1,121 +1,116 @@
-use nqp;
 unit class NativeCall::Compiler::MSVC;
 
 use NativeCall::Types;
 
-#- lookups ---------------------------------------------------------------------
-my constant $type2letter = nqp::hash(
-  'Bool',                         '_N',
-  'int16',                        'F',
-  'int32',                        'H',
-  'int64',                        '_J',
-  'int8',                         'D',
-  'NativeCall::Types::CArray',    '',   # recurse into .of
-  'NativeCall::Types::long',      'J',
-  'NativeCall::Types::longlong',  '_J',
-  'NativeCall::Types::Pointer',   '',   # recurse into .of
-  'NativeCall::Types::ulong',     'K',
-  'NativeCall::Types::ulonglong', '_K',
-  'NativeCall::Types::void',      'X',
-  'num32',                        'M',
-  'num64',                        'N',
-  'Str',                          'PEAD',
-  'uint16',                       'G',
-  'uint32',                       'I',
-  'uint64',                       '_K',
-  'uint8',                        'E',
-);
+our sub mangle_cpp_symbol(Routine $r, $symbol) {
+    $r.signature.set_returns($r.package)
+        if $r.name eq 'new' && !$r.signature.has_returns && $r.package !~~ GLOBAL;
 
-#- helper sub ------------------------------------------------------------------
-our sub cpp_param_letter($type is raw, str $PK = '') {
-    if nqp::istype($type,NativeCall::Types::CArray) {
-        $PK ~ 'QEA' ~ cpp_param_letter($type.of)
-    }
-    elsif nqp::istype($type,NativeCall::Types::Pointer) {
-        $PK ~ 'PEA' ~ cpp_param_letter($type.of)
+    my $mangled = '?';
+    if $r ~~ Method {
+        $mangled ~= $symbol.split('::').reverse.map({$_ eq 'new' ?? '?0' !! "$_@"}).join('')
+                  ~ '@'
+                  ~ ($r.name eq 'new' ?? 'QE' !! 'UE');
     }
     else {
-        my str $name = $type.^name;
-        $PK ~ nqp::ifnull(
-          nqp::atkey($type2letter, $name),
-          (nqp::chars($name) ~ $name)
-        );
-    }
-}
-
-#- mangle_cpp_symbol -----------------------------------------------------------
-our sub mangle_cpp_symbol(Routine:D $routine, Str:D $symbol) {
-    my     $package    := $routine.package;
-    my     $signature  := $routine.signature;
-    my int $is-method   = nqp::istype($routine, Method);
-    my int $is-new      = $routine.name eq 'new';
-    my int $has-returns = $signature.has_returns;
-
-    if $is-new && nqp::not_i($has-returns) && !($package ~~ GLOBAL) {
-        $signature.set_returns($package);
-        $has-returns = 1;
+        $mangled ~= $symbol.split('::').reverse.map({"$_@"}).join('')
+                  ~ '@'
+                  ~ 'Y'
+                  ~ 'A' # http://en.wikipedia.org/wiki/Visual_C%2B%2B_name_mangling#Function_Property
+                  ~ ($r.signature.has_returns ?? cpp_param_letter($r.returns) !! 'X');
     }
 
-    my str @mangled = '?';
-    if $is-method {
-        nqp::push_s(
-          @mangled,
-          $symbol.split('::').reverse.map({
-              $_ eq 'new' ?? '?0' !! "$_@"
-          }).join
-        );
-        nqp::push_s(@mangled, '@');
-        nqp::push_s(@mangled, $is-new ?? 'QE' !! 'UE');
-    }
-    else {
-        nqp::push_s(
-          @mangled,
-          $symbol.split('::').reverse.map({"$_@"}).join
-        );
-        # http://en.wikipedia.org/wiki/Visual_C%2B%2B_name_mangling#Function_Property
-        nqp::push_s(@mangled, '@YA');
-        nqp::push_s(
-          @mangled,
-          $has-returns ?? cpp_param_letter($routine.returns) !! 'X'
-        );
-    }
-
-    # Get parameters that matter
-    my @params = $signature.params;
-    if $is-method {
-        @params.shift;  # self
+    my @params  = $r.signature.params;
+    if $r ~~ Method {
+        @params.shift;
         @params.pop if @params.tail.name eq '%_';
     }
 
-    # Get any letters for parameters
-    my str $params = @params.map({
-        my str $P = .rw ?? 'PE'                           !! ''; # pointer
-        my str $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
-        cpp_param_letter(.type, $P ~ $K)
-    }).join;
-
-    # Embed any parameters
-    if $is-method {
-        nqp::push_s(@mangled, 'AA');
-        nqp::push_s(@mangled, cpp_param_letter($routine.returns))
-          if $has-returns && nqp::not_i($is-new);
-
-        if nqp::chars($params) {
-            nqp::push_s(@mangled, $params);
-            nqp::push_s(@mangled, $is-new ?? '@Z' !! 'Z');
-        }
-        else {
-            nqp::push_s(@mangled, $is-new ?? '@XZ' !! 'XZ');
-        }
+    my $params = join '', @params.map: {
+        my $R = '';                                          # reference
+        my $P = .rw ?? 'PE'                           !! ''; # pointer
+        my $K = $P  ?? ($_.?cpp-const ?? 'B'  !! 'A') !! ''; # const
+        cpp_param_letter(.type, :$R, :$P, :$K)
+    };
+    if $r ~~ Method {
+        $mangled ~= 'AA';
+        $mangled ~= $r.signature.has_returns && $r.name ne 'new' ?? cpp_param_letter($r.returns) !! '';
+        $mangled ~= $params;
+        $mangled ~= '@' if $params || $r.name eq 'new';
+        $mangled ~= $params ?? 'Z' !! 'XZ';
     }
-
-    # Not a method
     else {
-        nqp::push_s(@mangled, $params || 'X');
-        nqp::push_s(@mangled, $package.REPR eq 'CPPStruct' ?? '@Z' !! 'Z');
+        $mangled ~= $params || 'X';
+        $mangled ~= '@' if $r.package.REPR eq 'CPPStruct';
+        $mangled ~= 'Z';
     }
+    $mangled
+}
 
-    nqp::join('', @mangled)
+our sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
+    given $type {
+        when NativeCall::Types::void {
+            $R ~ $K ~ 'X'
+        }
+        when Bool {
+            $R ~ $K ~ '_N'
+        }
+        when int8 {
+            $R ~ $K ~ 'D'
+        }
+        when uint8 {
+            $R ~ $K ~ 'E'
+        }
+        when int16 {
+            $R ~ $K ~ 'F'
+        }
+        when uint16 {
+            $R ~ $K ~ 'G'
+        }
+        when int32 {
+            $P ~ $K ~ 'H'
+        }
+        when uint32 {
+            $P ~ $K ~ 'I'
+        }
+        when NativeCall::Types::long {
+            $R ~ $K ~ 'J'
+        }
+        when NativeCall::Types::ulong {
+            $R ~ $K ~ 'K'
+        }
+        when int64 {
+            $R ~ '_J'
+        }
+        when NativeCall::Types::longlong {
+            $R ~ '_J'
+        }
+        when uint64 {
+            $R ~ '_K'
+        }
+        when NativeCall::Types::ulonglong {
+            $R ~ '_K'
+        }
+        when num32 {
+            $R ~ $K ~ 'M'
+        }
+        when num64 {
+            $R ~ $K ~ 'N'
+        }
+        when Str {
+            'PEAD'
+        }
+        when NativeCall::Types::CArray {
+            'QEA' ~ cpp_param_letter(.of);
+        }
+        when NativeCall::Types::Pointer {
+            'PEA' ~ cpp_param_letter(.of);
+        }
+        default {
+            my $name  = .^name;
+            $P ~ $K ~ $name.chars ~ $name;
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4

@@ -354,7 +354,7 @@ augment class RakuAST::Doc::Markup {
     }
 
     # Extract any meta information from the atoms, perform the expected
-    # flattening of 'C', 'V' and letterless markup, and set that in the
+    # flattening of 'V' and letterless markup, and set that in the
     # meta information of the given markup
     method !extract-meta(--> Nil) {
         my @atoms;
@@ -371,7 +371,7 @@ augment class RakuAST::Doc::Markup {
                           !! $atom;
                     }
                     else {
-                        .set-atoms(.atoms.join) if $letter eq 'C' | 'V';
+                        .set-atoms(.atoms.join) if $letter eq 'V';
                         @meta.push($_);
                     }
                 }
@@ -484,9 +484,9 @@ augment class RakuAST::Doc::Markup {
         self.set-atoms(@atoms.List);
     }
 
-    # recursively verbatimize any C<> and V<> markups and splay <> markup
+    # recursively verbatimize any V<> markups and splay <> markup
     method verbatimize(RakuAST::Doc::Markup:D: --> Nil) {
-        $!letter eq 'C' | 'V'
+        $!letter eq 'V'
           ?? self.set-atoms(self.flatten.List)
           !! self.splat-letterless
     }

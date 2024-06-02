@@ -10,10 +10,10 @@ my constant $type2letter = nqp::hash(
   'int32',                        'H',
   'int64',                        '_J',
   'int8',                         'D',
-  'NativeCall::Types::CArray',    'QEA*',   # recurse into .of
+  'NativeCall::Types::CArray',    '',   # recurse into .of
   'NativeCall::Types::long',      'J',
   'NativeCall::Types::longlong',  '_J',
-  'NativeCall::Types::Pointer',   'PEA*',   # recurse into .of
+  'NativeCall::Types::Pointer',   '',   # recurse into .of
   'NativeCall::Types::ulong',     'K',
   'NativeCall::Types::ulonglong', '_K',
   'NativeCall::Types::void',      'X',
@@ -27,18 +27,20 @@ my constant $type2letter = nqp::hash(
 );
 
 #- helper sub ------------------------------------------------------------------
-my sub cpp_param_letter($type, str $PK = '') {
-    my str $name   = $type.^name;
-    my str $letter = $PK ~ nqp::ifnull(
-      nqp::atkey($type2letter, $name),
-      (nqp::chars($name) ~ $name)
-    );
-
-    $PK ~ ($letter.ends-with('*')
-      ?? nqp::substr($letter, 0, nqp::chars($letter) - 1)
-           ~  cpp_param_letter($type.of)
-      !! $letter
-    )
+our sub cpp_param_letter($type is raw, str $PK = '') {
+    if nqp::istype($type,NativeCall::Types::CArray) {
+        $PK ~ 'QEA' ~ cpp_param_letter($type.of)
+    }
+    elsif nqp::istype($type,NativeCall::Types::Pointer) {
+        $PK ~ 'PEA' ~ cpp_param_letter($type.of)
+    }
+    else {
+        my str $name = $type.^name;
+        $PK ~ nqp::ifnull(
+          nqp::atkey($type2letter, $name),
+          (nqp::chars($name) ~ $name)
+        );
+    }
 }
 
 #- mangle_cpp_symbol -----------------------------------------------------------

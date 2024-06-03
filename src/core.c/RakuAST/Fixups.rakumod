@@ -403,7 +403,7 @@ augment class RakuAST::Doc::Markup {
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = $!letter;
-        if $letter eq 'L' | 'D' | 'M' | 'X' {
+        if $letter eq 'D' | 'F' | 'L' | 'M' | 'X' {
             self!extract-meta;
         }
         elsif $letter eq 'E' {
@@ -493,7 +493,7 @@ augment class RakuAST::Doc::Markup {
         else {
             @parts.push: self.atoms.join;
 
-            if $letter eq 'L' {
+            if $letter eq 'F' | 'L' {
                 if self.meta.join -> $meta {
                     @parts.push: '|';
                     @parts.push: $meta;

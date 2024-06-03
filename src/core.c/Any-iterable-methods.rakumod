@@ -71,7 +71,7 @@ augment class Any {
                 nqp::bindattr($iter,self,'$!slipper',nqp::null),
                 nqp::bindattr($iter,self,'$!pulled',$pulled),
                 nqp::if(       # set up FIRST phaser execution if needed
-                  &block.has-phaser('FIRST');
+                  &block.has-phaser('FIRST'),
                   nqp::p6setfirstflag(nqp::getattr(&block, Code, '$!do'))
                 ),
                 nqp::bindattr($iter,self,'&!block',&block),

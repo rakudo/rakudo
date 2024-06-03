@@ -143,8 +143,9 @@ augment class Any {
                     )
                   )
                 ),
-                'LAST', nqp::unless(  # a 'last' in the block
+                'LAST', nqp::if(  # a 'last' in the block
                   nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  self!fire-any-LAST,
                   ($!pulled := IterationEnd)  # done later
                 )
               )

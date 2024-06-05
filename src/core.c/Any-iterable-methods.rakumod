@@ -2274,6 +2274,15 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
     }
     multi method deepmap(&op) {
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".deepmap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".deepmap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my $source := self.iterator;
         my \buffer := nqp::create(IterationBuffer);
         my $pulled := $source.pull-one;

@@ -2342,6 +2342,15 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.duckmap(&op)
     }
     multi method duckmap(&op) {
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".duckmap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".duckmap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my $source := self.iterator;
         my \buffer := nqp::create(IterationBuffer);
         my $pulled := $source.pull-one;

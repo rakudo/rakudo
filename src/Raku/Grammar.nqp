@@ -5329,7 +5329,9 @@ Rakudo significantly on *every* run."
 
     # directives that may not be used as block names
     token rakudoc-directives {
+        [
         alias | begin | column | config | end | finish | for | place | row
+        ] >>
     }
 
     proto token doc-block {*}

@@ -2333,9 +2333,10 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.duckmap(&op)
     }
     multi method duckmap(&op) {
-        my $source := self.iterator;
-        my \buffer := nqp::create(IterationBuffer);
-        my $pulled := $source.pull-one;
+        my $signature := &op.signature;
+        my $source    := self.iterator;
+        my \buffer    := nqp::create(IterationBuffer);
+        my $pulled    := $source.pull-one;
 
         sub duck() is raw {
             CATCH {
@@ -2343,7 +2344,12 @@ Consider using a block if any of these are necessary for your mapping code."
                   ?? (my $ = $pulled.duckmap(&op))
                   !! $pulled
             }
-            op($pulled)
+
+            $signature.ACCEPTS( \($pulled) )
+              ?? op($pulled)
+              !! nqp::istype($pulled,Iterable:D)
+                ?? (my $ = $pulled.duckmap(&op))
+                !! $pulled
         }
 
         sub process(Mu \value --> Nil) {

@@ -2237,6 +2237,15 @@ Consider using a block if any of these are necessary for your mapping code."
         return X::Cannot::Lazy.new(:action<nodemap>).Failure
           if $source.is-lazy;
 
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".nodemap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".nodemap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my \buffer := nqp::create(IterationBuffer);
         my $value  := $source.pull-one;
 

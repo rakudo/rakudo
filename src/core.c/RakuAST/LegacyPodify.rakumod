@@ -167,12 +167,12 @@ class RakuAST::LegacyPodify {
         # Markup is allowed
         if %*OK{$letter} {
             $letter eq 'V'
-              ?? $ast.atoms.head.subst("\n", ' ', :g)
+              ?? $ast.atoms.head.Str.subst("\n", ' ', :g)
               !! Pod::FormattingCode.new(
                    type     => $letter,
                    meta     => @meta,
                    contents => $letter eq 'C'
-                     ?? $ast.atoms.head.subst("\n", ' ', :g)
+                     ?? $ast.atoms.head.Str.subst("\n", ' ', :g)
                      !! self!contentify($ast.atoms)
                  )
         }

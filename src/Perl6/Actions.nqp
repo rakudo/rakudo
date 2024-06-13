@@ -1673,27 +1673,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<EXPR>.ast;
             if $mc {
                 if ~$mc<sym> eq 'with' {
-                    make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
-                    return;
+                    $past := thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
-                    return;
+                    $past := thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
                 }
-                my $mc_ast := $mc.ast;
-                if $past.ann('bare_block') {
-                    my $cond_block := $past.ann('past_block');
-                    remove_block($world.cur_lexpad(), $cond_block);
-                    $cond_block.blocktype('immediate');
-                    unless $cond_block.ann('placeholder_sig') {
-                        $cond_block.arity(0);
-                        $cond_block.annotate('count', 0);
+                else {
+                    my $mc_ast := $mc.ast;
+                    if $past.ann('bare_block') {
+                        my $cond_block := $past.ann('past_block');
+                        remove_block($world.cur_lexpad(), $cond_block);
+                        $cond_block.blocktype('immediate');
+                        unless $cond_block.ann('placeholder_sig') {
+                            $cond_block.arity(0);
+                            $cond_block.annotate('count', 0);
+                        }
+                        $past := $cond_block;
                     }
-                    $past := $cond_block;
+                    $mc_ast.push($past);
+                    $mc_ast.push(QAST::WVal.new( :value($world.find_single_symbol_in_setting('Empty')) ));
+                    $past := $mc_ast;
                 }
-                $mc_ast.push($past);
-                $mc_ast.push(QAST::WVal.new( :value($world.find_single_symbol_in_setting('Empty')) ));
-                $past := $mc_ast;
             }
             if $ml {
                 $past.okifnil(1);

@@ -318,7 +318,8 @@ my role Baggy does QuantHash {
           $!elems && nqp::elems($!elems),
           nqp::stmts(
             (my \pairs := nqp::join(',',
-              Rakudo::QuantHash.RAW-VALUES-MAP(self, {
+              Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                   nqp::concat(
                     nqp::concat(
                       nqp::getattr($_,Pair,'$!key').raku,
@@ -326,7 +327,7 @@ my role Baggy does QuantHash {
                     ),
                     nqp::getattr($_,Pair,'$!value').raku
                   )
-              })
+              }))
             )),
             nqp::if(
               nqp::eqaddr(self.keyof,Mu),

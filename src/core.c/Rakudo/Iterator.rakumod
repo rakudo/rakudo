@@ -3191,9 +3191,7 @@ class Rakudo::Iterator {
         }
         method pull-one() is raw {
             --$!times
-              ?? nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
-                ?? IterationEnd
-                !! pulled
+              ?? $!iterator.pull-one
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {

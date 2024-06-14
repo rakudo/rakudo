@@ -197,6 +197,14 @@ my class Seq is Cool does Iterable does Sequence {
           )
         )
     }
+
+    multi method head(Seq:D: Whatever) { self }
+    multi method head(Seq:D: Inf     ) { self }
+    multi method head(Seq:D: Int:D $head) {
+        Seq.new: $head < 1
+          ?? Rakudo::Iterator.Empty
+          !! Rakudo::Iterator.NextNValues(self.iterator, $head)
+    }
 }
 
 sub GATHER(&block) is implementation-detail {

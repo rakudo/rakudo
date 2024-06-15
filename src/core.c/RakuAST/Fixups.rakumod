@@ -503,7 +503,11 @@ augment class RakuAST::Doc::Markup {
         my str $letter = self.letter;
         my str @parts  = $letter, self.opener;
         if $letter eq 'E' {
-            @parts.push: self.meta.join(';');
+            if self.atoms -> @atoms {
+                @parts.push(.Str) for @atoms;
+                @parts.push("|");
+            }
+            @parts.push: self.meta.map(*.key).join(';');
         }
         else {
             @parts.push: self.atoms.join;

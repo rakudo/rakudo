@@ -400,6 +400,17 @@ augment class RakuAST::Doc::Markup {
         }
     }
 
+    method !add-entities($raw) {
+        for $raw.split(';') -> $entity {
+            with self!convert-entity($entity) -> $converted {
+                self.add-meta($entity => $converted);
+            }
+            else {
+                self.add-atom($entity);
+            }
+        }
+    }
+
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = $!letter;
@@ -407,17 +418,20 @@ augment class RakuAST::Doc::Markup {
             self!extract-meta;
         }
         elsif $letter eq 'E' {
-            my @atoms = self.atoms;
-            if nqp::istype(@atoms.tail,Str) {
-                self.set-atoms;  # reset so we can add again
-                for @atoms.pop.split(';') -> $entity {
-                    with self!convert-entity($entity) -> $converted {
-                        self.add-meta($entity);
-                        self.add-atom($converted);
-                    }
-                    else {
-                        self.add-atom($entity);
-                    }
+
+            # Has an alternate representation
+            self!extract-meta;
+            if self.meta -> $meta {
+                self.set-meta;  # reset so we can add again
+                self!add-entities($meta);
+            }
+
+            # No alternate representation given
+            else {
+                my @atoms = self.atoms;
+                if nqp::istype(@atoms.tail,Str) {
+                    self.set-atoms;  # reset so we can add again
+                    self!add-entities(@atoms.pop);
                 }
             }
         }

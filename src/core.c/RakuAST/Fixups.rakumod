@@ -425,7 +425,7 @@ augment class RakuAST::Doc::Markup {
             my $aliases := $*DOC-ALIASES;
             if nqp::not_i(nqp::istype($aliases,Failure))
               && self.atoms.head -> $key {
-                if nqp::atkey($aliases,$key) -> $alias {
+                if nqp::atkey($aliases,$key.Str) -> $alias {
                     self.set-meta($alias);
                 }
             }

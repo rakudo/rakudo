@@ -458,10 +458,14 @@ augment class RakuAST::Doc::Markup {
         }
 
         if self.meta -> @meta {
-            $!letter eq 'E'
-              ?? @parts.pop # stringification so far is incorrect
-              !! @parts.push('|');
-            @parts.push: @meta.join
+            if $!letter eq 'E' {
+                @parts.pop if nqp::elems(@parts);  # so far incorrect
+                @parts.push: @meta.map(*.value).join;
+            }
+            else {
+                @parts.push('|');
+                @parts.push: @meta.join;
+            }
         }
 
         @parts.push: $!closer if $container;

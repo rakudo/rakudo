@@ -2237,6 +2237,15 @@ Consider using a block if any of these are necessary for your mapping code."
         return X::Cannot::Lazy.new(:action<nodemap>).Failure
           if $source.is-lazy;
 
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".nodemap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".nodemap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my \buffer := nqp::create(IterationBuffer);
         my $value  := $source.pull-one;
 
@@ -2274,6 +2283,15 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
     }
     multi method deepmap(&op) {
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".deepmap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".deepmap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my $source := self.iterator;
         my \buffer := nqp::create(IterationBuffer);
         my $pulled := $source.pull-one;
@@ -2333,6 +2351,15 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.duckmap(&op)
     }
     multi method duckmap(&op) {
+        if nqp::istype(&op,Block)
+          && <FIRST NEXT LAST>.grep({ &op.has-phaser($_) }) -> @phasers {
+            warn ".duckmap ignores @phasers.join(", ") phaser(s)";
+        }
+
+        my $count := &op.signature.count;
+        die ".duckmap only supports Callables with a single parameter, got $count"
+          unless $count == 1 | Inf;
+
         my $signature := &op.signature;
         my $source    := self.iterator;
         my \buffer    := nqp::create(IterationBuffer);

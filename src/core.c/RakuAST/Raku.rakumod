@@ -948,6 +948,10 @@ augment class RakuAST::Node {
         self!nameds: <labels body>
     }
 
+    multi method raku(RakuAST::Statement::Comment:D: --> Str:D) {
+        self!positional(self.text)
+    }
+
     multi method raku(RakuAST::Statement::Control:D: --> Str:D) {
         self!nameds: <labels body>
     }

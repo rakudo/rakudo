@@ -644,6 +644,36 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.leave-scope();
     }
 
+#- in-line comments ------------------------------------------------------------
+
+    method comment:sym<#>($/) {
+        my uint $from := $/.from;
+        unless $*FROM-SEEN{$from}++ {
+            my str $orig := $/.orig;
+            my int $sol :=  # flag: # at start of line
+              nqp::not_i($from) || nqp::eqat($orig,"\n",$from - 1);
+            unless $sol {
+                my int $start := nqp::rindex($orig,"\n",--$from);
+                ++$start if $start < 0;
+                nqp::while(
+                  --$from > $start
+                    && (nqp::eqat($orig," ",$from) || nqp::eqat($orig,"\t",$from)),
+                  nqp::null
+                );
+
+                # Consider as whole line if just whitespace before #
+                $sol := $from < 0 || nqp::eqat($orig,"\n",$from);
+                ++$from;
+            }
+
+            if $sol {
+                self.attach($/, my $r := Nodify('Statement','Comment').new(
+                  nqp::substr($orig,$from,$/.to - $from)
+                ));
+            }
+        }
+    }
+
 #-------------------------------------------------------------------------------
 # Statement control
 

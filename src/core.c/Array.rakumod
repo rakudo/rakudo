@@ -410,11 +410,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method flat(Array:U:) { self }
-    multi method flat(Array:D: $levels = Whatever, :$hammer) {
-        $hammer
-          ?? self.Iterable::flat($levels, :hammer)
-          !! Seq.new(self.iterator)  # not hammering, always conted, so no-op
-    }
+    multi method flat(Array:D:) { Seq.new(self.iterator) }
 
     method reverse(Array:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies

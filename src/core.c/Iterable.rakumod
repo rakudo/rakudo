@@ -18,9 +18,7 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    method flat(Iterable:D: $levels = Whatever, :$hammer = False) {
-        Seq.new: Rakudo::Iterator.Flat: self.iterator, $levels, $hammer
-    }
+    method flat(Iterable:D:) { Seq.new(Rakudo::Iterator.Flat(self.iterator)) }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 

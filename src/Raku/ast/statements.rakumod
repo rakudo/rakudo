@@ -1899,18 +1899,3 @@ class RakuAST::Statement::Require
         $visitor($!module-name);
     }
 }
-
-# A comment that takes an entire line
-class RakuAST::Statement::Comment
-  is RakuAST::Statement::Empty
-{
-    has str $!text;
-
-    method new(str $text) {
-        my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Statement::Comment, '$!text', $text);
-        $obj
-    }
-
-    method text() { $!text }
-}

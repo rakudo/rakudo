@@ -1925,10 +1925,6 @@ CODE
           ~ self.syn-phaser('CATCH') ~ ' ' ~ self.deparse($ast.body)
     }
 
-    multi method deparse(RakuAST::Statement::Comment:D $ast --> Str:D) {
-        self.text ~ $*DELIMITER
-    }
-
     multi method deparse(RakuAST::Statement::Control:D $ast --> Str:D) {
         self.labels($ast)
           ~ self.syn-phaser('CONTROL') ~ ' ' ~ self.deparse($ast.body)

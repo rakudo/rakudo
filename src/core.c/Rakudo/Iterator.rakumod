@@ -1830,64 +1830,70 @@ class Rakudo::Iterator {
     }
 
     # Return an iterator that flattens all embedded Iterables into a single
-    # iterator, producing a single sequence of non-Iterable values
+    # iterator, producing a single sequence of non-Iterable values..
     my class Flat does Iterator {
-        has      $!iterator;
-        has      $!next;
-        has uint $!levels;
-        has uint $!decont;
+        has Iterator $!source;
+        has Iterator $!nested;
 
-        method new($iterator, uint $levels, uint $decont) {
-            my $self := nqp::create(self);
-            nqp::bindattr(  $self,Flat,'$!next',nqp::list);
-            nqp::bindattr_i($self,Flat,'$!levels',$levels);
-            nqp::bindattr_i($self,Flat,'$!decont',$decont);
-            nqp::p6bindattrinvres($self,Flat,'$!iterator',$iterator)
+        method new(\source) {
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
         }
 
         method pull-one() is raw {
-            nqp::while(
-              nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
-              nqp::if(
-                nqp::elems($!next),
-                ($!iterator := nqp::pop($!next)),
-                (return IterationEnd)
-              )
-            );
-
             nqp::if(
-              nqp::istype($pulled,Iterable),
+              $!nested,
               nqp::if(
-                nqp::elems($!next) < $!levels
-                  && $!decont >= nqp::iscont($pulled),
+                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
                 nqp::stmts(
-                  nqp::push($!next,$!iterator),
-                  ($!iterator := $pulled.iterator),
+                  ($!nested := Iterator),
                   self.pull-one
                 ),
-                $pulled
+                nested
               ),
-              $pulled
+              nqp::if(
+                nqp::iscont(my \got := $!source.pull-one),
+                got,
+                nqp::if(
+                  nqp::istype(got,Iterable),
+                  nqp::stmts(
+                    ($!nested := Flat.new(got.iterator)),
+                    self.pull-one
+                  ),
+                  got
+                )
+              )
             )
         }
 
-        method is-lazy(--> Bool:D) {
-            $!iterator.is-lazy
+        method push-all(\target --> IterationEnd) {
+            nqp::if(
+              $!nested,
+              nqp::stmts(
+                $!nested.push-all(target),
+                ($!nested := Iterator)
+              )
+            );
+
+            nqp::until(
+              nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
+              nqp::if(
+                nqp::iscont(got),
+                target.push(got),
+                nqp::if(
+                  nqp::istype(got,Iterable),
+                  Flat.new(got.iterator).push-all(target),
+                  target.push(got)
+                )
+              )
+            );
         }
-        method is-deterministic(--> Bool:D) {
-            $!iterator.is-deterministic
-        }
+        method is-lazy() { $!source.is-lazy }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
         method is-monotonically-increasing(--> Bool:D) {
-            $!iterator.is-monotonically-increasing
+            $!source.is-monotonically-increasing
         }
     }
-    method Flat(\iterator, $levels, $decont) {
-        Flat.new(
-          iterator,
-          nqp::istype($levels,Whatever) || $levels == Inf ?? -1 !! $levels.Int,
-          $decont.Int
-        )
-    }
+    method Flat(\iterator) { Flat.new(iterator) }
 
     # Return an iterator that will cache a source iterator for the index
     # values that the index iterator provides, from a given offest in the

@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2024-06-27   Rakudo #173 (jdv)
+  2024-07-25   Rakudo #174 (jdv)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -556,6 +556,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2024-03-28   Rakudo #170 "2024.03"           (jdv)
   2024-04-25   Rakudo #171 "2024.04"           (jdv)
   2024-05-30   Rakudo #172 "2024.05"           (jdv)
+  2024-06-27   Rakudo #173 "2024.06"           (jdv)
 
 =head1 COPYRIGHT
 

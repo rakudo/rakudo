@@ -1,3 +1,30 @@
+New in 2024.06:
+
++ Improvements:
+    + Use inclusive TPF alias. [271f8320]
+    + Give `Seq` some `.head` shortcuts (prevents unnecessary reifying) [07865140]
+    + Check expectations of `.deepmap` / `.duckmap` / `.nodemap` [18d128ab]
+    + Make `Seq.end` return a proper `Failure` [bea61881]
+
++ Additions:
+
++ Fixes:
+    + Make sure the `LAST` phaser is always fired in `.map` [16ce594e]
+    + Don't bother calling op in `.duckmap` on sig failure [af6df816]
+    + Fix regresssion on `NativeCall::Compiler::MSVC`, introduced in 2024.05 [cc52ff12]
+    + Don't set the `FIRST` flag always when iterating (fix and micro-optimization) [ad0afb04]
+
++ Deprecations:
+
++ Internal:
+    + Micro-optimize .head(N) [141228a3]
+
++ RakuAST Development:
+    + 20 commits, 144/153 (make test), and 1063/1356 (make spectest) [3f804996]
+      [9c53c92e][1ddbcbc1][5c10672c][16d126bc][ffc59e46][0cde5bfc][0b937b15]
+      [946ab902][c99d4369][1a61ed02][587cd72f][e2fa55b9][46511d59][49751627]
+      [a51ee10d][5b44a64b][b2f81c23][5dd0ad6f][093009a0]
+
 New in 2024.05:
 
 + Improvements:

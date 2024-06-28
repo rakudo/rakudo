@@ -30,6 +30,27 @@ my class Block { # declared in BOOTSTRAP
         )
     }
 
+    proto method WhateverCode(|) {*}
+    multi method WhateverCode(Block:U:) { WhateverCode }
+    multi method WhateverCode(Block:D:) {
+        if nqp::isconcrete($!phasers) {
+            die "Cannot convert to WhateverCode because the Block has phasers";
+        }
+        else {
+            my $wc := nqp::create(WhateverCode);
+            nqp::bindattr(
+              $wc,Code,'$!do',nqp::getattr(self,Code,'$!do')
+            );
+            nqp::bindattr(
+              $wc,Code,'$!signature',nqp::getattr(self,Code,'$!signature')
+            );
+            nqp::bindattr(
+              $wc,Code,'@!compstuff',nqp::getattr(self,Code,'@!compstuff')
+            );
+            $wc
+        }
+    }
+
     method fatalize() is implementation-detail {
         self.add_phaser: 'POST', -> $_ {
             nqp::istype($_,Failure) ?? .throw !! True

@@ -156,10 +156,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Be ready to report locations in the source.
         $*ORIGIN-SOURCE := Nodify('Origin', 'Source').new(:orig($/.target()));
 
-        # Set up the literals builder, so we can produce and intern literal
-        # values.
-        $*LITERALS := Nodify('LiteralBuilder').new;
-
         # Set up the base resolver
         my %OPTIONS       := %*OPTIONS;
         my $context       := %OPTIONS<outer_ctx>;
@@ -171,6 +167,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $resolver-type.from-setting(
                :setting-name(%OPTIONS<setting> // 'CORE.d')
              );
+
+        # Set up the literals builder, so we can produce and intern literal
+        # values.
+        $*LITERALS := Nodify('LiteralBuilder').new(:resolver($RESOLVER));
 
         # Make debugging a *lot* easier
         &*DD := $RESOLVER.setting-constant('&dd');

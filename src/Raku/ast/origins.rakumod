@@ -105,26 +105,26 @@ class RakuAST::Origin::Source {
             }
         }
         nqp::bindattr($obj, RakuAST::Origin::Source, '$!line-file', nqp::list(nqp::list(0, 0, $file)));
-        $obj.SETUP-LINE-POSITIONS();
-        $obj
-    }
 
-    method SETUP-LINE-POSITIONS() {
-        nqp::bindattr(self, RakuAST::Origin::Source, '$!line-ends', []);
+        my $line-ends := nqp::list;
+        my int $chars := nqp::chars($orig);
         my int $nl-pos;
-        my int $total := nqp::chars($!orig);
-        while ($nl-pos := nqp::findcclass(nqp::const::CCLASS_NEWLINE, $!orig, $nl-pos, $total)) < $total {
-            my int $ord := nqp::ord($!orig, $nl-pos);
-            nqp::push($!line-ends, ++$nl-pos);
+        while ($nl-pos := nqp::findcclass(nqp::const::CCLASS_NEWLINE, $orig, $nl-pos, $chars)) < $chars {
+            my int $ord := nqp::ord($orig, $nl-pos);
+            nqp::push($line-ends, ++$nl-pos);
+
             # Treat \r\n as a single logical newline. Note that NFG
             # implementations, we should check it really is a lone \r,
             # not the first bit of a \r\n grapheme.
-            if $ord == 13 && nqp::eqat($!orig, "\r", $nl-pos - 1)
-                && $nl-pos < $total && nqp::ord($!orig, $nl-pos) == 10
+            if $ord == 13 && nqp::eqat($orig, "\r", $nl-pos - 1)
+                && $nl-pos < $chars && nqp::ord($orig, $nl-pos) == 10
             {
                 ++$nl-pos;
             }
         }
+        nqp::bindattr($obj, RakuAST::Origin::Source, '$!line-ends', $line-ends);
+
+        $obj
     }
 
     method register-line-directive(int $orig-line, int $directive-line, $filename) {

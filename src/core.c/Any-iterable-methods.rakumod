@@ -2360,10 +2360,9 @@ Consider using a block if any of these are necessary for your mapping code."
         die ".duckmap only supports Callables with a single parameter, got $count"
           unless $count == 1 | Inf;
 
-        my $signature := &op.signature;
-        my $source    := self.iterator;
-        my \buffer    := nqp::create(IterationBuffer);
-        my $pulled    := $source.pull-one;
+        my $source := self.iterator;
+        my \buffer := nqp::create(IterationBuffer);
+        my $pulled := $source.pull-one;
 
         sub duck() is raw {
             CATCH {
@@ -2371,12 +2370,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   ?? (my $ = $pulled.duckmap(&op))
                   !! $pulled
             }
-
-            $signature.ACCEPTS( \($pulled) )
-              ?? op($pulled)
-              !! nqp::istype($pulled,Iterable:D)
-                ?? (my $ = $pulled.duckmap(&op))
-                !! $pulled
+            op($pulled)
         }
 
         sub process(Mu \value --> Nil) {

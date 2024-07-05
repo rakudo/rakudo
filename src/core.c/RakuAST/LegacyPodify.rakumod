@@ -170,10 +170,14 @@ class RakuAST::LegacyPodify {
               ?? $ast.atoms.head.Str.subst("\n", ' ', :g)
               !! Pod::FormattingCode.new(
                    type     => $letter,
-                   meta     => @meta,
+                   meta     => $letter eq 'E'
+                     ?? $ast.meta.map(*.key)
+                     !! @meta,
                    contents => $letter eq 'C'
                      ?? $ast.atoms.head.Str.subst("\n", ' ', :g)
-                     !! self!contentify($ast.atoms)
+                     !! $letter eq 'E'
+                       ?? $ast.meta.map(*.value)
+                       !! self!contentify($ast.atoms)
                  )
         }
 

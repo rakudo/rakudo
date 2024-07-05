@@ -1,14 +1,20 @@
+#- RakuAST::Origin -------------------------------------------------------------
 class RakuAST::Origin {
     has int $.from;
     has int $.to;
+
+    # Basically the source from which Raku code is parsed, with
+    # additional functionality
     has RakuAST::Origin::Source $.source;
-    # List of nodes representing the nested key positions in the source. For example, for:
+
+    # List of nodes representing the nested key positions in the source.
+    # For example, for:
     # {
     #     say "123";
     #     my $foo;
     # }
-    # the block node nesting will contain nodes for `say` and for `my`. Normally nestings would be defined by
-    # the <statement> token.
+    # the block node nesting will contain nodes for `say` and for `my`.
+    # Normally nestings would be defined by the <statement> token.
     has Mu $.nestings;
 
     method new(int :$from, int :$to, Mu :$nestings, RakuAST::Origin::Source :$source) {
@@ -37,15 +43,20 @@ class RakuAST::Origin {
     }
 }
 
-# The class is supposed to mimic NQPMatch up to the level to make it usable as QAST::Node.node value.
-# For this it would suffice to provide methods .orig(), .from(), and coercer .Str().
-# TODO after merging rakuast and master branches into main it would make sense to add support for .file() in NQP
-#      backend compilation code. It currently relies upon HLL::Compiler.linefileof() method which might be unreliable.
+#- RakuAST::Origin::Match ------------------------------------------------------
+# The class is supposed to mimic NQPMatch up to the level to make it
+# usable as QAST::Node.node value.  For this it would suffice to
+# provide methods .orig, .from, and coercer .Str.
+
+# TODO after merging rakuast and master branches into main it would
+# make sense to add support for .file in NQP backend compilation code.
+# It currently relies upon HLL::Compiler.linefileof method which might
+# be unreliable.
 class RakuAST::Origin::Match {
     has str $.file;
     has str $.orig;
     has int $.line;
-    has int $.orig-line; # The original line number, unaffected by #line directive
+    has int $.orig-line; # Original line number, unaffected by #line directive
     has int $.from;
     has int $.to;
 
@@ -65,14 +76,21 @@ class RakuAST::Origin::Match {
     method Str { nqp::substr($!orig, $!from, $!to - $!from) }
 }
 
+#- RakuAST::Origin::Source -----------------------------------------------------
 class RakuAST::Origin::Source {
-    # Our source, as fed into the grammar. Better be bound to $/.target() because it's an optimized string.
+
+    # Our source, as fed into the grammar. Better be bound to $/.target
+    # because it's an optimized string.
     has str $.orig;
+
     # List of positions in $!orig pointing at line ends.
     has Mu $!line-ends;
-    # List of lists of #line directives. Each entry is a triplet of [original-directive-line, delta, file-name]
-    # `original-directive-line` is where #line was encountered; `delta` is what to add to a line number to get its
-    # value relative to the start of file `file-name`.
+
+    # List of lists of #line directives. Each entry is a triplet of
+    # [original-directive-line, delta, file-name]
+    # `original-directive-line` is where #line was encountered;
+    # `delta` is what to add to a line number to get its value
+    # relative to the start of file `file-name`.
     # The first entry is always [1, 0, <source-file-name>]
     has Mu $!line-file;
 
@@ -111,8 +129,9 @@ class RakuAST::Origin::Source {
 
     method register-line-directive(int $orig-line, int $directive-line, $filename) {
         my $registered := nqp::elems($!line-file);
-        # Make sure we're not trying to re-register an existing directive. This can happen when grammar retracts
-        # and the same line directive gets parsed repeatedly.
+        # Make sure we're not trying to re-register an existing
+        # directive. This can happen when grammar retracts and
+        # the same line directive gets parsed repeatedly.
         if $registered == 1 || $!line-file[$registered - 1][0] < $orig-line {
             if nqp::isconcrete($filename) {
                 $filename := $filename.Str;
@@ -150,7 +169,8 @@ class RakuAST::Origin::Source {
         self.original-line-column($pos)[0]
     }
 
-    # Get current line, column, and file as a triplet with #line directives taken into account
+    # Get current line, column, and file as a triplet with #line
+    # directives taken into account
     method location-of-pos(int $pos) {
         my @orig-line-col := self.original-line-column($pos);
         my $orig-line := @orig-line-col[0];
@@ -184,7 +204,8 @@ class RakuAST::Origin::Source {
         self.location-of-pos($pos)[1]
     }
 
-    # $from-to can be either NQPMatch, or Match, or RakuAST::Origin, or anything else with .from/.to methods available
+    # $from-to can be either NQPMatch, or Match, or RakuAST::Origin,
+    # or anything else with .from/.to methods available
     method match-from($from-to) {
         my $from := $from-to.from();
         my @location := self.location-of-pos($from);

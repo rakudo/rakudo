@@ -16,6 +16,8 @@ my %provides =
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
     "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
+    "RakuAST::Deparse::Highlight"
+      => "lib/RakuAST/Deparse/Highlight.rakumod",
     "RakuAST::Deparse::Highlight::HTML"
       => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
 ;

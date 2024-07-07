@@ -142,7 +142,7 @@ class RakuAST::Deparse {
 # Setting up the deparse method
 
     proto method deparse(|) {
-        if nqp::istype($*INDENT,Failure) {
+        if nqp::isnull(nqp::getlexcaller('$*INDENT')) {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             {*}

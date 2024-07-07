@@ -12,6 +12,7 @@
 #   block-xxx           syntax with a block (if, elsif, loop, while, ...)
 #   cap-named           named capture ($<foo>)
 #   cap-positional      positional capture ($0, $1, ...)
+#   comment             any inline comment (only if activated)
 #   doc-xxx             declator doc (leading, trailing)
 #   infix               any infix operator
 #   invocant            self

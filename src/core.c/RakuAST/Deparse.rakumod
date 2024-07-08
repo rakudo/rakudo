@@ -274,7 +274,7 @@ CODE
         }
 
         my str $scope = $ast.scope;
-        @parts.unshift(self.xsyn('scope', $scope))
+        @parts.unshift(self.hsyn("scope-$scope", self.xsyn('scope', $scope)))
           if $scope ne 'has' && $scope ne $ast.default-scope;
 
         if $ast.name -> $ast-name {
@@ -284,7 +284,7 @@ CODE
                 ?? "!$name"
                 !! $ast.meta
                   ?? "^$name"
-                  !! self.xsyn('system', $name)
+                  !! self.hsyn("system-$name", self.xsyn('system', $name))
               !! $name
             );
         }
@@ -326,12 +326,14 @@ CODE
     }
 
     method multiple-processors(str $string, @processors --> Str:D) {
-        self.xsyn('quote-lang',"qq")
+        self.hsyn('quote-lang-qq', self.xsyn('quote-lang',"qq"))
           ~ "@processors.map({
-              ':' ~ self.xsyn(
-                'adverb-q',
-                %processor-attribute{$_} // NYI("String processors '$_'")
-              )
+              my str $processor = %processor-attribute{$_}
+                // NYI("String processors '$_'");
+              ':' ~ self.hsyn(
+                      "adverb-q-$processor",
+                      self.xsyn('adverb-q', $processor)
+                    )
             }).join()/$string/"
     }
 
@@ -346,6 +348,12 @@ CODE
 
     method colonpairs($ast, Str:D $xsyn = "") {
         $ast.colonpairs.map({ self.deparse($_, $xsyn) }).join
+    }
+
+    method named-arg($xsyn, str $key) {
+        $xsyn
+          ?? self.hsyn("named-$key", self.xsyn($xsyn,$key))
+          !! $key
     }
 
     method quantifier(
@@ -373,6 +381,12 @@ CODE
           ~ $.square-close
     }
 
+    method meta-infix-letter($ast, str $letter --> Str:D) {
+        my str $operator = $ast.infix.operator;
+        self.hsyn("meta-$letter", self.xsyn('meta',$letter))
+          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
+    }
+
     method method-call(
       $ast, str $dot, $macroish?, :$xsyn, :$only-non-empty
     --> Str:D) {
@@ -380,7 +394,10 @@ CODE
           with $ast.name;
 
         self.syn-routine($dot)
-          ~ ($xsyn ?? self.xsyn('core', $name) !! $name)
+          ~ ($xsyn
+              ?? self.hsyn("core-$name", self.xsyn('core', $name))
+              !! $name
+            )
           ~ ($macroish ?? '' !! self.parenthesize($ast.args, :$only-non-empty))
     }
 
@@ -472,8 +489,9 @@ CODE
     }
 
     method syn-infix-ws(Str:D $operator) {
+        my str $trimmed = $operator.trim;
         $operator.leading-whitespace
-          ~ self.hsyn("infix", self.xsyn('infix', $operator.trim))
+          ~ self.hsyn("infix-$trimmed", self.xsyn('infix', $trimmed))
           ~ $operator.trailing-whitespace
     }
 
@@ -506,11 +524,11 @@ CODE
     }
 
     method syn-type($type) {
-        self.hsyn('type', self.deparse($type))
+        self.hsyn('type', self.deparse($type))   # XXX is this correct?
     }
 
     method syn-typer($typer) {
-        self.hsyn('typer',self.xsyn('typer', $typer))
+        self.hsyn("typer-$typer", self.xsyn('typer', $typer))
     }
 
 #- A ---------------------------------------------------------------------------
@@ -571,7 +589,8 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyPrefix:D $ast --> Str:D) {
-        self.hsyn('prefix', self.xsyn('prefix', self.deparse($ast.prefix)))
+        my str $prefix = self.deparse($ast.prefix);
+        self.hsyn("prefix-$prefix", self.xsyn('prefix', $prefix))
           ~ self.deparse($ast.operand)
     }
 
@@ -686,7 +705,10 @@ CODE
         my str $key = $ast.named-arg-name;
 
         ':'
-          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+          ~ ($xsyn
+              ?? self.hsyn("named-$key",self.xsyn($xsyn,$key))
+              !! $key
+            )
           ~ $.parens-open
           ~ self.deparse($ast.named-arg-value)
           ~ $.parens-close
@@ -695,37 +717,28 @@ CODE
     multi method deparse(
       RakuAST::ColonPair::False:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my str $key = $ast.key;
-
-        ':!' ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+        ':!' ~ self.named-arg($xsyn, $ast.key)
     }
 
     multi method deparse(
       RakuAST::ColonPair::Number:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my str $key = $ast.key;
-
-        ':'
-          ~ self.deparse($ast.value)
-          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+        ':' ~ self.deparse($ast.value) ~ self.named-arg($xsyn, $ast.key)
     }
 
     multi method deparse(
       RakuAST::ColonPair::True:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my str $key = $ast.key;
-
-        ':' ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+        ':' ~ self.named-arg($xsyn, $ast.key)
     }
 
     multi method deparse(
       RakuAST::ColonPair::Value:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my str $key = $ast.key;
         my $value  := $ast.value;
 
         ':'
-          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+          ~ self.named-arg($xsyn, $ast.key) 
           ~ (nqp::istype($value,RakuAST::QuotedString)
               ?? self.deparse($value)
               !! $.parens-open ~ self.deparse($value) ~ $.parens-close
@@ -974,7 +987,8 @@ CODE
 
     # Also for ::FlipFlop
     multi method deparse(RakuAST::Infix:D $ast --> Str:D) {
-        self.hsyn("infix", self.xsyn('infix', $ast.operator))
+        my str $operator = $ast.operator;
+        self.hsyn("infix-$operator", self.xsyn('infix', $operator))
     }
 
     multi method deparse(RakuAST::Initializer::Assign:D $ast --> Str:D) {
@@ -1004,43 +1018,44 @@ CODE
 #- M ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> Str:D) {
-        self.hsyn("infix", self.xsyn("infix",$ast.infix.operator) ~ '=')
+        my str $operator = $ast.infix.operator;
+        self.hsyn("infix-$operator", self.xsyn("infix",$operator))
+          ~ self.hsyn("meta-=", '=')
     }
 
     multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {
-        self.hsyn("infix",
-          self.xsyn('meta','X') ~ self.xsyn("infix", $ast.infix.operator)
-        )
+        self.meta-infix-letter($ast, 'X')
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
-        self.hsyn("infix",
-          ($ast.dwim-left ?? '<<' !! '>>')
-            ~ self.xsyn("infix", $ast.infix.operator)
-            ~ ($ast.dwim-right ?? '>>' !! '<<')
-        )
+        my str $left     = $ast.dwim-left  ?? '<<' !! '>>';
+        my str $right    = $ast.dwim-right ?? '>>' !! '<<';
+        my str $operator = $ast.infix.operator;
+
+        self.hsyn("meta-hyper-left", $left)
+          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
+          ~ self.hsyn("meta-hyper-right", $right)
     }
 
     multi method deparse(RakuAST::MetaPostfix::Hyper:D $ast --> Str:D) {
-        self.hsyn("postfix",
-          '>>' ~ self.xsyn("postfix", self.deparse($ast.postfix))
-        )
+        self.hsyn("meta-hyper", '>>')
+          ~ self.hsyn("postfix",
+              self.xsyn("postfix", self.deparse($ast.postfix))
+            )
     }
 
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
-        self.hsyn("infix", '!' ~ self.xsyn("infix",$ast.infix.operator))
+        my str $operator = $ast.infix.operator;
+        self.hsyn("meta-!", '!')
+          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
-        self.hsyn("infix",
-          self.xsyn('meta','R') ~ self.xsyn("infix",$ast.infix.operator)
-        )
+        self.meta-infix-letter($ast, 'R')
     }
 
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
-        self.hsyn("infix",
-          self.xsyn('meta','Z') ~ self.xsyn("infix",$ast.infix.operator)
-        )
+        self.meta-infix-letter($ast, 'Z')
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {
@@ -1054,11 +1069,12 @@ CODE
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {
-        self.hsyn('nqp', "nqp::" ~ $ast.op) ~ self.parenthesize($ast.args)
+        my str $op = $ast.op;
+        self.hsyn("nqp-$op", "nqp::$op") ~ self.parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Nqp::Const:D $ast --> Str:D) {
-        self.hsyn('nqp', "nqp::const::" ~ $ast.name)
+        self.hsyn('nqp-const', "nqp::const::" ~ $ast.name)
     }
 
 #- O ---------------------------------------------------------------------------
@@ -1130,9 +1146,11 @@ CODE
     }
 
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
+        my str $pragma = $ast.name;
+        my str $no     = $ast.off ?? "no" !! "use";
         my str @parts =
-          self.hsyn('use', self.xsyn('use', $ast.off ?? "no" !! "use")),
-          self.hsyn('pragma', $ast.name);
+          self.hsyn("use-$no", self.xsyn('use', $no)),
+          self.hsyn("pragma-$pragma", self.xsyn('pragma', $pragma));
         @parts.push(self.deparse($_)) with $ast.argument;
         @parts.join(' ') ~ $*DELIMITER
     }
@@ -1314,14 +1332,15 @@ CODE
     }
 
     multi method deparse(RakuAST::Prefix:D $ast --> Str:D) {
-        self.xsyn('prefix', $ast.operator)
+        my str $operator = $ast.operator;
+        self.hsyn("prefix-$operator", self.xsyn('prefix', $operator))
     }
 
 #- Q ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> Str:D) {
         my str $adverbs = $ast.adverbs.map({
-            self.deparse($_, 'adverb-rx')
+            self.deparse($_, 'adverb-rx')  # XXX ???
         }).join;
         ($ast.match-immediately ?? 'm' !! $adverbs ?? 'rx' !! '')
           ~ $adverbs
@@ -1335,10 +1354,10 @@ CODE
 
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
-                if %single-processor-prefix{$processor} -> str $p {
-                    ($p eq 'exec' && $ast.has-variables ?? 'qqx/' !! $p)
-                      ~ $string
-                      ~ '/'
+                if %single-processor-prefix{$processor} -> str $p is copy {
+                    $p = 'qqx/' if $p eq 'exec' && $ast.has-variables;
+                    self.hsyn("adverb-q-$p", self.xsyn('adverb-q', $p))
+                      ~ $string ~ '/'
                 }
                 else {
                     NYI("Quoted string processor '$processor'").throw
@@ -2194,8 +2213,10 @@ CODE
 
     # handles all statement prefixes
     multi method deparse(RakuAST::StatementPrefix:D $ast --> Str:D) {
-        self.hsyn('stmt-prefix', self.xsyn('stmt-prefix', $ast.type))
-          ~ ' ' ~ self.deparse($ast.blorst).chomp
+        my str $prefix = $ast.type;
+        self.hsyn("stmt-prefix-$prefix", self.xsyn('stmt-prefix', $prefix))
+          ~ ' '
+          ~ self.deparse($ast.blorst).chomp
     }
 
     # handles most phasers
@@ -2326,11 +2347,12 @@ CODE
     }
 
     multi method deparse(RakuAST::Term::Named:D $ast --> Str:D) {
-        self.xsyn('term', $ast.name)
+        my str $name = $ast.name;
+        self.hsyn("term-$name", self.xsyn('term', $name))
     }
 
     multi method deparse(RakuAST::Term::Rand:D $ --> Str:D) {
-        self.xsyn('term', $.term-rand)
+        self.hsyn('term-rand', self.xsyn('term', $.term-rand))
     }
 
     multi method deparse(RakuAST::Term::RadixNumber:D $ast --> Str:D) {
@@ -2367,6 +2389,7 @@ CODE
     multi method deparse(RakuAST::WhateverCode::Argument:D $ --> Str:D) {
         self.hsyn('var-term', $.term-whatever)
     }
+
 #- Ternary ---------------------------------------------------------------------
 
     multi method deparse(RakuAST::Ternary:D $ast --> Str:D) {
@@ -2505,7 +2528,9 @@ CODE
         @parts.push(self.deparse($_)) for $ast.traits;
 
         with $ast.where {
-            @parts.push(self.xsyn('constraint', 'where'));
+            @parts.push(
+              self.hsyn('constraint-where',self.xsyn('constraint', 'where'))
+            );
             @parts.push(self.deparse($_));
         }
 
@@ -2602,7 +2627,7 @@ CODE
         (self.hsyn('scope-my', self.xsyn('scope', 'my')),
           self.hsyn('scope-constant', self.xsyn('scope', 'constant')),
           self.hsyn('var-term', $ast.name),
-          self.hsyn('infix', '='),
+          self.hsyn('infix-=', '='),
           $ast.value.raku
         ).join(' ')
     }

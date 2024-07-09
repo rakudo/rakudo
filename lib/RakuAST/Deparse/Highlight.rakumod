@@ -21,6 +21,14 @@ my class Actions is RakuActions {
         $!source
     }
 
+    # Mark empty lines as being comments for a better deparsing experience
+    method commentize-empty-lines() {
+        for ^@!eol.end -> uint $i {
+            my int $index = @!eol[$i];
+            @!soc[$i + 1] = $index if @!eol[$i + 1] == $index + 1;
+        }
+    }
+
     # Handle a comment in the source
     method comment:sym<#>(Mu $/) {
         my str $source = self!check-source($/);
@@ -50,7 +58,7 @@ my class Actions is RakuActions {
     method comment(uint $index, :$keep --> Str:D) {
         with @!soc[$index] -> $soc {
             @!soc[$index] := Any unless $keep;
-            $!source.substr($soc, @!eol[$index] - $soc)
+            $!source.substr($soc, @!eol[$index] - $soc) but True
         }
         else {
             Nil
@@ -62,10 +70,15 @@ my class Actions is RakuActions {
     # that line, but not a full line comment, it will be ignored
     method whole-line-comment(uint $index, :$keep) {
         with @!soc[$index] -> $soc {
+            my int $previous = @!eol[$index - 1];
             # is it a whole line?
-            if $soc == @!eol[$index - 1] + 1 {
+            if $soc == $previous + 1 {
                 @!soc[$index] := Any unless $keep;
                 return $!source.substr($soc, @!eol[$index] - $soc);
+            }
+            elsif $soc == $previous {
+                @!soc[$index] := Any unless $keep;
+                return "" but True;
             }
         }
         Nil
@@ -188,17 +201,29 @@ my class Deparse is RakuDEPARSE {
 my sub highlight(str $source, *@roles is copy --> Str:D) is export {
     my $actions := nqp::create(Actions);
     my $ast     := $source.AST(:$actions);
+
+    # Post process empty lines
+    $actions.commentize-empty-lines;
+
+    # Set up initial deparser
+    my $deparser := Deparse.new(:$actions);
+
+    # Make sure we actually have roles to mix in and mix them in
     for @roles {
         if $_ ~~ Str {
             my $class := "RakuAST::Deparse::Highlight::$_";
             $_ = "use experimental :rakuast; use $class; $class".EVAL;
         }
+        $deparser.^mixin($_);
     }
 
     # Not sure why this is needed, but without it the deparse fails with
     # a "getlex: outer index out of range" error message
     my $*INDENT = "";
-    $ast.DEPARSE(Deparse.new(:$actions), |@roles)
+
+    # Do the actual deparse: if nothing was returned, it is just
+    # comments, so highlight the original source as a comment
+    $ast.DEPARSE($deparser) || $deparser.hsyn('comment', $source)
 }
 
 # vim: expandtab shiftwidth=4

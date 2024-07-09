@@ -115,6 +115,20 @@ my class Actions is RakuActions {
     }
 }
 
+#- SafeActions -----------------------------------------------------------------
+
+my class SafeActions is Actions {
+
+    # prefix BEGIN phaser not allowed
+    method statement-prefix:sym<BEGIN>(Mu $/) {
+        $/.panic("BEGIN phaser not allowed in safe syntax highlighting");
+    }
+
+    method type-declarator:sym<constant>(Mu $/) {
+        $/.panic("constant definitions not allowed in safe syntax highlighting");
+    }
+}
+
 #- Deparse----------------------------------------------------------------------
 my class Deparse is RakuDEPARSE {
     has $.actions;
@@ -196,8 +210,8 @@ my class Deparse is RakuDEPARSE {
 #-------------------------------------------------------------------------------
 # The external interface
 
-my sub highlight(str $source, *@roles is copy --> Str:D) is export {
-    my $actions := nqp::create(Actions);
+my sub highlight(str $source, *@roles is copy, :$unsafe --> Str:D) is export {
+    my $actions := nqp::create($unsafe ?? Actions !! SafeActions);
     my $ast     := $source.AST(:$actions);
 
     # Post process empty lines

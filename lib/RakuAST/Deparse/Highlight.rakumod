@@ -89,7 +89,7 @@ my class Actions is RakuActions {
     method comments-preceding(
       uint $index is copy,
       :$keep,
-      :$partial
+      :$partial  # also add any partial comment
     --> Str:D) {
         my str @parts;
         while --$index
@@ -97,9 +97,7 @@ my class Actions is RakuActions {
             @parts.unshift($comment)
         }
 
-        if $partial && self.comment($index) -> $comment {
-            @parts.unshift($comment);
-        }
+        @parts.unshift(self.comment($index) // "") if $partial;
 
         @parts ?? @parts.join("\n") !! Nil
     }

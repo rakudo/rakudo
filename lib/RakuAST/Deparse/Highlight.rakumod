@@ -80,8 +80,11 @@ my class Actions is RakuActions {
     # unless it is indicated it should be kept.  If there is a comment at
     # that line, but not a full line comment, it will be ignored
     method whole-line-comment(uint $index, :$keep) {
-        with @!soc[$index] -> $soc {
-            my int $previous = @!eol[$index - 1];
+        my int $previous = @!eol[$index - 1];
+        if @!eol[$index] == $previous + 1 {
+            return "" but True;
+        }
+        orwith @!soc[$index] -> $soc {
             # is it a whole line?
             if $soc == $previous + 1 {
                 @!soc[$index] := Any unless $keep;
@@ -110,7 +113,7 @@ my class Actions is RakuActions {
 
         @parts.unshift(self.comment($index) // "") if $partial;
 
-        @parts ?? @parts.join("\n") !! Nil
+        @parts ?? @parts.join("\n") but True !! Nil
     }
 
     # Return any full line comments *after* the given line number and

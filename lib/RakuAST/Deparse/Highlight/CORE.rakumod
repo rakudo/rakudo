@@ -11,8 +11,7 @@
 #
 #   adverb-q-xxx        quoting language adverb ("to","val","x", etc.)
 #   block-xxx           syntax with a block (if, elsif, loop, while, etc.)
-#   cap-named           named capture ($<foo>)
-#   cap-positional      positional capture ($0, $1, ...)
+#   capture-xxx         match captures ($<foo>, $0)
 #   comment             any inline comment (only if activated)
 #   constraint-xxx      type of constraint applied ("where")
 #   core-xxx            all core functions ("say","bag","set","put", etc.)

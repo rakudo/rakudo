@@ -432,7 +432,9 @@ CODE
 
     method use-no(str $what, $ast) {
         my str @parts =
-          self.xsyn('use', $what), ' ', self.deparse($ast.module-name);
+          self.hsyn("use-$what", self.xsyn('use', $what)),
+          ' ',
+          self.deparse($ast.module-name);
 
         if $ast.argument -> $argument {
             @parts.push(' ');
@@ -667,15 +669,19 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        my $name := self.xsyn('core', self.deparse($ast.name));
-        $name.ends-with('::')
+        my $name     := self.deparse($ast.name);
+        my $complete := $name.ends-with('::');
+
+        $name := self.hsyn("core-$name", self.xsyn('core', $name));
+        $complete
           ?? $name
           !! $name ~ self.parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Name::WithoutParentheses:D $ast
     --> Str:D) {
-        my $name := self.xsyn('core', self.deparse($ast.name));
+        my $name := self.deparse($ast.name);
+           $name := self.hsyn("core-$name", self.xsyn('core', $name));
         my $args := $ast.args.defined ?? self.deparse($ast.args).chomp !! '';
 
         $args ?? "$name $args" !! $name
@@ -2523,9 +2529,9 @@ CODE
         @parts.unshift(self.syn-scope($scope))
           if $scope && $scope ne $ast.default-scope;
 
-        @parts.push(self.deparse($ast.name));
-        @parts.push(self.deparse($_)) with $ast.of;
-        @parts.push(self.deparse($_)) for $ast.traits;
+        @parts.push(self.hsyn("type",self.deparse($ast.name)));
+        @parts.push(self.hsyn("traitmod-of", self.deparse($_))) with $ast.of;
+        @parts.push(self.hsyn("type", self.deparse($_))) for $ast.traits;
 
         with $ast.where {
             @parts.push(
@@ -2573,7 +2579,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {
-        self.hsyn('cap-named', '$' ~ self.deparse($ast.index))
+        self.hsyn('capture-named', '$' ~ self.deparse($ast.index))
     }
 
     multi method deparse(RakuAST::Var::Package:D $ast --> Str:D) {
@@ -2581,7 +2587,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Var::PositionalCapture:D $ast --> Str:D) {
-        self.hsyn('cap-positional', '$' ~ $ast.index.Str)
+        self.hsyn('capture-positional', '$' ~ $ast.index.Str)
     }
 
 #- VarDeclaration --------------------------------------------------------------
@@ -2607,7 +2613,7 @@ CODE
           if $scope ne $ast.default-scope;
 
         @parts.push(self.syn-type($_)) with $ast.type;
-        @parts.push(self.xsyn('scope', 'constant'));
+        @parts.push(self.hsyn("scope-constant", self.xsyn('scope', 'constant')));
         @parts.push($ast.name);
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;

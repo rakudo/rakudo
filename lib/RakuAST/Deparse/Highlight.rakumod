@@ -1,8 +1,19 @@
 use v6.e.PREVIEW;
 
-use nqp;  # just needed until Raku::Actions/Raku::DEPARSE become default
+# just needed until Raku::Actions/Raku::DEPARSE become default
+use experimental :rakuast;
+use nqp;
+my constant RakuGrammar = nqp::gethllsym('Raku','Grammar');
 my constant RakuActions = nqp::gethllsym('Raku','Actions');
 my constant RakuDEPARSE = nqp::gethllsym('Raku','DEPARSE');
+
+# Helper subs< perhaps this should become more general
+multi sub postcircumfix:<{ }>(RakuGrammar:D $/, Str:D $key) {
+    $/.hash.AT-KEY($key)
+}
+multi sub prefix:<~>(RakuGrammar:D $/) {
+    $/.Str
+}
 
 #- Actions ---------------------------------------------------------------------
 my class Actions is RakuActions {
@@ -119,13 +130,25 @@ my class Actions is RakuActions {
 
 my class SafeActions is Actions {
 
-    # prefix BEGIN phaser not allowed
-    method statement-prefix:sym<BEGIN>(Mu $/) {
-        $/.panic("BEGIN phaser not allowed in safe syntax highlighting");
+    my class X::NotAllowedHighlighting {
+        has $.what;
+        method message() {
+            "$!what not allowed in safe syntax highlighting"
+        }
     }
 
-    method type-declarator:sym<constant>(Mu $/) {
-        $/.panic("constant definitions not allowed in safe syntax highlighting");
+    method statement-prefix:sym<BEGIN>(Mu $/ is raw) {
+        $/.typed-panic("X::NotAllowedHighlighting", :what("BEGIN phaser"));
+    }
+
+    method type-declarator:sym<constant>(Mu $/ is raw) {
+        $/.typed-panic("X::NotAllowedHighlighting", :what("constant definition"));
+    }
+
+    method statement-control:sym<use>(Mu $/) {
+        RakuAST::Pragma.IS-PRAGMA($/.pragma2str(~$<module-name>))
+          ?? (nextsame)
+          !! $/.typed-panic("X::NotAllowedHighlighting", :what("module loading"));
     }
 }
 

@@ -277,6 +277,12 @@ CODE
         @parts.unshift(self.hsyn("scope-$scope", self.xsyn('scope', $scope)))
           if $scope ne 'has' && $scope ne $ast.default-scope;
 
+        my constant %system-names = <
+          ACCEPTS ASSIGN-KEY ASSIGN-POS AT-KEY AT-POS BIND-KEY BIND-POS
+          BUILD CALL-ME DELETE-KEY DELETE-POS EXISTS-KEY EXISTS-POS
+          STORE TWEAK UPGRADE-RAT WHICH WHY
+        >.map(* => 1);
+
         if $ast.name -> $ast-name {
             my str $name = self.deparse($ast-name);
             @parts.push(nqp::istype($ast,RakuAST::Method)
@@ -284,7 +290,9 @@ CODE
                 ?? "!$name"
                 !! $ast.meta
                   ?? "^$name"
-                  !! self.hsyn("system-$name", self.xsyn('system', $name))
+                  !! %system-names{$name}
+                    ?? self.hsyn("system-$name", self.xsyn('system', $name))
+                    !! $name
               !! $name
             );
         }

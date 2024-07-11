@@ -1340,6 +1340,7 @@ CODE
     multi method deparse(RakuAST::Prefix:D $ast --> Str:D) {
         my str $operator = $ast.operator;
         self.hsyn("prefix-$operator", self.xsyn('prefix', $operator))
+          ~ ($operator.contains(/\w/) ?? " " !! "")
     }
 
 #- Q ---------------------------------------------------------------------------

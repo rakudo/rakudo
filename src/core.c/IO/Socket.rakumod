@@ -6,12 +6,28 @@ my role IO::Socket {
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
 
-    method !ensure-coders(--> Nil) {
+    method !ensure-decoder(--> Nil) {
         unless $!decoder.DEFINITE {
             my $encoding = Encoding::Registry.find($!encoding);
             $!decoder := $encoding.decoder();
             $!decoder.set-line-separators($!nl-in.list);
+        }
+    }
+
+    method !ensure-encoder(--> Nil) {
+        unless $!encoder.DEFINITE {
+            my $encoding = Encoding::Registry.find($!encoding);
             $!encoder := $encoding.encoder();
+        }
+    }
+
+    method !pull-bytes(Int $limit) {
+        if $!decoder.DEFINITE {
+            $!decoder.consume-exactly-bytes($limit)
+                // nqp::readfh($!PIO, nqp::create(buf8.^pun), $limit)
+        }
+        else {
+            nqp::readfh($!PIO, nqp::create(buf8.^pun), $limit)
         }
     }
 
@@ -20,10 +36,10 @@ my role IO::Socket {
         fail('Socket not available') unless $!PIO;
         $limit = 65535 if !$limit.DEFINITE || $limit === Inf;
         if $bin {
-            nqp::readfh($!PIO, nqp::create(buf8.^pun), $limit)
+            self!pull-bytes($limit)
         }
         else {
-            self!ensure-coders();
+            self!ensure-decoder();
             my $result = $!decoder.consume-exactly-chars($limit);
             without $result {
                 $!decoder.add-bytes(nqp::readfh($!PIO, nqp::create(buf8.^pun), 65535));
@@ -39,10 +55,11 @@ my role IO::Socket {
     method read(IO::Socket:D: Int(Cool) $bufsize) {
         fail('Socket not available') unless $!PIO;
         my int $toread = $bufsize;
-        my $res := nqp::readfh($!PIO,nqp::create(buf8.^pun),$toread);
+
+        my $res := self!pull-bytes($toread);
 
         while nqp::elems($res) < $toread {
-            my $buf := nqp::readfh($!PIO,nqp::create(buf8.^pun),$toread - nqp::elems($res));
+            my $buf := self!pull-bytes($toread - nqp::elems($res));
             nqp::elems($buf)
               ?? $res.append($buf)
               !! return $res
@@ -64,7 +81,7 @@ my role IO::Socket {
     }
 
     method get() {
-        self!ensure-coders();
+        self!ensure-decoder();
         my Str $line = $!decoder.consume-line-chars(:chomp);
         if $line.DEFINITE {
             $line
@@ -92,7 +109,7 @@ my role IO::Socket {
     }
 
     method print(Str(Cool) $string --> True) {
-        self!ensure-coders();
+        self!ensure-encoder();
         self.write($!encoder.encode-chars($string));
     }
 

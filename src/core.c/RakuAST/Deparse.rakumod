@@ -1333,7 +1333,9 @@ CODE
     }
 
     multi method deparse(RakuAST::Postfix:D $ast --> Str:D) {
-        $ast.operator ~ self.colonpairs($ast, 'adverb-pc')
+        my str $operator = $ast.operator;
+        self.hsyn("postfix-$operator", $operator)
+          ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {

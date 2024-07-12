@@ -29,6 +29,7 @@
 #   package-xxx         any package declarator (class, grammar, ...)
 #   param               any parameter in a signature
 #   phaser-xxx          phaser ("BEGIN","CATCH","LEAVE", etc.)
+#   postfix-xxx         any postfix operator
 #   pragma-xxx          any pragma (strict, fatal, ...)
 #   prefix-xxx          any prefix operator
 #   quote-lang-xxx      quoting language indicator ("q","qq","Q", etc.)

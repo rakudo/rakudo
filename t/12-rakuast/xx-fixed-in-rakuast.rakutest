@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 35;
+plan 37;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -219,3 +219,13 @@ plan 35;
     lives-ok { Q|class A { class A::B { ... }; class A::B { has $.c } }|.AST.EVAL },
         "stubbed classes that belong to parent package cause no issues when stubbed and defined within parent package scope";
 }
+
+# https://irclogs.raku.org/raku/2024-07-12.html#12:20
+{
+    my @a;
+    lives-ok { Q|for <a b c> { @a.push($_) with "{.succ}"; }|.AST.EVAL },
+        "using the topic inside a 'with' and an embedded code block in a qq string";
+    is-deeply @a, [<b c d>], 'did the code do the right thing';
+}
+
+# vim: expandtab shiftwidth=4

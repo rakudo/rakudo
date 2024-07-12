@@ -206,7 +206,7 @@ CODE
     # Please see lib/RakuAST/Deparse/Highlight/HTML.rakumod for an example
     # of implementation of the "hsyn" method for highlighting.
     proto method hsyn(|) {*}
-    multi method hsyn(Str:D $prefix, Str:D $key) { $key }
+    multi method hsyn($prefix, $key) { $key }
 
 #-------------------------------------------------------------------------------
 # Helper methods

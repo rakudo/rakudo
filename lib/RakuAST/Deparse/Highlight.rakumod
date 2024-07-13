@@ -262,9 +262,9 @@ subset phasers       of Str:D where *.starts-with("phaser-");
 subset postfixes     of Str:D where *.starts-with("postfix-");
 subset pragmas       of Str:D where *.starts-with("pragma-");
 subset prefixes      of Str:D where *.starts-with("prefix-");
+subset quote-langs   of Str:D where *.starts-with("quote-lang-");
 subset rakudocs      of Str:D where *.starts-with("rakudoc-");
 subset routines      of Str:D where *.starts-with("routine-");
-subset quote-langs   of Str:D where *.starts-with("quote-lang-");
 subset scopes        of Str:D where *.starts-with("scope-");
 subset stmt-prefixes of Str:D where *.starts-with("stmt-prefix-");
 subset systems       of Str:D where *.starts-with("system-");
@@ -274,10 +274,10 @@ subset typers        of Str:D where *.starts-with("typer-");
 subset uses          of Str:D where *.starts-with("use-");
 subset vars          of Str:D where *.starts-with("var-");
 
-#-------------------------------------------------------------------------------
-# The external interface
+#- highlight - basic role interface --------------------------------------------
 
-my sub highlight(str $source, *@roles is copy, :$unsafe --> Str:D) is export {
+my proto sub highlight(|) is export {*}
+my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
     my $actions := nqp::create($unsafe ?? Actions !! SafeActions);
     my $ast     := $source.AST(:$actions);
 
@@ -305,6 +305,97 @@ my sub highlight(str $source, *@roles is copy, :$unsafe --> Str:D) is export {
     $ast.DEPARSE($deparser) || $deparser.hsyn('comment', $source)
 }
 
+#- highlight - color based interface -------------------------------------------
+
+my constant %default = <
+  adverb-q-      red
+  block-         yellow
+  capture-       cyan
+  comment        blue
+  constraint-    magenta
+  core-          yellow
+  doc-           blue
+  infix-         yellow
+  invocant       cyan
+  label          yellow
+  literal        red
+  markup-        magenta
+  meta-          yellow
+  modifier-      yellow
+  multi-         yellow
+  named-         yellow
+  nqp-           none
+  package-       yellow
+  param          cyan
+  phaser-        magenta
+  postfix-       yellow
+  pragma-        magenta
+  prefix-        yellow
+  quote-lang-    red
+  rakudoc-       yellow
+  routine-       yellow
+  scope-         magenta
+  stmt-prefix-   magenta
+  stub           none
+  system-        none
+  ternary        none
+  trait-is-      magenta
+  traitmod-      magenta
+  type           green
+  typer-         yellow
+  use-           magenta
+  var-           cyan
+>;
+
+my multi sub highlight(Str:D $source, %sub-mapper, *%_) {
+    my $unsafe := %_<unsafe>:delete;
+    highlight($source, %sub-mapper, color-mapper(%_), :$unsafe)
+}
+
+my multi sub highlight(Str:D $source, %sub-mapper, %color-mapper, :$unsafe) {
+
+    my role ColorMapper {
+        method hsyn(Str:D $key, Str:D $content) {
+            if %color-mapper{$key}
+              // %color-mapper{$key.subst(/ \w+ $/)} -> $color {
+                if %sub-mapper{$color} -> &highlighter {
+                    highlighter $content
+                }
+                else {
+                    $content
+                }
+            }
+            else {
+               $content
+            }
+        }
+    }
+
+    highlight($source, ColorMapper, :$unsafe)
+}
+
+#- color-mapper ----------------------------------------------------------------
+
+my proto sub color-mapper(|) is export {*}
+my multi sub color-mapper() is default { %default }
+my multi sub color-mapper(*%_) { color-mapper(%_) }
+my multi sub color-mapper(%_) {
+    my $color-mapper := %default.Hash;
+    $color-mapper{.key} = .value for %_;
+    $color-mapper
+}
+
+#- hsyn-key2color --------------------------------------------------------------
+
+my proto sub hsyn-key2color(|) is export {*}
+my multi sub hsyn-key2color(Str:D $key) {
+    %default{$key} // %default{$key.subst(/ \w+ $/)}
+}
+my multi sub hsyn-key2color(Str:D $key, %color-mapper) {
+    %color-mapper{$key} // %color-mapper{$key.subst(/ \w+ $/)}
+}
+
+#-------------------------------------------------------------------------------
 =begin rakudoc
 
 =head1 NAME
@@ -318,8 +409,12 @@ RakuAST::Deparse::Highlight - provide Raku-based syntax highlighting
 use RakuAST::Deparse::Highlight;
 
 say highlight("say 'hello world'", "HTML");
-# <span class="raku-core-say">say</span>
-# <span class="raku-literal">"hello world"</span>
+# <span style="color:yellow;">say</span>
+# <span style="color:red;">"hello world"</span>
+
+my %color2sub = red => sub ($t) { "==$t==" }
+say highlight("say 'hello world'", %color2sub);
+# say =="hello world"==
 
 role LiteralAsterisked {
     multi method hsyn(literal, Str:D $t) { "**$t**" }
@@ -331,41 +426,75 @@ say highlight("say 'hello world'", LiteralAsterisked);
 
 =head1 DESCRIPTION
 
-The C<RakuAST::Deparse::Highlight> module exports a single subroutine
-C<highlight> which provides Raku-based syntax highlighting.
+The C<RakuAST::Deparse::Highlight> module exports a number of subroutines
+to provide easily customizable Raku-based syntax highlighting, based on
+parsing source code and deparsing of the created RakuAST objects.
 
-It also exports a large number of C<subsets> that can be used to handle
-specific situations in syntax highlighting by creating C<multi> methods
-that use such a subset as the first argument.
+It basically provides 3 modes of syntax highlighting:
+
+=head2 using pre-installed modules
+
+Highlighting provided by modules named C<RakuAST::Deparse::Highlight::xxx>
+can be activated by specifying C<"xxx">.  There is no need to pre-load that
+module, it will be automatically loaded when necessary.
+
+=head2 using default color mapping
+
+By specifying a hash that maps color names to subroutines to be called to
+perform the indicated highlighting.  Which can be extended to provide
+custom syntax object type to color mapping as well.
+
+=head2 using a custom role
+
+All syntax highlighting is based on injecting customized methods named
+"hsyn" into the class doing the deparsing.  You can supply one or more
+roles that have these methods in them for full control of syntax highlighting.
+
+To ease this way of using syntax highlight also exports a large number of C<subsets> that can be used to handle
+specific situations in syntax highlighting by creating C<multi> C<hsyn>
+methods that use such a subset as the first argument.
+
+=head1 THEORY OF OPERATION
+
+Syntax highlighting is based on first parsing the given source code to RakuAST
+objects using the Raku grammar with a dedicated set of actions that B<also>
+process any inline comments.
+
+The resulting RakuAST nodes are then deparsed with a subclass of the
+basic RakuAST deparsing class that takes the additional comments
+information and provides additional deparsing logic for the inline
+comments.
+
+The disadvantage of this approach, is that the format of the code may
+change, because deparsing has no knowledge of the original source code.
+
+The advantages are:
+
+=item the code is sure to be syntactically correct
+
+If the code doesn't parse, it cannot be highlighted.  This could be considered
+a disadvantage for use in editors and IDE's.  But that's not what this syntax
+highlighting is intended for.
+
+=item much more information available
+
+Because the syntax highlighting is based on a Abstract Syntax Tree, much
+more information is available to adapt highlighting to (instead of just on
+string matches.  This can e.g. be used in tooltips that have extra information
+and/or links to documentation in HTML.
+
+=item ready for localization
+
+The syntax highlighting will also work on any localized version of the Raku
+Programming Language B<because> it is based on RakuAST, which is ignorant of
+the actual localization being used in the source code.
 
 =head1 SUBROUTINES
 
 =head2 highlight
 
-=begin code :lang<raku>
-
-say highlight("say 'hello world'", "HTML");
-# <span class="raku-core-say">say</span>
-# <span class="raku-literal">"hello world"</span>
-
-role LiteralAsterisked {
-    multi method hsyn(literal, Str:D $t) { "**$t**" }
-}
-say highlight("say 'hello world'", LiteralAsterisked);
-# say **"hello world"**
-
-=end code
-
-The C<highlight> subroutine takes 2 or more positional arguments: the
-first positional argument is the Raku source code for which to provide
-syntax highlighting.
-
-The other arguments indicate the type of highlighting wanted.  They
-can either be a string (e.g. "HTML", which will be converted to the
-module name C<RakuAST::Deparse::Highlight::HTML> and as such will
-attempt to load a module by that name).  Or it can be one or more
-custom C<role>s that should be mixed in into the standard deparsing
-logic.
+The first positional argument to C<highlight> is B<always> the Raku source
+code that needs to be highlighted.
 
 =begin code :lang<raku>
 
@@ -377,9 +506,93 @@ By default, compile time actions (such as C<BEGIN> blocks, C<constant>
 definitions and C<use> statements that would actually load a module)
 are B<not> allowed because they (could potentially) execute malignant
 code.  If you are sure of your environment and I<would> like to allow
-these operations, you can pass the C<:unsafe> named argument.
+these operations, you can always pass the C<:unsafe> named argument.
 
-=head1 CONVENIENCE SUBSETS
+The advantage of allowing compile time actions, is that it will allow
+to also properly highlight custom operators, traits or any other
+syntax changes that can be implemented from module space.
+
+=begin code :lang<raku>
+
+# using predefined classes
+say highlight("say 'hello world'", "HTML");
+# <span style="color:yellow;">say</span>
+# <span style="color:red;">"hello world"</span>
+
+=end code
+
+The simplest way to use C<highlight> is to specify the name of the module
+that you would like to use for highlighting.  This module should exist
+in the C<RakuAST::Deparse::Highlight::> namespace.  Simple support for
+C<HTML> is provided by default.
+
+=begin code :lang<raku>
+
+# using default color mapping
+my %color2handler = red => -> $t { "==$t==" }
+say highlight("say 'hello world'", %color2handler);
+# say =="hello world"==
+
+=end code
+
+A slightly more complex way to use highlighting, is to supply a C<Map>
+that maps color names to handlers that will be called if a part of the
+source needs to be highlighted in that color.  The handler will be given
+the source to be highlighted: the handler is expected to return the properly
+highlighted text.
+
+If there is no handler for a given color name, then the original text will be
+produced.
+
+The mapping of C<hsyn> keys to color names is (by default) based on the
+syntax highlighting provided by C<vim>.  The following color names are
+recognized: C<black>, C<blue>, C<cyan>, C<green>, C<magenta>, C<none>,
+C<red>, C<yellow> and C<white>.
+
+=begin code :lang<raku>
+
+# show comments in green, and BEGIN in blue
+say highlight "say 'hello world'", %color2handler,
+  comments     => "green",
+  phaser-BEGIN => "blue"
+);
+
+=end code
+
+If the C<highlight> subroutine is called in this matter, it's also possible
+to specify tweaks in the mapping of C<hsyn> keys to color names by specifying
+one or more pairs with additional mappings or tweaks.
+
+=begin code :lang<raku>
+
+# show comments in green, and BEGIN in blue from pre-tweaked hash
+my constant %color-mapper = color-mapper(
+  comments     => "green",
+  phaser-BEGIN => "blue",
+);
+say highlight "say 'hello world'", %color2handler, %color-mapper);
+
+=end code
+
+Because creating the lookup hash with a given set of tweaks is relatively
+expensive, it's also possible to tweak this beforehand with the C<color-mapper>
+subroutine, and specify the resulting hash as the second positional argument.
+
+=begin code :lang<raku>
+
+# using custom roles
+role LiteralAsterisked {
+    multi method hsyn(literal, Str:D $t) { "**$t**" }
+}
+say highlight("say 'hello world'", LiteralAsterisked);
+# say **"hello world"**
+
+=end code
+
+To give complete control of the highlighting process, it is also possible
+to provide one or more roles as additional positional arguments to
+C<highlight>.  This allows one to create one or more C<hsyn> method
+candidates, each of which has complete freedom to do what is necessary.
 
 While deparsing a RakuAST tree of objects, the deparser will call a
 C<hsyn> method with a string identifier as the first argument, and the
@@ -413,188 +626,192 @@ information.  So e.g. a C<hsyn>  method that uses the C<invocant> subset, would
 receive "selbst" (as opposed to "self") as the second argument in a German
 localization.
 
-=head2 adverb-qs
+=item adverb-qs
 
 Adverbs on quoting constructs, e.g. C<to> in C<q:to/Foo/>.
 
-=head2 blocks
+=item blocks
 
 Statements that take blocks, e.g. C<if>, C<elsif>, C<with> etc.
 
-=head2 captures
+=item captures
 
 Capture variables, such as C<$0> and C<$<foo>>.
 
-=head2 comment
+=item comment
 
 An inline comment: anything after a C<#> on a line, including its preceding
 whitespace.
 
-=head2 constraints
+=item constraints
 
 A constraint indication such as C<where> in a C<subset> specfication.
 
-=head2 cores
+=item cores
 
 Any core subroutine / method, such as C<say>, C<put>, C<take>, etc.
 
-=head2 docs
+=item docs
 
 Any declarator documentation, aka the text after C<#|> or C<#=>.
 
-=head2 infixes
+=item infixes
 
 Any infix operator, such as C<+>, C<->, C<eq>, etc.
 
-=head2 invocant
+=item invocant
 
 The invocant, aka C<self>.
 
-=head2 label
+=item label
 
 Any label of a loop structure, including the C<:>.
 
-=head2 literal
+=item literal
 
 Any literal value, such as C<42>, C<"foo">, etc.
 
-=head2 markups
+=item markups
 
 The letters in markup in rakudoc.
 
-=head2 metas
+=item metas
 
 Meta operators, such as C<R> in C<Req>, C<!> in C<!(elem)>, C<Z> in C<Z,>, etc.
 
-=head2 modifiers
+=item modifiers
 
 Any conditional / loop modifier, such as postfix C<if>, C<while>, C<for> in
 constructs such as C<.say for ^10>.
 
-=head2 multis
+=item multis
 
 Dispatch scope indicator to C<sub> and C<method>: C<only>, C<proto>,
 C<multi> or C<anon>.
 
-=head2 nameds
+=item nameds
 
 The name part of named arguments.
 
-=head2 nqps
+=item nqps
 
 Any C<nqp::> function call, e.g. C<nqp::say>.
 
-=head2 packages
+=item packages
 
 Package declarators such as C<class>, C<grammar>, C<module>, etc.
 
-=head2 param
+=item param
 
 Any parameter in a signature.
 
-=head2 phasers
+=item phasers
 
 Phasers such as C<BEGIN>, C<CATCH>, C<ENTER>, C<LEAVE>, etc.
 
-=head2 pragmas
+=item pragmas
 
 The name part of pragmas such as C<use nqp>, C<no precompilation>, etc.
 
-=head2 postfixes
+=item postfixes
 
 Any postfix operator, such as C<++>, C<-->, etc.
 
-=head2 prefixes
+=item prefixes
 
 Any prefix operator, such as C<+>, C<->, C<so>, etc.
 
-=head2 rakudocs
+=item rakudocs
 
 Any RakuDoc element.
 
-=head2 routines
+=item routines
 
 Indicators of named code blocks, such as C<sub>, C<method>, C<token>, etc.
 
-=head2 quote-langs
+=item quote-langs
 
 Quoting language indicators, such as C<Q>, C<q>, C<qqx>, etc.
 
-=head2 scopes
+=item scopes
 
 Scope indicator: C<my>, C<our>, C<state>, C<has>.
 
-=head2 stmt-prefixes
+=item stmt-prefixes
 
 Statement prefix, such as C<do>, C<hyper>, C<lazy>, etc.
 
-=head2 stub
+=item stub
 
 A code stub: C<...>, C<!!!>, C<???>.
 
-=head2 systems
+=item systems
 
 Methods that have a special meaning in Raku, such as C<TWEAK>, C<BUILD>,
 C<DESTROY>, etc.
 
-=head2 ternary
+=item ternary
 
 The ternary operator: C<??> and C<!!>.
 
-=head2 traitmods
+=item traitmods
 
 Types of traitmods: C<is>, C<does>, C<returns>, C<handles>, etc.
 
-=head2 type
+=item type
 
 Any type specification, such as C<Int>, C<Str>.
 
-=head2 typers
+=item typers
 
 Statements that creat types, such as S<subset> and C<enum>.
 
-=head2 uses
+=item uses
 
 Use-like statements, such as C<use>, C<no>, C<need>, C<require>.
 
-=head2 vars
+=item vars
 
 Any variable.
 
-=head1 THEORY OF OPERATION
+=head2 color-mapper
 
-Syntax highlighting us based on first parsing the given code to RakuAST
-objects using the Raku grammar with a dedicated set of actions that B<also>
-process any inline comments.
+=begin code :lang<raku>
 
-The resulting RakuAST nodes are then deparsed with a subclass of the
-basic RakuAST deparsing class that takes the additional comments
-information and provides additional deparsing logic for the inline
-comments.
+# the default mapping logic
+my %default = color-mapper;
 
-The disadvantage of this approach, is that the format of the code may
-change, because deparsing has no knowledge of the original source code.
+# tweaked from named args
+my %tweaked = color-mapper(comment => "green");
 
-The advantages are:
+# tweaked from hash
+my %tweaks = comment => "green", literal => "cyan";
+my %tweaked = color-mapper(%tweaks);
 
-=item the code is sure to be syntactically correct
+=end code
 
-If the code doesn't parse, it cannot be highlighted.  This could be considered
-a disadvantage for use in editors and IDE's.  But that's not what this syntax
-highlighting is intended for.
+The C<color-mapper> subroutine either returns the default color mapper, or
+a tweaked version of the color mapper.  This can than be used as the third
+positional argument to C<highlight>, or as the second positional argument
+to C<hsyn-key2color>.
 
-=item much more information available
+Tweaking can be indicated by any number of named arguments, or a hash
+containing the tweaks.
 
-Because the syntax highlighting is based on a Abstract Syntax Tree, much
-more information is available to adapt highlighting to (instead of just on
-string matches.  This can e.g. be used in tooltips that have extra information
-and/or links to documentation in HTML.
+=head2 hsyn-key2color
 
-=item ready for localization
+=begin code :lang<raku>
 
-The syntax highlighting will also work on any localized version of the Raku
-Programming Language B<because> it is based on RakuAST, which is ignorant of
-the actual localization being used in the source code.
+say hsyn-key2color("phaser-BEGIN");            # magenta
+
+my constant %tweaked = color-mapper(phaser-BEGIN => "cyan");
+say hsyn-key2color("phaser-BEGIN", %tweaked);  # cyan
+
+=end code
+
+The C<hsyn-key2color> subroutine converts a given C<hsyn> key to the
+associated color.  If the second argument is omitted, then the default
+C<hsyn> key to color mapping will be assumed.
 
 =head1 STATUS
 

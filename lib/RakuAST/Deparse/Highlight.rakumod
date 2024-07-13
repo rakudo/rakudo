@@ -80,19 +80,20 @@ my class Actions is RakuActions {
     # unless it is indicated it should be kept.  If there is a comment at
     # that line, but not a full line comment, it will be ignored
     method whole-line-comment(uint $index, :$keep) {
-        my int $previous = @!eol[$index - 1];
-        if @!eol[$index] == $previous + 1 {
-            return "" but True;
-        }
-        orwith @!soc[$index] -> $soc {
-            # is it a whole line?
-            if $soc == $previous + 1 {
-                @!soc[$index] := Any unless $keep;
-                return $!source.substr($soc, @!eol[$index] - $soc);
-            }
-            elsif $soc == $previous {
-                @!soc[$index] := Any unless $keep;
+        with @!eol[$index - 1] -> $previous {
+            if @!eol[$index] == $previous + 1 {
                 return "" but True;
+            }
+            orwith @!soc[$index] -> $soc {
+                # is it a whole line?
+                if $soc == $previous + 1 {
+                    @!soc[$index] := Any unless $keep;
+                    return $!source.substr($soc, @!eol[$index] - $soc);
+                }
+                elsif $soc == $previous {
+                    @!soc[$index] := Any unless $keep;
+                    return "" but True;
+                }
             }
         }
         Nil

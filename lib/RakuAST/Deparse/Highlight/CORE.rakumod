@@ -10,6 +10,7 @@
 # type indications exist so far:
 #
 #   adverb-q-xxx        quoting language adverb ("to","val","x", etc.)
+#   arrow-xxx           syntax elements "->" and "-->"
 #   block-xxx           syntax with a block (if, elsif, loop, while, etc.)
 #   capture-xxx         match captures ($<foo>, $0)
 #   comment             any inline comment (only if activated)
@@ -40,7 +41,7 @@
 #   stub                any stub code (..., !!!, ???)
 #   system-xxx          system methods ("ACCEPTS","TWEAK", etc.)
 #   term-xxx            system terms ("time","pi","tau", etc.)
-#   ternary             ternary operator(??, !!)
+#   ternary-xxx         syntax elements for ernary operator ("??", "!!")
 #   trait-is-xxx        core supported "is" traits ("copy","export", etc.)
 #   traitmod-xxx        types of trait_mods ("is","does","returns", etc.)
 #   type                any type object

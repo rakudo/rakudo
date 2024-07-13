@@ -242,10 +242,10 @@ subset label              of Str:D where * eq 'label';
 subset literal            of Str:D where * eq 'literal';
 subset param              of Str:D where * eq 'param';
 subset stub               of Str:D where * eq 'stub';
-subset ternary            of Str:D where * eq 'ternary';
 subset type               of Str:D where * eq 'type';
 
 subset adverb-qs     of Str:D where *.starts-with("adverb-q-");
+subset arrows        of Str:D where *.starts-with("arrow-");
 subset blocks        of Str:D where *.starts-with("block-");
 subset captures      of Str:D where *.starts-with("capture-");
 subset constraints   of Str:D where *.starts-with("constraint-");
@@ -269,6 +269,7 @@ subset routines      of Str:D where *.starts-with("routine-");
 subset scopes        of Str:D where *.starts-with("scope-");
 subset stmt-prefixes of Str:D where *.starts-with("stmt-prefix-");
 subset systems       of Str:D where *.starts-with("system-");
+subset ternaries     of Str:D where *.starts-with("ternary-");
 subset trait-ises    of Str:D where *.starts-with("trait-is-");
 subset traitmods     of Str:D where *.starts-with("traitmod-");
 subset typers        of Str:D where *.starts-with("typer-");
@@ -310,6 +311,7 @@ my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
 
 my constant %default = <
   adverb-q-      red
+  arrow-         yellow
   block-         yellow
   capture-       cyan
   comment        blue
@@ -339,7 +341,7 @@ my constant %default = <
   stmt-prefix-   magenta
   stub           none
   system-        none
-  ternary        none
+  ternary-       yellow
   trait-is-      magenta
   traitmod-      magenta
   type           green
@@ -631,6 +633,10 @@ localization.
 
 Adverbs on quoting constructs, e.g. C<to> in C<q:to/Foo/>.
 
+=item arrows
+
+Syntax elements C«->» and C«-->».
+
 =item blocks
 
 Statements that take blocks, e.g. C<if>, C<elsif>, C<with> etc.
@@ -751,7 +757,7 @@ A code stub: C<...>, C<!!!>, C<???>.
 Methods that have a special meaning in Raku, such as C<TWEAK>, C<BUILD>,
 C<DESTROY>, etc.
 
-=item ternary
+=item ternaries
 
 The ternary operator: C<??> and C<!!>.
 

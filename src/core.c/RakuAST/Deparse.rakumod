@@ -1291,7 +1291,7 @@ CODE
 #- Po --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
-        my str @parts = '->';
+        my str @parts = self.hsyn('arrow-one', '->');
 
         my $signature := $ast.signature;
         my $WHY       := $ast.WHY;
@@ -1947,7 +1947,7 @@ CODE
         }
 
         with $ast.returns {
-            @parts.push('-->');
+            @parts.push(self.hsyn('arrow-two', '-->'));
             @parts.push(self.deparse($_));
         }
 
@@ -2438,7 +2438,7 @@ CODE
         my str @parts =
           self.deparse($ast.condition),
           $indent,
-          self.hsyn('ternary', $.ternary1);
+          self.hsyn('ternary-one', $.ternary1);
 
         # helper sub for a ternary part
         sub deparse-part($node --> Nil) {
@@ -2454,7 +2454,7 @@ CODE
 
         deparse-part($then);
         @parts.push($indent);
-        @parts.push(self.hsyn('ternary', $.ternary2));
+        @parts.push(self.hsyn('ternary-two', $.ternary2));
         deparse-part($else);
 
         @parts.join
@@ -2531,7 +2531,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
-        self.deparse($ast.name)
+        self.hsyn('type', self.deparse($ast.name))
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {

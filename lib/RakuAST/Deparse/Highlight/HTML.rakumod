@@ -1,17 +1,17 @@
 # This file contains that HTML highlighting logic Raku Programming Language
 # syntax features.
-#
-# Please check the lib/RakuAST/Deparse/Highlight/CORE.rakumod module
-# for an overview of the types that can be expected.
 
-unit role RakuAST::Deparse::Highlight::HTML;
+use RakuAST::Deparse::Highlight;
 
-# Implement basic HTML highlighting by embedding the given type and
-# content varbatim.  If this proves to provide too much information,
-# any logic inside "hsyn" method in another role can be used to
-# provide a simpler subset of classes inside the <span> container.
-method hsyn(str $type, str $content) {
-    qq|<span class="raku-$type">$content\</span>|
+role RakuAST::Deparse::Highlight::HTML {
+    method hsyn(str $key, str $content) {
+        if hsyn-key2color($key) -> $color {
+            qq|<span style="color:$color;">$content\</span>|
+        }
+        else {
+            $content
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4

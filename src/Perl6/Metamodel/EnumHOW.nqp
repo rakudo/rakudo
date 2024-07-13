@@ -81,6 +81,12 @@ class Perl6::Metamodel::EnumHOW
         self.set_base_type($target, $parent);
     }
 
+    sub WHICH($value) {
+        nqp::can($value,'WHICH')
+          ?? $value.WHICH
+          !! nqp::stringify($value)
+    }
+
     method add_enum_value($XXX, $pair) {
         self.protect({
             my %values          := nqp::clone(%!values);
@@ -88,7 +94,7 @@ class Perl6::Metamodel::EnumHOW
             my @enum_value_list := nqp::clone(@!enum_value_list);
 
             nqp::bindkey(%values, nqp::decont_s($pair.key), $pair.value);
-            nqp::bindkey(%seulav, nqp::stringify($pair.value), $pair);
+            nqp::bindkey(%seulav, WHICH($pair.value), $pair);
             nqp::push(@enum_value_list, $pair);
 
             %!values          := %values;
@@ -104,7 +110,7 @@ class Perl6::Metamodel::EnumHOW
     method elems($XXX?) { nqp::elems(%!values) }
 
     method enum_from_value($XXX, $value) {
-        nqp::atkey(%!seulav, nqp::stringify($value))
+        nqp::atkey(%!seulav, WHICH($value))
     }
 
     method compose($target, :$compiler_services) {

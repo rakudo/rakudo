@@ -18,6 +18,8 @@ my %provides =
     "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
     "RakuAST::Deparse::Highlight"
       => "lib/RakuAST/Deparse/Highlight.rakumod",
+    "RakuAST::Deparse::Highlight::Text"
+      => "lib/RakuAST/Deparse/Highlight/Text.rakumod",
     "RakuAST::Deparse::Highlight::HTML"
       => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
 ;

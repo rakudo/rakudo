@@ -26,6 +26,7 @@ my class Actions is RakuActions {
     method !check-source(Mu $/) {
         unless $!source {
             my @eol = ($!source = $/.orig).indices("\n");
+            @eol.push($!source.chars) unless @eol;
             @eol.unshift(-1);
             @!eol := @eol.List;
         }
@@ -38,6 +39,20 @@ my class Actions is RakuActions {
             my int $index = @!eol[$i];
             @!soc[$i + 1] = $index if @!eol[$i + 1] == $index + 1;
         }
+    }
+
+    # Get any preamble (which does not create any AST objects)
+    method lang-setup(Mu $/) {
+        self!check-source($/);
+
+        # Treat all lines in preamble as comment for now
+        if ~$/ -> str $preamble {
+            @!soc[1] = 0;
+            for $preamble.indices("\n").head(*-2).kv -> uint $i, uint $index {
+                @!soc[$i + 2] = $index + 1;
+            }
+        }
+        nextsame;
     }
 
     # Handle a comment in the source
@@ -211,7 +226,15 @@ my class Deparse is RakuDEPARSE {
 
                 # Add any full line comments preceding the first line
                 if $actions.comments-preceding($first-line) -> $preceding {
-                    @parts.unshift(self.hsyn('comment', $preceding));
+                    @parts.unshift(
+                      self.hsyn(
+                        'comment',
+                        $preceding.subst(/ ("use" \s+) ("v" \S+) /, {
+                            self.hsyn('use-use', ~$0)
+                              ~ self.hsyn('version', ~$1)
+                        })
+                      )
+                    );
                 }
 
                 # Add any full line comments after this line

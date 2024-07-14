@@ -265,6 +265,7 @@ subset label              of Str:D where * eq 'label';
 subset literal            of Str:D where * eq 'literal';
 subset param              of Str:D where * eq 'param';
 subset stub               of Str:D where * eq 'stub';
+subset version            of Str:D where * eq 'version';
 
 subset adverb-qs     of Str:D where *.starts-with("adverb-q-");
 subset arrows        of Str:D where *.starts-with("arrow-");
@@ -373,6 +374,7 @@ my constant %default = <
   typer-         yellow
   use-           magenta
   var-           cyan
+  version        red
 >;
 
 my multi sub highlight(Str:D $source, %sub-mapper, *%_) {
@@ -809,6 +811,10 @@ Use-like statements, such as C<use>, C<no>, C<need>, C<require>.
 =item vars
 
 Any variable.
+
+=item version
+
+Any version literal.
 
 =head2 color-mapper
 

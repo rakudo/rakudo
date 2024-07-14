@@ -58,6 +58,7 @@
 #   var-rakudoc         rakudoc var ($=pod, $=data)
 #   var-setting         setting var (&sum, ...)
 #   var-term            lexical term (\foo)
+#   version             a version literal
 #
 # If you call the .DEPARSE method with a role compatible with this role,
 # it will automatically mix it in with the default RakuAST::Deparse class.

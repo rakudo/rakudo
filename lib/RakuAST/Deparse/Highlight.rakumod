@@ -7,7 +7,7 @@ my constant RakuGrammar = nqp::gethllsym('Raku','Grammar');
 my constant RakuActions = nqp::gethllsym('Raku','Actions');
 my constant RakuDEPARSE = nqp::gethllsym('Raku','DEPARSE');
 
-# Helper subs< perhaps this should become more general
+# Helper subs (perhaps this should become more general)
 multi sub postcircumfix:<{ }>(RakuGrammar:D $/, Str:D $key) {
     $/.hash.AT-KEY($key)
 }
@@ -45,11 +45,13 @@ my class Actions is RakuActions {
     method lang-setup(Mu $/) {
         self!check-source($/);
 
-        # Treat all lines in preamble as comment for now
+        # Treat all lines in preamble as comment for now if there is any code
         if ~$/ -> str $preamble {
-            @!soc[1] = 0;
-            for $preamble.indices("\n").head(*-2).kv -> uint $i, uint $index {
-                @!soc[$i + 2] = $index + 1;
+            if $preamble ne $!source {
+                @!soc[1] = 0;
+                for $preamble.indices("\n").head(*-2).kv -> uint $i, uint $pos {
+                    @!soc[$i + 2] = $pos + 1;
+                }
             }
         }
         nextsame;
@@ -219,30 +221,34 @@ my class Deparse is RakuDEPARSE {
                 # Split what we produced in lines so we can add any comments
                 @parts = @parts.join.split("\n");
 
-                # Add any comment on first line
-                if $actions.comment($first-line) -> $comment {
-                    @parts[0] ~= self.hsyn('comment',$comment);
-                }
+                # RakuDoc never has comments
+                unless $statement ~~ RakuAST::Doc::Block {
 
-                # Add any full line comments preceding the first line
-                if $actions.comments-preceding($first-line) -> $preceding {
-                    @parts.unshift(
-                      self.hsyn(
-                        'comment',
-                        $preceding.subst(/ ("use" \s+) ("v" \S+) /, {
-                            self.hsyn('use-use', ~$0)
-                              ~ self.hsyn('version', ~$1)
-                        })
-                      )
-                    );
-                }
+                    # Add any comment on first line
+                    if $actions.comment($first-line) -> $comment {
+                        @parts[0] ~= self.hsyn('comment',$comment);
+                    }
 
-                # Add any full line comments after this line
-                if $last-line > $first-line
-                  && $actions.comments-following($first-line) -> $following {
-                    @parts.pop if (my $empty := !@parts.tail);
-                    @parts.push(self.hsyn('comment', $following));
-                    @parts.push("") if $empty;
+                    # Add any full line comments preceding the first line
+                    if $actions.comments-preceding($first-line) -> $preceding {
+                        @parts.unshift(
+                          self.hsyn(
+                            'comment',
+                            $preceding.subst(/ ("use" \s+) ("v" \S+) /, {
+                                self.hsyn('use-use', ~$0)
+                                  ~ self.hsyn('version', ~$1)
+                            })
+                          )
+                        );
+                    }
+
+                    # Add any full line comments after this line
+                    if $last-line > $first-line
+                      && $actions.comments-following($first-line) -> $following {
+                        @parts.pop if (my $empty := !@parts.tail);
+                        @parts.push(self.hsyn('comment', $following));
+                        @parts.push("") if $empty;
+                    }
                 }
 
                 @outer.push(@parts.join("\n"));

@@ -1186,7 +1186,7 @@ CODE
             }
         }
 
-        if $ast.type-captures -> @captures {
+        if @captures {
             @parts.push(self.deparse($_)) for @captures;
         }
         elsif $target {
@@ -1243,6 +1243,9 @@ CODE
         }
         elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
             @parts.push(self.deparse($ast.slurpy));
+        }
+        elsif $ast.invocant {  # just a type without target
+            @parts.push(':');
         }
 
         @parts = self.hsyn('param', @parts.join);

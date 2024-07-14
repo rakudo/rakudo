@@ -3352,26 +3352,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*CU.replace-finish-content(~$<finish>) if $*CU;
     }
 
+    method doc-origin($/, $node) {
+        self.SET-NODE-ORIGIN: $/, $*SEEN{$/.from} := $node;
+    }
+
     method doc-block:sym<alias>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-
-        my @paragraphs := nqp::list(~$<first>);
-        if $<line> {
-            for $<line> {
-                nqp::push(@paragraphs,~$_);
+        unless $*FROM-SEEN{$/.from}++ {
+            my @paragraphs := nqp::list(~$<first>);
+            if $<line> {
+                for $<line> {
+                    nqp::push(@paragraphs,~$_);
+                }
             }
-        }
 
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-alias:
-          :directive, :margin(~$<margin>), :type<alias>,
-          :lemma(~$<lemma>), :@paragraphs
+            self.doc-origin: $/, Nodify('Doc','Block').from-alias:
+              :directive, :margin(~$<margin>), :type<alias>,
+              :lemma(~$<lemma>), :@paragraphs
+        }
     }
 
     method doc-block:sym<column>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<column>,
               :config(self.extract-config($/))
         }
@@ -3379,7 +3381,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<row>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<row>,
               :config(self.extract-config($/))
         }
@@ -3387,7 +3389,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<place>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<place>,
               :config(self.extract-config($/))
         }
@@ -3396,7 +3398,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method doc-block:sym<formula>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             my @paragraphs := nqp::list(~$<formula>);
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :abbreviated, :margin(~$<margin>), :type<formula>,
               :config(self.extract-config($/)), :@paragraphs
         }
@@ -3404,93 +3406,86 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').from-config:
+            self.doc-origin: $/, Nodify('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<config>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
         }
     }
 
     method doc-block:sym<verbatim>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
         }
-
-        my $config := self.extract-config($/);
-
-        my @paragraphs;
-        if $<lines> {
-            my $text := ~$<lines>;
-            nqp::push(@paragraphs,$text) if $text;
-        }
-
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
     }
 
     method doc-block:sym<begin>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-        my $SEEN := $*SEEN;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $SEEN := $*SEEN;
 
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
 
-        my @paragraphs;
-        if $<doc-content> {
-            for $<doc-content> {
-                my $from := ~$_.from;
-                if nqp::existskey($SEEN,$from) {
-                    nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
-                    nqp::deletekey($SEEN,$from);
-                }
-                else {
-                    my $text := ~$_;
-                    nqp::push(@paragraphs,$text) if $text;
+            my @paragraphs;
+            if $<doc-content> {
+                for $<doc-content> {
+                    my $from := ~$_.from;
+                    if nqp::existskey($SEEN,$from) {
+                        nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
+                        nqp::deletekey($SEEN,$from);
+                    }
+                    else {
+                        my $text := ~$_;
+                        nqp::push(@paragraphs,$text) if $text;
+                    }
                 }
             }
-        }
 
-        $SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
+        }
     }
 
     method doc-block:sym<for>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
 
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
-
-        my @paragraphs;
-        if $<lines> {
-            my $text := ~$<lines>;
-            nqp::push(@paragraphs,$text) if $text;
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
         }
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<abbreviated>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
+
+            my @paragraphs;
+            my $text := ($<header> ?? $<margin> ~ $<header> !! "")
+              ~ ($<lines> ?? ~$<lines> !! "");
+            @paragraphs := nqp::list($text) if $text;
+
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
+              :@paragraphs;
         }
-
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
-
-        my @paragraphs;
-        my $text := ($<header> ?? $<margin> ~ $<header> !! "")
-          ~ ($<lines> ?? ~$<lines> !! "");
-        @paragraphs := nqp::list($text) if $text;
-
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
-          :@paragraphs;
     }
 }
 

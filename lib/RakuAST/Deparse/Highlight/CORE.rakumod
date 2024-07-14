@@ -37,6 +37,7 @@
 #   rakudoc-xxx         types of rakudoc (type,config,verbatim,table,content)
 #   routine-xxx         named code blocks (sub, method, submethod, ...)
 #   scope-xxx           scope xxx (my, our, state, ...)
+#   smiley-xxx          type-smiley indicator
 #   stmt-prefix-xxx     statement prefixes ("do","eager","lazy", etc.)
 #   stub                any stub code (..., !!!, ???)
 #   system-xxx          system methods ("ACCEPTS","TWEAK", etc.)
@@ -44,7 +45,7 @@
 #   ternary-xxx         syntax elements for ernary operator ("??", "!!")
 #   trait-is-xxx        core supported "is" traits ("copy","export", etc.)
 #   traitmod-xxx        types of trait_mods ("is","does","returns", etc.)
-#   type                any type object
+#   type-xxx            any type object
 #   typer-xxx           syntax for creating types ("enum", "subset")
 #   use-xxx             module loading related ("use","require", etc.)
 #   var-attribute       any type of attribute variable ($.foo, $!foo)

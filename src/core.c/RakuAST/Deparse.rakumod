@@ -2492,12 +2492,15 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        my str $name = self.deparse($ast.base-type.name);
-        $ast.through-pragma
+        my str $name   = self.deparse($ast.base-type.name);
+        my str $smiley = $ast.definite ?? 'D' !! 'U';
+
+        self.hsyn("type-$name", $ast.through-pragma
           ?? $name eq 'Any'
             ?? ''
             !! $name
-          !! $name ~ ($ast.definite ?? ':D' !! ':U')
+          !! $name ~ self.hsyn("smiley-$smiley", ":$smiley")
+        )
     }
 
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {

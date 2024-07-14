@@ -35,7 +35,9 @@ class RakuAST::Signature
         self.IMPL-WRAP-LIST($!parameters // [])
     }
     method parameters-initialized() {
-        nqp::isconcrete($!parameters) ?? True !! False
+        nqp::isconcrete($!parameters) || nqp::isconcrete($!returns)
+          ?? True
+          !! False
     }
 
     method attach(RakuAST::Resolver $resolver) {

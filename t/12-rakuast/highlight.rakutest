@@ -1,0 +1,79 @@
+use v6.e.PREVIEW;
+use Test;
+
+use RakuAST::Deparse::Highlight;
+
+plan 3;
+
+sub mapper(str $color, str $c) {
+    $c.trim ?? "<$color>$c\</$color>" !! $c
+}
+
+my %mapping =
+  black     => -> $c { mapper "black",   $c },
+  blue      => -> $c { mapper "blue",    $c },
+  cyan      => -> $c { mapper "cyan",    $c },
+  green     => -> $c { mapper "green",   $c },
+  magenta   => -> $c { mapper "magenta", $c },
+  none      => -> $c { mapper "none",    $c },
+  red       => -> $c { mapper "red",     $c },
+  yellow    => -> $c { mapper "yellow",  $c },
+  white     => -> $c { mapper "white",   $c },
+;
+
+sub is-highlighted(
+  str $got,
+  str $expected,
+  str $comment,
+     :$unsafe
+) is test-assertion {
+    diag highlight($got, "Text")
+      unless is highlight($got, %mapping, :$unsafe), $expected, $comment;
+}
+
+my str $src = Q:to/CODE/;
+use v6.d;  # fixate language version
+use Test;  # standard test library
+
+pass "it's all ok";
+
+CODE
+
+dies-ok { highlight($src) }, 'use not allowed';
+
+is-highlighted $src, Q:to/HIGHLIGHTED/, 'use and pass', :unsafe;
+<magenta>use</magenta> <red>v6.d</red>;<blue>  # fixate language version</blue>
+<magenta>use</magenta> Test;<blue>  # standard test library</blue>
+
+<yellow>pass</yellow> <red>"it's all ok"</red>
+HIGHLIGHTED
+
+$src = Q:to/CODE/;
+# The key to proper frobnication!
+my class Frobnicate {
+    has Str $.foo;
+    has Int $.bar;
+
+    method zippo() { so $!foo + $!bar }
+}
+
+my Frobnicate $a .= new;
+CODE
+
+is-highlighted $src, Q:to/HIGHLIGHTED/, 'class and attributes';
+<blue># The key to proper frobnication!</blue>
+<magenta>my</magenta> <yellow>class</yellow> Frobnicate {
+    <magenta>has</magenta> <green>Str</green> <cyan>$.foo</cyan>;
+    <magenta>has</magenta> <green>Int</green> <cyan>$.bar</cyan>;
+
+    <yellow>method</yellow> zippo {
+
+        <yellow><yellow>so</yellow> </yellow><cyan>$!foo</cyan> <yellow>+</yellow> <cyan>$!bar</cyan>
+    }
+}
+
+
+<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>
+HIGHLIGHTED
+
+# vim: expandtab shiftwidth=4

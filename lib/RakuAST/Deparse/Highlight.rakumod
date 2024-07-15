@@ -15,45 +15,69 @@ multi sub prefix:<~>(RakuGrammar:D $/) {
     $/.Str
 }
 
+#- RakuAST::LanguageVersion ----------------------------------------------------
+# A dummy class to give a language version specification (e.g. use v6.d)
+# a place in the statement list, so it can be properly deparsed later
+
+my class RakuAST::LanguageVersion is RakuAST::Node {
+    has Version $.version is built(:bind);
+
+    method new(Version:D $version) { self.bless: :$version }
+
+    method raku() { self.^name ~ ".new($!version.gist())" }
+}
+
 #- Actions ---------------------------------------------------------------------
 my class Actions is RakuActions {
     has str $.source;  # source being parsed, type object if no comments seen
+    has     $!version; # language version seen
     has     @.eol;     # indices of line endings
     has     @.soc;     # indices of start of comment on associated line endings
     has     %!seen;    # lookup hash to prevent double registrations
 
-    # Return the source being parsed, and vivifies structures on first call
-    method !check-source(Mu $/) {
-        unless $!source {
-            my @eol = ($!source = $/.orig).indices("\n");
-            @eol.push($!source.chars) unless @eol;
-            @eol.unshift(-1);
-            @!eol := @eol.List;
-        }
-        $!source
-    }
-
-    # Mark empty lines as being comments for a better deparsing experience
-    method commentize-empty-lines() {
-        for ^@!eol.end -> uint $i {
-            my int $index = @!eol[$i];
-            @!soc[$i + 1] = $index if @!eol[$i + 1] == $index + 1;
-        }
-    }
-
-    # Get any preamble (which does not create any AST objects)
+    # Get any version specification to be added later
     method lang-setup(Mu $/) {
-        self!check-source($/);
 
-        # Treat all lines in preamble as comment for now if there is any code
-        if ~$/ -> str $preamble {
-            if $preamble ne $!source {
-                @!soc[1] = 0;
-                for $preamble.indices("\n").head(*-2).kv -> uint $i, uint $pos {
-                    @!soc[$i + 2] = $pos + 1;
-                }
-            }
+        # Appear to have a language version specification, safe it for later
+        with $<version> {
+            self.SET-NODE-ORIGIN(
+              $_,
+              $!version := RakuAST::LanguageVersion.new((~$_).substr(1).Version)
+            );
         }
+        nextsame;
+    }
+
+    # Tweak compunit handling by inserting any language version in place
+    method comp-unit(Mu $/) {
+        use nqp;   # sadly we need to be naughty here, at least for now
+
+        # We appear to have a language version specification.  Add our
+        # dummy object as the first element after any Doc::Blocks.  The
+        # reasoning is: if there was code before any Doc::Blocks, it will
+        # be inserted before the code.  In a file where there are only
+        # Doc::Blocks before any code, the most logical place is after
+        # those Doc::Blocks and before any code there.
+        if $!version -> $version {
+            my $statements := nqp::getattr(
+              $<statementlist>.ast.statements, List, '$!reified'
+            );
+            my uint $elems = nqp::elems($statements);
+            my uint $i;
+            nqp::while(
+              $elems && $i < $elems,
+              nqp::if(
+                nqp::istype(nqp::atpos($statements,$i),RakuAST::Doc::Block),
+                ++$i,
+                nqp::stmts(
+                  nqp::splice($statements,nqp::list($version),$i,0),
+                  $elems = 0
+                )
+              )
+            );
+            nqp::push($statements,$version) if $elems;
+        }
+
         nextsame;
     }
 
@@ -78,6 +102,25 @@ my class Actions is RakuActions {
 
             # Associate the comment with the correct line
             @!soc[@!eol.first($to, :k)] = $from;
+        }
+    }
+
+    # Return the source being parsed, and vivifies structures on first call
+    method !check-source(Mu $/) {
+        unless $!source {
+            my @eol = ($!source = $/.orig).indices("\n");
+            @eol.push($!source.chars) unless @eol;
+            @eol.unshift(-1);
+            @!eol := @eol.List;
+        }
+        $!source
+    }
+
+    # Mark empty lines as being comments for a better deparsing experience
+    method commentize-empty-lines() {
+        for ^@!eol.end -> uint $i {
+            my int $index = @!eol[$i];
+            @!soc[$i + 1] = $index if @!eol[$i + 1] == $index + 1;
         }
     }
 
@@ -231,15 +274,7 @@ my class Deparse is RakuDEPARSE {
 
                     # Add any full line comments preceding the first line
                     if $actions.comments-preceding($first-line) -> $preceding {
-                        @parts.unshift(
-                          self.hsyn(
-                            'comment',
-                            $preceding.subst(/ ("use" \s+) ("v" \S+) /, {
-                                self.hsyn('use-use', ~$0)
-                                  ~ self.hsyn('version', ~$1)
-                            })
-                          )
-                        );
+                        @parts.unshift(self.hsyn('comment',$preceding));
                     }
 
                     # Add any full line comments after this line
@@ -260,6 +295,14 @@ my class Deparse is RakuDEPARSE {
         else {
             ''
         }
+    }
+
+    # Adds deparsing logic for our special language version handling
+    multi method deparse(RakuAST::LanguageVersion:D $ast --> Str:D) {
+        self.hsyn('use-use', self.xsyn('use', 'use'))
+         ~ ' '
+         ~ self.hsyn('version', $ast.version.gist)
+         ~ ";\n"
     }
 }
 

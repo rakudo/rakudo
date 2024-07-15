@@ -7,6 +7,8 @@ my constant RakuGrammar = nqp::gethllsym('Raku','Grammar');
 my constant RakuActions = nqp::gethllsym('Raku','Actions');
 my constant RakuDEPARSE = nqp::gethllsym('Raku','DEPARSE');
 
+my constant cleaner = / <-[-]>+ $/;
+
 # Helper subs (perhaps this should become more general)
 multi sub postcircumfix:<{ }>(RakuGrammar:D $/, Str:D $key) {
     $/.hash.AT-KEY($key)
@@ -425,7 +427,7 @@ my multi sub highlight(Str:D $source, %sub-mapper, %color-mapper, :$unsafe) {
     my role ColorMapper {
         method hsyn(Str:D $key, Str:D $content) {
             if %color-mapper{$key}
-              // %color-mapper{$key.subst(/ \w+ $/)} -> $color {
+              // %color-mapper{$key.subst(cleaner)} -> $color {
                 if %sub-mapper{$color} -> &highlighter {
                     highlighter $content
                 }
@@ -457,10 +459,10 @@ my multi sub color-mapper(%_) {
 
 my proto sub hsyn-key2color(|) is export {*}
 my multi sub hsyn-key2color(Str:D $key) {
-    %default{$key} // %default{$key.subst(/ \w+ $/)}
+    %default{$key} // %default{$key.subst(cleaner)}
 }
 my multi sub hsyn-key2color(Str:D $key, %color-mapper) {
-    %color-mapper{$key} // %color-mapper{$key.subst(/ \w+ $/)}
+    %color-mapper{$key} // %color-mapper{$key.subst(cleaner)}
 }
 
 #-------------------------------------------------------------------------------

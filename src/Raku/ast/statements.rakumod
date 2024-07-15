@@ -239,6 +239,9 @@ class RakuAST::StatementList
     method add-doc-block(RakuAST::Statement $doc-block) {
         nqp::push($!statements, $doc-block);
     }
+    method insert-doc-block(int $i, RakuAST::Node $block) {
+        nqp::splice($!statements,nqp::list($block),$i,0);
+    }
     method add-statement(RakuAST::Statement $statement) {
         nqp::push(     $!statements, $statement);
         nqp::push($!code-statements, $statement);

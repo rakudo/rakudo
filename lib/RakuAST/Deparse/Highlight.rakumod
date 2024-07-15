@@ -50,7 +50,6 @@ my class Actions is RakuActions {
 
     # Tweak compunit handling by inserting any language version in place
     method comp-unit(Mu $/) {
-        use nqp;   # sadly we need to be naughty here, at least for now
 
         # We appear to have a language version specification.  Add our
         # dummy object as the first element after any Doc::Blocks.  The
@@ -59,23 +58,13 @@ my class Actions is RakuActions {
         # Doc::Blocks before any code, the most logical place is after
         # those Doc::Blocks and before any code there.
         if $!version -> $version {
-            my $statements := nqp::getattr(
-              $<statementlist>.ast.statements, List, '$!reified'
-            );
-            my uint $elems = nqp::elems($statements);
-            my uint $i;
-            nqp::while(
-              $elems && $i < $elems,
-              nqp::if(
-                nqp::istype(nqp::atpos($statements,$i),RakuAST::Doc::Block),
-                ++$i,
-                nqp::stmts(
-                  nqp::splice($statements,nqp::list($version),$i,0),
-                  $elems = 0
-                )
-              )
-            );
-            nqp::push($statements,$version) if $elems;
+            my $stmt-list :=  $<statementlist>.ast;
+            with $stmt-list.statements.first(!(* ~~ RakuAST::Doc::Block), :k) {
+                $stmt-list.insert-doc-block($_, $version);
+            }
+            else {
+                $stmt-list.add-doc-block($version);
+            }
         }
 
         nextsame;

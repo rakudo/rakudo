@@ -533,8 +533,9 @@ CODE
         self.hsyn("traitmod-$trait", self.xsyn('traitmod', $trait))
     }
 
-    method syn-type($type) {
-        self.hsyn('type', self.deparse($type))   # XXX is this correct?
+    method syn-type($ast) {
+        my str $name = self.deparse($ast.name);
+        self.hsyn("type-$name", $name)
     }
 
     method syn-typer($typer) {
@@ -1015,7 +1016,7 @@ CODE
 
     multi method deparse(RakuAST::Initializer::CallAssign:D $ast --> Str:D) {
         self.syn-infix-ws($.dotty-infix-call-assign)
-          ~ self.deparse($ast.postfixish).substr(1)
+          ~ self.deparse($ast.postfixish).subst('.')  # YUCK
     }
 
 #- L ---------------------------------------------------------------------------
@@ -2537,7 +2538,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
-        self.hsyn('type', self.deparse($ast.name))
+        self.syn-type($ast)
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {

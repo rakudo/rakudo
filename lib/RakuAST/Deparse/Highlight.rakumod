@@ -201,9 +201,19 @@ my class SafeActions is Actions {
     }
 
     method statement-control:sym<use>(Mu $/) {
-        RakuAST::Pragma.IS-PRAGMA($/.pragma2str(~$<module-name>))
-          ?? (nextsame)
-          !! $/.typed-panic("X::NotAllowedHighlighting", :what("module loading"));
+        my str $name = ~<$module-name>;
+        if RakuAST::Pragma.IS-PRAGMA($/.pragma2str($name)) {
+            ($name eq 'nqp' | 'MONKEY' | 'MONKEY-GUTS')
+              ?? $/.typed-panic(
+                   "X::NotAllowedHighlighting", :what("use $name")
+                 )
+              !! (nextsame);
+        }
+        else {
+            $/.typed-panic(
+              "X::NotAllowedHighlighting", :what("module loading")
+            );
+        }
     }
 }
 

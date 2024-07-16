@@ -201,8 +201,8 @@ my class SafeActions is Actions {
     }
 
     method statement-control:sym<use>(Mu $/) {
-        my str $name = ~<$module-name>;
-        if RakuAST::Pragma.IS-PRAGMA($/.pragma2str($name)) {
+        my str $name = ~$<module-name>;
+        if RakuAST::Pragma.IS-PRAGMA($name) {
             ($name eq 'nqp' | 'MONKEY' | 'MONKEY-GUTS')
               ?? $/.typed-panic(
                    "X::NotAllowedHighlighting", :what("use $name")
@@ -300,7 +300,7 @@ my class Deparse is RakuDEPARSE {
 
     # Adds deparsing logic for our special language version handling
     multi method deparse(RakuAST::LanguageVersion:D $ast --> Str:D) {
-        self.hsyn('use-use', self.xsyn('use', 'use'))
+        self.hsyn('pragma-use', self.xsyn('use', 'use'))
          ~ ' '
          ~ self.hsyn('version', $ast.version.gist)
          ~ ";\n"
@@ -407,7 +407,7 @@ my constant %default = <
   param          cyan
   phaser-        magenta
   postfix-       yellow
-  pragma-        magenta
+  pragma-        green
   prefix-        yellow
   quote-lang-    red
   rakudoc-       yellow

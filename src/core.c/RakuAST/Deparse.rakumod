@@ -1163,11 +1163,9 @@ CODE
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
         my str $pragma = $ast.name;
         my str $no     = $ast.off ?? "no" !! "use";
-        my str @parts =
-          self.hsyn("use-$no", self.xsyn('use', $no)),
-          self.hsyn("pragma-$pragma", self.xsyn('pragma', $pragma));
+        my str @parts  = self.xsyn('use', $no), self.xsyn('pragma', $pragma);
         @parts.push(self.deparse($_)) with $ast.argument;
-        @parts.join(' ') ~ $*DELIMITER
+        self.hsyn("pragma-$pragma", @parts.join(' ')) ~ $*DELIMITER
     }
 
 #- Parameter -------------------------------------------------------------------

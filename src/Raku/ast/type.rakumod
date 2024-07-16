@@ -250,6 +250,14 @@ class RakuAST::Type::Definedness
         $obj
     }
 
+    method name() {
+        my str $name := self.base-type.name.canonicalize;
+        RakuAST::Name.from-identifier:
+          $!through-pragma
+            ?? $name
+            !! $name ~ ($!definite ?? ':D' !! ':U')
+    }
+
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::DefiniteHOW.new_type(
             :base_type(self.base-type.compile-time-value),

@@ -2568,6 +2568,10 @@ CODE
         self.hsyn('var-attribute', $ast.name)
     }
 
+    multi method deparse(RakuAST::Var::Attribute::Public:D $ast --> Str:D) {
+        self.hsyn('var-public', $ast.name)
+    }
+
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
         self.hsyn('var-compile',$.var-compiler-file)
     }

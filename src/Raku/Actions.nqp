@@ -1878,6 +1878,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $twigil eq '!' {
             $ast := Nodify('Var','Attribute').new($name);
         }
+        elsif $twigil eq '.' {
+            $ast := Nodify('Var','Attribute','Public').new($name);
+        }
         elsif $twigil eq '?' {
             my $origin-source := $*ORIGIN-SOURCE;
             $ast := $name eq '$?FILE'
@@ -1916,28 +1919,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             else {
                 nqp::die("Pod variable $name NYI");
             }
-        }
-        elsif $twigil eq '.' {
-
-            # self.foo.item
-            $ast := Nodify('ApplyPostfix').new(
-              operand => Nodify('ApplyPostfix').new(
-                operand => Nodify('Term','Self').new,
-                postfix => Nodify('Call','Method').new(
-                  name => $desigilname,
-                  args => ($<arglist>
-                            ?? $<arglist>.ast
-                            !! Nodify('ArgList').new
-                          )
-                )
-              ),
-              postfix => Nodify('Call','Method').new(
-                name => Nodify('Name').from-identifier(
-                          nqp::lc(sigil-to-context($sigil))
-                        ),
-                args => Nodify('ArgList').new
-              )
-            );
         }
         elsif $twigil eq '~' {
             my $name := $desigilname.canonicalize;

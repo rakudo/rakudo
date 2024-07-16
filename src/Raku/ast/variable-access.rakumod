@@ -209,7 +209,7 @@ class RakuAST::Var::Dynamic
     }
 }
 
-# An attribute access (e.g. $!foo).
+# A (private) attribute access (e.g. $!foo).
 class RakuAST::Var::Attribute
   is RakuAST::Var
   is RakuAST::ImplicitLookups
@@ -297,6 +297,54 @@ class RakuAST::Var::Attribute
             ),
             $source-qast
         )
+    }
+}
+
+# Wrapper for $.foo "attribute" accesses
+class RakuAST::Var::Attribute::Public
+  is RakuAST::Node
+{
+    has str                   $.name;
+    has RakuAST::ApplyPostfix $!expression;
+
+    method new(str $name) {
+        my str $sigil := nqp::substr($name,0,1);
+
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Attribute::Public, '$!name', $name);
+        nqp::bindattr(  $obj, RakuAST::Var::Attribute::Public, '$!expression',
+          # self.foo.item
+          RakuAST::ApplyPostfix.new(
+            operand => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Term::Self.new,
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier(nqp::substr($name,2))
+              )
+            ),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier(
+                $sigil eq '@' ?? 'list' !! $sigil eq '%' ?? 'hash' !! 'item'
+              )
+            )
+          )
+        );
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expression);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!expression.IMPL-TO-QAST($context)
+    }
+
+    method IMPL-CURRIED() {
+        $!expression.IMPL-CURRIED()
+    }
+
+    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
+        $!expression.IMPL-ADJUST-QAST-FOR-LVALUE($qast)
     }
 }
 

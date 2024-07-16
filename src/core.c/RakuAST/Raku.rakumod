@@ -1197,6 +1197,10 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
+    multi method raku(RakuAST::Var::Attribute::Public:D: --> Str:D) {
+        self!positional(self.name)
+    }
+
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
         self!positional(self.file)
     }

@@ -52,12 +52,12 @@ subtest 'chr with large codepoints throws useful error' => {
     }
 }
 
-# https://colabti.org/irclogger/irclogger_log/perl6?date=2017-03-14#l1018
+# https://irclogs.raku.org/perl6/2017-03-14.html#18:26
 throws-like ｢my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 
-# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-04-14#l101
+# https://irclogs.raku.org/perl6-dev/2017-04-14.html#13:42
 # https://github.com/Raku/old-issue-tracker/issues/2262
 {
     my $param = '$bar';
@@ -185,7 +185,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a signature mentions the name of the method';
 }
 
-{ # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-31#l169
+{ # https://irclogs.raku.org/perl6-dev/2017-05-31.html#13:26
     todo "X::Method::NotFound doesn't offer suggestions here", 2 if $*VM.name eq 'jvm';
     throws-like '42.length      ', Exception, '.length on non-List Cool',
         :message{ .contains: <chars codes>.all & none <elems graphs> };

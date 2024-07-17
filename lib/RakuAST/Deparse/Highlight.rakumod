@@ -365,11 +365,18 @@ my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
     # Set up initial deparser
     my $deparser := Deparse.new(:$actions);
 
+    # If there are no roles, highlight as text if someone is watching, or
+    # as debug information if output is being piped somewhere else
+    @roles.push($*OUT.t ?? "Text" !! "DEBUG") unless @roles;
+
     # Make sure we actually have roles to mix in and mix them in
     for @roles {
         if $_ ~~ Str {
-            my $class := "RakuAST::Deparse::Highlight::$_";
-            $_ = "use experimental :rakuast; use $class; $class".EVAL;
+            my $class  := "RakuAST::Deparse::Highlight::$_";
+            my $lookup := ::($class);
+            $_ = $lookup ~~ Failure
+              ?? "use experimental :rakuast; use $class; $class".EVAL
+              !! $lookup
         }
         $deparser.^mixin($_);
     }
@@ -475,6 +482,57 @@ my multi sub hsyn-key2color(Str:D $key) {
 }
 my multi sub hsyn-key2color(Str:D $key, %color-mapper) {
     %color-mapper{$key} // %color-mapper{$key.subst(cleaner)}
+}
+
+#- RakuAST::Deparse::Highlight::Text -------------------------------------------
+
+my constant %color =
+  black   => "\e[30m",
+  blue    => "\e[34m",
+  cyan    => "\e[36m",
+  green   => "\e[32m",
+  magenta => "\e[35m",
+  red     => "\e[31m",
+  white   => "\e[37m",
+  yellow  => "\e[33m",
+;
+my constant RESET = "\e[0m";
+
+my role RakuAST::Deparse::Highlight::Text {
+    method hsyn(str $key, str $content) {
+        if hsyn-key2color($key) -> $color {
+            if %color{$color} -> $ansi-color {
+                $ansi-color ~ $content.subst(RESET, $ansi-color, :g) ~ RESET
+            }
+            else {
+                $content
+            }
+        }
+        else {
+            $content
+        }
+    }
+}
+
+#- RakuAST::Deparse::Highligh::HTML --------------------------------------------
+
+my role RakuAST::Deparse::Highlight::HTML {
+    method hsyn(str $key, str $content) {
+        if hsyn-key2color($key) -> $color {
+            qq|<span style="color:$color;">$content\</span>|
+        }
+        else {
+            $content
+        }
+    }
+}
+
+#- RakuAST::Deparse::Highlight::DEBUG ------------------------------------------
+
+my role RakuAST::Deparse::Highlight::DEBUG {
+    method hsyn(Str:D $key, Str:D $content) {
+        $content
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -606,7 +664,10 @@ say highlight("say 'hello world'", "HTML");
 The simplest way to use C<highlight> is to specify the name of the module
 that you would like to use for highlighting.  This module should exist
 in the C<RakuAST::Deparse::Highlight::> namespace.  Simple support for
-C<HTML> is provided by default.
+C<Text>, C<HTML> and C<DEBUG> is provided by default.
+
+If no roles are specified, C<Text> will be assumed if there is someone
+watching, or C<DEBUG> if the output is being redirected.
 
 =begin code :lang<raku>
 

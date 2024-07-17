@@ -35,6 +35,7 @@
 #   prefix-xxx          any prefix operator
 #   quote-lang-xxx      quoting language indicator ("q","qq","Q", etc.)
 #   rakudoc-xxx         types of rakudoc (type,config,verbatim,table,content)
+#   regex-xxx           non-literal regex elements ("+","[","]", etc.)
 #   routine-xxx         named code blocks (sub, method, submethod, ...)
 #   scope-xxx           scope xxx (my, our, state, ...)
 #   smiley-xxx          type-smiley indicator

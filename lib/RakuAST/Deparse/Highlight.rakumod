@@ -338,6 +338,7 @@ subset pragmas       of Str:D where *.starts-with("pragma-");
 subset prefixes      of Str:D where *.starts-with("prefix-");
 subset quote-langs   of Str:D where *.starts-with("quote-lang-");
 subset rakudocs      of Str:D where *.starts-with("rakudoc-");
+subset regexes       of Str:D where *.starts-with("regex-");
 subset routines      of Str:D where *.starts-with("routine-");
 subset scopes        of Str:D where *.starts-with("scope-");
 subset smileys       of Str:D where *.starts-with("smiley-");
@@ -411,6 +412,7 @@ my constant %default = <
   prefix-        yellow
   quote-lang-    red
   rakudoc-       yellow
+  regex-         blue
   routine-       yellow
   scope-         magenta
   smiley-        red
@@ -808,6 +810,10 @@ Any prefix operator, such as C<+>, C<->, C<so>, etc.
 =item rakudocs
 
 Any RakuDoc element.
+
+=item regexes
+
+Any element to do with regexes.
 
 =item routines
 

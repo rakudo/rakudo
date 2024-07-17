@@ -1361,11 +1361,12 @@ CODE
         my str $adverbs = $ast.adverbs.map({
             self.deparse($_, 'adverb-rx')  # XXX ???
         }).join;
-        ($ast.match-immediately ?? 'm' !! $adverbs ?? 'rx' !! '')
+        self.hsyn('literal',($ast.match-immediately ?? 'm' !! $adverbs ?? 'rx' !! '')
           ~ $adverbs
           ~ $.regex-open
-          ~ self.deparse($ast.body)
+          ~ self.hsyn('regex-body', self.deparse($ast.body))
           ~ $.regex-close
+        )
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> Str:D) {
@@ -1440,7 +1441,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Regex::Literal:D $ast --> Str:D) {
-        self.quote-if-needed($ast.text)
+        self.hsyn('literal', self.quote-if-needed($ast.text))
     }
 
     multi method deparse(RakuAST::Regex::Alternation:D $ast --> Str:D) {
@@ -1579,7 +1580,7 @@ CODE
 #- Regex::C --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> Str:D) {
-        self.parenthesize($ast.regex)
+        self.hsyn('capture-positional', self.parenthesize($ast.regex))
     }
 
 #- Regex::Charclass ------------------------------------------------------------
@@ -1739,7 +1740,8 @@ CODE
 #- Regex::N --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> Str:D) {
-        '$<' ~ $ast.name ~ '>=' ~ self.deparse($ast.regex)
+        self.hsyn('capture-named', '$<' ~ $ast.name ~ '>=')
+          ~ self.deparse($ast.regex)
     }
 
 #- Regex::Q --------------------------------------------------------------------
@@ -1760,7 +1762,7 @@ CODE
     --> Str:D) {
         my $backtrack := $ast.backtrack;
 
-        '**'
+        self.hsyn: 'regex-blockrange', '**'
           ~ (self.deparse($backtrack) unless nqp::eqaddr(
               $ast.backtrack,
               RakuAST::Regex::Backtrack
@@ -1772,7 +1774,7 @@ CODE
     multi method deparse(
       RakuAST::Regex::Quantifier::OneOrMore:D $ast
     --> Str:D) {
-        self.quantifier($ast, '+')
+        self.hsyn('regex-+', self.quantifier($ast, '+'))
     }
 
     multi method deparse(RakuAST::Regex::Quantifier::Range:D $ast --> Str:D) {
@@ -1803,28 +1805,39 @@ CODE
             @parts.push($ast.max.Str);
         }
 
-        @parts.join
+        self.hsyn('regex-range', @parts.join)
     }
 
     multi method deparse(
       RakuAST::Regex::Quantifier::ZeroOrMore:D $ast
     --> Str:D) {
-        self.quantifier($ast, '*')
+        self.hsyn('regex-*', self.quantifier($ast, '*'))
     }
 
     multi method deparse(
       RakuAST::Regex::Quantifier::ZeroOrOne:D $ast
     --> Str:D) {
-        self.quantifier($ast, '?')
+        self.hsyn('regex-?', self.quantifier($ast, '?'))
     }
 
     multi method deparse(RakuAST::Regex::Quote:D $ast --> Str:D) {
-        my str $quoted = self.deparse($ast.quoted);
-        $quoted.chars > 2
-          ?? $quoted.starts-with('"')
-            ?? $quoted.substr(1,$quoted.chars - 2)
-            !! ('<{ ' ~ $quoted ~ ' }>')
-          !! ''
+        my $quoted := $ast.quoted;
+
+        # Complicated stuff
+        if $quoted.processors {
+            self.hsyn('regex-code', '<{ ')
+              ~ self.deparse($quoted)
+              ~ self.hsyn('regex-code', ' }>')
+        }
+
+        # Intentionally call using base class to avoid hsyn
+        elsif RakuAST::Deparse.deparse($quoted) -> $deparsed {
+            my str $unquoted = $deparsed.substr(1).chop;
+            self.hsyn(
+              'literal',
+              $unquoted.contains(/\W/) ?? $deparsed !! $unquoted
+            )
+        }
     }
 
 #- Regex::S --------------------------------------------------------------------

@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 7;
+plan 8;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -91,6 +91,16 @@ CODE
 <yellow>if</yellow> <cyan>$a</cyan> <yellow>==</yellow> <red>42</red> <yellow>&&</yellow> <cyan>$b</cyan> <yellow>eq</yellow> <red>"foo"</red> {
     <yellow>say</yellow> <red>"a = <cyan>$a</cyan>, b = <cyan>$b</cyan>"</red>
 }
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'simple regex';
+say "foo" ~~ / [(o) $<foo>=o]+ $_ zippo "%&^" /;
+put $0;
+print $<foo>
+CODE
+<yellow>say</yellow> <red>"foo"</red> <yellow>~~</yellow> <red>/ <blue>[<cyan>(<red>o</red>)</cyan> <cyan>$<foo>=</cyan><red>o</red>]<blue>+</blue> <cyan>$_</cyan> <red>zippo</red> <red>"\%\&^"</red> </blue>/</red>;
+<yellow>put</yellow> <cyan>$0</cyan>;
+<yellow>print</yellow> <cyan>$<foo></cyan>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

@@ -521,7 +521,7 @@ subtest 'Match involving a quoted string literal works' => {
 subtest 'Match involving a quoted string with interpolation works' => {
     my $end = 've';
 
-    # / e$end/
+    # / "e$end"/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
         :segments[
@@ -530,7 +530,7 @@ subtest 'Match involving a quoted string with interpolation works' => {
         ]
       )
     );
-    is-deeply $deparsed, '/ e$end/', 'deparse';
+    is-deeply $deparsed, '/ "e$end"/', 'deparse';
 
     is "believe" ~~ EVAL($ast), 'eve', 'EVAL over RakuAST';
     is "believe" ~~ EVAL($deparsed), 'eve', 'EVAL over deparsed AST';

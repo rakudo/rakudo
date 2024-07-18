@@ -829,24 +829,23 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
     # create block from =alias
     method from-alias(
-      :$lemma, :paragraphs(@raw), *%_
-    --> RakuAST::Doc::Block:D) is implementation-detail {
+      :$lemma, :@paragraphs, *%_ --> RakuAST::Doc::Block:D
+    ) is implementation-detail {
 
         # set up basic block
-        my $block      := self.new(|%_);
-        my @paragraphs := $block!marginalize(@raw);
+        my $block := self.new(|%_);
 
         # add rest with possible markup
-        my $paragraph :=
+        my $paragraphs :=
           RakuAST::Doc::Paragraph.from-string(@paragraphs.join("\n"));
 
         # collect alias info if being collected
         my $aliases := $*DOC-ALIASES;
-        nqp::bindkey($aliases,$lemma,$paragraph)
+        nqp::bindkey($aliases,$lemma,$paragraphs)
           unless nqp::istype($aliases,Failure);
 
         $block.add-paragraph($lemma);
-        $block.add-paragraph($paragraph);
+        $block.add-paragraph($paragraphs);
 
         $block
     }

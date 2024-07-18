@@ -5343,6 +5343,7 @@ Rakudo significantly on *every* run."
 
     # handle =alias
     token doc-block:sym<alias> {
+        :my $width;
 
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
@@ -5350,7 +5351,8 @@ Rakudo significantly on *every* run."
         # fetch lemma as first line
         '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
 
-        [\n $<margin> '=' \h+ $<line>=\N+]*
+        { $width := $<first>.from - $<margin>.to - 1 }
+        [\n $<margin> '='   " " ** {$width}   $<line>=\N+]*
 
         \n?
     }

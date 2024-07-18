@@ -205,7 +205,7 @@ subtest 'alias directive in a statement list' => {
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =alias FOO bar
-  = 137
+  =          137
 42
 CODE
     }

@@ -33,6 +33,7 @@ my class RakuAST::LanguageVersion is RakuAST::Node {
 my class Actions is RakuActions {
     has str $.source;  # source being parsed, type object if no comments seen
     has     $!version; # language version seen
+    has     $.finish;  # char pos of =finish, if any
     has     @.eol;     # indices of line endings
     has     @.soc;     # indices of start of comment on associated line endings
     has     %!seen;    # lookup hash to prevent double registrations
@@ -105,6 +106,12 @@ my class Actions is RakuActions {
             @!eol := @eol.List;
         }
         $!source
+    }
+
+    # Catch any =finish, for later processing
+    method doc-block:sym<finish>(Mu $/) {
+        $!finish := $/.from;
+        nextsame;
     }
 
     # Mark empty lines as being comments for a better deparsing experience
@@ -385,9 +392,30 @@ my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
     # a "getlex: outer index out of range" error message
     my $*INDENT = "";
 
-    # Do the actual deparse: if nothing was returned, it is just
-    # comments, so highlight the original source as a comment
-    $ast.DEPARSE($deparser) || $deparser.hsyn('comment', $source)
+    # Any text from =finish onward
+    my str $finish;
+    with $actions.finish {
+        my ($before, $after) = $source.substr($_).split("\n", 2);
+        $finish = $deparser.hsyn('rakudoc-directive', $before)
+          ~ "\n"
+          ~ $deparser.hsyn('rakudoc-content', $after)
+          ~ "\n";
+    }
+
+    # Do the actual deparse
+    if $ast.DEPARSE($deparser) -> $deparsed {
+        $deparsed ~ $finish
+    }
+
+    # Nothing deparsed, but we have a =finish
+    elsif $finish {
+        $deparser.hsyn('comment', $source.substr(0, $actions.finish)) ~ $finish
+    }
+
+    # Nothing deparsed, and no =finish either, assume all comment
+    else {
+        $deparser.hsyn('comment', $source) ~ "\n"
+    }
 }
 
 #- highlight - color based interface -------------------------------------------

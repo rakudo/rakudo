@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 11;
+plan 14;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -155,6 +155,45 @@ CODE
     <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
     <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
     <green>=</green>           <blue>:zorg-industries</blue>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
+# Testing the stuff of giants
+
+    =finish
+
+    That's all folks!
+CODE
+<blue># Testing the stuff of giants
+
+</blue><green>    =finish</green>
+<magenta>
+    That's all folks!
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
+42
+    =finish
+
+    That's all folks!
+CODE
+<red>42</red>
+<green>    =finish</green>
+<magenta>
+    That's all folks!
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, no =finish';
+# Just comments
+
+# and empty lines
+CODE
+<blue># Just comments
+
+# and empty lines
+</blue>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

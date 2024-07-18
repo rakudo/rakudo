@@ -108,9 +108,9 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=alias';
     =                  =item L<http://www.4dk.co.uk/eie.io/>
     =                  =item L<http://www.fordecay.ch/canttouchthis>
 CODE
-    <blue>=alias</blue> <cyan>TERMS_URLS</cyan> <magenta>=item L<http://www.4dk.com/eie>
-    <blue>=</blue>                 =item L<http://www.4dk.co.uk/eie.io/>
-    <blue>=</blue>                 =item L<http://www.fordecay.ch/canttouchthis></magenta>
+    <green>=alias</green> <cyan>TERMS_URLS</cyan> <magenta>=item L<http://www.4dk.com/eie>
+    <green>=</green>                 =item L<http://www.4dk.co.uk/eie.io/>
+    <green>=</green>                 =item L<http://www.fordecay.ch/canttouchthis></magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
@@ -131,16 +131,16 @@ CODE
     <red>=defn</red> <cyan>foo bar</cyan>
 <magenta>    this that!
 
-</magenta>    <blue>=for</blue> <red>defn</red>
+</magenta>    <green>=for</green> <red>defn</red>
     <cyan>foo bar</cyan>
 <magenta>    This That!
 
-</magenta>    <blue>=begin</blue> <red>defn</red>
+</magenta>    <green>=begin</green> <red>defn</red>
     <cyan>foo bar</cyan>
 <magenta>    Those!
 
     and Those!
-</magenta>    <blue>=end</blue>
+</magenta>    <green>=end</green>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

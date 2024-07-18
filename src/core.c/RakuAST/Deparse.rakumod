@@ -769,7 +769,7 @@ CODE
         my $value  := $ast.value;
 
         ':'
-          ~ self.named-arg($xsyn, $ast.key) 
+          ~ self.named-arg($xsyn, $ast.key)
           ~ (nqp::istype($value,RakuAST::QuotedString)
               ?? self.deparse($value)
               !! $.parens-open ~ self.deparse($value) ~ $.parens-close
@@ -828,6 +828,17 @@ CODE
               !! $string
         }
 
+        sub content(  str $s) { self.hsyn('rakudoc-content',   $s) }
+        sub directive(str $s) { self.hsyn('rakudoc-directive', $s) }
+        sub id(       str $s) { self.hsyn('rakudoc-id',        $s) }
+        sub type(     str $s) { self.hsyn('rakudoc-type',      $s) }
+
+        sub for-begin-end($for, str $m, str $s) {
+            $for
+              ?? $m ~ directive('=for') ~ $s
+              !! $m ~ directive('=begin') ~ $s ~ $m ~ directive('=end') ~ "\n"
+        }
+
         # handle =alias directive
         if $type eq 'alias' {
             my ($lemma, $paragraph) = $ast.paragraphs;
@@ -835,20 +846,16 @@ CODE
               unless nqp::istype($paragraph,Str);
 
             # set up prefix for additional lines
-            my str $prefix = "\n"
-              ~ $margin
-              ~ self.hsyn('rakudoc-directive', "=")
-              ~ (" " x "$name $lemma ".chars);
+            my str $prefix =
+              "\n" ~ $margin ~ directive("=") ~ (" " x "$name $lemma ".chars);
 
 
             return $margin
-              ~ self.hsyn('rakudoc-directive', "=$name")
+              ~ directive("=$name")
               ~ " "
-              ~ self.hsyn('rakudoc-id', $lemma)
+              ~ id($lemma)
               ~ " "
-              ~ self.hsyn('rakudoc-content',
-                  $paragraph.subst("\n", $prefix, :global)
-                )
+              ~ content($paragraph.subst("\n", $prefix, :global))
               ~ "\n";
         }
 
@@ -858,13 +865,14 @@ CODE
         if $type eq 'defn' {
             my str @paras = $ast.paragraphs;
             my str $lemma = @paras.shift;
-            my str $spec = "$lemma\n" ~ @paras.map(&indent).join;
+            my str $spec  =
+              id($lemma) ~ "\n" ~ content(@paras.map(&indent).join);
 
             return $abbreviated
-              ?? "$prefix $spec"
-              !! $ast.for
-                ?? "$margin=for $name\n$margin$spec"
-                !! "$margin=begin $name\n$margin$spec$margin=end $name\n\n";
+              ?? $margin ~ type("=$name") ~ " " ~ $spec
+              !! for-begin-end(
+                   $ast.for, $margin, " " ~ type($name) ~ "\n" ~ $margin ~ $spec
+                 );
         }
 
         # preprocess any config
@@ -909,7 +917,7 @@ CODE
         elsif $type eq 'config' {
             return "$prefix $ast.paragraphs.head()$config"
         }
-        
+
         # handle =place
         elsif $type eq 'place' {
             return "$prefix %config<uri>.value()$config";

@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 9;
+plan 10;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -111,6 +111,36 @@ CODE
     <blue>=alias</blue> <cyan>TERMS_URLS</cyan> <magenta>=item L<http://www.4dk.com/eie>
     <blue>=</blue>                 =item L<http://www.4dk.co.uk/eie.io/>
     <blue>=</blue>                 =item L<http://www.fordecay.ch/canttouchthis></magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
+    =defn foo bar
+    this that!
+
+    =for defn
+    foo bar
+    This That!
+
+    =begin defn
+    foo bar
+    Those!
+
+    and Those!
+    =end defn
+CODE
+    <red>=defn</red> <cyan>foo bar</cyan>
+<magenta>    this that!
+
+</magenta>    <blue>=for</blue> <red>defn</red>
+    <cyan>foo bar</cyan>
+<magenta>    This That!
+
+</magenta>    <blue>=begin</blue> <red>defn</red>
+    <cyan>foo bar</cyan>
+<magenta>    Those!
+
+    and Those!
+</magenta>    <blue>=end</blue>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

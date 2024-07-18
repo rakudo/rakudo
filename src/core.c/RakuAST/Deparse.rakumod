@@ -170,12 +170,15 @@ class RakuAST::Deparse {
 
     # A role to inhibit syntax highlighting
     my role no-highlight {
-        method hsyn(str $, str $content) { $content }
+        method hsyn($, $content) { $content }
     }
 
     # Deparse without highlighting
     method deparse-without-highlighting(RakuAST::Node:D $ast) {
-        (self but no-highlight).deparse($ast, |%_)
+        (nqp::eqaddr(self.WHAT,RakuAST::Deparse)
+          ?? self
+          !! self but no-highlight
+        ).deparse($ast, |%_)
     }
 
 #-------------------------------------------------------------------------------

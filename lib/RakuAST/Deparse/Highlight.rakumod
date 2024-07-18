@@ -419,6 +419,11 @@ my constant %default = <
   prefix-        yellow
   quote-lang-    red
   rakudoc-       yellow
+  rakudoc-config     green
+  rakudoc-content    magenta
+  rakudoc-directive  blue
+  rakudoc-id         cyan
+  rakudoc-type       red
   regex-         blue
   routine-       yellow
   scope-         magenta

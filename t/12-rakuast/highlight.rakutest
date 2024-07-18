@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 10;
+plan 11;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -141,6 +141,20 @@ CODE
 
     and Those!
 </magenta>    <green>=end</green>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config';
+    =config zip
+
+    =config zap :lang<raku>
+
+    =config zop :lang<raku>
+    =           :zorg-industries
+CODE
+    <green>=config</green> <cyan>zip</cyan>
+    <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
+    <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
+    <green>=</green>           <blue>:zorg-industries</blue>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

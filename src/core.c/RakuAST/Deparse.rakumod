@@ -828,11 +828,12 @@ CODE
               !! $string
         }
 
+        # highlighting shortcuts
+        sub config(   str $s) { self.hsyn('rakudoc-config',    $s) }
         sub content(  str $s) { self.hsyn('rakudoc-content',   $s) }
         sub directive(str $s) { self.hsyn('rakudoc-directive', $s) }
         sub id(       str $s) { self.hsyn('rakudoc-id',        $s) }
         sub type(     str $s) { self.hsyn('rakudoc-type',      $s) }
-
         sub for-begin-end($for, str $m, str $s) {
             $for
               ?? $m ~ directive('=for') ~ $s
@@ -861,7 +862,6 @@ CODE
 
         # handle =defn blocks
         my $abbreviated := $ast.abbreviated;
-        my str $prefix   = "$margin=$name";
         if $type eq 'defn' {
             my str @paras = $ast.paragraphs;
             my str $lemma = @paras.shift;
@@ -876,10 +876,10 @@ CODE
         }
 
         # preprocess any config
-        my %config := $ast.config;
-        my str $config = %config.sort({
+        my %config    := $ast.config;
+        my str @config = %config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
-        }).map({
+        }).map: {
             my str $key = .key;
             if $key eq 'numbered' && $abbreviated {
                 '#'
@@ -903,19 +903,37 @@ CODE
                     ?? ":!$key"
                     !! ":$key$deparsed"
             }
-        }).join(' ');
-        $config = $config
-          ?? ' ' ~ self.hsyn('rakudoc-config', $config) ~ "\n"
-          !! "\n";
-
-        # handle =row / =column directives
-        if $type eq 'row' | 'column' {
-            return $prefix ~ $config;
         }
 
         # handle =config directive
-        elsif $type eq 'config' {
-            return "$prefix $ast.paragraphs.head()$config"
+        if $type eq 'config' {
+            my str $id = $ast.paragraphs.head;
+            my str $prefix = directive("=config") ~ " " ~ id($id);
+
+            if @config {
+                my str $spaces = " " x "config $id ".chars;
+                return $margin
+                  ~ $prefix
+                  ~ " "
+                  ~ config(@config.shift)
+                  ~ "\n"
+                  ~ @config.map({
+                        $margin ~ directive("=") ~ $spaces ~ config($_) ~ "\n"
+                    }).join;
+            }
+            else {
+                return $margin ~ $prefix ~ "\n"
+            }
+        }
+
+        my str $config = @config.join(' ');
+        $config = $config
+          ?? ' ' ~ self.hsyn('rakudoc-config', $config) ~ "\n"
+          !! "\n";
+        my str $prefix   = "$margin=$name";
+        # handle =row / =column directives
+        if $type eq 'row' | 'column' {
+            return $prefix ~ $config;
         }
 
         # handle =place

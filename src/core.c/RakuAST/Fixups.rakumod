@@ -829,7 +829,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
     # create block from =alias
     method from-alias(
-      :$lemma, :@paragraphs, *%_ --> RakuAST::Doc::Block:D
+      :$lemma, :@paragraphs --> RakuAST::Doc::Block:D
     ) is implementation-detail {
 
         # set up basic block

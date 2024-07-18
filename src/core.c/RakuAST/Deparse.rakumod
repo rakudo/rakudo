@@ -813,8 +813,8 @@ CODE
 
     multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
         my str $margin = $ast.margin;
-        my str $type = $ast.type;
-        my str $name = self.hsyn('rakudoc-type', $type ~ $ast.level);
+        my str $type  = $ast.type;
+        my str $name  = $type ~ $ast.level;
 
         # indent string with given margin, unless all whitespace
         sub indent(Str:D $string) {
@@ -828,12 +828,25 @@ CODE
         # handle =alias directive
         if $type eq 'alias' {
             my ($lemma, $paragraph) = $ast.paragraphs;
-            $paragraph = self.deparse($paragraph)
+            $paragraph = self.deparse-without-highlighting($paragraph)
               unless nqp::istype($paragraph,Str);
 
-            return "$margin=$name $lemma $paragraph.subst(
-              "\n", "\n$margin= ", :global
-            )\n";
+            # set up prefix for additional lines
+            my str $prefix = "\n"
+              ~ $margin
+              ~ self.hsyn('rakudoc-directive', "=")
+              ~ (" " x "$name $lemma ".chars);
+
+
+            return $margin
+              ~ self.hsyn('rakudoc-directive', "=$name")
+              ~ " "
+              ~ self.hsyn('rakudoc-id', $lemma)
+              ~ " "
+              ~ self.hsyn('rakudoc-content',
+                  $paragraph.subst("\n", $prefix, :global)
+                )
+              ~ "\n";
         }
 
         # handle =defn blocks

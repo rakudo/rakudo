@@ -166,6 +166,19 @@ class RakuAST::Deparse {
     }
 
 #-------------------------------------------------------------------------------
+# Deparsing without syntax highlighting
+
+    # A role to inhibit syntax highlighting
+    my role no-highlight {
+        method hsyn(str $, str $content) { $content }
+    }
+
+    # Deparse without highlighting
+    method deparse-without-highlighting(RakuAST::Node:D $ast) {
+        (self but no-highlight).deparse($ast, |%_)
+    }
+
+#-------------------------------------------------------------------------------
 # Load any deparsing slang by given string
 
     method slang(Str:D $slang) {
@@ -1830,8 +1843,7 @@ CODE
               ~ self.hsyn('regex-code', ' }>')
         }
 
-        # Intentionally call using base class to avoid hsyn
-        elsif RakuAST::Deparse.deparse($quoted) -> $deparsed {
+        elsif self.deparse-without-highlighting($quoted) -> $deparsed {
             my str $unquoted = $deparsed.substr(1).chop;
             self.hsyn(
               'literal',

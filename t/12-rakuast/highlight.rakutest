@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 14;
+plan 15;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -155,6 +155,20 @@ CODE
     <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
     <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
     <green>=</green>           <blue>:zorg-industries</blue>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place';
+    =place file://zip.*
+
+    =place file://zap.* :lang<raku>
+
+    =place file://zop.* :lang<raku>
+    =                   :zorg-industries
+CODE
+    <green>=place</green> <cyan>file://zip.*</cyan>
+    <green>=place</green> <cyan>file://zap.*</cyan> <blue>:lang<raku></blue>
+    <green>=place</green> <cyan>file://zop.*</cyan> <blue>:lang<raku></blue>
+    <green>=</green>                   <blue>:zorg-industries</blue>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';

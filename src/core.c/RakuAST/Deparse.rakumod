@@ -885,8 +885,8 @@ CODE
                 '#'
             }
 
-            # =place url :config
-            elsif $key eq 'url' && $type eq 'place' {
+            # =place uri :config
+            elsif $key eq 'uri' && $type eq 'place' {
                 Empty
             }
 
@@ -905,13 +905,15 @@ CODE
             }
         }
 
-        # handle =config directive
-        if $type eq 'config' {
-            my str $id = $ast.paragraphs.head;
-            my str $prefix = directive("=config") ~ " " ~ id($id);
+        # handle =config / =place directives
+        if $type eq 'config' | 'place' {
+            my str $id     = $type eq 'config'
+              ?? $ast.paragraphs.head
+              !! %config<uri>.value;
+            my str $prefix = directive("=$name") ~ " " ~ id($id);
 
             if @config {
-                my str $spaces = " " x "config $id ".chars;
+                my str $spaces = " " x "$name $id ".chars;
                 return $margin
                   ~ $prefix
                   ~ " "
@@ -930,15 +932,10 @@ CODE
         $config = $config
           ?? ' ' ~ self.hsyn('rakudoc-config', $config) ~ "\n"
           !! "\n";
-        my str $prefix   = "$margin=$name";
+my str $prefix   = "$margin=$name";
         # handle =row / =column directives
         if $type eq 'row' | 'column' {
-            return $prefix ~ $config;
-        }
-
-        # handle =place
-        elsif $type eq 'place' {
-            return "$prefix %config<uri>.value()$config";
+            return directive("=$name") ~ $config;
         }
 
         # set up paragraphs

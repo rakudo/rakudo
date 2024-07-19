@@ -935,7 +935,7 @@ CODE
 my str $prefix   = "$margin=$name";
         # handle =row / =column directives
         if $type eq 'row' | 'column' {
-            return directive("=$name") ~ $config;
+            return $margin ~ directive("=$name") ~ $config;
         }
 
         # set up paragraphs

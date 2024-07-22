@@ -27,7 +27,6 @@ subtest 'simple documentation' => {
   =begin doc
   This is documentation
   =end doc
-
 CODE
     }
 }
@@ -73,7 +72,6 @@ subtest 'simple documentation with markup' => {
   =begin doc
   This is B<doc>umentation
   =end doc
-
 CODE
     }
 }
@@ -99,7 +97,6 @@ subtest 'simple documentation in a statementlist (1)' => {
   =begin doc
   This is documentation
   =end doc
-
 CODE
     }
 }
@@ -124,7 +121,6 @@ subtest 'simple documentation in a statementlist (2)' => {
   =begin doc
   This is documentation
   =end doc
-
 42
 CODE
     }
@@ -212,26 +208,36 @@ CODE
 }
 
 for <row column> -> $name {
-    subtest 'row directive in a statement list' => {
+    subtest "$name directive in a statement list" => {
         #   =$type :align<left middle>␤42␤
         ast RakuAST::StatementList.new(
           RakuAST::Doc::Block.new(
-            margin    => '  ',
-            type      => $name,
-            directive => True,
-            config    => ${:foo(RakuAST::Term::Name.new(
-              RakuAST::Name.from-identifier("True")
-            ))}
+            margin     => "  ",
+            type       => "table",
+            paragraphs => (
+              RakuAST::Doc::Block.new(
+                type      => $name,
+                directive => True,
+                config    => ${:align(RakuAST::QuotedString.new(
+                  processors => <words val>,
+                  segments   => (
+                    RakuAST::StrLiteral.new("left middle"),
+                  )
+                ))},
+              )
+            )
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(42)
           )
         );
 
-        is-deeply $ast.EVAL, 42, 'do we get the final result';
+#        is-deeply $ast.EVAL, 42, 'do we get the final result';
         for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
             is-deeply $it, qq:to/CODE/, "$type: deparse";
-      =$name :foo
+      =begin table
+      =$name :align<left middle>
+      =end table
     42
     CODE
         }

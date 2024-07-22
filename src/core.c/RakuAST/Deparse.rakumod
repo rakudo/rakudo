@@ -834,11 +834,6 @@ CODE
         sub directive(str $s) { self.hsyn('rakudoc-directive', $s) }
         sub id(       str $s) { self.hsyn('rakudoc-id',        $s) }
         sub type(     str $s) { self.hsyn('rakudoc-type',      $s) }
-        sub for-begin-end($for, str $m, str $s) {
-            $for
-              ?? $m ~ directive('=for') ~ $s
-              !! $m ~ directive('=begin') ~ $s ~ $m ~ directive('=end') ~ "\n"
-        }
 
         # handle =alias directive
         if $type eq 'alias' {
@@ -864,15 +859,30 @@ CODE
         my $abbreviated := $ast.abbreviated;
         if $type eq 'defn' {
             my str @paras = $ast.paragraphs;
-            my str $lemma = @paras.shift;
+            my str $lemma = nqp::istype($_,Str)
+              ?? $_
+              !! self.deparse-without-highlighting($_)
+              with @paras.shift;
             my str $spec  =
-              id($lemma) ~ "\n" ~ content(@paras.map(&indent).join);
+              id($lemma) ~ "\n" ~ content(indent @paras.map({
+                  nqp::istype($_,Str)
+                    ?? $_
+                    !! self.deparse-without-highlighting($_)
+              }).join.chomp) ~ "\n";
 
-            return $abbreviated
-              ?? $margin ~ type("=$name") ~ " " ~ $spec
-              !! for-begin-end(
-                   $ast.for, $margin, " " ~ type($name) ~ "\n" ~ $margin ~ $spec
-                 );
+            if $abbreviated {
+                return $margin ~ type("=$name") ~ " " ~ $spec;
+            }
+            else {
+                $name = " " ~ type($name);
+                $spec = "$name\n$margin$spec";
+
+                return $margin ~ ($ast.for
+                  ?? directive("=for") ~ $spec
+                  !! directive("=begin") ~ $spec
+                       ~ $margin ~ directive("=end") ~ "$name\n"
+                )
+            }
         }
 
         # preprocess any config
@@ -910,12 +920,11 @@ CODE
             my str $id     = $type eq 'config'
               ?? $ast.paragraphs.head
               !! %config<uri>.value;
-            my str $prefix = directive("=$name") ~ " " ~ id($id);
+            my str $prefix = $margin ~ directive("=$name") ~ " " ~ id($id);
 
             if @config {
                 my str $spaces = " " x "$name $id ".chars;
-                return $margin
-                  ~ $prefix
+                return $prefix
                   ~ " "
                   ~ config(@config.shift)
                   ~ "\n"
@@ -924,66 +933,70 @@ CODE
                     }).join;
             }
             else {
-                return $margin ~ $prefix ~ "\n"
+                return $prefix ~ "\n"
             }
         }
 
         my str $config = @config.join(' ');
-        $config = $config
-          ?? ' ' ~ self.hsyn('rakudoc-config', $config) ~ "\n"
-          !! "\n";
-my str $prefix   = "$margin=$name";
+        $config = ' ' ~ self.hsyn('rakudoc-config', $config) if $config;
+
         # handle =row / =column directives
         if $type eq 'row' | 'column' {
-            return $margin ~ directive("=$name") ~ $config;
+            return $margin ~ directive("=$name") ~ $config ~ "\n";
         }
 
         # set up paragraphs
-        my $paragraphs := indent $ast.paragraphs.map({
+        my $paragraphs = indent $ast.paragraphs.map({
             nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-        }).join;
+        }).join.chomp ~ "\n";
 
         # handle implicite code blocks
         if $type eq 'implicit-code' {
-            self.hsyn('rakudoc-verbatim', $paragraphs)
-        }
 
-        # handle explicit code blocks
-        elsif $type eq 'code' {
-            $paragraphs := self.hsyn('rakudoc-verbatim', $paragraphs);
-
-            $abbreviated
-              ?? "$prefix\n$paragraphs"
-              !! $ast.for
-                ?? "$margin=for $name$config$paragraphs"
-                !! "$margin=begin $name$config$paragraphs$margin=end $name\n\n"
+            # implicit code blocks are only recognized by their indentation
+            self.hsyn('rakudoc-code', $paragraphs.chomp)
         }
 
         # handle tables (to be expanded soon)
-        elsif $type eq 'table' {
-            $paragraphs := self.hsyn('rakudoc-table', $paragraphs);
-
-            $abbreviated
-              ?? "$prefix$config$paragraphs\n"
-              !! $ast.for
-                ?? "$margin=for $name$config$paragraphs\n"
-                !! "$margin=begin $name$config$paragraphs$margin=end $name\n\n"
-        }
+#        elsif $type eq 'table' {
+#my str $prefix = "$margin=$name";
+#            $paragraphs := self.hsyn('rakudoc-table', $paragraphs);
+#
+#            $abbreviated
+#              ?? "$prefix$config$paragraphs\n"
+#              !! $ast.for
+#                ?? "$margin=for $name$config$paragraphs\n"
+#                !! "$margin=begin $name$config$paragraphs$margin=end $name\n\n"
+#        }
 
         # other blocks
         else {
-            $paragraphs := self.hsyn(
-              $type eq 'comment' | 'data' | 'input' | 'output'
-                ?? 'rakudoc-verbatim'
-                !! 'rakudoc-content',
-              $paragraphs.chomp
-            ) ~ "\n";
+            if $paragraphs {
+                my str $style = $type eq 'code'
+                  ?? 'code'
+                  !! $type eq 'comment' | 'data' | 'input' | 'output'
+                    ?? 'verbatim'
+                    !! '';
 
-            $abbreviated
-              ?? "$prefix$config.chomp() $paragraphs.trim-leading()\n"
-              !! $ast.for
-                ?? "$margin=for $name$config$paragraphs"
-                !! "$margin=begin $name$config$paragraphs$margin=end $name\n\n"
+                $paragraphs = self.hsyn("rakudoc-$style", $paragraphs)
+                  if $style;
+            }
+
+            if $abbreviated {
+                $paragraphs = " " ~ $paragraphs.substr($margin.chars)
+                  if $paragraphs;
+                $margin ~ type("=$name") ~ $config ~ $paragraphs ~ "\n";
+            }
+            else {
+                $name       = " " ~ type($name);
+                $paragraphs = $name ~ $config ~ "\n" ~ $paragraphs;
+
+                $margin ~ ($ast.for
+                  ?? directive("=for") ~ $paragraphs ~ "\n"
+                  !! directive("=begin") ~ $paragraphs
+                       ~ $margin ~ directive("=end") ~ $name ~ "\n"
+                )
+            }
         }
     }
 

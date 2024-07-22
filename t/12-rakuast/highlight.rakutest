@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 15;
+plan 25;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -117,10 +117,25 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
     =defn foo bar
     this that!
 
+CODE
+    <red>=defn</red> <cyan>foo bar</cyan>
+<magenta>    this that!
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for defn';
     =for defn
     foo bar
     This That!
 
+CODE
+    <green>=for</green> <red>defn</red>
+    <cyan>foo bar</cyan>
+<magenta>    This That!
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin defn';
     =begin defn
     foo bar
     Those!
@@ -128,45 +143,50 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
     and Those!
     =end defn
 CODE
-    <red>=defn</red> <cyan>foo bar</cyan>
-<magenta>    this that!
-
-</magenta>    <green>=for</green> <red>defn</red>
-    <cyan>foo bar</cyan>
-<magenta>    This That!
-
-</magenta>    <green>=begin</green> <red>defn</red>
+    <green>=begin</green> <red>defn</red>
     <cyan>foo bar</cyan>
 <magenta>    Those!
 
-    and Those!
-</magenta>    <green>=end</green>
+    and Those!</magenta>
+    <green>=end</green> <red>defn</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zip';
     =config zip
+CODE
+    <green>=config</green> <cyan>zip</cyan>
+HIGHLIGHTED
 
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zap';
     =config zap :lang<raku>
+CODE
+    <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
+HIGHLIGHTED
 
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zop';
     =config zop :lang<raku>
     =           :zorg-industries
 CODE
-    <green>=config</green> <cyan>zip</cyan>
-    <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
     <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
     <green>=</green>           <blue>:zorg-industries</blue>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zip';
     =place file://zip.*
+CODE
+    <green>=place</green> <cyan>file://zip.*</cyan>
+HIGHLIGHTED
 
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zap';
     =place file://zap.* :lang<raku>
+CODE
+    <green>=place</green> <cyan>file://zap.*</cyan> <blue>:lang<raku></blue>
+HIGHLIGHTED
 
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zop';
     =place file://zop.* :lang<raku>
     =                   :zorg-industries
 CODE
-    <green>=place</green> <cyan>file://zip.*</cyan>
-    <green>=place</green> <cyan>file://zap.*</cyan> <blue>:lang<raku></blue>
     <green>=place</green> <cyan>file://zop.*</cyan> <blue>:lang<raku></blue>
     <green>=</green>                   <blue>:zorg-industries</blue>
 HIGHLIGHTED
@@ -208,6 +228,50 @@ CODE
 
 # and empty lines
 </blue>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=code';
+=code my $a = 42;
+say $a;
+CODE
+<red>=code</red> <magenta>my $a = 42;
+say $a;
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for code';
+=for code :lang<raku>
+my $a = 42;
+say $a;
+CODE
+<green>=for</green> <red>code</red> <blue>:lang<raku></blue>
+<magenta>my $a = 42;
+say $a;
+</magenta>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin code';
+=begin code :lang<raku>
+my $a = 42;
+say $a;
+=end code
+CODE
+<green>=begin</green> <red>code</red> <blue>:lang<raku></blue>
+<magenta>my $a = 42;
+say $a;
+</magenta><green>=end</green> <red>code</red>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'implicit code block';
+=begin rakudoc
+    my $a = 42;
+    say $a;
+=end rakudoc
+CODE
+<green>=begin</green> <red>rakudoc</red>
+<magenta>    my $a = 42;
+    say $a;</magenta>
+<green>=end</green> <red>rakudoc</red>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

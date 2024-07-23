@@ -819,15 +819,6 @@ CODE
         my str $type  = $ast.type;
         my str $name  = $type ~ $ast.level;
 
-        # indent string with given margin, unless all whitespace
-        sub indent(Str:D $string) {
-            $margin
-              ?? $string.lines(:!chomp).map({
-                     .is-whitespace ?? "\n" !! $margin ~ $_
-                 }).join
-              !! $string
-        }
-
         # highlighting shortcuts
         sub config(   str $s) { self.hsyn('rakudoc-config',    $s) }
         sub content(  str $s) { self.hsyn('rakudoc-content',   $s) }
@@ -859,14 +850,14 @@ CODE
         my $abbreviated := $ast.abbreviated;
         if $type eq 'defn' {
             my     @paras = $ast.paragraphs;
-            my str $lemma = nqp::istype($_,Str)
+            my str $lemma = (nqp::istype($_,Str)
               ?? $_
               !! self.deparse-without-highlighting($_)
-              with @paras.shift;
+            ) with @paras.shift;
             my str $spec  =
-              id($lemma) ~ "\n" ~ content(indent @paras.map({
+              id($lemma) ~ "\n" ~ content(@paras.map({
                   nqp::istype($_,Str)
-                    ?? $_
+                    ?? "$margin$_"
                     !! self.deparse-without-highlighting($_)
               }).join.chomp) ~ "\n";
 
@@ -946,28 +937,21 @@ CODE
         }
 
         # set up paragraphs
-        my $paragraphs = indent $ast.paragraphs.map({
-            nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-        }).join.chomp ~ "\n";
+        my $paragraphs = $ast.paragraphs.map({
+            nqp::istype($_,RakuAST::Doc::Block)
+              ?? self.deparse($_)
+              !! (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
+                   .lines(:!chomp).map({
+                       $_ eq "\n" ?? $_ !! "$margin$_"
+                   }).join
+        }).join;
 
         # handle implicite code blocks
         if $type eq 'implicit-code' {
 
             # implicit code blocks are only recognized by their indentation
-            self.hsyn('rakudoc-code', $paragraphs.chomp)
+            self.hsyn('rakudoc-code', $paragraphs.chomp) ~ "\n"
         }
-
-        # handle tables (to be expanded soon)
-#        elsif $type eq 'table' {
-#my str $prefix = "$margin=$name";
-#            $paragraphs := self.hsyn('rakudoc-table', $paragraphs);
-#
-#            $abbreviated
-#              ?? "$prefix$config$paragraphs\n"
-#              !! $ast.for
-#                ?? "$margin=for $name$config$paragraphs\n"
-#                !! "$margin=begin $name$config$paragraphs$margin=end $name\n\n"
-#        }
 
         # other blocks
         else {

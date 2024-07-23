@@ -214,6 +214,7 @@ for <row column> -> $name {
             type       => "table",
             paragraphs => (
               RakuAST::Doc::Block.new(
+                margin     => "  ",
                 type      => $name,
                 directive => True,
                 config    => ${:align(RakuAST::QuotedString.new(
@@ -230,6 +231,8 @@ for <row column> -> $name {
           )
         );
 
+# Complains about an unexplained RakuAST::Var::Lexical::Setting not
+# having been resolved, so skip for now
 #        is-deeply $ast.EVAL, 42, 'do we get the final result';
         for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
             is-deeply $it, qq:to/CODE/, "$type: deparse";

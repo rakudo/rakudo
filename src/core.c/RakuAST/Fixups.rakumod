@@ -807,20 +807,25 @@ augment class RakuAST::Doc::Block {
             my $buffer := nqp::create(IterationBuffer);
 
             for @raw -> $lines {
-                $buffer.push: $lines.lines(:!chomp).map({
-                    if .leading-whitespace.chars >= $margin {
-                        .substr($margin)
-                    }
-                    elsif .is-whitespace {
-                        "\n"
-                    }
-                    else {
-                        die # self.worry-ad-hoc:  XXX need better solution
-                          "'$_.chomp()'
-does not have enough whitespace to allow for a margin of $margin positions";
-                        .trim-leading
-                    }
-                }).join;
+                if nqp::istype($lines,RakuAST::Doc) {
+                    $buffer.push: $lines;
+                }
+                else {
+                    $buffer.push: $lines.lines(:!chomp).map({
+                        if .leading-whitespace.chars >= $margin {
+                            .substr($margin)
+                        }
+                        elsif .is-whitespace {
+                            "\n"
+                        }
+                        else {
+                            die # self.worry-ad-hoc:  XXX need better solution
+                              "'$_.chomp()'
+    does not have enough whitespace to allow for a margin of $margin positions";
+                            .trim-leading
+                        }
+                    }).join;
+                }
             }
 
             $buffer.List

@@ -1,4 +1,4 @@
-NQPP6QRegex;
+ QPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 
@@ -2655,12 +2655,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # left side is the condition, the right side is the "else" expression,
     # and the '?? expression !!' is initially parsed as the operator.
     token infix:sym<?? !!> {
-        $<sym>='??'
+        $<sym>=['??' | '⁇']
         <.ws>
         :my $*GOAL := '!!';
         <EXPR('i=')>
         [
-             '!!'
+             [ '!!' | '‼' ]
           || <?before '::' <.-[=]>>
              <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",               second-part => "::">
           || <?before ':' <.-[=\w]>>

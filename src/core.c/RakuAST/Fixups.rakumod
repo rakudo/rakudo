@@ -786,9 +786,14 @@ augment class RakuAST::Doc::Block {
             Map.new( @$allow.map( { $_ => True } ) )
         }
 
+        # procedural tables allow markup
+        elsif $!type eq 'table' {
+            self.procedural ?? OK !! NOK
+        }
+
         # all or nothing
         else {
-            $!type eq <code defn implicit-code table>.any
+            $!type eq 'code' | 'implicit-code' | 'defn'
               ?? NOK
               !! OK
         }

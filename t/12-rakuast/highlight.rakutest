@@ -160,15 +160,15 @@ HIGHLIGHTED
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zap';
     =config zap :lang<raku>
 CODE
-    <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
+    <green>=config</green> <cyan>zap</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zop';
     =config zop :lang<raku>
     =           :zorg-industries
 CODE
-    <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
-    <green>=</green>           <blue>:zorg-industries</blue>
+    <green>=config</green> <cyan>zop</cyan> <red>:lang<raku></red>
+    <green>=</green>           <red>:zorg-industries</red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zip';
@@ -180,15 +180,15 @@ HIGHLIGHTED
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zap';
     =place file://zap.* :lang<raku>
 CODE
-    <green>=place</green> <cyan>file://zap.*</cyan> <blue>:lang<raku></blue>
+    <green>=place</green> <cyan>file://zap.*</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zop';
     =place file://zop.* :lang<raku>
     =                   :zorg-industries
 CODE
-    <green>=place</green> <cyan>file://zop.*</cyan> <blue>:lang<raku></blue>
-    <green>=</green>                   <blue>:zorg-industries</blue>
+    <green>=place</green> <cyan>file://zop.*</cyan> <red>:lang<raku></red>
+    <green>=</green>                   <red>:zorg-industries</red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
@@ -244,7 +244,7 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for code';
 my $a = 42;
 say $a;
 CODE
-<green>=for</green> <red>code</red> <blue>:lang<raku></blue>
+<green>=for</green> <red>code</red> <red>:lang<raku></red>
 <magenta>my $a = 42;
 say $a;
 </magenta>
@@ -256,7 +256,7 @@ my $a = 42;
 say $a;
 =end code
 CODE
-<green>=begin</green> <red>code</red> <blue>:lang<raku></blue>
+<green>=begin</green> <red>code</red> <red>:lang<raku></red>
 <magenta>my $a = 42;
 say $a;
 </magenta><green>=end</green> <red>code</red>

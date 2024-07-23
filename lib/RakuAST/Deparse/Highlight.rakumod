@@ -448,7 +448,7 @@ my constant %default = <
   quote-lang-    red
   rakudoc-       yellow
   rakudoc-code       magenta
-  rakudoc-config     blue
+  rakudoc-config     red
   rakudoc-content    magenta
   rakudoc-directive  green
   rakudoc-id         cyan

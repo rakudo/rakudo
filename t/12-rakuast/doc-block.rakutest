@@ -44,7 +44,6 @@ subtest 'simple documentation abbreviated' => {
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =doc This is documentation
-
 CODE
     }
 }
@@ -147,7 +146,6 @@ subtest 'abbreviated documentation in a statementlist (1)' => {
         is-deeply $it, q:to/CODE/, "$type: deparse";
 42
   =head1 This is documentation
-
 CODE
     }
 }
@@ -162,7 +160,7 @@ subtest 'abbreviated documentation in a statementlist (2)' => {
         abbreviated => True,
         config      => { :numbered },
         paragraphs  => (
-          "This is documentation\n",
+          "This is documentation\n\n",
         )
       ),
       RakuAST::Statement::Expression.new(

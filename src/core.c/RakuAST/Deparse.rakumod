@@ -985,7 +985,7 @@ CODE
             if $abbreviated {
                 $paragraphs = " " ~ $paragraphs.substr($margin.chars)
                   if $paragraphs;
-                $margin ~ type("=$name") ~ $config ~ $paragraphs ~ "\n";
+                $margin ~ type("=$name") ~ $config ~ $paragraphs;
             }
             else {
                 $name       = " " ~ type($name);

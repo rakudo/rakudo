@@ -230,7 +230,7 @@ CODE
 </blue>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=code';
 =code my $a = 42;
 say $a;
 CODE

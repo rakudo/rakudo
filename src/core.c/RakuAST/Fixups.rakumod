@@ -247,7 +247,7 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
         }
     }
 
-    multi method Str(RakuAST::Doc::LegacyRow:D:) {
+    multi method Str(RakuAST::Doc::LegacyRow:D: &highlight = { $_ }) {
         my str $dividers = nqp::hllizefor($!column-dividers,'Raku') // '';
 
         # Stringify the given strings with the current dividers / offsets
@@ -270,7 +270,7 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
                   nqp::stmts(
                     @parts.push(cells.AT-POS($i).Str),
                     @parts.push(' '),
-                    @parts.push(nqp::substr($dividers,++$j,1)),
+                    @parts.push(highlight nqp::substr($dividers,++$j,1)),
                     @parts.push(' ')
                   )
                 );
@@ -763,10 +763,10 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
-    # return True if a new, procedural table type
-    method procedural(RakuAST::Doc::Block:D:) {
+    # return True if a legacy, visual type of table
+    method visual-table(RakuAST::Doc::Block:D:) {
         $!type eq 'table'
-          && !nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
+          && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
     }
 
     # return a Map with allowed markup codes as keys, conceptually
@@ -786,14 +786,9 @@ augment class RakuAST::Doc::Block {
             Map.new( @$allow.map( { $_ => True } ) )
         }
 
-        # procedural tables allow markup
-        elsif $!type eq 'table' {
-            self.procedural ?? OK !! NOK
-        }
-
         # all or nothing
         else {
-            $!type eq 'code' | 'implicit-code' | 'defn'
+            self.visual-table || $!type eq 'code' | 'implicit-code' | 'defn'
               ?? NOK
               !! OK
         }

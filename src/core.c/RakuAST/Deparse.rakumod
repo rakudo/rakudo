@@ -937,7 +937,27 @@ CODE
         }
 
         # set up paragraphs
-        my $paragraphs = $ast.paragraphs.map({
+        if $ast.visual-table {
+            my str $type     = " " ~ type("table");
+            my str $deparsed = $margin ~ ($abbreviated
+              ?? type("=table") ~ $config
+              !! $ast.for
+                ?? directive("=for") ~ $type ~ $config
+                !! directive("=begin") ~ $type ~ $config
+            ) ~ "\n" ~ $ast.paragraphs.map({
+                $margin ~ (nqp::istype($_,RakuAST::Doc::LegacyRow)
+                  ?? self.deparse($_)
+                  !! self.hsyn('rakudoc-divider',.chomp) ~ "\n"
+                )
+            }).join;
+
+            return $abbreviated || $ast.for
+              ?? $deparsed
+              !! ($deparsed ~ $margin ~ directive("=end") ~ $type ~ "\n")
+        }
+
+        # standard paragraphs handling from here on
+        my str $paragraphs = $ast.paragraphs.map({
             nqp::istype($_,RakuAST::Doc::Block)
               ?? self.deparse($_)
               !! (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
@@ -998,7 +1018,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Doc::LegacyRow:D $ast --> Str:D) {
-        $ast.Str
+        $ast.Str: { self.hsyn('rakudoc-divider', $_) }
     }
 
 #- Dot -------------------------------------------------------------------------

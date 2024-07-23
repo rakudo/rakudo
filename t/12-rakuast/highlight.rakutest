@@ -3,7 +3,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 25;
+plan 30;
 
 sub mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -272,6 +272,82 @@ CODE
 <magenta>    my $a = 42;
     say $a;</magenta>
 <green>=end</green> <red>rakudoc</red>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'procedural table';
+  =begin table
+    =row :header
+    =cell foo
+    =cell bar
+    =cell baz
+
+    =row
+    =cell 42
+    =cell 66
+    =cell 67
+
+  =end table
+CODE
+  <green>=begin</green> <red>table</red>
+    <green>=row</green> <red>:header</red>
+    <red>=cell</red> foo
+    <red>=cell</red> bar
+    <red>=cell</red> baz
+
+    <green>=row</green>
+    <red>=cell</red> 42
+    <red>=cell</red> 66
+    <red>=cell</red> 67
+
+  <green>=end</green> <red>table</red>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'declarator doc';
+my $a = 42;  #= The answer
+#| The wrong answer
+my $b = 666
+CODE
+<magenta>my</magenta> <cyan>$a</cyan> <yellow>=</yellow> <red>42</red>; <blue>#= The answer</blue>
+<blue>#| The wrong answer
+</blue><magenta>my</magenta> <cyan>$b</cyan> <yellow>=</yellow> <red>666</red>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
+  =table #
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+CODE
+  <red>=table</red> <red>#</red>
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
+  =for table :numbered
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+CODE
+  <green>=for</green> <red>table</red> <red>:numbered</red>
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';
+  =begin table :numbered
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+  =end table
+CODE
+  <green>=begin</green> <red>table</red> <red>:numbered</red>
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+  <green>=end</green> <red>table</red>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

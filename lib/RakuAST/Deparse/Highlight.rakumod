@@ -450,6 +450,7 @@ my constant %default = <
   rakudoc-code       magenta
   rakudoc-config     red
   rakudoc-content    magenta
+  rakudoc-divider    blue
   rakudoc-directive  green
   rakudoc-id         cyan
   rakudoc-type       red

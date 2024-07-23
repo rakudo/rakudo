@@ -858,7 +858,7 @@ CODE
         # handle =defn blocks
         my $abbreviated := $ast.abbreviated;
         if $type eq 'defn' {
-            my str @paras = $ast.paragraphs;
+            my     @paras = $ast.paragraphs;
             my str $lemma = nqp::istype($_,Str)
               ?? $_
               !! self.deparse-without-highlighting($_)

@@ -5,20 +5,20 @@ use RakuAST::Deparse::Highlight;
 
 plan 30;
 
-sub mapper(str $color, str $c) {
+sub default-mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
 }
 
-my %mapping =
-  black     => -> $c { mapper "black",   $c },
-  blue      => -> $c { mapper "blue",    $c },
-  cyan      => -> $c { mapper "cyan",    $c },
-  green     => -> $c { mapper "green",   $c },
-  magenta   => -> $c { mapper "magenta", $c },
-  none      => -> $c { mapper "none",    $c },
-  red       => -> $c { mapper "red",     $c },
-  yellow    => -> $c { mapper "yellow",  $c },
-  white     => -> $c { mapper "white",   $c },
+my %mapping = mapper
+  black     => -> $c { default-mapper "black",   $c },
+  blue      => -> $c { default-mapper "blue",    $c },
+  cyan      => -> $c { default-mapper "cyan",    $c },
+  green     => -> $c { default-mapper "green",   $c },
+  magenta   => -> $c { default-mapper "magenta", $c },
+  none      => -> $c { default-mapper "none",    $c },
+  red       => -> $c { default-mapper "red",     $c },
+  yellow    => -> $c { default-mapper "yellow",  $c },
+  white     => -> $c { default-mapper "white",   $c },
 ;
 
 sub is-highlighted(
@@ -27,8 +27,16 @@ sub is-highlighted(
   str $comment,
      :$unsafe
 ) is test-assertion {
-    diag highlight($got, "Text")
-      unless is highlight($got, %mapping, :$unsafe), $expected, $comment;
+    subtest $comment => {
+        plan 2;
+        diag highlight($got, "Text", :$unsafe)
+          unless is highlight($got, :$unsafe, :default(&default-mapper)),
+                    $expected, "using default";
+
+        diag highlight($got, "Text", :$unsafe)
+          unless is highlight($got, %mapping, :$unsafe),
+                    $expected, "using mapping";
+    }
 }
 
 for <nqp MONKEY MONKEY-GUTS Test> -> $name {

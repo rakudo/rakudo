@@ -446,7 +446,7 @@ my constant %default = <
   pragma-        green
   prefix-        yellow
   quote-lang-    red
-  rakudoc-       yellow
+  rakudoc-           yellow
   rakudoc-code       magenta
   rakudoc-config     red
   rakudoc-content    magenta
@@ -471,52 +471,52 @@ my constant %default = <
   version        red
 >;
 
-my multi sub highlight(Str:D $source, %sub-mapper, *%_) {
-    my $unsafe := %_<unsafe>:delete;
-    highlight($source, %sub-mapper, color-mapper(%_), :$unsafe)
+my multi sub highlight(Str:D $source, :$unsafe, :$default, *%_) {
+    highlight($source, mapper(%_), :$unsafe, :$default)
 }
 
-my multi sub highlight(Str:D $source, %sub-mapper, %color-mapper, :$unsafe) {
+my multi sub highlight(Str:D $source, %mapper, :$unsafe, :$default) {
 
     my role ColorMapper {
-        method hsyn(Str:D $key, Str:D $content) {
-            if %color-mapper{$key}
-              // %color-mapper{$key.subst(cleaner)} -> $color {
-                if %sub-mapper{$color} -> &highlighter {
-                    highlighter $content
-                }
-                else {
-                    $content
-                }
+        method hsyn(Str:D $key is copy, Str:D $content) {
+            while %mapper{$key} // %mapper{$key.subst(cleaner)} -> $value {
+                $value ~~ Callable
+                  ?? (return $value($content))
+                  !! ($key = $value)
             }
-            else {
-               $content
-            }
+            $default
+              ?? $default($key, $content)
+              !! $content
         }
     }
 
     highlight($source, ColorMapper, :$unsafe)
 }
 
-#- color-mapper ----------------------------------------------------------------
+#- mapper ----------------------------------------------------------------------
 
-my proto sub color-mapper(|) is export {*}
-my multi sub color-mapper() is default { %default }
-my multi sub color-mapper(*%_) { color-mapper(%_) }
-my multi sub color-mapper(%_) {
-    my $color-mapper := %default.Hash;
-    $color-mapper{.key} = .value for %_;
-    $color-mapper
+my proto sub mapper(|) is export {*}
+my multi sub mapper() is default { %default }
+my multi sub mapper(*%_) { mapper(%_) }
+my multi sub mapper(%_) {
+    my $mapper := %default.Hash;
+    $mapper{.key} = .value for %_;
+    $mapper
 }
 
-#- hsyn-key2color --------------------------------------------------------------
+#- map-hsyn-key ----------------------------------------------------------------
 
-my proto sub hsyn-key2color(|) is export {*}
-my multi sub hsyn-key2color(Str:D $key) {
-    %default{$key} // %default{$key.subst(cleaner)}
+my proto sub map-hsyn-key(|) is export {*}
+my multi sub map-hsyn-key(Str:D $key) {
+    %default{$key} // %default{$key.subst(cleaner)} // $key
 }
-my multi sub hsyn-key2color(Str:D $key, %color-mapper) {
-    %color-mapper{$key} // %color-mapper{$key.subst(cleaner)}
+my multi sub map-hsyn-key(Str:D $key is copy, %mapper) {
+    while %mapper{$key} // %mapper{$key.subst(cleaner)} -> $value {
+        $value ~~ Callable
+          ?? (return $value)
+          !! ($key = $value)
+    }
+    $key
 }
 
 #- RakuAST::Deparse::Highlight::Text -------------------------------------------
@@ -535,7 +535,7 @@ my constant RESET = "\e[0m";
 
 my role RakuAST::Deparse::Highlight::Text {
     method hsyn(str $key, str $content) {
-        if hsyn-key2color($key) -> $color {
+        if map-hsyn-key($key) -> $color {
             if %color{$color} -> $ansi-color {
                 $ansi-color ~ $content.subst(RESET, $ansi-color, :g) ~ RESET
             }
@@ -553,7 +553,7 @@ my role RakuAST::Deparse::Highlight::Text {
 
 my role RakuAST::Deparse::Highlight::HTML {
     method hsyn(str $key, str $content) {
-        if hsyn-key2color($key) -> $color {
+        if map-hsyn-key($key) -> $color {
             qq|<span style="color:$color;">$content\</span>|
         }
         else {
@@ -707,30 +707,52 @@ watching, or C<DEBUG> if the output is being redirected.
 =begin code :lang<raku>
 
 # using default color mapping
-my %color2handler = red => -> $t { "==$t==" }
-say highlight("say 'hello world'", %color2handler);
+my %mapping = red => -> $t { "==$t==" }
+say highlight("say 'hello world'", %mapping);
 # say =="hello world"==
 
 =end code
 
 A slightly more complex way to use highlighting, is to supply a C<Map>
-that maps color names to handlers that will be called if a part of the
-source needs to be highlighted in that color.  The handler will be given
-the source to be highlighted: the handler is expected to return the properly
-highlighted text.
+that provides mapping that will ultimately result in finding a C<Callable>
+handler.  The following mappings are allowed:
 
-If there is no handler for a given color name, then the original text will be
-produced.
+=item hsyn key to color name
+=item hsyn key to Callable handler
+=item color name to other color name
+=item color name to Callable handler
 
-The mapping of C<hsyn> keys to color names is (by default) based on the
-syntax highlighting provided by C<vim>.  The following color names are
+If the mapping results in finding a C<Callable> handler, then that handler
+will be called with the source to be highlighted.  The handler is supposed
+to return the properly highlighted text.
+
+=begin code :lang<raku>
+
+# using default handler
+sub default(str $key, str $source) {
+    "<$key>$source</$key>"
+}
+say highlight("say 'hello world'", :&default);
+# <yellow>say</yellow> <red>"hello world"</red>
+
+=end code
+
+If no C<Callable> handler can be found, the optional default handler will be
+called with the last key mapping found (which can be a hsyn key, or a color
+name) and the source to be highlighted.
+
+If there is no handler found and there is no default handler, then the
+original text will be produced unchanged.
+
+The mapping of C<hsyn> keys to color names is (by default) loosely based on
+the syntax highlighting provided by C<vim>.  The following color names are
 recognized: C<black>, C<blue>, C<cyan>, C<green>, C<magenta>, C<none>,
 C<red>, C<yellow> and C<white>.
 
 =begin code :lang<raku>
 
 # show comments in green, and BEGIN in blue
-say highlight "say 'hello world'", %color2handler,
+say highlight "say 'hello world'",
   comments     => "green",
   phaser-BEGIN => "blue"
 );
@@ -738,22 +760,22 @@ say highlight "say 'hello world'", %color2handler,
 =end code
 
 If the C<highlight> subroutine is called in this matter, it's also possible
-to specify tweaks in the mapping of C<hsyn> keys to color names by specifying
-one or more pairs with additional mappings or tweaks.
+to specify tweaks in the mapping of C<hsyn> keys to color names / handler
+by specifying one or more pairs with additional mappings or tweaks.
 
 =begin code :lang<raku>
 
 # show comments in green, and BEGIN in blue from pre-tweaked hash
-my constant %color-mapper = color-mapper(
+my constant %mapper = mapper(
   comments     => "green",
   phaser-BEGIN => "blue",
 );
-say highlight "say 'hello world'", %color2handler, %color-mapper);
+say highlight "say 'hello world'", %mapper);
 
 =end code
 
 Because creating the lookup hash with a given set of tweaks is relatively
-expensive, it's also possible to tweak this beforehand with the C<color-mapper>
+expensive, it's also possible to tweak this beforehand with the C<mapper>
 subroutine, and specify the resulting hash as the second positional argument.
 
 =begin code :lang<raku>
@@ -968,42 +990,42 @@ Any variable.
 
 Any version literal.
 
-=head2 color-mapper
+=head2 mapper
 
 =begin code :lang<raku>
 
 # the default mapping logic
-my %default = color-mapper;
+my %default = mapper;
 
 # tweaked from named args
-my %tweaked = color-mapper(comment => "green");
+my %tweaked = mapper(comment => "green");
 
 # tweaked from hash
 my %tweaks = comment => "green", literal => "cyan";
-my %tweaked = color-mapper(%tweaks);
+my %tweaked = mapper(%tweaks);
 
 =end code
 
-The C<color-mapper> subroutine either returns the default color mapper, or
-a tweaked version of the color mapper.  This can than be used as the third
-positional argument to C<highlight>, or as the second positional argument
-to C<hsyn-key2color>.
+The C<mapper> subroutine either returns the default mapper, or a tweaked
+version of the mapper.  This can than be used as the second positional
+argument to C<highlight>, or as the second positional argument to
+C<map-hsyn-key>.
 
 Tweaking can be indicated by any number of named arguments, or a hash
 containing the tweaks.
 
-=head2 hsyn-key2color
+=head2 map-hsyn-key
 
 =begin code :lang<raku>
 
-say hsyn-key2color("phaser-BEGIN");            # magenta
+say map-hsyn-key("phaser-BEGIN");            # magenta
 
-my constant %tweaked = color-mapper(phaser-BEGIN => "cyan");
-say hsyn-key2color("phaser-BEGIN", %tweaked);  # cyan
+my constant %tweaked = mapper(phaser-BEGIN => "cyan");
+say map-hsyn-key("phaser-BEGIN", %tweaked);  # cyan
 
 =end code
 
-The C<hsyn-key2color> subroutine converts a given C<hsyn> key to the
+The C<map-hsyn-key> subroutine converts a given C<hsyn> key to the
 associated color.  If the second argument is omitted, then the default
 C<hsyn> key to color mapping will be assumed.
 

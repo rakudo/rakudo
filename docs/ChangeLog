@@ -1,3 +1,38 @@
+New in 2024.07:
+
++ Improvements:
+    + Improve execution speed by about 5% on Intel hardware and the MoarVM
+      backend by disabling the EXPRession JIT by default [4d3723bd]
+
++ Additions:
+    + Add :hammer named argument to .flat for thorough flattening [74cfe8e3]
+
++ Fixes:
+    + Bump NQP to get fix for return from LEAVE phaser on MoarVM [0554ae9e]
+    + Partially fix mixed bin/no bin reads in IO::Socket [5008807b]
+    + Fix sprintf thinko in BUILDPLAN module [6536e756]
+
++ Deprecations:
+
++ Internal:
+    + Change colabti log links to irclogs.raku.org links [3e4d19bb]
+    + Remove the signature check from .duckmap for now [1bd985a3]
+
++ RakuAST Development:
+    + Added Raku grammar based syntax highlighting API, and basic support
+      for highlighting using ANSI color codes
+    + over 60 commits, 144/153 (make test), and 1065/1356 (make spectest)
+      [4085432e][3e55eb62][17f0148a][02526784][fd72fc3e][692677ff][ea6c68ab]
+      [604d6617][8752d081][e0afa0a8][a7b41f73][31336240][c7af1953][f8b56432]
+      [9d959fae][5795560f][cf3f0aa2][a14a94df][d782d8b0][17f89c6f][d57b4109]
+      [267edeb1][c50e477c][7a0c0e3f][b984ddfb][1534733d][c64dc9f4][39b987ab]
+      [9fc5f662][5a431ad4][133a25a2][115fdee2][6b9a163e][59fb9ebc][ca479813]
+      [552a88ba][b09a5ee8][38ba882a][8e00a517][527b9788][3ab6c96b][509ee1b6]
+      [8a138038][3079f914][c56375da][f8e64356][4dae7e5b][55754f8d][015e4a3b]
+      [ff48e039][dcaf53e6][487f1eda][f84ae43b][2144863d][fab5c99a][f4b4b219]
+      [e622928d][a469bd8d][19bd06b5][16b059c0][62e523a9][2992649f][088180b6]
+      [d7731e7d][1004a2ad][26622f63]
+
 New in 2024.06:
 
 + Improvements:

@@ -271,10 +271,10 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
 
 # @a[**]
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, *%adv) is raw {
-    NYI('HyperWhatever in array index').throw;
+    SELF.flat(:hammer)
 }
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
-    NYI('HyperWhatever in array index').throw;
+    assignee = SELF.flat(:hammer)
 }
 
 # @a[]

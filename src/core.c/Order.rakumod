@@ -246,6 +246,7 @@ augment class Any {
 
         nqp::defined($min) ?? $min !! Inf
     }
+    multi method min(Any:D: :&by!) { self.min(&by, |%_) }
     multi method min(Any:D: &by) {
         my &comparator := aritize22(&by);
 
@@ -302,6 +303,7 @@ augment class Any {
 
         nqp::defined($max) ??  $max !! -Inf
     }
+    multi method max(Any:D: :&by!) { self.max(&by, |%_) }
     multi method max(Any:D: &by) {
         my &comparator := aritize22(&by);
 
@@ -426,7 +428,7 @@ augment class Any {
           ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
           !! Range.Inf-Inf
     }
-
+    multi method minmax(Any:D: :&by!) { self.minmax(&by, |%_) }
     multi method minmax(Any:D: &by) {
         nqp::if(
           (my $iter := self.iterator-and-first(".minmax",my $pulled)),

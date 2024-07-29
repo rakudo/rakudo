@@ -856,7 +856,9 @@ class RakuAST::VarDeclaration::Simple
                     )),
                 );
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!accessor', $accessor);
+                $resolver.push-scope($accessor);
                 $accessor.to-begin-time($resolver, $context); # TODO maybe also check?
+                $resolver.pop-scope();
             }
 
             self.apply-traits($resolver, $context, $target);

@@ -1390,8 +1390,9 @@ class RakuAST::PointyBlock
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
         if $!signature {
-            $!signature.to-begin-time($resolver, $context);
+            $!signature.PERFORM-PARSE($resolver, $context);
             $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $!signature.to-begin-time($resolver, $context);
         }
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
@@ -1572,8 +1573,9 @@ class RakuAST::Routine
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.IMPL-BEGIN($resolver, $context);
+            $placeholder-signature.PERFORM-PARSE($resolver, $context);
             $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $placeholder-signature.to-begin-time($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
         if $!signature {
@@ -1582,8 +1584,9 @@ class RakuAST::Routine
                     RakuAST::Name.from-identifier('Any'),
                 ).to-begin-time($resolver, $context)
             );
-            $!signature.to-begin-time($resolver, $context);
+            $!signature.PERFORM-PARSE($resolver, $context);
             $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $!signature.to-begin-time($resolver, $context);
         }
 
         if self.multiness eq 'multi' {
@@ -1980,8 +1983,9 @@ class RakuAST::Methodish
             $placeholder-signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
             $placeholder-signature.attach($resolver);
-            $placeholder-signature.IMPL-BEGIN($resolver, $context);
+            $placeholder-signature.PERFORM-PARSE($resolver, $context);
             $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $placeholder-signature.to-begin-time($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
         my $signature := self.signature;
@@ -1995,8 +1999,9 @@ class RakuAST::Methodish
             $signature.set-is-on-named-method(True) if self.name;
             $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $signature.set-is-on-role-method(True) if $package-is-role;
-            $signature.to-begin-time($resolver, $context);
+            $signature.PERFORM-PARSE($resolver, $context);
             $signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            $signature.to-begin-time($resolver, $context);
         }
 
         my str $name := self.name ?? self.name.canonicalize !! '';

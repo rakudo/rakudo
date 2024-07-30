@@ -4,6 +4,7 @@ class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
+  is RakuAST::ParseTime
   is RakuAST::Term
 {
     has List $.parameters;
@@ -40,17 +41,21 @@ class RakuAST::Signature
           !! False
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Retrieve the enclosing package so we can set an implicit
         # invocant parameter up correctly if we end up on a method.
         nqp::bindattr(self, RakuAST::Signature, '$!method-package',
             $resolver.find-attach-target('package'));
+    }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
         if $!parameters {
             for $!parameters {
                 $_.to-begin-time($resolver, $context);
             }
         }
+        $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
     }
 
     method set-is-on-method(Bool $is-on-method) {
@@ -119,19 +124,17 @@ class RakuAST::Signature
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
                             $type.set-resolution($Class.resolution);
-                            $type.to-begin-time($resolver, $context);
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
                             $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(
                                 :name($package-name), :value($package), :scope<lexical>));
-                            $type.to-begin-time($resolver, $context);
                         }
                     }
                 }
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
-                    RakuAST::Parameter.new(:invocant, :$type).to-begin-time($resolver, $context));
+                    RakuAST::Parameter.new(:invocant, :$type));
             }
             unless $!is-on-meta-method {
                 my int $slurpy-hash-seen;
@@ -146,9 +149,9 @@ class RakuAST::Signature
                         RakuAST::Parameter.new(
                           :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
                           :target(
-                              RakuAST::ParameterTarget::Var.new(:name<%_>).to-begin-time($resolver, $context)
+                              RakuAST::ParameterTarget::Var.new(:name<%_>)
                           )
-                        ).to-begin-time($resolver, $context)
+                        )
                     );
                 }
             }
@@ -159,18 +162,20 @@ class RakuAST::Signature
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
                     RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('$?CLASS').to-begin-time($resolver, $context)
-                    ).to-begin-time($resolver, $context)
+                        RakuAST::Name.from-identifier('$?CLASS')
+                    )
                 );
                 $invocant.add-type-capture(
                     RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('::?CLASS').to-begin-time($resolver, $context)
-                    ).to-begin-time($resolver, $context)
+                        RakuAST::Name.from-identifier('::?CLASS')
+                    )
                 );
-                $invocant.to-begin-time($resolver, $context);
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
             }
         }
+
+        $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
+        $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
     }
 
     method PRODUCE-META-OBJECT() {

@@ -549,9 +549,9 @@ CODE
         self.hsyn("traitmod-$trait", self.xsyn('traitmod', $trait))
     }
 
-    method syn-type($ast) {
+    method syn-type($ast, :$skip) {
         my str $name = self.deparse($ast.name);
-        self.hsyn("type-$name", $name)
+        $skip && $skip eq $name ?? "" !! self.hsyn("type-$name", $name)
     }
 
     method syn-typer($typer) {
@@ -1247,8 +1247,7 @@ CODE
         my @captures := $ast.type-captures;
         my str @parts;
         if !@captures && $ast.type -> $type {
-            my str $deparsed = self.deparse($type);
-            unless $deparsed eq 'Any' | 'SETTING::<Any>' {
+            if self.deparse($type, :skip<Any>) -> $deparsed {
                 @parts.push($deparsed);
                 @parts.push(' ') if $target;
             }
@@ -2617,7 +2616,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
-        self.syn-type($ast)
+        self.syn-type($ast, |%_)
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {

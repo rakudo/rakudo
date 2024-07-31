@@ -407,12 +407,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::existskey(%OPTIONS,'doc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
               'Pod', %OPTIONS<doc> || 'Text'
-            ).to-begin-time($RESOLVER, $*CU.context);
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
         }
         elsif nqp::existskey(%OPTIONS,'rakudoc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
               'RakuDoc', %OPTIONS<rakudoc> || 'Text'
-            ).to-begin-time($RESOLVER, $*CU.context);
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
         }
 
         self.attach: $/, $COMPUNIT, :as-key-origin;

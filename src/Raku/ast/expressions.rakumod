@@ -1345,6 +1345,12 @@ class RakuAST::MetaInfix::Hyper
 # that were previously storing RakuAST::Term::Whatever nodes.
 class RakuAST::WhateverApplicable
 {
+    has int $!must-not-curry;
+
+    method IMPL-MUST-NOT-CURRY() {
+        nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-curry', 1);
+    }
+
     method IMPL-MAYBE-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.IMPL-SHOULD-CURRY {
             my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
@@ -1353,6 +1359,7 @@ class RakuAST::WhateverApplicable
     }
 
     method IMPL-SHOULD-CURRY() {
+        return False if $!must-not-curry;
         return False unless self.operator.IMPL-CURRIES;
         return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
 
@@ -2414,6 +2421,9 @@ class RakuAST::ApplyPostfix
               self.IMPL-UNWRAP-LIST($operand.semilist.code-statements)[0];
             $operand := $statement.expression
                 unless $statement.condition-modifier || $statement.loop-modifier;
+
+            # Double parentheses act as a currying border.
+            $obj.IMPL-MUST-NOT-CURRY if nqp::istype($operand, RakuAST::Circumfix::Parentheses);
         }
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!operand', $operand);
         $obj

@@ -34,11 +34,14 @@ class RakuAST::LexicalScope
         my $stmts := QAST::Stmts.new();
 
         # Visit declarations and produce declaration QAST.
+        my %seen-decl;
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
             $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
+            %seen-decl{nqp::objectid($_)} := 1;
         }
         for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
-            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
+            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self || %seen-decl{nqp::objectid($_)};
+            %seen-decl{nqp::objectid($_)} := 1;
         }
 
         # Visit code objects that need to make a declaration entry. We don't

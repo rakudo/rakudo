@@ -111,6 +111,7 @@ class RakuAST::Signature
     }
 
     method IMPL-ENSURE-IMPLICITS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @generated;
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
@@ -153,6 +154,7 @@ class RakuAST::Signature
                           )
                         )
                     );
+                    nqp::push(@generated, $!implicit-slurpy-hash.target.declaration);
                 }
             }
         }
@@ -176,6 +178,7 @@ class RakuAST::Signature
 
         $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
         $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
+        @generated
     }
 
     method PRODUCE-META-OBJECT() {
@@ -1362,7 +1365,7 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::Type $.type;
     has Mu $!of;
     has RakuAST::Package $!attribute-package;
-    has RakuAST::VarDeclaration::Simple $!declaration;
+    has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
     has Bool $!is-bindable;
 

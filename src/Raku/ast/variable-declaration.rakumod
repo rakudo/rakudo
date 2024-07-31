@@ -501,6 +501,7 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::TraitTarget
   is RakuAST::ContainerCreator
   is RakuAST::Meta
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Term
@@ -512,6 +513,7 @@ class RakuAST::VarDeclaration::Simple
     has str                  $.twigil;
     has str                  $!storage-name;
     has RakuAST::Initializer $.initializer;
+    has RakuAST::Method      $.initializer-method;
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $.attribute-package;
     has RakuAST::Role        $!generics-package;
@@ -631,6 +633,7 @@ class RakuAST::VarDeclaration::Simple
     method visit-children(Code $visitor) {
         $visitor($!type)        if nqp::isconcrete($!type);
         $visitor($!initializer) if nqp::isconcrete($!initializer);
+        $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
         $visitor($!where)       if nqp::isconcrete($!where);
@@ -679,6 +682,29 @@ class RakuAST::VarDeclaration::Simple
         $!shape && self.sigil eq '%'
             ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
             !! &calculate-types(self, $of);
+    }
+
+    # Runs before we parse the initializer, so we can setup a proper environment for resolving
+    # symbols used by the initializer.
+    method PERFORM-PARSE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        if self.is-attribute {
+            my $method := RakuAST::Method.new(
+              :signature(RakuAST::Signature.new(
+                :parameters([
+                  RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new(:name<$_>)
+                  )
+                ])
+              )),
+              :body(RakuAST::Blockoid.new(
+                RakuAST::StatementList.new().to-parse-time($resolver, $context)
+              ))
+            ).to-parse-time($resolver, $context);
+            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', $method);
+        }
     }
 
     method PERFORM-BEGIN(
@@ -791,35 +817,27 @@ class RakuAST::VarDeclaration::Simple
 
             if $!initializer {
                 my $initializer := $!initializer;
-                my $method := RakuAST::Method.new(
-                  :signature(RakuAST::Signature.new(
-                    :parameters([
-                      RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new(:name<$_>)
-                      )
-                    ])
-                  )),
-                  :body(RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                      RakuAST::Statement::Expression.new(
+                my $method := $!initializer-method;
+                $method.body.statement-list.add-statement(
+                    RakuAST::Statement::Expression.new(
                         :expression(
-                          nqp::istype(
-                            $initializer,
-                            RakuAST::Initializer::CallAssign
-                          ) ?? RakuAST::ApplyPostfix.new(
-                                 operand => $!type.IMPL-VALUE-TYPE,
-                                 postfix => $initializer.postfixish
-                               )
-                             !! $initializer.expression
+                            nqp::istype($initializer, RakuAST::Initializer::CallAssign)
+                            ?? RakuAST::ApplyPostfix.new(
+                                operand => $!type.IMPL-VALUE-TYPE,
+                                postfix => $initializer.postfixish
+                            )
+                            !! $initializer.expression
                         )
-                      )
                     )
-                  ))
-                ).to-begin-time($resolver, $context);
+                );
+                $method.to-begin-time($resolver, $context);
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(
                     RakuAST::Trait::Will.new('build', $method).to-begin-time($resolver, $context)
                 );
+            }
+            else {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', RakuAST::Method);
             }
 
             # For attributes our meta-object is an appropriate Attribute instance

@@ -2191,6 +2191,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                    ));
         }
 
+        $decl.to-parse-time($*R, $*CU.context);
+
         $*VARIABLE := $decl;
     }
 

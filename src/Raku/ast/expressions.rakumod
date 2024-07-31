@@ -1358,6 +1358,10 @@ class RakuAST::WhateverApplicable
         }
     }
 
+    method IMPL-IS-XX() {
+        False
+    }
+
     method IMPL-SHOULD-CURRY() {
         return False if $!must-not-curry;
         return False unless self.operator.IMPL-CURRIES;
@@ -1372,7 +1376,7 @@ class RakuAST::WhateverApplicable
             for self.IMPL-UNWRAP-LIST(self.operands) {
                 return True if nqp::istype($_, RakuAST::Expression) && $_.IMPL-CURRIED;
                 return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                                        && $_.IMPL-SINGULAR-CURRIED-EXPRESSION;
+                                        && $_.IMPL-SINGULAR-CURRIED-EXPRESSION && !self.IMPL-IS-XX;
             }
         }
         False
@@ -1401,10 +1405,7 @@ class RakuAST::WhateverApplicable
         }
         self.set-operands(@operands);
 
-        my $self-is-xx := nqp::istype(self, RakuAST::ApplyInfix)
-                && (my $operator := self.operator)
-                && nqp::istype($operator, RakuAST::Infix)
-                && $operator.operator eq 'xx';
+        my $self-is-xx := self.IMPL-IS-XX;
 
         # Re-number WhateverCode arguments
         my $args := 0;
@@ -1434,7 +1435,8 @@ class RakuAST::WhateverApplicable
         return False unless nqp::bitand_i(self.operator.IMPL-CURRIES, 1);
         return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
         for self.IMPL-UNWRAP-LIST(self.operands) {
-            return True if nqp::istype($_, RakuAST::Term::Whatever)
+            return True if nqp::istype($_, RakuAST::Term::Whatever);
+            return True if nqp::istype($_, RakuAST::WhateverCode::Argument);
         }
         False
     }
@@ -1546,6 +1548,13 @@ class RakuAST::ApplyInfix
             }
         }
         True
+    }
+
+    method IMPL-IS-XX() {
+        (my $operator := self.operator)
+        && nqp::istype($operator, RakuAST::Infix)
+        && $operator.operator eq 'xx'
+        ?? True !! False
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

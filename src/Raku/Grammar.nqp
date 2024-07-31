@@ -3764,7 +3764,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $where := $<EXPR>.ast }
         ]?
         <.stub-variable($/, $where)>
-        [<.ws> <initializer>]?
+        [
+            [
+                <?{ $*VARIABLE.is-attribute }>
+                { $*R.enter-scope($*VARIABLE.initializer-method); $*R.create-scope-implicits(); }
+                [<.ws> <initializer>]?
+                { $*R.leave-scope }
+            ]
+            | [<.ws> <initializer>]?
+        ]
     }
 
     token stub-variable($*VARIABLE-MATCH, $*WHERE) { <?> }

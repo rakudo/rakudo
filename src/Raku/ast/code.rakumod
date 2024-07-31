@@ -1391,7 +1391,7 @@ class RakuAST::PointyBlock
         # and that we don't produce a topic parameter.
         if $!signature {
             $!signature.PERFORM-PARSE($resolver, $context);
-            $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
         }
         my $placeholder-signature := self.placeholder-signature;
@@ -1574,7 +1574,7 @@ class RakuAST::Routine
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.PERFORM-PARSE($resolver, $context);
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            self.add-generated-lexical-declaration($_) for $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $placeholder-signature.to-begin-time($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
@@ -1585,7 +1585,7 @@ class RakuAST::Routine
                 ).to-begin-time($resolver, $context)
             );
             $!signature.PERFORM-PARSE($resolver, $context);
-            $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
         }
 
@@ -1984,7 +1984,7 @@ class RakuAST::Methodish
             $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
             $placeholder-signature.attach($resolver);
             $placeholder-signature.PERFORM-PARSE($resolver, $context);
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            self.add-generated-lexical-declaration($_) for $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $placeholder-signature.to-begin-time($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
@@ -2000,7 +2000,7 @@ class RakuAST::Methodish
             $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $signature.set-is-on-role-method(True) if $package-is-role;
             $signature.PERFORM-PARSE($resolver, $context);
-            $signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
+            self.add-generated-lexical-declaration($_) for $signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $signature.to-begin-time($resolver, $context);
         }
 

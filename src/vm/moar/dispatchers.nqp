@@ -995,7 +995,10 @@ nqp::register('raku-sink', -> $capture {
 
         # A non-standard .sink method
         if nqp::isconcrete($sink)
-          && !nqp::eqaddr($sink, Mu.HOW.find_method(Mu, 'sink')) {
+          && (
+              !nqp::eqaddr($sink, Mu.HOW.find_method(Mu, 'sink'))
+              || nqp::istype(nqp::how_nd($sinkee), Perl6::Metamodel::NativeRefHOW)
+          ) {
 
             # Need to actually do a call to the sink method. Since sink
             # is a Raku thing, assume we can go straight for the Raku

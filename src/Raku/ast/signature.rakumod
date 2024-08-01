@@ -173,6 +173,7 @@ class RakuAST::Signature
                     )
                 );
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
+                nqp::push(@generated, $_) for self.IMPL-UNWRAP-LIST($invocant.type-captures);
             }
         }
 

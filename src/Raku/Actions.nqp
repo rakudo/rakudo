@@ -625,9 +625,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Assume the $*BLOCK dynamic var is appropriately localized as it
     # will set that with the RakuAST:: object being created.
     method enter-block-scope($/) {
+        my $signature := $*PARAMETERIZATION;
         my $block := $*MULTINESS
-          ?? Nodify($*SCOPE-KIND).new(:multiness($*MULTINESS))
-          !! Nodify($*SCOPE-KIND).new;
+          ?? Nodify($*SCOPE-KIND).new(:$signature, :multiness($*MULTINESS))
+          !! Nodify($*SCOPE-KIND).new(:$signature);
         $*R.enter-scope($block);
         $*BLOCK := $block;
 
@@ -1978,7 +1979,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
-            $ast.body.to-begin-time($*R, $*CU.context); # Have a new body Sub declare its implicits before we cache them
+            $ast.body.IMPL-BEGIN($*R, $*CU.context); # Have body Sub declare its implicits before we cache them
             $ast.to-begin-time($*R, $*CU.context);
             $ast.IMPL-COMPOSE;
         }

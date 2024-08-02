@@ -399,17 +399,20 @@ class RakuAST::Role
     method default-how() { Metamodel::ParametricRoleHOW }
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
 
-    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
+    method replace-body(RakuAST::Code $role-body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
         # of the role as the signature.  This allows a role to be selected
         # using ordinary dispatch semantics.  The statement list gets a return
         # value added, so that the role's meta-object and lexpad are returned.
-        $signature := RakuAST::Signature.new unless $signature;
-        $signature.set-is-on-role-body(1);
+        if $role-body {
+            $signature := $role-body.signature unless $signature;
+        }
+        else {
+            $signature := RakuAST::Signature.new unless $signature;
+            $role-body := RakuAST::RoleBody.new(:$signature);
+        }
 
-        $body := RakuAST::Block.new unless $body;
-        my $orig-body := $body;
-        $body := $body.body;
+        my $body := $role-body.body;
 
         my $resolve-instantiations;
         unless nqp::defined($!instantiation-lexicals) {
@@ -433,10 +436,10 @@ class RakuAST::Role
           )
         );
 
-        $body := RakuAST::Sub.new(:name(self.name), :$signature, :$body);
-        $body.IMPL-TRANSFER-DECLARATIONS($orig-body);
+        $role-body.replace-name(self.name);
+        $role-body.replace-signature($signature);
 
-        nqp::bindattr(self, RakuAST::Package, '$!body', $body);
+        nqp::bindattr(self, RakuAST::Package, '$!body', $role-body);
         Nil
     }
 

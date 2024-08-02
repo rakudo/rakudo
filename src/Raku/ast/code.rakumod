@@ -990,7 +990,8 @@ class RakuAST::Block
                             Bool :$implicit-topic,
                             Bool :$required-topic,
                             Bool :$exception,
-        RakuAST::Doc::Declarator :$WHY
+        RakuAST::Doc::Declarator :$WHY,
+              RakuAST::Signature :$signature # ignored, just for compatability with Routine
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
@@ -1947,6 +1948,48 @@ class RakuAST::Sub
                         |%args;
             }
         }
+    }
+}
+
+class RakuAST::RoleBody
+  is RakuAST::Sub
+{
+    method new(          str :$scope,
+                         str :$multiness,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$signature,
+                        List :$traits,
+           RakuAST::Blockoid :$body,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
+        $signature := RakuAST::Signature.new unless nqp::isconcrete($signature);
+        $signature.set-is-on-role-body(True);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
+        $obj.set-traits($traits);
+        nqp::bindattr($obj, RakuAST::Sub, '$!body',
+          $body // RakuAST::Blockoid.new);
+        $obj.set-WHY($WHY);
+        $obj
+    }
+
+    method replace-signature(RakuAST::Signature $new-signature) {
+        $new-signature.set-is-on-role-body(True);
+        nqp::bindattr(self, RakuAST::Routine, '$!signature', $new-signature);
+        Nil
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Routine, 'PERFORM-PARSE')(self, $resolver, $context);
+        nqp::findmethod(RakuAST::Routine, 'PERFORM-BEGIN')(self, $resolver, $context);
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Everything already done at parse time
+        Nil
     }
 }
 

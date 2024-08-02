@@ -1301,7 +1301,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Parsing a block *without* a signature (e.g. phasers)
-    token block {
+    token block($kind = 'Block', :$parameterization) {
         :dba('scoped block')
         :my $borg := $*BORG;                        # keep current context
         :my $has-mystery := 0; # TODO
@@ -1309,7 +1309,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;                                # localize block to here
         [
           || <?[{]>                                 # block without signature
-             <.enter-block-scope('Block')>
+             <.enter-block-scope($kind, $parameterization)>
              {
                  if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
                      $*BLOCK.ensure-parse-performed($*R, $*CU.context);
@@ -1341,7 +1341,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Parsing any unit scoped block (either package or sub)
-    token unit-block($decl) {
+    token unit-block($decl, $kind = 'Block', :$parameterization) {
         :my $*BLOCK;
         {                                           # entry check
             unless $*SCOPE eq 'unit' {
@@ -1349,7 +1349,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         { $*IN-DECL := ''; }                        # not inside declaration
-        <.enter-block-scope('Block')>
+        <.enter-block-scope($kind, $parameterization)>
         {
             if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
                 $*BLOCK.ensure-parse-performed($*R, $*CU.context);
@@ -1361,7 +1361,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Helper token to set the kind of scope a block is in, *and* have
     # any appropriate actions executed on them
-    token enter-block-scope($*SCOPE-KIND) { <?> }
+    token enter-block-scope($*SCOPE-KIND, $*PARAMETERIZATION = Mu) { <?> }
 
     # Helper token to make the actions handle the end of a scope
     token leave-block-scope() { <?> }
@@ -3555,12 +3555,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [
-          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block>
+          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
           || ';'
              [
                || <?{ $*START-OF-COMPUNIT }>
                   { $*START-OF-COMPUNIT := 0; }
-                  <unit-block($*PKGDECL)>
+                  <unit-block($*PKGDECL, $*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
 
                || { $/.typed-panic: "X::UnitScope::TooLate", what => $*PKGDECL }
              ]

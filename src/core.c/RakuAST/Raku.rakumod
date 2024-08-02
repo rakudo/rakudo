@@ -577,8 +577,8 @@ augment class RakuAST::Node {
             my $statements := self.body.body.statement-list.statements;
             nqp::bindattr($self, RakuAST::Package, '$!body',
               $statements.elems == 1
-                ?? RakuAST::Block
-                !! RakuAST::Block.new(
+                ?? RakuAST::RoleBody
+                !! RakuAST::RoleBody.new(
                      body => RakuAST::Blockoid.new(
                        RakuAST::StatementList.new(
                          # lose fabricated values

@@ -19,17 +19,6 @@ class RakuAST::LexicalScope
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
-    method IMPL-TRANSFER-DECLARATIONS(RakuAST::LexicalScope $source) {
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', nqp::getattr($source, RakuAST::LexicalScope, '$!declarations-cache'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', nqp::getattr($source, RakuAST::LexicalScope, '$!lexical-lookup-hash'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', nqp::getattr($source, RakuAST::LexicalScope, '$!variables-cache'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-declarations', nqp::getattr($source, RakuAST::LexicalScope, '$!generated-lexical-declarations'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-lookup-hash', nqp::getattr($source, RakuAST::LexicalScope, '$!generated-lexical-lookup-hash'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!need-succeed-handler', nqp::getattr($source, RakuAST::LexicalScope, '$!need-succeed-handler'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', nqp::getattr($source, RakuAST::LexicalScope, '$!catch-handlers'));
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', nqp::getattr($source, RakuAST::LexicalScope, '$!control-handlers'));
-    }
-
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 

@@ -249,6 +249,12 @@ stages:
       workspace:
         clean: all
       steps:
+        - script: |
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo'
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo'
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo'
+          displayName: Work around mirrorlist.centos.org being discontinued
+
         - script: /tmp/docker exec -t -u 0 raku-build-container sh -c "yum -y update && yum -y install sudo"
           displayName: Set up sudo (see https://github.com/microsoft/azure-pipelines-agent/issues/2043)
 

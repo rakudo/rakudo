@@ -1387,7 +1387,9 @@ class RakuAST::WhateverApplicable
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
-            @operands[$index] := RakuAST::WhateverCode::Argument.new if nqp::istype($_, RakuAST::Term::Whatever);
+            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
+                @operands[$index] := RakuAST::WhateverCode::Argument.new if nqp::istype($_, RakuAST::Term::Whatever);
+            }
 
             # If we can curry WhateverCodes, uncurry them first, i.e. move the thunk up to this node
             if nqp::bitand_i(self.operator.IMPL-CURRIES, 2) {

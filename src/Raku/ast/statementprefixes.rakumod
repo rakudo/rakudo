@@ -304,6 +304,12 @@ class RakuAST::StatementPrefix::Blorst
           if nqp::istype(self.blorst, RakuAST::Block);
     }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.to-begin-time($resolver, $context);
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
+    }
+
     method IMPL-QAST-FORM-BLOCK(
       RakuAST::IMPL::QASTContext  $context,
                              str :$blocktype,
@@ -805,6 +811,13 @@ class RakuAST::StatementPrefix::Phaser::Pre
 
         $obj
     }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.IMPL-BEGIN($resolver, $context);
+
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
+    }
 }
 
 # The POST phaser.
@@ -880,6 +893,13 @@ class RakuAST::StatementPrefix::Phaser::Post
         );
 
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.IMPL-BEGIN($resolver, $context);
+
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
     }
 }
 

@@ -574,6 +574,7 @@ Did you mean a call like '"
 class RakuAST::FlipFlop
   is RakuAST::Infix
   is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
 {
     has Bool $.excludes-min;
     has Bool $.excludes-max;
@@ -610,6 +611,10 @@ class RakuAST::FlipFlop
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Whatever'))
         ])
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!state-var.to-begin-time($resolver, $context);
     }
 
     method IMPL-CURRIES() { 0 }

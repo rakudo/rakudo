@@ -390,13 +390,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             $statement-list := wrap-in-for-loop($statement-list);
+            # Give the wrapper nodes a chance to do BEGIN time effects
+            $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }
         $RESOLVER.enter-scope($COMPUNIT);
 
         # Put the body in place.
         $COMPUNIT.replace-statement-list($statement-list);
 
-        $COMPUNIT.begin($RESOLVER);
+        $COMPUNIT.to-begin-time($RESOLVER, $COMPUNIT.context);
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
@@ -505,12 +507,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Handle expression with optional condition/loop modifiers
         if $<EXPR> {
             my $ast := $<EXPR>.ast;
+            my $context := $*CU ?? $*CU.context !! NQPMu; # Might be too early to even have a CU
             if nqp::istype($ast, Nodify('ColonPairs')) {
                 $ast := Nodify('ApplyListInfix').new:
-                  :infix(Nodify('Infix').new(',')),
+                  :infix(Nodify('Infix').new(',').to-begin-time($*R, $context)),
                   :operands($ast.colonpairs);
             }
-            $statement := Nodify('Statement','Expression').new(:expression($ast));
+            $statement := Nodify('Statement','Expression').new(:expression($ast.to-begin-time($*R, $context)));
             $statement.replace-condition-modifier($<statement-mod-cond>.ast)
               if $<statement-mod-cond>;
             $statement.replace-loop-modifier($<statement-mod-loop>.ast)
@@ -1092,7 +1095,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method prefixish($/) {
         my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
-        $ast := $<prefix-postfix-meta-operator>.ast.new($ast)
+        $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           if $<prefix-postfix-meta-operator>;
         self.attach: $/, $ast;
     }
@@ -1109,7 +1112,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           // Nodify('Postfix').new(:operator(~$<postfix><sym>));
 
         self.attach: $/, $<postfix-prefix-meta-operator>
-          ?? Nodify('MetaPostfix','Hyper').new($ast)
+          ?? Nodify('MetaPostfix','Hyper').new($ast.to-begin-time($*R, $*CU.context))
           !! $ast
     }
 

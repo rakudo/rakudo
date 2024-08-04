@@ -572,6 +572,7 @@ class RakuAST::CompUnit
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!mainline);
         $visitor($!statement-list);
         $visitor($!pod)     if $!pod;
         $visitor($!data)    if $!data;

@@ -1,6 +1,7 @@
 # A blockoid represents the block part of some kind of code declaration.
 class RakuAST::Blockoid
   is RakuAST::SinkPropagator
+  is RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
 
@@ -13,6 +14,11 @@ class RakuAST::Blockoid
 
     method propagate-sink(Bool $is-sunk) {
         $!statement-list.propagate-sink($is-sunk, :has-block-parent(True))
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!statement-list.to-begin-time($resolver, $context); # In case it's the default we created in the ctor.
+        Nil
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
@@ -1072,6 +1078,8 @@ class RakuAST::Block
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!body.to-begin-time($resolver, $context); # In case it's the default we created in the ctor.
+
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
         my $placeholder-signature := self.placeholder-signature;
@@ -1388,6 +1396,8 @@ class RakuAST::PointyBlock
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.body.to-begin-time($resolver, $context); # In case it's the default we created in the ctor.
+
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
         if $!signature {
@@ -1571,6 +1581,8 @@ class RakuAST::Routine
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.body.to-begin-time($resolver, $context); # In case it's the default created in the ctor.
+
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
@@ -2017,6 +2029,8 @@ class RakuAST::Methodish
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.body.to-begin-time($resolver, $context); # In case it's the default created in the ctor.
+
         my $package := nqp::getattr(self, RakuAST::Routine, '$!package');
         my $package-is-role := $package && $package.declarator eq 'role';
         my $placeholder-signature := self.placeholder-signature;

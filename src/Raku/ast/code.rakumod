@@ -1905,6 +1905,8 @@ class RakuAST::Sub
     }
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+
         return Nil unless self.multiness eq 'multi';
 
         self.IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES($resolver);

@@ -329,8 +329,13 @@ class RakuAST::CompUnit
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
                 'CompUnit', 'RepositoryRegistry',
-            ))
+            )),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
         ])
+    }
+
+    method IMPL-FATALIZE {
+        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -497,14 +502,15 @@ class RakuAST::CompUnit
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $*CU := self;
         self.IMPL-SET-NODE:
-            QAST::Stmts.new(
-                QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
-                self.IMPL-QAST-DECLS($context),
-                self.IMPL-QAST-INIT-PHASERS($context),
-                self.IMPL-QAST-END-PHASERS($context),
-                self.IMPL-QAST-CTXSAVE($context),
-                self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
-            )
+            self.IMPL-MAYBE-FATALIZE-QAST:
+                QAST::Stmts.new(
+                    QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
+                    self.IMPL-QAST-DECLS($context),
+                    self.IMPL-QAST-INIT-PHASERS($context),
+                    self.IMPL-QAST-END-PHASERS($context),
+                    self.IMPL-QAST-CTXSAVE($context),
+                    self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
+                )
     }
 
     method IMPL-QAST-INIT-PHASERS(RakuAST::IMPL::QASTContext $context) {

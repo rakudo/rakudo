@@ -800,8 +800,6 @@ class RakuAST::ScopePhaser {
         if $!temp {
             $code-object.add_phaser('LEAVE', $!temp.meta-object);
         }
-
-        $code-object.fatalize if $*LANG && $*LANG.pragma('fatal');
     }
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
@@ -1073,8 +1071,13 @@ class RakuAST::Block
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
         ])
+    }
+
+    method IMPL-FATALIZE() {
+        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1141,9 +1144,10 @@ class RakuAST::Block
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
-            self.IMPL-APPEND-SIGNATURE-RETURN($context,
-            $!body.IMPL-TO-QAST($context)));
+        self.IMPL-MAYBE-FATALIZE-QAST(
+            self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
+                self.IMPL-APPEND-SIGNATURE-RETURN($context,
+                $!body.IMPL-TO-QAST($context))));
     }
     method IMPL-QAST-FORM-BLOCK-FOR-BODY(RakuAST::IMPL::QASTContext $context, Mu $body-qast,
             str :$blocktype, RakuAST::Expression :$expression) {
@@ -1373,8 +1377,13 @@ class RakuAST::PointyBlock
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
         ])
+    }
+
+    method IMPL-FATALIZE() {
+        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
     }
 
     method PRODUCE-META-OBJECT() {
@@ -1445,9 +1454,10 @@ class RakuAST::PointyBlock
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
-            self.IMPL-WRAP-RETURN-HANDLER($context,
-                self.IMPL-APPEND-SIGNATURE-RETURN($context, self.body.IMPL-TO-QAST($context))))
+        self.IMPL-MAYBE-FATALIZE-QAST(
+            self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
+                self.IMPL-WRAP-RETURN-HANDLER($context,
+                    self.IMPL-APPEND-SIGNATURE-RETURN($context, self.body.IMPL-TO-QAST($context)))))
     }
 }
 
@@ -1510,8 +1520,13 @@ class RakuAST::Routine
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
         ])
+    }
+
+    method IMPL-FATALIZE() {
+        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -1714,7 +1729,7 @@ class RakuAST::Routine
         $block.annotate('count', $signature.count);
         $block.push($body);
         self.add-phasers-handling-code($context, $block);
-        $block
+        self.IMPL-MAYBE-FATALIZE-QAST($block)
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {

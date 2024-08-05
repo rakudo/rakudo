@@ -19,6 +19,12 @@ class RakuAST::LexicalScope
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
+    has Bool $.fatal;
+
+    method set-fatal(Bool $on) {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!fatal', $on);
+    }
+
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
@@ -328,6 +334,73 @@ class RakuAST::LexicalScope
             ),
             QAST::WVal.new( :value(Nil) )
         ));
+    }
+
+    # Should return the lookup result for Failure
+    method IMPL-FATALIZE {
+        nqp::die("IMPL-FATALIZE NYI on " ~ self.HOW.name(self));
+    }
+
+    method IMPL-MAYBE-FATALIZE-QAST($qast) {
+        self.IMPL-FATALIZE-QAST($qast, 0) if $!fatal;
+
+        $qast
+    }
+
+    method IMPL-FATALIZE-QAST($qast, $bool-context) {
+        my &fatalize := self.IMPL-FATALIZE;
+        my $fatalize := QAST::WVal.new(:value(&fatalize)); # comes from setting, so guaranteed to be in an SC
+        my %boolify_first_child_ops := nqp::hash(
+            'if', 1, 'unless', 1, 'defor', 1, 'hllbool', 1,
+            'while', 1, 'until', 1, 'repeat_while', 1, 'repeat_until', 1,
+        );
+        my %boolify_first_child_calls := nqp::hash(
+            '&prefix:<?>', 1, '&prefix:<so>', 1,
+            '&prefix:<!>', 1, '&prefix:<not>', 1,
+            '&defined', 1
+        );
+        if nqp::istype($qast, QAST::Op) {
+            my str $op := $qast.op;
+            if $op eq 'call' && nqp::istype($qast[0], QAST::WVal) && $qast[0].value =:= &fatalize {
+                # We've been here before (tree with shared bits, presumably).
+            }
+            elsif nqp::existskey(%boolify_first_child_ops, $op) ||
+                    $op eq 'call' && nqp::existskey(%boolify_first_child_calls, $qast.name) {
+                my int $first := 1;
+                for @($qast) {
+                    if $first {
+                        self.IMPL-FATALIZE-QAST($_, 1);
+                        $first := 0;
+                    }
+                    else {
+                        self.IMPL-FATALIZE-QAST($_, 0);
+                    }
+                }
+            }
+            elsif $op eq 'hllize' {
+                self.IMPL-FATALIZE-QAST($_, $bool-context) for @($qast);
+            }
+            else {
+                 self.IMPL-FATALIZE-QAST($_, 0) for @($qast);
+                 if !$bool-context && ($op eq 'call' || $op eq 'callmethod') {
+                    if $qast.name eq '&fail' {
+                        $qast.name('&die');
+                    }
+                    else {
+                        my $new-node := QAST::Op.new( :node($qast.node), :$op, :name($qast.name), :returns($qast.returns) );
+                        $new-node.push($qast.shift) while @($qast);
+                        $qast.op('call');
+                        $qast.name('');
+
+                        $qast.push($fatalize);
+                        $qast.push($new-node);
+                    }
+                 }
+            }
+        }
+        elsif nqp::istype($qast, QAST::Block) || nqp::istype($qast, QAST::Stmt) || nqp::istype($qast, QAST::Stmts) || nqp::istype($qast, QAST::Want) {
+            self.IMPL-FATALIZE-QAST($_, 0) for @($qast);
+        }
     }
 }
 

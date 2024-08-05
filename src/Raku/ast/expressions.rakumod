@@ -169,6 +169,10 @@ class RakuAST::Infixish
     method IMPL-OPERATOR() {
         nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
     }
+
+    method IMPL-HOP-INFIX() {
+        self.IMPL-OPERATOR
+    }
 }
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
@@ -803,7 +807,13 @@ class RakuAST::BracketedInfix
         $visitor($!infix);
     }
 
+    method operator() { $!infix }
+
     method reducer-name() { $!infix.reducer-name }
+
+    method IMPL-OPERATOR() {
+        $!infix.IMPL-HOP-INFIX
+    }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right) {
@@ -865,7 +875,7 @@ class RakuAST::MetaInfix
 {
     method IMPL-HOP-INFIX() {
         self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
-            self.infix.IMPL-OPERATOR
+            self.infix.IMPL-HOP-INFIX
         )
     }
 
@@ -1036,6 +1046,14 @@ class RakuAST::MetaInfix::Negate
         )
     }
 
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
+
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
@@ -1075,6 +1093,14 @@ class RakuAST::MetaInfix::Reverse
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-QAST($context, $right-qast, $left-qast)
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {

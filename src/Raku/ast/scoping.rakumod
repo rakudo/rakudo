@@ -141,7 +141,7 @@ class RakuAST::LexicalScope
         Nil
     }
 
-    method merge-generated-lexical-declaration(RakuAST::Declaration $declaration, RakuAST::Resolver :$resolver!) {
+    method merge-generated-lexical-declaration(RakuAST::Declaration $declaration, RakuAST::Resolver :$resolver!, :$force) {
         unless $!generated-lexical-declarations {
             nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-declarations', []);
         }
@@ -150,9 +150,16 @@ class RakuAST::LexicalScope
                 if $_.compile-time-value =:= $declaration.compile-time-value {
                     return Nil
                 }
+                elsif nqp::decont($_.compile-time-value) =:= nqp::decont($declaration.compile-time-value) {
+                    return Nil
+                }
+                elsif $force {
+                    $_.set-value($declaration.compile-time-value);
+                    return Nil
+                }
                 else {
                     $_.merge($declaration, :$resolver);
-                    return;
+                    return Nil;
                 }
             }
         }

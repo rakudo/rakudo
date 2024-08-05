@@ -2,6 +2,26 @@ NQPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        nqp::hllizefor(@copy, 'Raku')
+    }
+    elsif nqp::ishash($x) {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        nqp::hllizefor(%copy, 'Raku').item
+    }
+    else {
+        nqp::hllizefor($x, 'Raku')
+    }
+}
+
 #-------------------------------------------------------------------------------
 # Roles used by multiple slangs
 
@@ -5258,11 +5278,17 @@ Rakudo significantly on *every* run."
         # Set up the rest of this statement to have new actions too.
         self.set_actions($actions);
 
+        my $scalar := p6ize_recursive(%*LANG);
+        my $descriptor_type := $*R.type-from-setting('ContainerDescriptor');
+        my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
+        nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
+
         $*R.outer-scope.merge-generated-lexical-declaration(
             :resolver($*R),
+            :force,
             self.actions.r('VarDeclaration', 'Implicit', 'Constant').new(
                 :name('%?LANG'),
-                :value(%*LANG),
+                :value($scalar),
             )
         );
 

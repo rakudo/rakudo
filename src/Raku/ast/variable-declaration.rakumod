@@ -1833,12 +1833,16 @@ class RakuAST::VarDeclaration::Implicit::Constant
 {
     has Mu $.value;
 
-    method new(str :$name!, Mu :$value!, str :$scope) {
+    method new(str :$name!, Mu :$value! is raw, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         $obj
+    }
+
+    method set-value($value is raw) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
     }
 
     method compile-time-value() { $!value }

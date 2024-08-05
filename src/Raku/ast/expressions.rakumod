@@ -156,6 +156,14 @@ class RakuAST::Infixish
             $right.IMPL-TO-QAST($context)
     }
 
+    method IMPL-INFIX-FOR-META-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        self.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+    }
+
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
     }
@@ -337,6 +345,19 @@ class RakuAST::Infix
                $left-qast,
                $right-qast
              )
+    }
+
+    method IMPL-INFIX-FOR-META-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        QAST::Op.new(
+            :op(self.properties.chain ?? 'chain' !! 'call'),
+            :name(self.resolution.lexical-name),
+            $left-qast,
+            $right-qast
+        )
     }
 
     method IMPL-SMARTMATCH-QAST( RakuAST::IMPL::QASTContext $context,
@@ -1035,7 +1056,7 @@ class RakuAST::MetaInfix::Negate
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         QAST::Op.new(:op<hllbool>,
           QAST::Op.new(:op<isfalse>,
-            $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+            $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
           )
         )
     }

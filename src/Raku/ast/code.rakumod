@@ -1072,7 +1072,7 @@ class RakuAST::Block
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
         ])
     }
 
@@ -1378,7 +1378,7 @@ class RakuAST::PointyBlock
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
         ])
     }
 
@@ -1521,7 +1521,7 @@ class RakuAST::Routine
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
         ])
     }
 

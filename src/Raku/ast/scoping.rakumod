@@ -348,8 +348,9 @@ class RakuAST::LexicalScope
     }
 
     method IMPL-FATALIZE-QAST($qast, $bool-context) {
-        my &fatalize := self.IMPL-FATALIZE;
-        my $fatalize := QAST::WVal.new(:value(&fatalize)); # comes from setting, so guaranteed to be in an SC
+        my &FATALIZE := self.IMPL-FATALIZE;
+        # comes from setting, so guaranteed to be in an SC
+        my $FATALIZE := QAST::WVal.new(:value(&FATALIZE));
         my %boolify_first_child_ops := nqp::hash(
             'if', 1, 'unless', 1, 'defor', 1, 'hllbool', 1,
             'while', 1, 'until', 1, 'repeat_while', 1, 'repeat_until', 1,
@@ -361,7 +362,7 @@ class RakuAST::LexicalScope
         );
         if nqp::istype($qast, QAST::Op) {
             my str $op := $qast.op;
-            if $op eq 'call' && nqp::istype($qast[0], QAST::WVal) && $qast[0].value =:= &fatalize {
+            if $op eq 'call' && nqp::istype($qast[0], QAST::WVal) && $qast[0].value =:= &FATALIZE {
                 # We've been here before (tree with shared bits, presumably).
             }
             elsif nqp::existskey(%boolify_first_child_ops, $op) ||
@@ -392,7 +393,7 @@ class RakuAST::LexicalScope
                         $qast.op('call');
                         $qast.name('');
 
-                        $qast.push($fatalize);
+                        $qast.push($FATALIZE);
                         $qast.push($new-node);
                     }
                  }

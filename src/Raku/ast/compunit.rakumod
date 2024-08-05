@@ -330,7 +330,7 @@ class RakuAST::CompUnit
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
                 'CompUnit', 'RepositoryRegistry',
             )),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&fatalize')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
         ])
     }
 

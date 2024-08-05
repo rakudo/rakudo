@@ -26,6 +26,7 @@ my %allowed = (
     Q{&EVAL},
     Q{&EVALFILE},
     Q{&EXCEPTION},
+    Q{&FATALIZE},
     Q{&GATHER},
     Q{&GENERATE-ROLE-FROM-VALUE},
     Q{&HOW},

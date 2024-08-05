@@ -11,6 +11,7 @@ my %allowed = (
   Q{$=pod},
   Q{$_},
   Q{$¢},
+  Q{&FATALIZE},
   Q{&REACT},
   Q{&REACT-ONE-WHENEVER},
   Q{&await},

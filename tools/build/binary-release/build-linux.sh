@@ -17,6 +17,12 @@ sudo yum clean all
 
 echo "========= install a new enough gcc"
 sudo yum -y install centos-release-scl
+
+# Fix up repo specs for out of support CentOS 7 again
+sudo sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
+
 sudo yum -y install devtoolset-8
 # Somehow scl_source fails on Azure CI (but works in an identical local container).
 # So just skip scl_source entirely and just source the target file directly.

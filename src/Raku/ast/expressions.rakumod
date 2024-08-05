@@ -1096,7 +1096,7 @@ class RakuAST::MetaInfix::Reverse
         $obj
     }
 
-    method reducer-name() { $!infix.reducer-name }
+    method reducer-name() { '&METAOP_REDUCE_LEFT' }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);

@@ -383,7 +383,14 @@ class RakuAST::Term::Reduce
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
         ])
+    }
+
+    method IMPL-HOP-INFIX() {
+        nqp::cluck("IMPL-HOP-INFIX on " ~ self);
+        my &reducer := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

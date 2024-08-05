@@ -907,7 +907,7 @@ class RakuAST::MetaInfix
         self.infix.properties.fiddly
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
-                 meta     => "negate",
+                 meta     => self.action,
                  operator => self.infix.operator,
                  dba      => self.properties.dba,
                  reason   => "too fiddly"
@@ -1022,6 +1022,8 @@ class RakuAST::MetaInfix::Negate
         $obj
     }
 
+    method action { 'negate' }
+
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
@@ -1096,6 +1098,8 @@ class RakuAST::MetaInfix::Reverse
         $obj
     }
 
+    method action { 'reverse the args of' }
+
     method reducer-name() { '&METAOP_REDUCE_LEFT' }
 
     method visit-children(Code $visitor) {
@@ -1147,6 +1151,8 @@ class RakuAST::MetaInfix::Cross
         nqp::bindattr($obj, RakuAST::MetaInfix::Cross, '$!infix', $infix);
         $obj
     }
+
+    method action { 'cross with' }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
@@ -1236,6 +1242,8 @@ class RakuAST::MetaInfix::Zip
         nqp::bindattr($obj, RakuAST::MetaInfix::Zip, '$!infix', $infix);
         $obj
     }
+
+    method action { 'zip with' }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);

@@ -103,9 +103,9 @@ class OperatorProperties {
     method associative-reversed() {
         nqp::isconcrete(self)
           ?? $!associative eq 'left'
-            ?? self.new(:associative<right>, :dba("reversed " ~ $!dba))
+            ?? self.new(:associative<right>, :dba($!dba))
             !! $!associative eq 'right'
-              ?? self.new(:associative<left>, :dba("reversed " ~ $!dba))
+              ?? self.new(:associative<left>, :dba($!dba))
               !! self
           !! self
     }
@@ -499,7 +499,7 @@ class OperatorProperties {
           'adverb', nqp::hash(
             'precedence','i=', 'associative','unary', 'adverb',1
           ),
-          'list-assignment', nqp::hash(
+          'list assignment', nqp::hash(
             'precedence','i=', 'associative','right', 'fiddly',1,
             'sub-precedence','e='
           ),
@@ -731,9 +731,9 @@ class OperatorProperties {
           '⚛-=', 'item-assignment',
           '⚛−=', 'item-assignment',
 
-          '=',  'list-assignment',
-          '@=', 'list-assignment',   # dummy for @a = 1,2,3
-          ':=', 'list-assignment',
+          '=',  'list assignment',
+          '@=', 'list assignment',   # dummy for @a = 1,2,3
+          ':=', 'list assignment',
 
           ':', 'comma',              # dummy for chop 42:
           ',', 'comma',

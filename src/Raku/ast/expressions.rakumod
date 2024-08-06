@@ -1220,15 +1220,12 @@ class RakuAST::MetaInfix::Cross
             my $semilist := $expression.semilist;
             if $semilist.IMPL-IS-SINGLE-EXPRESSION {
                 my $expr := $semilist.code-statements[0].expression;
-                if nqp::istype($expr, RakuAST::ApplyListInfix) {
-                    my $infix := $expr.infix;
-                    if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
-                        for $expr.IMPL-UNWRAP-LIST($expr.operands) {
-                            self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-                        }
+                if nqp::istype($expr, RakuAST::ApplyListInfix) && $expr.IMPL-IS-LIST-LITERAL {
+                    for $expr.IMPL-UNWRAP-LIST($expr.operands) {
+                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
                     }
-               }
-           }
+                }
+            }
         }
     }
 
@@ -1315,15 +1312,12 @@ class RakuAST::MetaInfix::Zip
             my $semilist := $expression.semilist;
             if $semilist.IMPL-IS-SINGLE-EXPRESSION {
                 my $expr := $semilist.code-statements[0].expression;
-                if nqp::istype($expr, RakuAST::ApplyListInfix) {
-                    my $infix := $expr.infix;
-                    if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
-                        for $expr.IMPL-UNWRAP-LIST($expr.operands) {
-                            self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-                        }
+                if nqp::istype($expr, RakuAST::ApplyListInfix) && $expr.IMPL-IS-LIST-LITERAL {
+                    for $expr.IMPL-UNWRAP-LIST($expr.operands) {
+                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
                     }
-               }
-           }
+                }
+            }
         }
     }
 
@@ -1704,9 +1698,13 @@ class RakuAST::ApplyListInfix
         }
     }
 
+    method IMPL-IS-LIST-LITERAL() {
+        nqp::istype($!infix, RakuAST::Infix) && $!infix.operator eq ',';
+    }
+
     method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS() {
         # Anything but a ','
-        !(nqp::istype($!infix, RakuAST::Infix) && $!infix.operator eq ',')
+        !self.IMPL-IS-LIST-LITERAL
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

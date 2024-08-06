@@ -389,7 +389,25 @@ class RakuAST::Term::Reduce
     }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |$!args.IMPL-UNWRAP-LIST($!args.args), :meta);
+        my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
+        if nqp::elems($args) == 1
+            && nqp::istype((my $arg := $args[0]), RakuAST::Circumfix::Parentheses)
+        {
+            my $semilist := $arg.semilist;
+            my $statements := $semilist.IMPL-UNWRAP-LIST($semilist.statements);
+            if nqp::elems($statements) == 0 {
+                return;
+            }
+            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
+                if nqp::istype($statements[0].expression, RakuAST::ApplyListInfix) && $statements[0].expression.IMPL-IS-LIST-LITERAL {
+                    $args := self.IMPL-UNWRAP-LIST($statements[0].expression.operands);
+                }
+                else {
+                    return; # No use in thunking a single argument. We'd have to evaluate it anyway.
+                }
+            }
+        }
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |$args, :meta);
     }
 
     method IMPL-HOP-INFIX() {

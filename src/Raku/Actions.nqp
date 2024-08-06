@@ -3102,9 +3102,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method semiarglist($/) {
-        nqp::elems($<arglist>) == 1
-          ?? self.attach: $/, $<arglist>[0].ast
-          !! nqp::die('Multiple arg lists NYI')
+        if nqp::elems($<arglist>) == 1 {
+            self.attach: $/, $<arglist>[0].ast
+        }
+        else {
+            my $R := $*R;
+            my $context := $*CU.context;
+            my $ast := Nodify('ArgList').new;
+            for $<arglist> {
+                my $infix  := Nodify('Infix').new(',').to-begin-time($R, $context);
+                my $apply  := Nodify('ApplyListInfix').new(:$infix, :operands($_.ast.args)).to-begin-time($R, $context);
+                my $stmt   := Nodify('Statement', 'Expression').new(:expression($apply)).to-begin-time($R, $context);
+                my $semi   := Nodify('SemiList').new($stmt).to-begin-time($R, $context);
+                my $parens := Nodify('Circumfix', 'Parentheses').new($semi).to-begin-time($R, $context);
+                $ast.push($parens);
+            }
+            self.attach: $/, $ast
+        }
     }
 
     method arglist($/) {

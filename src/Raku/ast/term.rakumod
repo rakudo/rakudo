@@ -388,7 +388,6 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-HOP-INFIX() {
-        nqp::cluck("IMPL-HOP-INFIX on " ~ self);
         my &reducer := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
         $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }

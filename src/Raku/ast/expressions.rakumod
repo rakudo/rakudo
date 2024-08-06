@@ -1223,7 +1223,9 @@ class RakuAST::MetaInfix::Cross
                 if nqp::istype($expr, RakuAST::ApplyListInfix) {
                     my $infix := $expr.infix;
                     if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
-                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type);
+                        for $expr.IMPL-UNWRAP-LIST($expr.operands) {
+                            self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+                        }
                     }
                }
            }
@@ -1316,7 +1318,9 @@ class RakuAST::MetaInfix::Zip
                 if nqp::istype($expr, RakuAST::ApplyListInfix) {
                     my $infix := $expr.infix;
                     if nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',' {
-                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type);
+                        for $expr.IMPL-UNWRAP-LIST($expr.operands) {
+                            self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+                        }
                     }
                }
            }

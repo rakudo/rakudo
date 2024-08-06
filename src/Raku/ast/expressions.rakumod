@@ -1171,7 +1171,9 @@ class RakuAST::MetaInfix::Cross
 
     method properties() { OperatorProperties.infix('X') }
 
-    method reducer-name() { $!infix.reducer-name }
+    method reducer-name() {
+        self.properties.reducer-name
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -1262,7 +1264,9 @@ class RakuAST::MetaInfix::Zip
 
     method properties() { OperatorProperties.infix('Z') }
 
-    method reducer-name() { $!infix.reducer-name }
+    method reducer-name() {
+        self.properties.reducer-name
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([

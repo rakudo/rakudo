@@ -347,6 +347,7 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
@@ -385,6 +386,10 @@ class RakuAST::Term::Reduce
             RakuAST::Var::Lexical.new('&infix:<,>'),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
         ])
+    }
+
+    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |$!args.IMPL-UNWRAP-LIST($!args.args), :meta);
     }
 
     method IMPL-HOP-INFIX() {

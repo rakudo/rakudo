@@ -1950,7 +1950,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<reduce>($/) {
-        my $infix := $<op>.ast // Nodify('Infix').new($<op><OPER><sym>);
+        my $infix := $<op>.ast // Nodify('Infix').new($<op><OPER><sym>).to-begin-time($*R, $*CU.context);
         self.attach: $/, Nodify('Term', 'Reduce').new(:$infix, :args($<args>.ast),
             :triangle(?$<triangle>));
     }

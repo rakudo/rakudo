@@ -1141,7 +1141,11 @@ class RakuAST::MetaInfix::Reverse
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta) #TODO reverse
+        my @args;
+        for @operands {
+            nqp::unshift(@args, $_);
+        }
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@args, :meta)
     }
 }
 

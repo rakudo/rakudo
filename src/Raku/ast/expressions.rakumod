@@ -161,6 +161,8 @@ class RakuAST::Infixish
             $right.IMPL-TO-QAST($context)
     }
 
+    # Just produce QAST without shortcuts like direct mapping to special QAST nodes.
+    # Needed for correct handling of thunks with meta ops.
     method IMPL-INFIX-FOR-META-QAST(
       RakuAST::IMPL::QASTContext $context,
                               Mu $left-qast,
@@ -1122,7 +1124,7 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        $!infix.IMPL-INFIX-QAST($context, $right-qast, $left-qast)
+        $!infix.IMPL-INFIX-FOR-META-QAST($context, $right-qast, $left-qast)
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

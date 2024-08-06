@@ -270,12 +270,12 @@ class OperatorProperties {
     # string
     method not-reducable() {
         nqp::isconcrete(self)
-          ?? ""
-          !! $!fiddly
+          ?? $!fiddly
             ?? "fiddly"
-            !! $!diffy && $!associative eq 'chain'
+            !! $!diffy && $!associative ne 'chain'
               ?? "diffy and not chaining"
               !! ""
+          !! "" # can't tell on a non-conrete object
     }
 
     # Return name of handler for reducing with these operator properties

@@ -266,16 +266,16 @@ class OperatorProperties {
         nqp::isconcrete(self) ?? ($!sub-precedence || $!precedence) !! ""
     }
 
-    # Return a string with the reason why it is not reducable, or empty
+    # Return a string with the reason why it is not reducible, or empty
     # string
-    method not-reducable() {
+    method not-reducible() {
         nqp::isconcrete(self)
           ?? $!fiddly
             ?? "fiddly"
             !! $!diffy && $!associative ne 'chain'
               ?? "diffy and not chaining"
               !! ""
-          !! "" # can't tell on a non-conrete object
+          !! "" # can't tell on a non-concrete object
     }
 
     # Return name of handler for reducing with these operator properties

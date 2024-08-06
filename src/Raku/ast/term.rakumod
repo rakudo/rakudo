@@ -367,7 +367,7 @@ class RakuAST::Term::Reduce
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        (my $reason := self.properties.not-reducable)
+        (my $reason := self.properties.not-reducible)
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "reduce",

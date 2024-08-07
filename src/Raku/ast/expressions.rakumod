@@ -1412,7 +1412,8 @@ class RakuAST::MetaInfix::Hyper
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+        # Hypers are not supposed to thunk at all. I don't know why this is the case,
+        # but some spec tests rely on this.
     }
 }
 

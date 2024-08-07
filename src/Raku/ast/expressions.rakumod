@@ -232,6 +232,9 @@ class RakuAST::Infix
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
+        if nqp::istype($expression, RakuAST::CompileTimeValue) {
+            return; # No need to thunk constants.
+        }
         if $type eq 'b' && !nqp::istype($expression, RakuAST::Code) {
             my $thunk := RakuAST::BlockThunk.new;
             $thunk.to-begin-time($resolver, $context);

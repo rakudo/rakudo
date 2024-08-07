@@ -651,9 +651,22 @@ class RakuAST::Call::QuotedMethod
         OperatorProperties.postfix('.')
     }
 
+    method can-be-used-with-hyper() { True }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
         my $call := QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
+        my $call := QAST::Op.new:
+            :op('callmethod'), :name('dispatch:<hyper>'),
+            $operand-qast,
+            QAST::SVal.new( :value('') ),
+            $name-qast;
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

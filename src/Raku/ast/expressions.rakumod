@@ -1389,6 +1389,14 @@ class RakuAST::MetaInfix::Hyper
             $right-qast
     }
 
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
+
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER'),

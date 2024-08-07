@@ -2446,6 +2446,10 @@ class RakuAST::Postcircumfix::LiteralHashIndex
         True
     }
 
+    method can-be-used-with-hyper() {
+        True
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&postcircumfix:<{ }>');
         if $resolved {
@@ -2473,6 +2477,14 @@ class RakuAST::Postcircumfix::LiteralHashIndex
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
+            $operand-qast,
+            $!index.IMPL-TO-QAST($context),
+            self.resolution.IMPL-LOOKUP-QAST($context)
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,

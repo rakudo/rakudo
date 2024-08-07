@@ -1170,6 +1170,31 @@ my class Mu { # declared in BOOTSTRAP
         $meth(SELF, |c)
     }
 
+    method dispatch:<.?::>(Mu \SELF: $name, Mu $type, |c) is raw {
+        my $meth;
+        my $ctx := nqp::ctxcaller(nqp::ctx());
+        if nqp::istype(self, $type) {
+            my $sym-found := 0;
+            my $caller-type;
+            repeat {
+                my $pad := nqp::ctxlexpad($ctx);
+                for <$?CONCRETIZATION $?CLASS> {
+                    if nqp::existskey($pad, $_) {
+                        $caller-type := nqp::atkey($pad, $_);
+                        $sym-found := 1;
+                        last;
+                    }
+                }
+                $ctx := nqp::ctxouterskipthunks($ctx);
+            } while $ctx && !$sym-found;
+            $meth = $caller-type.^find_method_qualified($type, $name)
+                if $sym-found && nqp::istype($caller-type, $type);
+            $meth = self.^find_method_qualified($type, $name) unless $meth;
+        }
+
+        nqp::defined($meth) ?? $meth(SELF, |c) !! Nil
+    }
+
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
         my $meth := type.^find_private_method(name);
         $meth ??

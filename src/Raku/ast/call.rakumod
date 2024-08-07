@@ -739,13 +739,15 @@ class RakuAST::Call::MetaMethod
 
 # A safe call to a method, i.e. returns Nil if no method was found by that name.
 class RakuAST::Call::MaybeMethod
+  is RakuAST::ImplicitLookups
+  is RakuAST::Parse
   is RakuAST::Call::Methodish
 {
-    has str $.name;
+    has RakuAST::Name $.name;
 
-    method new(str :$name!, RakuAST::ArgList :$args) {
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Call::MaybeMethod, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call::MaybeMethod, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
     }
@@ -758,13 +760,46 @@ class RakuAST::Call::MaybeMethod
         OperatorProperties.postfix('.?')
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my $name := $!name.canonicalize;
+        my @lookups := [];
+        if $name {
+            my @parts := nqp::split('::', $name);
+            if nqp::elems(@parts) > 1 {
+                @parts.pop;
+                @lookups.push: # joining @parts with '::' gives use the qualifying type of the name
+                    RakuAST::Type::Simple.new: RakuAST::Name.from-identifier: nqp::join('::', @parts);
+            }
+        }
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $call := QAST::Op.new(
-            :op('callmethod'),
-            :name('dispatch:<.?>'),
-            $invocant-qast,
-            QAST::SVal.new(:value($!name))
-        );
+        my $name := $!name.canonicalize;
+        my $call;
+
+        my @parts := nqp::split('::', $name);
+        if nqp::elems(@parts) == 1 {
+            # A standard method call.
+            $call := QAST::Op.new(
+                :op('callmethod'),
+                :name('dispatch:<.?>'),
+                $invocant-qast,
+                QAST::SVal.new(:value($name))
+            );
+        } else {
+            my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+            $context.ensure-sc($Qualified);
+            $name := @parts[ nqp::elems(@parts) - 1 ];
+            $call := QAST::Op.new(
+                :op('callmethod'),
+                :name('dispatch:<.?::>'),
+                $invocant-qast,
+                QAST::SVal.new(:value($name)),
+                QAST::WVal.new(:value($Qualified))
+            );
+        }
+
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

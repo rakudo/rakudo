@@ -1232,7 +1232,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call','MetaMethod').new(:$name, :$args)
                     !! $DOTTY eq '.?'
-                      ?? Nodify('Call', 'MaybeMethod').new(:$name, :$args)
+                      ?? Nodify('Call', 'MaybeMethod').new(:name($ast), :$args)
                       !! $DOTTY eq '.&'
                         ?? Nodify('Call','VarMethod').new(:name($ast), :$args)
                         !! nqp::die("Missing compilation of $DOTTY");

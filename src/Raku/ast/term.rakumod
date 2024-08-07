@@ -82,6 +82,8 @@ class RakuAST::Term::True {
     method new() {
         RakuAST::Term::Name.new(RakuAST::Name.from-identifier("True"))
     }
+
+    method IMPL-IS-CONSTANT() { True }
 }
 
 # False
@@ -89,6 +91,8 @@ class RakuAST::Term::False {
     method new() {
         RakuAST::Term::Name.new(RakuAST::Name.from-identifier("False"))
     }
+
+    method IMPL-IS-CONSTANT() { True }
 }
 
 # The self term for getting the current invocant
@@ -114,6 +118,8 @@ class RakuAST::Term::Self
             self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
         }
     }
+
+    method IMPL-IS-CONSTANT() { True }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)

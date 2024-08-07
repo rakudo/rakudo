@@ -49,6 +49,19 @@ class RakuAST::Circumfix::Parentheses
         $visitor($!semilist);
     }
 
+    method IMPL-IS-CONSTANT() {
+        my $statements := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements);
+        for $statements {
+            if nqp::istype($_, RakuAST::Statement::Expression) {
+                return False unless $_.expression.IMPL-IS-CONSTANT;
+            }
+            else {
+                return False;
+            }
+        }
+        True
+    }
+
     method IMPL-CAN-INTERPRET() {
         $!semilist.IMPL-CAN-INTERPRET
     }

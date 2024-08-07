@@ -537,6 +537,10 @@ class RakuAST::QuotedString
         }
     }
 
+    method IMPL-IS-CONSTANT() {
+        nqp::isconcrete(self.literal-value) ?? True !! False
+    }
+
     method IMPL-CAN-INTERPRET() {
         nqp::isconcrete(self.literal-value) ?? True !! False
     }

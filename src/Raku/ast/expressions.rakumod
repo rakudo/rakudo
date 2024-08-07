@@ -56,6 +56,13 @@ class RakuAST::Expression
         nqp::die('Missing IMPL-EXPR-QAST method on ' ~ self.HOW.name(self))
     }
 
+    method IMPL-IS-CONSTANT() {
+        if nqp::istype(self, RakuAST::CompileTimeValue) {
+            return True;
+        }
+        False
+    }
+
     method visit-thunks(Code $visitor) {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
@@ -232,7 +239,7 @@ class RakuAST::Infix
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
-        if nqp::istype($expression, RakuAST::CompileTimeValue) {
+        if $expression.IMPL-IS-CONSTANT {
             return; # No need to thunk constants.
         }
         if $type eq 'b' && !nqp::istype($expression, RakuAST::Code) {
@@ -1703,6 +1710,16 @@ class RakuAST::ApplyListInfix
 
     method IMPL-IS-LIST-LITERAL() {
         nqp::istype($!infix, RakuAST::Infix) && $!infix.operator eq ',';
+    }
+
+    method IMPL-IS-CONSTANT() {
+        unless self.IMPL-IS-LIST-LITERAL {
+            return False;
+        }
+        for $!operands {
+            return False unless $_.IMPL-IS-CONSTANT;
+        }
+        True
     }
 
     method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS() {

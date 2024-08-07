@@ -2116,7 +2116,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [    <infixish('neg')>
           || <.panic: "Negation metaoperator not followed by valid infix">
         ]
-        <!{ $<infixish>.Str eq '=' }>
     }
 
     # Rfoo

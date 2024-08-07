@@ -1505,7 +1505,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infix-prefix-meta-operator:sym<!>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Negate').new($<infixish>.ast);
+        my $infix := $<infixish>.ast;
+        if nqp::istype($infix, Nodify('Infix')) && $infix.operator eq '=' {
+            $infix := Nodify('Infix').new('==').to-begin-time($*R, $*CU.context);
+        }
+        self.attach: $/, Nodify('MetaInfix', 'Negate').new($infix);
     }
 
     method infix-prefix-meta-operator:sym<R>($/) {

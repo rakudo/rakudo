@@ -869,6 +869,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xx         { xx}
 
     token meta-R { R}
+    token meta-S { S}
     token meta-X { X}
     token meta-Z { Z}
 
@@ -2121,6 +2122,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Rfoo
     token infix-prefix-meta-operator:sym<R> {
         <.meta-R> <infixish('R')> {}
+    }
+
+    # Sfoo
+    token infix-prefix-meta-operator:sym<S> {
+        <.meta-S> <infixish('S')> {}
     }
 
     # Xfoo

@@ -1161,6 +1161,60 @@ class RakuAST::MetaInfix::Reverse
     }
 }
 
+# A sequence meta-operator.
+class RakuAST::MetaInfix::Sequence
+  is RakuAST::MetaInfix
+{
+    has RakuAST::Infixish  $.infix;
+    has OperatorProperties $.properties;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Sequence, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Sequence, '$!properties',
+          $infix.properties.associative-reversed);
+        $obj
+    }
+
+    method action { 'sequence the args of' }
+
+    method reducer-name() { '' } # NYI
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+        ])
+    }
+
+    method IMPL-OPERATOR() {
+        self.infix.IMPL-OPERATOR
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+    }
+}
+
 # A cross meta-operator.
 class RakuAST::MetaInfix::Cross
   is RakuAST::MetaInfix

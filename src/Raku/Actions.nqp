@@ -1516,6 +1516,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('MetaInfix', 'Reverse').new($<infixish>.ast);
     }
 
+    method infix-prefix-meta-operator:sym<S>($/) {
+        self.attach: $/, Nodify('MetaInfix', 'Sequence').new($<infixish>.ast);
+    }
+
     method infix-prefix-meta-operator:sym<X>($/) {
         self.attach: $/, Nodify('MetaInfix', 'Cross').new($<infixish>.ast);
     }

@@ -775,6 +775,8 @@ class RakuAST::Call::MaybeMethod
         $obj
     }
 
+    method can-be-used-with-hyper() { True }
+
     method visit-children(Code $visitor) {
         $visitor(self.args);
     }
@@ -823,6 +825,40 @@ class RakuAST::Call::MaybeMethod
             );
         }
 
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := $!name.canonicalize;
+        my $call;
+        if $name {
+            my @parts := nqp::split('::', $name);
+
+            if nqp::elems(@parts) == 1 {
+                $call := QAST::Op.new:
+                    :op('callmethod'), :name('dispatch:<hyper>'),
+                    $operand-qast,
+                    QAST::SVal.new( :value($name) ),
+                    QAST::SVal.new( :value('dispatch:<.?>') ),
+                    QAST::SVal.new( :value($name) );
+            }
+            else {
+                my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                $context.ensure-sc($Qualified);
+                $name := @parts[ nqp::elems(@parts)-1 ];
+                $call := QAST::Op.new:
+                    :op('callmethod'), :name('dispatch:<hyper>'),
+                    $operand-qast,
+                    QAST::SVal.new( :value($name) ),
+                    QAST::SVal.new( :value('dispatch:<.?::>') ),
+                    QAST::SVal.new( :value($name) ),
+                    QAST::WVal.new( :value($Qualified) );
+            }
+        }
+        else {
+            nqp::die('Qualified method calls NYI');
+        }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

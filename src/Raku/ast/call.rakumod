@@ -422,10 +422,20 @@ class RakuAST::Call::Term
         OperatorProperties.postfix('()')
     }
 
+    method can-be-used-with-hyper() { True }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new(
+            :op<call>,
+            :name('&METAOP_HYPER_CALL'),
+            $operand-qast,
+        )
     }
 
     method IMPL-CAN-INTERPRET() {

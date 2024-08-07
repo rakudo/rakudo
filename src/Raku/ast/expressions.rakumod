@@ -1845,6 +1845,14 @@ class RakuAST::Prefixish
         }
     }
 
+    method IMPL-OPERATOR() {
+        nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
+    }
+
+    method IMPL-HOP-PREFIX() {
+        self.IMPL-OPERATOR
+    }
+
     method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::IMPL::QASTContext $context, Mu $op) {
         for $!colonpairs {
             my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
@@ -1896,6 +1904,10 @@ class RakuAST::Prefix
         QAST::Var.new( :scope('lexical'), :$name )
     }
 
+    method IMPL-OPERATOR() {
+        self.resolution.compile-time-value
+    }
+
     method IMPL-CAN-INTERPRET() { self.is-resolved }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -1906,6 +1918,7 @@ class RakuAST::Prefix
 # The prefix hyper meta-operator.
 class RakuAST::MetaPrefix::Hyper
   is RakuAST::Prefixish
+  is RakuAST::ImplicitLookups
 {
     has RakuAST::Prefix $.prefix;
 
@@ -1914,6 +1927,18 @@ class RakuAST::MetaPrefix::Hyper
         nqp::bindattr($obj, RakuAST::MetaPrefix::Hyper, '$!prefix', $prefix);
         nqp::bindattr($obj, RakuAST::Prefixish, '$!colonpairs', []);
         $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER_PREFIX')),
+        ])
+    }
+
+    method IMPL-HOP-INFIX() {
+        self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
+            self.prefix.IMPL-HOP-PREFIX
+        )
     }
 
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {

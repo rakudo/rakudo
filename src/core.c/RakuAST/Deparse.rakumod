@@ -669,10 +669,6 @@ CODE
 
 #- Call ------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Call::MaybeMethod:D $ast --> Str:D) {
-        self.method-call($ast, '.?', :only-non-empty)
-    }
-
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> Str:D) {
         self.method-call($ast, '.^', :only-non-empty)
     }

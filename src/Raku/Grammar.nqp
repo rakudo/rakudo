@@ -2329,6 +2329,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <dottyop('.&')>
     }
 
+    token dotty:sym<.+> {
+        <.sym>
+        <dottyop('.+')>
+    }
+
+    token dotty:sym<.*> {
+        <.sym>
+        <dottyop('.*')>
+    }
+
     token dottyop($special?) {
         :dba('dotty method or postfix')
         <.unspace>?

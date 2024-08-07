@@ -1171,6 +1171,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<dottyop>.ast;
     }
 
+    method dotty:sym<.+>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.*>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
     method dottyop($/) {
         my $ast;
 
@@ -1218,38 +1226,41 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         my $ast;
+        my $DOTTY := $*DOTTY;
+        my $dispatch := $DOTTY eq '.?'
+            ?? Nodify('MethodDispatch', 'Safe').new
+            !! $DOTTY eq '.+'
+                ?? Nodify('MethodDispatch', 'All').new
+                !! $DOTTY eq '.*'
+                    ?? Nodify('MethodDispatch', 'Any').new
+                    !! Nodify('MethodDispatch');
 
         if $<longname> -> $longname {
             $ast     := $longname.ast.without-colonpairs;
             my $name := $ast.canonicalize;
 
-            if $*DOTTY {
-                my $DOTTY := $*DOTTY;
-                $/.dotty-non-ident($DOTTY) if $DOTTY eq '.*' && !$ast.is-identifier;
-
+            if $DOTTY && $DOTTY ne '.?' && $DOTTY ne '.+' && $DOTTY ne '.*' {
                 $ast := $DOTTY eq '!'
-                  ?? Nodify('Call','PrivateMethod').new(:name($ast),:$args)
+                  ?? Nodify('Call','PrivateMethod').new(:name($ast), :$args)
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call','MetaMethod').new(:$name, :$args)
-                    !! $DOTTY eq '.?'
-                      ?? Nodify('Call', 'MaybeMethod').new(:name($ast), :$args)
-                      !! $DOTTY eq '.&'
-                        ?? Nodify('Call','VarMethod').new(:name($ast), :$args)
-                        !! nqp::die("Missing compilation of $DOTTY");
+                    !! $DOTTY eq '.&'
+                      ?? Nodify('Call','VarMethod').new(:name($ast), :$args, :$dispatch)
+                      !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
                 $ast := Nodify('Call','Method').new(
-                  :name($longname.core2ast.without-colonpairs), :$args
+                  :name($longname.core2ast.without-colonpairs), :$args, :$dispatch
                 );
             }
         }
         elsif $<quote> {
             $ast := Nodify('Call','QuotedMethod').new(
-              :name($<quote>.ast), :$args
+              :name($<quote>.ast), :$args, :$dispatch
             );
         }
         elsif $<variable> {
-            $ast := Nodify('Call','BlockMethod').new(:block($<variable>.ast), :$args);
+            $ast := Nodify('Call','BlockMethod').new(:block($<variable>.ast), :$args, :$dispatch);
         }
         else {
             nqp::die('NYI kind of methodop');

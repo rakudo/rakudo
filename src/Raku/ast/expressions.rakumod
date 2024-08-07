@@ -2049,6 +2049,14 @@ class RakuAST::Postfixish
         }
     }
 
+    method IMPL-OPERATOR() {
+        nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
+    }
+
+    method IMPL-HOP-POSTFIX() {
+        self.IMPL-OPERATOR
+    }
+
     method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::IMPL::QASTContext $context, Mu $op) {
         for $!colonpairs {
             my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
@@ -2102,6 +2110,10 @@ class RakuAST::Postfix
         );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
+    }
+
+    method IMPL-OPERATOR() {
+        self.resolution.compile-time-value
     }
 
     method can-be-used-with-hyper() { True }
@@ -2479,6 +2491,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
 # An hyper operator on a postfix operator.
 class RakuAST::MetaPostfix::Hyper
   is RakuAST::Postfixish
+  is RakuAST::ImplicitLookups
   is RakuAST::CheckTime
 {
     has RakuAST::Postfixish $.postfix;
@@ -2497,6 +2510,18 @@ class RakuAST::MetaPostfix::Hyper
               $resolver.build-exception: 'X::AdHoc',
                 payload => 'Cannot hyper this postfix';
         }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER_POSTFIX')),
+        ])
+    }
+
+    method IMPL-HOP-INFIX() {
+        self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
+            self.postfix.IMPL-HOP-POSTFIX
+        )
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {

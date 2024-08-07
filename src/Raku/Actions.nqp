@@ -1225,7 +1225,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
             if $*DOTTY {
                 my $DOTTY := $*DOTTY;
-                $/.dotty-non-ident($DOTTY) unless $ast.is-identifier;
+                $/.dotty-non-ident($DOTTY) if $DOTTY eq '.*' && !$ast.is-identifier;
 
                 $ast := $DOTTY eq '!'
                   ?? Nodify('Call','PrivateMethod').new(:name($ast),:$args)

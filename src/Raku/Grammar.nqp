@@ -2360,7 +2360,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
-          <.dotty-non-ident($*DOTTY)>
         ]
         <.unspace>?
         :dba('method arguments')

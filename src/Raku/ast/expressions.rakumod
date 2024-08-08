@@ -163,9 +163,15 @@ class RakuAST::Infixish
     # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
     # QAST of the operands.
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right) {
-        self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
-            $right.IMPL-TO-QAST($context)
+            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+        my $qast := self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+            $right.IMPL-TO-QAST($context);
+        if $adverb {
+            my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($adverb.named-arg-name);
+            $qast.push($val-ast);
+        }
+        $qast
     }
 
     # Just produce QAST without shortcuts like direct mapping to special QAST nodes.
@@ -308,7 +314,7 @@ class RakuAST::Infix
     }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right) {
+            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
         # Hash value is negation flag
         my constant OP-SMARTMATCH := nqp::hash( '~~', 0, '!~~', 1 );
         my str $op := $!operator;
@@ -326,12 +332,18 @@ class RakuAST::Infix
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {
-            self.IMPL-INFIX-QAST:
+            my $qast := self.IMPL-INFIX-QAST:
                 $context,
                 $op eq '='
                     ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
                     !! $left.IMPL-TO-QAST($context),
-                $right.IMPL-TO-QAST($context)
+                $right.IMPL-TO-QAST($context);
+            if $adverb {
+                my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
+                $val-ast.named($adverb.named-arg-name);
+                $qast.push($val-ast);
+            }
+            $qast
         }
     }
 
@@ -662,9 +674,15 @@ class RakuAST::FlipFlop
     method IMPL-CURRIES() { 0 }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-                              RakuAST::Expression $left, RakuAST::Expression $right) {
-        self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
-            $right.IMPL-TO-QAST($context)
+                              RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+        my $qast := self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+            $right.IMPL-TO-QAST($context);
+        if $adverb {
+            my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($adverb.named-arg-name);
+            $qast.push($val-ast);
+        }
+        $qast
     }
 
     method IMPL-INFIX-QAST(
@@ -854,8 +872,8 @@ class RakuAST::BracketedInfix
     }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right) {
-        $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
+            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+        $!infix.IMPL-INFIX-COMPILE($context, $left, $right, :$adverb)
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1706,7 +1724,8 @@ class RakuAST::ApplyInfix
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right)
+        my $adverb := $!args.arg-at-pos(2) // RakuAST::ColonPairish;
+        $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right, :$adverb)
     }
 
     method visit-children(Code $visitor) {

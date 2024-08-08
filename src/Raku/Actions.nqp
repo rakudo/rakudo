@@ -1004,6 +1004,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $node := Nodify('ApplyInfix').new:
               infix => $infix, left => $/[0].ast, right => $/[1].ast;
         }
+        if $<infix><colonpair> {
+            $node.add-colonpair($<infix><colonpair>.ast);
+        }
         my $cu := $*CU; # Might be too early to even have a CompUnit
         $node.set-origin(
             Nodify('Origin').new(

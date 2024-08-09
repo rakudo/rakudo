@@ -364,8 +364,12 @@ subset vars          of Str:D where *.starts-with("var-");
 my proto sub highlight(|) is export {*}
 my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
     my $actions := nqp::create($unsafe ?? Actions !! SafeActions);
-    my $ast     := try $source.AST(:$actions);
-    return "" unless $ast;
+
+    my $ast := do {
+        CATCH { return .Failure }
+
+        $source.AST(:$actions);
+    }
 
     # Post process empty lines
     $actions.commentize-empty-lines;

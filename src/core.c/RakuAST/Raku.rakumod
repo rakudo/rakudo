@@ -147,6 +147,10 @@ augment class RakuAST::Node {
           'directive', -> {
               :directive if self.directive
           },
+          'dispatch', -> {
+              my $dispatch := self.dispatch;
+              :dispatch($dispatch) if $dispatch;
+          },
           'dwim-left', -> {
               :dwim-left if self.dwim-left
           },
@@ -356,6 +360,18 @@ augment class RakuAST::Node {
 
     # Generic RakuAST::Call::xxx handler
     multi method raku(RakuAST::Call:D: --> Str:D) {
+        self!nameds: <name args>
+    }
+
+    multi method raku(RakuAST::Call::BlockMethod:D: --> Str:D) {
+        self!nameds: <block args dispatch>
+    }
+
+    multi method raku(RakuAST::Call::Methodish:D: --> Str:D) {
+        self!nameds: <name args dispatch>
+    }
+
+    multi method raku(RakuAST::Call::Name:D: --> Str:D) {
         self!nameds: <name args>
     }
 

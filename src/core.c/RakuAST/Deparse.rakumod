@@ -673,8 +673,10 @@ CODE
         self.method-call($ast, '.^', :only-non-empty)
     }
 
-    multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
-        self.method-call($ast, '.', $ast.macroish, :xsyn, :only-non-empty)
+    multi method deparse(RakuAST::Call::Methodish:D $ast --> Str:D) {
+        self.method-call(
+          $ast, ($ast.dispatch || '.'), $ast.macroish, :xsyn, :only-non-empty
+        )
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
@@ -682,11 +684,12 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
-        self.method-call($ast, '.')
+        self.method-call($ast, $ast.dispatch || '.')
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
-        self.method-call($ast, '.&')
+        my $dispatch := $ast.dispatch;
+        self.method-call($ast, ($ast.dispatch || '.') ~ '&')
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {

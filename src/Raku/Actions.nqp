@@ -1230,25 +1230,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         my $ast;
         my $DOTTY := $*DOTTY;
-        my $dispatch := $DOTTY eq '.?'
-            ?? Nodify('MethodDispatch', 'Safe').new
-            !! $DOTTY eq '.+'
-                ?? Nodify('MethodDispatch', 'All').new
-                !! $DOTTY eq '.*'
-                    ?? Nodify('MethodDispatch', 'Any').new
-                    !! Nodify('MethodDispatch');
+        my $dispatch := $DOTTY eq '.?' || $DOTTY eq '.+' || $DOTTY eq '.*'
+          ?? $DOTTY
+          !! "";
 
         if $<longname> -> $longname {
             $ast     := $longname.ast.without-colonpairs;
             my $name := $ast.canonicalize;
 
-            if $DOTTY && $DOTTY ne '.?' && $DOTTY ne '.+' && $DOTTY ne '.*' {
+            if $DOTTY && !$dispatch {
                 $ast := $DOTTY eq '!'
                   ?? Nodify('Call','PrivateMethod').new(:name($ast), :$args)
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call','MetaMethod').new(:$name, :$args)
                     !! $DOTTY eq '.&'
-                      ?? Nodify('Call','VarMethod').new(:name($ast), :$args, :$dispatch)
+                      ?? Nodify('Call','VarMethod').new(:name($ast), :$args)
                       !! nqp::die("Missing compilation of $DOTTY");
             }
             else {

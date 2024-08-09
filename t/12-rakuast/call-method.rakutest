@@ -189,9 +189,10 @@ subtest 'Can make a method call if the method exists' => {
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
       ),
-      postfix => RakuAST::Call::MaybeMethod.new(
-        name => 'subtract',
-        args => RakuAST::ArgList.new(
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('subtract'),
+        dispatch => '.?',
+        args     => RakuAST::ArgList.new(
           RakuAST::IntLiteral.new(50),
           RakuAST::IntLiteral.new(8),
         )
@@ -208,8 +209,9 @@ subtest 'Can make a method call if the method does not exist' => {
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
       ),
-      postfix => RakuAST::Call::MaybeMethod.new(
-        name => 'dunno'
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('dunno'),
+        dispatch => '.?'
       )
     );
     is-deeply $deparsed, 'TestTarget.?dunno', 'deparsed';

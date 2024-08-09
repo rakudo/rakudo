@@ -364,7 +364,16 @@ my class Promise does Awaitable {
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER,
             :$report-broken-if-sunk, |c) {
         my $p := self.new(:$scheduler, :$report-broken-if-sunk);
-        nqp::bindattr($p, Promise, '$!dynamic_context', nqp::ctx());
+
+        # If there was already a pre-start context saved, use that.
+        # Else use the current context as the pre-start context in
+        # which to check for dynamic variables
+        nqp::bindattr($p, Promise, '$!dynamic_context',
+          nqp::istype($*PROMISE,Failure)
+            ?? nqp::ctx()
+            !! nqp::getattr($*PROMISE, Promise, '$!dynamic_context')
+        );
+
         my $vow := $p.vow;
         $scheduler.cue(
             { my $*PROMISE := $p; $vow.keep(code(|c)) },

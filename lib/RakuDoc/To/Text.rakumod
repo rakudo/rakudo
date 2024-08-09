@@ -174,6 +174,9 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
     elsif $letter eq 'A' {
         rakudoc2text $ast.meta.head
     }
+    elsif $letter eq 'C' {
+        rakudoc2text bold $ast.atoms.join
+    }
     else {
         my str $text = $ast.atoms.map(&rakudoc2text).join;
 

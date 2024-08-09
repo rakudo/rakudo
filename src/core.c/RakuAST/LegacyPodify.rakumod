@@ -174,7 +174,7 @@ class RakuAST::LegacyPodify {
                      ?? $ast.meta.map(*.key)
                      !! @meta,
                    contents => $letter eq 'C'
-                     ?? $ast.atoms.head.Str.subst("\n", ' ', :g)
+                     ?? $ast.atoms.join.subst("\n", ' ', :g)
                      !! $letter eq 'E'
                        ?? $ast.meta.map(*.value)
                        !! self!contentify($ast.atoms)

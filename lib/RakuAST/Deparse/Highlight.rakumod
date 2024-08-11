@@ -368,7 +368,7 @@ my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
     my $ast := do {
         CATCH { return .Failure }
 
-        $source.AST(:$actions);
+        quietly $source.AST(:$actions);
     }
 
     # Post process empty lines

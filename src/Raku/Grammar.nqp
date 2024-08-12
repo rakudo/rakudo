@@ -1351,7 +1351,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*ORIGIN-NESTINGS := [];
         { $*BORG := {} }                            # initialize new context
         [
-          | '{YOU_ARE_H§ERE}' <you_are_here>        # TODO core setting
+          | '{YOU_ARE_HERE}' <you_are_here>        # TODO core setting
           | :dba('block')
             '{'                                     # actual block start
             <statementlist=.key-origin('statementlist')>
@@ -1359,6 +1359,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <?end-statement>                        # XXX
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
+    }
+
+    token you_are_here {
+        <?{ nqp::getlexdyn('$?FILES') ~~ /\.setting$/ }> ||
+            <.typed-panic: 'X::Syntax::Reserved',
+                reserved => 'use of {YOU_ARE_HERE} outside of a setting',
+                instead => ' (use whitespace if not a setting, or rename file with .setting extension?)'
+            >
     }
 
     # Parsing any unit scoped block (either package or sub)

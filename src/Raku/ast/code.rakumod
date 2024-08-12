@@ -1367,6 +1367,8 @@ class RakuAST::PointyBlock
 
     method visit-children(Code $visitor) {
         $visitor($!signature);
+        my $placeholder-signature := self.placeholder-signature;
+        $visitor($placeholder-signature) if $placeholder-signature;
         $visitor(self.body);
         $visitor(self.WHY) if self.WHY;
     }
@@ -1407,20 +1409,11 @@ class RakuAST::PointyBlock
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.body.to-begin-time($resolver, $context); # In case it's the default we created in the ctor.
 
-        # Make sure that our placeholder signature has resolutions performed,
-        # and that we don't produce a topic parameter.
         if $!signature {
+            $!signature.set-parameters-initialized;
             $!signature.PERFORM-PARSE($resolver, $context);
             self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
-        }
-        my $placeholder-signature := self.placeholder-signature;
-        if $placeholder-signature {
-            $placeholder-signature.IMPL-BEGIN($resolver, $context);
-            if nqp::getattr(self, RakuAST::Block, '$!implicit-topic-mode') {
-                my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
-                $topic.set-parameter(False);
-            }
         }
 
         self.IMPL-STUB-PHASERS($resolver, $context);

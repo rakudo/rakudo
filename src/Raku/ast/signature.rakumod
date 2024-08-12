@@ -40,6 +40,9 @@ class RakuAST::Signature
           ?? True
           !! False
     }
+    method set-parameters-initialized() {
+        nqp::bindattr(self, RakuAST::Signature, '$!parameters', []) unless nqp::isconcrete($!parameters);
+    }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Retrieve the enclosing package so we can set an implicit

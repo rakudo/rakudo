@@ -43,7 +43,9 @@ class RakuAST::Name
     method is-identifier() {
         nqp::elems($!parts) == 1 && (
             nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
-            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression) && $!parts[0].has-compile-time-name
+            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
+                && $!parts[0].has-compile-time-name
+                && nqp::index($!parts[0].name, '::') == -1
         )
     }
 

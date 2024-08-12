@@ -2446,6 +2446,10 @@ class RakuAST::QuotedMatchConstruct
         self.IMPL-STUB-CODE($resolver, $context);
         Nil
     }
+
+    method IMPL-IS-CONSTANT() {
+        False
+    }
 }
 
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a

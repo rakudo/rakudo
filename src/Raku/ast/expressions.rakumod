@@ -248,7 +248,7 @@ class RakuAST::Infix
         if $expression.IMPL-IS-CONSTANT {
             return; # No need to thunk constants.
         }
-        if $type eq 'b' && !nqp::istype($expression, RakuAST::Code) {
+        if $type eq 'b' && !nqp::istype($expression, RakuAST::Block) {
             my $thunk := RakuAST::BlockThunk.new;
             $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);

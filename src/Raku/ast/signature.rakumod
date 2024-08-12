@@ -1389,7 +1389,7 @@ class RakuAST::ParameterTarget::Var
             '$!declaration',
             nqp::chars($name) == 1
               ?? RakuAST::VarDeclaration::Anonymous.new(
-                   :scope('anon'),
+                   :scope($obj.scope),
                    :sigil($name),
                    :type(Mu),
                    :is-parameter,

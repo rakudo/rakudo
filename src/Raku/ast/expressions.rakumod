@@ -955,7 +955,7 @@ class RakuAST::MetaInfix
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands)
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 }
 
@@ -999,9 +999,23 @@ class RakuAST::MetaInfix::Assign
 
     method reducer-name() { $!infix.reducer-name }
 
+    method IMPL-IS-TEST() {
+        my $basesym := self.infix.operator;
+        $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
+        || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
+        || $basesym eq 'andthen' || $basesym eq 'notandthen'
+    }
+
+    method IMPL-OPERATOR-NAME($thunked) {
+        self.IMPL-IS-TEST
+            ?? ($thunked ?? '&METAOP_TEST_ASSIGN:' !! '&METAOP_TEST_ASSIGN_VALUE:')
+                ~ '<' ~ self.infix.operator ~ '>'
+            !! '&METAOP_ASSIGN'
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ASSIGN')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier(self.IMPL-OPERATOR-NAME(1))),
         ])
     }
 
@@ -1012,7 +1026,14 @@ class RakuAST::MetaInfix::Assign
     method IMPL-CURRIES() { 0 }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        if nqp::istype($!infix, RakuAST::Infix) && $!infix.properties.short-circuit {
+        if self.IMPL-IS-TEST {
+            QAST::Op.new(
+                :op<callstatic>,
+                :name(self.IMPL-OPERATOR-NAME($right-qast.ann('thunked'))),
+                $left-qast, $right-qast
+            )
+        }
+        elsif nqp::istype($!infix, RakuAST::Infix) && $!infix.properties.short-circuit {
             # TODO case-analyzed assignments
             my $temp := QAST::Node.unique('meta_assign');
             my $bind-lhs := QAST::Op.new(
@@ -1044,7 +1065,7 @@ class RakuAST::MetaInfix::Assign
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new:
-            :op('callstatic'), :name('&METAOP_ASSIGN'),
+            :op('callstatic'), :name(self.IMPL-OPERATOR-NAME(1)),
             $!infix.IMPL-HOP-INFIX-QAST($context)
     }
 }

@@ -526,7 +526,9 @@ class RakuAST::ExpressionThunk
 
     # Produces a Code object that corresponds to the thunk.
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-CLOSURE-QAST($context)
+        my $qast := self.IMPL-CLOSURE-QAST($context);
+        $qast.annotate('thunked', 1);
+        $qast;
     }
 
     # The type of code object produced. Defaults to Code; override to produce

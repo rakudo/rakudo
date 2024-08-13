@@ -5097,7 +5097,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
 
         # Should be treated as a normal sub
-        elsif $category eq 'METAOP_TEST_ASSIGN' {
+        elsif $category eq 'METAOP_TEST_ASSIGN' || $category eq 'METAOP_TEST_ASSIGN_VALUE' {
             return 0;
         }
 

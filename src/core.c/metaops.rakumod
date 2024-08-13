@@ -28,6 +28,31 @@ sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw is implementation-detail {
     lhs orelse (lhs = $rhs())
 }
 
+sub METAOP_TEST_ASSIGN_VALUE:<//>(\lhs, $rhs) is raw is implementation-detail {
+    lhs // (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<||>(\lhs, $rhs) is raw is implementation-detail {
+    lhs || (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<&&>(\lhs, $rhs) is raw is implementation-detail {
+    lhs && (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<or>(\lhs, $rhs) is raw is implementation-detail {
+    lhs or (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<and>(\lhs, $rhs) is raw is implementation-detail {
+    lhs and (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<andthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs andthen (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<notandthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs notandthen (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<orelse>(\lhs, $rhs) is raw is implementation-detail {
+    lhs orelse (lhs = $rhs)
+}
+
 sub METAOP_NEGATE(\op) is implementation-detail {
     -> |c { c.elems > 1 ?? !op.(|c) !! True }
 }

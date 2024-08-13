@@ -239,6 +239,21 @@ class RakuAST::Infix
 
     method reducer-name() { self.properties.reducer-name }
 
+    # Returns True if this is a built-in short-circuit operator, and False if not.
+    method short-circuit() {
+        my constant SC := nqp::hash(
+            '||', True,
+            'or', True,
+            '&&', True,
+            'and', True,
+            '//', True,
+            'andthen', True,
+            'notandthen', True,
+            'orelse', True
+        );
+        SC{$!operator} // False
+    }
+
     method IMPL-OPERATOR() {
         self.resolution.compile-time-value
     }
@@ -1033,7 +1048,7 @@ class RakuAST::MetaInfix::Assign
                 $left-qast, $right-qast
             )
         }
-        elsif nqp::istype($!infix, RakuAST::Infix) && $!infix.properties.short-circuit {
+        elsif nqp::istype($!infix, RakuAST::Infix) && $!infix.short-circuit {
             # TODO case-analyzed assignments
             my $temp := QAST::Node.unique('meta_assign');
             my $bind-lhs := QAST::Op.new(

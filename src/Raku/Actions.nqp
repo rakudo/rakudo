@@ -2960,6 +2960,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $returns := $*OFTYPE.ast;
         }
         my $signature := Nodify('Signature').new(:@parameters, :$returns);
+        if $*ON-ROUTINE {
+            $signature.set-default-type(
+                Nodify('Type', 'Setting').new(Nodify('Name').from-identifier('Any')).to-begin-time($*R, $*CU.context)
+            );
+        }
         if $*ON-VARDECLARATION {
             make $signature
         }

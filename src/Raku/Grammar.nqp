@@ -3907,7 +3907,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 );
             }
         }
-        [ '(' <signature> ')' ]?
+        [ '(' <signature(:ON-ROUTINE(1))> ')' ]?
         :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
@@ -3956,7 +3956,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
             $*R.create-scope-implicits();
         }
-        [ '(' <signature(1)> ')' ]?
+        [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
@@ -4649,7 +4649,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <signature(1, :DECLARE-TARGETS(0))>
     }
 
-    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION) {
+    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION, :$*ON-ROUTINE) {
         :my $*MULTI-INVOCANT := 1;
         :my @*SEPS := nqp::list();
         <.ws>

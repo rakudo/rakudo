@@ -991,7 +991,11 @@ class RakuAST::MetaInfix::Assign
           !! True
     }
 
-    method properties() { OperatorProperties.infix('$=') }
+    method properties() {
+        OperatorProperties.infix(
+            $!infix.properties.precedence gt 'g=' ?? '$=' !! '@='
+        )
+    }
 
     method reducer-name() { $!infix.reducer-name }
 

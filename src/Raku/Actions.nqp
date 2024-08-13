@@ -1130,6 +1130,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         ) if ($/.pragma("STOPPER") // '') eq $sym;
     }
 
+    method postfix:sym<i>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('i'));
+    }
+
+    method postfix:sym<++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('++'));
+    }
+
+    method postfix:sym<-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('--'));
+    }
+
+    method postfix:sym<⚛++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛++'));
+    }
+
+    method postfix:sym<⚛-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛--'));
+    }
+
     method postop($/) {
         self.attach: $/, $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
     }

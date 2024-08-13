@@ -999,7 +999,7 @@ class RakuAST::MetaInfix::Assign
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "assign",
-                 operator => self.infixx.operator,
+                 operator => self.infix.operator,
                  reason   => "too fiddly or diffy"
                )
              )

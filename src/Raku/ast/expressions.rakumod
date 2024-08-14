@@ -260,7 +260,7 @@ class RakuAST::Infix
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
-        if $expression.IMPL-IS-CONSTANT {
+        if $expression.IMPL-IS-CONSTANT && !nqp::istype($expression, RakuAST::Code) {
             return; # No need to thunk constants.
         }
         if $type eq 'b' && !nqp::istype($expression, RakuAST::Block) {
@@ -268,7 +268,7 @@ class RakuAST::Infix
             $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);
         }
-        elsif $type eq 't' && !nqp::istype($expression, RakuAST::Code) {
+        elsif $type eq 't' {
             my $thunk := RakuAST::ExpressionThunk.new;
             $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);

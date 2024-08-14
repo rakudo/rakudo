@@ -414,7 +414,7 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::IMPL::QASTContext $context
     ) {
         my $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
-            $resolver, $context, :invocant-compiler(-> { $!type.IMPL-BASE-TYPE.meta-object }));
+            $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-BASE-TYPE.meta-object !! Mu }));
         $value := Map.new($value)
           if nqp::eqat($!name,'%',0)
           && nqp::istype($value,List);

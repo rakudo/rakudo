@@ -456,7 +456,7 @@ class RakuAST::Call::Methodish
 {
     has str $!dispatcher;
 
-    # expected to be '.?' | '.+' | '.*' but custom ones will be codegenned also
+    # expected to be '.?' | '.+' | '.*' | '.=' but custom ones will be codegenned also
     method set-dispatcher($dispatch) {
         nqp::bindattr_s(self, RakuAST::Call::Methodish, '$!dispatcher',
           $dispatch && $dispatch ne '.' ?? "dispatch:<$dispatch>" !! ""

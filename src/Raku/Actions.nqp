@@ -1202,6 +1202,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<dottyop>.ast;
     }
 
+    method dotty:sym<.=>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
     method dottyop($/) {
         my $ast;
 
@@ -1250,7 +1254,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         my $ast;
         my $DOTTY := $*DOTTY;
-        my $dispatch := $DOTTY eq '.?' || $DOTTY eq '.+' || $DOTTY eq '.*'
+        my $dispatch := $DOTTY eq '.?' || $DOTTY eq '.+' || $DOTTY eq '.*' || $DOTTY eq '.='
           ?? $DOTTY
           !! "";
 

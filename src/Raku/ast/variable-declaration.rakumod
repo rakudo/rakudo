@@ -1633,6 +1633,10 @@ class RakuAST::VarDeclaration::Term
         $lookup
     }
 
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!initializer.add-colonpair($pair);
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
     }

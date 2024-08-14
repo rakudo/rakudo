@@ -1628,7 +1628,7 @@ class RakuAST::WhateverApplicable
                 || nqp::istype($n, RakuAST::Postcircumfix::ArrayIndex)
                 || nqp::istype($n, RakuAST::Call)
                 || nqp::istype($n, RakuAST::VarDeclaration::Simple)
-                || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i($n.operator.IMPL-CURRIES, 2))
+                || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i(self.operator.IMPL-CURRIES, 2))
                 || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-CURRY-DIRECTLY))
         };
         self.visit-dfs($visitor, :strict);

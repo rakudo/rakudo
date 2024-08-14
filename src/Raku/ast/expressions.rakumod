@@ -895,6 +895,10 @@ class RakuAST::BracketedInfix
         $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
     }
 
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        $!infix.IMPL-LIST-INFIX-QAST($context, $operands)
+    }
+
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-HOP-INFIX-QAST($context)
     }

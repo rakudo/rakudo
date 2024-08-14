@@ -93,6 +93,10 @@ class RakuAST::Initializer::CallAssign
         $visitor($!postfixish);
     }
 
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!postfixish.add-colonpair($pair);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
         $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast)
     }
@@ -603,6 +607,12 @@ class RakuAST::VarDeclaration::Simple
 
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-bindable', $bindable);
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        nqp::die("Cannot add colonpair to variable declaration without initializer")
+            unless $!initializer;
+        $!initializer.add-colonpair($pair);
     }
 
     # Generate a lookup of this variable, already resolved to this declaration.

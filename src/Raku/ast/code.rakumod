@@ -257,7 +257,7 @@ class RakuAST::Code
                     $visit-children($var);
                     my $default := $var.default;
                     if $default {
-                        $visit-children($default);
+                        $visit-children(QAST::Stmts.new($default));
                     }
                 }
             }

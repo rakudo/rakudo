@@ -139,6 +139,10 @@ class RakuAST::Term::TopicCall
         $obj
     }
 
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!call.add-colonpair($pair);
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('$_'),

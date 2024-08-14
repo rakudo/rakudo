@@ -609,11 +609,93 @@ role Raku::Common {
 
         my $cursor := %opts<precursor> ?? self.PRECURSOR !! self;
         my @prepost := self.prepost($cursor);
+        my $pre := @prepost[0];
+        my $post := @prepost[1];
+
+        my @expected;
+        my $high := $cursor.'!highwater'();
+        if %opts<precursor> {
+            $cursor := self.PRECURSOR;
+        }
+        elsif %opts<expected> {
+            @expected := %opts<expected>;
+        }
+        elsif $high >= $cursor.pos() {
+            my @raw_expected := $cursor.'!highexpect'();
+            $cursor.'!cursor_pos'($high);
+            my %seen;
+            for @raw_expected {
+                unless %seen{$_} {
+                    my $end := +@expected;
+                    while $end && @expected[$end-1] gt $_ { $end := $end - 1 }
+                    nqp::splice(@expected, [$_], $end, 0);
+                    %seen{$_} := 1;
+                }
+            }
+        }
+
+        # Try and better explain "Confused".
+        if $name eq 'X::Syntax::Confused' {
+            if $post ~~ / ^ \s* <[ } ) \] > » ]> / {
+                %opts<reason> := "Unexpected closing bracket";
+                @expected := [];
+            }
+            elsif $pre ~~ / \} \s* $ / {
+                %opts<reason> := "Strange text after block (missing semicolon or comma?)";
+            }
+            else {
+                my $expected_infix := 0;
+                my $expected_term := 0;
+                for @expected {
+                    if nqp::index($_, "infix") >= 0 {
+                        $expected_infix := 1;
+                    }
+                    elsif nqp::index($_, "term") >= 0 {
+                        $expected_term := 1;
+                    }
+                }
+                if $expected_infix {
+                    if $expected_term {
+                        %opts<reason> := "Bogus term";
+                    }
+                    elsif $*IN_META {
+                        %opts<reason> := "Bogus infix";
+                    }
+                    elsif $cursor.MARKED('baresigil') {
+                        %opts<reason> := "Name must begin with alphabetic character";
+                    }
+                    elsif $post ~~ / ^ \s* <[ $ @ \w ' " ]> / ||
+                          $post ~~ / ^ \s+ <[ ( [ { « . ]> / {
+                        %opts<reason> := "Two terms in a row";
+                    }
+                    elsif $post ~~ / ^ '<EOL>' / {
+                        %opts<reason> := "Two terms in a row across lines (missing semicolon or comma?)";
+                    }
+                    elsif $post ~~ / ^ \S / {
+                        %opts<reason> := "Bogus postfix";
+                    }
+                    # "Confused" is already the default, so no "else" clause needed here.
+                }
+                # or here...
+            }
+            my $qs := $*LASTQUOTE[0];
+            my $qe := $*LASTQUOTE[1];
+            if HLL::Compiler.lineof($cursor.orig, $qe, :cache(1)) >= HLL::Compiler.lineof($cursor.orig, $cursor.pos, :cache(1)) - 1
+                && nqp::index(nqp::substr($cursor.orig, $qs, $qe - $qs), "\n") >= 0 {
+                my $quotes :=
+                    nqp::substr($cursor.orig, $qs - 1 , 1) ~
+                    nqp::substr($cursor.orig, $qe, 1);
+                $quotes := "<<>>" if $quotes eq '<>' && nqp::eqat($cursor.orig, '>', $qe + 1);
+                %opts<reason> := %opts<reason> ~ " (runaway multi-line " ~ $quotes ~
+                    " quote starting at line " ~ HLL::Compiler.lineof($cursor.orig, $qs, :cache(1)) ~ " maybe?)";
+            }
+        }
+
         $*R.build-exception: $name,
           line => HLL::Compiler.lineof($cursor.orig, $cursor.pos, :cache(1)),
           pos  => $cursor.pos,
-          pre  => @prepost[0],
-          post => @prepost[1],
+          pre  => $pre,
+          post => $post,
           filename => $file,
           |%opts
     }

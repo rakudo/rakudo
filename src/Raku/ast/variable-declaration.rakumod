@@ -442,7 +442,7 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        if $!type {
+        if $!type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
             my $type :=
               self.get-implicit-lookups.AT-POS(0).meta-object;
 

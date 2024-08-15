@@ -42,7 +42,8 @@ class RakuAST::Circumfix::Parentheses
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!semilist.IMPL-TO-QAST($context)
+        # QAST::Stmts node needed to e.g. break up operator chaining
+        QAST::Stmts.new($!semilist.IMPL-TO-QAST($context))
     }
 
     method visit-children(Code $visitor) {

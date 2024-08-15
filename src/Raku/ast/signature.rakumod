@@ -228,6 +228,13 @@ class RakuAST::Signature
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $signature := self.meta-object;
+        # Ensure the Signature object has some code object associated with it
+        unless nqp::isconcrete(nqp::getattr($signature, Signature, '$!code')) {
+            my $code := nqp::create(Block);
+            $context.ensure-sc($code);
+            nqp::bindattr($code, Code, '$!do', nqp::freshcoderef(sub (*@pos, *%named) { }));
+            nqp::bindattr($signature, Signature, '$!code', $code);
+        }
         $context.ensure-sc($signature);
         QAST::WVal.new(:value($signature))
     }

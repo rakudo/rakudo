@@ -342,7 +342,11 @@ class RakuAST::Infix
             }
         }
         elsif nqp::existskey(OP-SMARTMATCH, $op)
-            && (!nqp::istype($right, RakuAST::Var) || (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-topic))
+            && (
+                !nqp::istype($right, RakuAST::Var)
+                || (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-topic))
+            && !$right.IMPL-IS-CONSTANT
+            && (!nqp::istype($left, RakuAST::ApplyInfix) || !nqp::istype($left.infix, RakuAST::OperatorProperties) || !$left.infix.properties.chain)
         {
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }

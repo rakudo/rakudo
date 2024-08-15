@@ -2196,6 +2196,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 #-------------------------------------------------------------------------------
+    method can-meta($op, $meta, $reason = "fiddly") {
+        my $properties := self.properties-for-node($op);
+        self.typed-panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => $properties.dba, reason => "too $reason"
+            if $properties.ternary;
+        self;
+    }
 
     proto token infix-prefix-meta-operator {*}
 
@@ -2212,21 +2218,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Rfoo
     token infix-prefix-meta-operator:sym<R> {
         <sym=.meta-R> <infixish('R')> {}
+        <.can-meta($<infixish>, "reverse the args of")>
     }
 
     # Sfoo
     token infix-prefix-meta-operator:sym<S> {
         <sym=.meta-S> <infixish('S')> {}
+        <.can-meta($<infixish>, "sequence the args of")>
     }
 
     # Xfoo
     token infix-prefix-meta-operator:sym<X> {
         <sym=.meta-X> <infixish('X')> {}
+        <.can-meta($<infixish>, "cross with")>
     }
 
     # Zfoo
     token infix-prefix-meta-operator:sym<Z> {
         <sym=.meta-Z> <infixish('Z')> {}
+        <.can-meta($<infixish>, "zip with")>
     }
 
 #-------------------------------------------------------------------------------

@@ -224,9 +224,13 @@ class RakuAST::Infix
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        my @lookups := [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Match')),
-        ])
+        ];
+        nqp::push(@lookups,
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')))
+            if $!operator eq '^^' || $!operator eq 'xor';
+        self.IMPL-WRAP-LIST(@lookups)
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -463,12 +467,25 @@ class RakuAST::Infix
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name );
-        for $operands {
-            $op.push($_);
+        if $!operator eq '^^' || $!operator eq 'xor' {
+            my $op := QAST::Op.new(:op<xor>);
+            for $operands {
+                $op.push($_);
+            }
+            $op.push(QAST::WVal.new(
+                :named('false'),
+                :value(self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value))
+            );
+            $op
         }
-        $op
+        else {
+            my $name := self.resolution.lexical-name;
+            my $op := QAST::Op.new( :op('call'), :$name );
+            for $operands {
+                $op.push($_);
+            }
+            $op
+        }
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -1139,11 +1139,11 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        QAST::Op.new(:op<hllbool>,
-          QAST::Op.new(:op<isfalse>,
-            $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
-          )
-        )
+        QAST::Op.new:
+            :op($!infix.properties.chain ?? 'chain' !! 'call'),
+            self.IMPL-HOP-INFIX-QAST($context),
+            $left-qast,
+            $right-qast
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {

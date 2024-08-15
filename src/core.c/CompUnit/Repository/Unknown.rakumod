@@ -1,5 +1,5 @@
 class CompUnit::Repository::Unknown does CompUnit::Repository {
-    has $.path-spec;
+    has Str $.path-spec;
     has $.short-name;
 
     method need(

@@ -5,7 +5,10 @@ class RakuAST::CaptureSource
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
   is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::Sinkable
 {
+    method needs-sink-call() { True }
+
     # All expressions can be thunked - that is, compiled such that they get
     # wrapped up in a code object of some kind. For such expressions, this
     # thunks attribute will point to a linked list of thunks to apply, the
@@ -200,6 +203,12 @@ class RakuAST::Infixish
 
     method IMPL-HOP-INFIX() {
         self.IMPL-OPERATOR
+    }
+
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        for $operands {
+            $_.apply-sink($is-sunk);
+        }
     }
 }
 
@@ -879,6 +888,15 @@ class RakuAST::Assignment
         $obj
     }
     method item { $!item ?? True !! False }
+
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        $operands[0].apply-sink($is-sunk); # Only target of assignment can be sunk
+        my $i := 1;
+        while $i < nqp::elems($operands) {
+            $operands[$i].apply-sink(False);
+            $i++;
+        }
+    }
 }
 
 # A bracketed infix.
@@ -1107,6 +1125,15 @@ class RakuAST::MetaInfix::Assign
         QAST::Op.new:
             :op('callstatic'), :name(self.IMPL-OPERATOR-NAME(1)),
             $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        $operands[0].apply-sink($is-sunk); # Only target of assignment can be sunk
+        my $i := 1;
+        while $i < nqp::elems($operands) {
+            $operands[$i].apply-sink(False);
+            $i++;
+        }
     }
 }
 
@@ -1690,6 +1717,7 @@ class RakuAST::ApplyInfix
   is RakuAST::Expression
   is RakuAST::BeginTime
   is RakuAST::CheckTime
+  is RakuAST::SinkPropagator
   is RakuAST::WhateverApplicable
 {
     has RakuAST::Infixish $.infix;
@@ -1825,6 +1853,11 @@ class RakuAST::ApplyInfix
         $visitor($!args)
     }
 
+    method propagate-sink(Bool $is-sunk) {
+        my $operands := $!args.IMPL-UNWRAP-LIST($!args.args);
+        $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
+    }
+
     method IMPL-CAN-INTERPRET() {
         $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
     }
@@ -1838,6 +1871,7 @@ class RakuAST::ApplyInfix
 class RakuAST::ApplyListInfix
   is RakuAST::Expression
   is RakuAST::BeginTime
+  is RakuAST::SinkPropagator
   is RakuAST::WhateverApplicable
 {
     has RakuAST::Infixish $.infix;
@@ -1880,6 +1914,10 @@ class RakuAST::ApplyListInfix
         for $!operands {
             $visitor($_);
         }
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!infix.IMPL-APPLY-SINK-TO-OPERANDS($!operands, $is-sunk);
     }
 
     method IMPL-IS-LIST-LITERAL() {
@@ -2169,6 +2207,7 @@ class RakuAST::Term
 class RakuAST::ApplyPrefix
   is RakuAST::Termish
   is RakuAST::BeginTime
+  is RakuAST::SinkPropagator
   is RakuAST::WhateverApplicable
 {
     has RakuAST::Prefixish $.prefix;
@@ -2210,6 +2249,10 @@ class RakuAST::ApplyPrefix
     method visit-children(Code $visitor) {
         $visitor($!prefix);
         $visitor($!operand);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!operand.apply-sink($is-sunk);
     }
 }
 

@@ -1,6 +1,7 @@
 # An argument list.
 class RakuAST::ArgList
   is RakuAST::CaptureSource
+  is RakuAST::SinkPropagator
 {
     has List $!args;
     has RakuAST::Expression $.invocant;
@@ -62,6 +63,14 @@ class RakuAST::ArgList
         $visitor($!invocant) if $!invocant;
         for @args {
             $visitor($_);
+        }
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        my @args := $!args;
+        $!invocant.apply-sink($is-sunk) if $!invocant;
+        for @args {
+            $_.apply-sink($is-sunk);
         }
     }
 

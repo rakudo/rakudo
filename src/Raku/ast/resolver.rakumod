@@ -704,6 +704,20 @@ class RakuAST::Resolver::EVAL
         Nil
     }
 
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $res := $evaluator($scope);
+            return $res if nqp::isconcrete($res);
+        }
+        Nil
+    }
+
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
@@ -889,6 +903,20 @@ class RakuAST::Resolver::Compile
             nqp::die('leave-scope should never be used on batch mode scopes');
         if nqp::istype($scope.scope, RakuAST::AttachTarget) {
             self.pop-attach-target($scope.scope);
+        }
+        Nil
+    }
+
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $res := $evaluator($scope.scope);
+            return $res if nqp::isconcrete($res);
         }
         Nil
     }

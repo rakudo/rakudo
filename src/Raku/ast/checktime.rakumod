@@ -59,6 +59,15 @@ class RakuAST::CheckTime
         Nil
     }
 
+    # Called when fatal is active in our lexical scope.
+    method promote-worries-to-sorries() {
+        nqp::bindattr(self, RakuAST::CheckTime, '$!sorries', []) unless nqp::isconcrete($!sorries);
+        for $!worries {
+            nqp::push($!sorries, $_);
+        }
+        nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
+    }
+
     # Method to be implemented by nodes that perform CHECK-time checks. Should
     # call add-sorry and add-worry with the constructed exception objects.
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -176,6 +176,9 @@ class RakuAST::Node {
                 self.PERFORM-CHECK($resolver, $context);
                 if self.has-check-time-problems {
                     $resolver.add-node-with-check-time-problems(self);
+                    if $resolver.find-scope-property(-> $scope { $scope.fatal }) {
+                        self.promote-worries-to-sorries;
+                    }
                 }
             }
             if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {

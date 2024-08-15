@@ -1,6 +1,7 @@
 # Marker for all compile-time literals
 class RakuAST::Literal
   is RakuAST::Term
+  is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
 {
     has Str $!typename;
@@ -34,6 +35,16 @@ class RakuAST::Literal
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
+    method type-name() { 'value' }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        self.add-worry: $resolver.build-exception: 'X::AdHoc',
+            payload => 'Useless use of constant ' ~ self.type-name ~ ' ' ~ $!value.gist ~ ' in sink context'
+            if self.sunk;
+    }
 
     method ast-type {
         my $type := RakuAST::Type::Simple.new(
@@ -72,6 +83,8 @@ class RakuAST::IntLiteral
 {
     method native-type-flag() { 1 }
 
+    method type-name() { 'integer' }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
         $context.ensure-sc($value);
@@ -90,6 +103,8 @@ class RakuAST::NumLiteral
   is RakuAST::Literal
 {
     method native-type-flag() { 2 }
+
+    method type-name() { 'floating-point number' }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
@@ -141,6 +156,7 @@ class RakuAST::StrLiteral
 # that they are specified here).
 class RakuAST::QuotedString
   is RakuAST::ColonPairish
+  is RakuAST::CheckTime
   is RakuAST::Term
   is RakuAST::ImplicitLookups
 {
@@ -204,6 +220,18 @@ class RakuAST::QuotedString
             }
         }
         self.IMPL-WRAP-LIST(@needed)
+    }
+
+    method type-name() { 'string' }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $value := self.literal-value;
+        self.add-worry: $resolver.build-exception: 'X::AdHoc',
+            payload => 'Useless use of constant ' ~ self.type-name ~ ' ' ~ $value.gist ~ ' in sink context'
+            if self.sunk && $value;
     }
 
     method has-variables() {

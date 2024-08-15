@@ -1739,6 +1739,25 @@ class RakuAST::ApplyInfix
                 self.add-worry: $resolver.build-exception: 'X::WhateverCode::SmartMatch::LHS';
             }
 
+            my %worrisome-range := nqp::hash(
+                '..', 1,
+                '^..', 1,
+                '..^', 1,
+                '^..^', 1,
+                'R..', 1,
+                'R^..', 1,
+                'R..^', 1,
+                'R^..^', 1
+            );
+            if nqp::existskey(%worrisome-range, $infix.operator) && nqp::istype($left, RakuAST::ApplyPrefix) {
+                if $left.prefix.operator eq '|' {
+                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "apply a Slip flattener to", precursor => 1;
+                }
+                if $left.prefix.operator eq '~' {
+                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "stringify", precursor => 1;
+                }
+            }
+
             my $type := self.left.return-type;
             if nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) {
                 my $right := self.right;

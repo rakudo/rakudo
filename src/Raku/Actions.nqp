@@ -1049,7 +1049,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
             }
             else {
-                $operand.add-colonpair($<colonpair>.ast);
+                if nqp::can($operand, 'add-colonpair') {
+                    $operand.add-colonpair($<colonpair>.ast);
+                }
+                else {
+                    $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
+                }
                 make $operand;
             }
         }

@@ -228,13 +228,6 @@ class RakuAST::Signature
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $signature := self.meta-object;
-        # Ensure the Signature object has some code object associated with it
-        unless nqp::isconcrete(nqp::getattr($signature, Signature, '$!code')) {
-            my $code := nqp::create(Block);
-            $context.ensure-sc($code);
-            nqp::bindattr($code, Code, '$!do', nqp::freshcoderef(sub (*@pos, *%named) { }));
-            nqp::bindattr($signature, Signature, '$!code', $code);
-        }
         $context.ensure-sc($signature);
         QAST::WVal.new(:value($signature))
     }
@@ -345,28 +338,39 @@ class RakuAST::Signature
 }
 
 class RakuAST::FakeSignature
+  is RakuAST::BeginTime
   is RakuAST::Meta
   is RakuAST::Term
   is RakuAST::LexicalScope
 {
     has RakuAST::Signature $.signature;
+    has RakuAST::Block $.block;
 
     method new($signature) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::FakeSignature, '$!signature', $signature);
+        my $block := RakuAST::PointyBlock.new: :$signature;
+        nqp::bindattr($obj, RakuAST::FakeSignature, '$!block', $block);
         $obj
     }
 
     method PRODUCE-META-OBJECT() {
+        $!block.meta-object; # To bind block to signature
         $!signature.meta-object
     }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!block.to-begin-time($resolver, $context);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.meta-object;
         $!signature.IMPL-TO-QAST($context)
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!signature)
+        $visitor($!signature);
+        $visitor($!block);
     }
 }
 

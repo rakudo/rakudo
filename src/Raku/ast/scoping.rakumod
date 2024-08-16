@@ -55,6 +55,9 @@ class RakuAST::LexicalScope
                 if nqp::istype($node, RakuAST::Expression) {
                     $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
                 }
+                if nqp::istype($node, RakuAST::FakeSignature) {
+                    $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
+                }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);
                 }

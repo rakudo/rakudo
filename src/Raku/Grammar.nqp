@@ -4852,9 +4852,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN-DECL := '';
         :dba('constraint')
         [
-          | '[' ~ ']' <signature>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
-          | '(' ~ ')' <signature>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
           | <.constraint-where> <EXPR('i=')>
         ]
@@ -4863,9 +4863,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token param-var {
         :dba('formal parameter')
         [
-          | '[' ~ ']' <signature>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
-          | '(' ~ ')' <signature>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
           | $<declname>=[
               <sigil>

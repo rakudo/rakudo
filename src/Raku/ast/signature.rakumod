@@ -891,7 +891,7 @@ class RakuAST::Parameter
             }
         }
 
-        if $!sub-signature {
+        if $!sub-signature || nqp::elems($!names) > 2 {
             $!owner.set-custom-args;
         }
 

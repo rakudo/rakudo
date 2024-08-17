@@ -4739,7 +4739,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Signatures
 
     token fakesignature {
+        :my $*BLOCK;
+        <.enter-block-scope('PointyBlock')>
         <signature(1, :DECLARE-TARGETS(0))>
+        <.leave-block-scope>
     }
 
     token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION, :$*ON-ROUTINE) {

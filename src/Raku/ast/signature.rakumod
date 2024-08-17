@@ -346,10 +346,15 @@ class RakuAST::FakeSignature
     has RakuAST::Signature $.signature;
     has RakuAST::Block $.block;
 
-    method new($signature) {
+    method new($signature, RakuAST::Block :$block) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::FakeSignature, '$!signature', $signature);
-        my $block := RakuAST::PointyBlock.new: :$signature;
+        if nqp::isconcrete($block) {
+            $block.replace-signature($signature);
+        }
+        else {
+            $block := RakuAST::PointyBlock.new: :$signature;
+        }
         nqp::bindattr($obj, RakuAST::FakeSignature, '$!block', $block);
         $obj
     }

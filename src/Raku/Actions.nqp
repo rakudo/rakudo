@@ -2948,7 +2948,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Signatures
 
     method fakesignature($/) {
-        self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast
+        self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast, :block($*BLOCK)
     }
 
     method signature($/) {

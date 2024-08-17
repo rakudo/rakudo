@@ -817,10 +817,6 @@ class RakuAST::Parameter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.apply-traits($resolver, $context, self);
-
-        $!target.to-begin-time($resolver, $context) if $!target;
-
         if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
@@ -848,6 +844,10 @@ class RakuAST::Parameter
             $block.IMPL-CHECK($resolver, $context, False);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
+
+        self.apply-traits($resolver, $context, self);
+
+        $!target.to-begin-time($resolver, $context) if $!target;
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

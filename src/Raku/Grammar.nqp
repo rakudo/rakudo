@@ -4125,6 +4125,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token type-declarator {*}
 
+    method add-variable($name) {
+        my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
+        my $cat := ~$categorical[0][0];
+        if $categorical && nqp::can(self, $cat) {
+            my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
+            my $canname := $cat ~ ':sym' ~ $canop;
+            self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0]);
+        }
+    }
+
     token type-declarator:sym<constant> {
         :my $*IN-DECL := 'constant';
         <.sym>
@@ -4132,7 +4142,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | '\\'?
             <defterm>
-          | <variable>  # for new &infix:<foo> synonyms
+          | <variable> { $¢.add-variable(~$<variable>) } # for new &infix:<foo> synonyms
           | <?>
         ]
         { $*IN-DECL := ''; }

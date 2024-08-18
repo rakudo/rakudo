@@ -917,3 +917,10 @@ class RakuAST::StatementPrefix::Phaser::Close
 {
     method type() { "CLOSE" }
 }
+
+# The TEMP phaser.
+class RakuAST::StatementPrefix::Phaser::Temp
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "TEMP" }
+}

@@ -879,6 +879,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<NEXT>($/)  { self.SP-phaser($/, 'Next')  }
     method statement-prefix:sym<QUIT>($/)  { self.SP-phaser($/, 'Quit')  }
     method statement-prefix:sym<UNDO>($/)  { self.SP-phaser($/, 'Undo')  }
+    method statement-prefix:sym<TEMP>($/)  { self.SP-phaser($/, 'Temp')  }
 
     # BEGIN phaser needs to be executed *now* and produce a value
     method statement-prefix:sym<BEGIN>($/) {

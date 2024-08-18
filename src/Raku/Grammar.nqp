@@ -994,6 +994,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token phaser-POST    { POST}
     token phaser-PRE     { PRE}
     token phaser-QUIT    { QUIT}
+    token phaser-TEMP    { TEMP}
     token phaser-UNDO    { UNDO}
 
     token prefix-let  { let}
@@ -1798,6 +1799,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<POST>  { <.phaser-POST>  <.kok> <blorst> }
     token statement-prefix:sym<PRE>   { <.phaser-PRE>   <.kok> <blorst> }
     token statement-prefix:sym<QUIT>  { <.phaser-QUIT>  <.kok> <blorst> }
+    token statement-prefix:sym<TEMP>  { <.phaser-TEMP>  <.kok> <blorst> }
     token statement-prefix:sym<UNDO>  { <.phaser-UNDO>  <.kok> <blorst> }
 
     # DOC phaser also takes a "sub" phaser identifier

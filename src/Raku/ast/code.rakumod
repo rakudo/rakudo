@@ -723,6 +723,7 @@ class RakuAST::ScopePhaser {
     has List $!PRE;
     has List $!POST;
     has List $!QUIT;
+    has List $!TEMP; # Really not yet implemented.
     has List $!CLOSE;
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;

@@ -3255,11 +3255,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
-                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration',
+                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
                     if $*R.declare-lexical-in-outer($*BLOCK);
             }
             elsif $*DEFAULT-SCOPE ne 'has' {
-                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration',
+                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
                     if $*R.declare-lexical($*BLOCK);
             }
         }

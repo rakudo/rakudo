@@ -1500,6 +1500,8 @@ class RakuAST::Routine
         Nil
     }
 
+    method declaration-kind() { 'routine' }
+
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['routine', 'block'])
     }

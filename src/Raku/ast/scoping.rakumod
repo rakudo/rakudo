@@ -240,7 +240,7 @@ class RakuAST::LexicalScope
                 if nqp::existskey(%lookup, $lexical-name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name);
+                        :symbol($lexical-name), :what($_.declaration-kind);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -253,7 +253,7 @@ class RakuAST::LexicalScope
                 if nqp::existskey(%lookup, $lexical-name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name);
+                        :symbol($lexical-name), :what($_.declaration-kind);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -463,6 +463,10 @@ class RakuAST::Declaration
 
     method report-redeclaration() {
         True
+    }
+
+    method declaration-kind() {
+        'symbol'
     }
 }
 

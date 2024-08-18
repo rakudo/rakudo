@@ -4152,7 +4152,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         [ <.ws>
           <term_init=initializer>
-            || <.typed-panic: "X::Syntax::Term::MissingInitializer">
+            || <.typed-panic: "X::Syntax::Missing">
         ]
 
         <.cheat-heredoc>?

@@ -1608,8 +1608,14 @@ class RakuAST::Routine
             self.add-generated-lexical-declaration($_) for $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $placeholder-signature.to-begin-time($resolver, $context);
         }
+
+        unless $placeholder-signature || $!signature {
+            nqp::bindattr(self, RakuAST::Routine, '$!signature', RakuAST::Signature.new);
+        }
+
         # Make sure that our signature has resolutions performed.
         if $!signature {
+            $!signature.set-parameters-initialized;
             $!signature.set-default-type(
                 RakuAST::Type::Setting.new(
                     RakuAST::Name.from-identifier('Any'),
@@ -1710,7 +1716,7 @@ class RakuAST::Routine
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
-        $!signature.IMPL-HAS-PARAMETER($name)
+        $!signature && $!signature.IMPL-HAS-PARAMETER($name)
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
@@ -1855,7 +1861,7 @@ class RakuAST::Routine
     method visit-children(Code $visitor) {
         $visitor($!name) if $!name;
         $visitor(self.WHY) if self.WHY;  # needs to be before signature
-        $visitor($!signature);
+        $visitor($!signature) if $!signature;
         self.visit-traits($visitor);
         $visitor(self.body);
     }
@@ -1889,8 +1895,7 @@ class RakuAST::Sub
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Routine, '$!signature',
-          $signature // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Sub, '$!body',
           $body // RakuAST::Blockoid.new);
@@ -1939,7 +1944,7 @@ class RakuAST::Sub
 
     method IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES(Resolver $resolver) {
         my $proto := self.meta-object.dispatcher;
-        my $signature := self.signature.compile-time-value;
+        my $signature := (self.placeholder-signature || self.signature).compile-time-value;
         my $meta := self.meta-object;
 
         # If we ourselves can default, there is no need to check further
@@ -2065,9 +2070,15 @@ class RakuAST::Methodish
             self.add-generated-lexical-declaration($_) for $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $placeholder-signature.to-begin-time($resolver, $context);
         }
+
+        unless $placeholder-signature || self.signature {
+            nqp::bindattr(self, RakuAST::Routine, '$!signature', RakuAST::Signature.new);
+        }
+
         # Make sure that our signature has resolutions performed.
         my $signature := self.signature;
         if $signature {
+            $signature.set-parameters-initialized;
             $signature.set-default-type(
                 RakuAST::Type::Setting.new(
                     RakuAST::Name.from-identifier('Any'),
@@ -2141,8 +2152,7 @@ class RakuAST::Method
           $private ?? True !! False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', $meta ?? True !! False);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Routine, '$!signature',
-          $signature // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Method, '$!body',
           $body // RakuAST::Blockoid.new);

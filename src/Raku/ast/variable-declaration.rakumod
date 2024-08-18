@@ -2183,7 +2183,7 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::IMPL::QASTContext $context
     ) {
         my $signature := $resolver.find-attach-target('block').signature;
-        if $signature.parameters-initialized {
+        if $signature && $signature.parameters-initialized {
             # @_ and %_ are only real placeholders if they were not
             # already defined in the signature, so we need to check
             # there before pulling the plug

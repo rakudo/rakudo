@@ -415,9 +415,12 @@ class RakuAST::VarDeclaration::Constant
     ) {
         my $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
             $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-VALUE-TYPE.meta-object !! Mu }));
-        $value := Map.new($value)
-          if nqp::eqat($!name,'%',0)
-          && nqp::istype($value,List);
+        $value := $value.Map
+            if nqp::eqat($!name,'%',0)
+            && !nqp::istype($value, self.get-implicit-lookups.AT-POS(0).meta-object);
+        $value := $value.cache
+            if nqp::eqat($!name, '@', 0)
+            && !nqp::istype($value, self.get-implicit-lookups.AT-POS(0).meta-object);
         $!initializer.IMPL-THUNK-EXPRESSION($resolver, $context);
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 

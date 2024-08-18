@@ -545,7 +545,7 @@ augment class RakuAST::Node {
         @nameds.unshift("meta")      if self.meta;
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY(self!nameds(@nameds))
@@ -647,7 +647,7 @@ augment class RakuAST::Node {
 #- Po --------------------------------------------------------------------------
 
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
-        self!add-WHY: self!nameds: self.signature.parameters-initialized
+        self!add-WHY: self!nameds: self.signature && self.signature.parameters-initialized
           ?? <signature body>
           !! <body>
     }
@@ -855,7 +855,7 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::RegexDeclaration:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;
@@ -1097,7 +1097,7 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;
@@ -1105,7 +1105,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;

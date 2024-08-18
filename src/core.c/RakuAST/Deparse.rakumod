@@ -255,7 +255,7 @@ CODE
 
         my $signature := $ast.signature;
         my $WHY       := $ast.WHY;
-        if $signature.parameters-initialized
+        if $signature && $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("(\n");
             @parts = self.add-any-docs(@parts.join(' '), $WHY)
@@ -266,7 +266,7 @@ CODE
 
         else {
             @parts.push(self.parenthesize($signature))
-              if $signature.parameters-initialized;
+              if $signature && $signature.parameters-initialized;
             add-traits;
 
             if $WHY {

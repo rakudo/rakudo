@@ -528,6 +528,7 @@ class RakuAST::VarDeclaration::Simple
     has Bool                 $!is-parameter;
     has Bool                 $!is-rw;
     has Bool                 $!is-bindable;
+    has Bool                 $!already-declared;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -609,10 +610,18 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-bindable', $bindable);
     }
 
+    method set-already-declared() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
+    }
+
     method add-colonpair(RakuAST::ColonPair $pair) {
         nqp::die("Cannot add colonpair to variable declaration without initializer")
             unless $!initializer;
         $!initializer.add-colonpair($pair);
+    }
+
+    method report-redeclaration() {
+        !$!already-declared
     }
 
     # Generate a lookup of this variable, already resolved to this declaration.
@@ -1071,6 +1080,8 @@ class RakuAST::VarDeclaration::Simple
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
+
+        return QAST::Op.new(:op<null>) if $!already-declared;
 
         if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped

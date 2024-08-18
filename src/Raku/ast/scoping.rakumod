@@ -266,7 +266,7 @@ class RakuAST::LexicalScope
         while $!variables-cache {
             my $var := nqp::pop($!variables-cache);
             if nqp::istype($var, RakuAST::Declaration) {
-                %declarations{$var.lexical-name} := $var;
+                %declarations{$var.lexical-name} := $var if $var.report-redeclaration;
             }
             else {
                 if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
@@ -459,6 +459,10 @@ class RakuAST::Declaration
     # for doing installation.
     method is-simple-lexical-declaration() {
         self.is-lexical
+    }
+
+    method report-redeclaration() {
+        True
     }
 }
 

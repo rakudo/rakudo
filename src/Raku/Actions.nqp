@@ -2227,9 +2227,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
               :$shape, :$forced-dynamic, :$where;
 
-            $/.typed-worry('X::Redeclaration', :symbol($name))
-              if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
-              && $*R.declare-lexical($decl);
+            if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
+                && $*R.declare-lexical($decl)
+            {
+                $/.typed-worry('X::Redeclaration', :symbol($name));
+                $decl.set-already-declared;
+            }
 
             self.set-declarand($/, $decl);
         }

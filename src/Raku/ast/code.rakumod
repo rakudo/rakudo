@@ -756,6 +756,7 @@ class RakuAST::ScopePhaser {
     }
 
     method set-has-let() {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!let', RakuAST::Block.new(:implicit-topic(False)));
     }
 

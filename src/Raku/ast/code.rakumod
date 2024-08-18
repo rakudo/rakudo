@@ -755,6 +755,10 @@ class RakuAST::ScopePhaser {
         $result-name
     }
 
+    method needs-result() {
+        self.meta-object.has-phaser('UNDO')
+    }
+
     method set-has-let() {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!let', RakuAST::Block.new(:implicit-topic(False)));
@@ -1039,7 +1043,7 @@ class RakuAST::Block
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk && !self.needs-result);
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -1364,7 +1368,7 @@ class RakuAST::PointyBlock
     method bare-block() { False }
 
     method propagate-sink(Bool $is-sunk) {
-        self.body.apply-sink($is-sunk);
+        self.body.apply-sink($is-sunk && !self.needs-result);
         $!signature.apply-sink(True);
     }
 
@@ -1911,6 +1915,7 @@ class RakuAST::Sub
     }
 
     method is-boundary-sunk() {
+        return False if self.needs-result;
         my $signature := self.signature;
         $signature ?? $signature.provides-return-value !! False
     }
@@ -2168,6 +2173,7 @@ class RakuAST::Method
     }
 
     method is-boundary-sunk() {
+        return False if self.needs-result;
         my $signature := self.signature;
         $signature ?? $signature.provides-return-value !! False
     }

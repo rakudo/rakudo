@@ -434,6 +434,7 @@ class RakuAST::VarDeclaration::Constant
             if $!package.WHO.EXISTS-KEY($name) {
                 nqp::die("already have an 'our constant $name' in the package");
             }
+            $!package.WHO.BIND-KEY($name, $!value);
         }
 
         self.apply-traits(

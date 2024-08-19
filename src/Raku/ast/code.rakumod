@@ -1682,6 +1682,12 @@ class RakuAST::Routine
         self.apply-traits($resolver, $context, self)
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
+        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my int $slash := 1;
         my int $exclamation-mark := 1;
@@ -1878,7 +1884,6 @@ class RakuAST::Routine
 # A subroutine.
 class RakuAST::Sub
   is RakuAST::Routine
-  is RakuAST::CheckTime
   is RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
@@ -1929,6 +1934,8 @@ class RakuAST::Sub
     }
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
 
         return Nil unless self.multiness eq 'multi';

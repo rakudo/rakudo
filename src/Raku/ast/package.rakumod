@@ -169,6 +169,12 @@ class RakuAST::Package
         self.apply-traits($resolver, $context, self);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
+        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+    }
+
     # Need to install the package somewhere
     method install-in-scope($resolver,$scope,$name,$full-name) {
         self.IMPL-INSTALL-PACKAGE(

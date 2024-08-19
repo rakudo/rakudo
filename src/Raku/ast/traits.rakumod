@@ -1,6 +1,7 @@
 # Done by everything that can have traits applied to it.
 class RakuAST::TraitTarget {
     has Mu $!traits;
+    has List $!sorries;
 
     # Set the list of traits on this declaration.
     method set-traits(List $traits) {
@@ -34,11 +35,24 @@ class RakuAST::TraitTarget {
         self.IMPL-WRAP-LIST(nqp::islist($traits) ?? $traits !! [])
     }
 
+    method add-trait-sorries() {
+        if $!sorries {
+            self.add-sorry($_) for $!sorries;
+        }
+    }
+
     # Apply all traits (and already applied will not be applied again).
     method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         if $!traits {
             for $!traits {
                 $_.apply($resolver, $context, $target, |%named) unless $_.applied;
+                CATCH {
+                    nqp::bindattr(self, RakuAST::TraitTarget, '$!sorries', []) unless nqp::isconcrete($!sorries);
+                    my $ex := nqp::getpayload($_);
+                    $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
+                        unless nqp::isconcrete($ex);
+                    nqp::push($!sorries, $ex);
+                }
             }
         }
         Nil

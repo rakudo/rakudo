@@ -454,6 +454,7 @@ class RakuAST::Type::Enum
   is RakuAST::Type
   is RakuAST::Declaration
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::TraitTarget
   is RakuAST::PackageInstaller
   is RakuAST::ImplicitLookups
@@ -676,6 +677,10 @@ class RakuAST::Type::Enum
         $meta.HOW.compose_values($meta);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+    }
+
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::EnumHOW.new_type(
             :name($!name.canonicalize),
@@ -691,6 +696,7 @@ class RakuAST::Type::Subset
   is RakuAST::TraitTarget
   is RakuAST::StubbyMeta
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::PackageInstaller
   is RakuAST::Doc::DeclaratorTarget
 {
@@ -843,6 +849,10 @@ class RakuAST::Type::Subset
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
             $block.IMPL-CURRIED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
         }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

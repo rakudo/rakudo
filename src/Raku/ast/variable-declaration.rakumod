@@ -303,6 +303,7 @@ class RakuAST::TraitTarget::Variable
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has str $!name;
     has str $!scope;
@@ -327,6 +328,10 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
     }
 
     method PRODUCE-META-OBJECT() {
@@ -446,6 +451,8 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        self.add-trait-sorries;
+
         if $!type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
             my $type :=
               self.get-implicit-lookups.AT-POS(0).meta-object;
@@ -912,6 +919,8 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
         self.add-sorry(
           $resolver.build-exception: 'X::Adhoc',
             :message('Cannot declare an anonymous variable with a twigil')
@@ -1454,6 +1463,8 @@ class RakuAST::VarDeclaration::Signature
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
         unless $!initializer {
             for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
                 if nqp::istype($param.target, RakuAST::ParameterTarget::Term) {
@@ -1890,6 +1901,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::VarDeclaration::Implicit
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::Meta
   is RakuAST::CompileTimeValue
   is RakuAST::Declaration::Mergeable
@@ -1921,6 +1933,10 @@ class RakuAST::VarDeclaration::Implicit::Constant
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self, :SYMBOL(RakuAST::StrLiteral.new(self.name)));
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
     }
 }
 

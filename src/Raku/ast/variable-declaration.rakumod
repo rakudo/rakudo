@@ -1423,7 +1423,7 @@ class RakuAST::VarDeclaration::Signature
 
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            $param.target.set-bindable(False) if $binding;
+            $param.set-bindable(False) if $binding;
             for $traits {
                 $param.target.replace-scope($scope);
                 $param.target.add-trait(nqp::clone($_)) if $param.target;
@@ -1451,13 +1451,29 @@ class RakuAST::VarDeclaration::Signature
             if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                 my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
                 my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+                my @terms;
 
                 for @params {
-                    $list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                    nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
+                    $list.push: $_.target.IMPL-LOOKUP-QAST($context) if $_.target;
                 }
                 my $init-qast := $!initializer.IMPL-TO-QAST($context);
                 $list := QAST::Op.new( :op('p6store'), $list, $init-qast);
-                return $list;
+                if 0 < nqp::elems(@terms) {
+                    my $stmts := QAST::Stmts.new(:resultchild(0), $list);
+                    for @terms {
+                        $stmts.push(
+                            $_.IMPL-BIND-QAST(
+                                $context,
+                                QAST::Op.new(:op('decont'), $_.IMPL-LOOKUP-QAST($context))
+                            )
+                        );
+                    }
+                    return $stmts;
+                }
+                else {
+                    return $list;
+                }
             }
             elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
                 my $signature := $!signature.meta-object;

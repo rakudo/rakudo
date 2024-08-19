@@ -508,8 +508,8 @@ class RakuAST::Parameter
         Nil
     }
 
-    method set-bindable() {
-        $!target.set-bindable(True);
+    method set-bindable(Bool $is-bindable) {
+        $!target.set-bindable($is-bindable ?? True !! False) if $!target;
         Nil
     }
 
@@ -1370,6 +1370,9 @@ class RakuAST::ParameterTarget
     method set-rw() { }
     method sigil() { '' }
     method name() { '' }
+    method set-bindable(Bool $is-bindable) {
+        nqp::die("set-bindable NYI on " ~ self.HOW.name(self));
+    }
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
@@ -1573,13 +1576,17 @@ class RakuAST::ParameterTarget::Var
 # A binding of a parameter into a lexical term.
 class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
+  is RakuAST::ContainerCreator
   is RakuAST::Declaration
+  is RakuAST::Meta
 {
     has RakuAST::Name $.name;
+    has Bool $!is-bindable;
 
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
     }
 
@@ -1591,6 +1598,18 @@ class RakuAST::ParameterTarget::Term
         $!name.canonicalize
     }
 
+    method type() { Mu }
+    method sigil() { '' }
+    method twigil() { '' }
+
+    method set-bindable(Bool $bindable) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!is-bindable', $bindable);
+    }
+
+    method can-be-bound-to() {
+        $!is-bindable
+    }
+
     # Generate a lookup of this parameter, already resolved to this declaration.
     method generate-lookup() {
         my $lookup := RakuAST::Term::Name.new($!name);
@@ -1598,8 +1617,33 @@ class RakuAST::ParameterTarget::Term
         $lookup
     }
 
+    method PRODUCE-META-OBJECT() {
+        my $of := self.IMPL-OF-TYPE;
+        my $default := $of;
+        my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($default);
+        self.IMPL-CONTAINER($of, $descriptor);
+    }
+
+    method IMPL-OF-TYPE() {
+        Mu
+    }
+
+    method IMPL-SIGIL-TYPE() {
+        nqp::null
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        if $!is-bindable {
+            my $container := self.meta-object;
+            $context.ensure-sc($container);
+            QAST::Var.new(
+                :scope('lexical'), :decl('contvar'), :name($!name.canonicalize),
+                :value($container)
+            )
+        }
+        else {
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        }
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {

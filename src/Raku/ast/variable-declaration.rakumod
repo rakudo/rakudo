@@ -933,6 +933,22 @@ class RakuAST::VarDeclaration::Simple
             inner => self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE,
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
+        if (self.initializer) {
+            my @found := self.find-nodes-exclusive(
+                RakuAST::Var::Lexical,
+                :condition(-> $node {
+                    $node.is-resolved && $node.resolution =:= self
+                }),
+                :stopper(-> $node {
+                    nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine)
+                }));
+            if @found {
+                self.add-sorry(
+                    $resolver.build-exception: 'X::Syntax::Variable::Initializer', :name(self.name)
+                );
+            }
+        }
+
         my $type := self.type;
         if nqp::istype($type,RakuAST::Type::Simple) {
             my $initializer := self.initializer;

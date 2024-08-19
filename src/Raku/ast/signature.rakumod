@@ -123,7 +123,7 @@ class RakuAST::Signature
                     $type := self.get-implicit-lookups.AT-POS(0);
                 }
                 elsif $!is-on-named-method {
-                    if nqp::isconcrete($!method-package) {
+                    if nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
                         my $Class := self.get-implicit-lookups.AT-POS(1);
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));

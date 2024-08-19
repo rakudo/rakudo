@@ -1421,9 +1421,11 @@ class RakuAST::VarDeclaration::Signature
             if $type {
                 $param.target.set-type($type);
             }
-            for $traits {
+            if $param.target {
                 $param.target.replace-scope($scope);
-                $param.target.add-trait(nqp::clone($_)) if $param.target;
+                for $traits {
+                    $param.target.add-trait(nqp::clone($_));
+                }
             }
         }
         if $scope eq 'has' || $scope eq 'HAS' {

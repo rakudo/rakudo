@@ -854,6 +854,10 @@ role Raku::Common {
             );
         }
 
+        elsif ($*VARIABLE-NAME && $*VARIABLE-NAME eq $name) {
+            self.typed-panic: 'X::Syntax::Variable::Initializer', :$name;
+        }
+
         # Not resolved and not a Callable
         else {
             self.typed-panic: 'X::Undeclared',
@@ -3852,6 +3856,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable-declarator {
         :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
+        :my $*VARIABLE-NAME;
         :my $sigil;
         [
           | <sigil> <twigil>? <desigilname>?
@@ -3866,6 +3871,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $*IN-DECL := '';
             $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
             $sigil := $<sigil> ?? $<sigil>.Str !! "";
+            $*VARIABLE-NAME := $<sigil> ~ $<twigil> ~ $<desigilname>;
         }
         [
           <.unspace>?

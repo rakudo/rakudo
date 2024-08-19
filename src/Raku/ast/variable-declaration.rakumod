@@ -172,6 +172,7 @@ class RakuAST::ContainerCreator {
         my str $sigil := self.sigil;
         my $container-base-type;
         my $container-type;
+        my $default := Any;
         my $bind-constraint := Mu;
         if nqp::eqaddr($!explicit-container-base-type, Mu) {
             if $sigil eq '@' {
@@ -217,6 +218,7 @@ class RakuAST::ContainerCreator {
                 $container-type := self.type
                     ?? $Callable.HOW.parameterize($Callable, $of)
                     !! $Callable;
+                $default := $Callable;
                 $bind-constraint := $container-type;
             }
             else {
@@ -237,7 +239,8 @@ class RakuAST::ContainerCreator {
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!bind-constraint', $bind-constraint);
 
         # Form container descriptor.
-        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
+
+        $default := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
                 nqp::eqaddr($of, Mu)
@@ -273,9 +276,6 @@ class RakuAST::ContainerCreator {
         my $container-type := self.container-type;
         # Form the container.
         my str $sigil := self.sigil;
-        my $default := self.type
-            ?? $sigil eq '&' ?? self.IMPL-SIGIL-TYPE !! RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of)
-            !! Any;
         if nqp::eqaddr($!explicit-container-base-type, Mu) {
             if $sigil ne '@' && $sigil ne '%' {
                 if nqp::objprimspec($of) {
@@ -288,7 +288,7 @@ class RakuAST::ContainerCreator {
             my $container := nqp::create($container-type);
             try nqp::bindattr($container, $!container-base-type, '$!descriptor', $cont-desc);
             unless $sigil eq '@' || $sigil eq '%' {
-                nqp::bindattr($container, $!container-base-type, '$!value', $default);
+                nqp::bindattr($container, $!container-base-type, '$!value', $cont-desc.default);
             }
             $container
         }

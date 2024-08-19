@@ -1337,6 +1337,7 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::Term
 {
     has RakuAST::Signature $.signature;
@@ -1450,6 +1451,17 @@ class RakuAST::VarDeclaration::Signature
             }
         }
         self.signature.to-begin-time($resolver, $context);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless $!initializer {
+            for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+                if nqp::istype($param.target, RakuAST::ParameterTarget::Term) {
+                    self.add-sorry($resolver.build-exception: 'X::Syntax::Term::MissingInitializer');
+                    last;
+                }
+            }
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

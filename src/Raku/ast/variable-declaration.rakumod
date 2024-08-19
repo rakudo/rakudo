@@ -660,7 +660,7 @@ class RakuAST::VarDeclaration::Simple
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
         $visitor($!where)       if nqp::isconcrete($!where);
-        $visitor($!original-type) if nqp::isconcrete($!original-type);
+        $visitor($!original-type) if nqp::isconcrete($!original-type) && !($!original-type =:= $!type);
         self.visit-traits($visitor);
         $visitor(self.WHY) if self.WHY;
     }

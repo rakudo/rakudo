@@ -1336,7 +1336,6 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::Declaration
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
-  is RakuAST::CheckTime
   is RakuAST::BeginTime
   is RakuAST::Term
 {
@@ -1406,7 +1405,12 @@ class RakuAST::VarDeclaration::Signature
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $traits := self.IMPL-UNWRAP-LIST(self.traits);
         my str $scope := self.scope;
+        my $type := $!type;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+            # tell the parameter targets to create containers
+            if $type {
+                $param.target.set-type($type);
+            }
             for $traits {
                 $param.target.replace-scope($scope);
                 $param.target.add-trait(nqp::clone($_)) if $param.target;
@@ -1446,20 +1450,6 @@ class RakuAST::VarDeclaration::Signature
             }
         }
         self.signature.to-begin-time($resolver, $context);
-    }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # tell the parameter targets to create containers
-        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
-
-        my $type := $!type;
-        my $of := $type
-          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-          !! Mu;
-
-        for @params {
-            $_.target.set-container-type($type, $of) if $type;
-        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

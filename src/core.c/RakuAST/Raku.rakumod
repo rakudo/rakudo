@@ -635,7 +635,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ParameterTarget::Var:D: --> Str:D) {
-        self!nameds: <name forced-dynamic>
+        self!nameds: <name>
     }
 
     multi method raku(RakuAST::ParameterTarget::Term:D: --> Str:D) {

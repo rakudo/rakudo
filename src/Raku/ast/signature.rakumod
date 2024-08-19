@@ -1380,13 +1380,11 @@ class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
   is RakuAST::TraitTarget
   is RakuAST::Meta
-  is RakuAST::ContainerCreator
   is RakuAST::BeginTime
   is RakuAST::CheckTime
 {
     has str $.name;
     has RakuAST::Type $.type;
-    has Mu $!of;
     has RakuAST::Package $!attribute-package;
     has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
@@ -1396,10 +1394,7 @@ class RakuAST::ParameterTarget::Var
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
-        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
-          $forced-dynamic ?? True !! False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
         nqp::bindattr(
@@ -1494,11 +1489,6 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr_s(self, RakuAST::ParameterTarget::Var, '$!name', $name);
     }
 
-    method set-container-type(Mu $type, Mu $of) {
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
-    }
-
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
         $!declaration.set-bindable($bindable);
@@ -1513,13 +1503,6 @@ class RakuAST::ParameterTarget::Var
     }
 
     method PRODUCE-META-OBJECT() {
-        nqp::bindattr(
-            self,
-            RakuAST::ParameterTarget::Var,
-            '$!of',
-            $!type.resolution.compile-time-value
-        ) if $!type && nqp::eqaddr($!of, Mu);
-
         $!declaration.meta-object
     }
 

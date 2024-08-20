@@ -59,6 +59,20 @@ class RakuAST::OnlyStar
             QAST::SVal.new( :value('boot-resume') ),
             QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ));
     }
+
+    method IMPL-REGEX-TOP-LEVEL-QAST(
+      RakuAST::IMPL::QASTContext  $context,
+                              Mu  $code-object,
+                                  %mods,
+                             int :$no-scan,
+                              Mu :$body-qast,
+                             str :$name
+    ) {
+        QAST::Op.new(
+            :op('callmethod'), :name('!protoregex'),
+            QAST::Var.new( :name('self'), :scope('local') ),
+            QAST::SVal.new( :value($name) ))
+    }
 }
 
 # Marker for all code-y things.
@@ -2235,6 +2249,7 @@ class RakuAST::RegexDeclaration
     has            str $.source;
 
     method new(          str :$scope,
+                         str :$multiness,
                RakuAST::Name :$name,
           RakuAST::Signature :$signature,
                         List :$traits,
@@ -2244,6 +2259,7 @@ class RakuAST::RegexDeclaration
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature',
             $signature // RakuAST::Signature.new);

@@ -3829,6 +3829,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <routine-declarator>
 
+          | <regex-declarator>
+
           | <type-declarator>
         ]
     }
@@ -4122,7 +4124,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <trait($*BLOCK)>*
           '{'
           [
-#            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>

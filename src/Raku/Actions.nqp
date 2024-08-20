@@ -2147,6 +2147,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<routine-declarator> {
             $ast := $<routine-declarator>.ast;
         }
+        elsif $<regex-declarator> {
+            $ast := $<regex-declarator>.ast;
+        }
         elsif $<defterm> {
             my str $scope   := $*SCOPE;
             my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
@@ -2352,7 +2355,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<signature> {
             $regex.replace-signature($<signature>.ast);
         }
-        $regex.replace-body($<nibble>.ast);
+        $regex.replace-body($<onlystar> ?? Nodify('OnlyStar').new !! $<nibble>.ast);
         # Entering scope again to ensure implicits are attached to the method
         $*R.enter-scope($regex);
         self.attach: $/, $regex;

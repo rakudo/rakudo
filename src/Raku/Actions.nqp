@@ -2905,14 +2905,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Types
 
-    method type-for-name($/, $base-name) {
+    method type-for-name($/, $name) {
+        my $base-name := $name.without-colonpair('_').without-colonpair('D').without-colonpair('U');
         my $type := Nodify('Type','Simple').new(
-          $base-name.without-colonpair('_').without-colonpair('D').without-colonpair('U')
+          $base-name
         ).to-begin-time($*R, $*CU.context);
 
-        $type := $base-name.has-colonpair('D')
+        for $base-name.IMPL-UNWRAP-LIST($base-name.colonpairs) {
+            $/.typed-sorry('X::InvalidTypeSmiley', :name($_.key));
+        }
+
+        $type := $name.has-colonpair('D')
           ?? Nodify('Type','Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
-          !! $base-name.has-colonpair('U')
+          !! $name.has-colonpair('U')
             ?? Nodify('Type','Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
             !! $type;
 

@@ -497,7 +497,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::CheckTime
+  is RakuAST::BeginTime
 {
     has Mu $!value;
 
@@ -509,10 +509,12 @@ class RakuAST::StatementPrefix::Phaser::Check
         $obj
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
         my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
-
-        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer());
+        $resolver.find-attach-target('compunit').add-check-phaser(-> {
+            nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer());
+        });
         Nil
     }
 

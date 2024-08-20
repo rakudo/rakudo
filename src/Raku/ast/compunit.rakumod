@@ -334,8 +334,8 @@ class RakuAST::CompUnit
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
 
-        for $!check-phasers {
-            $_();
+        while $!check-phasers {
+            nqp::pop($!check-phasers)();
         }
     }
 

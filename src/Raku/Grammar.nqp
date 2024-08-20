@@ -5904,7 +5904,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             <?[$]>
             <!RESTRICTED>
             [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
-               || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
+               || { self.typed-panic: 'X::Backslash::NonVariableDollar' } ]
         }
     }
 

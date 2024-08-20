@@ -282,7 +282,7 @@ class RakuAST::CompUnit
     }
 
     method add-check-phaser(Code $phaser) {
-        self.add-phaser($!end-phasers, $phaser);
+        self.add-phaser($!check-phasers, $phaser);
     }
 
     method add-end-phaser(Code $phaser) {

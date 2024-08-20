@@ -496,6 +496,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
+  is RakuAST::StatementPrefix::Thunky
   is RakuAST::CheckTime
 {
     has Mu $!value;
@@ -509,12 +510,9 @@ class RakuAST::StatementPrefix::Phaser::Check
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
-          nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst'),
-          $resolver, $context);
+        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
 
-        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value',
-          nqp::istype($producer,Code) ?? $producer() !! $producer);
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer());
         Nil
     }
 

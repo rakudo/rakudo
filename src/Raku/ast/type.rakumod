@@ -253,6 +253,10 @@ class RakuAST::Type::Definedness
             !! $name ~ ($!definite ?? ':D' !! ':U')
     }
 
+    method IMPL-IMPLICIT() {
+        $!through-pragma ?? ($!definite ?? ':D' !! ':U') ~ ' by pragma' !! ''
+    }
+
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::DefiniteHOW.new_type(
             :base_type(self.base-type.compile-time-value),

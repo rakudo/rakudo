@@ -1017,6 +1017,9 @@ class RakuAST::VarDeclaration::Simple
                         $resolver.build-exception: 'X::Syntax::Variable::MissingInitializer',
                             what => self.scope eq 'has' || self.scope eq 'HAS' ?? 'attribute' !! 'variable',
                             type => nqp::how($bind-constraint).name($bind-constraint),
+                            implicit => nqp::istype($type, RakuAST::Type::Definedness)
+                                ?? $type.IMPL-IMPLICIT
+                                !! '',
                     );
                 }
             }

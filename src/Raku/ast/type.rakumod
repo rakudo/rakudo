@@ -509,6 +509,7 @@ class RakuAST::Type::Enum
         $visitor($!term);
         $visitor($!of)     if $!of;
         $visitor(self.WHY) if self.WHY;
+        self.visit-traits($visitor);
     }
 
     method is-lexical() { True }
@@ -768,6 +769,7 @@ class RakuAST::Type::Subset
           if $!of
           && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
         $visitor(self.WHY) if self.WHY;
+        self.visit-traits($visitor);
     }
 
     method is-lexical() { True }

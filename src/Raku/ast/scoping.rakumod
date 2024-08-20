@@ -58,7 +58,12 @@ class RakuAST::LexicalScope
                 if nqp::istype($node, RakuAST::FakeSignature) {
                     $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
                 }
-                unless nqp::istype($node, RakuAST::LexicalScope) {
+                if nqp::istype($node, RakuAST::LexicalScope) {
+                    if nqp::istype($node, RakuAST::TraitTarget) {
+                        $node.visit-traits(-> $trait { @code-todo.push($trait) });
+                    }
+                }
+                else {
                     @code-todo.push($node);
                 }
             }

@@ -3982,6 +3982,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Regex', 'Quote').new($<quote>.ast);
     }
 
+    method metachar:sym<~>($/) {
+        self.attach: $/, Nodify('Regex', 'Nested').new($<GOAL>.ast, $<EXPR>.ast);
+    }
+
     method backslash:sym<e>($/) {
         self.attach: $/, Nodify('Regex', 'CharClass', 'Escape').new(negated => $<sym> le 'Z');
     }

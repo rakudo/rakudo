@@ -584,14 +584,14 @@ CODE
 
         my str @parts = $ast.operands.map({ self.deparse($_) });
         @parts
-          ?? $operator eq ','
+          ?? nqp::istype($infix,RakuAST::Infix) && $infix.operator eq ','
             ?? @parts == 1
-              ?? @parts.head ~ $.list-infix-comma.chomp
+              ?? @parts.head ~ $.list-infix-comma.trim-trailing
               !! @parts.join($.list-infix-comma)
             !! @parts.join(
                  $.before-list-infix ~ $operator ~ $.after-list-infix
                )
-          !! ''
+          !! ''  # XXX ???
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
@@ -2611,7 +2611,9 @@ CODE
         my str @parts = nqp::split('::',self.deparse($ast.name));
         my str $root = @parts.shift;
 
-        'SETTING::<' ~ $root ~ '>' ~ @parts.map({ '.WHO<' ~ $_ ~ '>' }).join
+        $root eq 'Any'
+          ?? ''
+          !! "SETTING::<$root>" ~ @parts.map({ '.WHO<' ~ $_ ~ '>' }).join
     }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {

@@ -266,10 +266,7 @@ class RakuAST::CompUnit
     }
 
     # Helper method for a given phasers list
-    method add-phaser($phasers, $phaser) {
-        # Cannot rely on clear-attachments here as a node's attach can be
-        # called multiple times while going up and down the tree and
-        # clear-attachments will only be called once.
+    method add-cu-phaser($phasers, $phaser) {
         for $phasers {
             return Nil if nqp::eqaddr($_,$phaser);  # already added
         }
@@ -278,15 +275,15 @@ class RakuAST::CompUnit
     }
 
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
-        self.add-phaser($!init-phasers, $phaser);
+        self.add-cu-phaser($!init-phasers, $phaser);
     }
 
     method add-check-phaser(Code $phaser) {
-        self.add-phaser($!check-phasers, $phaser);
+        self.add-cu-phaser($!check-phasers, $phaser);
     }
 
     method add-end-phaser(Code $phaser) {
-        self.add-phaser($!end-phasers, $phaser);
+        self.add-cu-phaser($!end-phasers, $phaser);
     }
 
     method queue-heredoc($herestub) {

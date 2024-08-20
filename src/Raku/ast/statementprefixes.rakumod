@@ -603,7 +603,7 @@ class RakuAST::StatementPrefix::Phaser::End
     method type() { "END" }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        $resolver.find-attach-target('compunit').add-end-phaser(self);
+        $resolver.find-attach-target('compunit').add-end-phaser(self.meta-object);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }

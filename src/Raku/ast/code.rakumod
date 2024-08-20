@@ -970,7 +970,7 @@ class RakuAST::Block
   is RakuAST::LexicalScope
   is RakuAST::Term
   is RakuAST::Code
-  is RakuAST::Meta
+  is RakuAST::StubbyMeta
   is RakuAST::BlockStatementSensitive
   is RakuAST::SinkPropagator
   is RakuAST::Blorst
@@ -1109,14 +1109,19 @@ class RakuAST::Block
         Nil
     }
 
+    method PRODUCE-STUBBED-META-OBJECT() {
+        nqp::create(Block);
+    }
+
     method PRODUCE-META-OBJECT() {
         self.IMPL-PRODUCE-META-OBJECT
     }
 
     method IMPL-PRODUCE-META-OBJECT() {
+        my $block := self.stubbed-meta-object;
+
         # Create block object and install signature. If it doesn't have one, then
         # we can create it based upon the implicit topic it may or may not have.
-        my $block := nqp::create(Block);
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
             nqp::bindattr($block, Code, '$!signature', $signature.meta-object);

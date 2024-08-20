@@ -152,7 +152,15 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :begin($)! ) {
     $block($v.var); # no need to delay execution
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :check($)! ) {
-    $*W.add_phaser($v.slash, 'CHECK', $block);
+    if $*W {
+        $*W.add_phaser($v.slash, 'CHECK', $block);
+    }
+    elsif $*CU {
+        $*CU.add-check-phaser($block);
+    }
+    else {
+        die "Can only add CHECK phaser during compilation";
+    }
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :final($)! ) {
     $v.throw( 'X::Comp::NYI',
@@ -165,8 +173,16 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :init($)! ) {
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :end($)! ) {
-    $*W.add_object($block);
-    $*W.add_phaser($v.slash, 'END', $block);
+    if $*W {
+        $*W.add_object($block);
+        $*W.add_phaser($v.slash, 'END', $block);
+    }
+    elsif $*CU {
+        $*CU.add-end-phaser($block);
+    }
+    else {
+        die "Can only add END phaser during compilation";
+    }
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :enter($)! ) {
     $v.block.add_phaser('ENTER', $v.willdo($block) );

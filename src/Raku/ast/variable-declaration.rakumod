@@ -540,6 +540,7 @@ class RakuAST::VarDeclaration::Simple
     has Bool                 $!is-rw;
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
+    has RakuAST::Code        $!block;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -720,6 +721,9 @@ class RakuAST::VarDeclaration::Simple
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        my $block := $resolver.find-attach-target('block');
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!block', $block);
+
         if self.is-attribute {
             my $method := RakuAST::Method.new(
               :signature(RakuAST::Signature.new(
@@ -886,7 +890,13 @@ class RakuAST::VarDeclaration::Simple
             # For other variables the meta-object is just the container, but we
             # need instances of Variable
             my $meta := self.meta-object;
-            my $target := RakuAST::TraitTarget::Variable.new(self.name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
+            my $target := RakuAST::TraitTarget::Variable.new(
+                self.name,
+                nqp::getattr(self, RakuAST::Declaration, '$!scope'),
+                $meta,
+                $!block.stubbed-meta-object,
+                Mu
+            );
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
             $target.to-begin-time($resolver, $context); # TODO maybe also check?

@@ -18,6 +18,7 @@ class RakuAST::CompUnit
     has int $!is-eval;
     has Mu $!global-package-how;
     has Mu $!init-phasers;
+    has Mu $!check-phasers; # For use by trait_mod:<will>
     has Mu $!end-phasers;
     has RakuAST::VarDeclaration::Implicit::Doc::Pod     $.pod;
     has RakuAST::VarDeclaration::Implicit::Doc::Data    $.data;
@@ -68,6 +69,7 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
           $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!check-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
@@ -279,7 +281,11 @@ class RakuAST::CompUnit
         self.add-phaser($!init-phasers, $phaser);
     }
 
-    method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
+    method add-check-phaser(Code $phaser) {
+        self.add-phaser($!end-phasers, $phaser);
+    }
+
+    method add-end-phaser(Code $phaser) {
         self.add-phaser($!end-phasers, $phaser);
     }
 
@@ -323,6 +329,14 @@ class RakuAST::CompUnit
         self.visit-children(-> $child {
             $child.to-begin-time($resolver, $context);
         });
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        for $!check-phasers {
+            $_();
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -534,13 +548,14 @@ class RakuAST::CompUnit
     method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {
         my $end-setup := QAST::Stmts.new;
         for $!end-phasers {
+            $context.ensure-sc($_);
             $end-setup.push(QAST::Op.new(
                 :op('callmethod'), :name('unshift'),
                 QAST::Op.new(
                     :op('getcurhllsym'),
                     QAST::SVal.new( :value('@END_PHASERS') ),
                 ),
-                QAST::WVal.new( :value($_.meta-object) )
+                QAST::WVal.new( :value($_) )
             ));
         }
         $end-setup

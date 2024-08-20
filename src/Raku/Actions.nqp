@@ -2196,7 +2196,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Need to check pragma setting *and* there is a setting
             if $pragma && $*LANG.pragma($pragma) -> $value {
                 my $definedness := Nodify('Type','Definedness');
+                my $is-base := 0;
+                for $*OFTYPE<longname><colonpair> {
+                    $is-base := 1 if $_.ast.key eq '_';
+                }
                 if !nqp::eqaddr($type.WHAT,$definedness)  # not already :D or :U
+                  && !$is-base                            # not :_
                   && ($value eq 'D' || $value eq 'U') {   # want :D or :U
                     $type := $definedness.new(            # wrap existing or new
                       :base-type($type // Nodify('Type','Simple').new(

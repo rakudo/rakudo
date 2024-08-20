@@ -863,7 +863,7 @@ class RakuAST::VarDeclaration::Simple
                 $method.to-begin-time($resolver, $context);
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(
-                    RakuAST::Trait::Will.new('build', $method).to-begin-time($resolver, $context)
+                    RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
                 );
             }
             else {

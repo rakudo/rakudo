@@ -1057,6 +1057,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term-time { time}
 
     token traitmod-does    { does}
+    token traitmod-will    { will}
     token traitmod-handles { handles}
     token traitmod-hides   { hides}
     token traitmod-is      { is}
@@ -4218,6 +4219,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     rule trait_mod:sym<does> {
         <.traitmod-does> [ <typename> || <.bad-traitmod-typename>]
+    }
+    rule trait_mod:sym<will> {
+        <.traitmod-will> [ <identifier> || <.panic: 'Invalid name'>] <pointy-block>
     }
     rule trait_mod:sym<of> {
         <.traitmod-of> [ <typename> || <.bad-traitmod-typename>]

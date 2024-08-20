@@ -2504,6 +2504,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Trait', 'Does').new($<typename>.ast);
     }
 
+    method trait_mod:sym<will>($/) {
+        self.attach: $/, Nodify('Trait', 'Will').new(:phase(~$<identifier>), :block($<pointy-block>.ast));
+    }
+
     method trait_mod:sym<of>($/) {
         self.attach: $/, Nodify('Trait', 'Of').new($<typename>.ast);
     }

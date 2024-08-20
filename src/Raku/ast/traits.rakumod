@@ -233,28 +233,51 @@ class RakuAST::Trait::Returns
     method IMPL-TRAIT-NAME() { 'returns' }
 }
 
-# The will trait.
-class RakuAST::Trait::Will
+# The will build trait on attributes. For internal usage only.
+class RakuAST::Trait::WillBuild
   is RakuAST::Trait
 {
-    has str $.type;
     has RakuAST::Expression $.expr;
 
-    method new(str $type, RakuAST::Expression $expr) {
+    method new(RakuAST::Expression $expr) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!type', $type);
-        nqp::bindattr($obj, RakuAST::Trait::Will, '$!expr', $expr);
+        nqp::bindattr($obj, RakuAST::Trait::WillBuild, '$!expr', $expr);
         $obj
     }
 
     method IMPL-TRAIT-NAME() { 'will' }
 
     method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
-        RakuAST::ArgList.new($target, RakuAST::ColonPair::Value.new(:key($!type), :value($!expr)))
+        RakuAST::ArgList.new($target, RakuAST::ColonPair::Value.new(:key('build'), :value($!expr)))
     }
 
     method visit-children(Code $visitor) {
         $visitor($!expr);
+    }
+}
+
+# The will trait.
+class RakuAST::Trait::Will
+  is RakuAST::Trait
+{
+    has str $.phase;
+    has RakuAST::Block $.block;
+
+    method new(str :$phase, RakuAST::Block :$block) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!phase', $phase);
+        nqp::bindattr($obj, RakuAST::Trait::Will, '$!block', $block);
+        $obj
+    }
+
+    method IMPL-TRAIT-NAME() { 'will' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        RakuAST::ArgList.new($target, $!block, RakuAST::ColonPair::True.new($!phase))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
     }
 }
 

@@ -76,7 +76,7 @@ class RakuAST::Circumfix::Parentheses
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
-  is RakuAST::CheckTime
+  is RakuAST::ParseTime
   is RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
@@ -103,7 +103,7 @@ class RakuAST::Circumfix::ArrayComposer
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
         if $resolved {
             self.set-resolution($resolved);
@@ -143,7 +143,7 @@ class RakuAST::Circumfix::ArrayComposer
 class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
-  is RakuAST::CheckTime
+  is RakuAST::ParseTime
 {
     has RakuAST::Expression $.expression;
     has int $.object-hash;
@@ -161,7 +161,7 @@ class RakuAST::Circumfix::HashComposer
         Nil
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $!object-hash
                              ?? $resolver.resolve-lexical('&circumfix:<:{ }>')
                              !! $resolver.resolve-lexical('&circumfix:<{ }>');

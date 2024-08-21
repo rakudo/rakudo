@@ -4075,17 +4075,21 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('Regex','Assertion','Alias').new(
                :name(~$longname), :assertion($<assertion>.ast)
              )
-          !! $<arglist>
-            ?? Nodify('Regex','Assertion','Named','Args').new(
-                 :$name, :capturing, :args($<arglist>.ast)
-               )
-            !! $<nibbler>
-              ?? Nodify('Regex','Assertion','Named','RegexArg').new(
-                   :$name, :capturing, :regex-arg($<nibbler>.ast)
+          !! !$name.is-multi-part && $name.canonicalize eq 'sym'
+            ?? Nodify('Regex','Literal').new(
+                %*RX<name>.first-colonpair('sym').simple-compile-time-quote-value
+            )
+            !! $<arglist>
+              ?? Nodify('Regex','Assertion','Named','Args').new(
+                   :$name, :capturing, :args($<arglist>.ast)
                  )
-              !! Nodify('Regex','Assertion','Named').new(
-                   :$name, :capturing
-                 );
+              !! $<nibbler>
+                ?? Nodify('Regex','Assertion','Named','RegexArg').new(
+                     :$name, :capturing, :regex-arg($<nibbler>.ast)
+                   )
+                !! Nodify('Regex','Assertion','Named').new(
+                     :$name, :capturing
+                   );
     }
 
     method assertion:sym<{ }>($/) {

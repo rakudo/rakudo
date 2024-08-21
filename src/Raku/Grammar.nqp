@@ -4118,7 +4118,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                   $*BLOCK.ensure-parse-performed($*R, $*CU.context);
               }
           }
-          { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }
+          { if $<deflongname> { %*RX<name> := $*BLOCK.name } }
           { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
           <trait($*BLOCK)>*

@@ -98,6 +98,13 @@ class RakuAST::Name
         False
     }
 
+    method first-colonpair($key) {
+        for $!colonpairs {
+            return $_ if $_.key eq $key;
+        }
+        Nil
+    }
+
     method without-colonpair($key) {
         my @parts := nqp::clone($!parts);
         my $type := RakuAST::Name.new(|@parts);

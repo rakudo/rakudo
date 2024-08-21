@@ -683,10 +683,6 @@ class RakuAST::StatementPrefix::Phaser::First
         my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
 
         my $attach-block := $resolver.find-attach-target('block');
-        my $trigger-name := QAST::Node.unique('!first_block_triggered');
-        my $trigger-var := RakuAST::VarDeclaration::Implicit::State.new: $trigger-name;
-        my $trigger-lookup := $trigger-var.generate-lookup;
-        $attach-block.add-generated-lexical-declaration($trigger-var);
 
         my $value-name := QAST::Node.unique('!first_block_value');
         my $value-var := RakuAST::VarDeclaration::Implicit::State.new: $value-name;
@@ -699,23 +695,13 @@ class RakuAST::StatementPrefix::Phaser::First
             RakuAST::Block.new:
                 :body(RakuAST::Blockoid.new:
                     RakuAST::StatementList.new:
-                        RakuAST::Statement::Unless.new:
-                            :condition($trigger-lookup),
-                            :body(RakuAST::Block.new:
-                                :body(RakuAST::Blockoid.new:
-                                    RakuAST::StatementList.new:
-                                        RakuAST::Statement::Expression.new(
-                                            :expression(RakuAST::ApplyInfix.new:
-                                                :infix(RakuAST::Assignment.new(:item)),
-                                                :left($value-lookup),
-                                                :right(RakuAST::ApplyPostfix.new:
-                                                    :postfix(RakuAST::Call::Term.new),
-                                                    :operand($blorst)))), # 🛸 ... the actual FIRST code
-                                        RakuAST::Statement::Expression.new(
-                                            :expression(RakuAST::ApplyInfix.new:
-                                                :infix(RakuAST::Assignment.new(:item)),
-                                                :left($trigger-lookup),
-                                                :right($True))))));
+                        RakuAST::Statement::Expression.new(
+                            :expression(RakuAST::ApplyInfix.new:
+                                :infix(RakuAST::Assignment.new(:item)),
+                                :left($value-lookup),
+                                :right(RakuAST::ApplyPostfix.new:
+                                    :postfix(RakuAST::Call::Term.new),
+                                    :operand($blorst))))); # 🛸 ... the actual FIRST code
 
         $blorst.IMPL-BEGIN($resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $blorst);

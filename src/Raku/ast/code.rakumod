@@ -857,10 +857,30 @@ class RakuAST::ScopePhaser {
 
         if $!FIRST || $block && $block.has-phaser('FIRST') {
             my $first-setup := QAST::Stmts.new;
+            my $calls := QAST::Stmts.new(
+                QAST::Op.new(:op<call>, :name<&infix:<=>>,
+                    QAST::Var.new(:scope<lexical>, :name<!phaser_first_triggered>),
+                    QAST::WVal.new(:value(True))
+                )
+            );
+            my $descriptor := ContainerDescriptor.new(:of(Bool), :name('!phaser_first_triggered'), :default(False), :dynamic(0));
+            my $container := nqp::create(Scalar);
+            nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
+            nqp::bindattr($container, Scalar, '$!value', False);
+            $context.ensure-sc($container);
+            $first-setup.push(
+                QAST::Var.new(:scope<lexical>, :name<!phaser_first_triggered>, :decl<statevar>, :value($container))
+            );
+            $first-setup.push(
+                QAST::Op.new(:op<unless>,
+                    QAST::Var.new(:scope<lexical>, :name<!phaser_first_triggered>),
+                    $calls
+                )
+            );
             my %seen;
             if $!FIRST {
                 for $!FIRST {
-                    $first-setup.push($_.IMPL-CALLISH-QAST($context));
+                    $calls.push($_.IMPL-CALLISH-QAST($context));
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
@@ -869,7 +889,7 @@ class RakuAST::ScopePhaser {
                 for $first-phasers.FLATTENABLE_LIST {
                     unless %seen{nqp::objectid($_)} {
                         $context.ensure-sc($_);
-                        $first-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                        $calls.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
                     }
                 }
             }

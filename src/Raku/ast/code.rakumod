@@ -771,7 +771,10 @@ class RakuAST::ScopePhaser {
     }
 
     method needs-result() {
-        nqp::istype(self, RakuAST::Meta) && self.meta-object.has-phaser('UNDO')
+        nqp::istype(self, RakuAST::Meta) && (
+            self.meta-object.has-phaser('UNDO')
+            || self.meta-object.has-phaser('KEEP')
+        )
     }
 
     method set-has-let() {
@@ -825,11 +828,11 @@ class RakuAST::ScopePhaser {
     }
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
-        if $!has-exit-handler || self.needs-result {
+        my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
+
+        if $!has-exit-handler || self.needs-result || $block && ($block.has-phaser('LEAVE') || $block.has-phaser('POST')) {
             $qast.has_exit_handler(1);
         }
-
-        my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
 
         if $!PRE || $block && $block.has-phaser('PRE') {
             my $pre-setup := QAST::Stmts.new;

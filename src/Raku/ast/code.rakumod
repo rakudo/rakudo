@@ -829,10 +829,25 @@ class RakuAST::ScopePhaser {
             $qast.has_exit_handler(1);
         }
 
-        if $!PRE {
+        my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
+
+        if $!PRE || $block && $block.has-phaser('PRE') {
             my $pre-setup := QAST::Stmts.new;
-            for $!PRE {
-                $pre-setup.push($_.IMPL-CALLISH-QAST($context));
+            my %seen;
+            if $!PRE {
+                for $!PRE {
+                    $pre-setup.push($_.IMPL-CALLISH-QAST($context));
+                    %seen{nqp::objectid($_.meta-object)} := 1;
+                }
+            }
+            my $pre-phasers := $block.phasers('PRE');
+            if nqp::isconcrete($pre-phasers) {
+                for $pre-phasers.FLATTENABLE_LIST {
+                    unless %seen{nqp::objectid($_)} {
+                        $context.ensure-sc($_);
+                        $pre-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                    }
+                }
             }
 
             $qast[0].push(QAST::Op.new( :op('p6setpre') ));
@@ -840,18 +855,28 @@ class RakuAST::ScopePhaser {
             $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
         }
 
-        if $!FIRST {
+        if $!FIRST || $block && $block.has-phaser('FIRST') {
             my $first-setup := QAST::Stmts.new;
-            for $!FIRST {
-                $first-setup.push($_.IMPL-CALLISH-QAST($context));
+            my %seen;
+            if $!FIRST {
+                for $!FIRST {
+                    $first-setup.push($_.IMPL-CALLISH-QAST($context));
+                    %seen{nqp::objectid($_.meta-object)} := 1;
+                }
+            }
+            my $first-phasers := $block.phasers('FIRST');
+            if nqp::isconcrete($first-phasers) {
+                for $first-phasers.FLATTENABLE_LIST {
+                    unless %seen{nqp::objectid($_)} {
+                        $context.ensure-sc($_);
+                        $first-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                    }
+                }
             }
             $qast[0].push: $first-setup;
         }
 
-        my $phasers := nqp::istype(self, RakuAST::Code)
-            ?? nqp::getattr(self.meta-object, Block, '$!phasers')
-            !! NQPMu;
-        if $!ENTER || nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
+        if $!ENTER || $block && $block.has-phaser('ENTER') {
             my $enter-setup := QAST::Stmts.new;
             my %seen;
             if $!ENTER {
@@ -867,9 +892,9 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
-            my $enter-phasers := nqp::atkey($phasers, 'ENTER');
+            my $enter-phasers := $block.phasers('ENTER');
             if nqp::isconcrete($enter-phasers) {
-                for $enter-phasers {
+                for $enter-phasers.FLATTENABLE_LIST {
                     unless %seen{nqp::objectid($_)} {
                         $context.ensure-sc($_);
                         $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
@@ -886,7 +911,14 @@ class RakuAST::ScopePhaser {
             self.IMPL-ADD-PHASER-QAST($context, $!temp, '!TEMP-RESTORE', $qast);
         }
 
-        if $!LAST || $!NEXT || $!QUIT || $!CLOSE {
+        if $!LAST || $!NEXT || $!QUIT || $!CLOSE
+            || $block && (
+                   $block.has-phaser('LAST')
+                || $block.has-phaser('NEXT')
+                || $block.has-phaser('QUIT')
+                || $block.has-phaser('CLOSE')
+            )
+        {
             $qast[0].push(
               QAST::Op.new(
                 :op('callmethod'),
@@ -899,7 +931,14 @@ class RakuAST::ScopePhaser {
             );
         }
 
-        if $!LEAVE || $!KEEP || $!UNDO || $!POST {
+        if $!LEAVE || $!KEEP || $!UNDO || $!POST
+            || $block && (
+                   $block.has-phaser('LEAVE')
+                || $block.has-phaser('KEEP')
+                || $block.has-phaser('UNDO')
+                || $block.has-phaser('POST')
+            )
+        {
             $qast.annotate('WANTMEPLEASE',1);
         }
     }

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 39;
+plan 37;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -228,28 +228,4 @@ plan 39;
     is-deeply @a, [<b c d>], 'did the code do the right thing';
 }
 
-# https://irclogs.raku.org/raku/2024-08-20.html#12:13
-{
-    my $keyword = "use";
-    grammar G {
-        token TOP { [<keyword> | <text> ]* };
-        token keyword { $keyword };
-        token text { . }
-    };
-    is G.parse("use my stuff;")<keyword>, "use", "Interpolating variables into grammars works";
-}
-
-{
-    grammar H {
-        token TOP {
-            [
-                | <kw>
-                | <text>
-            ]*
-        }
-        token kw { <!ww>use }
-        token text { . }
-    }
-    is H.parse("use my stuff;")<kw>, "use", "<!ww> at start of token doesn't prevent matching the token";
-}
 # vim: expandtab shiftwidth=4

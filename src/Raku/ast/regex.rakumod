@@ -1134,7 +1134,10 @@ class RakuAST::Regex::Assertion::Named
             else {
                 my $lookups := self.get-implicit-lookups;
                 my $qast;
-                if $lookups.elems && $lookups.AT-POS(0).is-resolved {
+                if $lookups.elems && (my $lookup := $lookups.AT-POS(0)).is-resolved
+                    && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
+                    && nqp::istype($resolution.compile-time-value, Regex)
+                {
                     $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
                         QAST::NodeList.new:
                             QAST::SVal.new( :value('CALL_SUBRULE') ),

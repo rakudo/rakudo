@@ -1573,7 +1573,7 @@ class RakuAST::Routine
             );
         }
 
-        if nqp::istype(self.body, RakuAST::OnlyStar) {
+        if nqp::istype(self.body, RakuAST::OnlyStar) && !nqp::istype(self, RakuAST::RegexDeclaration) {
             $routine.set_onlystar;
         }
 

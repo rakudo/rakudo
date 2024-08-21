@@ -771,7 +771,7 @@ class RakuAST::ScopePhaser {
     }
 
     method needs-result() {
-        self.meta-object.has-phaser('UNDO')
+        nqp::istype(self, RakuAST::Meta) && self.meta-object.has-phaser('UNDO')
     }
 
     method set-has-let() {
@@ -825,7 +825,7 @@ class RakuAST::ScopePhaser {
     }
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
-        if $!has-exit-handler {
+        if $!has-exit-handler || self.needs-result {
             $qast.has_exit_handler(1);
         }
 
@@ -1022,14 +1022,6 @@ class RakuAST::ScopePhaser {
 
         # Add as phaser.
         $block[0].push($phaser-block);
-    }
-
-    method clear-phaser-attachments() {
-        my @attrs := ['$!LEAVE', '$!FIRST', '$!NEXT', '$!LAST'];
-        for @attrs {
-            my $attr := nqp::getattr(self, RakuAST::ScopePhaser, $_);
-            nqp::setelems($attr, 0) if $attr;
-        }
     }
 
     method has-phaser(str $phaser-name) {

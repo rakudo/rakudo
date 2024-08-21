@@ -896,7 +896,7 @@ class RakuAST::Statement::Unless
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -950,7 +950,7 @@ class RakuAST::Statement::Without
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -1063,7 +1063,7 @@ class RakuAST::Statement::Loop
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False) if $!condition;
-        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
         $!increment.apply-sink(True) if $!increment;
     }
@@ -1161,7 +1161,7 @@ class RakuAST::Statement::For
 
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
-        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
     }
 
     method apply-implicit-block-semantics() {
@@ -1238,7 +1238,7 @@ class RakuAST::Statement::Given
 
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method apply-implicit-block-semantics() {
@@ -1286,7 +1286,7 @@ class RakuAST::Statement::When
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink(False); # Used as enclosing block outcome
+        $!body.apply-sink(False); # Used as enclosing block outcome
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1350,7 +1350,7 @@ class RakuAST::Statement::Whenever
 
     method propagate-sink(Bool $is-sunk) {
         $!trigger.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method apply-implicit-block-semantics() {
@@ -1394,7 +1394,7 @@ class RakuAST::Statement::Default
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.body.apply-sink(False); # Used as enclosing block outcome
+        $!body.apply-sink(False); # Used as enclosing block outcome
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1442,7 +1442,7 @@ class RakuAST::Statement::ExceptionHandler
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.body.apply-sink(True);
+        $!body.apply-sink(True);
     }
 
     method visit-children(Code $visitor) {

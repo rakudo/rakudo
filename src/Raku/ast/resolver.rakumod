@@ -202,8 +202,7 @@ class RakuAST::Resolver {
     }
 
     # Resolve a constant in the currently known packages, or GLOBAL
-    method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil) {
-
+    method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil, Bool :$partial) {
         # Try looking in the packages
         my str $name := $Rname.canonicalize;
 # This breaks "our &foo" lookup.  But if the sigil isn't needed, why is
@@ -212,14 +211,45 @@ class RakuAST::Resolver {
 
         for $!packages {
             my $stash := self.IMPL-STASH-HASH($_.compile-time-value);
-            return self.external-constant($stash, $name)
-              if nqp::existskey($stash,$name);
+            return $partial
+                ?? ($stash{$name}, List.new, 'global')
+                !! self.external-constant($stash, $name)
+                if nqp::existskey($stash,$name);
         }
 
-        my $stash := self.IMPL-STASH-HASH($!global);
-        nqp::existskey($stash,$name)
-          ?? self.external-constant($stash, $name)
-          !! Nil
+        my $symbol := $!global;
+        my @parts := nqp::clone($Rname.IMPL-UNWRAP-LIST($Rname.parts));
+        while @parts {
+            my $part := @parts.shift;
+            $name    := nqp::istype($part,RakuAST::Name::Part::Simple)
+              ?? $part.name
+              !! '';
+
+            # Add any sigil for last iteration
+            $name := $sigil ~ $name unless @parts;
+
+            # Lookup in the current symbol's stash
+            my $next := nqp::atkey(self.IMPL-STASH-HASH($symbol), $name);
+            if nqp::isnull($next) {
+                if $partial && ! $symbol =:= $!global {
+                    # put the symbol we failed to resolve back into the list
+                    nqp::unshift(@parts, $part);
+                    return ($symbol, $Rname.IMPL-WRAP-LIST(@parts), 'global');
+                }
+                else {
+                    return Nil
+                }
+            }
+            $symbol := $next;
+        }
+
+        $symbol =:= $!global
+            ?? Nil
+            !! $partial
+                ?? ($symbol, List.new, 'global')
+                !! RakuAST::Declaration::External::Constant.new(
+                    lexical-name => $name, compile-time-value => $symbol
+                )
     }
 
     method IMPL-RESOLVE-NAME-CONSTANT(
@@ -286,7 +316,7 @@ class RakuAST::Resolver {
                     if $partial {
                         # put the symbol we failed to resolve back into the list
                         nqp::unshift(@parts, $part);
-                        return ($symbol, $constant.IMPL-WRAP-LIST(@parts));
+                        return ($symbol, $constant.IMPL-WRAP-LIST(@parts), 'lexical');
                     }
                     else {
                         return Nil
@@ -301,12 +331,13 @@ class RakuAST::Resolver {
             );
         }
 
-        $partial ?? ($symbol, List.new) !! $resolved
+        $partial ?? ($symbol, List.new, 'lexical') !! $resolved
     }
 
     # Resolve a RakuAST::Name to a constant.
     method partially-resolve-name-constant(RakuAST::Name $Rname, str :$sigil) {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :partial)
+            // self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil, :partial)
     }
 
     method IMPL-STASH-HASH(Mu $pkg) {

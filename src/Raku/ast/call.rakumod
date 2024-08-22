@@ -248,7 +248,9 @@ class RakuAST::Call::Name
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!package', $resolver.current-package);
-        my $resolved := $resolver.resolve-name($!name, :sigil('&'));
+        my $resolved := $!name.is-identifier
+            ?? $resolver.resolve-lexical('&' ~ $!name.canonicalize)
+            !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
         }

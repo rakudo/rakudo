@@ -1159,7 +1159,7 @@ augment class RakuAST::Node {
 #- Trait -----------------------------------------------------------------------
 
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
-        self!nameds: <name argument>
+        self!nameds: <name argument type>
     }
 
     # Generic handler for the RakuAST::Trait::Type classes

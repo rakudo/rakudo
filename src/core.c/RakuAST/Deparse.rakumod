@@ -2544,10 +2544,15 @@ CODE
 #- Trait -----------------------------------------------------------------------
 
     multi method deparse(RakuAST::Trait::Is:D $ast --> Str:D) {
-        my str $name = self.deparse($ast.name);
-        my str $base = self.syn-trait($ast.IMPL-TRAIT-NAME)
-          ~ ' '
-          ~ self.hsyn("trait-is-$name", self.xsyn('trait-is', $name));
+        my str $base = self.syn-trait("is") ~ ' ';
+
+        with $ast.name -> $name {
+            $base ~= self.deparse($name);
+        }
+        orwith $ast.type -> $type {
+            $base ~= self.deparse($type)
+        }
+
         with $ast.argument {
             $base ~ self.deparse($_)
         }

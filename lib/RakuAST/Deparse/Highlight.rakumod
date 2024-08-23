@@ -362,13 +362,48 @@ subset vars          of Str:D where *.starts-with("var-");
 #- highlight - basic role interface --------------------------------------------
 
 my proto sub highlight(|) is export {*}
-my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
+my multi sub highlight(
+  Str:D  $source is copy,
+        *@roles is copy,
+        :$unsafe
+--> Str:D) {
     my $actions := nqp::create($unsafe ?? Actions !! SafeActions);
 
-    my $ast := do {
+    # Helper sub to perform an actual compilation
+    my sub compile() {
         CATCH { return .Failure }
+        quietly $source.AST(:$actions)
+    }
 
-        quietly $source.AST(:$actions);
+    my int $skip = 1;
+    $source = "no strict; $source";
+
+    my $ast := compile;
+    while nqp::istype($ast,Failure) {
+        my $exception := $ast.exception;
+        if nqp::istype($exception,X::Inheritance::UnknownParent) {
+            $source = "my class $exception.parent() \{ }\n" ~ $source;
+            ++$skip;
+            $ast := compile;
+        }
+        elsif nqp::istype($exception,X::Undeclared::Symbols) {
+            if $exception.unk_types.keys -> @classes {
+                $source = @classes.map({ "my class $_ \{ }\n" }).join ~ $source;
+                $skip += @classes;
+                $ast := compile;
+            }
+            elsif $exception.unk_routines.keys -> @subs {
+                $source = @subs.map({ "my sub $_\(|) \{ }\n" }).join ~ $source;
+                $skip += @subs;
+                $ast := compile;
+            }
+            else {
+                return $ast;
+            }
+        }
+        else {
+            return $ast;
+        }
     }
 
     # Post process empty lines
@@ -406,6 +441,9 @@ my multi sub highlight(Str:D $source, *@roles is copy, :$unsafe --> Str:D) {
           ~ $deparser.hsyn('rakudoc-content', $after)
           ~ "\n";
     }
+
+    # Remove the things that were added and don't want to see
+    $ast := RakuAST::StatementList.new(|$ast.statements.skip($skip));
 
     # Do the actual deparse
     if $ast.DEPARSE($deparser) -> $deparsed {

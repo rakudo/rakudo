@@ -367,16 +367,18 @@ my multi sub highlight(
         *@roles is copy,
         :$unsafe
 --> Str:D) {
-    my $actions := nqp::create($unsafe ?? Actions !! SafeActions);
+    my $class := $unsafe ?? Actions !! SafeActions;
+    my $actions;
 
     # Helper sub to perform an actual compilation
     my sub compile() {
         CATCH { return .Failure }
+        $actions := nqp::create($class);
         quietly $source.AST(:$actions)
     }
 
     my int $skip = 1;
-    $source = "no strict; $source";
+    $source = "no strict;\n$source\n;";
 
     my $ast := compile;
     while nqp::istype($ast,Failure) {
@@ -442,12 +444,9 @@ my multi sub highlight(
           ~ "\n";
     }
 
-    # Remove the things that were added and don't want to see
-    $ast := RakuAST::StatementList.new(|$ast.statements.skip($skip));
-
     # Do the actual deparse
     if $ast.DEPARSE($deparser) -> $deparsed {
-        $deparsed ~ $finish
+        ($deparsed ~ $finish).lines(:!chomp).skip($skip).head(*-1).join.chomp
     }
 
     # Nothing deparsed, but we have a =finish

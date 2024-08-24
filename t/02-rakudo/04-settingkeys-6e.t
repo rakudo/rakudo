@@ -12,6 +12,7 @@ my %allowed = (
     Q{$?BITS},
     Q{$?NL},
     Q{$?TABSTOP},
+    Q{$?LANGUAGE-REVISION},
     Q{$_},
     Q{&CLONE-HASH-DECONTAINERIZED},
     Q{&CLONE-LIST-DECONTAINERIZED},

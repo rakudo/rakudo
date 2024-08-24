@@ -3526,6 +3526,10 @@ BEGIN {
         nqp::bindkey(%info, 'item_disambiguation', 1)
             if $item_disambiguation;
 
+       if $self.revision-gated {
+           nqp::bindkey(%info, 'required_revision', $self.REQUIRED-REVISION);
+       }
+
         if nqp::elems(@coerce_type_idxs) {
             nqp::bindkey(%info, 'coerce_type_idxs', @coerce_type_idxs);
             nqp::bindkey(%info, 'coerce_type_objs', @coerce_type_objs);
@@ -3855,12 +3859,21 @@ BEGIN {
         my $PositionalBindFailover := nqp::null;
         my $Associative            := nqp::null;
 
+        my $caller-revision := nqp::getlexcaller('$?LANGUAGE-REVISION');
+
         my int $done;
         until $done {
             my $candidate := nqp::atpos(@candidates, $cur_idx);
 
             if nqp::isconcrete($candidate) {
 
+                if nqp::isconcrete(my $required-revision := nqp::atkey($candidate, 'required_revision'))
+                && $caller-revision < $required-revision {
+                    $cur_idx++;
+                    next;
+                }
+
+                # Mark this group for disambigation via is item traits on params
                 if ! $candidate-with-itemized-params
                 && nqp::atkey($candidate, 'item_disambiguation') {
                     $candidate-with-itemized-params := 1;
@@ -4747,6 +4760,16 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'onlystar',
       nqp::getstaticcode(sub ($self) {
         $self.get_flag(0x04)
+    }));
+
+    Routine.HOW.add_method(Routine, 'set-revision-gated',
+      nqp::getstaticcode(sub ($self) {
+        $self.set_flag(0x08);
+    }));
+
+    Routine.HOW.add_method(Routine, 'revision-gated',
+      nqp::getstaticcode(sub ($self) {
+        $self.get_flag(0x08);
     }));
 
     Routine.HOW.compose_repr(Routine);

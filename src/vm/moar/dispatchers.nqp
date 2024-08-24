@@ -2835,6 +2835,23 @@ sub multi-ambiguous-handler($ambig-call, $target, $capture) {
     );
 }
 
+# Helper sub to filter out revision-gated multi-candidates
+sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
+    my @candidates := $proto.dispatch_order;
+
+    my int $idx := 0;
+    my @allowed-candidates;
+    while $idx < nqp::elems(@candidates) {
+        my $candidate := nqp::atpos(@candidates, $idx++);
+        my $required-revision := nqp::atkey($candidate, 'required_revision');
+        if (! nqp::isconcrete($required-revision)) || $required-revision <= $caller-revision  {
+            nqp::push(@allowed-candidates, $candidate);
+        }
+    }
+
+    @allowed-candidates
+}
+
 # The actual dispatcher
 nqp::register('raku-multi-core',
 
@@ -2843,7 +2860,12 @@ nqp::register('raku-multi-core',
 
         # Obtain the candidate list, producing it if it doesn't already exist
         my $target := nqp::captureposarg($capture, 0);
-        my @candidates := $target.dispatch_order;
+
+        my @candidates := nqp::bitand_i(nqp::getattr_i($target, Routine, '$!flags'), 0x08)
+                                ?? (my $caller-revision := nqp::getlexcaller('$?LANGUAGE-REVISION')) && $target.REQUIRED-REVISION <= $caller-revision
+                                    ?? multi-filter-revision-gated-candidates($target, $caller-revision)
+                                    !! []
+                                !! $target.dispatch_order;
 
         # Drop the first argument, to get just the arguments to dispatch on,
         # and then produce a multi-dispatch plan. Decide what to do based
@@ -3405,6 +3427,17 @@ nqp::register('raku-invoke', -> $capture {
         # Concrete code object: extract the $!do, replace the code object,
         # and delegate to boot-code.
         if nqp::isconcrete($code) {
+
+            # Check for a required revision
+            if nqp::istype($code, Routine) && nqp::bitand_i(nqp::getattr_i($code, Routine, '$!flags'), 0x08)
+            && nqp::getlexcaller('$?LANGUAGE-REVISION') < $code.REQUIRED-REVISION {
+                my str $name := "<METHOD>";
+                if nqp::can($code, 'name') {
+                    $name := $code.name;
+                }
+                nqp::die("Cannot dispatch to method '" ~ $name ~ "' because it requires a higher language revision than available in the caller's compunit");
+            }
+
             my $do := nqp::getattr($code, Code, '$!do');
             if $code-constant && !nqp::syscall('code-is-stub', $do) {
                 my $args := pass-decontainerized($code,

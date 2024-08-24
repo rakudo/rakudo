@@ -10,6 +10,7 @@ my %allowed = (
   Q{$/},
   Q{$=pod},
   Q{$_},
+  Q{$?LANGUAGE-REVISION},
   Q{$¢},
   Q{&FATALIZE},
   Q{&REACT},

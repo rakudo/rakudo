@@ -76,6 +76,11 @@ BEGIN {
       Mu.^find_method("DUMP-PIECES"),
       Mu.^find_method("WALK")
     ;
+
+    trait_mod:<is>($_, :revision-gated("6.c")) for
+      Array.^find_method('splice'),
+      Any.^find_method('splice')
+    ;
 }
 
 {

@@ -15,6 +15,7 @@ my @allowed =
       Q{$?BITS},
       Q{$?NL},
       Q{$?TABSTOP},
+      Q{$?LANGUAGE-REVISION},
       Q{$_},
       Q{&CLONE-HASH-DECONTAINERIZED},
       Q{&CLONE-LIST-DECONTAINERIZED},
@@ -790,6 +791,7 @@ my @allowed =
     d => (
         Q{$!},
         Q{$/},
+        Q{$?LANGUAGE-REVISION},
         Q{$=pod},
         Q{$_},
         Q{$¢},
@@ -806,6 +808,7 @@ my @allowed =
     e => (
         Q{$!},
         Q{$/},
+        Q{$?LANGUAGE-REVISION},
         Q{$=pod},
         Q{$_},
         Q{$¢},

@@ -810,6 +810,9 @@ class Perl6::World is HLL::World {
             $*UNIT, '$=pod', $*POD_PAST.compile_time_value
         );
 
+        # Install $?LANGUAGE-REVISION to whatever the current compiler version is
+        self.install_lexical_symbol($*UNIT, '$?LANGUAGE-REVISION', nqp::getcomp('Raku').language_revision);
+
         # Tag UNIT with a magical lexical unless it is CORE.
         self.add_unit_marker($/, '!UNIT_MARKER') unless $*COMPILING_CORE_SETTING;
         self.add_unit_marker($/, '!EVAL_MARKER') if $*INSIDE-EVAL;

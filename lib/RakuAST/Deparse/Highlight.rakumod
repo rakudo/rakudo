@@ -364,11 +364,60 @@ subset vars          of Str:D where *.starts-with("var-");
 my proto sub highlight(|) is export {*}
 my multi sub highlight(
   Str:D  $source is copy,
-        *@roles is copy,
+        *@roles  is copy,
+        :%allow,
         :$unsafe
 --> Str:D) {
     my $class := $unsafe ?? Actions !! SafeActions;
     my $actions;
+
+    # Remove any allowed RakuDoc markup
+    my @substs;
+    if %allow {
+        my %seen;
+
+        $source = RakuAST::Doc::Paragraph.from-string($source).atoms.map({
+
+            # Nothing to do
+            if nqp::istype($_,Str) {
+                $_
+            }
+
+            # Need to handle this markup
+            elsif %allow{.letter} {
+                my $atoms := .atoms.join;
+
+                # Not yet seen, so find the locations
+                unless %seen{$atoms} {
+                    %seen{$atoms} := 1;
+
+                    my @indices := $source.indices($atoms);
+                    my $replacements;
+
+                    # More than one occurrence, find out which ones we need
+                    # to actually substitute later
+                    if @indices > 1 {
+                        my $prefix := .letter ~ '<';
+                        for ^@indices {
+                            $replacements.push($_ + 1)
+                              if $source.substr-eq($prefix, @indices[$_] - 2);
+                        }
+                        $replacements := $replacements.List;
+                    }
+
+                    # Save AST for later substitution work
+                    @substs.push: Pair.new: $_, $replacements;
+                }
+
+                $atoms
+            }
+
+            # Markup that should not be handled
+            else {
+                .Str
+            }
+        }).join;
+    }
 
     # Helper sub to perform an actual compilation
     my sub compile() {
@@ -445,7 +494,7 @@ my multi sub highlight(
     }
 
     # Do the actual deparse
-    if $ast.DEPARSE($deparser) -> $deparsed {
+    my $highlighted = do if $ast.DEPARSE($deparser) -> $deparsed {
         ($deparsed ~ $finish).lines(:!chomp).skip($skip).head(*-1).join.chomp
     }
 
@@ -458,6 +507,27 @@ my multi sub highlight(
     else {
         $deparser.hsyn('comment', $source) ~ "\n"
     }
+
+    # Put back any substitutions caused by allowable markup
+    for @substs -> (:key($ast), :value($occurrences)) {
+        my $before := $ast.atoms;
+        my $after  := %allow{$ast.letter}($ast);
+
+        # Multiple occurrences found, only subst the correct ones,
+        # last ones first to prevent confusion
+        if $occurrences {
+            for $occurrences.reverse {
+                $highlighted .= subst: $before, $after, :th($_);
+            }
+        }
+
+        # Only one occurrence, go for it!
+        else {
+            $highlighted .= subst: $before, $after
+        }
+    }
+
+    $highlighted
 }
 
 #- highlight - color based interface -------------------------------------------
@@ -517,7 +587,7 @@ my multi sub highlight(Str:D $source, :$unsafe, :$default, *%_) {
     highlight($source, mapper(%_), :$unsafe, :$default)
 }
 
-my multi sub highlight(Str:D $source, %mapper, :$unsafe, :$default) {
+my multi sub highlight(Str:D $source, %mapper, :$default, *%_) {
 
     my role ColorMapper {
         method hsyn(Str:D $key is copy, Str:D $content) {
@@ -532,7 +602,7 @@ my multi sub highlight(Str:D $source, %mapper, :$unsafe, :$default) {
         }
     }
 
-    highlight($source, ColorMapper, :$unsafe)
+    highlight($source, ColorMapper, |%_)
 }
 
 #- mapper ----------------------------------------------------------------------
@@ -785,6 +855,35 @@ name) and the source to be highlighted.
 
 If there is no handler found and there is no default handler, then the
 original text will be produced unchanged.
+
+=head3 allowing markup
+
+The C<highlight> subroutine also accepts a C<:allow> named argument.  It
+should contain a hash with the allowable markup letters as the key, and a
+C<Callable> as the value.  This C<Callable> should accept the
+C<RakuAST::Doc::Markup> object as its only positional argument, and
+should return the string that should be substituted.
+
+=begin code :lang<raku>
+
+my $source = Q:to/CODE/
+my B<$a> = L<42|https://the-answer.com>;
+CODE
+
+my %allow =
+  L => { qq|<a href="$_.meta()">$_.atoms()\</a>| },
+  B => { '<bold>' ~ .atoms ~ '</bold>' }
+;
+
+say highlight($source, 'HTML', :%allow);
+# <span style="color:magenta;">my</span>
+# <span style="color:cyan;"><bold>$a</bold></span>
+# <span style="color:yellow;">=</span>
+# <span style="color:red;"><a href="https://the-answer.com">42</a></span>;
+
+=end code
+
+=head3 mapping
 
 The mapping of C<hsyn> keys to color names is (by default) loosely based on
 the syntax highlighting provided by C<vim>.  The following color names are

@@ -2565,6 +2565,10 @@ CODE
         self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
     }
 
+    multi method deparse(RakuAST::Trait::WillBuild:D $ast --> Str:D) {
+        "" # XXX for now
+    }
+
 #- Type ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Type::Capture:D $ast --> Str:D) {

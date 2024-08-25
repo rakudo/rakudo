@@ -1171,6 +1171,10 @@ augment class RakuAST::Node {
         self!nameds: <type expr>
     }
 
+    multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {
+        self!positional(self.expr)
+    }
+
 #- Type ------------------------------------------------------------------------
 
     multi method raku(RakuAST::Type::Capture:D: --> Str:D) {

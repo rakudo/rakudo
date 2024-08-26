@@ -928,7 +928,7 @@ my constant %mapper = mapper(
   comments     => "green",
   phaser-BEGIN => "blue",
 );
-say highlight "say 'hello world'", %mapper);
+say highlight( "say 'hello world'", %mapper);
 
 =end code
 

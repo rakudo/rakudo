@@ -2802,9 +2802,7 @@ CODE
         );
 
         if $ast.traits.grep({
-            nqp::not_i(
-              nqp::istype($_,RakuAST::Trait::Will) && .type eq 'build'
-            )
+            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
         }) -> @traits {
             for @traits {
                 @parts.push(' ');

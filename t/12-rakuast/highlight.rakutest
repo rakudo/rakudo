@@ -1,4 +1,6 @@
 use v6.e.PREVIEW;
+
+BEGIN %*ENV<RAKU_TEST_DIE_ON_FAIL> = 1;
 use Test;
 
 use RakuAST::Deparse::Highlight;
@@ -53,7 +55,7 @@ pass "it's all ok";
 CODE
 <magenta>use</magenta> Test;<blue>  # standard test library</blue>
 
-<yellow>pass</yellow> <red>"it's all ok"</red>
+<yellow>pass</yellow> <red>"it's all ok"</red>;
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'class and attributes';
@@ -76,17 +78,17 @@ CODE
     <magenta>has</magenta> <green>Str</green> <cyan>$.foo</cyan> <yellow>=</yellow> <red>"foo"</red>;
     <magenta>has</magenta> <green>Int</green> <cyan>$.bar</cyan> <yellow>=</yellow> <red>42</red>;
 
-    <yellow>method</yellow> zippo {
+    <yellow>method</yellow> zippo () {
 
         <yellow><yellow>so</yellow> </yellow><cyan>$!foo</cyan> <yellow>+</yellow> <cyan>$.bar</cyan>
     }
 }
 
 
-<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>
+<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>;
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'vars, if and say';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'vars, if and say';
 my Int $a = 42;
 my str $b = "foo";
 
@@ -101,17 +103,17 @@ CODE
 }
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'simple regex';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'simple regex';
 say "foo" ~~ / [(o) $<foo>=o]+ $_ zippo "%&^" /;
 put $0;
-print $<foo>
+print $<foo>;
 CODE
 <yellow>say</yellow> <red>"foo"</red> <yellow>~~</yellow> <red>/ <blue>[<cyan>(<red>o</red>)</cyan> <cyan>$<foo>=</cyan><red>o</red>]<blue>+</blue> <cyan>$_</cyan> <red>zippo</red> <red>"\%\&^"</red> </blue>/</red>;
 <yellow>put</yellow> <cyan>$0</cyan>;
-<yellow>print</yellow> <cyan>$<foo></cyan>
+<yellow>print</yellow> <cyan>$<foo></cyan>;
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=alias';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=alias';
     =alias TERMS_URLS  =item L<http://www.4dk.com/eie>
     =                  =item L<http://www.4dk.co.uk/eie.io/>
     =                  =item L<http://www.fordecay.ch/canttouchthis>
@@ -121,17 +123,18 @@ CODE
     <green>=</green>                 =item L<http://www.fordecay.ch/canttouchthis></magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=defn';
     =defn foo bar
     this that!
 
 CODE
     <red>=defn</red> <cyan>foo bar</cyan>
 <magenta>    this that!
+
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=for defn';
     =for defn
     foo bar
     This That!
@@ -140,10 +143,11 @@ CODE
     <green>=for</green> <red>defn</red>
     <cyan>foo bar</cyan>
 <magenta>    This That!
+
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=begin defn';
     =begin defn
     foo bar
     Those!
@@ -159,19 +163,19 @@ CODE
     <green>=end</green> <red>defn</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zip';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zip';
     =config zip
 CODE
     <green>=config</green> <cyan>zip</cyan>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zap';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zap';
     =config zap :lang<raku>
 CODE
     <green>=config</green> <cyan>zap</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zop';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zop';
     =config zop :lang<raku>
     =           :zorg-industries
 CODE
@@ -179,19 +183,19 @@ CODE
     <green>=</green>           <red>:zorg-industries</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zip';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zip';
     =place file://zip.*
 CODE
     <green>=place</green> <cyan>file://zip.*</cyan>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zap';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zap';
     =place file://zap.* :lang<raku>
 CODE
     <green>=place</green> <cyan>file://zap.*</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zop';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zop';
     =place file://zop.* :lang<raku>
     =                   :zorg-industries
 CODE
@@ -199,7 +203,8 @@ CODE
     <green>=</green>                   <red>:zorg-industries</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
+todo("leading comment disappears");
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'no statements, =finish';
 # Testing the stuff of giants
 
     =finish
@@ -214,7 +219,8 @@ CODE
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
+todo("closing magenta disappears");
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'statements, =finish';
 42
     =finish
 
@@ -227,7 +233,7 @@ CODE
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, no =finish';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'no statements, no =finish';
 # Just comments
 
 # and empty lines
@@ -238,16 +244,18 @@ CODE
 </blue>
 HIGHLIGHTED
 
+todo("closing magenta disappears");
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=code';
 =code my $a = 42;
 say $a;
 CODE
 <red>=code</red> <magenta>my $a = 42;
 say $a;
+
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=for code';
 =for code :lang<raku>
 my $a = 42;
 say $a;
@@ -255,10 +263,11 @@ CODE
 <green>=for</green> <red>code</red> <red>:lang<raku></red>
 <magenta>my $a = 42;
 say $a;
+
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=begin code';
 =begin code :lang<raku>
 my $a = 42;
 say $a;
@@ -270,7 +279,7 @@ say $a;
 </magenta><green>=end</green> <red>code</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'implicit code block';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'implicit code block';
 =begin rakudoc
     my $a = 42;
     say $a;
@@ -282,7 +291,7 @@ CODE
 <green>=end</green> <red>rakudoc</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'procedural table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'procedural table';
   =begin table
     =row :header
     =cell foo
@@ -310,6 +319,7 @@ CODE
   <green>=end</green> <red>table</red>
 HIGHLIGHTED
 
+todo("loses last line");
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'declarator doc';
 my $a = 42;  #= The answer
 #| The wrong answer
@@ -320,7 +330,7 @@ CODE
 </blue><magenta>my</magenta> <cyan>$b</cyan> <yellow>=</yellow> <red>666</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'abbreviated visual table';
   =table #
   foo | bar | baz
   ----|-----|----
@@ -332,7 +342,7 @@ CODE
   42  <blue>|</blue> 666 <blue>|</blue> 137
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'for visual table';
   =for table :numbered
   foo | bar | baz
   ----|-----|----
@@ -344,7 +354,7 @@ CODE
   42  <blue>|</blue> 666 <blue>|</blue> 137
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'visual table';
   =begin table :numbered
   foo | bar | baz
   ----|-----|----

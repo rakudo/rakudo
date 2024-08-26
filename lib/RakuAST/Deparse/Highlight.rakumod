@@ -376,47 +376,53 @@ my multi sub highlight(
     if %allow {
         my %seen;
 
-        $source = RakuAST::Doc::Paragraph.from-string($source).atoms.map({
+        my $paragraph := RakuAST::Doc::Paragraph.from-string($source);
+        $source = nqp::istype($paragraph,Str)
+          ?? $paragraph
+          !! $paragraph.atoms.map({
 
-            # Nothing to do
-            if nqp::istype($_,Str) {
-                $_
-            }
+                 # Nothing to do
+                 if nqp::istype($_,Str) {
+                     $_
+                 }
 
-            # Need to handle this markup
-            elsif %allow{.letter} {
-                my $atoms := .atoms.join;
+                 # Need to handle this markup
+                 elsif %allow{.letter} {
+                     my $atoms := .atoms.join;
 
-                # Not yet seen, so find the locations
-                unless %seen{$atoms} {
-                    %seen{$atoms} := 1;
+                     # Not yet seen, so find the locations
+                     unless %seen{$atoms} {
+                         %seen{$atoms} := 1;
 
-                    my @indices := $source.indices($atoms);
-                    my $replacements;
+                         my @indices := $source.indices($atoms);
+                         my $replacements;
 
-                    # More than one occurrence, find out which ones we need
-                    # to actually substitute later
-                    if @indices > 1 {
-                        my $prefix := .letter ~ '<';
-                        for ^@indices {
-                            $replacements.push($_ + 1)
-                              if $source.substr-eq($prefix, @indices[$_] - 2);
-                        }
-                        $replacements := $replacements.List;
-                    }
+                         # More than one occurrence, find out which ones we need
+                         # to actually substitute later
+                         if @indices > 1 {
+                             my $prefix := .letter ~ .opener;
+                             for ^@indices {
+                                 $replacements.push($_ + 1)
+                                   if $source.substr-eq(
+                                        $prefix,
+                                        @indices[$_] - $prefix.chars
+                                      );
+                             }
+                             $replacements := $replacements.List;
+                         }
 
-                    # Save AST for later substitution work
-                    @substs.push: Pair.new: $_, $replacements;
-                }
+                         # Save AST for later substitution work
+                         @substs.push: Pair.new: $_, $replacements;
+                     }
 
-                $atoms
-            }
+                     $atoms
+                 }
 
-            # Markup that should not be handled
-            else {
-                .Str
-            }
-        }).join;
+                 # Markup that should not be handled
+                 else {
+                     .Str
+                 }
+             }).join;
     }
 
     # Helper sub to perform an actual compilation
@@ -427,7 +433,15 @@ my multi sub highlight(
     }
 
     my int $skip = 1;
-    $source = "no strict;\n$source\n;";
+    my $use-seen;
+    if $use-seen = $source.contains('use v6.') {
+        $source = $source.subst(
+          / 'use v6.' .*? $$ /, { $/ ~ "\nno strict;" }
+        ) ~ "\n;";
+    }
+    else {
+        $source = "no strict;\n$source\n;";
+    }
 
     my $ast := compile;
     while nqp::istype($ast,Failure) {
@@ -495,7 +509,10 @@ my multi sub highlight(
 
     # Do the actual deparse
     my $highlighted = do if $ast.DEPARSE($deparser) -> $deparsed {
-        ($deparsed ~ $finish).lines(:!chomp).skip($skip).head(*-1).join.chomp
+        my @lines = ($deparsed ~ $finish).lines(:!chomp);
+        my $first = $use-seen ?? @lines.shift !! "";
+        @lines.push("") if @lines.tail eq "}\n";  # MEH
+        $first ~ @lines.skip($skip).head(*-1).join.chomp
     }
 
     # Nothing deparsed, but we have a =finish

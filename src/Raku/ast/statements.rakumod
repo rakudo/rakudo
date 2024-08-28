@@ -214,6 +214,7 @@ class RakuAST::ForLoopImplementation
 class RakuAST::StatementList
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitLookups
+  is RakuAST::CheckTime
 {
     has List $!statements;
     has int $!is-sunk;
@@ -285,6 +286,28 @@ class RakuAST::StatementList
             }
         }
         False
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $catch-seen := 0;
+        my $control-seen := 0;
+        for $!code-statements {
+            if nqp::istype($_, RakuAST::Statement::Catch) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CATCH';
+                }
+                $catch-seen++;
+            }
+            if nqp::istype($_, RakuAST::Statement::Control) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CONTROL';
+                }
+                $control-seen++;
+            }
+        }
+        True
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

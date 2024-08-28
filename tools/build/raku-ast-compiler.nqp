@@ -78,9 +78,9 @@ grammar RakuASTParser {
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
-        | $<paren>='(' <nqp-code> [ ')' || {} <.panic('Missing ) for opening ( at line ' ~ self.line-of($<paren>))> ]
-        | $<brace>='{' <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
-        | $<brckt>='[' <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
+        | $<paren>='(' {} <nqp-code> [ ')' || {} <.panic('Missing ) for opening ( at line ' ~ self.line-of($<paren>))> ]
+        | $<brace>='{' {} <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
+        | $<brckt>='[' {} <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
         | <?[\s#]> <ws>
         || $<other>=[<-[{}()\[\]'"\s\w$/]>+] # don't include in LTM as it'd win too much
         )*

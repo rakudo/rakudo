@@ -453,16 +453,14 @@ class RakuAST::VarDeclaration::Constant
     ) {
         self.add-trait-sorries;
 
-        if $!type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
-            my $type :=
-              self.get-implicit-lookups.AT-POS(0).meta-object;
-
-            unless nqp::istype($!value, $type) {
+        my $type := self.get-implicit-lookups.AT-POS(0);
+        if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
+            unless nqp::istype($!value, $type.meta-object) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
                 self.add-sorry:
                   $resolver.build-exception: 'X::Comp::TypeCheck',
                     operation => 'constant declaration of ' ~ ($name || '<anon>'),
-                    expected  => $type,
+                    expected  => $type.meta-object,
                     got       => $!value;
                 return False;
             }

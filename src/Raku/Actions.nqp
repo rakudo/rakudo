@@ -312,7 +312,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $HLL-COMPILER.set_language_version(@final-version);
             $language-revision := @final-version[0];
             $HLL-COMPILER.set_language_revision: $language-revision;
-            resolver-from-revision();
+            resolver-from-revision() unless $is-EVAL;
 
             # Now the resolver is final, express our modifier concern!
             if $modifier-deprecated {

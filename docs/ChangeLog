@@ -1,3 +1,54 @@
+New in 2024.08:
+
++ Improvements:
+    + Ensure path-spec is a Str (in CompUnit::) [c1742f04]
+
++ Additions:
+    + Implement @a[**] with hammering flattening behavior [0bdd27db]
+
++ Fixes:
+    + Ensure that sunk failed lookups in native arrays always explode [a8745fe8]
+    + Fix iterating over Junction with non-simple loop bodies [fde5d87f]
+    + Prevent dispatch errors on Regex.Bool [29a03213]
+
++ Deprecations:
+
++ Internal:
+    + Fix precomp build [a445da42]
+    + Support will complain on X::Syntax::Number::LiteralType [43d2b0fb]
+
++ RakuAST Development:
+    + over 200 commits, 142/153 (make test), and 1144/1356 (make spectest)
+      [3cf20717][b250ffe7][c6067668][9ef8949f][03ed5ae7][0fea3de3][76b4c655]
+      [57624715][4ff3dc07][1ea5fb7f][6276062f][5b9b6cff][3b4d36ad][315afc85]
+      [4d8d6f08][63b87f25][96e7d21f][927a98b9][1391345b][bbce2206][25005c9b]
+      [f600848a][a2182152][466ca907][71278b66][e20fb393][06a4cccd][85a91398]
+      [6075bdf5][630c0115][1fa1a949][00daa29c][afca9150][58f1edf3][8eeaf0ba]
+      [ba1594f2][a23bc866][f61ed6b9][b148ca72][d66097a3][03e773b9][a7af6dad]
+      [9bb892ab][46d9b19c][5baa9076][d9b8ab79][dfa74eca][4c60227d][bae68c74]
+      [940938c8][0b04d210][9291f43f][ee3c85e7][87065a32][bfdbf1cf][c5267fc7]
+      [05a9907e][1c912bc5][aa0ad4c6][c21e0fd9][5b24cf03][45d891a5][fed4ae38]
+      [70346a93][0f1e175e][9635b3cb][1ab4600a][eec9a322][6a72394c][f74da8c2]
+      [8ac3f1eb][85489cb4][e74deef2][f7eea363][8c9263f1][9af44342][eb9ee510]
+      [0bf7c876][0ad81419][bb7de9ca][d899e868][835bf7a2][8507514a][efeac953]
+      [ef959d08][b8762051][846bc284][e8bd820b][d93f6970][0f862af0][977b11e4]
+      [5f5fe4fe][bcb39d0b][06d11b59][e007c708][6f687f10][e16400b1][d7130cb8]
+      [43af30aa][09deed5d][99c530a0][6e253ef5][e6c6f5c0][10fecfb5][74c48ea3]
+      [3d9361a9][a80fcb1a][b50eb200][7971a150][80abf79c][87f150f7][1586e96a]
+      [3a615004][1549a841][3240b2fc][575f0e8e][d853a08f][ae98e84c][0091408b]
+      [d74604d8][af7acf0c][081147ee][0b4048f2][1a616bfb][ed1c48a5][dfd2ccda]
+      [d87bd876][d9037aea][cd1aae89][f340f39e][bac1ee8f][c3c6e458][4cfc7900]
+      [10297c64][bc16b3c2][191787bb][f6b628f3][ebfd4dad][db44e946][5acdfcc0]
+      [1887d27b][466740bb][ec381c70][37b5aeb8][1849fc8b][c1f424a5][8bbd7104]
+      [d0be5d1b][7114c6c1][5fc65475][331d5ea2][ba94f702][5cca0b4f][1b843c75]
+      [82e5aada][dcec75e9][c0880471][76d9e1c2][86502c46][25e6280a][87db5bdd]
+      [e6c2490e][f829dd37][efea1da0][67ab2fb4][a04a8199][56a80347][ce311700]
+      [4397c0e2][9f34623f][cd674298][06e1fe6c][f61870cf][5de09e0b][a90eeabb]
+      [866c77d8][c7c25037][0be319b8][4d35f1e3][70059eb1][bce9c3db][74b357b0]
+      [aada362f][c2fac3ba][11bf1065][f7c1242a][a30ba8aa][fd9cd0a5][c1520df7]
+      [5c532a3e][35b89a37][c7dd2bc5][7907eeab][09a96033][b46572e2][24bc8f41]
+      [e69bb58a][de09b60b][bf371c67][f3c9a598][6ad7aaa9][0932318b]
+
 New in 2024.07:
 
 + Improvements:

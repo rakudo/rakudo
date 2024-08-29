@@ -453,6 +453,11 @@ class RakuAST::VarDeclaration::Constant
     ) {
         self.add-trait-sorries;
 
+        my $sigil := self.sigil;
+        if $!type && ($sigil eq '@' || $sigil eq '%' || $sigil eq '&') {
+            self.add-sorry: $resolver.build-exception('X::ParametricConstant');
+        }
+
         my $type := self.get-implicit-lookups.AT-POS(0);
         if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
             unless nqp::istype($!value, $type.meta-object) {

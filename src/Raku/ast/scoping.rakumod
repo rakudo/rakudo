@@ -871,7 +871,6 @@ class RakuAST::PackageInstaller {
         str $scope,
         RakuAST::Name $name,
         RakuAST::Package $current-package,
-        Bool :$no-lexical,
         Mu :$meta-object
      ) {
         my $target;
@@ -888,14 +887,12 @@ class RakuAST::PackageInstaller {
             if $illegal-pseudo-package;
 
         if $name.is-identifier {
-            $final := $name.canonicalize;
-            unless $no-lexical {
-                $lexical := $resolver.resolve-lexical-constant($final);
-                if $pure-package-installation || !$lexical {
-                    $resolver.current-scope.merge-generated-lexical-declaration:
-                        :$resolver,
-                        self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
-                }
+            $final := $name.canonicalize(:colonpairs(0));
+            $lexical := $resolver.resolve-lexical-constant($final);
+            if $pure-package-installation || !$lexical {
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    :$resolver,
+                    self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
             }
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {

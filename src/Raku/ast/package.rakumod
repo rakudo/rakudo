@@ -473,19 +473,10 @@ class RakuAST::Role
             $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
             );
-            my $outer := $resolver.find-attach-target('block')
-              // $resolver.find-attach-target('compunit');
-            $outer.add-generated-lexical-declaration(
-              RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name($name.canonicalize(:colonpairs(0))),
-                :value($group)
-              )
-            );
-
             self.IMPL-INSTALL-PACKAGE(
               $resolver, $scope, $name, $resolver.current-package,
-              :no-lexical, :meta-object($group),
-            ) if $scope eq 'our';
+              :meta-object($group),
+            );
         }
         # Add ourselves to the role group
         my $type-object := self.stubbed-meta-object;

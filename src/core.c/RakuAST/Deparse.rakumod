@@ -786,7 +786,7 @@ CODE
 #- Co --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::CompUnit:D $ast --> Str:D) {
-        my str $deparsed = self.deparse($ast.statement-list);
+        my str $deparsed = self.deparse($ast.statement-list, :no-sink);
         with $ast.finish-content {
             $deparsed ~="\n=finish\n$_";
         }
@@ -2241,9 +2241,11 @@ CODE
         if $ast.statements -> @statements {
             my str @parts;
             my str $spaces = $*INDENT;
-            my $last-statement := @statements.first({
-                nqp::not_i(nqp::istype($_,RakuAST::Doc::Block))
-            }, :end) // @statements.tail;
+            my $last-statement := %_<no-sink>
+              ?? Any
+              !! @statements.first({
+                     nqp::not_i(nqp::istype($_,RakuAST::Doc::Block))
+                 }, :end) // @statements.tail;
 
             my $code;
             my $*DELIMITER;

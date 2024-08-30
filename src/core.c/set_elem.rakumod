@@ -113,9 +113,9 @@ proto sub infix:<(cont)>($, $, *%) is pure {*}
 multi sub infix:<(cont)>(\a, \b --> Bool:D) { b (elem) a }
 
 # U+220B CONTAINS AS MEMBER
-my constant &infix:<∋> = &infix:<(cont)>;
+my constant &infix:<∋> := &infix:<(cont)>;
 # U+220D SMALL CONTAINS AS MEMBER
-my constant &infix:<∍> = &infix:<(cont)>;
+my constant &infix:<∍> := &infix:<(cont)>;
 
 # U+220C DOES NOT CONTAIN AS MEMBER
 proto sub infix:<∌>($, $, *%) is pure {*}

@@ -592,7 +592,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::die("ENTER phaser not attached but result accessed") unless $!result-name;
-        QAST::Var.new(:name($!result-name), :scope<local>)
+        QAST::Var.new(:name($!result-name), :scope<lexical>)
     }
 }
 

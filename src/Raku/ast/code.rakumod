@@ -912,7 +912,7 @@ class RakuAST::ScopePhaser {
                     $enter-setup.push(
                       QAST::Op.new(
                         :op<bind>,
-                        QAST::Var.new( :name($result-name), :scope<local>, :decl<var> ),
+                        QAST::Var.new( :name($result-name), :scope<lexical>, :decl<var> ),
                         $_.IMPL-CALLISH-QAST($context)
                       )
                     );

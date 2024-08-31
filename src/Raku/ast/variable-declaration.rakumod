@@ -972,7 +972,8 @@ class RakuAST::VarDeclaration::Simple
         }
 
         my $type := self.type;
-        if nqp::istype($type,RakuAST::Type::Simple) {
+        # Subset type checking can have side effects, so don't do that at compile time.
+        if nqp::istype($type,RakuAST::Type::Simple) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
             my $initializer := self.initializer;
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {

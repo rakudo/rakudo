@@ -2862,7 +2862,7 @@ nqp::register('raku-multi-core',
         my $target := nqp::captureposarg($capture, 0);
 
         my @candidates := nqp::bitand_i(nqp::getattr_i($target, Routine, '$!flags'), 0x08)
-                                ?? (my $caller-revision := nqp::getlexcaller('$?LANGUAGE-REVISION')) && $target.REQUIRED-REVISION <= $caller-revision
+                                ?? (my $caller-revision := nqp::getlexcaller('$?LANGUAGE-REVISION') // 1) && $target.REQUIRED-REVISION <= $caller-revision
                                     ?? multi-filter-revision-gated-candidates($target, $caller-revision)
                                     !! []
                                 !! $target.dispatch_order;

@@ -512,7 +512,7 @@ class RakuAST::Declaration::External
     has Mu $!native-type;
     has Mu $.maybe-compile-time-value; # Must not be assumed constant in this base-class.
 
-    method new(str :$lexical-name, Mu :$native-type, Mu :$maybe-compile-time-value) {
+    method new(str :$lexical-name, Mu :$native-type, Mu :$maybe-compile-time-value is raw) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::External, '$!native-type', $native-type);
@@ -620,7 +620,7 @@ class RakuAST::Declaration::External::Constant
 {
     has Mu $.compile-time-value;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value! is raw) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::External::Constant,
@@ -628,7 +628,7 @@ class RakuAST::Declaration::External::Constant
         $obj
     }
 
-    method set-value(Mu $compile-time-value) {
+    method set-value(Mu $compile-time-value is raw) {
         nqp::bindattr(self, RakuAST::Declaration::External::Constant,
             '$!compile-time-value', $compile-time-value);
     }
@@ -652,7 +652,7 @@ class RakuAST::Declaration::External::Setting
 {
     has Mu $.compile-time-value;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value! is raw) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::External::Setting,
@@ -660,7 +660,7 @@ class RakuAST::Declaration::External::Setting
         $obj
     }
 
-    method set-value(Mu $compile-time-value) {
+    method set-value(Mu $compile-time-value is raw) {
         nqp::bindattr(self, RakuAST::Declaration::External::Setting,
             '$!compile-time-value', $compile-time-value);
     }

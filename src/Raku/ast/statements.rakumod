@@ -1072,6 +1072,11 @@ class RakuAST::Statement::Loop
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
             $wrapper.push($loop-qast);
+            my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+            for @last-phasers {
+                $context.ensure-sc($_);
+                $wrapper.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+            }
             unless self.sunk {
                 $wrapper.push(
                   self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
@@ -1086,15 +1091,24 @@ class RakuAST::Statement::Loop
         else {
             my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
             # In theory we could use the from-loop candidate without condition
-            # for plain lopp but that would create a lazy loop and for unknown
+            # for plain loop but that would create a lazy loop and for unknown
             # reason the old implementation didn't go that route.
             my $cond := -> { 1 };
             $context.ensure-sc($cond);
-            QAST::Op.new(:op<callmethod>, :name('from-loop'),
+            my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
                 $Seq,
                 $!body.IMPL-TO-QAST($context),
                 QAST::WVal.new(:value($cond)),
-            )
+            );
+            my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+            if @last-phasers {
+                $qast := QAST::Stmts.new(:resultchild(0), $qast);
+                for @last-phasers {
+                    $context.ensure-sc($_);
+                    $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
+            $qast
         }
     }
 

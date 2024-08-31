@@ -1496,17 +1496,18 @@ class RakuAST::VarDeclaration::Signature
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         if nqp::isconcrete($!initializer) {
-            if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
-                my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-                my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
-                my @terms;
+            my $perform-init-qast;
+            my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+            my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+            my @terms;
 
-                for @params {
-                    nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-                    $list.push: $_.target.IMPL-LOOKUP-QAST($context) if $_.target;
-                }
+            for @params {
+                nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
+                $value-list.push: $_.target.IMPL-LOOKUP-QAST($context) if $_.target;
+            }
+            if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                 my $init-qast := $!initializer.IMPL-TO-QAST($context);
-                $list := QAST::Op.new( :op('p6store'), $list, $init-qast);
+                my $list := QAST::Op.new( :op('p6store'), $value-list, $init-qast);
                 if 0 < nqp::elems(@terms) {
                     my $stmts := QAST::Stmts.new(:resultchild(0), $list);
                     for @terms {
@@ -1517,17 +1518,17 @@ class RakuAST::VarDeclaration::Signature
                             )
                         );
                     }
-                    return $stmts;
+                    $perform-init-qast := $stmts;
                 }
                 else {
-                    return $list;
+                    $perform-init-qast := $list;
                 }
             }
             elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
                 my $signature := $!signature.meta-object;
                 $context.ensure-sc($signature);
                 my $init-qast := $!initializer.IMPL-TO-QAST($context);
-                my $list := QAST::Op.new(
+                $perform-init-qast := QAST::Op.new(
                     :op('p6bindcaptosig'),
                     QAST::WVal.new( :value($signature) ),
                     QAST::Op.new(
@@ -1535,11 +1536,19 @@ class RakuAST::VarDeclaration::Signature
                         $init-qast
                     )
                 );
-                return $list;
             }
             else {
                 nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
             }
+            if self.scope eq 'state' {
+                $perform-init-qast := QAST::Op.new(
+                  :op('if'),
+                  QAST::Op.new( :op('p6stateinit') ),
+                  $perform-init-qast,
+                  $value-list
+                )
+            }
+            return $perform-init-qast;
         }
 
         QAST::Op.new(:op<null>);

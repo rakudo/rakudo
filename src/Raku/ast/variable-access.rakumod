@@ -615,7 +615,7 @@ class RakuAST::Var::Package
                 $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);
             }
             else {
-                my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
+                my @parts := $!name.IMPL-LOOKUP-PARTS;
                 my $final := @parts[nqp::elems(@parts) - 1];
                 my $result;
                 if self.is-resolved {

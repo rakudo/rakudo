@@ -930,7 +930,7 @@ class RakuAST::ScopePhaser {
                     }
                 }
             }
-            $qast[0].push($enter-setup);
+            self.IMPL-ADD-ENTER-PHASERS-TO-QAST($qast, $enter-setup);
         }
 
         if $!let {
@@ -970,6 +970,10 @@ class RakuAST::ScopePhaser {
         {
             $qast.annotate('WANTMEPLEASE',1);
         }
+    }
+
+    method IMPL-ADD-ENTER-PHASERS-TO-QAST(QAST::Node $qast, QAST::Node $enter-setup) {
+        $qast[0].push($enter-setup);
     }
 
     method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {

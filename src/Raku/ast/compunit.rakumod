@@ -587,6 +587,10 @@ class RakuAST::CompUnit
                     )))))
     }
 
+    method IMPL-ADD-ENTER-PHASERS-TO-QAST(QAST::Node $qast, QAST::Node $enter-setup) {
+        $qast[2][2].push($enter-setup); # Add them after INIT phasers
+    }
+
     method generated-global() {
         nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
         self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value

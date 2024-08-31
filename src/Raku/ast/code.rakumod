@@ -843,12 +843,14 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
-            my $pre-phasers := $block.phasers('PRE');
-            if nqp::isconcrete($pre-phasers) {
-                for $pre-phasers.FLATTENABLE_LIST {
-                    unless %seen{nqp::objectid($_)} {
-                        $context.ensure-sc($_);
-                        $pre-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+            if $block {
+                my $pre-phasers := $block.phasers('PRE');
+                if nqp::isconcrete($pre-phasers) {
+                    for $pre-phasers.FLATTENABLE_LIST {
+                        unless %seen{nqp::objectid($_)} {
+                            $context.ensure-sc($_);
+                            $pre-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                        }
                     }
                 }
             }
@@ -887,12 +889,14 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
+            if $block {
             my $first-phasers := $block.phasers('FIRST');
-            if nqp::isconcrete($first-phasers) {
-                for $first-phasers.FLATTENABLE_LIST {
-                    unless %seen{nqp::objectid($_)} {
-                        $context.ensure-sc($_);
-                        $calls.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                if nqp::isconcrete($first-phasers) {
+                    for $first-phasers.FLATTENABLE_LIST {
+                        unless %seen{nqp::objectid($_)} {
+                            $context.ensure-sc($_);
+                            $calls.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                        }
                     }
                 }
             }
@@ -915,12 +919,14 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
-            my $enter-phasers := $block.phasers('ENTER');
-            if nqp::isconcrete($enter-phasers) {
-                for $enter-phasers.FLATTENABLE_LIST {
-                    unless %seen{nqp::objectid($_)} {
-                        $context.ensure-sc($_);
-                        $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+            if $block {
+                my $enter-phasers := $block.phasers('ENTER');
+                if nqp::isconcrete($enter-phasers) {
+                    for $enter-phasers.FLATTENABLE_LIST {
+                        unless %seen{nqp::objectid($_)} {
+                            $context.ensure-sc($_);
+                            $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                        }
                     }
                 }
             }

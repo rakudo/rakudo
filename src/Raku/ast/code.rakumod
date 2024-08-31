@@ -774,6 +774,7 @@ class RakuAST::ScopePhaser {
         nqp::istype(self, RakuAST::Meta) && (
             self.meta-object.has-phaser('UNDO')
             || self.meta-object.has-phaser('KEEP')
+            || self.meta-object.has-phaser('POST')
         )
     }
 

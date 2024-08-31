@@ -1034,7 +1034,8 @@ class RakuAST::Statement::Loop
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
         ])
     }
 
@@ -1079,8 +1080,21 @@ class RakuAST::Statement::Loop
 
             $wrapper
         }
+        elsif ($!condition || $!increment) {
+            nqp::die("Non-trivial lazy loops NYI");
+        }
         else {
-            nqp::die('Compilation of lazy loops NYI')
+            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            # In theory we could use the from-loop candidate without condition
+            # for plain lopp but that would create a lazy loop and for unknown
+            # reason the old implementation didn't go that route.
+            my $cond := -> { 1 };
+            $context.ensure-sc($cond);
+            QAST::Op.new(:op<callmethod>, :name('from-loop'),
+                $Seq,
+                $!body.IMPL-TO-QAST($context),
+                QAST::WVal.new(:value($cond)),
+            )
         }
     }
 
@@ -1100,7 +1114,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        $node =:= $!body
+        self.sunk && $node =:= $!body
     }
 }
 

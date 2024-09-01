@@ -659,7 +659,7 @@ class RakuAST::Statement::Expression
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
-            if $thunk && !nqp::istype($!expression, RakuAST::Code) {
+            if $thunk && !nqp::istype($!expression, RakuAST::Block) {
                 # only need to thunk the condition if we also have a loop thunk
                 if $!condition-modifier {
                     my $thunk := $!condition-modifier.expression-thunk;

@@ -252,6 +252,10 @@ class RakuAST::StatementModifier::For
 class RakuAST::StatementModifier::For::Thunk
   is RakuAST::ExpressionThunk
 {
+    method declare-topic() {
+        True
+    }
+
     method IMPL-THUNK-SIGNATURE() {
         RakuAST::Signature.new(parameters => [
             RakuAST::Parameter.new(

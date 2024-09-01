@@ -459,6 +459,10 @@ class RakuAST::ExpressionThunk
         ''
     }
 
+    method declare-topic() {
+        False
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
@@ -483,7 +487,7 @@ class RakuAST::ExpressionThunk
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
         my $stmts := QAST::Stmts.new();
         for self.IMPL-UNWRAP-LIST($signature.parameters) {
-            $stmts.push($_.target.IMPL-QAST-DECL($context)) unless $_.target.lexical-name eq '$_';
+            $stmts.push($_.target.IMPL-QAST-DECL($context)) if $_.target.lexical-name ne '$_' || self.declare-topic;
         }
         $stmts.push($signature.IMPL-QAST-BINDINGS($context));
         my $block :=

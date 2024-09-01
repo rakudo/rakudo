@@ -224,6 +224,7 @@ class RakuAST::StatementModifier::For
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         my $expression := self.expression;
         my $expression-qast := $expression.IMPL-TO-QAST($context);
+        $statement-qast := $sink ?? $statement-qast[0][0] !! $statement-qast[0] if $block;
 
         nqp::istype($expression, RakuAST::QuotedRegex)
                         ??

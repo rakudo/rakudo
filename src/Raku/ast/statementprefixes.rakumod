@@ -634,7 +634,9 @@ class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::ParseTime
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        $resolver.find-attach-target('block').add-phaser(
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-phaser(
           self.type, self, :has-exit-handler(self.exit-handler));
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);

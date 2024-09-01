@@ -1044,6 +1044,8 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
+        my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
         if self.IMPL-DISCARD-RESULT {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
@@ -1054,8 +1056,18 @@ class RakuAST::Statement::Loop
                 $!condition ?? $!condition.IMPL-TO-QAST($context) !! QAST::IVal.new( :value(1) ),
                 $!body.IMPL-TO-QAST($context, :immediate),
             );
+            my @post;
+            if @next-phasers {
+                for @next-phasers {
+                    $context.ensure-sc($_);
+                    @post.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
             if $!increment {
-                $loop-qast.push($!increment.IMPL-TO-QAST($context));
+                @post.push($!increment.IMPL-TO-QAST($context));
+            }
+            if @post {
+                $loop-qast.push(nqp::elems(@post) == 1 ?? @post[0] !! QAST::Stmts.new(|@post));
             }
 
             # Add a label if there is one.
@@ -1072,7 +1084,6 @@ class RakuAST::Statement::Loop
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
             $wrapper.push($loop-qast);
-            my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
             for @last-phasers {
                 $context.ensure-sc($_);
                 $wrapper.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
@@ -1100,7 +1111,11 @@ class RakuAST::Statement::Loop
                 $!body.IMPL-TO-QAST($context),
                 QAST::WVal.new(:value($cond)),
             );
-            my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+            if @next-phasers {
+                my $run-phasers := -> { $_() for @next-phasers };
+                $context.ensure-sc($run-phasers);
+                $qast.push(QAST::WVal.new(:value($run-phasers)));
+            }
             if @last-phasers {
                 $qast := QAST::Stmts.new(:resultchild(0), $qast);
                 for @last-phasers {

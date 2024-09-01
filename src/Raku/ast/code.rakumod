@@ -730,6 +730,7 @@ class RakuAST::ScopePhaser {
     has List $!ENTER;
     has List $!LEAVE;
     has List $!KEEP;
+    has List $!LEAVE-ORDER;
     has List $!UNDO;
     has List $!FIRST;
     has List $!NEXT;
@@ -761,6 +762,34 @@ class RakuAST::ScopePhaser {
         nqp::push($list, $phaser);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True)
           if $has-exit-handler;
+    }
+
+    method IMPL-ADD-PHASER-TO-LEAVE-ORDER(Str $type, RakuAST::StatementPrefix::Phaser $phaser) {
+        my $list := nqp::getattr(self, RakuAST::ScopePhaser, '$!LEAVE-ORDER');
+        $list := nqp::bindattr(self, RakuAST::ScopePhaser, '$!LEAVE-ORDER', [])
+          unless $list;
+
+        for $list {
+            if nqp::eqaddr($_, $phaser) {
+                return;
+            }
+        }
+        nqp::push($list, [$type, $phaser]);
+    }
+
+    method add-leave-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
+        self.add-phaser('LEAVE', $phaser, :has-exit-handler(True));
+        self.IMPL-ADD-PHASER-TO-LEAVE-ORDER('LEAVE', $phaser);
+    }
+
+    method add-keep-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
+        self.add-phaser('KEEP', $phaser, :has-exit-handler(True));
+        self.IMPL-ADD-PHASER-TO-LEAVE-ORDER('KEEP', $phaser);
+    }
+
+    method add-undo-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
+        self.add-phaser('UNDO', $phaser, :has-exit-handler(True));
+        self.IMPL-ADD-PHASER-TO-LEAVE-ORDER('UNDO', $phaser);
     }
 
     method add-enter-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
@@ -809,9 +838,6 @@ class RakuAST::ScopePhaser {
 
     method add-phasers-to-code-object($code-object) {
         self.add-list-to-code-object('$!ENTER', $code-object);
-        self.add-list-to-code-object('$!LEAVE', $code-object);
-        self.add-list-to-code-object( '$!KEEP', $code-object);
-        self.add-list-to-code-object( '$!UNDO', $code-object);
         self.add-list-to-code-object('$!FIRST', $code-object);
         self.add-list-to-code-object( '$!NEXT', $code-object);
         self.add-list-to-code-object( '$!LAST', $code-object);
@@ -819,6 +845,12 @@ class RakuAST::ScopePhaser {
         self.add-list-to-code-object(  '$!PRE', $code-object);
         self.add-list-to-code-object( '$!POST', $code-object);
         self.add-list-to-code-object('$!CLOSE', $code-object);
+
+        if $!LEAVE-ORDER {
+            for $!LEAVE-ORDER {
+                $code-object.add_phaser($_[0], $_[1].meta-object);
+            }
+        }
 
         if $!let {
             $code-object.add_phaser('UNDO', $!let.meta-object);

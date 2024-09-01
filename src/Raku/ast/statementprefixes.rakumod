@@ -734,6 +734,13 @@ class RakuAST::StatementPrefix::Phaser::Leave
 {
     method type() { "LEAVE" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-leave-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The KEEP phaser.
@@ -742,6 +749,13 @@ class RakuAST::StatementPrefix::Phaser::Keep
 {
     method type() { "KEEP" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-keep-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The PRE phaser.
@@ -897,6 +911,13 @@ class RakuAST::StatementPrefix::Phaser::Undo
 {
     method type() { "UNDO" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-undo-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The CLOSE phaser.

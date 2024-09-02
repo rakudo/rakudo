@@ -116,7 +116,7 @@ class CompUnit::RepositoryRegistry {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
             }
-            if nqp::existskey($ENV,'PERL6LIB') {
+            elsif nqp::existskey($ENV,'PERL6LIB') {
                 DEPRECATED(
                   "RAKULIB", "", "6.e", :what<PERL6LIB>,
                   :file<environment variable>

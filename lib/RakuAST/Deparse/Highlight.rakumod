@@ -427,41 +427,53 @@ my multi sub highlight(
              }).join;
     }
 
+    $source ~= "\n" unless $source.ends-with("\n");
+    my str @lines = $source.lines(:!chomp);
+    my str @finish;
+    @finish = @lines.splice($_, *)
+      with @lines.first(/^ \s* '=finish' $$ /, :k);
+
+    if @finish {
+        while @lines {
+            @lines.tail.trim
+              ?? (last)
+              !! @finish.unshift(@lines.pop)
+        }
+    }
+
+    my int $start = -1;
+    $start = $_ with @lines.first(/^ \s* use \s+ v6/, :k);
+    my int $injected;
+
+    # Inject a statement to allow for proper compilation
+    sub inject(Str:D $statement) {
+        @lines.splice($start + ++$injected, 0, "$statement\n");
+    }
+
     # Helper sub to perform an actual compilation
     my sub compile() {
         CATCH { return .Failure }
         $actions := nqp::create($class);
+        $source   = @lines.join;
         quietly $source.AST(:compunit, :$actions)
     }
 
-    my int $skip = 1;
-    my $use-seen;
-    if $use-seen = $source.contains('use v6.') {
-        $source = $source.subst(
-          / 'use v6.' .*? $$ /, { $/ ~ "\nno strict;" }
-        );
-    }
-    else {
-        $source = "no strict;\n$source";
-    }
-
+    inject("no strict;");
     my $ast := compile;
+
     while nqp::istype($ast,Failure) {
         my $exception := $ast.exception;
         if nqp::istype($exception,X::Inheritance::UnknownParent) {
-            $source = "my class $exception.parent() \{ }\n" ~ $source;
-            ++$skip;
+            inject("my class $exception.parent() \{ }");
             $ast := compile;
         }
         elsif nqp::istype($exception,X::Undeclared::Symbols) {
             if $exception.unk_types.keys -> @classes {
-                $source = @classes.map({ "my class $_ \{ }\n" }).join ~ $source;
-                $skip += @classes;
+                inject("my class $_ \{ }") for @classes;
                 $ast := compile;
             }
             elsif $exception.unk_routines.keys -> @subs {
-                $source = @subs.map({ "my sub $_\(|) \{ }\n" }).join ~ $source;
-                $skip += @subs;
+                inject("my sub $_\(|) \{ }") for @subs;
                 $ast := compile;
             }
             else {
@@ -500,39 +512,28 @@ my multi sub highlight(
     my $*INDENT = "";
 
     # Any text from =finish onward
-    my str $finish;
-    with $actions.finish {
-        my ($before, $after) = $source.substr($_).split("\n", 2);
-        $finish = $deparser.hsyn('rakudoc-directive', $before)
-          ~ "\n"
-          ~ $deparser.hsyn('rakudoc-content', $after.chomp) ~ "\n"
-    }
+    my str $finish = @finish
+      ?? @finish.join.subst(/ ('=finish') (\s+) (.*) $$ /, {
+             $deparser.hsyn('rakudoc-directive', ~$0)
+               ~ $1
+               ~ $deparser.hsyn('rakudoc-content', ~$2)
+         })
+      !! "";
 
     # Do the actual deparse
     my $highlighted;
-    if $ast.statement-list.statements.elems > $skip
+    if $ast.statement-list.statements.elems > $injected
       && $ast.DEPARSE($deparser) -> $deparsed {
-        my @lines = $deparsed.lines(:!chomp);
-        my $first = $use-seen ?? @lines.shift !! "";
-        $highlighted = $first ~ @lines.skip($skip).join;
-        $highlighted = $highlighted.subst(/ '=finish' .* /, $finish)
-          if $finish;
+        @lines = $deparsed.lines(:!chomp);
+        @lines.splice($start + 1, $injected);
+        $highlighted = @lines.join ~ $finish
     }
 
-    # Nothing deparsed, but we have a =finish
-    elsif $finish {
-        $highlighted = $deparser.hsyn(
-          'comment',
-          $source.substr(0, $actions.finish).lines(:!chomp).skip($skip).join
-        ) ~ $finish;
-    }
-
-    # Nothing deparsed, and no =finish either, assume all comment
+    # Nothing deparsed, so just comments
     else {
-        $highlighted = $deparser.hsyn(
-          'comment',
-          $source.substr(11)   # "no strict;\n".chars
-        ) ~ "\n";
+        @lines.splice($start + 1, $injected);
+        $highlighted = $deparser.hsyn('comment', @lines.join)
+          ~ ($finish || "\n")
     }
 
     # Put back any substitutions caused by allowable markup

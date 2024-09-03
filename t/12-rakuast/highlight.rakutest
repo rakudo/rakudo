@@ -5,7 +5,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 30;
+plan 31;
 
 sub default-mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -42,10 +42,10 @@ sub is-highlighted(
 }
 
 for <nqp MONKEY MONKEY-GUTS Test> -> $name {
-    throws-like { highlight("use $name") },
+    throws-like { highlight("use $name;") },
       X::NotAllowedHighlighting,
       what => $name eq 'Test' ?? "module loading" !! "use $name",
-      "use $name not allowed";
+      "'use $name' not allowed";
 }
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use and pass', :unsafe;
@@ -214,10 +214,10 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
     That's all folks!
 CODE
 <blue># Testing the stuff of giants
+</blue>
+    <green>=finish</green>
 
-</blue><green>    =finish</green>
-<magenta>
-    That's all folks!</magenta>
+    <magenta>That's all folks!</magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
@@ -229,9 +229,9 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
 CODE
 <red>42</red>;
 
-<green>    =finish</green>
-<magenta>
-    That's all folks!</magenta>
+    <green>=finish</green>
+
+    <magenta>That's all folks!</magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, no =finish';
@@ -386,6 +386,14 @@ CODE
 
   <green>=end</green> <red>table</red>
 
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use v6 (1)';
+use v6;
+# comment
+CODE
+<green>use</green> <red>v6</red>;
+<blue># comment</blue>
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

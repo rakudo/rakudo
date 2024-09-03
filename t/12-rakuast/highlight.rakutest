@@ -88,7 +88,7 @@ CODE
 <magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>;
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'vars, if and say';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'vars, if and say';
 my Int $a = 42;
 my str $b = "foo";
 
@@ -103,7 +103,7 @@ CODE
 }
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'simple regex';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'simple regex';
 say "foo" ~~ / [(o) $<foo>=o]+ $_ zippo "%&^" /;
 put $0;
 print $<foo>;
@@ -113,7 +113,7 @@ CODE
 <yellow>print</yellow> <cyan>$<foo></cyan>;
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=alias';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=alias';
     =alias TERMS_URLS  =item L<http://www.4dk.com/eie>
     =                  =item L<http://www.4dk.co.uk/eie.io/>
     =                  =item L<http://www.fordecay.ch/canttouchthis>
@@ -123,18 +123,17 @@ CODE
     <green>=</green>                 =item L<http://www.fordecay.ch/canttouchthis></magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=defn';
     =defn foo bar
     this that!
 
 CODE
     <red>=defn</red> <cyan>foo bar</cyan>
 <magenta>    this that!
-
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=for defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for defn';
     =for defn
     foo bar
     This That!
@@ -143,39 +142,43 @@ CODE
     <green>=for</green> <red>defn</red>
     <cyan>foo bar</cyan>
 <magenta>    This That!
-
 </magenta>
+
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=begin defn';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin defn';
     =begin defn
+
     foo bar
     Those!
 
     and Those!
     =end defn
+
 CODE
     <green>=begin</green> <red>defn</red>
+
     <cyan>foo bar</cyan>
 <magenta>    Those!
 
     and Those!</magenta>
     <green>=end</green> <red>defn</red>
+
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zip';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zip';
     =config zip
 CODE
     <green>=config</green> <cyan>zip</cyan>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zap';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zap';
     =config zap :lang<raku>
 CODE
     <green>=config</green> <cyan>zap</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=config zop';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zop';
     =config zop :lang<raku>
     =           :zorg-industries
 CODE
@@ -183,19 +186,19 @@ CODE
     <green>=</green>           <red>:zorg-industries</red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zip';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zip';
     =place file://zip.*
 CODE
     <green>=place</green> <cyan>file://zip.*</cyan>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zap';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zap';
     =place file://zap.* :lang<raku>
 CODE
     <green>=place</green> <cyan>file://zap.*</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=place zop';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zop';
     =place file://zop.* :lang<raku>
     =                   :zorg-industries
 CODE
@@ -203,8 +206,7 @@ CODE
     <green>=</green>                   <red>:zorg-industries</red>
 HIGHLIGHTED
 
-todo("leading comment disappears");
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'no statements, =finish';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
 # Testing the stuff of giants
 
     =finish
@@ -215,25 +217,24 @@ CODE
 
 </blue><green>    =finish</green>
 <magenta>
-    That's all folks!
-</magenta>
+    That's all folks!</magenta>
 HIGHLIGHTED
 
-todo("closing magenta disappears");
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'statements, =finish';
-42
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
+42;
+
     =finish
 
     That's all folks!
 CODE
-<red>42</red>
+<red>42</red>;
+
 <green>    =finish</green>
 <magenta>
-    That's all folks!
-</magenta>
+    That's all folks!</magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'no statements, no =finish';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, no =finish';
 # Just comments
 
 # and empty lines
@@ -244,55 +245,66 @@ CODE
 </blue>
 HIGHLIGHTED
 
-todo("closing magenta disappears");
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=code';
 =code my $a = 42;
 say $a;
 CODE
 <red>=code</red> <magenta>my $a = 42;
-say $a;
-
-</magenta>
+say $a;</magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=for code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for code';
 =for code :lang<raku>
 my $a = 42;
 say $a;
+
 CODE
 <green>=for</green> <red>code</red> <red>:lang<raku></red>
 <magenta>my $a = 42;
 say $a;
-
 </magenta>
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, '=begin code';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin code';
 =begin code :lang<raku>
+
 my $a = 42;
 say $a;
+
 =end code
+
 CODE
 <green>=begin</green> <red>code</red> <red>:lang<raku></red>
+
 <magenta>my $a = 42;
 say $a;
-</magenta><green>=end</green> <red>code</red>
+</magenta>
+<green>=end</green> <red>code</red>
+
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'implicit code block';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'implicit code block';
 =begin rakudoc
+
     my $a = 42;
     say $a;
+
 =end rakudoc
+
 CODE
 <green>=begin</green> <red>rakudoc</red>
+
 <magenta>    my $a = 42;
-    say $a;</magenta>
+    say $a;
+</magenta>
+
 <green>=end</green> <red>rakudoc</red>
+
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'procedural table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'procedural table';
   =begin table
+
     =row :header
     =cell foo
     =cell bar
@@ -304,8 +316,10 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'procedural table';
     =cell 67
 
   =end table
+
 CODE
   <green>=begin</green> <red>table</red>
+
     <green>=row</green> <red>:header</red>
     <red>=cell</red> foo
     <red>=cell</red> bar
@@ -317,20 +331,20 @@ CODE
     <red>=cell</red> 67
 
   <green>=end</green> <red>table</red>
+
 HIGHLIGHTED
 
-todo("loses last line");
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'declarator doc';
 my $a = 42;  #= The answer
 #| The wrong answer
-my $b = 666
+my $b = 666;
 CODE
 <magenta>my</magenta> <cyan>$a</cyan> <yellow>=</yellow> <red>42</red>; <blue>#= The answer</blue>
 <blue>#| The wrong answer
-</blue><magenta>my</magenta> <cyan>$b</cyan> <yellow>=</yellow> <red>666</red>
+</blue><magenta>my</magenta> <cyan>$b</cyan> <yellow>=</yellow> <red>666</red>;
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'abbreviated visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
   =table #
   foo | bar | baz
   ----|-----|----
@@ -342,7 +356,7 @@ CODE
   42  <blue>|</blue> 666 <blue>|</blue> 137
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'for visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
   =for table :numbered
   foo | bar | baz
   ----|-----|----
@@ -354,18 +368,24 @@ CODE
   42  <blue>|</blue> 666 <blue>|</blue> 137
 HIGHLIGHTED
 
-is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/.chomp, 'visual table';
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';
   =begin table :numbered
+
   foo | bar | baz
   ----|-----|----
   42  | 666 | 137
+
   =end table
+
 CODE
   <green>=begin</green> <red>table</red> <red>:numbered</red>
+
   foo <blue>|</blue> bar <blue>|</blue> baz
   <blue>----|-----|----</blue>
   42  <blue>|</blue> 666 <blue>|</blue> 137
+
   <green>=end</green> <red>table</red>
+
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

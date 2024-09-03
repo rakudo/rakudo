@@ -139,7 +139,7 @@ my class Actions is RakuActions {
     # that line, but not a full line comment, it will be ignored
     method whole-line-comment(uint $index, :$keep) {
         with @!eol[$index - 1] -> $previous {
-            if @!eol[$index] == $previous + 1 {
+            if (@!eol[$index] // -1) == $previous + 1 {
                 return "" but True;
             }
             orwith @!soc[$index] -> $soc {
@@ -234,9 +234,11 @@ my class Deparse is RakuDEPARSE {
         if $ast.statements -> @statements {
             my str @outer;
             my str $spaces = $*INDENT;
-            my $last-statement := @statements.first({
-                !($_ ~~ RakuAST::Doc::Block)
-            }, :end) // @statements.tail;
+            my $last-statement := %_<no-sink>
+              ?? Any
+              !! @statements.first({
+                     !($_ ~~ RakuAST::Doc::Block)
+                 }, :end) // @statements.tail;
 
             my $code;
             my $*DELIMITER;
@@ -286,7 +288,7 @@ my class Deparse is RakuDEPARSE {
                     }
 
                     # Add any full line comments after this line
-                    if $last-line > $first-line
+                    if $last-line >= $first-line
                       && $actions.comments-following($first-line) -> $following {
                         @parts.pop if (my $empty := !@parts.tail);
                         @parts.push(self.hsyn('comment', $following));
@@ -429,7 +431,7 @@ my multi sub highlight(
     my sub compile() {
         CATCH { return .Failure }
         $actions := nqp::create($class);
-        quietly $source.AST(:$actions)
+        quietly $source.AST(:compunit, :$actions)
     }
 
     my int $skip = 1;
@@ -437,10 +439,10 @@ my multi sub highlight(
     if $use-seen = $source.contains('use v6.') {
         $source = $source.subst(
           / 'use v6.' .*? $$ /, { $/ ~ "\nno strict;" }
-        ) ~ "\n;";
+        );
     }
     else {
-        $source = "no strict;\n$source\n;";
+        $source = "no strict;\n$source";
     }
 
     my $ast := compile;
@@ -503,26 +505,34 @@ my multi sub highlight(
         my ($before, $after) = $source.substr($_).split("\n", 2);
         $finish = $deparser.hsyn('rakudoc-directive', $before)
           ~ "\n"
-          ~ $deparser.hsyn('rakudoc-content', $after)
-          ~ "\n";
+          ~ $deparser.hsyn('rakudoc-content', $after.chomp) ~ "\n"
     }
 
     # Do the actual deparse
-    my $highlighted = do if $ast.DEPARSE($deparser) -> $deparsed {
-        my @lines = ($deparsed ~ $finish).lines(:!chomp);
+    my $highlighted;
+    if $ast.statement-list.statements.elems > $skip
+      && $ast.DEPARSE($deparser) -> $deparsed {
+        my @lines = $deparsed.lines(:!chomp);
         my $first = $use-seen ?? @lines.shift !! "";
-        @lines.push("") if @lines.tail eq "}\n";  # MEH
-        $first ~ @lines.skip($skip).head(*-1).join.chomp
+        $highlighted = $first ~ @lines.skip($skip).join;
+        $highlighted = $highlighted.subst(/ '=finish' .* /, $finish)
+          if $finish;
     }
 
     # Nothing deparsed, but we have a =finish
     elsif $finish {
-        $deparser.hsyn('comment', $source.substr(0, $actions.finish)) ~ $finish
+        $highlighted = $deparser.hsyn(
+          'comment',
+          $source.substr(0, $actions.finish).lines(:!chomp).skip($skip).join
+        ) ~ $finish;
     }
 
     # Nothing deparsed, and no =finish either, assume all comment
     else {
-        $deparser.hsyn('comment', $source) ~ "\n"
+        $highlighted = $deparser.hsyn(
+          'comment',
+          $source.substr(11)   # "no strict;\n".chars
+        ) ~ "\n";
     }
 
     # Put back any substitutions caused by allowable markup

@@ -532,8 +532,12 @@ my multi sub highlight(
     # Nothing deparsed, so just comments
     else {
         @lines.splice($start + 1, $injected);
-        $highlighted = $deparser.hsyn('comment', @lines.join)
-          ~ ($finish || "\n")
+        $highlighted = do if @lines.join -> $comment {
+            $deparser.hsyn('comment', $comment) ~ ($finish || "\n")
+        }
+        else {
+            $finish || "\n"
+        }
     }
 
     # Put back any substitutions caused by allowable markup

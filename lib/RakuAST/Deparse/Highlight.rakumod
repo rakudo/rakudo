@@ -367,72 +367,19 @@ my proto sub highlight(|) is export {*}
 my multi sub highlight(
   Str:D  $source is copy,
         *@roles  is copy,
-        :%allow,
         :$unsafe
 --> Str:D) {
     my $class := $unsafe ?? Actions !! SafeActions;
     my $actions;
 
-    # Remove any allowed RakuDoc markup
-    my @substs;
-    if %allow {
-        my %seen;
-
-        my $paragraph := RakuAST::Doc::Paragraph.from-string($source);
-        $source = nqp::istype($paragraph,Str)
-          ?? $paragraph
-          !! $paragraph.atoms.map({
-
-                 # Nothing to do
-                 if nqp::istype($_,Str) {
-                     $_
-                 }
-
-                 # Need to handle this markup
-                 elsif %allow{.letter} {
-                     my $atoms := .atoms.join;
-
-                     # Not yet seen, so find the locations
-                     unless %seen{$atoms} {
-                         %seen{$atoms} := 1;
-
-                         my @indices := $source.indices($atoms);
-                         my $replacements;
-
-                         # More than one occurrence, find out which ones we need
-                         # to actually substitute later
-                         if @indices > 1 {
-                             my $prefix := .letter ~ .opener;
-                             for ^@indices {
-                                 $replacements.push($_ + 1)
-                                   if $source.substr-eq(
-                                        $prefix,
-                                        @indices[$_] - $prefix.chars
-                                      );
-                             }
-                             $replacements := $replacements.List;
-                         }
-
-                         # Save AST for later substitution work
-                         @substs.push: Pair.new: $_, $replacements;
-                     }
-
-                     $atoms
-                 }
-
-                 # Markup that should not be handled
-                 else {
-                     .Str
-                 }
-             }).join;
-    }
-
+    # Strip off any =finish handling
     $source ~= "\n" unless $source.ends-with("\n");
     my str @lines = $source.lines(:!chomp);
     my str @finish;
     @finish = @lines.splice($_, *)
       with @lines.first(/^ \s* '=finish' $$ /, :k);
 
+    # And any empty lines before that
     if @finish {
         while @lines {
             @lines.tail.trim
@@ -441,6 +388,7 @@ my multi sub highlight(
         }
     }
 
+    # Determine initial point of injection
     my int $start = -1;
     $start = $_ with @lines.first(/^ \s* use \s+ v6/, :k);
     my int $injected;
@@ -458,9 +406,11 @@ my multi sub highlight(
         quietly $source.AST(:compunit, :$actions)
     }
 
+    # Make sure we allow undefined vars and do the initial compilation
     inject("no strict;");
     my $ast := compile;
 
+    # While we have (fixable) failures
     while nqp::istype($ast,Failure) {
         my $exception := $ast.exception;
         if nqp::istype($exception,X::Inheritance::UnknownParent) {
@@ -507,10 +457,6 @@ my multi sub highlight(
         $deparser.^mixin($_);
     }
 
-    # Not sure why this is needed, but without it the deparse fails with
-    # a "getlex: outer index out of range" error message
-    my $*INDENT = "";
-
     # Any text from =finish onward
     my str $finish = @finish
       ?? @finish.join.subst(/ ('=finish') (\s+) (.*) $$ /, {
@@ -519,6 +465,10 @@ my multi sub highlight(
                ~ $deparser.hsyn('rakudoc-content', ~$2)
          })
       !! "";
+
+    # Not sure why this is needed, but without it the deparse fails with
+    # a "getlex: outer index out of range" error message
+    my $*INDENT = "";
 
     # Do the actual deparse
     my $highlighted;
@@ -537,25 +487,6 @@ my multi sub highlight(
         }
         else {
             $finish || "\n"
-        }
-    }
-
-    # Put back any substitutions caused by allowable markup
-    for @substs -> (:key($ast), :value($occurrences)) {
-        my $before := $ast.atoms;
-        my $after  := %allow{$ast.letter}($ast);
-
-        # Multiple occurrences found, only subst the correct ones,
-        # last ones first to prevent confusion
-        if $occurrences {
-            for $occurrences.reverse {
-                $highlighted .= subst: $before, $after, :th($_);
-            }
-        }
-
-        # Only one occurrence, go for it!
-        else {
-            $highlighted .= subst: $before, $after
         }
     }
 

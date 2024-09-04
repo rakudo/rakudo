@@ -5,7 +5,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 31;
+plan 32;
 
 sub default-mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -394,6 +394,14 @@ use v6;
 CODE
 <green>use</green> <red>v6</red>;
 <blue># comment</blue>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use v6 (2)';
+# comment
+use v6;
+CODE
+<blue># comment</blue>
+<green>use</green> <red>v6</red>;
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

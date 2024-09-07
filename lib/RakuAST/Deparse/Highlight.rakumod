@@ -1,7 +1,6 @@
 use v6.e.PREVIEW;
 
 # just needed until Raku::Actions/Raku::DEPARSE become default
-use experimental :rakuast;
 use nqp;
 my constant RakuGrammar = nqp::gethllsym('Raku','Grammar');
 my constant RakuActions = nqp::gethllsym('Raku','Actions');

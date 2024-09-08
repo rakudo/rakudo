@@ -19,7 +19,7 @@ multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$delete!, *%other ) is ra
     SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists! ) is raw {
-    $exists ?? SELF.EXISTS-KEY(key) !! !SELF.EXISTS-KEY(key)
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
 }
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )

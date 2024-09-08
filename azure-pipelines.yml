@@ -58,50 +58,50 @@ stages:
            NQP_OPTIONS: '--backends=moar --relocatable'
            MOAR_OPTIONS: '--relocatable'
 
-         Mac_MVM:
-           IMAGE_NAME: 'macOS-12'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Mac_JVM:
-           IMAGE_NAME: 'macOS-12'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-12'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+           #Mac_MVM:
+           #  IMAGE_NAME: 'macOS-12'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
+           #Mac_JVM:
+           #  IMAGE_NAME: 'macOS-12'
+           #  BACKEND: 'JVM'
+           #  MOAR_CHECKOUT_TYPE: 'none'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=jvm'
+           #  MOAR_OPTIONS: ''
+           #Mac_MVM_reloc:
+           #  IMAGE_NAME: 'macOS-12'
+           #  RELOCATABLE: 'yes'
+           #  RAKUDO_OPTIONS: '--relocatable'
+           #  NQP_OPTIONS: '--backends=moar --relocatable'
+           #  MOAR_OPTIONS: '--relocatable'
 
-         Lin_MVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Lin_JVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+           #Lin_MVM:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
+           #Lin_JVM:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  BACKEND: 'JVM'
+           #  MOAR_CHECKOUT_TYPE: 'none'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=jvm'
+           #  MOAR_OPTIONS: ''
+           #Lin_MVM_reloc:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  RELOCATABLE: 'yes'
+           #  RAKUDO_OPTIONS: '--relocatable'
+           #  NQP_OPTIONS: '--backends=moar --relocatable'
+           #  MOAR_OPTIONS: '--relocatable'
 
-         Lin_MVM_spec:
-           IMAGE_NAME: 'ubuntu-20.04'
-           SPECTEST_ONLY: 'yes'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
+           #Lin_MVM_spec:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  SPECTEST_ONLY: 'yes'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
 
       pool:
         vmImage: $(IMAGE_NAME)

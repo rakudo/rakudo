@@ -1591,16 +1591,16 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
 # Container descriptor that will bind to a key in a hash on first
 # assignment
 class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
-    has $!target;
-    has $!key;
+    has     $!target;
+    has str $!key;
 
-    method new($desc, $target, $key) {
+    method new($desc, $target, str $key) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::BindHashKey,
             '$!next-descriptor', $desc);
         nqp::bindattr($self, ContainerDescriptor::BindHashKey,
             '$!target', $target);
-        nqp::bindattr($self, ContainerDescriptor::BindHashKey,
+        nqp::bindattr_s($self, ContainerDescriptor::BindHashKey,
             '$!key', $key);
         $self
     }

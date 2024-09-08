@@ -26,7 +26,7 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D $key) is raw {
+    method !AT_KEY_CONTAINER(str $key) is raw {
         nqp::p6scalarfromcertaindesc(
           ContainerDescriptor::BindHashKey.new($!descriptor,self,$key)
         )

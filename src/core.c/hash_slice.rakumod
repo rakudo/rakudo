@@ -21,6 +21,13 @@ multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$delete!, *%other ) is ra
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists! ) is raw {
     nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
 }
+multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$exists!, Bool() :$p!
+) is raw {
+    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
+      ?? Pair.new(key,nqp::hllbool(r))
+      !! ()
+}
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )
 }

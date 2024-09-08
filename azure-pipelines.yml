@@ -40,19 +40,19 @@ stages:
       strategy:
        matrix:
          Win_MVM:
-           IMAGE_NAME: 'windows-latestl'
+           IMAGE_NAME: 'windows-latest'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
          Win_JVM:
-           IMAGE_NAME: 'windows-latestl'
+           IMAGE_NAME: 'windows-latest'
            BACKEND: 'JVM'
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
            MOAR_OPTIONS: ''
          Win_MVM_relocatable:
-           IMAGE_NAME: 'windows-latestl'
+           IMAGE_NAME: 'windows-latest'
            RELOCATABLE: 'yes'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
@@ -289,7 +289,7 @@ stages:
     - job: windows
       displayName: Windows x86_64 build
       pool:
-        vmImage: 'windows-latestl'
+        vmImage: 'windows-latest'
       workspace:
         clean: all
       steps:

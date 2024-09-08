@@ -25,7 +25,14 @@ multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$exists!, Bool() :$p!
 ) is raw {
     (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
-      ?? Pair.new(key,nqp::hllbool(r))
+      ?? ($p ?? Pair.new(key,nqp::hllbool(r)) !! r)
+      !! ()
+}
+multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$exists!, Bool() :$kv!
+) is raw {
+    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
+      ?? ($kv ?? (key,nqp::hllbool(r)) !! r)
       !! ()
 }
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists!, *%other ) is raw {

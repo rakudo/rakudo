@@ -8,6 +8,7 @@
 #include <time.h>
 #include <sys/time.h>
 #endif
+#include <stdio.h>
 
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 
@@ -157,6 +158,11 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVM_frame_dispatch_zero_args(tc, (MVMCode *)code);
 }
 
+void dump_please() {
+    fprintf(stderr, "atexit called\n");
+    MVM_dump_backtrace(MVM_get_running_threads_context());
+}
+
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
@@ -169,4 +175,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, NULL, MVM_EXTOP_NO_JIT);
+
+    atexit(dump_please);
 }

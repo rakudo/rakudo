@@ -21,6 +21,20 @@ multi sub postcircumfix:<{ }>(
     SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
     nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed))
 }
+multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$delete!, Bool() :$p!
+) is raw {
+    SELF.EXISTS-KEY(key) || !$p
+      ?? Pair.new(key,$delete ?? SELF.DELETE-KEY(key) !! SELF.AT-KEY(key))
+      !! ()
+}
+multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$delete!, Bool() :$kv!
+) is raw {
+    SELF.EXISTS-KEY(key) || !$kv
+      ?? (key,$delete ?? SELF.DELETE-KEY(key) !! SELF.AT-KEY(key))
+      !! ()
+}
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
 }

@@ -124,13 +124,7 @@ multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
       ?? SELF.AT-KEY(key)
       !! nqp::iscont(SELF) && nqp::not_i(nqp::isconcrete(SELF))
         ?? key.flatmap({ SELF{$_} }).eager.list
-        !! nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-             nqp::stmts(
-               Rakudo::Iterator.AssociativeIterableKeys(SELF,key)
-                 .push-all(my \buffer := nqp::create(IterationBuffer)),
-               buffer
-             )
-           )
+        !! Rakudo::Iterator.AssociativeIterableKeys(SELF, key).List
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \keys, Mu \values) is raw {
     return SELF.ASSIGN-KEY(keys, values) if nqp::iscont(keys);

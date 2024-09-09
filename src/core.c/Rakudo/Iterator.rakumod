@@ -583,6 +583,10 @@ class Rakudo::Iterator {
         method is-monotonically-increasing(--> Bool:D) {
             $!iterator.is-monotonically-increasing
         }
+        method List() {
+            self.push-all(my \buffer := nqp::create(IterationBuffer));
+            buffer.List
+        }
     }
     method AssociativeIterableKeys(\asso, \iterable) {
         AssociativeIterableKeys.new(asso,iterable.iterator)

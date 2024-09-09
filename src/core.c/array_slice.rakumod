@@ -32,23 +32,19 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$exists!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'exists', $exists)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$kv!) is raw {
-    $kv
-      ?? (SELF.EXISTS-POS(pos) ?? (pos, SELF.AT-POS(pos)) !! ())
-      !! (pos, SELF.AT-POS(pos))
+    SELF.EXISTS-POS(pos) || !$kv ?? (pos, SELF.AT-POS(pos)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$kv!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'kv', $kv)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$p!) is raw {
-    $p
-      ?? (SELF.EXISTS-POS(pos) ?? Pair.new(pos, SELF.AT-POS(pos)) !! ())
-      !! Pair.new(pos, SELF.AT-POS(pos))
+    SELF.EXISTS-POS(pos) || !$p ?? Pair.new(pos, SELF.AT-POS(pos)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$p!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'p', $p)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$k!) is raw {
-    $k ?? (SELF.EXISTS-POS(pos) ?? pos !! ()) !! pos
+    SELF.EXISTS-POS(pos) || !$k ?? pos !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$k!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'k', $k)

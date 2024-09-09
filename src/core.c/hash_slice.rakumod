@@ -22,6 +22,22 @@ multi sub postcircumfix:<{ }>(
     nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed))
 }
 multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$delete!, Bool() :$exists!, Bool() :$p!
+) is raw {
+    SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
+    existed || !$p
+      ?? Pair.new(key,nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed)))
+      !! ()
+}
+multi sub postcircumfix:<{ }>(
+  \SELF, Mu \key, Bool() :$delete!, Bool() :$exists!, Bool() :$kv!
+) is raw {
+    SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
+    existed || !$kv
+      ?? (key,nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed)))
+      !! ()
+}
+multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$delete!, Bool() :$p!
 ) is raw {
     SELF.EXISTS-KEY(key) || !$p

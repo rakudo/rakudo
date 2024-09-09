@@ -155,7 +155,7 @@ stages:
         - task: Cache@2
           displayName: "load cached moarvm"
           inputs:
-            key: '$(MOAR_CHECKOUT_TYPE) | $(moar_git_rev)'
+            key: '"$(MOAR_CHECKOUT_TYPE)" | "$(moar_git_rev)"'
             path: ../install
             cacheHitVar: CACHE_RESTORED
 

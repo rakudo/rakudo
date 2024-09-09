@@ -25,8 +25,8 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$delete!) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$delete!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'delete', $delete)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$exists!) is raw {
-    $exists ?? SELF.EXISTS-POS(pos) !! !SELF.EXISTS-POS(pos)
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$exists!) is raw {
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-POS(pos)))
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$exists!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'exists', $exists)
@@ -74,8 +74,8 @@ multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'delete', $delete)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!) is raw {
-    $exists ?? SELF.EXISTS-POS(pos.Int) !! !SELF.EXISTS-POS(pos.Int)
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$exists!) is raw {
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-POS(pos.Int)))
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'exists', $exists)

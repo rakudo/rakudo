@@ -119,7 +119,7 @@ multi sub postcircumfix:<{ }>( \SELF, Mu \key, *%_ ) {
 }
 
 # %h<a b c>
-multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Iterable:D \key ) is raw {
     nqp::iscont(key)
       ?? SELF.AT-KEY(key)
       !! nqp::iscont(SELF) && nqp::not_i(nqp::isconcrete(SELF))
@@ -149,7 +149,7 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \keys, Mu \values) is raw {
 
     $result.List
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND! is raw) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, :$BIND! is raw) is raw {
     return SELF.BIND-KEY(key, $BIND) if nqp::iscont(key);
 
     my $result := nqp::create(IterationBuffer);
@@ -169,35 +169,35 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND! is raw) is raw {
 
     $result.List
 }
-multi sub postcircumfix:<{ }>(\SELF,Iterable \key, Bool() :$delete!,*%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$delete!,*%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'delete', $delete, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'delete', $delete, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'delete', $delete, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'delete', $delete, %_ )
 }
-multi sub postcircumfix:<{ }>(\SELF,Iterable \key, Bool() :$exists!,*%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$exists!, *%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'exists', $exists, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'exists', $exists, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'exists', $exists, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'exists', $exists, %_ )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Bool() :$kv!, *%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$kv!, *%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'kv', $kv, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'kv', $kv, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'kv', $kv, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'kv', $kv, %_ )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Bool() :$p!, *%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$p!, *%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'p', $p, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'p', $p, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'p', $p, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'p', $p, %_ )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Bool() :$k!, *%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$k!, *%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'k', $k, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'k', $k, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'k', $k, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'k', $k, %_ )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Bool() :$v!, *%other) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Iterable:D \key, Bool() :$v!, *%_) is raw {
     nqp::iscont(key)
-        ?? SLICE_ONE_HASH(  SELF, key, 'v', $v, %other )
-        !! SLICE_MORE_HASH( SELF, key, 'v', $v, %other )
+      ?? SLICE_ONE_HASH(  SELF, key, 'v', $v, %_ )
+      !! SLICE_MORE_HASH( SELF, key, 'v', $v, %_ )
 }
 
 # %h{*}

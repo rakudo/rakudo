@@ -227,6 +227,10 @@ my class SafeActions is Actions {
 my class Deparse is RakuDEPARSE {
     has $.actions;
 
+    multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        self.RakuDEPARSE::deparse($ast)
+    }
+
     multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {
         my $actions := $!actions;
 

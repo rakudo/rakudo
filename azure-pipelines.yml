@@ -170,8 +170,10 @@ stages:
             echo "before pwsh dev vars"
             ${{ variables.PWSH_DEV }}
             echo "before trying to run configure"
-            gdb --batch -ex="run" --args perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+            gdb --batch -ex="run" --args perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
             echo "after running configure"
+            echo "trying to run compile in multiple cores"
+            set CL=/MP
             nmake install
             echo "after running configure"
           failOnStderr: false

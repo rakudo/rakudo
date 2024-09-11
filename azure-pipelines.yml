@@ -22,10 +22,15 @@ variables:
   # Turn this Powershell console into a developer powershell console.
   # https://intellitect.com/enter-vsdevshell-powershell/
   PWSH_DEV: |
+    echo "getting install path from vswhere -latest"
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
+    echo "getting devshell dll location"
     $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+    echo "import module devShell"
     Import-Module $devShell
+    echo "calling Enter-VsDevShell"
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
+    echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
   MOAR_CHECKOUT_TYPE: downstream

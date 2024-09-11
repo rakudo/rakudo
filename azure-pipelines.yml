@@ -176,7 +176,7 @@ stages:
             echo "after running configure"
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) ) )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) )
           displayName: Build MoarVM (Windows)
 
         # Build NQP
@@ -205,6 +205,11 @@ stages:
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
+            echo "configure done"
+            nmake blib/Perl6/CORE.c.setting.moarvm
+            echo "first attempt to nmake the core setting"
+            gdb --batch -x fulltrace.gdb -ex="set detach-on-fork off" -ex="run" --args nmake blib/Perl6/CORE.c.setting.moarvm
+            echo "tried again to build the core setting, this time with gdb"
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

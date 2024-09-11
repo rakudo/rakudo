@@ -162,7 +162,7 @@ stages:
         # Build MoarVM
         - script: |
             perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
-            make install
+            make install -j4
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
           condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) )
           displayName: Build MoarVM
@@ -206,9 +206,9 @@ stages:
             ${{ variables.PWSH_DEV }}
             perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
             echo "configure done"
-            nmake blib/Perl6/CORE.c.setting.moarvm
+            nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
-            gdb --batch -x fulltrace.gdb -ex="set detach-on-fork off" -ex="run" --args nmake blib/Perl6/CORE.c.setting.moarvm
+            gdb --batch -x fulltrace.gdb -ex="set detach-on-fork off" -ex="run" --args nmake blib/CORE.c.setting.moarvm
             echo "tried again to build the core setting, this time with gdb"
             nmake install
           failOnStderr: false

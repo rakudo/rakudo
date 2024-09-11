@@ -35,7 +35,7 @@ variables:
     echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: "rev-9c8e321903fa714c8ab8eb04e2a55fad070477e5-https://github.com/MoarVM/MoarVM.git"
+  MOAR_CHECKOUT_TYPE: "rev-e8e5c3eea9c57646e74e563787529efbdbad83c8-https://github.com/MoarVM/MoarVM.git"
 
 stages:
 - stage: Test

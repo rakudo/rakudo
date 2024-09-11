@@ -223,7 +223,7 @@ stages:
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
-            "C:\Strawberry\perl\bin\perl.exe" rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm "gen\moar\CORE.c.setting"
+            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             cat spam.txt
             nmake install
           failOnStderr: false

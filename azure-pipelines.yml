@@ -222,8 +222,7 @@ stages:
             echo "configure done"
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
-            lldb --batch --one-line-on-crash "bt all" --one-line="run" -- nmake blib/CORE.c.setting.moarvm
-            echo "tried again to build the core setting, this time with gdb"
+            nmake blib/CORE.c.setting.moarvm
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

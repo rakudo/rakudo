@@ -622,6 +622,7 @@ CODE
     }
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
+        my $*IN-ARGLIST := True;
         $ast.args.map({
             if nqp::istype($_,RakuAST::Heredoc) {
                 my ($top, $bottom) = self.deparse($_, :split);
@@ -655,15 +656,33 @@ CODE
         if $unit {
             self.deparse($statement-list)
         }
-        elsif $multi || $statement-list.statements {
-            self.indent;
-            $.block-open
-              ~ self.deparse($statement-list)
-              ~ self.dedent
-              ~ $.bracket-close
-        }
         else {
-            "$.bracket-open $.bracket-close"
+            my @statements := $statement-list.statements;
+            my $in-arglist := $*IN-ARGLIST.Bool;
+
+            if $multi || @statements {
+                # Deeper deparsing assumes not in an argument list
+                my $*IN-ARGLIST := False;
+
+                if @statements == 1 && $in-arglist && !$multi {
+                    my $*DELIMITER = '';
+                    $.bracket-open
+                      ~ ' '
+                      ~ self.deparse(@statements.head).trim
+                      ~ ' '
+                      ~ $.bracket-close
+                }
+                else {
+                    self.indent;
+                    $.block-open
+                      ~ self.deparse($statement-list)
+                      ~ self.dedent
+                      ~ $.bracket-close
+                }
+            }
+            else {
+                "$.bracket-open $.bracket-close"
+            }
         }
     }
 

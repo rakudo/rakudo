@@ -355,9 +355,7 @@ for
           )
         );
         is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
-@source.grep({
-    "A" $operator "B"
-})
+@source.grep({ "A" $operator "B" })
 CODE
         is-deeply $_, @result, @type[$++]
           for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
@@ -396,9 +394,7 @@ for
           )
         );
         is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
-@source.grep({
-    / A/ $operator / B/
-})
+@source.grep({ / A/ $operator / B/ })
 CODE
         is-deeply $_, @result, @type[$++]
           for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);

@@ -26,6 +26,8 @@ variables:
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
     echo "getting devshell dll location"
     $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+    echo $installPath
+    echo $devShell
     echo "import module devShell"
     Import-Module $devShell
     echo "calling Enter-VsDevShell"

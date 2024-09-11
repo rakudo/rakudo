@@ -167,12 +167,16 @@ stages:
           condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) )
           displayName: Build MoarVM
         - pwsh: |
+            echo "before pwsh dev vars"
             ${{ variables.PWSH_DEV }}
-            gdb -ex="run" --args perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+            echo "before trying to run configure"
+            gdb --batch -ex="run" --args perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+            echo "after running configure"
             nmake install
+            echo "after running configure"
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) ) )
           displayName: Build MoarVM (Windows)
 
         # Build NQP

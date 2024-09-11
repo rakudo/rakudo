@@ -1245,6 +1245,7 @@ CODE
             }
             else {
                 @parts.push('{');
+                my $*DELIMITER = '';
                 self.add-any-docs(@parts.join(' '), $WHY).chomp
                   ~ self.deparse($body, :multi).substr(1).chomp
             }

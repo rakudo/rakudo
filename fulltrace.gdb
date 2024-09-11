@@ -1,4 +1,8 @@
 set breakpoint pending on
+set debug symfile on
+set debug symtab-create 1
+symbol-file ../install/bin/moar.exe.pdb
+add-symbol-file ../install/bin/moar.dll.pdb
 break MVM_gc_enter_from_allocator
 commands
 thread apply all bt

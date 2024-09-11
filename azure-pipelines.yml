@@ -50,7 +50,7 @@ stages:
            IMAGE_NAME: 'windows-latest'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
+           MOAR_OPTIONS: '--telemeh'
            #Win_JVM:
            #  IMAGE_NAME: 'windows-latest'
            #  BACKEND: 'JVM'
@@ -222,7 +222,9 @@ stages:
             echo "configure done"
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
+            set MVM_TELEMETRY_LOG=spam.txt
             nmake blib/CORE.c.setting.moarvm
+            cat spam.txt
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

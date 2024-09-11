@@ -178,9 +178,14 @@ stages:
             gdb --batch -ex="run" --args perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
             echo "after running configure"
             echo "trying to run compile in multiple cores"
-            set CL=/MP
             nmake install
-            echo "after running configure"
+            echo "after running install"
+            echo "any pdb files?"
+            ls *pdb
+            echo "copying them"
+            cp moar.exe.pdb ..\install\bin\
+            cp moar.dll.pdb ..\install\bin\
+            ls ..\install\bin\
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) )

@@ -177,7 +177,7 @@ stages:
             echo "before pwsh dev vars"
             ${{ variables.PWSH_DEV }}
             echo "before trying to run configure"
-            gdb --batch -ex="run" --args perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
+            lldb --debug --batch --one-line="run" -- perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
             echo "after running configure"
             echo "trying to run compile in multiple cores"
             nmake install
@@ -202,7 +202,7 @@ stages:
           displayName: Build NQP
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
+            perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
@@ -218,11 +218,11 @@ stages:
           displayName: Build Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
+            perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
             echo "configure done"
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
-            lldb --batch --one-line-on-crash "bt all" nmake blib/CORE.c.setting.moarvm
+            lldb --batch --one-line-on-crash "bt all" --one-line="run" -- nmake blib/CORE.c.setting.moarvm
             echo "tried again to build the core setting, this time with gdb"
             nmake install
           failOnStderr: false

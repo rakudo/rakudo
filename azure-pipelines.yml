@@ -168,7 +168,7 @@ stages:
           displayName: Build MoarVM
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+            gdb -ex="run" --args perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'

@@ -179,15 +179,24 @@ stages:
 
         - bash: |
             echo "##vso[task.setvariable variable=moar_git_rev]"$(cd MoarVM; git describe --always)"
+            echo moarvm repository has $(cd MoarVM; git describe --always) checked out 
             echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)"
+            echo nqp repository has $(cd nqp; git describe --always) checked out
           displayName: "Get moar & nqp revision"
           workingDirectory: '$(Pipeline.Workspace)/'
           condition: ne( variables['BACKEND'], 'JVM' )
 
+        - bash: |
+            echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)"
+            echo nqp repository has $(cd nqp; git describe --always) checked out
+          displayName: "Get nqp revision (jvm)"
+          workingDirectory: '$(Pipeline.Workspace)/'
+          condition: eq( variables['BACKEND'], 'JVM' )
+
         - task: Cache@2
           displayName: "load cached NQP-m & moar"
           inputs:
-            key: '2 | "$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
+            key: '"$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
             path: ../install-nqp-and-moar
             cacheHitVar: NQP_CACHE_RESTORED
 

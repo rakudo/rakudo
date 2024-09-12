@@ -225,8 +225,8 @@ stages:
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             cat spam.txt*
-            Get-WinEvent -ListProvider *
             Get-WinEvent -ListLog *
+            echo Application,Security,System | % { get-winevent $_ -maxevents 100 } | ft -groupby logname
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

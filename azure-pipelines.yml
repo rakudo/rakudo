@@ -223,9 +223,10 @@ stages:
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
-            $Env:MVM_JIT_DISABLE = 1
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             cat spam.txt*
+            Get-WinEvent -ListProvider *
+            Get-WinEvent -ListLog *
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

@@ -33,7 +33,7 @@ variables:
           $devShellLoadedSuccess = $true
         }
         catch {
-          Write-Output "While trying to load the devShell module from $tryDevShell:"
+          Write-Output "While trying to load the devShell module from $tryDevShell"
           Write-Output $_
         }
       }
@@ -177,12 +177,34 @@ stages:
             path: ../where_is_devshell.txt
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
+        - bash: |
+            echo "##vso[task.setvariable variable=moar_git_rev]"$(cd MoarVM; git describe --always)"
+            echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)"
+          displayName: "Get moar & nqp revision"
+          workingDirectory: '$(Pipeline.Workspace)/'
+          condition: ne( variables['BACKEND'], 'JVM' )
+
+        - task: Cache@2
+          displayName: "load cached NQP-m & moar"
+          inputs:
+            key: '"$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | $(IMAGE_NAME) | "$(moar_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
+            path: ../install
+            cacheHitVar: NQP_CACHE_RESTORED
+
+        - task: Cache@2
+          displayName: "load cached moarvm"
+          inputs:
+            key: '"$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | $(IMAGE_NAME) | "$(moar_git_rev)"'
+            path: ../install
+            cacheHitVar: MOARVM_CACHE_RESTORED
+          condition: and( ne( variables['BACKEND'], 'JVM' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
+
         # Build MoarVM
         - script: |
             perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
             make install
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
           displayName: Build MoarVM
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -190,7 +212,7 @@ stages:
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
           displayName: Build MoarVM (Windows)
 
         # Build NQP
@@ -198,7 +220,7 @@ stages:
             perl Configure.pl --prefix=../install $(NQP_OPTIONS)
             make install
           workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
+          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['NQP_CACHE_RESTORED'], 'true') )
           displayName: Build NQP
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -206,7 +228,7 @@ stages:
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['NQP_CACHE_RESTORED'], 'true'))
           displayName: Build NQP (Windows)
 
         # Build Rakudo

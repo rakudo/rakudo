@@ -23,8 +23,32 @@ variables:
   # https://intellitect.com/enter-vsdevshell-powershell/
   PWSH_DEV: |
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
-    $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
-    Import-Module $devShell
+    $devShellLoadedSuccess = $false
+    if (Test-Path -Path ../where_is_devshell.txt -PathType leaf) {
+      $tryDevShell = Get-Item -Path .\LineNumbers.txt | Get-Content -Head 1
+      if (Test-Path -Path $tryDevShell) {
+        try {
+          Import-Module $tryDevShell
+          $devShell = $tryDevShell
+          $devShellLoadedSuccess = $true
+        }
+        catch {
+          Write-Output "While trying to load the devShell module from $tryDevShell:"
+          Write-Output $_
+        }
+      }
+    }
+    if (-not $devShellLoadedSuccess) {
+      $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+      try {
+        $devShell | out-file -filepath ../where_is_devshell.txt
+      }
+      catch {
+        Write-Output "Couldn't cache $devShell in ../where_is_devshell.txt :("
+        Write-Output $_
+      }
+      Import-Module $devShell
+    }
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
@@ -145,6 +169,13 @@ stages:
           workingDirectory: $(Pipeline.Workspace)
           condition: and(succeeded(), eq(variables['BACKEND'], 'JVM'))
           displayName: Checkout repositories (JVM)
+
+        - task: Cache@2
+          displayName: "load cached location of devshell dll"
+          inputs:
+            key: '"$(IMAGE_NAME)"'
+            path: ../where_is_devshell.txt
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         # Build MoarVM
         - script: |

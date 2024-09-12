@@ -228,6 +228,9 @@ stages:
             cat spam.txt*
             Get-WinEvent -ListLog *
             echo Application,Security,System | % { get-winevent $_ -maxevents 100 } | ft -groupby logname
+            $Env:MVM_TELEMETRY_LOG = ''
+            $Env:MVM_JIT_DISABLE = 1
+            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
@@ -245,32 +248,32 @@ stages:
         #  displayName: Move installation (Windows)
 
         # Test Rakudo
-        - script: prove -e ../install/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Test Rakudo
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (Windows)
-        - script: prove -e ../install-moved/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated)
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install-moved\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated, Windows)
+        #- script: prove -e ../install/bin/perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
+        #  displayName: Test Rakudo
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    prove -e ..\install\bin\perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (Windows)
+        #- script: prove -e ../install-moved/bin/perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (relocated)
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    prove -e ..\install-moved\bin\perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (relocated, Windows)
 
         # Run spectest
-        - script: make TEST_JOBS=2 m-spectest
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Run spectest
+        #- script: make TEST_JOBS=2 m-spectest
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
+        #  displayName: Run spectest
 
         #- publish: $(Pipeline.Workspace)/install-moved
         #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )

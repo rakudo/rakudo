@@ -15,6 +15,7 @@ my %provides =
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
+    "RakuDoc::To::SafeRakuDoc"      => "lib/RakuDoc/To/SafeRakuDoc.rakumod",
     "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
     "RakuAST::Deparse::Highlight"
       => "lib/RakuAST/Deparse/Highlight.rakumod",

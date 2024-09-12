@@ -24,8 +24,8 @@ variables:
   PWSH_DEV: |
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
     $devShellLoadedSuccess = $false
-    if (Test-Path -Path ../where_is_devshell.txt -PathType leaf) {
-      $tryDevShell = Get-Item -Path ../where_is_devshell.txt | Get-Content -Head 1
+    if (Test-Path -Path ../where_is_devshell/here.txt -PathType leaf) {
+      $tryDevShell = Get-Item -Path ../where_is_devshell/here.txt | Get-Content -Head 1
       if (Test-Path -Path $tryDevShell) {
         try {
           Import-Module $tryDevShell
@@ -41,10 +41,11 @@ variables:
     if (-not $devShellLoadedSuccess) {
       $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
       try {
-        $devShell | out-file -filepath ../where_is_devshell.txt
+        mkdir ../where_is_devshell/
+        $devShell | out-file -filepath ../where_is_devshell/here.txt
       }
       catch {
-        Write-Output "Couldn't cache $devShell in ../where_is_devshell.txt :("
+        Write-Output "Couldn't cache $devShell in ../where_is_devshell/here.txt :("
         Write-Output $_
       }
       Import-Module $devShell
@@ -174,7 +175,7 @@ stages:
           displayName: "load cached location of devshell dll"
           inputs:
             key: '"$(IMAGE_NAME)"'
-            path: ../where_is_devshell.txt
+            path: ../where_is_devshell/
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - bash: |

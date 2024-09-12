@@ -35,7 +35,7 @@ variables:
     echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: "rev-1bb8215f40b1ace375337a488304cf9729b6507f-https://github.com/MoarVM/MoarVM.git"
+  MOAR_CHECKOUT_TYPE: "rev-9169e7a55a27d6776297d81e3de3832515262bb2-https://github.com/MoarVM/MoarVM.git"
 
 stages:
 - stage: Test
@@ -223,6 +223,7 @@ stages:
             nmake blib/CORE.c.setting.moarvm
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            $Env:MVM_JIT_DISABLE = 1
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             cat spam.txt*
             nmake install

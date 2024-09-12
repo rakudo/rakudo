@@ -221,17 +221,15 @@ stages:
             ${{ variables.PWSH_DEV }}
             perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
             echo "configure done"
-            nmake blib/CORE.c.setting.moarvm
+            nmake blib/CORE.c.setting.moarvm 2>$null
+            echo "win event log listing before running crashy process"
+            Get-WinEvent -ListLog *
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             cat spam.txt*
             Get-WinEvent -ListLog *
-            echo Application,Security,System | % { get-winevent $_ -maxevents 100 } | ft -groupby logname
-            $Env:MVM_TELEMETRY_LOG = ''
-            $Env:MVM_JIT_DISABLE = 1
-            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
-            nmake install
+            echo Application,Security,System,Windows PowerShell,Visual Studio,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Windows Defender/Operational,Microsoft-Windows-Security-Mitigations/KernelMode,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))

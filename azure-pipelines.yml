@@ -210,7 +210,7 @@ stages:
 
         - bash: |
             mkdir ../install
-            cp ../install-nqp-and-moar/* ../install/
+            cp -r ../install-nqp-and-moar/* ../install/
           displayName: "extract nqp-and-moar cache"
           condition: eq( variables['NQP_CACHE_RESTORED'], 'true' )
 
@@ -224,7 +224,7 @@ stages:
 
         - bash: |
             mkdir ../install
-            cp ../install-moar/* ../install/
+            cp -r ../install-moar/* ../install/
           displayName: "extract moar cache"
           condition: eq( variables['MOARVM_CACHE_RESTORED'], 'true' )
 

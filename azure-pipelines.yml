@@ -31,21 +31,24 @@ variables:
           Import-Module $tryDevShell
           $devShell = $tryDevShell
           $devShellLoadedSuccess = $true
+          Write-Output "Successfully loaded DevShell.dll from $tryDevShell"
         }
         catch {
-          Write-Output "While trying to load the devShell module from $tryDevShell"
+          Write-Output "##[warning]While trying to load the devShell module from $tryDevShell"
           Write-Output $_
         }
       }
     }
     if (-not $devShellLoadedSuccess) {
-      $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+      Write-Output "Locating DevShell.dll in visual studio installation, please hold on ..."
+      $devShell = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+      Write-Output "Found DevShell.dll at $devShell"
       try {
         mkdir ../where_is_devshell/
         $devShell | out-file -filepath ../where_is_devshell/here.txt
       }
       catch {
-        Write-Output "Couldn't cache $devShell in ../where_is_devshell/here.txt :("
+        Write-Output "##[warning]Couldn't cache $devShell in ../where_is_devshell/here.txt :("
         Write-Output $_
       }
       Import-Module $devShell

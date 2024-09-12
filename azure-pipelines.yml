@@ -125,7 +125,10 @@ stages:
             - name: IS_WIN
               value: false
 
-          condition: not( and( variables.RELOCATABLE, eq( variables.BACKEND, 'JVM' ) ) )
+          # on JVM, only do the "nothing" variant:
+          # - too slow for spectest
+          # - relocatable does not apply
+          condition: or( eq( variant, '' ), ne( variables.BACKEND, 'JVM' ) )
 
           pool:
             vmImage: $(IMAGE_NAME)
@@ -237,8 +240,7 @@ stages:
               # Build MoarVM
               - script: |
                   perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
-                  make install
-                  cp -r ../install ../install-moar
+                  make install && cp -r ../install ../install-moar
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
                 displayName: Build MoarVM
@@ -246,8 +248,7 @@ stages:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
                   perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
-                  nmake install
-                  cp -r ../install ../install-moar
+                  nmake install && cp -r ../install ../install-moar
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -257,8 +258,7 @@ stages:
             # Build NQP
             - script: |
                 perl Configure.pl --prefix=../install $(NQP_OPTIONS)
-                make install
-                cp -r ../install ../install-nqp-and-moar
+                make install && cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
               enabled: ${{ not( variables.IS_WIN ) }}
@@ -266,72 +266,72 @@ stages:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
-                nmake install
-                cp -r ../install ../install-nqp-and-moar
+                nmake install && cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
               enabled: ${{ variables.IS_WIN }}
               displayName: Build NQP (Windows)
 
-            # Build Rakudo
-            - script: |
-                perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
-                make install
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              enabled: ${{ not( variables.IS_WIN ) }}
-              displayName: Build Rakudo
-            - pwsh: |
-                ${{ variables.PWSH_DEV }}
-                perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
-                nmake install
-              failOnStderr: false
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              enabled: ${{ variables.IS_WIN }}
-              displayName: Build Rakudo (Windows)
-
-            - ${{ if variables.RELOCATABLE }}:
-              # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
-              - script: mv install install-moved
-                workingDirectory: $(Pipeline.Workspace)
-                displayName: Move installation
-                enabled: ${{ not(variables.IS_WIN) }}
-              - pwsh: mv install install-moved
-                workingDirectory: $(Pipeline.Workspace)
-                displayName: Move installation (Windows)
+            - ${{ if ne( backend, 'JVM' ) }}:
+              # Build Rakudo
+              - script: |
+                  perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
+                  make install
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                enabled: ${{ not( variables.IS_WIN ) }}
+                displayName: Build Rakudo
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
+                  nmake install
+                failOnStderr: false
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 enabled: ${{ variables.IS_WIN }}
+                displayName: Build Rakudo (Windows)
 
-            # Test Rakudo
-            - script: prove -e ../install/bin/perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
-              displayName: Test Rakudo
-            - pwsh: |
-                ${{ variables.PWSH_DEV }}
-                prove -e ..\install\bin\perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (Windows)
-            - script: prove -e ../install-moved/bin/perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (relocated)
-            - pwsh: |
-                ${{ variables.PWSH_DEV }}
-                prove -e ..\install-moved\bin\perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (relocated, Windows)
+              - ${{ if variables.RELOCATABLE }}:
+                # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
+                - script: mv install install-moved
+                  workingDirectory: $(Pipeline.Workspace)
+                  displayName: Move installation
+                  enabled: ${{ not(variables.IS_WIN) }}
+                - pwsh: mv install install-moved
+                  workingDirectory: $(Pipeline.Workspace)
+                  displayName: Move installation (Windows)
+                  enabled: ${{ variables.IS_WIN }}
 
-            # Run spectest
-            - script: make TEST_JOBS=2 m-spectest
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
-              displayName: Run spectest
+              # Test Rakudo
+              - script: prove -e ../install/bin/perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
+                displayName: Test Rakudo
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  prove -e ..\install\bin\perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+                displayName: Test Rakudo (Windows)
+              - script: prove -e ../install-moved/bin/perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+                displayName: Test Rakudo (relocated)
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  prove -e ..\install-moved\bin\perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+                displayName: Test Rakudo (relocated, Windows)
 
-            - publish: $(Pipeline.Workspace)/install-moved
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
-              displayName: Publish build artifact
+              # Run spectest
+              - script: make TEST_JOBS=2 m-spectest
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
+                displayName: Run spectest
+
+              - publish: $(Pipeline.Workspace)/install-moved
+                condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
+                displayName: Publish build artifact
 
 - stage: Build_Precomp_Release
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )

@@ -231,13 +231,13 @@ my class Deparse is RakuDEPARSE {
         self.RakuDEPARSE::deparse($ast)
     }
 
-    multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {
+    multi method deparse(RakuAST::StatementList:D $ast, *%named --> Str:D) {
         my $actions := $!actions;
 
         if $ast.statements -> @statements {
             my str @outer;
             my str $spaces = $*INDENT;
-            my $last-statement := %_<no-sink>
+            my $last-statement := %named<no-sink>
               ?? Any
               !! @statements.first({
                      !($_ ~~ RakuAST::Doc::Block)

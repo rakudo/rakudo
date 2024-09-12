@@ -58,290 +58,280 @@ variables:
   NQP_CHECKOUT_TYPE: downstream
   MOAR_CHECKOUT_TYPE: downstream
 
+parameters:
+- name: backends
+  type: object
+  default: ['JVM', 'MVM']
+- name: variant
+  type: object
+  default: ['relocatable', 'fullspectest', '']
+- name: oses
+  type: object
+  default: ['Win', 'Lin', 'Mac']
+
+
 stages:
 - stage: Test
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
 
   jobs:
-    # Keep the job and matrix entry names as short as possible as the webinterface
-    # leaves little space for the name.
-    - job: T
-      variables:
-      - name: BACKEND
-        value: ""
-      - name: RELOCATABLE
-        value: ""
-      - name: SPECTEST_ONLY
-        value: "no"
+  - ${{ each backend in parameters.backends }}:
+    - ${{ each variant in parameters.variant }}:
+      - ${{ each os in parameters.oses }}:
+        - job: ${{ os }}${{ backend }}${{ variant }}
+          variables:
+          - name: BACKEND
+            value: ${{ backend }}
+          - name: RELOCATABLE
+            ${{ if eq(variant, 'relocatable') }}:
+              value: "yes"
+            ${{ if ne(variant, 'relocatable') }}:
+              value: ""
+          - name: SPECTEST_ONLY
+            ${{ if eq(variant, 'fullspectest') }}:
+              value: "yes"
+            ${{ if ne(variant, 'fullspectest') }}:
+              value: ""
+          - ${{ if eq(backend, 'JVM') }}:
+            - name: NQP_OPTIONS
+              value: '--backends=jvm'
+            - name: RAKUDO_OPTIONS
+              value: '--backends=jvm'
+          - ${{ if and( eq(backend, 'MVM'), eq(variant, 'relocatable') ) }}:
+            - name: NQP_OPTIONS
+              value: '--backends=moar --relocatable'
+            - name: RAKUDO_OPTIONS
+              value: '--backends=moar --relocatable'
+            - name: MOAR_OPTIONS
+              value: '--relocatable'
+          - ${{ if and( eq(backend, 'MVM'), ne(variant, 'relocatable') ) }}:
+            - name: NQP_OPTIONS
+              value: '--backends=moar'
+            - name: RAKUDO_OPTIONS
+              value: '--backends=moar'
+          - ${{ if eq(os, 'Win') }}:
+            - name: IMAGE_NAME
+              value: 'windows-2019'
+            - name: IS_WIN
+              value: true
+          - ${{ if eq(os, 'Lin') }}:
+            - name: IMAGE_NAME
+              value: 'ubuntu-20.04'
+            - name: IS_WIN
+              value: false
+          - ${{ if eq(os, 'Mac') }}:
+            - name: IMAGE_NAME
+              value: 'macOS-12'
+            - name: IS_WIN
+              value: false
 
-      strategy:
-       matrix:
-         Win_MVM:
-           IMAGE_NAME: 'windows-2019'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Win_JVM:
-           IMAGE_NAME: 'windows-2019'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Win_MVM_relocatable:
-           IMAGE_NAME: 'windows-2019'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+          condition: not( and( variables.RELOCATABLE, eq( variables.BACKEND, 'JVM' ) ) )
 
-         Mac_MVM:
-           IMAGE_NAME: 'macOS-12'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Mac_JVM:
-           IMAGE_NAME: 'macOS-12'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-12'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+          pool:
+            vmImage: $(IMAGE_NAME)
+          workspace:
+            clean: all
+          timeoutInMinutes: 180
+          steps:
 
-         Lin_MVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Lin_JVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+            - ${{ if variables.IS_WIN }}:
+              - pwsh: |
+                  # Windows has a maximum PATH variable length of 2048 (depending on
+                  # how it's accessed). The length of PATH in AzureCI is already
+                  # really tight. We'll run into the limit when we add Java and the
+                  # MS BuildTools to the path.
+                  # To work around this, we remove a bunch of stuff we won't need
+                  # from PATH here.
+                  $shortened_path = "$(PATH)" -replace ';[^;]*(SeleniumWebDrivers|SQL Server|Mercurial|Amazon|mysql|\\sbt\\|NSIS|Windows Performance Toolkit|php|Subversion)[^;]*(?=(;|$))', ''
+                  echo "##vso[task.setvariable variable=PATH]$shortened_path"
+                displayName: "Shorten PATH on Windows"
+              - pwsh: |
+                  echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
+                  echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
+                displayName: "Set java version (Windows)"
+                enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
 
-         Lin_MVM_spec:
-           IMAGE_NAME: 'ubuntu-20.04'
-           SPECTEST_ONLY: 'yes'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
+            - ${{ if ne(variables['Agent.OS'], 'Windows_NT') }}:
+              - script: |
+                  echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
+                  echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
+                displayName: "Set java version (non-Windows)"
+                enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
 
-      pool:
-        vmImage: $(IMAGE_NAME)
-      workspace:
-        clean: all
-      timeoutInMinutes: 180
-      steps:
+            - checkout: self
+              path: selfrepo
+              displayName: Checkout script repo
 
-        - pwsh: |
-            # Windows has a maximum PATH variable length of 2048 (depending on
-            # how it's accessed). The length of PATH in AzureCI is already
-            # really tight. We'll run into the limit when we add Java and the
-            # MS BuildTools to the path.
-            # To work around this, we remove a bunch of stuff we won't need
-            # from PATH here.
-            $shortened_path = "$(PATH)" -replace ';[^;]*(SeleniumWebDrivers|SQL Server|Mercurial|Amazon|mysql|\\sbt\\|NSIS|Windows Performance Toolkit|php|Subversion)[^;]*(?=(;|$))', ''
-            echo "##vso[task.setvariable variable=PATH]$shortened_path"
-          displayName: "Shorten PATH on Windows"
-          enabled: ${{ eq(variables['Agent.OS'], 'Windows_NT') }}
+            - bash: |
+                export IS_AZURE_PIPELINES_BUILD=1
+                echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
+              displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
 
-        - script: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
-          displayName: "Set java version (non-Windows)"
-          enabled: ${{ and( ne(variables['Agent.OS'], 'Windows_NT'), eq(variables['BACKEND'], 'JVM') ) }}
-        - pwsh: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
-          displayName: "Set java version (Windows)"
-          enabled: ${{ and( eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['BACKEND'], 'JVM') ) }}
+            - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
+              workingDirectory: $(Pipeline.Workspace)
+              enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
+              displayName: Checkout repositories (MoarVM)
+            - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
+              workingDirectory: $(Pipeline.Workspace)
+              enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
+              displayName: Checkout repositories (JVM)
 
-        - checkout: self
-          path: selfrepo
-          displayName: Checkout script repo
+            - ${{ if variables.IS_WIN }}:
+              - task: Cache@2
+                displayName: "load cached location of devshell dll"
+                inputs:
+                  key: '"where is devshell on" | "$(IMAGE_NAME)"'
+                  path: ../where_is_devshell/
 
-        - bash: |
-            export IS_AZURE_PIPELINES_BUILD=1
-            echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
-          displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
+            - bash: |
+                MOAR_REV=$(cd MoarVM; git describe --always)
+                echo "##vso[task.setvariable variable=moar_git_rev]"$MOAR_REV
+                echo moarvm repository has $MOAR_REV checked out
+                NQP_REV=$(cd nqp; git describe --always)
+                echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
+                echo nqp repository has $NQP_REV checked out
+                echo "##vso[build.addbuildtag]moar-rev-"$MOAR_REV
+                echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
+              displayName: "Get moar & nqp revision"
+              workingDirectory: '$(Pipeline.Workspace)/'
+              enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
 
-        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
-          workingDirectory: $(Pipeline.Workspace)
-          enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
-          displayName: Checkout repositories (MoarVM)
-        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
-          workingDirectory: $(Pipeline.Workspace)
-          enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
-          displayName: Checkout repositories (JVM)
+            - bash: |
+                NQP_REV=$(cd nqp; git describe --always)
+                echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
+                echo nqp repository has $NQP_REV checked out
+                echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
+              displayName: "Get nqp revision (jvm)"
+              workingDirectory: '$(Pipeline.Workspace)/'
+              enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
 
-        - task: Cache@2
-          displayName: "load cached location of devshell dll"
-          inputs:
-            key: '"where is devshell on" | "$(IMAGE_NAME)"'
-            path: ../where_is_devshell/
-          enabled: ${{ eq(variables['Agent.OS'], 'Windows_NT') }}
+            - task: Cache@2
+              displayName: "load cached NQP-m & moar"
+              inputs:
+                key: 'v2 | "$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
+                path: ../install-nqp-and-moar
+                cacheHitVar: NQP_CACHE_RESTORED
 
-        - bash: |
-            MOAR_REV=$(cd MoarVM; git describe --always)
-            echo "##vso[task.setvariable variable=moar_git_rev]"$MOAR_REV
-            echo moarvm repository has $MOAR_REV checked out
-            NQP_REV=$(cd nqp; git describe --always)
-            echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
-            echo nqp repository has $NQP_REV checked out
-            echo "##vso[build.addbuildtag]moar-rev-"$MOAR_REV
-            echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
-          displayName: "Get moar & nqp revision"
-          workingDirectory: '$(Pipeline.Workspace)/'
-          enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
+            - bash: |
+                mkdir ../install
+                cp -r ../install-nqp-and-moar/* ../install/
+              displayName: "extract nqp-and-moar cache"
+              condition: eq( variables['NQP_CACHE_RESTORED'], 'true' )
 
-        - bash: |
-            NQP_REV=$(cd nqp; git describe --always)
-            echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
-            echo nqp repository has $NQP_REV checked out
-            echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
-          displayName: "Get nqp revision (jvm)"
-          workingDirectory: '$(Pipeline.Workspace)/'
-          enabled: ${{ eq(variables['BACKEND'], 'JVM') }}
+            - task: Cache@2
+              displayName: "load cached moarvm"
+              inputs:
+                key: '3 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)"'
+                path: ../install-moar
+                cacheHitVar: MOARVM_CACHE_RESTORED
+              condition: ne( variables['NQP_CACHE_RESTORED'], 'true' )
+              enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
 
-        - task: Cache@2
-          displayName: "load cached NQP-m & moar"
-          inputs:
-            key: 'v2 | "$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
-            path: ../install-nqp-and-moar
-            cacheHitVar: NQP_CACHE_RESTORED
+            - bash: |
+                mkdir ../install
+                cp -r ../install-moar/* ../install/
+              displayName: "extract moar cache"
+              condition: eq( variables['MOARVM_CACHE_RESTORED'], 'true' )
 
-        - bash: |
-            mkdir ../install
-            cp -r ../install-nqp-and-moar/* ../install/
-          displayName: "extract nqp-and-moar cache"
-          condition: eq( variables['NQP_CACHE_RESTORED'], 'true' )
+            - ${{ if ne(variables.BACKEND, 'JVM') }}:
+              # Build MoarVM
+              - script: |
+                  perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
+                  make install
+                  cp -r ../install ../install-moar
+                workingDirectory: '$(Pipeline.Workspace)/MoarVM'
+                condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
+                displayName: Build MoarVM
+                enabled: ${{ not( variables.IS_WIN ) }}
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+                  nmake install
+                  cp -r ../install ../install-moar
+                failOnStderr: false
+                workingDirectory: '$(Pipeline.Workspace)/MoarVM'
+                condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
+                enabled: ${{ variables.IS_WIN }}
+                displayName: Build MoarVM (Windows)
 
-        - task: Cache@2
-          displayName: "load cached moarvm"
-          inputs:
-            key: '3 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)"'
-            path: ../install-moar
-            cacheHitVar: MOARVM_CACHE_RESTORED
-          condition: ne( variables['NQP_CACHE_RESTORED'], 'true' )
-          enabled: ${{ ne(variables['BACKEND'], 'JVM') }}
+            # Build NQP
+            - script: |
+                perl Configure.pl --prefix=../install $(NQP_OPTIONS)
+                make install
+                cp -r ../install ../install-nqp-and-moar
+              workingDirectory: '$(Pipeline.Workspace)/nqp'
+              condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
+              enabled: ${{ not( variables.IS_WIN ) }}
+              displayName: Build NQP
+            - pwsh: |
+                ${{ variables.PWSH_DEV }}
+                perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
+                nmake install
+                cp -r ../install ../install-nqp-and-moar
+              failOnStderr: false
+              workingDirectory: '$(Pipeline.Workspace)/nqp'
+              condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
+              enabled: ${{ variables.IS_WIN }}
+              displayName: Build NQP (Windows)
 
-        - bash: |
-            mkdir ../install
-            cp -r ../install-moar/* ../install/
-          displayName: "extract moar cache"
-          condition: eq( variables['MOARVM_CACHE_RESTORED'], 'true' )
+            # Build Rakudo
+            - script: |
+                perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
+                make install
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              enabled: ${{ not( variables.IS_WIN ) }}
+              displayName: Build Rakudo
+            - pwsh: |
+                ${{ variables.PWSH_DEV }}
+                perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
+                nmake install
+              failOnStderr: false
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              enabled: ${{ variables.IS_WIN }}
+              displayName: Build Rakudo (Windows)
 
-        # Build MoarVM
-        - script: |
-            perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
-            make install
-            cp -r ../install ../install-moar
-          workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
-          displayName: Build MoarVM
-          enabled: ${{ and(ne(variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) ) }}
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
-            nmake install
-            cp -r ../install ../install-moar
-          failOnStderr: false
-          workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
-          enabled: ${{ and(ne(variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) ) }}
-          displayName: Build MoarVM (Windows)
+            - ${{ if variables.RELOCATABLE }}:
+              # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
+              - script: mv install install-moved
+                workingDirectory: $(Pipeline.Workspace)
+                displayName: Move installation
+                enabled: ${{ not(variables.IS_WIN) }}
+              - pwsh: mv install install-moved
+                workingDirectory: $(Pipeline.Workspace)
+                displayName: Move installation (Windows)
+                enabled: ${{ variables.IS_WIN }}
 
-        # Build NQP
-        - script: |
-            perl Configure.pl --prefix=../install $(NQP_OPTIONS)
-            make install
-            cp -r ../install ../install-nqp-and-moar
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
-          enabled: ${{ ne(variables['Agent.OS'], 'Windows_NT') }}
-          displayName: Build NQP
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
-            nmake install
-            cp -r ../install ../install-nqp-and-moar
-          failOnStderr: false
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
-          enabled: ${{ eq(variables['Agent.OS'], 'Windows_NT') }}
-          displayName: Build NQP (Windows)
+            # Test Rakudo
+            - script: prove -e ../install/bin/perl6 -vlr t
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
+              displayName: Test Rakudo
+            - pwsh: |
+                ${{ variables.PWSH_DEV }}
+                prove -e ..\install\bin\perl6 -vlr t
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+              displayName: Test Rakudo (Windows)
+            - script: prove -e ../install-moved/bin/perl6 -vlr t
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+              displayName: Test Rakudo (relocated)
+            - pwsh: |
+                ${{ variables.PWSH_DEV }}
+                prove -e ..\install-moved\bin\perl6 -vlr t
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+              displayName: Test Rakudo (relocated, Windows)
 
-        # Build Rakudo
-        - script: |
-            perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
-            make install
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          enabled: ${{ ne(variables['Agent.OS'], 'Windows_NT') }}
-          displayName: Build Rakudo
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
-            nmake install
-          failOnStderr: false
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          enabled: ${{ eq(variables['Agent.OS'], 'Windows_NT') }}
-          displayName: Build Rakudo (Windows)
+            # Run spectest
+            - script: make TEST_JOBS=2 m-spectest
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
+              displayName: Run spectest
 
-        # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
-        - script: mv install install-moved
-          workingDirectory: $(Pipeline.Workspace)
-          displayName: Move installation
-          enabled: ${{ and( ne(variables['Agent.OS'], 'Windows_NT'), eq(variables['RELOCATABLE'], 'yes') ) }}
-        - pwsh: mv install install-moved
-          workingDirectory: $(Pipeline.Workspace)
-          displayName: Move installation (Windows)
-          enabled: ${{ and( eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['RELOCATABLE'], 'yes') ) }}
-
-        # Test Rakudo
-        - script: prove -e ../install/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Test Rakudo
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (Windows)
-        - script: prove -e ../install-moved/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated)
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install-moved\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated, Windows)
-
-        # Run spectest
-        - script: make TEST_JOBS=2 m-spectest
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Run spectest
-
-        - publish: $(Pipeline.Workspace)/install-moved
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
-          displayName: Publish build artifact
+            - publish: $(Pipeline.Workspace)/install-moved
+              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
+              displayName: Publish build artifact
 
 - stage: Build_Precomp_Release
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )

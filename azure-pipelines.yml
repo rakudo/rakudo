@@ -187,17 +187,23 @@ stages:
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - bash: |
-            echo "##vso[task.setvariable variable=moar_git_rev]"$(cd MoarVM; git describe --always)
-            echo moarvm repository has $(cd MoarVM; git describe --always) checked out 
-            echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)
-            echo nqp repository has $(cd nqp; git describe --always) checked out
+            MOAR_REV=$(cd MoarVM; git describe --always)
+            echo "##vso[task.setvariable variable=moar_git_rev]"$MOAR_REV
+            echo moarvm repository has $MOAR_REV checked out
+            NQP_REV=$(cd nqp; git describe --always)
+            echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
+            echo nqp repository has $NQP_REV checked out
+            echo "##vso[build.addbuildtag]moar-rev-"$MOAR_REV
+            echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
           displayName: "Get moar & nqp revision"
           workingDirectory: '$(Pipeline.Workspace)/'
           condition: ne( variables['BACKEND'], 'JVM' )
 
         - bash: |
-            echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)
-            echo nqp repository has $(cd nqp; git describe --always) checked out
+            NQP_REV=$(cd nqp; git describe --always)
+            echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
+            echo nqp repository has $NQP_REV checked out
+            echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
           displayName: "Get nqp revision (jvm)"
           workingDirectory: '$(Pipeline.Workspace)/'
           condition: eq( variables['BACKEND'], 'JVM' )

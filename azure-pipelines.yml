@@ -219,6 +219,9 @@ stages:
           displayName: Build Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
+            Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            Get-ChildItem -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            
             perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
             echo "configure done"
             nmake blib/CORE.c.setting.moarvm 2>$null
@@ -227,12 +230,12 @@ stages:
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
-            cat spam.txt*
+            
             $logsAfter = Get-WinEvent -ListLog *
             Compare-Object -ReferenceObject $logsBefore -DifferenceObject $logsAfter
             $logsAfter
             echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Security-Mitigations/KernelMode,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
-            echo "Windows PowerShell","Visual Studio","Microsoft-Windows-Windows Defender/Operational" | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
+            echo '"Windows PowerShell","Visual Studio","Microsoft-Windows-Windows Defender/Operational"' | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))

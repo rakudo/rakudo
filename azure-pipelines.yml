@@ -25,7 +25,7 @@ variables:
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
     $devShellLoadedSuccess = $false
     if (Test-Path -Path ../where_is_devshell.txt -PathType leaf) {
-      $tryDevShell = Get-Item -Path .\LineNumbers.txt | Get-Content -Head 1
+      $tryDevShell = Get-Item -Path ../where_is_devshell.txt | Get-Content -Head 1
       if (Test-Path -Path $tryDevShell) {
         try {
           Import-Module $tryDevShell

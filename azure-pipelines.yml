@@ -165,6 +165,9 @@ stages:
           path: selfrepo
           displayName: Checkout script repo
 
+        - bash: env
+          displayName: "show full environment"
+
         - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
           workingDirectory: $(Pipeline.Workspace)
           condition: and(succeeded(), ne(variables['BACKEND'], 'JVM'))
@@ -192,6 +195,7 @@ stages:
 
         - bash: |
             echo "##vso[task.setvariable variable=nqp_git_rev]"$(cd nqp; git describe --always)
+            echo "##vso[]"
             echo nqp repository has $(cd nqp; git describe --always) checked out
           displayName: "Get nqp revision (jvm)"
           workingDirectory: '$(Pipeline.Workspace)/'

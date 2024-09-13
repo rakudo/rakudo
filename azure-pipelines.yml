@@ -59,9 +59,12 @@ variables:
   MOAR_CHECKOUT_TYPE: downstream
 
 parameters:
-- name: backends
+- name: build_backends
   type: object
   default: ['JVM', 'MVM']
+- name: test_backends
+  type: object
+  default: ['MVM']
 - name: oses
   type: object
   default: ['Win', 'Lin', 'Mac']
@@ -76,13 +79,20 @@ parameters:
       Win: ['relocatable', '']
       Lin: ['relocatable', 'fullspectest']
       Mac: ['relocatable', '']
-
+- name: test_variants
+  type: object
+  default:
+    MVM:
+      Win: ['relocatable', '']
+      Lin: ['relocatable', 'fullspectest']
+      Mac: ['relocatable', '']
+    
 stages:
-- stage: Test
+- stage: Builds
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
 
   jobs:
-  - ${{ each backend in parameters.backends }}:
+  - ${{ each backend in parameters.build_backends }}:
     - ${{ each os in parameters.oses }}:
       - ${{ each variant in parameters['variants'][backend][os] }}:
         - job: ${{ backend }}_${{ os }}_${{ coalesce(variant, 'normal') }}
@@ -309,57 +319,114 @@ stages:
                 workingDirectory: $(Pipeline.Workspace)
                 displayName: Move installation
 
-          - ${{ if ne( backend, 'JVM' ) }}:
-            # Test Rakudo
-            - ${{ if eq(os, 'Win') }}:
-              - pwsh: |
-                  ${{ variables.PWSH_DEV }}
-                  prove -e ..\install\bin\perl6 -vlr t && \
-                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                enabled: ${{ ne( variant, 'relocatable' ) }}
-                displayName: Test Rakudo (Windows)
-              - pwsh: |
-                  ${{ variables.PWSH_DEV }}
-                  prove -e ..\install-moved\bin\perl6 -vlr t && \
-                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                enabled: ${{ eq( variant, 'relocatable' ) }}
-                displayName: Test Rakudo (relocated, Windows)
-
-            - ${{ if ne(os, 'Win') }}:
-              - script: |
-                  prove -e ../install/bin/perl6 -vlr t && \
-                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                enabled: ${{ eq( variant, '' ) }}
-                displayName: Test Rakudo
-              - script: |
-                  prove -e ../install-moved/bin/perl6 -vlr t && \
-                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                enabled: ${{ eq( variant, 'relocatable' ) }}
-                displayName: Test Rakudo (relocated)
-  
-          - ${{ if ne( backend, 'JVM' ) }}:
-            # Run spectest
-            - ${{ if and(eq( variant, 'fullspectest' ), ne(os, 'Win')) }}:
-              - script: |
-                  make TEST_JOBS=2 m-spectest && \
-                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                displayName: Run spectest
-
-            - ${{ if eq(variant, 'relocatable') }}:
-              - task: PublishPipelineArtifact@1
-                displayName: publish artifact
-                inputs:
+            - task: PublishPipelineArtifact@1
+              displayName: publish artifact
+              inputs:
+                ${{ if eq(variant, 'relocatable') }}:
                   targetPath: $(Pipeline.Workspace)/install-moved
-                  artifact: ${{ backend }}_relocatable_${{ os }}
-                  publishLocation: 'pipeline'
+                ${{ if ne(variant, 'relocatable') }}:
+                  targetPath: $(Pipeline.Workspace)/install
+                artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
+                publishLocation: 'pipeline'
 
+- stage: Tests
+  dependsOn: Builds
+  condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  jobs:
+  - ${{ each backend in parameters.test_backends }}:
+    - ${{ each os in parameters.oses }}:
+      - ${{ each variant in parameters['test_variants'][backend][os] }}:
+        - job: ${{ backend }}_${{ os }}_${{ coalesce(variant, 'normal') }}
+          variables:
+          - name: BACKEND
+            value: ${{ backend }}
+          - name: os
+            value: ${{ os }}
+          - name: VARIANT
+            value: ${{ variant }}
+          - name: RELOCATABLE
+            ${{ if eq(variant, 'relocatable') }}:
+              value: "yes"
+            ${{ if ne(variant, 'relocatable') }}:
+              value: ""
+          - name: SPECTEST_ONLY
+            ${{ if eq(variant, 'fullspectest') }}:
+              value: "yes"
+            ${{ if ne(variant, 'fullspectest') }}:
+              value: ""
+          - ${{ if eq(os, 'Win') }}:
+            - name: IMAGE_NAME
+              value: 'windows-2019'
+            - name: IS_WIN
+              value: true
+          - ${{ if eq(os, 'Lin') }}:
+            - name: IMAGE_NAME
+              value: 'ubuntu-20.04'
+            - name: IS_WIN
+              value: false
+          - ${{ if eq(os, 'Mac') }}:
+            - name: IMAGE_NAME
+              value: 'macOS-12'
+            - name: IS_WIN
+              value: false
+        steps:
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            buildType: 'current'
+            targetPath: '$(Pipeline.Workspace)'
+            artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
+            displayName: Download artifact
+        - checkout: self
+          path: selfrepo
+          displayName: Checkout script repo
+        - bash: |
+            export IS_AZURE_PIPELINES_BUILD=1
+            echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
+          displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
+        - bash: |
+            ls -lisah
+            ls -lisah install*
+            ls -lisah selfrepo
+            true
+    
+        # Test Rakudo
+        - ${{ if eq(os, 'Win') }}:
+          - pwsh: |
+              ${{ variables.PWSH_DEV }}
+              prove -e ..\install\bin\perl6 -vlr t && "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+            workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+            enabled: ${{ ne( variant, 'relocatable' ) }}
+            displayName: Test Rakudo (Windows)
+          - pwsh: |
+              ${{ variables.PWSH_DEV }}
+              prove -e ..\install-moved\bin\perl6 -vlr t && "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+            workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+            enabled: ${{ eq( variant, 'relocatable' ) }}
+            displayName: Test Rakudo (relocated, Windows)
+
+        - ${{ if ne(os, 'Win') }}:
+          - script: |
+              prove -e ../install/bin/perl6 -vlr t && "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+            workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+            enabled: ${{ eq( variant, '' ) }}
+            displayName: Test Rakudo
+          - script: |
+              prove -e ../install-moved/bin/perl6 -vlr t && "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+            workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+            enabled: ${{ eq( variant, 'relocatable' ) }}
+            displayName: Test Rakudo (relocated)
+
+        # Run spectest
+        - ${{ if eq( variant, 'fullspectest' ) }}:
+          - script: |
+              make TEST_JOBS=2 m-spectest && \
+              "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
+            workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+            displayName: Run spectest
+  
 - stage: Extra_Moar_Stability_Tests
-  dependsOn: Test
+  dependsOn: Builds
+  condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
   jobs:
   - job: Lin_Spesh_Nodelay
     steps:

@@ -351,8 +351,41 @@ stages:
                 displayName: Run spectest
 
             - ${{ if eq(variant, 'relocatable') }}:
-              - publish: $(Pipeline.Workspace)/install-moved
-                displayName: Publish build artifact
+              - task: PublishPipelineArtifact@1
+                displayName: publish artifact
+                inputs:
+                  targetPath: $(Pipeline.Workspace)/install-moved
+                  artifact: ${{ backend }}_relocatable_${{ os }}
+                  publishLocation: 'pipeline'
+
+- stage: Extra_Moar_Stability_Tests
+  dependsOn: Test
+  jobs:
+  - job: Lin_Spesh_Nodelay
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+        artifactName: MVM_relocatable_Lin
+      displayName: Download artifact
+    - checkout: self
+      path: selfrepo
+      displayName: Checkout script repo
+    - bash: |
+        export IS_AZURE_PIPELINES_BUILD=1
+        echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
+      displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
+    - bash: |
+        ls -lisah
+        ls -lisah install-moved
+        ls -lisah selfrepo
+        true
+    - script: |
+        make TEST_JOBS=2 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
+      workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+      displayName: spectest with nodelay & blocking
+
 
 - stage: Build_Precomp_Release
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )

@@ -62,13 +62,20 @@ parameters:
 - name: backends
   type: object
   default: ['JVM', 'MVM']
-- name: variant
-  type: object
-  default: ['relocatable', 'fullspectest', '']
 - name: oses
   type: object
   default: ['Win', 'Lin', 'Mac']
-
+- name: variants
+  type: object
+  default:
+    JVM:
+      Win: ['']
+      Lin: ['']
+      Mac: ['']
+    MVM:
+      Win: ['relocatable', '']
+      Lin: ['relocatable', 'fullspectest']
+      Mac: ['relocatable', '']
 
 stages:
 - stage: Test
@@ -76,9 +83,9 @@ stages:
 
   jobs:
   - ${{ each backend in parameters.backends }}:
-    - ${{ each variant in parameters.variant }}:
-      - ${{ each os in parameters.oses }}:
-        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, 'normal') }}
+    - ${{ each os in parameters.oses }}:
+      - ${{ each variant in parameters['variants'][backend][os] }}:
+        - job: ${{ backend }}_${{ os }}_${{ coalesce(variant, 'normal') }}
           variables:
           - name: BACKEND
             value: ${{ backend }}
@@ -133,34 +140,16 @@ stages:
             - name: IS_WIN
               value: false
 
-          # on JVM, only do the "nothing" variant:
-          # - too slow for spectest
-          # - relocatable does not apply
-          # also: only run fullspectest on linux for now
-          # - therefore also don't run "normal" on linux
-          #   since it's redundant
-          condition: |
-            and(
-              not(and(
-                ne( variables.VARIANT, '' ),
-                eq( variables.BACKEND, 'JVM' )
-              )),
-              not(and(
-                ne( variables.os, 'Lin'),
-                eq( variables.VARIANT, 'fullspectest' )
-              )),
-              not(and(
-                eq( variables.os, 'Lin'),
-                eq( variables.VARIANT, '' )
-              ))
-            )
-
           pool:
             vmImage: $(IMAGE_NAME)
           workspace:
             clean: all
           timeoutInMinutes: 180
           steps:
+
+          # immediately fail, i just want to test the "matrix" generation
+          - script: "false"
+
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
                 # Windows has a maximum PATH variable length of 2048 (depending on

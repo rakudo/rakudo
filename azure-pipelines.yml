@@ -461,6 +461,9 @@ stages:
               chmod +x install/bin/*
               chmod +x install-moved/bin/*
 
+              chmod +x install/lib/*
+              chmod +x install-moved/lib/*
+
               true
             workingDirectory: $(Pipeline.Workspace)
       
@@ -538,8 +541,16 @@ stages:
         echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
       displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
     - bash: |
+        echo "cwd"
+        pwd
+        echo "../install/bin/"
         ls -lisah ../install/bin
+        echo "chmod +x"
         chmod +x ../install/bin/*
+        echo "../install/lib/"
+        ls -lisah ../install/lib
+        echo "chmod +x"
+        chmod +x ../install/lib/*
         true
     - script: |
         make

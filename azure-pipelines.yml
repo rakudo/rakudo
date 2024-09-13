@@ -78,7 +78,7 @@ stages:
   - ${{ each backend in parameters.backends }}:
     - ${{ each variant in parameters.variant }}:
       - ${{ each os in parameters.oses }}:
-        - job: ${{ os }}${{ backend }}${{ variant }}
+        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, "normal") }}
           variables:
           - name: BACKEND
             value: ${{ backend }}
@@ -97,6 +97,8 @@ stages:
               value: '--backends=jvm'
             - name: RAKUDO_OPTIONS
               value: '--backends=jvm'
+            - name: MOAR_OPTIONS
+              value: '--no-moar'
           - ${{ if and( eq(backend, 'MVM'), eq(variant, 'relocatable') ) }}:
             - name: NQP_OPTIONS
               value: '--backends=moar --relocatable'
@@ -109,6 +111,8 @@ stages:
               value: '--backends=moar'
             - name: RAKUDO_OPTIONS
               value: '--backends=moar'
+            - name: MOAR_OPTIONS
+              value: ''
           - ${{ if eq(os, 'Win') }}:
             - name: IMAGE_NAME
               value: 'windows-2019'
@@ -298,16 +302,11 @@ stages:
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Build Rakudo (Windows)
 
-            - ${{ if eq(variant, 'relocatable' }}:
+            - ${{ if eq(variant, 'relocatable') }}:
               # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
               - script: mv install install-moved
                 workingDirectory: $(Pipeline.Workspace)
                 displayName: Move installation
-                enabled: ${{ ne(os, 'Win') }}
-              - pwsh: mv install install-moved
-                workingDirectory: $(Pipeline.Workspace)
-                displayName: Move installation (Windows)
-                enabled: ${{ eq(os, 'Win') }}
 
           - ${{ if ne( backend, 'JVM' ) }}:
             # Test Rakudo

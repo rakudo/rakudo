@@ -423,9 +423,9 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              ${{ if eq(variant, 'relocatable') }}:
-                targetPath: '$(Pipeline.Workspace)/install'
               ${{ if ne(variant, 'relocatable') }}:
+                targetPath: '$(Pipeline.Workspace)/install'
+              ${{ if eq(variant, 'relocatable') }}:
                 targetPath: '$(Pipeline.Workspace)/install-moved'
               artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
             displayName: Download artifact
@@ -437,10 +437,14 @@ stages:
 
           - bash: |
               echo is azure pipelines build? $IS_AZURE_PIPELINES_BUILD
+              echo "CWD"
               pwd
+              echo "."
               ls -lisah .
+              echo "install"
+              ls -lisah install
+              echo install*
               ls -lisah install*
-              ls -lisah selfrepo
               true
             workingDirectory: $(Pipeline.Workspace)
       
@@ -448,7 +452,7 @@ stages:
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
-                ls
+                ls -l
                 pwd
                 prove -e ..\install\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
@@ -456,7 +460,7 @@ stages:
               displayName: Test Rakudo (Windows)
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
-                ls
+                ls -l
                 pwd
                 prove -e ..\install-moved\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
@@ -465,14 +469,14 @@ stages:
 
           - ${{ if ne(os, 'Win') }}:
             - script: |
-                ls
+                ls -l
                 pwd
                 prove -e ../install/bin/perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
-                ls
+                ls -l
                 pwd
                 prove -e ../install-moved/bin/perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
@@ -483,7 +487,7 @@ stages:
           - ${{ if eq( variant, 'fullspectest' ) }}:
             - script: |
                 pwd
-                ls
+                ls -l
                 make TEST_JOBS=2 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest

@@ -89,7 +89,7 @@ parameters:
     
 stages:
 - ${{ each os in parameters.oses }}:
-  - stage: Builds ${{ os }}
+  - stage: Builds_${{ os }}
     condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
 
     jobs:
@@ -344,8 +344,8 @@ stages:
                 publishLocation: 'pipeline'
   
 - ${{ each os in parameters.oses }}:
-  - stage: Tests ${{ os }}
-    dependsOn: Builds ${{ os }}
+  - stage: Tests_${{ os }}
+    dependsOn: Builds_${{ os }}
     condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
     jobs:
     - ${{ each backend in parameters.test_backends }}:
@@ -474,7 +474,7 @@ stages:
               displayName: Run spectest
   
 - stage: Extra_Moar_Stability_Tests
-  dependsOn: Builds Lin
+  dependsOn: Builds_Lin
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
   jobs:
   - job: Lin_Spesh_Nodelay

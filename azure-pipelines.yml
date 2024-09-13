@@ -417,7 +417,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
-              targetPath: '$(Pipeline.Workspace)'
+              targetPath: '$(Pipeline.Workspace)/rakudo'
               artifact: ${{ backend }}_sourcecode_built_${{ coalesce(variant, 'normal') }}_${{ os }}
             displayName: Download artifact
           - task: DownloadPipelineArtifact@2
@@ -487,7 +487,7 @@ stages:
                 make TEST_JOBS=2 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
-  
+
 - stage: Extra_Moar_Stability_Tests
   dependsOn: Builds_Lin
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )

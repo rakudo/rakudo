@@ -137,6 +137,8 @@ stages:
           # - too slow for spectest
           # - relocatable does not apply
           # also: only run fullspectest on linux for now
+          # - therefore also don't run "normal" on linux
+          #   since it's redundant
           condition: |
             and(
               not(and(
@@ -146,6 +148,10 @@ stages:
               not(and(
                 ne( variables.os, 'Lin'),
                 eq( variables.VARIANT, 'fullspectest' )
+              )),
+              not(and(
+                eq( variables.os, 'Lin'),
+                eq( variables.VARIANT, '' )
               ))
             )
 

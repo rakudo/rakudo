@@ -327,18 +327,18 @@ stages:
                 artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
                 publishLocation: 'pipeline'
 
-            - ${{ if ne(os, 'Win') }}:
-              - script: |
-                  make clean
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                displayName: Clean build dir
-            - ${{ if eq(os, 'Win') }}:
-              - pwsh: |
-                  ${{ variables.PWSH_DEV }}
-                  nmake clean
-                failOnStderr: false
-                workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                displayName: Build Rakudo (Windows)
+            #- ${{ if ne(os, 'Win') }}:
+            #  - script: |
+            #      make clean
+            #    workingDirectory: '$(Pipeline.Workspace)/rakudo'
+            #    displayName: Clean build dir
+            #- ${{ if eq(os, 'Win') }}:
+            #  - pwsh: |
+            #      ${{ variables.PWSH_DEV }}
+            #      nmake clean
+            #    failOnStderr: false
+            #    workingDirectory: '$(Pipeline.Workspace)/rakudo'
+            #    displayName: Build Rakudo (Windows)
     
             - task: PublishPipelineArtifact@1
               displayName: publish build folder
@@ -527,6 +527,10 @@ stages:
         ls -lisah rakudo
         ls -lisah install
         true
+    - script: |
+        make
+      workingDirectory: '$(Pipeline.Workspace)/rakudo'
+      displayName: run make one more time to ensure what we need is there ...
     - script: |
         make TEST_JOBS=2 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'

@@ -339,7 +339,7 @@ stages:
             #    failOnStderr: false
             #    workingDirectory: '$(Pipeline.Workspace)/rakudo'
             #    displayName: Build Rakudo (Windows)
-    
+
             - task: PublishPipelineArtifact@1
               displayName: publish build folder
               inputs:
@@ -437,6 +437,8 @@ stages:
 
           - bash: |
               echo is azure pipelines build? $IS_AZURE_PIPELINES_BUILD
+              echo "id"
+              id
               echo "CWD"
               pwd
               echo "."
@@ -445,6 +447,12 @@ stages:
               ls -lisah install
               echo install*
               ls -lisah install*
+              echo "install/bin"
+              ls -lisah install/bin
+              echo install*/bin
+              ls -lisah install*/bin
+              chmod +x install/bin/*
+              chmod +x install-moved/bin/*
               true
             workingDirectory: $(Pipeline.Workspace)
       
@@ -522,10 +530,8 @@ stages:
         echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
       displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
     - bash: |
-        pwd
-        ls -lisah .
-        ls -lisah rakudo
-        ls -lisah install
+        ls -lisah ../install/bin
+        chmod +x ../install/bin/*
         true
     - script: |
         make

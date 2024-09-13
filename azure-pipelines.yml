@@ -146,10 +146,6 @@ stages:
             clean: all
           timeoutInMinutes: 180
           steps:
-
-          # immediately fail, i just want to test the "matrix" generation
-          - script: "false"
-
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
                 # Windows has a maximum PATH variable length of 2048 (depending on

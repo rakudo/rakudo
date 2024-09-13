@@ -327,16 +327,19 @@ stages:
                 artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
                 publishLocation: 'pipeline'
 
-            - task: Bash@3
-              displayName: Clean build dir
-              inputs:
-                targetType: inline
-                ${{ if ne(os, 'Win') }}:
-                  script: make clean
-                ${{ if eq(os, 'Win') }}:
-                  script: nmake clean
+            - ${{ if ne(os, 'Win') }}:
+              - script: |
+                  make clean
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
-
+                displayName: Clean build dir
+            - ${{ if eq(os, 'Win') }}:
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  nmake clean
+                failOnStderr: false
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                displayName: Build Rakudo (Windows)
+    
             - task: PublishPipelineArtifact@1
               displayName: publish build folder
               inputs:

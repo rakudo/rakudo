@@ -110,6 +110,8 @@ stages:
               value: '--backends=jvm'
             - name: MOAR_OPTIONS
               value: '--no-moar'
+            - name: MOAR_CHECKOUT_TYPE
+              value: 'none'
           - ${{ if and( eq(backend, 'MVM'), eq(variant, 'relocatable') ) }}:
             - name: NQP_OPTIONS
               value: '--backends=moar --relocatable'
@@ -180,12 +182,7 @@ stages:
 
           - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
             workingDirectory: $(Pipeline.Workspace)
-            enabled: ${{ eq(backend, 'MVM') }}
-            displayName: Checkout repositories (MoarVM)
-          - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
-            workingDirectory: $(Pipeline.Workspace)
-            enabled: ${{ eq(backend, 'JVM') }}
-            displayName: Checkout repositories (JVM)
+            displayName: Checkout repositories
 
           - ${{ if eq(os, 'Win') }}:
             - task: Cache@2
@@ -249,7 +246,9 @@ stages:
             - ${{ if ne(os, 'Win') }}:
               - script: |
                   perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
-                  make install && cp -r ../install ../install-moar
+                  make install && \
+                  echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && \
+                  cp -r ../install ../install-moar
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
                 displayName: Build MoarVM
@@ -257,7 +256,9 @@ stages:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
                   perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
-                  nmake install && cp -r ../install ../install-moar
+                  nmake install && \
+                  echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && \
+                  cp -r ../install ../install-moar
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -267,16 +268,19 @@ stages:
           - ${{ if ne(os, 'Win') }}:
             - script: |
                 perl Configure.pl --prefix=../install $(NQP_OPTIONS)
-                make install && cp -r ../install ../install-nqp-and-moar
+                make install && \
+                echo "##vso[build.addbuildtag]nqp-${{ os }}-compiled" && \
+                cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
-              enabled: ${{ ne(os, 'Win') }}
               displayName: Build NQP
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
-                nmake install && cp -r ../install ../install-nqp-and-moar
+                nmake install && \
+                echo "##vso[build.addbuildtag]nqp-${{ os }}-compiled" && \
+                cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
@@ -310,23 +314,29 @@ stages:
             - ${{ if eq(os, 'Win') }}:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
-                  prove -e ..\install\bin\perl6 -vlr t
+                  prove -e ..\install\bin\perl6 -vlr t && \
+                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 enabled: ${{ ne( variant, 'relocatable' ) }}
                 displayName: Test Rakudo (Windows)
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
-                  prove -e ..\install-moved\bin\perl6 -vlr t
+                  prove -e ..\install-moved\bin\perl6 -vlr t && \
+                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 enabled: ${{ eq( variant, 'relocatable' ) }}
                 displayName: Test Rakudo (relocated, Windows)
 
             - ${{ if ne(os, 'Win') }}:
-              - script: prove -e ../install/bin/perl6 -vlr t
+              - script: |
+                  prove -e ../install/bin/perl6 -vlr t && \
+                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 enabled: ${{ eq( variant, '' ) }}
                 displayName: Test Rakudo
-              - script: prove -e ../install-moved/bin/perl6 -vlr t
+              - script: |
+                  prove -e ../install-moved/bin/perl6 -vlr t && \
+                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 enabled: ${{ eq( variant, 'relocatable' ) }}
                 displayName: Test Rakudo (relocated)
@@ -334,7 +344,9 @@ stages:
           - ${{ if ne( backend, 'JVM' ) }}:
             # Run spectest
             - ${{ if and(eq( variant, 'fullspectest' ), ne(os, 'Win')) }}:
-              - script: make TEST_JOBS=2 m-spectest
+              - script: |
+                  make TEST_JOBS=2 m-spectest && \
+                  "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Run spectest
 

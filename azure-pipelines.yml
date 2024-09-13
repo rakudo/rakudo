@@ -269,7 +269,7 @@ stages:
             - script: |
                 perl Configure.pl --prefix=../install $(NQP_OPTIONS)
                 make install && \
-                echo "##vso[build.addbuildtag]nqp-${{ os }}-compiled" && \
+                echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
@@ -279,7 +279,7 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
                 nmake install && \
-                echo "##vso[build.addbuildtag]nqp-${{ os }}-compiled" && \
+                echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'

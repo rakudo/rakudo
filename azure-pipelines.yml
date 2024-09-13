@@ -84,6 +84,8 @@ stages:
             value: ${{ backend }}
           - name: os
             value: ${{ os }}
+          - name: VARIANT
+            value: ${{ variant }}
           - name: RELOCATABLE
             ${{ if eq(variant, 'relocatable') }}:
               value: "yes"
@@ -138,12 +140,12 @@ stages:
           condition: |
             and(
               not(and(
-                ne( variables.variant, '' ),
+                ne( variables.VARIANT, '' ),
                 eq( variables.BACKEND, 'JVM' )
               )),
               not(and(
                 ne( variables.os, 'Lin'),
-                eq( variables.SPECTEST_ONLY, 'yes' )
+                eq( variables.VARIANT, 'fullspectest' )
               ))
             )
 

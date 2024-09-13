@@ -454,7 +454,7 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 ls -l
                 pwd
-                prove -e ..\install\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+                prove -e ..\install\bin\perl6 -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ ne( variant, 'relocatable' ) }}
               displayName: Test Rakudo (Windows)
@@ -462,7 +462,7 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 ls -l
                 pwd
-                prove -e ..\install-moved\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+                prove -e ..\install-moved\bin\perl6 -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated, Windows)

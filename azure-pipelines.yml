@@ -325,6 +325,23 @@ stages:
                 artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
                 publishLocation: 'pipeline'
 
+            - task: Bash@3
+              displayName: Clean build dir
+              inputs:
+                targetType: inline
+                ${{ if ne(os, 'Win') }}:
+                  script: make clean
+                ${{ if eq(os, 'Win') }}:
+                  script: nmake clean
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+
+            - task: PublishPipelineArtifact@1
+              displayName: publish build folder
+              inputs:
+                targetPath: $(Pipeline.Workspace)/rakudo
+                artifact: ${{ backend }}_sourcecode_built_${{ coalesce(variant, 'normal') }}_${{ os }}
+                publishLocation: 'pipeline'
+  
 - stage: Tests
   dependsOn: Builds
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
@@ -409,6 +426,7 @@ stages:
               export IS_AZURE_PIPELINES_BUILD=1
               echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
             displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
+
           - bash: |
               echo is azure pipelines build? $IS_AZURE_PIPELINES_BUILD
               pwd
@@ -422,6 +440,7 @@ stages:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 ls
+                pwd
                 prove -e ..\install\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ ne( variant, 'relocatable' ) }}
@@ -429,6 +448,7 @@ stages:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 ls
+                pwd
                 prove -e ..\install-moved\bin\perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
@@ -437,12 +457,14 @@ stages:
           - ${{ if ne(os, 'Win') }}:
             - script: |
                 ls
+                pwd
                 prove -e ../install/bin/perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
                 ls
+                pwd
                 prove -e ../install-moved/bin/perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
@@ -451,6 +473,7 @@ stages:
           # Run spectest
           - ${{ if eq( variant, 'fullspectest' ) }}:
             - script: |
+                pwd
                 ls
                 make TEST_JOBS=2 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
@@ -472,24 +495,22 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
-        artifactName: MVM_relocatable_Lin
+        targetPath: '$(Pipeline.Workspace)/rakudo'
+        artifactName: MVM_sourcecode_built_fullspectest_Lin
       displayName: Download artifact
-    - checkout: self
-      path: selfrepo
-      displayName: Checkout script repo
     - bash: |
         export IS_AZURE_PIPELINES_BUILD=1
         echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
       displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
     - bash: |
-        ls -lisah
-        ls -lisah install-moved
-        ls -lisah selfrepo
+        pwd
+        ls -lisah .
+        ls -lisah rakudo
+        ls -lisah install
         true
     - script: |
         make TEST_JOBS=2 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
-      workingDirectory: '$(Pipeline.Workspace)/selfrepo'
+      workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking
 
 

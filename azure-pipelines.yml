@@ -366,13 +366,19 @@ stages:
             - name: IS_WIN
               value: false
 
+          pool:
+            vmImage: $(IMAGE_NAME)
+          workspace:
+            clean: all
+          timeoutInMinutes: 180
+
           steps:
           - task: DownloadPipelineArtifact@2
             inputs:
               buildType: 'current'
               targetPath: '$(Pipeline.Workspace)'
               artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
-              displayName: Download artifact
+            displayName: Download artifact
           - checkout: self
             path: selfrepo
             displayName: Checkout script repo
@@ -425,6 +431,13 @@ stages:
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
   jobs:
   - job: Lin_Spesh_Nodelay
+
+    pool:
+      vmImage: 'ubuntu-20.04'
+    workspace:
+      clean: all
+    timeoutInMinutes: 180
+
     steps:
     - task: DownloadPipelineArtifact@2
       inputs:
@@ -451,6 +464,7 @@ stages:
 
 
 - stage: Build_Precomp_Release
+  dependsOn: []
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
   jobs:
     - job: linux

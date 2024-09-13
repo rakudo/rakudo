@@ -309,37 +309,42 @@ stages:
                 displayName: Move installation (Windows)
                 enabled: ${{ eq(os, 'Win') }}
 
+          - ${{ if ne( backend, 'JVM' ) }}:
             # Test Rakudo
-            - script: prove -e ../install/bin/perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
-              displayName: Test Rakudo
-            - pwsh: |
-                ${{ variables.PWSH_DEV }}
-                prove -e ..\install\bin\perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (Windows)
-            - script: prove -e ../install-moved/bin/perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (relocated)
-            - pwsh: |
-                ${{ variables.PWSH_DEV }}
-                prove -e ..\install-moved\bin\perl6 -vlr t
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-              displayName: Test Rakudo (relocated, Windows)
+            - ${{ if eq(os, 'Win') }}:
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  prove -e ..\install\bin\perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                enabled: ${{ ne( variant, 'relocatable' ) }}
+                displayName: Test Rakudo (Windows)
+              - pwsh: |
+                  ${{ variables.PWSH_DEV }}
+                  prove -e ..\install-moved\bin\perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                enabled: ${{ eq( variant, 'relocatable' ) }}
+                displayName: Test Rakudo (relocated, Windows)
 
+            - ${{ if ne(os, 'Win') }}:
+              - script: prove -e ../install/bin/perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                enabled: ${{ eq( variant, '' ) }}
+                displayName: Test Rakudo
+              - script: prove -e ../install-moved/bin/perl6 -vlr t
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                enabled: eq( variant, 'relocatable' ) )
+                displayName: Test Rakudo (relocated)
+  
+          - ${{ if ne( backend, 'JVM' ) }}:
             # Run spectest
-            - script: make TEST_JOBS=2 m-spectest
-              workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
-              displayName: Run spectest
+            - ${{ if and(eq( variant, 'fullspectest' ), ne(os, 'Win')) }}:
+              - script: make TEST_JOBS=2 m-spectest
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                displayName: Run spectest
 
-            - publish: $(Pipeline.Workspace)/install-moved
-              condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
-              displayName: Publish build artifact
+            - ${{ if eq(variant, 'relocatable') }}:
+              - publish: $(Pipeline.Workspace)/install-moved
+                displayName: Publish build artifact
 
 - stage: Build_Precomp_Release
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )

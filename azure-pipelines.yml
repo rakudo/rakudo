@@ -90,12 +90,13 @@ parameters:
 stages:
 - ${{ each os in parameters.oses }}:
   - stage: Builds_${{ os }}
+    dependsOn: []
     condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
 
     jobs:
     - ${{ each backend in parameters.build_backends }}:
       - ${{ each variant in parameters['variants'][backend][os] }}:
-        - job: ${{ backend }}_${{ coalesce(variant, 'normal') }}
+        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, 'normal') }}
           variables:
           - name: BACKEND
             value: ${{ backend }}
@@ -350,7 +351,7 @@ stages:
     jobs:
     - ${{ each backend in parameters.test_backends }}:
       - ${{ each variant in parameters['test_variants'][backend][os] }}:
-        - job: ${{ backend }}_${{ coalesce(variant, 'normal') }}
+        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, 'normal') }}
           variables:
           - name: BACKEND
             value: ${{ backend }}

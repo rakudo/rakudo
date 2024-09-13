@@ -420,6 +420,16 @@ stages:
               targetPath: '$(Pipeline.Workspace)'
               artifact: ${{ backend }}_sourcecode_built_${{ coalesce(variant, 'normal') }}_${{ os }}
             displayName: Download artifact
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              ${{ if eq(variant, 'relocatable') }}:
+                targetPath: '$(Pipeline.Workspace)/install'
+              ${{ if ne(variant, 'relocatable') }}:
+                targetPath: '$(Pipeline.Workspace)/install-moved'
+              artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
+            displayName: Download artifact
+
           - bash: |
               export IS_AZURE_PIPELINES_BUILD=1
               echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
@@ -432,6 +442,7 @@ stages:
               ls -lisah install*
               ls -lisah selfrepo
               true
+            workingDirectory: $(Pipeline.Workspace)
       
           # Test Rakudo
           - ${{ if eq(os, 'Win') }}:
@@ -495,6 +506,12 @@ stages:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)/rakudo'
         artifactName: MVM_sourcecode_built_fullspectest_Lin
+      displayName: Download artifact
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)/install'
+        artifactName: MVM_fullspectest_Lin
       displayName: Download artifact
     - bash: |
         export IS_AZURE_PIPELINES_BUILD=1

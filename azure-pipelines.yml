@@ -78,7 +78,7 @@ stages:
   - ${{ each backend in parameters.backends }}:
     - ${{ each variant in parameters.variant }}:
       - ${{ each os in parameters.oses }}:
-        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, "normal") }}
+        - job: ${{ os }}_${{ backend }}_${{ coalesce(variant, 'normal') }}
           variables:
           - name: BACKEND
             value: ${{ backend }}
@@ -197,7 +197,7 @@ stages:
                 key: '"where is devshell on" | "$(IMAGE_NAME)"'
                 path: ../where_is_devshell/
 
-          - ${{ ne(backend, 'JVM') }}:
+          - ${{ if ne(backend, 'JVM') }}:
             - bash: |
                 MOAR_REV=$(cd MoarVM; git describe --always)
                 echo "##vso[task.setvariable variable=moar_git_rev]"$MOAR_REV
@@ -210,7 +210,7 @@ stages:
               displayName: "Get moar & nqp revision"
               workingDirectory: '$(Pipeline.Workspace)/'
             
-          - ${{ eq(backend, 'JVM') }}:
+          - ${{ if eq(backend, 'JVM') }}:
             - bash: |
                 NQP_REV=$(cd nqp; git describe --always)
                 echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
@@ -331,7 +331,7 @@ stages:
                 displayName: Test Rakudo
               - script: prove -e ../install-moved/bin/perl6 -vlr t
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
-                enabled: eq( variant, 'relocatable' ) )
+                enabled: ${{ eq( variant, 'relocatable' ) }}
                 displayName: Test Rakudo (relocated)
   
           - ${{ if ne( backend, 'JVM' ) }}:

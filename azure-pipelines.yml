@@ -82,6 +82,8 @@ stages:
           variables:
           - name: BACKEND
             value: ${{ backend }}
+          - name: os
+            value: ${{ os }}
           - name: RELOCATABLE
             ${{ if eq(variant, 'relocatable') }}:
               value: "yes"
@@ -135,12 +137,14 @@ stages:
           # also: only run fullspectest on linux for now
           condition: |
             and(
-              or( eq( variables.variant, '' ),
-                  ne( variables.BACKEND, 'JVM' )
-              ),
-              or( ne( variables.os, 'Lin'),
-                  ne( variables.variant, 'fullspectest' )
-              )
+              not(and(
+                ne( variables.variant, '' ),
+                eq( variables.BACKEND, 'JVM' )
+              )),
+              not(and(
+                ne( variables.os, 'Lin'),
+                eq( variables.SPECTEST_ONLY, 'yes' )
+              ))
             )
 
           pool:

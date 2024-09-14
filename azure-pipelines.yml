@@ -177,7 +177,6 @@ stages:
             echo "before trying to run configure"
             perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
             echo "after running configure"
-            echo "trying to run compile in multiple cores"
             nmake install
             echo "after running install"
             echo "any pdb files?"
@@ -186,6 +185,7 @@ stages:
             cp moar.exe.pdb ..\install\bin\
             cp moar.dll.pdb ..\install\bin\
             ls ..\install\bin\
+            cp -r ..\install ..\install-moar
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
           condition: and(succeeded(), and( ne( variables.MOARVM_CACHE_RESTORED, 'true' ), ne( variables.NQP_CACHE_RESTORED, 'true') ) )
@@ -203,7 +203,7 @@ stages:
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
-            nmake install
+            nmake install && cp -r ..\install ..\install-nqp-and-moar
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
           condition: and(succeeded(), ne( variables.NQP_CACHE_RESTORED, 'true') )

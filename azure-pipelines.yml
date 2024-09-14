@@ -284,27 +284,28 @@ stages:
             echo "win event log listing before running crashy process"
             $logsBefore = Get-WinEvent -ListLog *
             echo "first attempt to nmake the core setting"
-            $Env:MVM_TELEMETRY_LOG = 'spam.txt'
-            $Env:MVM_SPESH_LOG = 'speshlog.txt'
-            $Env:MVM_JIT_DUMP_BYTECODE = 1
+            # $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            # $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            # $Env:MVM_JIT_DUMP_BYTECODE = 1
             $Env:MVM_SPESH_BLOCKING = 1
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
 
-            echo "turning ProcDump on"
-            ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
+            # echo "turning ProcDump on"
+            # ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
+            echo "run procdump to wait for moar.exe"
+            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
 
             echo "try to run with jit ..."
 
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
 
-            echo "turning ProcDump off"
-            ProcDump -u
+            # echo "turning ProcDump off"
+            # ProcDump -u
 
             sleep 10
 
-            <#
             echo "output from procdump job:"
             Receive-Job -Job $dumpjob
             echo "end of output"

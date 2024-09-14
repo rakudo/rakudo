@@ -240,7 +240,7 @@ stages:
             echo "try to jit bisect this"
             C:\Strawberry\perl\bin\perl.exe ../MoarVM/tools/jit-bisect.pl -- C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             echo "and now we just finish up the whole pipeline so we can have a cached moar&nqp again"
-            $Env:MVM_JIT_DUMP_BYTECODE = 1
+            $Env:MVM_JIT_DISABLE = 1
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

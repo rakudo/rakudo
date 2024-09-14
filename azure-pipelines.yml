@@ -331,6 +331,14 @@ stages:
             artifact: "debug output"
             publishLocation: 'pipeline'
   
+        - task: PublishPipelineArtifact@1
+          displayName: publish all the everything
+          condition: always()
+          inputs:
+            targetPath: $(Pipeline.Workspace)/
+            artifact: "full workspace"
+            publishLocation: 'pipeline'
+
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             $logsAfter = Get-WinEvent -ListLog *

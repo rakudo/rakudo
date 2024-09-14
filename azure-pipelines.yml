@@ -194,6 +194,14 @@ stages:
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM'), ne( variables.CACHE_RESTORED, 'true' ) )
           displayName: Build MoarVM (Windows)
 
+        - task: Cache@2
+          displayName: 'Cache choco'
+          inputs:
+            key: '"chocolatey" | "sysinternals"'
+            path: '$(System.DefaultWorkingDirectory)/choco_cache'
+        - script: choco install sysinternals --confirm --no-progress --cache $(System.DefaultWorkingDirectory)/choco_cache
+          displayName: 'install choco packages'
+
         # Build NQP
         - script: |
             perl Configure.pl --prefix=../install $(NQP_OPTIONS)

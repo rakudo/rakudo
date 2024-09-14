@@ -220,7 +220,6 @@ stages:
 
         - pwsh: |
             Copy-Item -Path ..\install\bin -Destination . -Recurse
-            Copy-Item -Path ..\install\lib -Destination . -Recurse
           displayName: copy binaries and dlls into PWD
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: always()

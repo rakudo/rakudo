@@ -261,14 +261,14 @@ stages:
             artifact: "crash dumps"
             publishLocation: 'pipeline'
         - pwsh: |
+            ${{ variables.PWSH_DEV }}
             $logsAfter = Get-WinEvent -ListLog *
-            Compare-Object -ReferenceObject $logsBefore -DifferenceObject $logsAfter
             $logsAfter
             echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: always()
-          displayName: Build Rakudo (Windows)
+          displayName: Output a bunch of windows event log entries
 
         ## TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
         #- script: mv install install-moved

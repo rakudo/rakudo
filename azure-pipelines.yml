@@ -296,7 +296,7 @@ stages:
             ${{ variables.PWSH_DEV }}
             $logsAfter = Get-WinEvent -ListLog *
             $logsAfter
-            echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
+            echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { try { get-winevent $_ -maxevents 30 } catch { } } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: always()

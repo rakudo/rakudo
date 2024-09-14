@@ -35,7 +35,7 @@ variables:
     echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: "rev-f958cb72c95e4886dfa8e7684f3046c68fae0abb-https://github.com/MoarVM/MoarVM.git"
+  MOAR_CHECKOUT_TYPE: "rev-2ab93a89ed58ff6cd74f19ad6460bcf981ac7175-https://github.com/MoarVM/MoarVM.git"
 
 stages:
 - stage: Test
@@ -215,19 +215,18 @@ stages:
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: always()
 
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            echo "grabbing Get-PdbSymbol script"
-            Invoke-WebRequest https://github.com/FranciscoNabas/PowerShellPublic/raw/refs/heads/main/Get-PdbSymbol.ps1 -OutFile Get-PdbSymbol.ps1
-            Import-Module ./Get-PdbSymbol.ps1
-
-            Get-PdbSymbol -Path @('C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'C:\Windows\System32\ucrtbase.dll', 'C:\Windows\System32\msvcrt.dll', 'C:\Windows\System32\dbghelp.dll', 'C:\Windows\System32\dbgcore.dll') -DestinationStore $(Pipeline.Workspace)/rakudo
-
-            ls -l *.pdb
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: always()
-          displayName: download pdb symbols
-
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    echo "grabbing Get-PdbSymbol script"
+        #    Invoke-WebRequest https://github.com/FranciscoNabas/PowerShellPublic/raw/refs/heads/main/Get-PdbSymbol.ps1 -OutFile Get-PdbSymbol.ps1
+        #    Import-Module ./Get-PdbSymbol.ps1
+        #
+        #    Get-PdbSymbol -Path @('C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'C:\Windows\System32\ucrtbase.dll', 'C:\Windows\System32\msvcrt.dll', 'C:\Windows\System32\dbghelp.dll', 'C:\Windows\System32\dbgcore.dll') -DestinationStore $(Pipeline.Workspace)/rakudo
+        #
+        #    ls -l .
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: always()
+        #  displayName: download pdb symbols
 
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -293,15 +292,18 @@ stages:
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
 
+            <#
             echo "turning ProcDump on"
             ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
             echo "also running a procdump that waits for the process to start"
             $dumpjob = ProcDump -n 8  -l -t -e 1 -et -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
+            #>
 
             echo "try to run with jit ..."
 
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
 
+            <#
             echo "turning ProcDump off"
             ProcDump -u
 
@@ -313,6 +315,7 @@ stages:
             echo "killing procdump"
             Stop-Job -Job $dumpjob
             Receive-Job -Job $dumpjob -Wait
+            #>
 
             ls -l '$(Pipeline.Workspace)/rakudo'
           failOnStderr: false

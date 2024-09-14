@@ -286,7 +286,7 @@ stages:
             echo "turning ProcDump on"
             ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
             echo "also running a procdump that waits for the process to start"
-            $dumpjob = ProcDump -l -t -e 1 -et -wer -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
+            $dumpjob = ProcDump -n4  -l -t -e 1 -et -wer -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
 
             echo "try to run with jit ..."
 
@@ -295,9 +295,14 @@ stages:
             echo "turning ProcDump off"
             ProcDump -u
 
-            echo "output from procdume job:"
-            Receive-Job -Job $dumpjob -Wait
+            sleep 10
+
+            echo "output from procdump job:"
+            Receive-Job -Job $dumpjob
             echo "end of output"
+            echo "killing procdump"
+            Stop-Job -Job $dumpjob
+            Receive-Job -Job $dumpjob -Wait
 
             ls -l '$(Pipeline.Workspace)/rakudo'
 

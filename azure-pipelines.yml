@@ -306,6 +306,19 @@ stages:
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo (Windows)
 
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            echo "grabbing Get-PdbSymbol script"
+            wget https://github.com/FranciscoNabas/PowerShellPublic/raw/refs/heads/main/Get-PdbSymbol.ps1
+            Import-Module ./Get-PdbSymbol.ps1
+
+            Get-PdbSymbol -Path ['C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'bin\moar.exe'] -DestinationStore $(Pipeline.Workspace)/rakudo
+
+            ls -l *.pdb
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: always()
+          displayName: download pdb symbols
+
         - task: PublishPipelineArtifact@1
           displayName: publish all the stuff
           condition: always()

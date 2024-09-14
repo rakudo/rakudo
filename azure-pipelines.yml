@@ -247,6 +247,12 @@ stages:
             targetPath: $(Pipeline.Workspace)/rakudo
             artifact: "debug output"
             publishLocation: 'pipeline'
+        - task: PublishPipelineArtifact@1
+          displayName: publish crash dumps
+          inputs:
+            targetPath: C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps
+            artifact: "crash dumps"
+            publishLocation: 'pipeline'
         - pwsh: |
             $logsAfter = Get-WinEvent -ListLog *
             Compare-Object -ReferenceObject $logsBefore -DifferenceObject $logsAfter

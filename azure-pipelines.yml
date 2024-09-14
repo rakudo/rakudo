@@ -127,18 +127,6 @@ stages:
             $shortened_path = "$(PATH)" -replace ';[^;]*(SeleniumWebDrivers|SQL Server|Mercurial|Amazon|mysql|\\sbt\\|NSIS|Windows Performance Toolkit|php|Subversion)[^;]*(?=(;|$))', ''
             echo "##vso[task.setvariable variable=PATH]$shortened_path"
           displayName: "Shorten PATH on Windows"
-          condition: eq( variables['Agent.OS'], 'Windows_NT' )
-
-        - script: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
-          displayName: "Set java version (non-Windows)"
-          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-        - pwsh: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
-          displayName: "Set java version (Windows)"
-          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - checkout: self
           path: selfrepo
@@ -146,12 +134,7 @@ stages:
 
         - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
           workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), ne(variables['BACKEND'], 'JVM'))
           displayName: Checkout repositories (MoarVM)
-        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
-          workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), eq(variables['BACKEND'], 'JVM'))
-          displayName: Checkout repositories (JVM)
 
         - pwsh: |
             $moar_git_rev = git describe --always

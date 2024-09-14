@@ -77,14 +77,14 @@ parameters:
       Mac: ['']
     MVM:
       Win: ['relocatable', '']
-      Lin: ['relocatable', 'fullspectest']
+      Lin: ['fullspectest', '']
       Mac: ['relocatable', '']
 - name: test_variants
   type: object
   default:
     MVM:
       Win: ['relocatable', '']
-      Lin: ['relocatable', 'fullspectest']
+      Lin: ['fullspectest', '']
       Mac: ['relocatable', '']
     
 stages:
@@ -105,9 +105,9 @@ stages:
           - name: VARIANT
             value: ${{ variant }}
           - name: RELOCATABLE
-            ${{ if eq(variant, 'relocatable') }}:
+            ${{ if or( eq(variant, 'relocatable'), eq(variant, 'fullspectest') ) }}:
               value: "yes"
-            ${{ if ne(variant, 'relocatable') }}:
+            ${{ if and( ne(variant, 'relocatable'), ne(variant, 'fullspectest') ) }}:
               value: ""
           - name: SPECTEST_ONLY
             ${{ if eq(variant, 'fullspectest') }}:
@@ -363,9 +363,9 @@ stages:
           - name: VARIANT
             value: ${{ variant }}
           - name: RELOCATABLE
-            ${{ if eq(variant, 'relocatable') }}:
+            ${{ if or( eq(variant, 'relocatable'), eq(variant, 'fullspectest') ) }}:
               value: "yes"
-            ${{ if ne(variant, 'relocatable') }}:
+            ${{ if and( ne(variant, 'relocatable'), ne(variant, 'fullspectest') ) }}:
               value: ""
           - name: SPECTEST_ONLY
             ${{ if eq(variant, 'fullspectest') }}:
@@ -539,13 +539,13 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)/rakudo'
-        artifactName: MVM_sourcecode_built_fullspectest_Lin
+        artifactName: MVM_sourcecode_built_relocatable_Lin
       displayName: Download artifact
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)/install'
-        artifactName: MVM_fullspectest_Lin
+        artifactName: MVM_relocatable_Lin
       displayName: Download artifact
     - bash: |
         export IS_AZURE_PIPELINES_BUILD=1

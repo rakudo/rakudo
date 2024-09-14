@@ -244,6 +244,9 @@ stages:
               echo $_
             }
             echo "done...?"
+        - pwsh: |
+            choco install sysinternals
+          displayName: "install sysinternals ProcDump"
         # Build Rakudo
         - script: |
             perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
@@ -271,8 +274,22 @@ stages:
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
+            
+            echo "turning ProcDump on"
+            ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
+            echo "also running a procdump that waits for the process to start"
+            $dumpjob = ProcDump -l -t -e 1 -et -wer -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
+
             echo "try to run with jit ..."
+
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
+
+            echo "turning ProcDump off"
+            ProcDump -u
+
+            echo "output from procdume job:"
+            ReceiveJob $dumpjob
+            echo "end of output"
 
             ls -l '$(Pipeline.Workspace)/rakudo'
 

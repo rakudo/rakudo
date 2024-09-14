@@ -237,12 +237,8 @@ stages:
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
-            echo "crash dumps before"
-            ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
             echo "try to jit bisect this"
-            C:\Strawberry\perl\bin\perl.exe ../MoarVM/tools/jit-bisect.pl C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
-            echo "crash dumps after"
-            ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
+            C:\Strawberry\perl\bin\perl.exe ../MoarVM/tools/jit-bisect.pl -- C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             echo "and now we just finish up the whole pipeline so we can have a cached moar&nqp again"
             $Env:MVM_JIT_DUMP_BYTECODE = 1
             nmake install

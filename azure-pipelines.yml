@@ -217,6 +217,14 @@ stages:
           workingDirectory: '$(Pipeline.Workspace)/nqp'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build NQP (Windows)
+
+        - pwsh: |
+            Copy-Item -Path ..\install\bin -Destination . -Recurse
+            Copy-Item -Path ..\install\lib -Destination . -Recurse
+          displayName: copy binaries and dlls into PWD
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: always()
+
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             echo "before copying:"
@@ -307,13 +315,6 @@ stages:
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo (Windows)
-
-        - script: |
-            cp -r ../install/bin .
-            cp -r ../install/lib .
-          displayName: copy binaries and dlls into PWD
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: always()
 
         - task: PublishPipelineArtifact@1
           displayName: publish all the stuff

@@ -77,14 +77,14 @@ parameters:
       Mac: ['']
     MVM:
       Win: ['relocatable', '']
-      Lin: ['fullspectest', '']
+      Lin: ['relocatable', '']
       Mac: ['relocatable', '']
 - name: test_variants
   type: object
   default:
     MVM:
       Win: ['relocatable', '']
-      Lin: ['fullspectest', '']
+      Lin: ['relocatable', '']
       Mac: ['relocatable', '']
     
 stages:

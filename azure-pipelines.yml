@@ -35,7 +35,7 @@ variables:
     echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: "rev-9169e7a55a27d6776297d81e3de3832515262bb2-https://github.com/MoarVM/MoarVM.git"
+  MOAR_CHECKOUT_TYPE: "rev-f958cb72c95e4886dfa8e7684f3046c68fae0abb-https://github.com/MoarVM/MoarVM.git"
 
 stages:
 - stage: Test
@@ -219,9 +219,11 @@ stages:
           displayName: Build Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
+            echo "property"
             Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            echo "childitem"
             Get-ChildItem -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
-            
+            echo "configure"
             perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
             echo "configure done"
             nmake blib/CORE.c.setting.moarvm 2>$null
@@ -229,13 +231,27 @@ stages:
             $logsBefore = Get-WinEvent -ListLog *
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            $Env:MVM_JIT_DUMP_BYTECODE = 1
+            echo "TMP before: $TMP"
+            echo "TMP before:" $Env:TMP
+            $Env:TMP = $(Pipeline.Workspace)/rakudo
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
-            
+          failOnStderr: false
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+          displayName: Build Rakudo (Windows)
+        - task: PublishPipelineArtifact@1
+          displayName: publish all the stuff
+          inputs:
+            targetPath: $(Pipeline.Workspace)/rakudo
+            artifact: "debug output"
+            publishLocation: 'pipeline'
+        - pwsh: |
             $logsAfter = Get-WinEvent -ListLog *
             Compare-Object -ReferenceObject $logsBefore -DifferenceObject $logsAfter
             $logsAfter
-            echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Security-Mitigations/KernelMode,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
-            echo '"Windows PowerShell","Visual Studio","Microsoft-Windows-Windows Defender/Operational"' | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
+            echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))

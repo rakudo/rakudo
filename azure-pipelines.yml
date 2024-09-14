@@ -233,12 +233,14 @@ stages:
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
             $Env:MVM_SPESH_LOG = 'speshlog.txt'
             $Env:MVM_JIT_DUMP_BYTECODE = 1
+            $Env:MVM_SPESH_BLOCKING = 1
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
             echo "crash dumps before"
             ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
-            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
+            echo "try to jit bisect this"
+            C:\Strawberry\perl\bin\perl.exe ../MoarVM/tools/jit-bisect.pl C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             echo "crash dumps after"
             ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
           failOnStderr: false
@@ -266,7 +268,7 @@ stages:
             echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-WMI-Activity/Operational,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+          condition: always()
           displayName: Build Rakudo (Windows)
 
         ## TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.

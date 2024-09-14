@@ -458,11 +458,22 @@ stages:
               echo install*/lib
               ls -lisah install*/lib*
 
+              echo "chmodding the things"
               chmod +x install/bin/*
               chmod +x install-moved/bin/*
 
               chmod +x install/lib/*
               chmod +x install-moved/lib/*
+
+              echo "install/bin"
+              ls -lisah install/bin
+              echo install*/bin
+              ls -lisah install*/bin
+
+              echo "install/lib"
+              ls -lisah install/lib*
+              echo install*/lib
+              ls -lisah install*/lib*
 
               true
             workingDirectory: $(Pipeline.Workspace)

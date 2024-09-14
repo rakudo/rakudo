@@ -221,7 +221,7 @@ stages:
             Invoke-WebRequest https://github.com/FranciscoNabas/PowerShellPublic/raw/refs/heads/main/Get-PdbSymbol.ps1 -OutFile Get-PdbSymbol.ps1
             Import-Module ./Get-PdbSymbol.ps1
 
-            Get-PdbSymbol -Path ['C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'C:\Windows\System32\ucrtbase.dll', 'C:\Windows\System32\msvcrt.dll', 'C:\Windows\System32\dbghelp.dll', 'C:\Windows\System32\dbgcore.dll', 'bin\moar.exe'] -DestinationStore $(Pipeline.Workspace)/rakudo
+            Get-PdbSymbol -Path @('C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'C:\Windows\System32\ucrtbase.dll', 'C:\Windows\System32\msvcrt.dll', 'C:\Windows\System32\dbghelp.dll', 'C:\Windows\System32\dbgcore.dll') -DestinationStore $(Pipeline.Workspace)/rakudo
 
             ls -l *.pdb
           workingDirectory: '$(Pipeline.Workspace)/rakudo'

@@ -274,7 +274,7 @@ stages:
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
-            
+
             echo "turning ProcDump on"
             ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
             echo "also running a procdump that waits for the process to start"
@@ -288,7 +288,7 @@ stages:
             ProcDump -u
 
             echo "output from procdume job:"
-            ReceiveJob $dumpjob
+            Receive-Job -Job $dumpjob -Wait
             echo "end of output"
 
             ls -l '$(Pipeline.Workspace)/rakudo'

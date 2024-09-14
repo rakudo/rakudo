@@ -235,12 +235,12 @@ stages:
             $Env:MVM_JIT_DUMP_BYTECODE = 1
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
-            $Env:TMP = $(Pipeline.Workspace)/rakudo
+            $Env:TMP = '$(Pipeline.Workspace)/rakudo'
             echo "crash dumps before"
-            ls -l C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps
+            ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
             C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
             echo "crash dumps after"
-            ls -l C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps
+            ls -l "C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps"
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))

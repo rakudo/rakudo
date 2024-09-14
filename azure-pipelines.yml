@@ -209,7 +209,33 @@ stages:
           workingDirectory: '$(Pipeline.Workspace)/nqp'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build NQP (Windows)
-
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            echo "before copying:"
+            try {
+              Get-ChildItem -Recurse -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "creating LocalDumps entry for moar.exe"
+            try {
+              Copy-Item -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\ResourceMonitor.exe' -Destination 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\moar.exe' -Recurse
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "after copying:"
+            try {
+              Get-ChildItem -Recurse -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "done...?"
         # Build Rakudo
         - script: |
             perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
@@ -222,7 +248,7 @@ stages:
             echo "property"
             Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
             echo "childitem"
-            Get-ChildItem -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            Get-ChildItem -Recurse -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
             echo "configure"
             perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
             echo "configure done"
@@ -237,8 +263,11 @@ stages:
             echo "TMP before: $TMP"
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/rakudo'
-            echo "try to jit bisect this"
-            C:\Strawberry\perl\bin\perl.exe ../MoarVM/tools/jit-bisect.pl --nodelay --verbose --spesh -- C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
+            echo "try to run with jit ..."
+            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
+            
+            ls -l 'C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps'
+            
             echo "and now we just finish up the whole pipeline so we can have a cached moar&nqp again"
             $Env:MVM_JIT_DISABLE = 1
             nmake install
@@ -246,6 +275,7 @@ stages:
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo (Windows)
+
         - task: PublishPipelineArtifact@1
           displayName: publish all the stuff
           condition: always()
@@ -260,6 +290,7 @@ stages:
             targetPath: C:\ProgramData\Microsoft Service Fabric\Log\CrashDumps
             artifact: "crash dumps"
             publishLocation: 'pipeline'
+
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             $logsAfter = Get-WinEvent -ListLog *

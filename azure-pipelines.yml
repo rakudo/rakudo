@@ -67,7 +67,8 @@ parameters:
   default: ['MVM']
 - name: oses
   type: object
-  default: ['Win', 'Lin', 'Mac']
+  #default: ['Win', 'Lin', 'Mac']
+  default: ['Lin', 'Mac']
 - name: variants
   type: object
   default:

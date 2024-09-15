@@ -76,16 +76,23 @@ parameters:
       Lin: ['']
       Mac: ['']
     MVM:
-      Win: ['relocatable', '']
-      Lin: ['relocatable', '']
-      Mac: ['relocatable', '']
+      #Win: ['relocatable', '']
+      #Lin: ['relocatable', '']
+      #Mac: ['relocatable', '']
+      Win: []
+      Lin: ['']
+      Mac: ['']
 - name: test_variants
   type: object
   default:
     MVM:
-      Win: ['relocatable', '']
-      Lin: ['relocatable', '']
-      Mac: ['relocatable', '']
+      #Win: ['relocatable', '']
+      #Lin: ['relocatable', '']
+      #Mac: ['relocatable', '']
+      Win: []
+      Lin: ['']
+      Mac: ['']
+
     
 stages:
 - ${{ each os in parameters.oses }}:

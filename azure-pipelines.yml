@@ -304,15 +304,15 @@ stages:
                 displayName: Build Rakudo
               - script: |
                   echo "making a bunch of debug output"
-                  strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-                  ldd $(which nqp) || echo "ldd nqp failed"
+                  strace -fftt -o nqp-hello-strace.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                  ldd ../install/bin/nqp || echo "ldd nqp failed"
 
-                  strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-                  ldd $(which rakudo) || echo "ldd rakudo failed"
+                  strace -fftt -o rakudo-hello-strace.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                  ldd ../install/bin/rakudo || echo "ldd rakudo failed"
 
-                  ldd $(which moar) || echo "ldd moar failed"
+                  ldd ../install/bin/moar || echo "ldd moar failed"
                   ls -l *strace*
                   ls -l *lddebug*
                   echo "debug stuff done"
@@ -517,15 +517,15 @@ stages:
           - ${{ if ne(os, 'Win') }}:
             - script: |
                 echo "making a bunch of debug output"
-                strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-                ldd $(which nqp) || echo "ldd nqp failed"
+                strace -fftt -o nqp-hello-strace.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                ldd ../install/bin/nqp || echo "ldd nqp failed"
 
-                strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-                ldd $(which rakudo) || echo "ldd rakudo failed"
+                strace -fftt -o rakudo-hello-strace.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                ldd ../install/bin/rakudo || echo "ldd rakudo failed"
 
-                ldd $(which moar) || echo "ldd moar failed"
+                ldd ../install/bin/moar || echo "ldd moar failed"
                 ls -l *strace*
                 ls -l *lddebug*
                 echo "debug stuff done"
@@ -599,15 +599,15 @@ stages:
         true
     - script: |
         echo "making a bunch of debug output"
-        strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
-        ldd $(which nqp) || echo "ldd nqp failed"
+        strace -fftt -o nqp-hello-strace.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt ../install/bin/nqp -e 'say("hi")' || echo "nqp hello strace failed"
+        ldd ../install/bin/nqp || echo "ldd nqp failed"
 
-        strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
-        ldd $(which rakudo) || echo "ldd rakudo failed"
+        strace -fftt -o rakudo-hello-strace.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt ../install/bin/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+        ldd ../install/bin/rakudo || echo "ldd rakudo failed"
 
-        ldd $(which moar) || echo "ldd moar failed"
+        ldd ../install/bin/moar || echo "ldd moar failed"
         ls -l *strace*
         ls -l *lddebug*
         echo "debug stuff done"

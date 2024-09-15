@@ -680,6 +680,9 @@ stages:
         echo "removing 'all' dependency from spectest_update target"
         sed --in-place=.bak -E 's/^(spectest_update.*) all$/\1/' Makefile
 
+        echo "chmod +x the rakudo-m that t/harness5 uses to run tests"
+        chmod +x rakudo-m
+
         make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking

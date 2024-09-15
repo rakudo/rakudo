@@ -92,7 +92,7 @@ parameters:
       #Lin: ['relocatable', '']
       #Mac: ['relocatable', '']
       Win: []
-      Lin: ['']
+      Lin: ['relocatable', '']
       Mac: ['']
 
     

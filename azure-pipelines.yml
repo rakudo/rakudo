@@ -237,7 +237,7 @@ stages:
           - task: Cache@2
             displayName: "load cached NQP-m & moar"
             inputs:
-              key: 'v2 | "$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
+              key: 'v3 | "$(BACKEND)" | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
               path: ../install-nqp-and-moar
               cacheHitVar: NQP_CACHE_RESTORED
 
@@ -251,7 +251,7 @@ stages:
             - task: Cache@2
               displayName: "load cached moarvm"
               inputs:
-                key: '3 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)"'
+                key: 'v4 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)"'
                 path: ../install-moar
                 cacheHitVar: MOARVM_CACHE_RESTORED
               condition: ne( variables['NQP_CACHE_RESTORED'], 'true' )

@@ -267,7 +267,7 @@ stages:
             - ${{ if ne(os, 'Win') }}:
               - script: |
                   perl Configure.pl --prefix=$(Pipeline.Workspace)/install $(MOAR_OPTIONS)
-                  make install && \
+                  make install -j3 && \
                   echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && \
                   cp -r ../install ../install-moar
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
@@ -287,7 +287,7 @@ stages:
           - ${{ if ne(os, 'Win') }}:
             - script: |
                 perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(NQP_OPTIONS)
-                make install && \
+                make install -j3 && \
                 echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
@@ -308,7 +308,7 @@ stages:
             - ${{ if ne(os, 'Win') }}:
               - script: |
                   perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(RAKUDO_OPTIONS)
-                  make install 
+                  make install -j3
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Build Rakudo
               - script: |

@@ -338,7 +338,7 @@ stages:
                 displayName: publish debug logs
                 inputs:
                   targetPath: $(Pipeline.Workspace)/rakudo/debugspam
-                  artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_debugspam_${{ os }}
+                  artifact: ${{ backend }}_$( Agent.JobName )_${{ coalesce(variant, 'normal') }}_debugspam_${{ os }}
                   publishLocation: 'pipeline'
 
             - ${{ if eq(os, 'Win') }}:
@@ -564,7 +564,7 @@ stages:
               displayName: publish debug logs
               inputs:
                 targetPath: $(Pipeline.Workspace)/rakudo/debugspam
-                artifact: ${{ backend }}_debugspam_${{ coalesce(variant, 'normal') }}_${{ os }}
+                artifact: ${{ backend }}_$( Agent.JobName )_debugspam_${{ coalesce(variant, 'normal') }}_${{ os }}
                 publishLocation: 'pipeline'
 
             - script: |
@@ -663,7 +663,7 @@ stages:
       displayName: publish debug logs
       inputs:
         targetPath: $(Pipeline.Workspace)/rakudo/debugspam
-        artifact: MVM_relocatable_debugspam_Lin
+        artifact: MVM_$( Agent.JobName )_relocatable_debugspam_Lin
         publishLocation: 'pipeline'
 
     - script: |

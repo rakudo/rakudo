@@ -316,8 +316,8 @@ stages:
                   ldd $INSP/rakudo || echo "ldd rakudo failed"
 
                   ldd $INSP/moar || echo "ldd moar failed"
-                  ls -l *strace*
-                  ls -l *lddebug*
+                  ls -l debugspam/*strace*
+                  ls -l debugspam/*lddebug*
                   echo "debug stuff done"
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Grab a bunch of debug outputs for nqp and rakudo
@@ -526,15 +526,15 @@ stages:
                 echo "making a bunch of debug output"
                 strace -fftt -o debugspam/nqp-hello-strace.txt $INSP/nqp -e 'say("hi")' || echo "nqp hello strace failed"
                 env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=debugspam/nqp-hello-lddebug.txt $INSP/nqp -e 'say("hi")' || echo "nqp hello strace failed"
-                ldd $INSP/bin/nqp || echo "ldd nqp failed"
+                ldd $INSP/nqp || echo "ldd nqp failed"
 
                 strace -fftt -o debugspam/rakudo-hello-strace.txt $INSP/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
                 env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=debugspam/rakudo-hello-lddebug.txt $INSP/rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
                 ldd $INSP/rakudo || echo "ldd rakudo failed"
 
                 ldd $INSP/moar || echo "ldd moar failed"
-                ls -l *strace*
-                ls -l *lddebug*
+                ls -l debugspam/*strace*
+                ls -l debugspam/*lddebug*
                 echo "debug stuff done"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Grab a bunch of debug outputs for nqp and rakudo
@@ -630,8 +630,8 @@ stages:
         ldd $INSP/rakudo || echo "ldd rakudo failed"
 
         ldd $INSP/moar || echo "ldd moar failed"
-        ls -l *strace*
-        ls -l *lddebug*
+        ls -l debugspam/*strace*
+        ls -l debugspam/*lddebug*
         echo "debug stuff done"
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: Grab a bunch of debug outputs for nqp and rakudo

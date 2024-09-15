@@ -215,7 +215,7 @@ stages:
                 echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
               displayName: "Get moar & nqp revision"
               workingDirectory: '$(Pipeline.Workspace)/'
-            
+
           - ${{ if eq(backend, 'JVM') }}:
             - bash: |
                 NQP_REV=$(cd nqp; git describe --always)
@@ -299,9 +299,26 @@ stages:
             - ${{ if ne(os, 'Win') }}:
               - script: |
                   perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
-                  make install
+                  make install 
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Build Rakudo
+              - script: |
+                  echo "making a bunch of debug output"
+                  strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                  ldd $(which nqp) || echo "ldd nqp failed"
+
+                  strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                  env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                  ldd $(which rakudo) || echo "ldd rakudo failed"
+
+                  ldd $(which moar) || echo "ldd moar failed"
+                  ls -l *strace*
+                  ls -l *lddebug*
+                  echo "debug stuff done"
+                workingDirectory: '$(Pipeline.Workspace)/rakudo'
+                displayName: Grab a bunch of debug outputs for nqp and rakudo
+ 
             - ${{ if eq(os, 'Win') }}:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
@@ -499,6 +516,23 @@ stages:
 
           - ${{ if ne(os, 'Win') }}:
             - script: |
+                echo "making a bunch of debug output"
+                strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+                ldd $(which nqp) || echo "ldd nqp failed"
+
+                strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+                ldd $(which rakudo) || echo "ldd rakudo failed"
+
+                ldd $(which moar) || echo "ldd moar failed"
+                ls -l *strace*
+                ls -l *lddebug*
+                echo "debug stuff done"
+              workingDirectory: '$(Pipeline.Workspace)/rakudo'
+              displayName: Grab a bunch of debug outputs for nqp and rakudo
+
+            - script: |
                 pwd
                 ls -l .
                 prove -e ../install/bin/perl6 -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
@@ -563,6 +597,23 @@ stages:
         echo "chmod +x"
         chmod +x ../install/lib/*
         true
+    - script: |
+        echo "making a bunch of debug output"
+        strace -fftt -o nqp-hello-strace.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=nqp-hello-lddebug.txt nqp -e 'say("hi")' || echo "nqp hello strace failed"
+        ldd $(which nqp) || echo "ldd nqp failed"
+
+        strace -fftt -o rakudo-hello-strace.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+        env LD_DEBUG=files,libs,versions LD_DEBUG_OUTPUT=rakudo-hello-lddebug.txt rakudo -e 'say("hi")' || echo "rakudo hello strace failed"
+        ldd $(which rakudo) || echo "ldd rakudo failed"
+
+        ldd $(which moar) || echo "ldd moar failed"
+        ls -l *strace*
+        ls -l *lddebug*
+        echo "debug stuff done"
+      workingDirectory: '$(Pipeline.Workspace)/rakudo'
+      displayName: Grab a bunch of debug outputs for nqp and rakudo
+
     - script: |
         make
       workingDirectory: '$(Pipeline.Workspace)/rakudo'

@@ -257,7 +257,7 @@ stages:
             # Build MoarVM
             - ${{ if ne(os, 'Win') }}:
               - script: |
-                  perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
+                  perl Configure.pl --prefix=$(Pipeline.Workspace)/install $(MOAR_OPTIONS)
                   make install && \
                   echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && \
                   cp -r ../install ../install-moar
@@ -267,7 +267,7 @@ stages:
             - ${{ if eq(os, 'Win') }}:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
-                  perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+                  perl Configure.pl --prefix=$(Pipeline.Workspace)\install $(MOAR_OPTIONS)
                   nmake install && echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && cp -r ../install ../install-moar
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
@@ -277,7 +277,7 @@ stages:
           # Build NQP
           - ${{ if ne(os, 'Win') }}:
             - script: |
-                perl Configure.pl --no-silent-build --prefix=../install $(NQP_OPTIONS)
+                perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(NQP_OPTIONS)
                 make install && \
                 echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
@@ -287,7 +287,7 @@ stages:
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
-                perl Configure.pl --no-silent-build --prefix=..\install $(NQP_OPTIONS)
+                perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)\install $(NQP_OPTIONS)
                 nmake install && echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'
@@ -298,7 +298,7 @@ stages:
             # Build Rakudo
             - ${{ if ne(os, 'Win') }}:
               - script: |
-                  perl Configure.pl --no-silent-build --prefix=../install $(RAKUDO_OPTIONS)
+                  perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(RAKUDO_OPTIONS)
                   make install 
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'
                 displayName: Build Rakudo
@@ -325,7 +325,7 @@ stages:
             - ${{ if eq(os, 'Win') }}:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
-                  perl Configure.pl --no-silent-build --prefix=..\install $(RAKUDO_OPTIONS)
+                  perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)\install $(RAKUDO_OPTIONS)
                   nmake install
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/rakudo'

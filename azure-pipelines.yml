@@ -19,6 +19,7 @@ pr:
 - main
 
 variables:
+  system.debug: 'true'
   # Turn this Powershell console into a developer powershell console.
   # https://intellitect.com/enter-vsdevshell-powershell/
   PWSH_DEV: |

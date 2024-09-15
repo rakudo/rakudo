@@ -476,6 +476,7 @@ stages:
 
           - bash: |
               echo is azure pipelines build? $IS_AZURE_PIPELINES_BUILD
+              export TIME_STYLE=full-iso
               echo "id"
               id
               echo "CWD"
@@ -610,6 +611,9 @@ stages:
         targetPath: '$(Pipeline.Workspace)/rakudo'
         artifactName: MVM_sourcecode_built_relocatable_Lin
       displayName: Download artifact
+    - bash: |
+        sleep 15
+      displayName: wait a moment in between artifact extraction
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -622,6 +626,7 @@ stages:
       displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
     - bash: |
         echo "cwd"
+        export TIME_STYLE=full-iso
         pwd
         echo "../install/bin/"
         ls -lisah ../install/bin
@@ -668,6 +673,7 @@ stages:
 
     - script: |
         make --version
+        export TIME_STYLE=full-iso
 
         echo "ls -lisah gen/moar/nqp-version ../install/bin/nqp-m gen/moar/main-version.nqp"
         ls -lisah gen/moar/nqp-version ../install/bin/nqp-m gen/moar/main-version.nqp

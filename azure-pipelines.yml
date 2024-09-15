@@ -82,7 +82,7 @@ parameters:
       #Lin: ['relocatable', '']
       #Mac: ['relocatable', '']
       Win: []
-      Lin: ['']
+      Lin: ['relocatable', '']
       Mac: ['']
 - name: test_variants
   type: object
@@ -92,7 +92,7 @@ parameters:
       #Lin: ['relocatable', '']
       #Mac: ['relocatable', '']
       Win: []
-      Lin: ['relocatable', '']
+      Lin: ['']
       Mac: ['']
 
     

@@ -596,6 +596,10 @@ stages:
         ls -lisah ../install/lib
         echo "chmod +x"
         chmod +x ../install/lib/*
+        echo "../install"
+        ls -lisah ../install/
+        echo "../install/include* ../install/include/*"
+        ls -lisah ../install/include* ../install/include/*
         true
     - script: |
         echo "making a bunch of debug output"

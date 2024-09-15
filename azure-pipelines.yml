@@ -668,6 +668,14 @@ stages:
 
     - script: |
         make --version
+
+        echo "ls -lisah gen/moar/nqp-version ../install/bin/nqp-m gen/moar/main-version.nqp"
+        ls -lisah gen/moar/nqp-version ../install/bin/nqp-m gen/moar/main-version.nqp
+
+        echo "ls -lisah gen/ gen/*"
+        ls -lisah gen/ gen/*
+
+        echo "make --trace --just-print m-spectest"
         make --trace --just-print m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: tell us why you would rebuild everything

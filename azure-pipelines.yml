@@ -667,7 +667,8 @@ stages:
         publishLocation: 'pipeline'
 
     - script: |
-        make --debug=why --just-print m-spectest
+        make --version
+        make --trace --just-print m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: tell us why you would rebuild everything
 
@@ -679,7 +680,7 @@ stages:
         echo "removing 'all' dependency from spectest_update target"
         sed --in-place=.bak -E 's/^(spectest_update.*) all$/\1/' Makefile
 
-        make TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
+        make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking
 

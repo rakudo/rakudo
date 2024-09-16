@@ -68,9 +68,9 @@ parameters:
   default: ['MVM']
 - name: oses
   type: object
-  #default: ['Win', 'Lin', 'Mac']
+  default: ['Win', 'Lin', 'Mac']
   #default: ['Lin', 'Mac']
-  default: []
+  #default: []
 - name: variants
   type: object
   default:
@@ -82,7 +82,7 @@ parameters:
       #Win: ['relocatable', '']
       #Lin: ['relocatable', '']
       #Mac: ['relocatable', '']
-      Win: []
+      Win: ['']
       Lin: ['relocatable', '']
       Mac: ['']
 - name: test_variants
@@ -92,41 +92,12 @@ parameters:
       #Win: ['relocatable', '']
       #Lin: ['relocatable', '']
       #Mac: ['relocatable', '']
-      Win: []
+      Win: ['']
       Lin: ['']
       Mac: ['']
 
 
 stages:
-
-- stage: Azure_Experimentations
-  dependsOn: []
-  jobs:
-  - job: Investigate_perl5_lin
-    pool:
-      vmImage: 'ubuntu-20.04'
-    workspace:
-      clean: all
-    timeoutInMinutes: 180
-    steps:
-    - checkout: self
-      fetchDepth: 1
-    - bash: |
-        cpanm install TAP::Formatter::JUnit
-
-  - job: Investigate_perl5_win
-    pool:
-      vmImage: 'windows-latest'
-    workspace:
-      clean: all
-    timeoutInMinutes: 180
-
-    steps:
-    - checkout: self
-      fetchDepth: 1
-    - pwsh: |
-        cpanm install TAP::Formatter::JUnit
-
 - ${{ each os in parameters.oses }}:
   - stage: Builds_${{ os }}
     dependsOn: []
@@ -504,6 +475,16 @@ stages:
               echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
             displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
 
+          - ${{ if ne(os, 'Win') }}:
+            - bash: |
+                curl -L https://cpanmin.us | perl - App::cpanminus
+                cpanm TAP::Formatter::JUnit
+              displayName: install cpanm, TAP::Formatter::JUnit
+          - ${{ if eq(os, 'Win') }}:
+            - pwsh: |
+                cpanm TAP::Formatter::JUnit
+              displayName: install TAP::Formatter::JUnit
+
           - bash: |
               echo is azure pipelines build? $IS_AZURE_PIPELINES_BUILD
               export TIME_STYLE=full-iso
@@ -554,7 +535,8 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 pwd
                 ls -l .
-                prove -e ..\install\bin\raku -vlr t
+                $Env:PERL_TEST_HARNESS_DUMP_TAP = test_results
+                prove --formatter TAP::Formatter::JUnit -e ..\install\bin\raku -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ ne( variant, 'relocatable' ) }}
               displayName: Test Rakudo (Windows)
@@ -562,7 +544,8 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 pwd
                 ls -l .
-                prove -e ..\install-moved\bin\raku -vlr t
+                $Env:PERL_TEST_HARNESS_DUMP_TAP = test_results
+                prove --formatter TAP::Formatter::JUnit -e ..\install-moved\bin\raku -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated, Windows)
@@ -601,14 +584,14 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                prove -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                export PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
                 pwd
                 ls -l .
-                prove -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                export PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated)
@@ -618,9 +601,17 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                make TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-spectests-clean"
+                make PERL_TEST_HARNESS_DUMP_TAP=test_results TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
+
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: 'test_results/**/*.xml'
+              testRunTitle: "rakudo tests"
+              buildPlatform: ${{ os }} ${{ backend }} ${{ variant }}
+            condition: succeededOrFailed()
 
 - stage: Extra_Moar_Stability_Tests
   #dependsOn: Builds_Lin
@@ -716,6 +707,11 @@ stages:
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: tell us why you would rebuild everything
 
+    - bash: |
+        curl -L https://cpanmin.us | perl - App::cpanminus
+        cpanm TAP::Formatter::JUnit
+      displayName: install cpanm, TAP::Formatter::JUnit
+
     # turn this line:
     # spectest_update: $(SPECTEST_DATA) all
     # into this line:
@@ -727,9 +723,18 @@ stages:
         echo "chmod +x the rakudo-m that t/harness5 uses to run tests"
         chmod +x rakudo-m
 
-        make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
+        make --trace  TEST_JOBS=3 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking
+
+      # make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: 'test_results/**/*.xml'
+        testRunTitle: "full spectest with spesh NoDelay"
+      condition: succeededOrFailed()
 
 
 - stage: Build_Precomp_Release

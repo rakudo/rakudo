@@ -638,7 +638,8 @@ stages:
           - task: PublishTestResults@2
             inputs:
               testResultsFormat: JUnit
-              testResultsFiles: 'test_results/**/*.xml'
+              testResultsFiles: '**/*.xml'
+              searchFolder: '$(Pipeline.Workspace)/rakudo/test_results'
               testRunTitle: "rakudo tests"
               buildPlatform: ${{ os }} ${{ backend }} ${{ variant }}
             condition: succeededOrFailed()
@@ -771,7 +772,8 @@ stages:
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: JUnit
-        testResultsFiles: 'test_results/**/*.xml'
+        testResultsFiles: '**/*.xml'
+        searchFolder: '$(Pipeline.Workspace)/rakudo/test_results'
         testRunTitle: "full spectest with spesh NoDelay"
       condition: succeededOrFailed()
 

@@ -555,7 +555,7 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 pwd
                 ls -l .
-                $Env:PERL_TEST_HARNESS_DUMP_TAP = test_results
+                $Env:PERL_TEST_HARNESS_DUMP_TAP = "test_results"
                 prove --formatter TAP::Formatter::JUnit -e ..\install\bin\raku -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ ne( variant, 'relocatable' ) }}
@@ -564,7 +564,7 @@ stages:
                 ${{ variables.PWSH_DEV }}
                 pwd
                 ls -l .
-                $Env:PERL_TEST_HARNESS_DUMP_TAP = test_results
+                $Env:PERL_TEST_HARNESS_DUMP_TAP = "test_results"
                 prove --formatter TAP::Formatter::JUnit -e ..\install-moved\bin\raku -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}

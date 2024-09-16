@@ -110,8 +110,7 @@ stages:
     timeoutInMinutes: 180
     steps:
       - bash: |
-          cpan install TAP::Formatter::JUnit
-
+          echo "no" | cpan install TAP::Formatter::JUnit
 
   - job: Investigate_perl5_win
     pool:

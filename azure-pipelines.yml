@@ -201,12 +201,35 @@ stages:
                 ulimit -a
                 echo "core pattern"
                 cat /proc/sys/kernel/core_pattern
-                echo "coredumpctl output before"
-                coredumpctl -q -r -n 5 | cat || echo "coredumpctl says no"
+                #echo "coredumpctl output before"
+                #coredumpctl -q -r -n 5 | cat || echo "coredumpctl says no"
+                echo "ls /var/crash"
+                ls -lisah /var/crash
+                echo "ulimit up"
+                ulimit -c unlimited
                 echo "running a shell command that segfaults itself"
                 sh -c $'kill -SEGV $$'
-                coredumpctl -q info | cat || echo "coredumpctl says no"
+                #coredumpctl -q info | cat || echo "coredumpctl says no"
+                echo "/var/crash again"
+                ls -lisah $(find /var/crash/)
+                mkdir crashes
+                a="cf"
+                for f in $(find /var/crash/); do
+                  echo "handling file $f"
+                  cp $f crashes || echo "could not copy"
+                  mkdir $a || echo "could not mkdir $a"
+                  apport-unpack $f $a || echo "could not unpack to $a"
+                  a=a$a
+                done
+                echo "copied stuff into folder crashes/"
               displayName: set up core dumping
+            - task: PublishPipelineArtifact@1
+              displayName: publish crashes folder
+              inputs:
+                targetPath: $(Pipeline.Workspace)/crashes
+                artifact: ${{ backend }}_crashes_${{ coalesce(variant, 'normal') }}_${{ os }}
+                publishLocation: 'pipeline'
+
 
           - checkout: self
             path: selfrepo

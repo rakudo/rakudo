@@ -216,9 +216,14 @@ stages:
                 a="cf"
                 for f in $(find /var/crash/ -iname '*.crash'); do
                   echo "handling file $f"
+                  echo "copy crash file"
                   cp $f crashes || echo "could not copy"
+                  echo "make folder"
                   mkdir crashes/$a || echo "could not mkdir $a"
+                  echo "unpack into folder"
                   apport-unpack $f crashes/$a || echo "could not unpack to $a"
+                  sudo apport-retrace --stdout $cf || echo "could not retrace crash file with --stdout"
+                  sudo apport-retrace $cf || echo "could not retrace crash file without --stdout"
                   a=a$a
                 done
                 echo "copied stuff into folder crashes/"

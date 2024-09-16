@@ -477,8 +477,8 @@ stages:
 
           - ${{ if ne(os, 'Win') }}:
             - bash: |
-                curl -L https://cpanmin.us | sudo perl - App::cpanminus
-                sudo cpanm TAP::Formatter::JUnit
+                curl -L https://cpanmin.us | sudo perl - App::cpanminus --verbose --no-interactive
+                sudo perl -M  --notest TAP::Formatter::JUnit
               displayName: install cpanm, TAP::Formatter::JUnit
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
@@ -707,7 +707,7 @@ stages:
 
     - bash: |
         curl -L https://cpanmin.us | sudo perl - App::cpanminus
-        sudo cpanm TAP::Formatter::JUnit
+        sudo cpanm --notest TAP::Formatter::JUnit
       displayName: install cpanm, TAP::Formatter::JUnit
 
     # turn this line:

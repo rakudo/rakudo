@@ -475,10 +475,30 @@ stages:
               echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
             displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
 
-          - ${{ if ne(os, 'Win') }}:
+          - ${{ if eq(os, 'Lin') }}:
             - bash: |
                 curl -L https://cpanmin.us | sudo perl - App::cpanminus --verbose --no-interactive
-                sudo perl -M  --notest TAP::Formatter::JUnit
+                echo "PATH is:"
+                echo $PATH
+                echo ""
+                echo "which cpanm"
+                which cpanm || echo "no cpanm in PATH"
+                echo ""
+                sudo /usr/local/bin/cpanm --notest TAP::Formatter::JUnit
+              displayName: install cpanm, TAP::Formatter::JUnit
+          - ${{ if eq(os, 'Mac') }}:
+            - bash: |
+                echo "cpanm in path before installing it?"
+                which cpanm || echo "nope, not there."
+                echo ""
+                curl -L https://cpanmin.us | sudo perl - App::cpanminus --verbose --no-interactive
+                echo "PATH is:"
+                echo $PATH
+                echo ""
+                echo "which cpanm"
+                which cpanm || echo "no cpanm in PATH"
+                echo ""
+                sudo /usr/local/Cellar/perl/5.38.2_1/bin/cpanm --notest TAP::Formatter::JUnit
               displayName: install cpanm, TAP::Formatter::JUnit
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |

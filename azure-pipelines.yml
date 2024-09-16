@@ -629,6 +629,8 @@ stages:
           - script: |
               echo "listing test results subfolders"
               ls -lisah test_results/*
+              echo "listing all everything"
+              ls -lisah test_results/**/*
             workingDirectory: '$(Pipeline.Workspace)/rakudo'
             displayName: list test results files
             condition: succeededOrFailed()

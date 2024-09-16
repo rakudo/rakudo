@@ -477,8 +477,8 @@ stages:
 
           - ${{ if ne(os, 'Win') }}:
             - bash: |
-                curl -L https://cpanmin.us | perl - App::cpanminus
-                cpanm TAP::Formatter::JUnit
+                curl -L https://cpanmin.us | sudo perl - App::cpanminus
+                sudo cpanm TAP::Formatter::JUnit
               displayName: install cpanm, TAP::Formatter::JUnit
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |
@@ -708,8 +708,8 @@ stages:
       displayName: tell us why you would rebuild everything
 
     - bash: |
-        curl -L https://cpanmin.us | perl - App::cpanminus
-        cpanm TAP::Formatter::JUnit
+        curl -L https://cpanmin.us | sudo perl - App::cpanminus
+        sudo cpanm TAP::Formatter::JUnit
       displayName: install cpanm, TAP::Formatter::JUnit
 
     # turn this line:

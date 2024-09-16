@@ -224,11 +224,11 @@ stages:
                   mkdir crashes/$a || echo "could not mkdir $a"
                   echo "unpack into folder"
                   apport-unpack $f crashes/$a || echo "could not unpack to $a"
-                  sudo apport-retrace --stdout $f || echo "could not retrace crash file with --stdout"
-                  sudo apport-retrace $f || echo "could not retrace crash file without --stdout"
+                  sudo apport-retrace --rebuild-package-info --stdout $f || echo "could not retrace crash file with --stdout"
+                  sudo apport-retrace --rebuild-package-info $f || echo "could not retrace crash file without --stdout"
 
-                  sudo apport-retrace --stdout $(basename $f) || echo "could not retrace crash file with --stdout and basename"
-                  sudo apport-retrace $(basename $f) || echo "could not retrace crash file without --stdout and basename"
+                  sudo apport-retrace --rebuild-package-info --stdout $(basename $f) || echo "could not retrace crash file with --stdout and basename"
+                  sudo apport-retrace --rebuild-package-info $(basename $f) || echo "could not retrace crash file without --stdout and basename"
                   a=a$a
                 done
                 echo "copied stuff into folder crashes/"

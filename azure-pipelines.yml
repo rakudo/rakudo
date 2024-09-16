@@ -430,7 +430,7 @@ stages:
 - ${{ each os in parameters.oses }}:
   - stage: Tests_${{ os }}
     dependsOn: Builds_${{ os }}
-    condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+    condition: and( ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' ), succeeded('Builds_${{ os }}') )
     jobs:
     - ${{ each backend in parameters.test_backends }}:
       - ${{ each variant in parameters['test_variants'][backend][os] }}:
@@ -700,7 +700,7 @@ stages:
 
 - stage: Extra_Moar_Stability_Tests
   dependsOn: Builds_Lin
-  condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  condition: and( ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' ), succeeded('Builds_Lin') )
 
   jobs:
   - job: Lin_Spesh_Nodelay

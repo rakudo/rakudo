@@ -710,7 +710,7 @@ stages:
         true
     - ${{ if parameters.use_rr }}:
       - bash: |
-          apt install rr
+          sudo apt install rr
           rr record -h ls || echo "damn, could not record ls"
           rr replay -a -M || echo "damn, could not replay ls"
         displayName: install rr

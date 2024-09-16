@@ -109,8 +109,10 @@ stages:
       clean: all
     timeoutInMinutes: 180
     steps:
-      - bash: |
-          echo "no" | cpan install TAP::Formatter::JUnit
+    - checkout: self
+      fetchDepth: 1
+    - bash: |
+        cpanm install TAP::Formatter::JUnit
 
   - job: Investigate_perl5_win
     pool:
@@ -120,8 +122,10 @@ stages:
     timeoutInMinutes: 180
 
     steps:
+    - checkout: self
+      fetchDepth: 1
     - pwsh: |
-        cpan install TAP::Formatter::JUnit
+        cpanm install TAP::Formatter::JUnit
 
 - ${{ each os in parameters.oses }}:
   - stage: Builds_${{ os }}

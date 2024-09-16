@@ -777,13 +777,22 @@ stages:
 
     - script: |
         echo "listing test results subfolders"
-        ls -lisah test_results/*
+        ls -lisah *
         echo "listing all inputs"
-        ls -lisah $(find test_results/ -type f -iname '*.t' -o -type f -iname '*.rakudo.moar')
+        ls -lisah $(find . -type f -iname '*.t' -o -type f -iname '*.rakudo.moar')
         echo "running tap2junit"
         echo "converting..."
-        tap2junit --verbose $(find test_results/ -type f -iname '*.t' -o -type f -iname '*.rakudo.moar') || echo "oh no, failed to convert!"
-      workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        tap2junit --verbose $(find . -type f -iname '*.t' -o -type f -iname '*.rakudo.moar') || echo "oh no, failed to convert!"
+        echo "making up classnames from filenames"
+        cat > do_classname_rename.sh <<"EOF"#!/bin/bashING-6e.t.xml 
+        path=$1
+        classname=$(echo $path | tr '/-' '._' | sed -E 's/.t.xml|.rakudo.moar.xml//')
+        sed -i -e 's/testcase /testcase classname="'$classname'" /' $path
+        EOF
+        chmod +x do_classname_rename.sh
+        echo "running the script a bunch"
+        find . -type f -iname '*.xml' -exec ./do_classname_rename.sh "{}" ;
+      workingDirectory: '$(Pipeline.Workspace)/rakudo/test_results/t/'
       displayName: convert tap to junit
       condition: succeededOrFailed()
       # make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest

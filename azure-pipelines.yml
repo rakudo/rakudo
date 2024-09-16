@@ -63,6 +63,9 @@ parameters:
 - name: build_backends
   type: object
   default: ['JVM', 'MVM']
+- name: use_rr
+  type: boolean
+  default: true
 - name: test_backends
   type: object
   default: ['MVM']
@@ -705,6 +708,13 @@ stages:
         echo "../install/include* ../install/include/*"
         ls -lisah ../install/include* ../install/include/*
         true
+    - ${{ if parameters.use_rr }}:
+      - bash: |
+          apt install rr
+          rr record -h ls || echo "damn, could not record ls"
+          rr replay -a -M || echo "damn, could not replay ls"
+        displayName: install rr
+
     - script: |
         mkdir debugspam
 

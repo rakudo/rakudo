@@ -69,7 +69,8 @@ parameters:
 - name: oses
   type: object
   #default: ['Win', 'Lin', 'Mac']
-  default: ['Lin', 'Mac']
+  #default: ['Lin', 'Mac']
+  default: []
 - name: variants
   type: object
   default:
@@ -95,8 +96,34 @@ parameters:
       Lin: ['']
       Mac: ['']
 
-    
+
 stages:
+
+- stage: Azure_Experimentations
+  dependsOn: []
+  jobs:
+  - job: Investigate_perl5_lin
+    pool:
+      vmImage: 'ubuntu-20.04'
+    workspace:
+      clean: all
+    timeoutInMinutes: 180
+    steps:
+      - bash: |
+          cpan install TAP::Formatter::JUnit
+  
+
+  - job: Investigate_perl5_win
+    pool:
+      vmImage: 'windows-latest'
+    workspace:
+      clean: all
+    timeoutInMinutes: 180
+
+    steps:
+    - bash: |
+        cpan install TAP::Formatter::JUnit
+
 - ${{ each os in parameters.oses }}:
   - stage: Builds_${{ os }}
     dependsOn: []
@@ -268,7 +295,7 @@ stages:
               - script: |
                   perl Configure.pl --prefix=$(Pipeline.Workspace)/install $(MOAR_OPTIONS)
                   make install -j3 && \
-                  echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && \
+                  echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-compiled" && \
                   cp -r ../install ../install-moar
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -277,7 +304,7 @@ stages:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
                   perl Configure.pl --prefix=$(Pipeline.Workspace)\install $(MOAR_OPTIONS)
-                  nmake install && echo "##vso[build.addbuildtag]moar-${{ os }}-compiled" && cp -r ../install ../install-moar
+                  nmake install && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-compiled" && cp -r ../install ../install-moar
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -288,7 +315,7 @@ stages:
             - script: |
                 perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(NQP_OPTIONS)
                 make install -j3 && \
-                echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && \
+                echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ coalesce(variant, 'normal') }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
@@ -297,7 +324,7 @@ stages:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)\install $(NQP_OPTIONS)
-                nmake install && echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ backend }}-compiled" && cp -r ../install ../install-nqp-and-moar
+                nmake install && echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ coalesce(variant, 'normal') }}-${{ backend }}-compiled" && cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
@@ -571,14 +598,14 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                prove -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+                prove -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
                 pwd
                 ls -l .
-                prove -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-tests-clean"
+                prove -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated)
@@ -588,7 +615,7 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                make TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ variant }}-spectests-clean"
+                make TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
 
@@ -608,17 +635,14 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)/rakudo'
-        artifactName: MVM_sourcecode_built_relocatable_Lin
+        targetPath: '$(Pipeline.Workspace)/install'
+        artifactName: MVM_relocatable_Lin
       displayName: Download artifact
-    - bash: |
-        sleep 15
-      displayName: wait a moment in between artifact extraction
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)/install'
-        artifactName: MVM_relocatable_Lin
+        targetPath: '$(Pipeline.Workspace)/rakudo'
+        artifactName: MVM_sourcecode_built_relocatable_Lin
       displayName: Download artifact
     - bash: |
         export IS_AZURE_PIPELINES_BUILD=1

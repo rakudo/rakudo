@@ -711,9 +711,12 @@ stages:
     - ${{ if parameters.use_rr }}:
       - bash: |
           sudo apt install rr
-          rr record -h ls || echo "damn, could not record ls"
+          rr record -n -h ls || echo "damn, could not record ls"
           rr replay -a -M || echo "damn, could not replay ls"
-        displayName: install rr
+          echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid || echo "damn can't set perf_event_paranoid to 1"
+          rr record -h ls || echo "damn, could not record ls without -n"
+          rr replay -a -M || echo "damn, could not replay ls a second time either"
+        displayName: install and try rr
 
     - script: |
         mkdir debugspam

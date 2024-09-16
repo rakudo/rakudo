@@ -763,6 +763,9 @@ stages:
         echo "creating test_results folder"
         mkdir test_results
 
+        echo "making spectest checkout"
+        make --trace m-testable
+
         echo "making spectest.data smaller"
         cp t/spectest.data t/spectest.data.backup
         head -n 150 t/spectest.data.backup > t/spectest.data
@@ -776,7 +779,10 @@ stages:
         echo "listing test results subfolders"
         ls -lisah test_results/*
         echo "running tap2junit"
-        tap2junit --verbose test_results/**/* || echo "oh no, failed to convert!"
+        echo "listing all inputs"
+        ls -lisah test_results/**/*.t
+        echo "converting..."
+        tap2junit --verbose test_results/**/*.t || echo "oh no, failed to convert!"
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: convert tap to junit
       condition: succeededOrFailed()

@@ -604,14 +604,14 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                export PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
                 pwd
                 ls -l .
-                export PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --formatter TAP::Formatter::JUnit -j3 -e ../install-moved/bin/raku -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated)

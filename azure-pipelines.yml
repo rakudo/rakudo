@@ -621,9 +621,17 @@ stages:
             - script: |
                 pwd
                 ls -l .
+                export PERL_TEST_HARNESS_DUMP_TAP=test_results
                 make PERL_TEST_HARNESS_DUMP_TAP=test_results TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-spectests-clean"
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
+
+          - script: |
+              echo "listing test results subfolders"
+              ls -lisah test_results/*
+            workingDirectory: '$(Pipeline.Workspace)/rakudo'
+            displayName: list test results files
+            condition: succeededOrFailed()
 
           - task: PublishTestResults@2
             inputs:
@@ -741,12 +749,16 @@ stages:
         echo "chmod +x the rakudo-m that t/harness5 uses to run tests"
         chmod +x rakudo-m
 
+        echo "creating test_results folder"
+        mkdir test_results
+
         export PERL_TEST_HARNESS_DUMP_TAP=test_results
         make --trace  TEST_JOBS=3 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking
 
     - script: |
+        echo "listing test results subfolders"
         ls -lisah test_results/*
         tap2junit test_results/**/*
       workingDirectory: '$(Pipeline.Workspace)/rakudo'

@@ -111,7 +111,7 @@ stages:
     steps:
       - bash: |
           cpan install TAP::Formatter::JUnit
-  
+
 
   - job: Investigate_perl5_win
     pool:
@@ -620,8 +620,11 @@ stages:
               displayName: Run spectest
 
 - stage: Extra_Moar_Stability_Tests
-  dependsOn: Builds_Lin
-  condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  #dependsOn: Builds_Lin
+  dependsOn: []
+  # condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  condition: eq( variables['MOAR_EXTRA_STABILITY_TESTS'], 'yes' )
+
   jobs:
   - job: Lin_Spesh_Nodelay
 

@@ -213,6 +213,8 @@ stages:
                 echo "/var/crash again"
                 ls -lisah $(find /var/crash/ -iname '*.crash')
                 mkdir crashes
+                echo "installing apport-retrace?"
+                sudo apt-get install apport-retrace || echo "apt says no"
                 a="cf"
                 for f in $(find /var/crash/ -iname '*.crash'); do
                   echo "handling file $f"

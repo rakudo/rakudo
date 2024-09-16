@@ -669,7 +669,7 @@ stages:
   - job: Lin_Spesh_Nodelay
 
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-24.04'
     workspace:
       clean: all
     timeoutInMinutes: 180

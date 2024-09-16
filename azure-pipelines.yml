@@ -626,7 +626,7 @@ stages:
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
 
-          - script: |
+          - bash: |
               echo "making up classnames from filenames"
               cat > do_classname_rename.sh <<"EOF"
               #!/bin/bash

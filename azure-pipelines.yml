@@ -631,7 +631,7 @@ stages:
               cat > do_classname_rename.sh <<"EOF"
               #!/bin/bash
               path=$1
-              classname=$(echo $path | sed -e 's,^./,,' | tr '/-' '._' | sed -E 's/.t.xml|.rakudo.moar.xml//')
+              classname=$(echo $path | sed -e 's,^./,,' | tr '/-' '._' | sed -E 's/.rakudo.moar.junit.xml|t.junit.xml|.t.xml|.rakudo.moar.xml//')
               sed -i -e 's/testcase /testcase classname="'$classname'" /' $path
               EOF
               chmod +x do_classname_rename.sh
@@ -793,7 +793,7 @@ stages:
         cat > do_classname_rename.sh <<"EOF"
         #!/bin/bash
         path=$1
-        classname=$(echo $path | sed -e 's,^./,,' | tr '/-' '._' | sed -E 's/.t.xml|.rakudo.moar.xml//')
+        classname=$(echo $path | sed -e 's,^./,,' | tr '/-' '._' | sed -E 's/.rakudo.moar.junit.xml|t.junit.xml|.t.xml|.rakudo.moar.xml//')
         sed -i -e 's/testcase /testcase classname="'$classname'" /' $path
         EOF
         chmod +x do_classname_rename.sh

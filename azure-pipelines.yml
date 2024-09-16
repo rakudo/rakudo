@@ -778,11 +778,11 @@ stages:
     - script: |
         echo "listing test results subfolders"
         ls -lisah test_results/*
-        echo "running tap2junit"
         echo "listing all inputs"
-        ls -lisah test_results/**/*.t
+        ls -lisah test_results/**/*
+        echo "running tap2junit"
         echo "converting..."
-        tap2junit --verbose test_results/**/*.t || echo "oh no, failed to convert!"
+        tap2junit --verbose test_results/**/* || echo "oh no, failed to convert!"
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: convert tap to junit
       condition: succeededOrFailed()

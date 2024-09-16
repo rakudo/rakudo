@@ -211,18 +211,19 @@ stages:
                 sh -c $'kill -SEGV $$'
                 #coredumpctl -q info | cat || echo "coredumpctl says no"
                 echo "/var/crash again"
-                ls -lisah $(find /var/crash/)
+                ls -lisah $(find /var/crash/ -iname '*.crash')
                 mkdir crashes
                 a="cf"
-                for f in $(find /var/crash/); do
+                for f in $(find /var/crash/ -iname '*.crash'); do
                   echo "handling file $f"
                   cp $f crashes || echo "could not copy"
-                  mkdir $a || echo "could not mkdir $a"
-                  apport-unpack $f $a || echo "could not unpack to $a"
+                  mkdir crashes/$a || echo "could not mkdir $a"
+                  apport-unpack $f crashes/$a || echo "could not unpack to $a"
                   a=a$a
                 done
                 echo "copied stuff into folder crashes/"
               displayName: set up core dumping
+              workingDirectory:  $(Pipeline.Workspace)/
             - task: PublishPipelineArtifact@1
               displayName: publish crashes folder
               inputs:

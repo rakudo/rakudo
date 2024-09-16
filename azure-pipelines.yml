@@ -121,7 +121,7 @@ stages:
     timeoutInMinutes: 180
 
     steps:
-    - bash: |
+    - pwsh: |
         cpan install TAP::Formatter::JUnit
 
 - ${{ each os in parameters.oses }}:

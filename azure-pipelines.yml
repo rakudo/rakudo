@@ -203,6 +203,17 @@ stages:
                 cat /proc/sys/kernel/core_pattern
                 #echo "coredumpctl output before"
                 #coredumpctl -q -r -n 5 | cat || echo "coredumpctl says no"
+
+                echo "/etc/apt/sources.list"
+                cat "/etc/apt/sources.list" || echo "couldn't cat etc apt sources.list"
+
+                for f in /etc/apt/sources.list.d/*; do
+                  echo "$f"
+                  cat $f
+                  echo ""
+                  echo ""
+                done
+
                 echo "ls /var/crash"
                 ls -lisah /var/crash
                 echo "ulimit up"
@@ -226,9 +237,6 @@ stages:
                   apport-unpack $f crashes/$a || echo "could not unpack to $a"
                   sudo apport-retrace --rebuild-package-info --stdout $f || echo "could not retrace crash file with --stdout"
                   sudo apport-retrace --rebuild-package-info $f || echo "could not retrace crash file without --stdout"
-
-                  sudo apport-retrace --rebuild-package-info --stdout $(basename $f) || echo "could not retrace crash file with --stdout and basename"
-                  sudo apport-retrace --rebuild-package-info $(basename $f) || echo "could not retrace crash file without --stdout and basename"
                   a=a$a
                 done
                 echo "copied stuff into folder crashes/"
@@ -764,6 +772,51 @@ stages:
           rr record -h ls || echo "damn, could not record ls without -n"
           rr replay -a -M || echo "damn, could not replay ls a second time either"
         displayName: install and try rr
+
+    - bash: |
+        echo "/etc/apt/sources.list"
+        cat "/etc/apt/sources.list" || echo "couldn't cat etc apt sources.list"
+
+        for f in /etc/apt/sources.list.d/*; do
+          echo "$f"
+          cat $f
+          echo ""
+          echo ""
+        done
+
+        echo "current ulimits:"
+        ulimit -a
+        echo "core pattern"
+        cat /proc/sys/kernel/core_pattern
+        #echo "coredumpctl output before"
+        #coredumpctl -q -r -n 5 | cat || echo "coredumpctl says no"
+        echo "ls /var/crash"
+        ls -lisah /var/crash
+        echo "ulimit up"
+        ulimit -c unlimited
+        echo "running a shell command that segfaults itself"
+        sh -c $'kill -SEGV $$'
+        #coredumpctl -q info | cat || echo "coredumpctl says no"
+        echo "/var/crash again"
+        ls -lisah $(find /var/crash/ -iname '*.crash')
+        mkdir crashes
+        echo "installing apport-retrace?"
+        sudo apt-get install apport-retrace || echo "apt says no"
+        a="cf"
+        for f in $(find /var/crash/ -iname '*.crash'); do
+          echo "handling file $f"
+          echo "copy crash file"
+          cp $f crashes || echo "could not copy"
+          echo "make folder"
+          mkdir crashes/$a || echo "could not mkdir $a"
+          echo "unpack into folder"
+          apport-unpack $f crashes/$a || echo "could not unpack to $a"
+          sudo apport-retrace --rebuild-package-info --stdout $f || echo "could not retrace crash file with --stdout"
+          sudo apport-retrace --rebuild-package-info $f || echo "could not retrace crash file without --stdout"
+          a=a$a
+        done
+        echo "copied stuff into folder crashes/"
+      displayName: try setting up core catching
 
     - script: |
         mkdir debugspam

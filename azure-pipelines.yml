@@ -195,6 +195,19 @@ stages:
                 echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
               displayName: "Set java version (non-Windows)"
 
+          - ${{ if eq(os, 'Lin') }}:
+            - bash: |
+                echo "current ulimits:"
+                ulimit -a
+                echo "core pattern"
+                cat /proc/sys/kernel/core_pattern
+                echo "coredumpctl output before"
+                coredumpctl -q -r -n 5 | cat || echo "coredumpctl says no"
+                echo "running a shell command that segfaults itself"
+                sh -c $'kill -SEGV $$'
+                coredumpctl -q info | cat || echo "coredumpctl says no"
+              displayName: set up core dumping
+
           - checkout: self
             path: selfrepo
             displayName: Checkout script repo

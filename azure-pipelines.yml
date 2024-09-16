@@ -635,6 +635,14 @@ stages:
             displayName: list test results files
             condition: succeededOrFailed()
 
+          - task: PublishPipelineArtifact@1
+            displayName: publish test results files
+            condition: always()
+            inputs:
+              targetPath: $(Pipeline.Workspace)/rakudo/test_results
+              artifact: "${{ backend }} ${{ coalesce(variant, 'normal') }}_test_results_${{ os }}"
+              publishLocation: 'pipeline'
+
           - task: PublishTestResults@2
             inputs:
               testResultsFormat: JUnit

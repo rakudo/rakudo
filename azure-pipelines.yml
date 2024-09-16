@@ -779,10 +779,10 @@ stages:
         echo "listing test results subfolders"
         ls -lisah test_results/*
         echo "listing all inputs"
-        ls -lisah test_results/**/*
+        ls -lisah $(find test_results/ -type f -iname '*.t' -o -type f -iname '*.rakudo.moar')
         echo "running tap2junit"
         echo "converting..."
-        tap2junit --verbose test_results/**/* || echo "oh no, failed to convert!"
+        tap2junit --verbose $(find test_results/ -type f -iname '*.t' -o -type f -iname '*.rakudo.moar') || echo "oh no, failed to convert!"
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: convert tap to junit
       condition: succeededOrFailed()

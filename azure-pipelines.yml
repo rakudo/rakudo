@@ -640,7 +640,7 @@ stages:
               testResultsFormat: JUnit
               testResultsFiles: '**/*.xml'
               searchFolder: '$(Pipeline.Workspace)/rakudo/test_results'
-              testRunTitle: "rakudo tests"
+              testRunTitle: "${{ os }} ${{ backend }} ${{ variant }} rakudo tests"
               buildPlatform: ${{ os }} ${{ backend }} ${{ variant }}
             condition: succeededOrFailed()
 
@@ -779,7 +779,7 @@ stages:
         testResultsFormat: JUnit
         testResultsFiles: '**/*.xml'
         searchFolder: '$(Pipeline.Workspace)/rakudo/test_results'
-        testRunTitle: "full spectest with spesh NoDelay"
+        testRunTitle: "lin mvm relocatable (not) full spectest with(out) spesh NoDelay"
       condition: succeededOrFailed()
 
     - task: PublishPipelineArtifact@1

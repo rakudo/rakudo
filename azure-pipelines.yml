@@ -741,10 +741,17 @@ stages:
         echo "chmod +x the rakudo-m that t/harness5 uses to run tests"
         chmod +x rakudo-m
 
+        export PERL_TEST_HARNESS_DUMP_TAP=test_results
         make --trace  TEST_JOBS=3 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'
       displayName: spectest with nodelay & blocking
 
+    - script: |
+        ls -lisah test_results/*
+        tap2junit test_results/**/*
+      workingDirectory: '$(Pipeline.Workspace)/rakudo'
+      displayName: convert tap to junit
+      condition: succeededOrFailed()
       # make --trace TEST_JOBS=3 MVM_SPESH_NODELAY=1 MVM_SPESH_BLOCKING=1 m-spectest
 
     - task: PublishTestResults@2

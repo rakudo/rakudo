@@ -106,8 +106,6 @@ multi sub trait_mod:<is>(Mu:U $type, *%fail) {
 
 multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'an attribute',
@@ -178,7 +176,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c) {
 
     sub trait-name(&t) { &t.signature.params[1].named_names[0] }
 
-    my %info = :file($?FILE), :line($?LINE), :type<is>, :$subtype,
+    my %info = :type<is>, :$subtype,
                :declaring($r.^name.split('+').head.lc);
 
     with @traits.first({.&trait-name eq $subtype}) -> &t {
@@ -222,8 +220,6 @@ BEGIN &trait_mod:<is>.set_onlystar();
 
 multi sub trait_mod:<is>(Parameter:D $param, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'a parameter',
@@ -596,8 +592,6 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 proto sub trait_mod:<will>(Mu $, |) {*}
 multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'will',
       subtype    => c.hash.keys[0],
       declaring  => 'an attribute',

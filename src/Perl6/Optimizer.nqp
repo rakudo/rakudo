@@ -1593,16 +1593,16 @@ my class SmartmatchOptimizer {
 
         # This edge case muddies up the visual waters quite a bit in hopes of keeping the optimizer speedy
         return QAST::Op.new( :op<callmethod>, :name<Bool>,
-                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.value )
+                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast )
         )   if $lhs.value-kind == $OPERAND_VALUE_VAR
             && nqp::eqaddr($sm_type, nqp::ifnull($Mu'U, $Mu'U := $!symbols.Mu'U))
-            && ! ($sm_type.HOW.archetypes($sm_type).definite && $sm_type.HOW.definite($sm_type));
+            && ! ($sm_type_how.archetypes($sm_type).definite && $sm_type_how.definite($sm_type));
 
         my $sm_is_subset :=
             $sm_type_how.archetypes($sm_type).nominalizable
             && !nqp::isnull($sm_type_how.wrappee-lookup($sm_type, :subset));
 
-        note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
+        note("Try typematch over RHS ", $sm_type_how.name($sm_type)) if $!debug;
 
         my $sm_ast;
 

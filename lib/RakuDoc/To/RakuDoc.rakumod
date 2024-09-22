@@ -186,8 +186,10 @@ method !render-subset($_, $WHY) {
 #- variable --------------------------------------------------------------------
 
 method !render-variable($_, $WHY) {
-    my str $type  = "doc-variable";
-    my str @parts = "$*SPACES=begin $type :name<$_.name()>\n";
+    my str $scope = .scope;
+    my str $type  = $scope.lc eq 'has' ?? "doc-attribute" !! "doc-variable";
+    my str @parts =
+      "$*SPACES=begin $type :name<$_.name()>, :scope<$scope>\n";
 
     $*SPACES ~= "  ";
     @parts.push("$*SPACES=leading $_")  with $WHY.leading;

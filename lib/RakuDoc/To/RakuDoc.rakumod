@@ -47,6 +47,9 @@ method !render($_, $WHY) {
         when RakuAST::Block {
             self!render-block('', $_, $WHY)
         }
+        when RakuAST::Submethod {  # must precede RakuAST::Method
+            self!render-routine('submethod', $_, $WHY)
+        }
         when RakuAST::Method {
             self!render-routine('method', $_, $WHY)
         }
@@ -64,9 +67,6 @@ method !render($_, $WHY) {
         }
         when RakuAST::Sub {
             self!render-routine('sub', $_, $WHY)
-        }
-        when RakuAST::Submethod {
-            self!render-routine('submethod', $_, $WHY)
         }
         when RakuAST::Type::Enum {
             self!render-enum($_, $WHY)
@@ -136,6 +136,19 @@ method !render-package($_, $WHY) {
     @parts.join
 }
 
+#- parameter -------------------------------------------------------------------
+
+method !render-parameter($_, $WHY) {
+    my str $type  = "doc-parameter";
+    my     $meta  = .meta-object;
+    my str @parts = "$*SPACES=begin $type :name<$meta.raku()>\n";
+
+    @parts.push("$*SPACES  =leading $_")  with $WHY.leading;
+    @parts.push("$*SPACES  =trailing $_") with $WHY.trailing;
+    @parts.push("$*SPACES=end $type\n\n");
+    @parts.join
+}
+
 #- routine ---------------------------------------------------------------------
 
 method !render-routine(str $kind, $_, $WHY) {
@@ -153,19 +166,6 @@ method !render-routine(str $kind, $_, $WHY) {
     @parts.push(self!inspect($_)) with .rakudoc;
 
     $*SPACES .= chop(2);
-    @parts.push("$*SPACES=end $type\n\n");
-    @parts.join
-}
-
-#- parameter -------------------------------------------------------------------
-
-method !render-parameter($_, $WHY) {
-    my str $type  = "doc-parameter";
-    my     $meta  = .meta-object;
-    my str @parts = "$*SPACES=begin $type :name<$meta.raku()>\n";
-
-    @parts.push("$*SPACES  =leading $_")  with $WHY.leading;
-    @parts.push("$*SPACES  =trailing $_") with $WHY.trailing;
     @parts.push("$*SPACES=end $type\n\n");
     @parts.join
 }

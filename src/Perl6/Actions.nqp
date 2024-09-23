@@ -9438,6 +9438,7 @@ Did you mean a call like '"
     }
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
     sub lower_signature($block, $sig, @params) {
+        my int $should_spew := nqp::existskey(nqp::getenvhash(), "LOWER_SIG_DEBUG");
         my $world := $*W;
         my @result;
         my $clear_topic_bind;
@@ -9452,6 +9453,8 @@ Did you mean a call like '"
         my int $n  := nqp::elems(@params);
         # @!params attribute of the code object. Should only be used when handling of generics is needed.
         my $ins_params;
+
+        note("lowering signature with $n params (block name " ~ $block.name ~ " cuid " ~ $block.cuid) if $should_spew;
 
         sub signature_params($var) {
             unless $ins_params {
@@ -9478,10 +9481,12 @@ Did you mean a call like '"
         }
 
         while $i < $n {
+            note("  param $i:") if $should_spew;
             # Some things need the full binder to do.
             my %info      := @params[$i];
             my $param_obj := @p_objs[$i];
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
+            my int $anon_capture := 0;
             return 0
               if nqp::existskey(%info,'sub_signature')
               || %info<bind_accessor>                   # XXX Support later
@@ -9493,20 +9498,25 @@ Did you mean a call like '"
             if %info<is_capture> {
                 # If this is a final and anonymous capture, then we're good.
                 # Otherwise, bail out for now.
+                note("    is capture") if $should_spew;
                 return 0 if $saw_slurpy;
+                note("      $i + 1 == $n or $i + 2 == $n and params[$i + 1] is named slurpy?") if $should_spew;
                 return 0 unless $i + 1 == $n ||
                                 $i + 2 == $n && @params[$i + 1]<named_slurpy>;
+                note("      is capture") if $should_spew;
                 if !nqp::istype($world.find_single_symbol_in_setting('Capture'), %info<type>) {
                     %info<node>.panic("Capture parameter must have a type accepting a Capture");
                 }
                 $var.slurpy(1);
                 my $hash_name := $name ~ '_hash';
+                note("      put var into result") if $should_spew;
                 @result.push(QAST::Var.new(
                     :name($hash_name), :scope('local'), :decl('param'),
                     :slurpy(1), :named(1)
                 ));
                 if nqp::existskey(%info, 'variable_name') {
                     # Build a capture object.
+                    note("    has a name") if $should_spew;
                     my $Capture := QAST::WVal.new( :value($world.find_single_symbol_in_setting('Capture')) );
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -9525,23 +9535,30 @@ Did you mean a call like '"
                             QAST::Var.new( :name($hash_name), :scope('local') )
                         )));
                 }
+                else {
+                    $anon_capture := 1;
+                }
             }
             elsif nqp::existskey(%info, 'named_names') {
                 my @names := %info<named_names>;
                 if nqp::elems(@names) == 1 {
+                    note("    has 1 named names") if $should_spew;
                     $var.named(nqp::atpos_s(@names, 0));
                 }
                 elsif nqp::elems(@names) == 2 {
+                    note("    has 2 named names") if $should_spew;
                     my @names_copy;
                     @names_copy[0] := nqp::atpos_s(@names, 0);
                     @names_copy[1] := nqp::atpos_s(@names, 1);
                     $var.named(@names_copy);
                 }
                 else {
+                    note("    too many names!") if $should_spew;
                     return 0;
                 }
             }
             elsif %info<pos_slurpy> || %info<pos_lol> || %info<pos_onearg> {
+                note("    pos slurpy or pos lol or pos onearg") if $should_spew;
                 $var.slurpy(1);
                 my $type := $world.find_symbol(
                     [$flags +& nqp::const::SIG_ELEM_IS_RAW || $flags +& nqp::const::SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
@@ -9554,9 +9571,11 @@ Did you mean a call like '"
                         QAST::WVal.new( :value($type) ),
                         QAST::Var.new( :name($name), :scope('local') )
                     )));
+                note("      marking saw_slurpy") if $should_spew;
                 $saw_slurpy := 1;
             }
             elsif %info<named_slurpy> {
+                note("    named slurpy") if $should_spew;
                 $var.slurpy(1);
                 $var.named(1);
                 my $slurpy_setup := QAST::Op.new(
@@ -9573,9 +9592,11 @@ Did you mean a call like '"
                         QAST::Var.new( :name($name), :scope('local') )
                     ));
                 if nqp::existskey(%info, 'variable_name') && %info<variable_name> eq '%_' {
+                    note("      %_, setting autoslurpy") if $should_spew;
                     $slurpy_setup.annotate('autoslurpy', 1);
                 }
                 $var.push($slurpy_setup);
+                note("      marking saw_slurpy") if $should_spew;
                 $saw_slurpy := 1;
             }
 
@@ -9591,6 +9612,7 @@ Did you mean a call like '"
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
             my int $decont_name_invalid := 0;
+            note("    generic $is_generic coercive $is_coercive is_rw $is_rw spec $spec") if $should_spew;
             sub get_decont_name() {
                 return NQPMu if $decont_name_invalid;
                 unless $decont_name {
@@ -9618,7 +9640,8 @@ Did you mean a call like '"
                     $var.returns($param_type);
                 }
             }
-            elsif !$saw_slurpy {
+            elsif !$saw_slurpy && !$anon_capture {
+                note("      did not saw_slurpy, so have to hllize") if $should_spew;
                 # Must hll-ize before we go on.
                 $var.push(QAST::Op.new(
                     :op('bind'),
@@ -9630,6 +9653,7 @@ Did you mean a call like '"
 
                 # Type-check, unless it's Mu, in which case skip it.
                 if $is_generic && !$is_coercive {
+                    note("      is generic and non-coercive, have to typecheck!") if $should_spew;
                     my $genericname := $param_type.HOW.name(%info<attr_package>);
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
@@ -9637,11 +9661,14 @@ Did you mean a call like '"
                         QAST::Var.new( :name($genericname), :scope<typevar> )
                     )));
                 } elsif !($param_type =:= $world.find_single_symbol_in_setting('Mu')) {
+                    note("      is not generic or is coercive, and not a Mu param") if $should_spew;
                     if $ptype_archetypes.generic {
+                        note("        archetype is generic, have to bail if this isn't the invocant") if $should_spew;
                         return 0 unless %info<is_invocant>;
                     }
                     else {
                         if $param_type =:= $world.find_single_symbol_in_setting('Positional') {
+                            note("        is Positional") if $should_spew;
                             $var.push(QAST::Op.new(
                                 :op('if'),
                                 QAST::Op.new(
@@ -9667,6 +9694,7 @@ Did you mean a call like '"
                         # additional call to a HOW method. Instead it's ok to check if value matches target or
                         # constraint types.
                         if $is_coercive && nqp::can($param_type.HOW, 'target_type') {
+                            note("        got a coercive + target_type") if $should_spew;
                             $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                                     :op('unless'),
                                     QAST::Op.new(
@@ -9679,6 +9707,7 @@ Did you mean a call like '"
                                         QAST::WVal.new( :value($param_type.HOW.constraint_type($param_type) ))))));
                         }
                         else {
+                            note("      not coercive, or couldn't find target_type method") if $should_spew;
                             $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                                 :op('istype_nd'),
                                 QAST::Var.new( :name(get_decont_name()), :scope('local') ),
@@ -9688,6 +9717,7 @@ Did you mean a call like '"
                     }
                 }
                 if %info<undefined_only> {
+                    note("        :U param") if $should_spew;
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('not_i'),
                         QAST::Op.new(
@@ -9696,12 +9726,14 @@ Did you mean a call like '"
                         ))));
                 }
                 if %info<defined_only> {
+                    note("        :D param") if $should_spew;
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('isconcrete_nd'),
                         QAST::Var.new( :name(get_decont_name()), :scope('local') )
                     )));
                 }
                 if $is_rw {
+                    note("        RW param") if $should_spew;
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('isrwcont'),
                         QAST::Var.new( :name($name), :scope('local') )
@@ -9716,6 +9748,7 @@ Did you mean a call like '"
             # In theory, we could bind a local with the result of the WHAT
             # operation, but I'm not convinced it's sufficiently expensive.
             if %info<type_captures> {
+                note("      got type captures") if $should_spew;
                 my $iter := nqp::iterator(%info<type_captures>);
                 while $iter {
                     $var.push( QAST::Op.new(
@@ -9732,6 +9765,7 @@ Did you mean a call like '"
             my $inst_param;
             # Make sure we have (possibly instantiated) parameter object ready when we need it
             if $is_generic || %info<signature_constraint> {
+                note("      generic (or signature constraint) means we need param object") if $should_spew;
                 my $inst_param_name := QAST::Node.unique('__lowered_param_obj_');
                 $var.push( # Fetch instantiated Parameter object
                     QAST::Op.new(
@@ -9748,6 +9782,7 @@ Did you mean a call like '"
             # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
             # we have to fetch the instantiated parameter object and do run-time processing.
             if $is_generic {
+                note("      generic, so handle coercion") if $should_spew;
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
                 $decont_name_invalid := 1;
                 my $low_param_type := QAST::Node.unique('__lowered_param_type');
@@ -9802,6 +9837,7 @@ Did you mean a call like '"
 #?endif
             }
             elsif $ptype_archetypes.coercive {
+                note("      coercive archetype, so handle that") if $should_spew;
                 $decont_name_invalid := 1;
                 my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
                 my $target_type := $coercion_type.HOW.target_type($coercion_type);
@@ -9837,8 +9873,10 @@ Did you mean a call like '"
 
             # If it's optional, do any default handling.
             if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                note("      optional parameter handling") if $should_spew;
                 $decont_name_invalid := 1;
                 if nqp::existskey(%info, 'default_value') {
+                    note("        default value exists") if $should_spew;
                     my $wval := QAST::WVal.new( :value(%info<default_value>) );
                     if %info<default_is_literal> {
                         $var.default($wval);
@@ -9853,7 +9891,7 @@ Did you mean a call like '"
                 }
                 else {
                     if (my $is-array := %info<sigil> eq '@') || %info<sigil> eq '%' {
-
+                        note("        default handling for @ and % sigiled vars") if $should_spew;
                         my $role      := $is-array ?? 'Positional' !! 'Associative';
                         my $base-type := $is-array ?? 'Array'      !! 'Hash';
 
@@ -9867,6 +9905,7 @@ Did you mean a call like '"
                             )));
                     }
                     else {
+                        note("        default handling per spec") if $should_spew;
                         if $spec == 1 {
                             $var.default(QAST::IVal.new( :value(0) ));
                         }
@@ -9896,6 +9935,7 @@ Did you mean a call like '"
 
             # If it's the invocant, needs to go into self also.
             if %info<is_invocant> {
+                note("      invocant param. binding to self") if $should_spew;
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name('self'), :scope('lexical') ),
@@ -9909,6 +9949,7 @@ Did you mean a call like '"
 
             # Bind to lexical if needed.
             if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
+                note("      has a variable name and it's not an attribute, bindlex code!") if $should_spew;
                 if nqp::objprimspec($nomtype) || $is_rw || $flags +& nqp::const::SIG_ELEM_IS_RAW {
                     my $scope := $spec && $is_rw ?? 'lexicalref' !! 'lexical';
                     $var.push(QAST::Op.new(
@@ -9982,6 +10023,7 @@ Did you mean a call like '"
                     # Iterable, we know it can't flatten. This in turn means
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
+                    note("        complicated case") if $should_spew;
                     unless $wrap {
                         if !$param_obj.coercive {
                             $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
@@ -10045,6 +10087,7 @@ Did you mean a call like '"
             }
 
             if %info<signature_constraint> {
+                note("      have a signature constraint") if $should_spew;
                 my $var-qast := QAST::Var.new( :name($name), :scope('local') );
                 my $var-decont := get_decont_name()
                                     ?? QAST::Var.new( :name(get_decont_name()), :scope('local') )
@@ -10113,6 +10156,7 @@ Did you mean a call like '"
             # Apply post-constraints (must come after variable bind, as constraints can
             # refer to the var).
             if %info<post_constraints> {
+                note("      have post constraints") if $should_spew;
                 my $wInt := $world.find_symbol: ['Int'], :setting-only;
                 my $wStr := $world.find_symbol: ['Str'], :setting-only;
                 my $wNum := $world.find_symbol: ['Num'], :setting-only;
@@ -10166,6 +10210,7 @@ Did you mean a call like '"
 
             # If it's an attributive parameter, do the bind.
             if %info<bind_attr> {
+                note("      binding to an attribute") if $should_spew;
                 # If the type given for the attr_package is generic, we're
                 # dealing with a role and have to look up what type it's
                 # supposed to grab the attribute from during run-time.
@@ -10219,9 +10264,11 @@ Did you mean a call like '"
             $i++;
         }
         if $clear_topic_bind {
+            note("      clearing the topic binding") if $should_spew;
             $clear_topic_bind.shift(); $clear_topic_bind.shift();
             $clear_topic_bind.op('null');
         }
+        note("  done") if $should_spew;
         @result
     }
     sub find_var_decl($block, $name) {

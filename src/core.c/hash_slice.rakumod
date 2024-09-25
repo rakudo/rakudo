@@ -49,13 +49,15 @@ multi sub postcircumfix:<{ }>(
 multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$delete!, Bool() :$exists!
 ) is raw {
-    SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
+    SELF.DELETE-KEY(key)
+      if (my \existed = SELF.EXISTS-KEY(key).Bool) && $delete;
     nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed))
 }
 multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$delete!, Bool() :$exists!, Bool() :$p!
 ) is raw {
-    SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
+    SELF.DELETE-KEY(key)
+      if (my \existed = SELF.EXISTS-KEY(key).Bool) && $delete;
     existed || !$p
       ?? Pair.new(key,nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed)))
       !! ()
@@ -63,7 +65,8 @@ multi sub postcircumfix:<{ }>(
 multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$delete!, Bool() :$exists!, Bool() :$kv!
 ) is raw {
-    SELF.DELETE-KEY(key) if (my \existed = SELF.EXISTS-KEY(key)) && $delete;
+    SELF.DELETE-KEY(key)
+      if (my \existed = SELF.EXISTS-KEY(key).Bool) && $delete;
     existed || !$kv
       ?? (key,nqp::hllbool(nqp::eqaddr(nqp::decont($exists),existed)))
       !! ()
@@ -71,19 +74,19 @@ multi sub postcircumfix:<{ }>(
 
 # %h<key>:exists…
 multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists! ) is raw {
-    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key).Bool))
 }
 multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$exists!, Bool() :$p!
 ) is raw {
-    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
+    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key).Bool))
       ?? ($p ?? Pair.new(key,nqp::hllbool(r)) !! r)
       !! ()
 }
 multi sub postcircumfix:<{ }>(
   \SELF, Mu \key, Bool() :$exists!, Bool() :$kv!
 ) is raw {
-    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key)))
+    (my \r = nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-KEY(key).Bool))
       ?? ($kv ?? (key,nqp::hllbool(r)) !! r)
       !! ()
 }

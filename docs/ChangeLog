@@ -1,3 +1,48 @@
+New in 2024.09:
+
++ Improvements:
+
++ Additions:
+    + [6.e] Provide `is revision-gated("6.x")` trait [c2c8d7a0][6fa7c425]
+
++ Fixes:
+
++ Deprecations:
+
++ Internal:
+    + Use binding for all sub aliases [e1a77dc3]
+    + spell out MVMROOT macro for now for compatibility [46d219b4][46d219b4]
+    + set-env.ps1: Fix detecting build tools with multiple installed [c4c540eb]
+    + Micro-opt for non-existing keys in hash [60dbc201]
+    + Micro-opt for %h<a>:exists [dd66162a]
+    + Micro-opt %h<a>:exists:p [83d7a7ff]
+    + Micro-opt %h<a>:exists:kv [cc194cdc]
+    + Add dedicated { }:p|kv|k|v candidates [36e8403d]
+    + Micro-opt { }:delete:exists [753c7559]
+    + Micro-opt { }:delete:(:p|kv) [e2288121]
+    + Micro-opt { }:delete:exists:(:p|kv) [eb7a8279]
+    + Micro-opt { }:delete:(k|v) [49be2cf5]
+    + Remove all SLICE_ONE_HASH references in %h<key> [74b45bb3]
+    + Simplify %h<a b c> handling [4646481e]
+    + Micro-opt []:(k|p|kv|v) [0dd0d72e]
+    + Micro-opt [x]:exists [b093bc42]
+    + Micro-opt []:foo by Boolifying in the signature [50b86140]
+    + Micro-opt [foo]:(p|kv|v) [86a5a10c]
+    + Actually only allow concrete iterables in %h{...} [045644e0]
+    + Address a small but significant corner case in the optimizer [ba303f4a]
+    + Fix small breakage in the Mu:U sm optimization [fdeb87d0]
+    + Add test for "not-Mu:U" ~~ Mu:U [6e182acd]
+    + Remove $?FILE and $?LINE where they don't make much sense [2ee68bff]
+    + Make sure we have a Bool to check against with :exists
+
++ RakuAST Development:
+    + over 30 commits, 142/153 (make test), and 1158/1355 (make spectest)
+      [778c7a63][65c318f0][9ffadf80][7c3b2b18][1081b051][c612b32b][59257a4b]
+      [7857b802][ed5c906c][1fda647f][0c9a00ad][a27ae5ed][3e2684a4][a383c8bb]
+      [307efa6d][cd0e6ee6][81d43af6][38fa6c48][a8111db8][a260251b][07c8b119]
+      [d0a70281][4ccbad96][7ddaf755][850a5a71][5032aad2][fb7d3e7f][6888e977]
+      [866eec37][dde75687][27565cc1][8162f3eb][8eef4c79]
+
 New in 2024.08:
 
 + Improvements:

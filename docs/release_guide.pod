@@ -1,4 +1,4 @@
-=encoding UTF-8
+=encoding utf8
 
 =head1 release_guide.pod - guide to Rakudo releases
 

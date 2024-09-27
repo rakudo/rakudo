@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 37;
+plan 38;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -226,6 +226,12 @@ plan 37;
     lives-ok { Q|for <a b c> { @a.push($_) with "{.succ}"; }|.AST.EVAL },
         "using the topic inside a 'with' and an embedded code block in a qq string";
     is-deeply @a, [<b c d>], 'did the code do the right thing';
+}
+
+# https://github.com/rakudo/rakudo/issues/5649
+{
+    todo "compilation error in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    is (try 'our Str $a = "foo"'.EVAL), "foo", 'can have constraint on "our" variable';
 }
 
 # vim: expandtab shiftwidth=4

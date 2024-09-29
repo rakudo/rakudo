@@ -432,28 +432,35 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
+    multi method List(Array:D: :$view! --> List:D) is implementation-detail {
+        self.is-lazy    # reifies
+          ?? self.throw-iterator-cannot-be-lazy('.List')
+          !! nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified'))
+            ?? $reified.List
+            !! nqp::create(List)
+    }
+    multi method List(Array:D: --> List:D) {
         nqp::if(
-          self.is-lazy,                           # can't make a List
+          self.is-lazy,                         # can't make a List
           self.throw-iterator-cannot-be-lazy('.List'),
 
-          nqp::if(                                # all reified
+          nqp::if(                              # all reified
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
-            nqp::if(
-              $view,                              # assume no change in array
-              $reified.List,
-              nqp::stmts(                         # make cow copy
-                (my int $elems = nqp::elems($reified)),
-                (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(++$i,$elems),
-                  nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
+            nqp::stmts(                         # make cow copy
+              (my int $elems = nqp::elems($reified)),
+              (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(++$i,$elems),
+                nqp::bindpos(
+                  $cow,
+                  $i,
+                  nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)
                 ),
-                $cow.List
-              )
+              ),
+              $cow.List
             ),
-            nqp::create(List)                     # was empty, is empty
+            nqp::create(List)                   # was empty, is empty
           )
         )
     }

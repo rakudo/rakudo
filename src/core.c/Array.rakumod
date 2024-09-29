@@ -432,7 +432,7 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method List(Array:D: :$view! --> List:D) is implementation-detail {
+    multi method List(Array:D: :view($)! --> List:D) is implementation-detail {
         self.is-lazy    # reifies
           ?? self.throw-iterator-cannot-be-lazy('.List')
           !! nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified'))

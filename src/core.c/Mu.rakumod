@@ -29,6 +29,13 @@ my class Mu { # declared in BOOTSTRAP
         topic.THREAD: { SELF.ACCEPTS: $_ }
     }
 
+    multi method ACCEPTS(Mu:D: Mu:U \topic) {
+        nqp::hllbool(nqp::eqaddr(nqp::decont(topic), self.WHAT))
+    }
+    multi method ACCEPTS(Mu:D: Mu:D \topic) {
+        nqp::hllbool(nqp::eqaddr(nqp::decont(topic), self))
+    }
+
     # Mostly for introspection purposes, and to allow foo."$bar"() syntax
     method HOW(Mu \SELF:)   { nqp::how(SELF)   }
     method VAR(Mu \SELF:)   { nqp::p6var(SELF) }

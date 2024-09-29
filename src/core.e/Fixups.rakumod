@@ -83,6 +83,15 @@ augment class Cool {
 }
 
 #-------------------------------------------------------------------------------
+augment class Date {
+    multi method DateTime(
+      Date:D: :$timezone = $*TZ --> DateTime:D
+    ) is revision-gated("6.e")  {
+        DateTime.new(:$!year, :$!month, :$!day, :$timezone)
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Int {
 
     # handle negative sqrts being Complex

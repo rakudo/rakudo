@@ -474,7 +474,7 @@ class MoarVM::Spesh {
 
         if self.bails.sort: -*.value -> @bails {
             @lines.push: @bails > $head
-              ?? "$head most occuring ops that prevented JITting of code"
+              ?? "$head most occurring ops that prevented JITting of code"
               !! "Ops that prevented JITting of code";
             @lines.push: "-" x 80;
             @lines.push: sprintf("%4d: %s", .value, .key)

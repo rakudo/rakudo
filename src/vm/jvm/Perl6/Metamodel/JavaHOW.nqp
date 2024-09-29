@@ -6,7 +6,7 @@ class Perl6::Metamodel::JavaHOW
     does Perl6::Metamodel::MethodContainer
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

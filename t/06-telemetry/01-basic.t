@@ -1,5 +1,4 @@
-use v6;
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
@@ -24,6 +23,8 @@ plan 42;
 my $T = T;
 isa-ok $T, Telemetry, 'did we get a Telemetry object from T';
 for <wallclock cpu max-rss> {
+    todo 'JVM gives zero for max-rss', 2 if $*VM.name eq 'jvm' and $_ eq 'max-rss';
+    todo 'Solaris gives zero for max-rss - see getrusage(3C)', 2 if $*VM.osname eq 'solaris';
     ok $T{$_}, "did we get a non-zero value for $_ using AT-KEY";
     ok $T."$_"(), "did we get a non-zero value for $_ with a method";
 }
@@ -68,19 +69,19 @@ isa-ok @periods[0], Telemetry::Period, 'is it a Telemetry::Period';
 is +periods, 0, 'Did the call to periods remove all of the snaps?';
 
 is snapper, Nil, 'did the snapper return nothing';
-sleep 1;
+sleep 1 * (%*ENV<ROAST_TIMING_SCALE>//1);
 snapper(:stop);
-sleep .1;
+sleep .1 * (%*ENV<ROAST_TIMING_SCALE>//1);
 
 ok +periods() > 0, 'did the snapper start taking snaps';
-sleep .2;
+sleep .2 * (%*ENV<ROAST_TIMING_SCALE>//1);
 ok +periods() == 0, 'did the snapper actually stop';
 
 snapper(2);
-sleep .5;  # give snapper thread some time to start up
-is +periods(), 1, 'did the snapper start taking snaps';
+sleep .5 * (%*ENV<ROAST_TIMING_SCALE>//1);  # give snapper thread some time to start up
+ok +periods() >= 1, 'did the snapper start taking snaps';
 snapper(:stop);
-sleep 2;
+sleep 2 * (%*ENV<ROAST_TIMING_SCALE>//1);
 
 my @report = report.lines;
 is +@report, 2, 'did we only get the header of the report';

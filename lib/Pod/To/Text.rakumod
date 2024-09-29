@@ -15,12 +15,12 @@ sub pod2text($pod) is export {
         when Pod::Heading           { heading2text($pod)             }
         when Pod::Block::Code       { code2text($pod)                }
         when Pod::Block::Named      { named2text($pod)               }
-        when Pod::Block::Para       { twrap( $pod.contents.map({pod2text($_)}).join("") ) }
+        when Pod::Block::Para       { para2text($pod)                }
         when Pod::Block::Table      { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)          }
         when Pod::Item              { item2text($pod)                }
-        when Pod::Defn              { pod2text($pod.contents[0]) ~ "\n"
-                                      ~ pod2text($pod.contents[1..*-1]) }
+        when Pod::Defn              { pod2text($pod.term) ~ "\n"
+                                      ~ pod2text($pod.contents) }
 
         when Pod::FormattingCode    { formatting2text($pod)          }
         when Positional             { .flat».&pod2text.grep(?*).join: "\n\n" }
@@ -49,15 +49,15 @@ sub item2text($pod) {
 sub named2text($pod) {
     given $pod.name {
         when 'pod'  { pod2text($pod.contents)     }
-        when 'para' { para2text($pod.contents[0]) }
+        when 'para' { pod2text($pod.contents) }
         when 'config' { }
-        when 'nested' { }
+        when 'nested' { pod2text($pod.contents).indent(4) }
         default     { $pod.name ~ "\n" ~ pod2text($pod.contents) }
     }
 }
 
 sub para2text($pod) {
-    twine2text($pod.contents)
+    twrap( $pod.contents.map({pod2text($_)}).join("") )
 }
 
 sub table2text($pod) {
@@ -86,9 +86,9 @@ sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
     my $what = do given $pod.WHEREFORE {
         when Method {
-            my @params=$_.signature.params[1..*];
-              @params.pop if @params.tail.name eq '%_';
-              'method ' ~ $_.name ~ signature2text(@params, $_.returns)
+            my @params = $_.signature.params.skip;
+            @params.pop if @params.tail.name eq '%_';
+            'method ' ~ $_.name ~ signature2text(@params, $_.returns)
         }
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params, $_.returns)
@@ -146,6 +146,8 @@ my %formats =
 ;
 
 sub formatting2text($pod) {
+    return '' if $pod.type eq 'Z'; # Do not output a comment
+
     my $text = $pod.contents>>.&pod2text.join;
     $pod.type ~~ %formats
       ?? colored($text, %formats{$pod.type})

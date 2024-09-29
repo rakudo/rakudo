@@ -1,0 +1,225 @@
+# NOTE: if you're adding / adapting tests here, you probably want to do
+#       the same in t/12-rakuast/heredocs.t
+
+use v6.e.PREVIEW;
+use Test;
+
+plan 13;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'One-part quoted string with literal piece' => {
+    # "hello\n"
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new("hello\n")]
+    );
+
+    is-deeply $deparsed, '"hello\n"', 'deparse';
+    is-deeply $_, "hello\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quoted string with interpolated string variable works' => {
+    my $str = 'hello,';
+
+    # "$str world"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::Var::Lexical.new('$str'),
+        RakuAST::StrLiteral.new(' world')
+      ]
+    );
+
+    is-deeply $deparsed, '"$str world"', 'deparse';
+    is-deeply $_, 'hello, world', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quoted string with interpolated integer variable' => {
+    my $int = 42;
+
+    # "$int is the answer"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::Var::Lexical.new('$int'),
+        RakuAST::StrLiteral.new(' is the answer')
+      ]
+    );
+
+    is-deeply $deparsed, '"$int is the answer"', 'deparse';
+    is-deeply $_, '42 is the answer', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quoted string consisting of only interpolated integer variable' => {
+    my $int = 42;
+
+    # "$int"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::Var::Lexical.new('$int'),
+      ]
+    );
+
+    is-deeply $deparsed, '"$int"', 'deparse';
+    is-deeply $_, '42', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quoted string with 3 parts works' => {
+    my $int = 42;
+
+    # "The answer is $int of course"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('The answer is '),
+        RakuAST::Var::Lexical.new('$int'),
+        RakuAST::StrLiteral.new(' of course!')
+      ]
+    );
+    is-deeply $deparsed, '"The answer is $int of course!"', 'deparse';
+    is-deeply $_, 'The answer is 42 of course!', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quoted string involving an interpolated block' => {
+    my $bv = 'interpolated';
+
+    # "An { $bv } block"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('An '),
+        RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$bv')
+              )
+            )
+          )
+        ),
+        RakuAST::StrLiteral.new(' block')
+      ]
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+"An {
+    $bv
+} block"
+CODE
+
+    is-deeply $_, 'An interpolated block', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'words processor splits a single literal string into words' => {
+    # qqw/foo bar 42/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('foo bar 42')],
+      :processors['words']
+    );
+
+    is-deeply $deparsed, 'qqw/foo bar 42/', 'deparse';
+    is-deeply $_, ("foo", "bar", "42"), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor applied to a quoted string with interpolation' => {
+    my $stuff = 'r baz';
+
+    # qqw/ba$stuff 66/
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('ba'),
+        RakuAST::Var::Lexical.new('$stuff'),
+        RakuAST::StrLiteral.new(' 66')
+      ],
+      :processors['words']
+    );
+
+    is-deeply $deparsed, 'qqw/ba$stuff 66/', 'deparse';
+    is-deeply $_, ("bar", "baz", "66"), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Using the val processor alone' => {
+    # qq:v/42/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('42')],
+      :processors['val']
+    );
+
+    is-deeply $deparsed, 'qq:v/42/', 'deparse';
+    is-deeply $_, IntStr.new(42,'42'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Using the val processor alone with interpolation' => {
+    my $end = '6';
+
+    # qq:v/4$end/
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('4'),
+        RakuAST::Var::Lexical.new('$end')
+      ],
+      :processors['val']
+    );
+
+    is-deeply $deparsed, 'qq:v/4$end/', 'deparse';
+    is-deeply $_, <46>, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Using the words and val processor' => {
+    # <foo bar 42>
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('foo bar 42')],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, '<foo bar 42>', 'deparse';
+    is-deeply $_, ("foo", "bar", val("42")), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor applied to a quoted string with interpolation' => {
+    my $stuff = 'r baz';
+
+    # qq:w:v/ba$stuff 66/
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('ba'),
+        RakuAST::Var::Lexical.new('$stuff'),
+        RakuAST::StrLiteral.new(' 66')
+      ],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, 'qq:w:v/ba$stuff 66/', 'deparse';
+    is-deeply $_, ('bar', 'baz', <66>), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Using the exec processor alone gives expected result' => {
+    # qx/echo 123/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('echo 123')],
+      :processors['exec']
+    );
+
+    is-deeply $deparsed, 'qx/echo 123/', 'deparse';
+    is-deeply $_, "123\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

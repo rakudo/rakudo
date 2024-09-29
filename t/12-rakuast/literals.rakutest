@@ -1,0 +1,76 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 9;
+
+# NOTE: this only works when there are no variable references
+sub ast-ok(
+  RakuAST::Node:D $ast,
+  Mu $value,
+  Str:D $string,
+  $comment = "testing for: $value.raku()"
+) is test-assertion {
+    subtest $comment => {
+        plan 4;
+        my $deparsed = $ast.DEPARSE;
+        my $raku     = 'use experimental :rakuast; ' ~ $ast.raku;
+        diag $deparsed.chomp;
+
+        is-deeply $deparsed, $string, 'deparse';
+        is-deeply EVAL($ast), $value, 'AST';
+        is-deeply EVAL($deparsed), $value, 'Str';
+        is-deeply EVAL(EVAL $raku), $value, 'Raku';
+    }
+}
+
+# 42
+ast-ok RakuAST::IntLiteral.new(42), 42, '42',
+  'RakuAST::IntLiteral with constant';
+
+{
+    my $a = 100;
+    my $b = 6;
+
+    # 106
+    ast-ok RakuAST::IntLiteral.new($a + $b), 106, '106',
+      'RakuAST::IntLiteral with calculated value';
+}
+
+# 4e2
+ast-ok RakuAST::NumLiteral.new(4e2), 4e2, '400e0',
+  'RakuAST::NumLiteral with constant';
+
+{
+    my $a = 2e4;
+    my $b = 5e1;
+
+    # 20050e0
+    ast-ok RakuAST::NumLiteral.new($a + $b), 2e4 + 5e1, '20050e0',
+      'RakuAST::NumLiteral with calculated value';
+}
+
+# 1.5
+ast-ok RakuAST::RatLiteral.new(1.5), 1.5, '1.5',
+  'RakuAST::RatLiteral with constant';
+
+{
+    my $a = 4.2;
+    my $b = 0.3;
+
+    # 4.5
+    ast-ok RakuAST::RatLiteral.new($a + $b), 4.2 + 0.3, '4.5',
+      'RakuAST::RatLiteral with calculated value';
+}
+
+# <42+6.66i>
+ast-ok RakuAST::ComplexLiteral.new(<42+6.66i>), <42+6.66i>, '<42+6.66i>',
+  'RakuAST::ComplexLiteral with constant';
+
+# v4.2
+ast-ok RakuAST::VersionLiteral.new(v4.2), v4.2, 'v4.2',
+  'RakuAST::VersionLiteral with constant';
+# v6.66
+ast-ok RakuAST::VersionLiteral.new(Version.new('6.66')), v6.66, 'v6.66',
+  'RakuAST::VersionLiteral with constructed version';
+
+# vim: expandtab shiftwidth=4

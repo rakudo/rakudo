@@ -157,8 +157,8 @@ emitted.
 =item C<RAKUDO_LINE_EDITOR>
 
 This specifies the preferred line editor to use; valid values are C<Readline>,
-C<Linenoise>, and none. A value of none is useful if you want to avoid the
-recommendation message upon REPL startup.
+C<Linenoise>, C<LineEditor>, and C<none>. A value of C<none> is useful if you
+want to avoid the recommendation message upon REPL startup.
 
 =item C<RAKUDO_DISABLE_MULTILINE>
 
@@ -166,10 +166,10 @@ If set to 1, will disable multiline input for the REPL.
 
 =item C<RAKUDO_HIST>
 
-This specifies the location of the history file used by the
-line editor; the default is C<~/.raku/rakudo-history>.
-Before Rakudo version 2020.02 the default was
-C<~/.perl6/rakudo-history>.
+This specifies the location of the history file used by the line editor; the
+default is C<~/.raku/rakudo-history>.  Before Rakudo version 2020.02 the
+default was C<~/.perl6/rakudo-history>.  If the older default file exists and
+the newer one does not, it will be automatically migrated.
 
 =back
 

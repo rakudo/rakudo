@@ -42,7 +42,7 @@ my $version-nqp    = %*ENV<VERSION_NQP>    // (try slurp ‘VERSION_NQP’   ) /
 my $version-rakudo = %*ENV<VERSION_RAKUDO> // (try slurp ‘VERSION_RAKUDO’) // $version;
 
 my $branch         = %*ENV<BRANCH> // (try slurp ‘BRANCH’)
-                     // ‘master’;
+                     // ‘main’;
 my $branch-moar    = %*ENV<BRANCH_MOAR>    // (try slurp ‘BRANCH_MOAR’   ) // $branch;
 my $branch-nqp     = %*ENV<BRANCH_NQP>     // (try slurp ‘BRANCH_NQP’    ) // $branch;
 my $branch-rakudo  = %*ENV<BRANCH_RAKUDO>  // (try slurp ‘BRANCH_RAKUDO’ ) // $branch;
@@ -68,8 +68,8 @@ my $rakudo-archive = “$RAKUDO-PATH/rakudo-{$version-rakudo}.tar.gz”;
 my $nqp-test-dir    = $temp.add: ‘nqp-test’;
 my $rakudo-test-dir = $temp.add: ‘rakudo-test’;
 
-my @tarball-distributors = ‘rakudo@rakudo.org:public_html/downloads/’,
-                           ‘rakudo@www.p6c.org:public_html/downloads/’;
+my @tarball-distributors = [‘2222’, ‘rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/’],
+                           [‘22’, ‘rakudo@www.p6c.org:public_html/downloads/’];
 
 my @canary-distributors  = ‘rakudo@www.p6c.org:public_html/downloads/’;
 
@@ -188,14 +188,15 @@ task ‘rakudo-push’, { # Step ??? (rakudo release guide)
 
 task ‘nqp-upload’, { # Step ❽ (nqp release guide)
     for @tarball-distributors {
-        run ‘scp’, $nqp-archive, “{$nqp-archive}.asc”, “$_/nqp/”
+        run ‘scp’, “-P{$_[0]}”, $nqp-archive, “{$nqp-archive}.asc”, “{$_[1]}/nqp/”
     }
     True
 }
 
 task ‘rakudo-upload’, { # Step ⓲ (rakudo release guide)
     for @tarball-distributors {
-        run ‘scp’, $rakudo-archive, “{$rakudo-archive}.asc”, “$_/rakudo/”
+        run ‘scp’, “-P{$_[0]}”, $rakudo-archive, “{$rakudo-archive}.asc”,
+            “{$rakudo-archive}.checksums.txt”, “{$_[1]}/rakudo/”
     }
     True
 }
@@ -438,7 +439,7 @@ sub rakudo-test($path, :$checkout-roast=True) {
     %env<TEST_JOBS> = $THREADS;
     antiflap-run :cwd($path), :%env, <make test>;
     if $checkout-roast {
-        run :cwd($path), :%env, <make spectest_checkout>; # ensure roast checkout
+        run :cwd($path), :%env, <make spectest_update>; # ensure roast checkout
         run :cwd($path.add: ‘t/spec’), <git checkout>, $branch-roast;
     }
     antiflap-run :cwd($path), :%env, <make spectest>;
@@ -524,8 +525,19 @@ task ‘rakudo-tag’, { # Step ⓰ (rakudo release guide)
 }
 
 task ‘rakudo-sign’, { # Step ⓱ (rakudo release guide)
-    run <gpg2 --detach-sign --armor>,
-        #`{‘--output’, $rakudo-signature,} ‘--’, $rakudo-archive;
+    my $sig-file = $rakudo-archive ~ ‘.checksums.txt’;
+    my $unsigned-sig-file = $sig-file ~ '.unsigned';
+
+    run <gpg2 --detach-sign --armor -->, $rakudo-archive;
+
+    for <md5sum sha1sum sha224sum sha256sum sha384sum sha512sum> -> $tool {
+        my $proc = run $tool, ‘--tag’, $rakudo-archive, :out;
+        my $sig = $proc.out.slurp: :close;
+        $unsigned-sig-file.IO.spurt: $sig, :append;
+    }
+
+    run <gpg2 --clearsign --output>, $sig-file, ‘--’, $unsigned-sig-file;
+    $unsigned-sig-file.IO.unlink;
     True
 }
 
@@ -551,7 +563,7 @@ task ‘wikipedia’, { # Step ⓴ (rakudo release guide)
         },
     );
     my $announce-io = $RAKUDO-PATH.add(“docs/announce/$version-rakudo.md”);
-    die ‘Weird annoncement’ unless slurp($announce-io).lines.head ~~ /Release \s (‘#’\d+)/;
+    die ‘Weird announcement’ unless slurp($announce-io).lines.head ~~ /Release \s (‘#’\d+)/;
     my $release-id = ~$0;
     my $date = run(‘git’, ‘log’, ‘-1’, ‘--format=%ai’, $version-rakudo,
                    :out, :cwd($RAKUDO-PATH)).out.words.head;

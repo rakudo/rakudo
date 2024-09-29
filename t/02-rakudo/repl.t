@@ -1,5 +1,4 @@
-use v6;
-use lib <t/packages>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
@@ -7,14 +6,16 @@ plan 47;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
-    $_ = .lines.skip(4).join("\n");
-    s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
-        " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or $eof\n"//;
-    s:g/ ^^ "> "  //; # Strip out the prompts
-    s:g/    ">" $ //; # Strip out the final prompt
-    s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
-    $_
+    .lines
+      .skip(4)
+      .join("\n")
+      .subst( /^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+        " or `zef install Terminal::LineEditor`"
+        " or use rlwrap for a line editor\n\n"/)
+      .subst( /^^ "To exit type 'exit' or $eof\n"/ )
+      .subst( /^^ '[' \d+ '] > '  /, :global)  # Strip out the prompts
+      .subst( /^^ "* "+ /,           :global)  # Strip out the continuation-prompts
+      .subst( /    ">" $ /,          :global)  # Strip out the final prompt
 }
 
 {
@@ -164,12 +165,13 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     skip 'Result differs on OSX';
     # is-run-repl ['say "hi"'], {
     #     .subst(:g, /\W+/, '') eq
-    #     'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+    #     'YoumaywanttozefinstallReadlinezefinstallLinenoise'
+    #     ~ 'orzefinstallTerminalLineEditor'
     #     ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi'
     # }, 'REPL session does not have unexpected stuff';
 
-    ## XXX TODO: need to write tests that exercise the REPL with Linenoise
-    # and Readline installed. Particular things to check:
+    ## XXX TODO: need to write tests that exercise the REPL with Linenoise,
+    # Readline, and Terminal::LineEditor installed. Particular things to check:
     # 1. History file can be made on all OSes:
     #    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
     # 2. Test REPL does not show errors when $*HOME is not set:
@@ -178,13 +180,16 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
 
 # https://github.com/Raku/old-issue-tracker/issues/3211
 {
-    is-run-repl ['say 069'], :out("69\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix,"
-        .* '69 is not a valid octal number'
+    is-run-repl ['say 069'], :out("69\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? '69 is not a valid octal number'
     /), 'prefix 0 on invalid octal warns in REPL';
 
-    is-run-repl ['say 067'], :out("67\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix" .* "like, '0o67'"
+    is-run-repl ['say 067'], :out("67\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? "like, '0o67'"
     /), 'prefix 0 on valid octal warns in REPL';
 }
 
@@ -220,7 +225,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'https://github.com/rakudo/rakudo/issues/4161';
+    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || %*ENV<RAKUDO_RAKUAST>;
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),

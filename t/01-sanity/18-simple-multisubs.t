@@ -1,5 +1,3 @@
-use v6;
-
 say "1..2";
 
 multi sub foo ($only_one_arg) {

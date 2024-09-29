@@ -1,0 +1,189 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 8;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+sub no-args() {
+    444
+}
+subtest 'Can make a named call with no arguments' => {
+    # no-args()
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('no-args')
+    );
+    is-deeply $deparsed, 'no-args()', 'deparsed';
+    is-deeply $_, 444, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+sub one-arg($x) {
+    9 * $x
+}
+subtest 'Can make a named call with one positional argument' => {
+    # one-arg(5)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('one-arg'),
+      args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(5))
+    );
+    is-deeply $deparsed, 'one-arg(5)', 'deparsed';
+    is-deeply $_, 45, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+sub two-args($x, $y) {
+    $x - $y
+}
+subtest 'Can make a named call with two positional arguments' => {
+    # two-args(5, 3)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('two-args'),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(5),
+        RakuAST::IntLiteral.new(3),
+      )
+    );
+    is-deeply $deparsed, 'two-args(5, 3)', 'deparsed';
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+sub two-named(:$n1, :$n2) {
+    $n1 / $n2
+}
+subtest 'Can make a named call with two named arguments' => {
+    # two-named(n1 => 200, n2 => 4)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('two-named'),
+      args => RakuAST::ArgList.new(
+        RakuAST::FatArrow.new(
+          key => 'n1',
+          value => RakuAST::IntLiteral.new(200)
+        ),
+        RakuAST::FatArrow.new(
+          key => 'n2',
+          value => RakuAST::IntLiteral.new(4)
+        )
+      )
+    );
+    is-deeply $deparsed, 'two-named(n1 => 200, n2 => 4)', 'deparsed';
+    is-deeply $_, 50.0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Duplicated named arguments are correctly handled' => {
+    # two-named(n1 => 200, n2 => 4, n1 => 400)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('two-named'),
+      args => RakuAST::ArgList.new(
+        RakuAST::FatArrow.new(
+          key => 'n1',
+          value => RakuAST::IntLiteral.new(200)
+        ),
+        RakuAST::FatArrow.new(
+          key => 'n2',
+          value => RakuAST::IntLiteral.new(4)
+        ),
+        RakuAST::FatArrow.new(
+          key => 'n1',
+          value => RakuAST::IntLiteral.new(400)
+        ),
+      )
+    );
+    is-deeply $deparsed, 'two-named(n1 => 200, n2 => 4, n1 => 400)', 'deparsed';
+    is-deeply $_, 100.0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+my $target = -> $a, $b { $a - $b }
+subtest 'Can make a call on a term with two positional arguments' => {
+    # $target(9, 4)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('$target'),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(9),
+          RakuAST::IntLiteral.new(4),
+        )
+      )
+    );
+    is-deeply $deparsed, '$target(9, 4)', 'deparsed';
+    is-deeply $_, 5, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call that flattens into array' => {
+    my @args;
+    # no-args(|@args)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('no-args'),
+      args => RakuAST::ArgList.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('|'),
+          operand => RakuAST::Var::Lexical.new('@args')
+        )
+      )
+    );
+    is-deeply $deparsed, 'no-args(|@args)', 'deparsed';
+    is-deeply $_, 444, "@type[$++]: flattening empty list"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    @args = 95, 40;
+    # two-args(|@args)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('two-args'),
+      args => RakuAST::ArgList.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('|'),
+          operand => RakuAST::Var::Lexical.new('@args')
+        )
+      )
+    );
+    is-deeply $deparsed, 'two-args(|@args)', 'deparsed';
+    is-deeply $_, 55, "@type[$++]: two positional arguments"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call that flattens into hash' => {
+    my %args;
+    # no-args(|%args)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('no-args'),
+      args => RakuAST::ArgList.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('|'),
+          operand => RakuAST::Var::Lexical.new('%args')
+        )
+      )
+    );
+    is-deeply $deparsed, 'no-args(|%args)', 'deparsed';
+    is-deeply $_, 444, "@type[$++]: flattening empty list"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    %args<n1 n2> = 60, 12;
+    # two-named(|%args)
+    ast RakuAST::Call::Name.new(
+      name => RakuAST::Name.from-identifier('two-named'),
+      args => RakuAST::ArgList.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('|'),
+          operand => RakuAST::Var::Lexical.new('%args')
+        )
+      )
+    );
+    is-deeply $deparsed, 'two-named(|%args)', 'deparsed';
+    is-deeply $_, 5.0, "@type[$++]: flattening two named arguments"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
@@ -70,6 +70,7 @@ is-run ｢
 ｣, :out<bar>, 'no spurious warnings when invoking colonpaired routine';
 
 # https://github.com/Raku/old-issue-tracker/issues/6221
+todo 'crashes the JVM', 1 if $*VM.name eq 'jvm';
 is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
     'metaops + metaassign op do not produce spurious warnings';
 

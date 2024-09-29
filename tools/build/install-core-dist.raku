@@ -1,7 +1,4 @@
-use v6.d;
-
-use lib <lib>;
-use CompUnit::Repository::Staging;
+my constant Staging = "lib/CompUnit/Repository/Staging.rakumod".IO.slurp.EVAL;
 
 my %provides = 
     "Test"                          => "lib/Test.rakumod",
@@ -15,8 +12,17 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
+    "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
+    "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
+    "RakuDoc::To::RakuDoc"          => "lib/RakuDoc/To/RakuDoc.rakumod",
+    "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
+    "RakuAST::Deparse::Highlight"
+      => "lib/RakuAST/Deparse/Highlight.rakumod",
 ;
+
+%provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"
+    if $*RAKU.compiler.?supports-op('dispatch_v');
 
 if Compiler.backend eq 'moar' {
     %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
@@ -28,7 +34,7 @@ if Compiler.backend eq 'moar' {
 }
 
 my $prefix := @*ARGS[0];
-my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
+my $REPO := PROCESS::<$REPO> := Staging.new(
     :$prefix
     :next-repo(
         # Make CompUnit::Repository::Staging available to precomp processes
@@ -39,12 +45,13 @@ my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
     ),
     :name('core'),
 );
+my $compiler := Compiler.new;
 $REPO.install(
     Distribution::Hash.new(
         {
-            name     => 'CORE',
-            auth     => 'perl',
-            ver      => $*RAKU.version.Str,
+            name     => $compiler.name,
+            auth     => $compiler.auth,
+            ver      => $compiler.version,
             provides => %provides,
         },
         prefix => $*CWD,

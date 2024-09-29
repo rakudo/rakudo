@@ -1,5 +1,3 @@
-use v6;
-
 use MONKEY-SEE-NO-EVAL;
 
 use lib <lib>;
@@ -14,10 +12,12 @@ for (<CUnion CStruct CPPStruct>) -> $cls {
         "class Stub-$cls is repr('CStruct') " ~ ｢{ ... }｣,
         "class Oops$cls" ~ ｢ is repr('｣ ~ $cls ~ ｢') { HAS Stub-｣ ~ $cls ~ ｢ $.stubby; }｣;
     ).join("\n");
+    todo 'code does not die', 1 if $*VM.name eq 'jvm';
     throws-like { EVAL $b }, Exception, :message(/inline.*before.*definition/);
 
     # self-inlining should fail the same way
     my $bad = ("class Oops2$cls is repr(", $cls, ') { HAS Oops2'~$cls~' $.more; }').join(｢'｣);
+    todo 'code does not die', 1 if $*VM.name eq 'jvm';
     throws-like { EVAL $bad }, Exception, :message(/inline.*before.*definition/);
 }
 

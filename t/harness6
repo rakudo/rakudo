@@ -49,14 +49,15 @@ sub MAIN(
             say 'Inline::Perl5 not installed: not running Perl 5 integration tests';
             say 'You can install Inline::Perl5 into the build directory with';
             say '';
-            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5";
+            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5 --exclude='perl'";
             say '';
         }
 
         my %traits = :perl5($inline-perl5-is-installed),
                     :long(!$quick), :$stress, :slow,
                     :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
-                    :conc(?($vm eq any("jvm","moar")));
+                    :conc(?($vm eq any("jvm","moar"))),
+                    :rakuast(?%*ENV<RAKUDO_RAKUAST>);
         my $recode-path = $*SPEC !~~ IO::Spec::Unix;
         for $tests-from-file.IO.lines {
             next if / ^ \s* '#' / or not m/ \S /;
@@ -90,15 +91,18 @@ sub MAIN(
         @tfiles = batch(200, @tfiles).flatmap(&fudge);
     }
 
+    my @volumes = map { ::("TAP::Formatter::Volume::$_") }, <Silent Quiet Normal Verbose>;
+    my $volume = @volumes[$verbosity + 2];
     my $harness = ::('TAP::Harness').new(
             :handlers[get-handler($vm, :$rakupath)],
             :ignore-exit,
 #            :trap,
             :$jobs,
-            :$verbosity,
+            :$volume,
             :err('ignore'),
     );
-    await $harness.run(@tfiles).waiter;
+    temp %*ENV<RAKULIB> = 'lib';
+    await $harness.run(@tfiles);
 
     sub batch(Int(Real) $size, @files) {
         gather {
@@ -125,7 +129,7 @@ sub MAIN(
                 if $file.d {
                     listdir($file);
                 }
-                elsif $file ~~ / \. t $ / {
+                elsif $file ~~ / \. [t | rakutest] $ / {
                     take ~$file;
                 }
             }
@@ -144,7 +148,7 @@ sub MAIN(
 #        ::('TAP::Harness::SourceHandler::Exec').new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
 #    }
     multi sub get-handler(Any, :$rakupath) {
-       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($rakupath));
+       ::('TAP::Harness::SourceHandler::Raku').new(:path($rakupath));
     }
 }
 

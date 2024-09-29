@@ -1,5 +1,9 @@
 use nqp;
 
+package EXPORT::rakuast {
+    # Do nothing, just provide the tag.
+}
+
 package EXPORT::cached {
     multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my %cache;
@@ -12,7 +16,7 @@ package EXPORT::cached {
     }
 
     multi sub trait_mod:<is>(Method $m, :$cached!) {
-        X::NYI.new(:feature("'is cached' on methods")).throw;
+        NYI("'is cached' on methods").throw;
     }
 
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;
@@ -192,13 +196,65 @@ package EXPORT::pack {
     OUR::{'&pack'}           := &pack;
 }
 
-package EXPORT::collation {
-    # this is no longer experimental, but keep the package to prevent
-    # code that caters to this and earlier versions of compilers from
-    # breaking
-    #
-    # XXX TODO: should be fine to remove on 2019-12. There is also a test
-    # in t/02-rakudo/99-misc.t that will need to be removed too at the time
+package EXPORT::will-complain {
+    multi sub trait_mod:<will>(Mu:U \type, &complainee, :complain($)!) {
+        if type.HOW.archetypes.composable {
+            X::Comp::Trait::Invalid.new(
+                type       => 'will',
+                subtype    => 'complain',
+                declaring  => 'role',
+                name       => type.^name
+            ).throw
+        }
+        type.HOW does Metamodel::Explaining unless nqp::istype(type.HOW, Metamodel::Explaining);
+        type.HOW.SET-COMPLAINEE(&complainee);
+    }
+    multi sub trait_mod:<will>(Parameter:D $param, &complainee, :complain($)!) {
+        # Parameters often doesn't have an associated container descriptor.
+        # Therefore applying directly to the parameter object iyself.
+        $param does Metamodel::Explaining unless nqp::istype(nqp::decont($param), Metamodel::Explaining);
+        $param.SET-COMPLAINEE(&complainee)
+    }
+    multi sub trait_mod:<will>(Attribute:D $attr, &complainee, :complain($)!) {
+        my $desc = try $attr.container_descriptor;
+        unless $desc && nqp::istype($desc, Metamodel::Explaining) {
+            X::Comp::Trait::Invalid.new(
+                type       => 'will',
+                subtype    => 'complain',
+                declaring  => 'attribute',
+                name       => $attr.name,
+                reason     => (nqp::defined($desc)
+                                ?? 'cannot apply to descriptor type ' ~ $desc.^name
+                                !! 'cannot get descriptor')
+            ).throw
+        }
+        $desc.SET-COMPLAINEE(&complainee)
+    }
+    multi sub trait_mod:<will>(Mu \obj, &complainee, :complain($)!) {
+        X::Comp::Trait::Invalid.new(
+            type       => 'will',
+            subtype    => 'complain',
+            declaring  => 'a ' ~ obj.^shortname.lc,
+            name       => (nqp::can(obj, 'name') ?? obj.name !! '<anon>')
+        ).throw
+    }
+    multi sub trait_mod:<will>(Variable:D $v, &complainee, :complain($)!) {
+        my $var := $v.var;
+        my $desc := try nqp::getattr($var, $var.VAR.^mixin_base, '$!descriptor');
+        unless nqp::defined($desc) && nqp::istype($desc, Metamodel::Explaining) {
+            X::Comp::Trait::Invalid.new(
+                type       => 'will',
+                subtype    => 'complain',
+                declaring  => 'variable',
+                name       => $var.name,
+                reason     => (nqp::defined($desc)
+                                ?? 'cannot apply to descriptor type ' ~ $desc.^name
+                                !! 'cannot apply to a ' ~ $var.VAR.^name ~ " variable")
+            ).throw
+        }
+        $desc.SET-COMPLAINEE(&complainee);
+    }
+    OUR::{'&trait_mod:<will>'} := &trait_mod:<will>;
 }
 
 # vim: expandtab shiftwidth=4

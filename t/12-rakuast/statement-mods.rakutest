@@ -1,0 +1,326 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 14;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'The postfix "if" statement works with a true expression' => {
+    # 42 if 666
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::IntLiteral.new(42),
+      condition-modifier => RakuAST::StatementModifier::If.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(666)
+        )
+      )
+    );
+
+    is-deeply $deparsed, '42 if 666', 'deparse';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "if" statement works with a false expression' => {
+    # 42 if ""
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::IntLiteral.new(42),
+      condition-modifier => RakuAST::StatementModifier::If.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::StrLiteral.new("")
+        )
+      )
+    );
+
+    is-deeply $deparsed, '42 if ""', 'deparse';
+    # cannot put Empty as an entity in a for
+    is-deeply EVAL($ast), Empty, @type[$++];
+    is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
+}
+
+subtest 'The postfix "unless" statement works with a false expression' => {
+    # 42 unless ""
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::IntLiteral.new(42),
+      condition-modifier => RakuAST::StatementModifier::Unless.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::StrLiteral.new("")
+        )
+      )
+    );
+
+    is-deeply $deparsed, '42 unless ""', 'deparse';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "unless" statement works with a true expression' => {
+    # 42 unless 666
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::IntLiteral.new(42),
+      condition-modifier => RakuAST::StatementModifier::Unless.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(666)
+        )
+      )
+    );
+
+    is-deeply $deparsed, '42 unless 666', 'deparse';
+    # cannot put Empty as an entity in a for
+    is-deeply EVAL($ast), Empty, @type[$++];
+    is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
+}
+
+subtest 'The postfix "with" statement works with defined expression' => {
+    # $_ * 2 with 42
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyInfix.new(
+        left => RakuAST::Var::Lexical.new('$_'),
+        infix => RakuAST::Infix.new('*'),
+        right => RakuAST::IntLiteral.new(2)
+      ),
+      condition-modifier => RakuAST::StatementModifier::With.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+
+    is-deeply $deparsed, '$_ * 2 with 42', 'deparse';
+    is-deeply $_, 84, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "with" statement works with a type object' => {
+    # $_ * 2 with Int
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyInfix.new(
+        left => RakuAST::Var::Lexical.new('$_'),
+        infix => RakuAST::Infix.new('*'),
+        right => RakuAST::IntLiteral.new(2)
+      ),
+      condition-modifier => RakuAST::StatementModifier::With.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Int')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '$_ * 2 with Int', 'deparse';
+    # cannot put Empty as an entity in a for
+    is-deeply EVAL($ast), Empty, @type[$++];
+    is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
+}
+
+subtest 'The postfix "without" statement works with defined expression' => {
+    # $_ * 2 without 42
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyInfix.new(
+        left => RakuAST::Var::Lexical.new('$_'),
+        infix => RakuAST::Infix.new('*'),
+        right => RakuAST::IntLiteral.new(2)
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+
+    is-deeply $deparsed, '$_ * 2 without 42', 'deparse';
+    # cannot put Empty as an entity in a for
+    is-deeply EVAL($ast), Empty, @type[$++];
+    is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
+}
+
+subtest 'The postfix "given" statement works with defined expression' => {
+    # $_ * 2 given 42
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyInfix.new(
+        left => RakuAST::Var::Lexical.new('$_'),
+        infix => RakuAST::Infix.new('*'),
+        right => RakuAST::IntLiteral.new(2)
+      ),
+      loop-modifier => RakuAST::StatementModifier::Given.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+
+    is-deeply $deparsed, '$_ * 2 given 42', 'deparse';
+    is-deeply $_, 84, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "without" statement works with a type object' => {
+    # .Str without Int
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Term::TopicCall.new(
+        RakuAST::Call::Method.new(
+          name => RakuAST::Name.from-identifier('Str')
+        )
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
+        )
+      )
+    );
+
+    is-deeply $deparsed, '.Str without Int', 'deparse';
+    is-deeply $_, "", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "when" statement works' => {
+    my $foo;
+
+    # $_ = 42; 666 when 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(42)
+        ),
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666),
+        condition-modifier => RakuAST::StatementModifier::When.new(
+          RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+$_ = 42;
+666 when 42
+CODE
+
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "given" statement works with a type object' => {
+    # .Str given Int
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Term::TopicCall.new(
+        RakuAST::Call::Method.new(
+          name => RakuAST::Name.from-identifier('Str')
+        )
+      ),
+      loop-modifier => RakuAST::StatementModifier::Given.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
+        )
+      )
+    );
+
+    is-deeply $deparsed, '.Str given Int', 'deparse';
+    is-deeply $_, "", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "while" statement works' => {
+    my $foo;
+
+    # ++$foo while $foo < 5
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      loop-modifier => RakuAST::StatementModifier::While.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::Var::Lexical.new('$foo'),
+            infix => RakuAST::Infix.new('<'),
+            right => RakuAST::IntLiteral.new(5),
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '++$foo while $foo < 5', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5, @type[$++];
+    }
+}
+
+subtest 'The postfix "until" statement works' => {
+    my $foo;
+
+    # ++$foo until $foo >= 5
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      loop-modifier => RakuAST::StatementModifier::Until.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::Var::Lexical.new('$foo'),
+            infix => RakuAST::Infix.new('>='),
+            right => RakuAST::IntLiteral.new(5),
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '++$foo until $foo >= 5', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5; @type[$++];
+    }
+}
+
+subtest 'The postfix "for" statement works' => {
+    my $foo;
+
+    # ++$foo for 1 .. 5
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      loop-modifier => RakuAST::StatementModifier::For.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::IntLiteral.new(1),
+            infix => RakuAST::Infix.new('..'),
+            right => RakuAST::IntLiteral.new(5),
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '++$foo for 1 .. 5', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5, @type[$++];
+    }
+}
+
+# vim: expandtab shiftwidth=4

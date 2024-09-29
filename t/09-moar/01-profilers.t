@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
@@ -20,7 +20,7 @@ is-run "", "can launch with profiling requested", compiler-args => ["--profile=$
     err => / "profiler output" .*? "$jsonpath" /;
 
 ok $jsonpath.IO.f, "profiler json output file exists on disk";
-ok (try $jsonpath.IO.s) > 128, "profiler json output file isn't tiny";
+ok (try $jsonpath.IO.s > 128), "profiler json output file isn't tiny";
 
 my $sqlpath = $tempdir.child("profile.sql").absolute;
 
@@ -28,7 +28,7 @@ is-run "", "can launch with profiling requested", compiler-args => ["--profile=$
     err => / "profiler output" .*? "$sqlpath" /;
 
 ok $sqlpath.IO.f, "profiler sql output file exists on disk";
-ok (try $sqlpath.IO.s) > 128, "profiler sql output file isn't tiny";
+ok (try $sqlpath.IO.s > 128), "profiler sql output file isn't tiny";
 
 my $heappath = $tempdir.child("profile.mvmheap").absolute;
 
@@ -36,4 +36,4 @@ is-run "", "can launch with profiling requested", compiler-args => ["--profile=$
     err => / "snapshot" .*? "$heappath" /;
 
 ok $heappath.IO.f, "profiler heap output file exists on disk";
-ok (try $heappath.IO.s) > 128, "profiler heap output file isn't tiny";
+ok (try $heappath.IO.s > 128), "profiler heap output file isn't tiny";

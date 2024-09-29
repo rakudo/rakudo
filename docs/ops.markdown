@@ -6,7 +6,6 @@
     - [p6bindattrinvres](#p6bindattrinvres)
     - [p6bindcaptosig](#p6bindcaptosig)
     - [p6bindsig](#p6bindsig)
-    - [p6bool](#p6bool)
     - [p6box_i](#p6box_i)
     - [p6box_n](#p6box_n)
     - [p6box_s](#p6box_s)
@@ -15,10 +14,6 @@
     - [p6capturelexwhere](#p6capturelexwhere)
     - [p6captureouters2](#p6captureouters2)
     - [p6clearpre](#p6clearpre)
-    - [p6clientcorectx](#p6clientcorectx)
-    - [p6clientcorerev](#p6clientcorerev)
-    - [p6clientcorever](#p6clientcorever)
-    - [p6clientctx](#p6clientctx)
     - [p6configposbindfailover](#p6configposbindfailover)
     - [p6decontrv](#p6decontrv)
     - [p6definite](#p6definite)
@@ -41,7 +36,6 @@
     - [p6setpre](#p6setpre)
     - [p6settypes](#p6settypes)
     - [p6sink](#p6sink)
-    - [p6sort](#p6sort)
     - [p6stateinit](#p6stateinit)
     - [p6staticouter](#p6staticouter)
     - [p6store](#p6store)
@@ -79,11 +73,6 @@ This desugars to:
 ## p6bindsig
 * p6bindsig()
 
-## p6bool
-* p6bool(Mu $value)
-
-Create a Raku Bool from $value.
-
 ## p6box_i
 * p6box_i(int $value)
 
@@ -120,28 +109,6 @@ Must be called in the immediate outer scope of the block in question.
 * p6clearpre()
 
 Clears the "pre" flag in the current frame.
-
-## p6clientcorectx
-* p6clientcorectx()
-
-Returns the CORE context of our client. See [p6clientctx](#p6clientctx).
-
-Note that this returns exactly CORE, not setting, context.
-
-## p6clientcorerev
-* p6clientcorerev()
-
-Returns client's language revision letter. See [p6clientcorectx](#p6clientcorectx).
-
-## p6clientcorever
-* p6clientcorerev()
-
-Returns client's language version (`6.<rev>`). See [p6clientcorectx](#p6clientcorectx).
-
-## p6clientctx
-* p6clientctx()
-
-Returns client's, i.e. the first Raku caller from different package, context.
 
 ## p6configposbindfailover
 * p6configposbindfailover(Mu $type, Mu $failover-type)
@@ -235,9 +202,6 @@ Sets the "pre" flag on the current frame.
 
 ## p6sink
 * p6sink(Mu $past)
-
-## p6sort
-* p6sort(Mu @data, Mu &comparator)
 
 ## p6stateinit
 * p6stateinit()

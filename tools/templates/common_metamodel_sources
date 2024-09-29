@@ -2,7 +2,9 @@ src/Perl6/Metamodel/Configuration.nqp
 src/Perl6/Metamodel/Archetypes.nqp
 src/Perl6/Metamodel/Naming.nqp
 src/Perl6/Metamodel/Documenting.nqp
+src/Perl6/Metamodel/Explaining.nqp
 src/Perl6/Metamodel/Stashing.nqp
+src/Perl6/Metamodel/Composing.nqp
 src/Perl6/Metamodel/Versioning.nqp
 src/Perl6/Metamodel/LanguageRevision.nqp
 src/Perl6/Metamodel/Nominalizable.nqp
@@ -10,6 +12,7 @@ src/Perl6/Metamodel/TypePretense.nqp
 src/Perl6/Metamodel/MethodDelegation.nqp
 src/Perl6/Metamodel/BoolificationProtocol.nqp
 src/Perl6/Metamodel/ContainerSpecProtocol.nqp
+src/Perl6/Metamodel/BUILDALL.nqp
 src/Perl6/Metamodel/PackageHOW.nqp
 src/Perl6/Metamodel/ModuleHOW.nqp
 src/Perl6/Metamodel/GenericHOW.nqp

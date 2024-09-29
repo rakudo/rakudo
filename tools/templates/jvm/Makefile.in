@@ -4,7 +4,9 @@ JAR     = jar
 
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
-@bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
+@bpv(NQP_BIN)@       = @nfp(@j_nqp@)@
+# TODO Try to reduce memory usage, https://github.com/rakudo/rakudo/issues/5186
+@bpv(NQP_RR)@    = $(JAVA) -Xmx8G -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
 @bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-j-build
 @bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
@@ -48,7 +50,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@echo(+++ Generating	$@)@
 	$(NOECHO)$(MKPATH) bin
-	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g:none -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(NOECHO)$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
 @bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-j-build.in)@)@@
@@ -58,7 +60,7 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 		--set-var=java=$(JAVA) \
 		--set-var=classpath=@q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@
 
-$(J_RUNNER): @@script(create-jvm-runner.pl)@@
+$(J_RUNNER): @@script(create-jvm-runner.pl)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
 	@echo(+++ Setting up	$@)@
 	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev @q($(BASE_DIR))@ . . @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
@@ -78,18 +80,18 @@ eval-client.pl:
 ##  testing targets
 
 # Run the spectests that we know work.
-@backend_prefix@-rakudo_test_run.tar.gz: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-rakudo_test_run.tar.gz: @backend_prefix@-testable
 	- $(J_HARNESS5_WITH_FUDGE) --tests-from-file=$(SPECTEST_DATA) --archive @backend_prefix@-rakudo_test_run.tar.gz
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
-@backend_prefix@-localtest: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
-@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@$(J_HARNESS5_WITH_FUDGE) --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.

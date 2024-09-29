@@ -1,10 +1,13 @@
+#- Metamodel::EnumHOW ----------------------------------------------------------
 # This is the meta-object for an enumeration (declared with enum).
 # It keeps hold of the enumeration values in an Map, which is
 # created at composition time. It supports having roles composed in,
 # one or two of which presumably provide the core enum-ish methods.
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
@@ -18,14 +21,16 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
-    does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Mixins
+#?if !moar
+    does Perl6::Metamodel::InvocationProtocol
+#?endif
 {
     # Hash representing enumeration keys to values.
     has %!values;
 
     # Reverse mapping hash.
-    has %!value_to_enum;
+    has %!seulav;
 
     # List of enum values (actual enum objects).
     has @!enum_value_list;
@@ -33,169 +38,187 @@ class Perl6::Metamodel::EnumHOW
     # Roles that we do.
     has @!role_typecheck_list;
 
-    # Role'd version of the enum.
+    # Role'd version of the enum, null if not initialized yet
     has $!role;
-    has int $!roled;
 
-    # Are we composed yet?
-    has $!composed;
-
-    # Exportation callback for enum symbols, if any.
+    # Exportation callback for enum symbols, if any.  Null if not
     has $!export_callback;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1),
-                                                        :augmentable(1) );
-    method archetypes() {
-        $archetypes
+    # Make sure we mark as uninitialized
+    method TWEAK(*%_) {
+        $!role := $!export_callback := nqp::null;
     }
 
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    my $archetypes := Perl6::Metamodel::Archetypes.new(
+      :nominal, :composalizable, :augmentable
+    );
+
+    # Simple accessors
+    method archetypes(         $XXX?) { $archetypes           }
+    method enum_values(        $XXX?) { %!values              }
+    method enum_value_list(    $XXX?) { @!enum_value_list     }
+    method role_typecheck_list($XXX?) { @!role_typecheck_list }
+
+    method new_type(
+      :$name!,
+      :$base_type?,
+      :$repr = 'P6opaque',
+      :$is_mixin
+    ) {
+        my $HOW  := self.new;
+        my $type := nqp::newmixintype($HOW, $repr);
+        nqp::settypehll($type, 'Raku');
+
+        $HOW.set_name($type, $name);
+        $HOW.set_base_type($HOW, $base_type)
+          unless nqp::eqaddr($base_type, NQPMu);
+        $HOW.setup_mixin_cache($type);
+        self.add_stash($type);
     }
 
-    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
-        my $meta := self.new();
-        my $obj  := nqp::settypehll(nqp::newmixintype($meta, $repr), 'Raku');
-        $meta.set_name($obj, $name);
-        $meta.set_base_type($meta, $base_type) unless $base_type =:= NQPMu;
-        $meta.setup_mixin_cache($obj);
-        self.add_stash($obj);
+    # We only have add_parent to support mixins, which expects this method.
+    method add_parent($target, $parent) {
+        self.set_base_type($target, $parent);
     }
 
-    # We only have add_parent to support mixins, which expect this method.
-    method add_parent($obj, $parent) {
-        self.set_base_type($obj, $parent);
+    method add_enum_value($XXX, $pair) {
+        self.protect({
+            my %values          := nqp::clone(%!values);
+            my %seulav          := nqp::clone(%!seulav);
+            my @enum_value_list := nqp::clone(@!enum_value_list);
+
+            nqp::bindkey(%values, nqp::decont_s($pair.key), $pair.value);
+            nqp::bindkey(%seulav, nqp::stringify($pair.value), $pair);
+            nqp::push(@enum_value_list, $pair);
+
+            %!values          := %values;
+            %!seulav          := %seulav;
+            @!enum_value_list := @enum_value_list;
+        });
     }
 
-    method add_enum_value($obj, $value) {
-        %!values{nqp::unbox_s($value.key)} := $value.value;
-        @!enum_value_list[+@!enum_value_list] := $value;
-    }
-
-    method set_export_callback($obj, $callback) {
+    method set_export_callback($XXX, $callback) {
         $!export_callback := $callback
     }
 
-    method enum_values($obj) {
-        %!values
+    method elems($XXX?) { nqp::elems(%!values) }
+
+    method enum_from_value($XXX, $value) {
+        nqp::atkey(%!seulav, nqp::stringify($value))
     }
 
-    method elems($obj) {
-        nqp::elems(%!values)
-    }
+    method compose($target, :$compiler_services) {
+         self.run_if_not_composed({
+            $target := nqp::decont($target);
+            self.set_language_version($target);
 
-    method enum_from_value($obj, $value) {
-        unless %!value_to_enum {
-            for @!enum_value_list {
-                %!value_to_enum{$_.value} := $_;
-            }
-        }
-        nqp::existskey(%!value_to_enum, $value)
-            ?? %!value_to_enum{$value}
-            !! nqp::null()
-    }
+            # Instantiate all of the roles we have (need to do this since
+            # all roles are generic on ::?CLASS) and pass them to the
+            # composer.
+            my $applier;
+            unless nqp::isnull(my $role := self.pop_role_to_compose) {
+                my @ins_roles;
+                my @role_typecheck_list := nqp::clone(@!role_typecheck_list);
 
-    method enum_value_list($obj) {
-        @!enum_value_list
-    }
+                # Do all roles
+                until nqp::isnull($role) {
+                    nqp::push(@role_typecheck_list, $role);
 
-    method compose($the-obj, :$compiler_services) {
-        my $obj := nqp::decont($the-obj);
+                    my $ins := $role.HOW.specialize($role, $target);
+                    self.check-type-compat($target, $ins, nqp::list(3))
+                      if nqp::istype(
+                           $ins.HOW,
+                           Perl6::Metamodel::LanguageRevision
+                         );
+                    @ins_roles.push($ins);
 
-        self.set_language_version($obj);
-
-        # Instantiate all of the roles we have (need to do this since
-        # all roles are generic on ::?CLASS) and pass them to the
-        # composer.
-        my @roles_to_compose := self.roles_to_compose($obj);
-        my $rtca;
-        if @roles_to_compose {
-            my @ins_roles;
-            while @roles_to_compose {
-                my $r := @roles_to_compose.pop();
-                @!role_typecheck_list[+@!role_typecheck_list] := $r;
-                my $ins := $r.HOW.specialize($r, $obj);
-                self.check-type-compat($obj, $ins, ['e'])
-                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
-                @ins_roles.push($ins);
-            }
-            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
-            $rtca.prepare($obj, @ins_roles);
-
-            # Add them to the typecheck list, and pull in their
-            # own type check lists also.
-            for @ins_roles {
-                @!role_typecheck_list[+@!role_typecheck_list] := $_;
-                for $_.HOW.role_typecheck_list($_) {
-                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                    # Get next one, if any
+                    $role := self.pop_role_to_compose;
                 }
+                $applier :=
+                  Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+                $applier.prepare($target, @ins_roles);
+
+                # Add them to the typecheck list, and pull in their
+                # own type check lists also.
+                my int $m := nqp::elems(@ins_roles);
+                my int $i;
+                while $i < $m {
+                    my $ins_role := nqp::atpos(@ins_roles, $i);
+                    nqp::push(@role_typecheck_list, $ins_role);
+                    nqp::splice(
+                      @role_typecheck_list,
+                      $ins_role.HOW.role_typecheck_list($ins_role),
+                      nqp::elems(@role_typecheck_list),
+                      0
+                    );
+                    ++$i;
+                }
+
+                # Atomically update
+                @!role_typecheck_list := @role_typecheck_list;
             }
-        }
 
-        # Compose own attributes first.
-        for self.attributes($obj, :local) {
-            $_.compose($obj);
-        }
+            # Compose own attributes first.
+            my @attributes := self.attributes($target, :local);
+            my int $m := nqp::elems(@attributes);
+            my int $i;
+            while $i < $m {
+                nqp::atpos(@attributes, $i).compose($target);
+                ++$i;
+            }
 
-        if $rtca {
-            $rtca.apply();
-        }
+            $applier.apply if $applier;
 
-        # Incorporate any new multi candidates (needs MRO built).
-        self.incorporate_multi_candidates($obj);
+            # Incorporate any new multi candidates (needs MRO built).
+            self.incorporate_multi_candidates($target);
 
-        # Compose remaining attributes.
-        for self.attributes($obj, :local) {
-            $_.compose($obj);
-        }
+            # Compose remaining attributes.
+            @attributes := self.attributes($target, :local);
+            $m := nqp::elems(@attributes);
+            # continue where we left off
+            while $i < $m {
+                nqp::atpos(@attributes, $i).compose($target);
+                ++$i;
+            }
 
-        # Publish type and method caches.
-        self.publish_type_cache($obj);
-        self.publish_method_cache($obj);
+            # Publish type, method caches and boolification spec.
+            self.publish_type_cache($target);
+            self.publish_method_cache($target);
+            self.publish_boolification_spec($target);
 
-        # Publish boolification spec.
-        self.publish_boolification_spec($obj);
+            # Create BUILDPLAN.
+            self.create_BUILDPLAN($target);
 
-        # Create BUILDPLAN.
-        self.create_BUILDPLAN($obj);
+            # Compose the representation.
+            self.compose_repr($target);
 
-        # Compose the representation.
-        unless $!composed {
-            self.compose_repr($obj);
-            $!composed := 1;
-        }
+#?if !moar
+            # Compose invocation protocol.
+            self.compose_invocation($target);
+#?endif
+        });
 
-        # Compose invocation protocol.
-        self.compose_invocation($obj);
-
-        $obj
+        $target
     }
 
     # Called by the compiler when all enum values have been added, to trigger
     # any needed actions.
-    method compose_values($obj) {
-        if $!export_callback {
+    method compose_values($XXX?) {
+        unless nqp::isnull($!export_callback) {
             $!export_callback();
-            $!export_callback := Mu;
+            $!export_callback := nqp::null;
         }
     }
 
     my $composalizer;
     method set_composalizer($c) { $composalizer := $c }
-    method composalize($obj) {
-        unless $!roled {
-            $!role := $composalizer($obj, self.name($obj), @!enum_value_list);
-            $!roled := 1;
-        }
-        $!role
-    }
-
-    method is_composed($obj) {
-        $!composed
-    }
-
-    method role_typecheck_list($obj) {
-        @!role_typecheck_list
+    method composalize($target) {
+        nqp::ifnull(
+          $!role,
+          $!role :=
+            $composalizer($target, self.name($target), @!enum_value_list)
+        )
     }
 }
 

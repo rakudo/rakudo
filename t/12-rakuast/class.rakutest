@@ -1,0 +1,590 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 13;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Create an empty class' => {
+    # my class MyTestClass { }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('MyTestClass'),
+    );
+    is-deeply $deparsed, 'my class MyTestClass { }', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class evaluates to a type object";
+        is $class.^name, 'MyTestClass',
+          "$type: Correct class name";
+        is $class.REPR, 'P6opaque',
+          "$type: Correct representation";
+    }
+}
+
+subtest 'Create a class with a method' => {
+    # my class TestClassWithMethods { method test-meth { 456 } }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClassWithMethods'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-meth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(456)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithMethods {
+    method test-meth {
+        456
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with method evaluates to a type object";
+        is $class.^name, 'TestClassWithMethods',
+          "$type: Correct class name";
+        ok $class.^lookup('test-meth'),
+          "$type: The class has a test-meth method";
+        is $class.test-meth(), 456,
+          "$type: Can call method without signature and get expected value";
+    }
+}
+
+subtest 'Create a class with a submethod' => {
+    # my class TestClassWithSubmethods { submethod test-submeth { 137 } }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClassWithSubmethods'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Submethod.new(
+                name => RakuAST::Name.from-identifier('test-submeth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(137)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithSubmethods {
+    submethod test-submeth {
+        137
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with method evaluates to a type object";
+        is $class.^name, 'TestClassWithSubmethods',
+          "$type: Correct class name";
+        ok $class.^lookup('test-submeth'),
+          "$type: The class has a test-submeth method";
+        is $class.test-submeth(), 137,
+          "$type: Can call method without signature and get expected value";
+    }
+}
+
+subtest 'Check lexically resolving of a class' => {
+    # my class LexicalTestClass { }; LexicalTestClass
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('LexicalTestClass'),
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier-parts('LexicalTestClass')
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class LexicalTestClass { }
+LexicalTestClass
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $result {
+        nok $result.defined,
+          "$type: Got type object back from looking up package";
+        is $result.^name, 'LexicalTestClass',
+          "$type: Resolved lexically to the correct class";
+        nok GLOBAL::<LexicalTestClass>:exists,
+          "$type: Was not installed globally";
+    }
+}
+
+subtest 'Check globally resolving of a class' => {
+    for 'AST', 'Str', 'Raku' -> $type {
+        my $class = "OurTestClass$type";
+
+        # class OurTestClass$type { }; OurTestClass$type
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Class.new(
+              scope => 'our',
+              name  => RakuAST::Name.from-identifier($class),
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier-parts($class)
+            )
+          )
+        );
+        is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+class OurTestClass$type { }
+OurTestClass$type
+CODE
+
+        my $result := $type eq 'AST'
+          ?? EVAL($ast)
+          !! $type eq 'Str'
+            ?? EVAL($deparsed)
+            !! EVAL(EVAL $raku);
+        nok $result.defined,
+          "Got type object back from looking up our-scoped package";
+        is $result.^name, $class,
+          "Resolved to the correct class";
+        ok GLOBAL::{$class}:exists,
+          "Was installed globally";
+        ok GLOBAL::{$class} === $result,
+          "Correct thing installed";
+    }
+}
+
+module Enclosing {
+    subtest 'our class inside an enclosing module' => {
+        for 'AST', 'Str', 'Raku' -> $type {
+            my $class = "OurEnclosedClass$type";
+
+            # class OurEnclosedClass$type { }; OurEnclosedClass$type
+            ast RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Class.new(
+                  scope => 'our',
+                  name  => RakuAST::Name.from-identifier($class),
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier-parts($class)
+                )
+              )
+            );
+            is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+class OurEnclosedClass$type { }
+OurEnclosedClass$type
+CODE
+
+            my $result := $type eq 'AST'
+              ?? EVAL($ast)
+              !! $type eq 'Str'
+                ?? EVAL($deparsed)
+                !! EVAL(EVAL $raku);
+            todo 'bug in enclosed package naming'
+              if $type eq 'AST';
+            is $result.^name, "Enclosing::$class",
+              "$type: EVAL of package AST inside a module works";
+            nok GLOBAL::{$class}:exists,
+              "$type: Was not installed globally";
+            ok Enclosing::{$class}:exists,
+              "$type: Was installed in the current package";
+            ok Enclosing::{$class} === $result,
+              "$type: Correct thing installed";
+        }
+    }
+}
+
+subtest 'class with attribute' => {
+    # my class TestClassWithAttribute { has $!foo }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClassWithAttribute'),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                  scope => 'has',
+                  sigil => '$',
+                  twigil => '!',
+                  desigilname => RakuAST::Name.from-identifier('foo'),
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithAttribute {
+    has $!foo
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with attribute evluates to a type object";
+        is $class.^name, 'TestClassWithAttribute',
+          "$type: Correct class name";
+        is $class.^attributes.elems, 1,
+          "$type: Class has one attribute";
+        given $class.^attributes[0] {
+            is .name, '$!foo',
+              "$type: Correct attribute name";
+            ok .type =:= Mu,
+              "$type: Correct (default) type";
+            nok .has_accessor,
+              "$type: Correctly claims to have no accessor";
+        }
+        nok $class.^lookup('foo'),
+          "$type: No accessor method was generated";
+    }
+}
+
+subtest 'class with attribute and accessor' => {
+    # my class TestClassWithAttributeAccessor { has Int $.foo }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => 'has',
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
+                type  => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Int')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithAttributeAccessor {
+    has Int $.foo
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with attribute with accessor evluates to a type object";
+        is $class.^name, 'TestClassWithAttributeAccessor',
+          "$type: Correct class name";
+        is $class.^attributes.elems, 1,
+          "$type: Class has one attribute";
+        given $class.^attributes[0] {
+            is .name, '$!foo',
+              "$type: Correct attribute name";
+            is-deeply .type, Int,
+              "$type: Correct type constraint";
+            ok .has_accessor,
+              "$type: Correctly claims to have an accessor";
+        }
+        ok $class.^lookup('foo'),
+          "$type: Seems like an accessor method was generated";
+        is $class.new(foo => 42).foo, 42,
+          "$type: Accessor and default constructor work fine";
+    }
+}
+
+subtest 'class with accessor usage' => {
+    # my class TestClassWithAttributeUsage {
+    #     has Int $.bar;
+    #     method test-meth { $!bar }
+    #     method test-accessor { $.bar }
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => 'has',
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('bar'),
+                type  => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Int')
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-meth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Attribute.new('$!bar')
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-accessor'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Attribute::Public.new('$.bar')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithAttributeUsage {
+    has Int $.bar;
+    method test-meth {
+        $!bar
+    }
+    method test-accessor {
+        $.bar
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with accessor usage evaluates to a type object";
+        is $class.^name, 'TestClassWithAttributeUsage',
+          "$type: Correct class name";
+        is $class.new(bar => 99).test-meth, 99,
+          "$type: Attribute access compiles correctly";
+    }
+}
+
+subtest 'class with does trait really does the role' => {
+    my role TestRole {
+        method test-meth { 'role meth' }
+    }
+
+    # my class TestRoleTarget does TestRole { }
+    ast RakuAST::Class.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('TestRoleTarget'),
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('TestRole')
+          )
+        )
+      ]
+    );
+    is-deeply $deparsed,
+      'my class TestRoleTarget does TestRole { }',
+      'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.^name, 'TestRoleTarget',
+          "$type: Class with does trait gets correct name";
+        ok $class ~~ TestRole,
+          "$type: Class with does trait does the role";
+        is $class.test-meth, 'role meth',
+          "$type: The role method can be called";
+    }
+}
+
+subtest 'class with is trait really inherits' => {
+    my class TestBase {
+        method test-meth { 'base meth' }
+    }
+
+    # my class TestChild is TestBas { }
+    ast RakuAST::Class.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('TestChild'),
+      traits => [
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('TestBase')
+        )
+      ]
+    );
+    is-deeply $deparsed,
+      'my class TestChild is TestBase { }',
+      'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is $class.^name, 'TestChild',
+          "$type: Class with is trait gets correct name";
+        ok $class ~~ TestBase,
+          "$type: Class with is trait inherits the base class";
+        is $class.test-meth, 'base meth',
+          "$type: A base class method can be called";
+    }
+}
+
+subtest 'class that hides Any' => {
+    # my class HidesAny { method list() { nextsame() } }
+    ast RakuAST::Class.new(
+      scope  => "my",
+      name   => RakuAST::Name.from-identifier("HidesAny"),
+      traits => (
+        RakuAST::Trait::Hides.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier("Any")
+          )
+        ),
+      ),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("list"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Call::Name.new(
+                        name => RakuAST::Name.from-identifier("nextsame")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class HidesAny hides Any {
+    method list {
+        nextsame()
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is $class.^name, 'HidesAny',
+          "$type: Class with hides trait gets correct name";
+        is-deeply $class.list, Nil,
+          "$type: Calling .list will not dispatch to Any.list";
+    }
+}
+
+subtest 'unit scoped class' => {
+    # unit class Goo; method goo { 42 }
+    ast RakuAST::Class.new(
+      scope => "unit",
+      name  => RakuAST::Name.from-identifier("Goo"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("goo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading\n",),
+      trailing => ("trailing\n",)
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading
+unit class Goo; #= trailing
+method goo {
+    42
+}
+CODE
+
+    for 'AST', $ast -> $type, $it {  # Redeclaration of symbol 'Goo'
+#    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is $class.^name, 'Goo', "$type: unit scoped class is returned";
+        is-deeply $class.goo, 42, "$type: Calling .goo works";
+    }
+}
+
+# vim: expandtab shiftwidth=4

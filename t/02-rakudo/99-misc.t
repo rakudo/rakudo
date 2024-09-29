@@ -1,19 +1,8 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 11;
-
-subtest '.lang-rev-before method on Perl6::World' => {
-    plan 5;
-    is-run ｢use v6.c; BEGIN print ?$*W.lang-rev-before: 'd'｣, 'c is before d', :out<True>;
-    is-run ｢use v6.c; BEGIN print ?$*W.lang-rev-before: 'c'｣, 'c is not before d', :out<False>;
-    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-rev-before: 'e'｣, 'e.PREVIEW is not before e', :out<False>;
-    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-rev-before: 'd'｣, 'e is not before d', :out<False>;
-    throws-like ｢BEGIN $*W.lang-rev-before: <6.d>｣, Exception,
-        :self{.exception.message.contains: 'must be 1 char long'},
-        'using wrong revision format as argument throws';
-}
+plan 10;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -35,6 +24,7 @@ if $*DISTRO.is-win {
     skip 'code too complex for Win32';
 }
 else {
+    todo 'Attach a profiler (e.g. JVisualVM) and press enter', 1 if $*VM.name eq 'jvm';
     is-run :compiler-args[
         '--profile', '--profile-filename=' ~ make-temp-path.absolute
     ], ｢
@@ -68,7 +58,7 @@ eval-lives-ok ｢
 # https://github.com/rakudo/rakudo/issues/1315
 # https://github.com/rakudo/rakudo/issues/1477
 # The non-optimizing custom stuff might not be spec material:
-# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2018-02-07#l44
+# https://irclogs.raku.org/perl6-dev/2018-02-07.html#03:13
 # and with extra comments on https://github.com/rakudo/rakudo/issues/1477#issuecomment-363644261
 subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     plan 5;
@@ -131,15 +121,16 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     multi sub foo($y where /{@res.push: $y}./) {}
     foo 'a';
     foo 'b';
-    is-deeply @res, [<a a b b>],
+    todo 'JVM backend still does trial bind, giving [<a a b b>]', 1 if $*VM.name eq 'jvm';
+    is-deeply @res, [<a b>],
         'regex blocks update their lexical variables right';
 }
 
 group-of 2 => 'collation experiment' => {
+    todo 'Dynamic variable $*COLLATION not found', 2 if $*VM.name eq 'jvm';
     is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
         :out<pass>, '$*COLLATION.set no longer requires experimental pragma';
     is-run ｢
-        use experimental :collation;
         $*COLLATION.set: :primary;
         print 'pass'
     ｣, :out<pass>, :compiler-args[<-I lib>], 'we can still use the pragma (to support old code)';

@@ -9,9 +9,11 @@ provide much of the same functionality.
 
 =head2 AVAILABLE EDITORS
 
-Right now, there are new line editor modules available: C<Readline> and C<Linenoise>.
-They have roughly the same functionality, but C<Linenoise> provides tab completion,
-and C<Readline> has an easier time with multibyte input.
+Right now, there are three line editor modules available: C<Readline>,
+C<Linenoise>, and C<LineEditor> (installed via C<Terminal::LineEditor>).  They
+have roughly the same functionality, but C<Linenoise> provides tab completion,
+while C<Readline> and C<LineEditor> both have an easier time with multibyte
+input.
 
 =head2 ENVIRONMENT VARIABLES
 
@@ -27,13 +29,22 @@ This disables multi-line input for the REPL if truthy.
 =item RAKUDO_HIST
 
 This specifies the location of the history file used by the line editor; the
-default is C<~/.perl6/rakudo-history>.
+default is C<~/.raku/rakudo-history>.  Before Rakudo version 2020.02 the
+default was C<~/.perl6/rakudo-history>.  If the older default file exists and
+the newer one does not, it will be automatically migrated.
+
 
 =item RAKUDO_LINE_EDITOR
 
 This specifies the preferred line editor to use; valid values are C<Readline>,
-C<Linenoise>, and C<none>.  A value of C<none> is useful if you want to avoid
-the recommendation message upon REPL startup.
+C<Linenoise>, C<LineEditor>, and C<none>.  A value of C<none> is useful if you
+want to avoid the recommendation message upon REPL startup.
+
+=item INSIDE_EMACS
+
+This disables line editor while executing REPL inside Emacs, see for further
+reference:
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Interactive-Shell.html
 
 =back
 

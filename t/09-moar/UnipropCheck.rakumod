@@ -9,15 +9,15 @@ my %prop-data =
 my %expected-loses =
     "extracted/DerivedGeneralCategory.txt" => {
         General_Category => {
-            Cn => 27,
+            Cn => 21,
         },
     },
     # Many codepoints return XX instead of ID. These codepoints are undefined, but unicode
     # spec has specified that they should regardless be ID
     "LineBreak.txt" => {
         Line_Break => {
-            ID => 66841,
-            PR => 16
+            ID => 62579,
+            PR => 15
         }
     }
 ;
@@ -30,7 +30,7 @@ use nqp;
 sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$answer-column is copy) is export {
     note "File: $file-name" if $*DEBUG;
     $answer-column = 1 if !defined $answer-column;
-    $folder = $*CWD.child("t/3rdparty/Unicode/13.0.0") if !$folder;
+    $folder = $*CWD.child("t/3rdparty/Unicode/15.0.0") if !$folder;
     %LOSE-NUM{$file-name}{$uniprop} = 0 if %LOSE-NUM{$file-name}{$uniprop}:!exists;
     %WIN-NUM{$file-name}{$uniprop}  = 0 if %WIN-NUM{$file-name}{$uniprop}:!exists;
     my IO::Path:D $file = $folder.child: $file-name;

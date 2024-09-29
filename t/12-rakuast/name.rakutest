@@ -1,0 +1,74 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 4;
+
+subtest "name from identifier" => {
+    $_ := RakuAST::Name.from-identifier('foo');
+    isa-ok $_, RakuAST::Name, '.from-identifier constructs a name';
+    ok .is-identifier, 'The element is considered an identifier';
+    is-deeply .parts.elems, 1, 'Has one part';
+    isa-ok .parts[0], RakuAST::Name::Part::Simple, 'Name has a single part';
+    is-deeply .parts[0].name, 'foo', 'Part has expected name';
+    is-deeply .DEPARSE, 'foo', 'Deparses in an expected way';
+    is-deeply .raku,
+      Q|RakuAST::Name.from-identifier("foo")|,
+      "rakufies in an expected way";
+}
+
+subtest "name from identifier parts" => {
+    $_ := RakuAST::Name.from-identifier-parts('Foo','Bar');
+    isa-ok $_, RakuAST::Name, '.from-identifier-parts constructs a name';
+    nok .is-identifier, 'the element is NOT considered an identifier';
+    is-deeply .parts.elems, 2, 'Has two parts';
+    isa-ok .parts[0], RakuAST::Name::Part::Simple, 'first part is simple';
+    isa-ok .parts[1], RakuAST::Name::Part::Simple, 'second part is simple';
+    is-deeply .parts[0].name, 'Foo', 'part 1 has expected name';
+    is-deeply .parts[1].name, 'Bar', 'part 2 has expected name';
+    is-deeply .DEPARSE, 'Foo::Bar', 'deparses in an expected way';
+    is-deeply .raku,
+      Q|RakuAST::Name.from-identifier-parts("Foo","Bar")|,
+      "rakufies in an expected way";
+}
+
+subtest "name from different parts" => {
+    $_ := RakuAST::Name.new(
+      RakuAST::Name::Part::Simple.new("Foo"),
+      RakuAST::Name::Part::Empty
+    );
+    isa-ok $_, RakuAST::Name, '.new constructs a name';
+    nok .is-identifier, 'the element is NOT considered an identifier';
+    is-deeply .parts.elems, 2, 'Has two parts';
+    isa-ok .parts[0], RakuAST::Name::Part::Simple, 'first part is simple';
+    isa-ok .parts[1], RakuAST::Name::Part::Empty, 'second part is empty';
+    is-deeply .parts[0].name, 'Foo', 'part 1 has expected name';
+    is-deeply .DEPARSE, 'Foo::', 'deparses in an expected way';
+    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
+RakuAST::Name.new(
+  RakuAST::Name::Part::Simple.new("Foo"),
+  RakuAST::Name::Part::Empty
+)
+CODE
+}
+
+subtest "name from expressions" => {
+    $_ := RakuAST::Name.new(
+      RakuAST::Name::Part::Expression.new(
+        RakuAST::StrLiteral.new("Int")
+      )
+    );
+    isa-ok $_, RakuAST::Name, '.new constructs a name';
+    ok .is-identifier, 'the element is NOT considered an identifier';
+    is-deeply .parts.elems, 1, 'Has one parts';
+    isa-ok .parts[0], RakuAST::Name::Part::Expression, 'second part is ok';
+    is-deeply .DEPARSE, 'Int', 'deparses in an expected way';
+    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
+RakuAST::Name.new(
+  RakuAST::Name::Part::Expression.new(
+    RakuAST::StrLiteral.new("Int")
+  )
+)
+CODE
+}
+
+# vim: expandtab shiftwidth=4

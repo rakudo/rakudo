@@ -1,0 +1,262 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 7;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+# NOTE: always using scope "my" for these tests to prevent redefined
+# errors.
+subtest 'Simplest subset Foo' => {
+    # my subset Foo
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo")
+    );
+
+    is-deeply $deparsed, 'my subset Foo', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
+
+        ok 42    ~~ $subset, "$type: subset accepts 42";
+        ok "foo" ~~ $subset, "$type: subset accepts foo";
+        ok Any   ~~ $subset, "$type: subset accepts Any";
+        nok Mu   ~~ $subset, "$type: subset does not accept Mu";
+    }
+}
+
+subtest 'Simple subset Foo of Int' => {
+    # my subset Foo
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'my subset Foo of Int', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where block' => {
+    # my subset Foo of Int where { $_ %% 2 }
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$_'),
+                infix => RakuAST::Infix.new('%%'),
+                right => RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my subset Foo of Int where {
+    $_ %% 2
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where pointy block' => {
+    # my subset Foo of Int where -> $a { $a %% 2 }
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$a'),
+                infix => RakuAST::Infix.new('%%'),
+                right => RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my subset Foo of Int where -> $a {
+    $a %% 2
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where whatevercode' => {
+    # my subset Foo of Int where * %% 2
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::ApplyInfix.new(
+        left => RakuAST::Term::Whatever.new,
+        infix => RakuAST::Infix.new('%%'),
+        right => RakuAST::IntLiteral.new(2)
+      )
+    );
+
+    is-deeply $deparsed,
+      'my subset Foo of Int where * %% 2',
+      'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, WhateverCode, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where literal' => {
+    # my subset Foo where 42
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      where => RakuAST::IntLiteral.new(42)
+    );
+
+    is-deeply $deparsed, 'my subset Foo where 42', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+    }
+}
+
+subtest 'Subset with a where regex' => {
+    # my subset Foo where / 42/
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      where => RakuAST::QuotedRegex.new(
+        body => RakuAST::Regex::Literal.new('42')
+      )
+    );
+
+    is-deeply $deparsed, 'my subset Foo where / 42/', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+    }
+}
+
+# vim: expandtab shiftwidth=4

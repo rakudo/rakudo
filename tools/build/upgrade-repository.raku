@@ -1,5 +1,7 @@
 #!/usr/bin/env raku
 
-CompUnit::Repository::Installation.new(:prefix(@*ARGS[0])).upgrade-repository;
+for @*ARGS -> $prefix {
+    CompUnit::Repository::Installation.new(:$prefix).upgrade-repository;
+}
 
 # vim: expandtab sw=4

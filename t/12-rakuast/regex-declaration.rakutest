@@ -1,0 +1,85 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 3;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $body --> Nil) {
+    $ast      := $body;
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+my $body := RakuAST::Regex::WithWhitespace.new(
+  RakuAST::Regex::QuantifiedAtom.new(
+    atom       => RakuAST::Regex::Literal.new("a"),
+    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+  )
+);
+
+subtest 'Simple regex declaration' => {
+    # my regex aplus { a+ }
+    ast RakuAST::RegexDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("aplus"),
+      body  => $body
+    );
+    is-deeply $deparsed, 'my regex aplus { a+ }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $regex := EVAL($it);
+        is $regex.name, 'aplus', "$type: is the name ok";
+        is "aaaa" ~~ /^ <$regex> a $/, 'aaaa',
+          "$type: did we get correct match";
+        is "aaaa  " ~~ /^ <$regex> /, 'aaaa',
+          "$type: did we get match for 'aaaa'";
+        is-deeply "aaaa" ~~ /^:r <$regex> a $/, Nil,
+          "$type: did it not match with ratchet";
+    }
+}
+
+subtest 'Simple token declaration' => {
+    # my token aplus { a+ }
+    ast RakuAST::TokenDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("aplus"),
+      body  => $body
+    );
+    is-deeply $deparsed, 'my token aplus { a+ }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $token := EVAL($it);
+        is $token.name, 'aplus', "$type: is the name ok";
+        is "aaaa" ~~ /^ <$token> $/, 'aaaa',
+          "$type: did we get match";
+        is "aaaa  " ~~ /^ <$token> /, 'aaaa',
+          "$type: did we get match for 'aaaa'";
+        is-deeply "aaaa" ~~ /^ <$token> a $/, Nil,
+          "$type: did it not match";
+    }
+}
+
+subtest 'Simple rule declaration' => {
+    # my rule aplus { a+ }
+    ast RakuAST::RuleDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("aplus"),
+      body  => $body
+    );
+    is-deeply $deparsed, 'my rule aplus { a+ }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $rule := EVAL($it);
+        is $rule.name, 'aplus', "$type: is the name ok";
+        is "aaaa" ~~ /^ <$rule> $/, 'aaaa',
+          "$type: did we get match for 'aaaa'";
+        is "aaaa  " ~~ /^ <$rule> /, 'aaaa  ',
+          "$type: did we get match for 'aaaa  '";
+        is-deeply "aaaa" ~~ /^ <$rule> a $/, Nil,
+          "$type: did it not match";
+    }
+}
+
+# vim: expandtab shiftwidth=4

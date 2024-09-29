@@ -26,10 +26,6 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     return types;
   };
 
-  op.p6bool = function(value) {
-    return value ? True : False;
-  };
-
   op.p6definite = function(obj) {
     return (obj === Null || obj.$$typeObject) ? False : True;
   };

@@ -23,7 +23,7 @@ my %repos = (
 );
 
 # 'none' means, don't clone repository. Not valid for rakudo.
-# 'master' means checkout master.
+# 'master' or 'main' means checkout the primary branch.
 # 'downstream' means checkout rev given in downstream repo. Not valid for rakudo.
 # 'rev-DEADBEEF-https://github.com/url-to/repo' means checkout the given rev.
 my ($rakudo, $nqp, $moar) = @ARGV;
@@ -49,10 +49,10 @@ sub exec_and_check {
 sub checkout_rev {
     my ($name, $type, $downstream_file) = @_;
     my $back = cwd();
-    if ($type eq 'master') {
+    if (($type eq 'master') or ($type eq 'main')) {
         exec_and_check('git', 'clone', $repos{$name}, $name, "Cloning $name failed.");
         chdir $name;
-        exec_and_check('git', 'checkout', '-f', 'master', "Checking out $name master failed.");
+        exec_and_check('git', 'checkout', '-f', $type, "Checking out $name $type failed.");
     }
     elsif ($type eq 'downstream') {
         die "Can't do downstream checkout for $name" unless $downstream_file;

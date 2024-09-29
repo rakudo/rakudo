@@ -19,7 +19,7 @@ If you're wanting the bleeding-edge version of the Rakudo Raku compiler,
 we recommend downloading Rakudo directly from GitHub and building it from
 there.
 
-    $ git clone git://github.com/rakudo/rakudo.git
+    $ git clone https://github.com/rakudo/rakudo.git
 
 If you don't have git installed, you can get a tarball of Rakudo from
 https://rakudo.org/downloads/rakudo/. Then unpack the tarball.

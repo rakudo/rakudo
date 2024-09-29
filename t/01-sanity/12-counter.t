@@ -1,5 +1,3 @@
-use v6;
-
 # L<S02/"Whitespace and Comments"/space before it, but may be written in any>
 
 # Checking that testing is sane: counted tests

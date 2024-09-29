@@ -5,7 +5,7 @@ say "This is Rakudo running in the @uc(@toolschain@)@ debugger, which often allo
 
 unless $*VM.config<ccdebugflags> { say "The currently used MoarVM backend is not compiled with debugging symbols, you might want to\nreconfigure and reinstall MoarVM with --debug enabled.\n" }
 
-say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*VM.version(),";
+say "This Rakudo version is $*RAKU.compiler.version() built on MoarVM version $*VM.version(),";
 say "running on $*DISTRO.gist() / $*KERNEL.gist()\n";
 
 say "Type `bt full` to generate a backtrace if applicable, type `q` to quit or `help` for help.";

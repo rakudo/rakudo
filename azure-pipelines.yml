@@ -13,10 +13,10 @@
 #
 
 trigger:
-- master
+- main
 
 pr:
-- master
+- main
 
 variables:
   # Turn this Powershell console into a developer powershell console.
@@ -59,42 +59,49 @@ stages:
            MOAR_OPTIONS: '--relocatable'
 
          Mac_MVM:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
          Mac_JVM:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            BACKEND: 'JVM'
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
            MOAR_OPTIONS: ''
          Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            RELOCATABLE: 'yes'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
            MOAR_OPTIONS: '--relocatable'
 
          Lin_MVM:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
          Lin_JVM:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            BACKEND: 'JVM'
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
            MOAR_OPTIONS: ''
          Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            RELOCATABLE: 'yes'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
            MOAR_OPTIONS: '--relocatable'
+
+         Lin_MVM_spec:
+           IMAGE_NAME: 'ubuntu-20.04'
+           SPECTEST_ONLY: 'yes'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=moar'
+           MOAR_OPTIONS: ''
 
       pool:
         vmImage: $(IMAGE_NAME)
@@ -200,7 +207,7 @@ stages:
         # Test Rakudo
         - script: prove -e ../install/bin/perl6 -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
           displayName: Test Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -219,6 +226,12 @@ stages:
           condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo (relocated, Windows)
 
+        # Run spectest
+        - script: make TEST_JOBS=2 m-spectest
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
+          displayName: Run spectest
+
         - publish: $(Pipeline.Workspace)/install-moved
           condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
           displayName: Publish build artifact
@@ -229,13 +242,19 @@ stages:
     - job: linux
       displayName: Linux x86_64 build
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-20.04'
       container:
         image: centos:7
         options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"
       workspace:
         clean: all
       steps:
+        - script: |
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo'
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo'
+            /tmp/docker exec -t -u 0 raku-build-container sh -c 'sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo'
+          displayName: Work around mirrorlist.centos.org being discontinued
+
         - script: /tmp/docker exec -t -u 0 raku-build-container sh -c "yum -y update && yum -y install sudo"
           displayName: Set up sudo (see https://github.com/microsoft/azure-pipelines-agent/issues/2043)
 
@@ -253,7 +272,7 @@ stages:
     - job: macos
       displayName: MacOS x86_64 build
       pool:
-        vmImage: 'macOS-10.15'
+        vmImage: 'macOS-12'
       workspace:
         clean: all
       steps:
@@ -290,6 +309,9 @@ stages:
 
         - publish: rakudo-win.zip
           artifact: rakudo-win
+          
+        - publish: rakudo-win.msi
+          artifact: rakudo-win-msi
 
     - job: zip
       displayName: Package results
@@ -298,7 +320,7 @@ stages:
       - macos
       - windows
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-20.04'
       workspace:
         clean: all
       steps:
@@ -314,7 +336,11 @@ stages:
 
       - download: current
         artifact: rakudo-win
-        displayName: Download Windows build artifacts
+        displayName: Download Windows binary build
+        
+      - download: current
+        artifact: rakudo-win-msi
+        displayName: Download Windows msi
 
       - script: |
           OUT_DIR=rakudo-builds-$(VERSION)-$(REVISION)
@@ -322,6 +348,7 @@ stages:
           cp $(Pipeline.Workspace)/rakudo-linux/rakudo-linux.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64-gcc.tar.gz
           cp $(Pipeline.Workspace)/rakudo-macos/rakudo-macos.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-macos-x86_64-clang.tar.gz
           cp $(Pipeline.Workspace)/rakudo-win/rakudo-win.zip        $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64-msvc.zip
+          cp $(Pipeline.Workspace)/rakudo-win-msi/rakudo-win.msi    $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64-msvc.msi
           tar -czf rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz $OUT_DIR
 
       - publish: rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz

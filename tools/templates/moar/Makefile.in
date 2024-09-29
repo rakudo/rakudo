@@ -11,12 +11,11 @@ MOAR_PREFIX = @nfp(@moar::prefix@)@
 MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @bpv(NQP)@       = @nfpq(@m_nqp@)@
 @bpv(NQP_RR)@    = @bpm(NQP)@
+@bpv(NQP_BIN)@       = @nfp(@m_nqp@)@
 @bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-m-early-build
 @bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
 @bpv(RUNNER_SUFFIX)@ = @moar::exe@
-
-R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
 @bpv(MOAR_INC_PATHS)@ = \
@@ -52,7 +51,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @for_langalias(@for_toolchain(@bpv(@uclangalias@_@uctoolchain@_RUNNER)@ = @langalias@-@toolchain@-m@runner_suffix@
 )@)@
 
-@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) \
+@bpv(ALL_TARGETS)@ = \
 @for_langalias(@tab@@bpm(INST_@uclangalias@)@ \
 @tab@@bpm(INST_@uclangalias@_DEBUG)@ \
 @tab@@bpm(INST_@uclangalias@_M)@ \
@@ -66,21 +65,26 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 )@)@
 
 @bpv(CLEANUPS)@ = \
-  $(R_SETTING_MOAR) \
   @bpm(RUN_RAKUDO_SCRIPT)@ \
-  inst-rakudo-m@moar::obj@ \
-  inst-rakudo-debug-m@moar::obj@ \
-  inst-rakudo@moar::obj@ \
-  inst-rakudo-debug@moar::obj@ \
-  inst-rakudow-m@moar::obj@ \
-  inst-rakudow@moar::obj@ \
-@for_langalias( @bpm(INST_@uclangalias@)@ \
+@for_langalias(  @bpm(INST_@uclangalias@)@ \
   @bpm(INST_@uclangalias@_DEBUG)@ \
   @bpm(INST_@uclangalias@_M)@ \
   @bpm(INST_@uclangalias@_DEBUG_M)@ \
   @bpm(INST_@uclangalias@W)@ \
   @bpm(INST_@uclangalias@W_M)@ \
-)@  @bpm(RAKUDO_OPS_DLL)@ \
+  @bpm(INST_@uclangalias@)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W_M)@@moar::obj@ \
+)@  @bpm(INST_RAKU)@ \
+  @bpm(INST_RAKU_DEBUG)@ \
+  @bpm(INST_RAKUW)@ \
+  @bpm(INST_RAKU)@@moar::obj@ \
+  @bpm(INST_RAKU_DEBUG)@@moar::obj@ \
+  @bpm(INST_RAKUW)@@moar::obj@ \
+  @bpm(RAKUDO_OPS_DLL)@ \
   @bpm(RAKUDO_OPS_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@  rakudo-m.c \
@@ -88,13 +92,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   rakudo.c \
   rakudo@moar::obj@ \
   rakudo@moar::exe@ \
-  inst-raku@moar::obj@ \
-  inst-raku@moar::exe@ \
-  inst-rakuw@moar::obj@ \
-  inst-rakuw@moar::exe@ \
-  inst-perl6*@moar::obj@ \
-  inst-perl6*@moar::exe@ \
-  @bpm(INST_PERL6)@ \
   perl6@moar::exe@
 
 @bpv(RAKUDO_OPS_EXTRA)@ = @bpm(RAKUDO_OPS_DLL)@
@@ -108,7 +105,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(RUN_CLEAN_TARGET_FILES)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ @script(clean-target-files.raku)@ $(VERBOSE)
 
-@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@ @nfp(t/12-rakuast)@
 
 @include(Makefile-backend-common)@
 
@@ -116,9 +113,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	@echo(+++ Compiling	$@)@
 	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(RAKUDO_OPS_OBJ)@ @bpm(RAKUDO_OPS_DLL_SRC)@
 	$(NOECHO)@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(RAKUDO_OPS_DLL)@ @bpm(RAKUDO_OPS_OBJ)@ @moar_lib@
-
-$(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC) @bpm(RUN_RAKUDO_SCRIPT)@
-	$(NOECHO)@bpm(RUN_RAKUDO)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 @backend_prefix@-runner-default: @bpm(INST_RAKUDO)@ @bpm(INST_RAKUDO_DEBUG)@
 
@@ -188,7 +182,7 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_RAKUDO_RUNNER_DEBUG' if $build =~ /DEBUG/;
-        if ($build !~ /RAKUDOW|PERL6W/) {
+        if ($build !~ /RAKUW|RAKUDOW|PERL6W/) {
             $vars{subsystem_win_ld_flags} = '';
             $vars{subsystem_win_cc_flags} = '';
         }
@@ -202,33 +196,33 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 
 # No sense in moving this into Makefile-backend-common.in because moar backend
 # is the only one supporting harness6
-@backend_prefix@-test6   : @backend_prefix@-coretest6
+@backend_prefix@-test6: @backend_prefix@-coretest6
 
 @backend_prefix@-coretest6: @backend_prefix@-all
 	@bpm(HARNESS6)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
-@backend_prefix@-spectest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-spectest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 @backend_prefix@-spectest_full6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ @nfp(t/spec)@
 
-@backend_prefix@-quicktest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-quicktest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
-@backend_prefix@-stresstest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-stresstest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
-@backend_prefix@-localtest: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
-@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.
@@ -239,16 +233,15 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 @backend_prefix@-install-dirs::
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 
-@backend_prefix@-install-pre::
+@backend_prefix@-install-pre:: 
 	@echo(+++ Removing old files)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@ @bpm(RAKUDO_PRECOMPS)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR)
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@ @for_specs($(SETTING_@ucspec@_MOAR) )@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@ @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@
 
-@backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ $(R_SETTING_MOAR) @for_langalias(@@bpm(INST_@uclangalias@_M)@@ @@bpm(INST_@uclangalias@_DEBUG_M)@@ @if(platform==windows @@bpm(INST_@uclangalias@W_M)@@ )@)@
+@backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ @for_langalias(@@bpm(INST_@uclangalias@_M)@@ @@bpm(INST_@uclangalias@_DEBUG_M)@@ @if(platform==windows @@bpm(INST_@uclangalias@W_M)@@ )@)@
 	$(NOECHO)$(CP) @bpm(RAKUDO_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
-	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 @for_langalias(
 	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_M)@)@
 	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_DEBUG_M)@)@

@@ -1,0 +1,246 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 13;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Method call via self' => {
+    # my class TestClass {
+    #     method meth-a { 99 }
+    #     method meth-b { self.meth-a }
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestClass'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('meth-a'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(99)
+                    )
+                  ),
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('meth-b'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPostfix.new(
+                        operand => RakuAST::Term::Self.new,
+                          postfix => RakuAST::Call::Method.new(
+                          name => RakuAST::Name.from-identifier('meth-a')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClass {
+    method meth-a {
+        99
+    }
+    method meth-b {
+        self.meth-a
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, Mu $class {
+        is-deeply $class.meth-b, 99,
+          "$type: Method call via self works";
+    }
+}
+
+subtest 'Topic call applies the call to $_' => {
+    # given "argh" { .uc }
+    ast RakuAST::Statement::Given.new(
+      source => RakuAST::StrLiteral.new('argh'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Term::TopicCall.new(
+                RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('uc')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+given "argh" {
+    .uc
+}
+CODE
+
+    is-deeply $_, 'ARGH', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'now named term can be called' => {
+    # now
+    ast RakuAST::Term::Named.new('now');
+    is-deeply $deparsed, 'now', 'deparse';
+
+    isa-ok $_, Instant, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'rand term works' => {
+    # rand
+    ast RakuAST::Term::Rand.new;
+    is-deeply $deparsed, 'rand', 'deparse';
+
+    isa-ok $_, Num, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Empty set term works' => {
+    # ∅
+    ast RakuAST::Term::EmptySet.new;
+    is-deeply $deparsed, '∅', 'deparse';
+
+    is-deeply $_, set(), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Name term works with single-part name' => {
+    # True
+    ast RakuAST::Term::Name.new(
+      RakuAST::Name.from-identifier('True')
+    );
+    is-deeply $deparsed, 'True', 'deparse';
+
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Name term works with multi-part name' => {
+    # Bool::True
+    ast RakuAST::Term::Name.new(
+      RakuAST::Name.from-identifier-parts('Bool', 'True')
+    );
+    is-deeply $deparsed, 'Bool::True', 'deparse';
+
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Whatever term works' => {
+    # *
+    ast RakuAST::Term::Whatever.new;
+    is-deeply $deparsed, '*', 'deparse';
+
+    isa-ok $_, Whatever,
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hyperwhatever term works' => {
+    # **
+    ast RakuAST::Term::HyperWhatever.new;
+    is-deeply $deparsed, '**', 'deparse';
+
+    isa-ok $_, HyperWhatever, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Capture term can be constructed with a term' => {
+    my $var = 4;
+
+    # \($var)
+    ast RakuAST::Term::Capture.new(
+      RakuAST::Var::Lexical.new('$var')
+    );
+    is-deeply $deparsed, Q/\($var)/, 'deparse';
+
+    is-deeply $_, \(4), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Capture term can be constructed with an arg list' => {
+    # \(6, :x)
+    ast RakuAST::Term::Capture.new(
+      RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(6),
+        RakuAST::ColonPair::True.new('x')
+      )
+    );
+    is-deeply $deparsed, Q/\(6, :x)/, 'deparse';
+
+    is-deeply $_, \(6, :x), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Radix number term' => {
+    # :16("abc")
+    ast RakuAST::Term::RadixNumber.new(
+      radix => 16,
+      value => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::StrLiteral.new("abc")
+        )
+      )
+    );
+    is-deeply $deparsed, Q/:16("abc")/, 'deparse';
+
+    is-deeply $_, 2748, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Radix number term with multiple args' => {
+    # :16[1,2,3]
+    ast RakuAST::Term::RadixNumber.new(
+      radix      => 16,
+      multi-part => True,
+      value      => RakuAST::Circumfix::ArrayComposer.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyListInfix.new(
+              infix => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2),
+                RakuAST::IntLiteral.new(3)
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q/:16[1, 2, 3]/, 'deparse';
+
+    is-deeply $_, 291, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

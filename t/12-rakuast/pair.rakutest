@@ -1,0 +1,119 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 8;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Fat arrow syntax forms a Pair' => {
+    # answer => 42
+    ast RakuAST::FatArrow.new(
+      key => 'answer',
+      value => RakuAST::IntLiteral.new(42)
+    );
+
+    is-deeply $deparsed, 'answer => 42', 'deparse';
+    is-deeply $_, Pair.new('answer', 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'True colonpair forms a Pair with value True' => {
+    # :r
+    ast RakuAST::ColonPair::True.new('r');
+
+    is-deeply $deparsed, ':r', 'deparse';
+    is-deeply $_, Pair.new('r', True), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'False colonpair forms a Pair with value False' => {
+    # :!r
+    ast RakuAST::ColonPair::False.new('r');
+
+    is-deeply $deparsed, ':!r', 'deparse';
+    is-deeply $_, Pair.new('r', False), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Number colonpair forms a Pair with the correct Int value' => {
+    # :42answer
+    ast RakuAST::ColonPair::Number.new(
+      key => 'answer',
+      value => RakuAST::IntLiteral.new(42)
+    );
+
+    is-deeply $deparsed, ':42answer', 'deparse';
+    is-deeply $_, Pair.new('answer', 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair forms a Pair with the correct value (1)' => {
+    # :cheese("stilton")
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::StrLiteral.new('stilton')
+    );
+
+    is-deeply $deparsed, ':cheese("stilton")', 'deparse';
+    is-deeply $_, Pair.new('cheese', 'stilton'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair forms a Pair with the correct value (2)' => {
+    # :cheese<limburg>
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [
+          RakuAST::StrLiteral.new('limburg')
+        ],
+        processors => ("words", "val")
+      )
+    );
+
+    is-deeply $deparsed, ':cheese<limburg>', 'deparse';
+    is-deeply $_, Pair.new('cheese', 'limburg'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair forms a Pair with the correct value (3)' => {
+    # :cheese<cheddar limburg>
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [
+          RakuAST::StrLiteral.new('cheddar limburg')
+        ],
+        processors => ("words", "val")
+      )
+    );
+
+    is-deeply $deparsed, ':cheese<cheddar limburg>', 'deparse';
+    is-deeply $_, Pair.new('cheese', <cheddar limburg>), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Variable colonpair forms a Pair that looks up the variable' => {
+    my $curry = 'red';
+
+    # :$curry
+    ast RakuAST::ColonPair::Variable.new(
+      key => 'curry',
+      value => RakuAST::Var::Lexical.new('$curry')
+    );
+
+    is-deeply $deparsed, ':$curry', 'deparse';
+    is-deeply $_, Pair.new('curry', 'red'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

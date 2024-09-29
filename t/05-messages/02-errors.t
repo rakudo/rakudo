@@ -1,8 +1,8 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 48;
+plan 47;
 
 # https://github.com/Raku/old-issue-tracker/issues/6613
 
@@ -135,8 +135,8 @@ throws-like {
 # https://github.com/Raku/old-issue-tracker/issues/3542
 # GH #3682
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
-    :message('Your printf-style directives specify 1 argument, but no '
-      ~ "argument was supplied.\nAre you using an interpolated '\$'?"),
+    :args-used(1),
+    :args-have(0),
     'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466
@@ -229,10 +229,6 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
         'Too many positionals' .+ 'expected 0 arguments but got 1'
     /), '.tap block with incorrect signature must fail';
 }
-
-# https://github.com/Raku/old-issue-tracker/issues/5290
-is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
-    '--rxtrace does not crash';
 
 # https://github.com/rakudo/rakudo/issues/1336
 throws-like ｢

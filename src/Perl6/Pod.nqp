@@ -346,7 +346,8 @@ class Perl6::Pod {
     sub string_to_bigint($src, int $base, int $chars) {
         # code copied from Actions.nqp and locally modified
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_single_symbol('Int'));
-        $src.panic("'$src' is not a valid number")
+        $src.panic("'$src' is not a valid number"
+                   ~ (nqp::iseq_i($base, 10) ?? '' !! " in base $base"))
             unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), $chars);
         nqp::atpos($res, 0);
     }

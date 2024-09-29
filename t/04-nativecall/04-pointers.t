@@ -1,5 +1,3 @@
-use v6;
-
 use lib <t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
@@ -31,15 +29,20 @@ ok ReturnNullPointer() === Pointer,           'A returned NULL pointer is the Po
 
 my $p = ReturnPointerToIntArray();
 is $p.deref, 10, 'typed pointer deref method';
-is $p[1], 20, 'typed pointer array dereference';
-is (++$p).deref, 20, 'typed pointer increment';
-is ($p.add: -1).deref, 10, '.add(-1)';
-is $p[0], 20, 'typed pointer incremented (1)';
-is $p[1], 30, 'typed pointer incremented (2)';
-is (--$p).deref, 10, 'typed pointer decrement';
-is $p[0], 10, 'typed pointer incremented (1)';
-is $p[1], 20, 'typed pointer incremented (2)';
-is ($p.add: 2).deref, 30, '.add(2)';
+if $*VM.name eq 'jvm' {
+    skip 'UnsupportedOperationException: This pointer is opaque', 9;
+}
+else {
+    is $p[1], 20, 'typed pointer array dereference';
+    is (++$p).deref, 20, 'typed pointer increment';
+    is ($p.add: -1).deref, 10, '.add(-1)';
+    is $p[0], 20, 'typed pointer incremented (1)';
+    is $p[1], 30, 'typed pointer incremented (2)';
+    is (--$p).deref, 10, 'typed pointer decrement';
+    is $p[0], 10, 'typed pointer incremented (1)';
+    is $p[1], 20, 'typed pointer incremented (2)';
+    is ($p.add: 2).deref, 30, '.add(2)';
+}
 
 
 {

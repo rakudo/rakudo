@@ -83,7 +83,7 @@ int file_exists(const char *path) {
     wchar_t * const wpath = (wchar_t *)malloc(len * sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, len);
     res = _wstat(wpath, &sb);
-    MVM_free(wpath);
+    free(wpath);
     return res == 0;
 #else
     struct stat *sb = malloc(sizeof(struct stat));
@@ -162,7 +162,7 @@ int retrieve_home(
 #if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
 int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
     /* Found on https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/get-osfhandle?view=vs-2019:
-       
+
        "When stdin, stdout, and stderr aren't associated with a stream (for example, in a Windows
        application without a console window), the file descriptor values for these streams are
        returned from _fileno as the special value -2. Similarly, if you use a 0, 1, or 2 as the
@@ -170,7 +170,7 @@ int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
        returns the special value -2 when the file descriptor is not associated with a stream, and
        does not set errno. However, this is not a valid file handle value, and subsequent calls
        that attempt to use it are likely to fail."
-       
+
        See https://jdebp.eu/FGA/redirecting-standard-io.html
            https://stackoverflow.com/a/50358201 (Especially the comments of Eryk Sun)
     */
@@ -180,23 +180,23 @@ int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
     if (_fileno(file) != -2 || _get_osfhandle(fd) != -2)
         // The handles are initialized. Don't touch!
         return 1;
-    
+
     /* FD 1 is in an error state (_get_osfhandle(1) == -2). Close it. The FD number is up for grabs
        after this call. */
     if (_close(fd) != 0)
         return 0;
-    
+
     /* FILE *stdout is in an error state (_fileno(stdout) == -2). Reopen it to a "NUL:" file. This
        will take the next free FD number. So it's important to call this sequentially for FD 0, 1
        and 2. */
     if (freopen_s(&stream, "NUL:", read ? "r" : "w", file) != 0)
         return 0;
-    
+
     /* Set the underlying Windows handle as the STD handler. */
     new_handle = (HANDLE)_get_osfhandle(fd);
     if (!SetStdHandle(std_handle_type, new_handle))
         return 0;
-    
+
     return 1;
 }
 #endif
@@ -249,18 +249,24 @@ int main(int argc, char *argv[]) {
 
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
-    
+
+#if defined(__APPLE__) || defined(__Darwin__)
+    if (getenv("RAKUDO_DYLD_LIBRARY_PATH")) {
+        setenv("DYLD_LIBRARY_PATH", getenv("RAKUDO_DYLD_LIBRARY_PATH"), 0);
+    }
+#endif
+
 #if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
     /* When using the 'windows' subsystem the standard IO handles are not
        connected. This causes a program abort when accessing the handles. To
        prevent these aborts, we redirect the handles to NUL in this case.
     */
-    
+
     /* Set our own handles. */
     if (!set_std_handle_to_nul(stdin,  0, 1, STD_INPUT_HANDLE))  return EXIT_FAILURE;
     if (!set_std_handle_to_nul(stdout, 1, 0, STD_OUTPUT_HANDLE)) return EXIT_FAILURE;
     if (!set_std_handle_to_nul(stderr, 2, 0, STD_ERROR_HANDLE))  return EXIT_FAILURE;
-    
+
     /* MoarVM - as a DLL, and the way it's compiled (/MT) has it's own CRT and thus it's own CRT STD handles.
        So MoarVM also needs to fix up its CRT STD handles.
        See: https://docs.microsoft.com/de-de/cpp/c-runtime-library/potential-errors-passing-crt-objects-across-dll-boundaries
@@ -468,6 +474,8 @@ int main(int argc, char *argv[]) {
             instance->main_thread->gc_status = MVMGCStatus_INTERRUPT | MVMSuspendState_SUSPEND_REQUEST;
         }
     }
+
+    instance->full_cleanup = full_cleanup;
 
     MVM_vm_run_file(instance, perl6_file);
 

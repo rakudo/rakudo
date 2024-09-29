@@ -1,0 +1,512 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 27;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $body --> Nil) {
+    $ast      := RakuAST::QuotedRegex.new(:$body);
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+sub match-ok($haystack, $expected) is test-assertion {
+    subtest "matches" => {
+        plan 9;
+
+        for
+          'AST', $ast,
+          'Str', $deparsed,
+          'Raku', EVAL($raku)
+        -> $type, $regex {
+            is $haystack ~~ EVAL($regex), $expected, "$type: EVAL";
+
+            is $/.list.elems, 0,
+              "$type: No positional captures";
+            is $/.hash.elems, 0,
+              "$type: No named captures";
+        }
+    }
+}
+
+sub match-nok($haystack) is test-assertion {
+  subtest "doesn't match" => {
+    plan 3;
+    nok $haystack ~~ EVAL($ast), 'AST: EVAL';
+    nok $haystack ~~ EVAL($deparsed), 'Str: EVAL';
+    nok $haystack ~~ EVAL(EVAL $raku), 'Raku: EVAL';
+  }
+}
+
+subtest 'Named assertion matches correctly' => {
+    # / <alpha>/
+    ast RakuAST::Regex::Assertion::Named.new(
+      name      => RakuAST::Name.from-identifier('alpha'),
+      capturing => True
+    );
+    is-deeply $deparsed, '/ <alpha>/', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
+        is "1a2" ~~ $regex, 'a',
+          "$type: did we get correct match";
+        is-deeply $/.hash.keys, ('alpha',).Seq,
+          "$type: correct match keys";
+        is $<alpha>, 'a',
+          "$type: correct match captured";
+    }
+}
+
+subtest 'Non-capturing named assertion matches correctly' => {
+    # / <.alpha>/
+    ast RakuAST::Regex::Assertion::Named.new(
+      name      => RakuAST::Name.from-identifier('alpha'),
+      capturing => False
+    );
+    is-deeply $deparsed, '/ <.alpha>/', 'deparse';
+    match-ok "1a2", 'a';
+}
+
+subtest 'Named assertion with alias matches correctly' => {
+    # / <foo=alpha>/
+    ast RakuAST::Regex::Assertion::Alias.new(
+      name => 'foo',
+      assertion => RakuAST::Regex::Assertion::Named.new(
+        name      => RakuAST::Name.from-identifier('alpha'),
+        capturing => True
+      )
+     );
+    is-deeply $deparsed, '/ <foo=alpha>/', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+        is "1a2" ~~ $regex, 'a',
+          "$type: did we get correct match";
+        is-deeply $/.hash.keys.sort, ('alpha','foo').Seq,
+          "$type: correct match keys";
+        is $<alpha>, 'a',
+          "$type: correct match captured (original name)";
+        is $<foo>, 'a',
+          "$type: correct match captured (aliased name)";
+    }
+}
+
+subtest 'Non-capturing named assertion with alias matches correctly' => {
+    # / <foo=.alpha>/
+    ast RakuAST::Regex::Assertion::Alias.new(
+      name => 'foo',
+      assertion => RakuAST::Regex::Assertion::Named.new(
+        name      => RakuAST::Name.from-identifier('alpha'),
+        capturing => False
+      )
+     );
+    is-deeply $deparsed, '/ <foo=.alpha>/', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+        is "1a2" ~~ $regex, 'a',
+          "$type: did we get correct match";
+        is-deeply $/.hash.keys, ('foo',).Seq,
+          "$type: correct match keys";
+        is $<foo>, 'a',
+          "$type: correct match captured (aliased name)";
+    }
+}
+
+subtest 'Lookahead assertion with named rule works' => {
+    # / <?alpha>\w/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::Lookahead.new(
+        assertion => RakuAST::Regex::Assertion::Named.new(
+          name => RakuAST::Name.from-identifier('alpha'),
+          capturing => True
+        )
+      ),
+      RakuAST::Regex::CharClass::Word.new
+    );
+    is-deeply $deparsed, '/ <?alpha>\w/', 'deparse';
+    match-ok "!2a", 'a';
+}
+
+subtest 'Negated lookahead assertion with named rule works' => {
+    # / <!alpha>\w/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::Lookahead.new(
+        negated   => True,
+        assertion => RakuAST::Regex::Assertion::Named.new(
+          name => RakuAST::Name.from-identifier('alpha'),
+          capturing => True
+        )
+      ),
+      RakuAST::Regex::CharClass::Word.new
+    );
+    is-deeply $deparsed, '/ <!alpha>\w/', 'deparse';
+    match-ok "!2a", '2';
+}
+
+subtest 'Lookahead assertion calling before with a regex arg works' => {
+    # / <?before \d>\w/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::Lookahead.new(
+        assertion => RakuAST::Regex::Assertion::Named::RegexArg.new(
+          name => RakuAST::Name.from-identifier('before'),
+          regex-arg => RakuAST::Regex::CharClass::Digit.new,
+        )
+      ),
+      RakuAST::Regex::CharClass::Word.new
+    );
+    is-deeply $deparsed, '/ <?before \d>\w/', 'deparse';
+    match-ok "!2a", '2';
+}
+
+subtest 'Negated lookahead assertion calling before with a regex arg works' => {
+    # / <!before \d>\w/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::Lookahead.new(
+        negated   => True,
+        assertion => RakuAST::Regex::Assertion::Named::RegexArg.new(
+          name => RakuAST::Name.from-identifier('before'),
+          regex-arg => RakuAST::Regex::CharClass::Digit.new,
+        )
+      ),
+      RakuAST::Regex::CharClass::Word.new
+    );
+    is-deeply $deparsed, '/ <!before \d>\w/', 'deparse';
+    match-ok "!2a", 'a';
+}
+
+subtest 'Character class enumeration assertion works' => {
+    # / <+[a \d c..f]>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("a"),
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => "c".ord,
+              to   => "f".ord
+            )
+          ]
+        )
+      ),
+    );
+    is-deeply $deparsed, '/ <+[a \d c..f]>/', 'deparse';
+    match-ok "fooa9cbar", 'f';
+}
+
+subtest 'Negated character class enumeration assertion works' => {
+    # / <-[a \d c..f]>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          :negated,
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("a"),
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => "c".ord,
+              to   => "f".ord
+            )
+          ]
+        )
+      ),
+    );
+    is-deeply $deparsed, '/ <-[a \d c..f]>/', 'deparse';
+    match-ok "fooa9cbar", 'o';
+}
+
+subtest 'Character property assertion works' => {
+    # / <+:N>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N'
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:N>/', 'deparse';
+    match-ok "fooa9cbar", '9';
+}
+
+subtest 'Inverted character property assertion works' => {
+    # / <+:!N>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N', :inverted
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:!N>/', 'deparse';
+    match-ok "fooa9cbar", 'f';
+}
+
+subtest 'Negated character property assertion works' => {
+    # / <-:N>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N', :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-:N>/', 'deparse';
+    match-ok "fooa9cbar", 'f';
+}
+
+subtest 'Multiple character property assertion works' => {
+    # / <+:L -:Lu>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'L',
+        ),
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'Lu', :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:L -:Lu>/', 'deparse';
+    match-ok "Fooa9cbar", 'o';
+}
+
+subtest 'Character property with expression assertion works' => {
+    # / <+:Block("Basic Latin")>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'Block',
+          predicate => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::StrLiteral.new("Basic Latin")
+          ),
+        )
+      )
+    );
+
+    is-deeply $deparsed, '/ <+:Block("Basic Latin")>/', 'deparse';
+    match-ok "🦋:Fooa9cbar", ':';
+}
+
+subtest 'Negated character property with expression assertion works' => {
+    # / <-:Block("Basic Latin")>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          negated  => True,
+          property => 'Block',
+          predicate => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::StrLiteral.new("Basic Latin")
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-:Block("Basic Latin")>/', 'deparse';
+    match-ok ":🦋Fooa9cbar", '🦋';
+}
+
+subtest 'Rule assertion works' => {
+    # / <+alpha>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha"
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+alpha>/', 'deparse';
+    match-ok "🦋:Fooa9cbar", 'F';
+}
+
+subtest 'Negated rule assertion works' => {
+    # / <-alpha>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha", :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-alpha>/', 'deparse';
+    match-ok "Fooa🦋:9cbar", '🦋';
+}
+
+subtest 'Multiple rule assertions work' => {
+    # / <+alpha -xdigit>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha"
+        ),
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "xdigit", :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+alpha -xdigit>/', 'deparse';
+    match-ok "Fooa🦋:9cbar", 'o';
+}
+
+subtest 'Pass assertion works' => {
+    # / a<?> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("a"),
+      RakuAST::Regex::Assertion::Pass.new
+    );
+    is-deeply $deparsed, '/ a<?> /', 'deparse';
+    match-ok "abc", 'a';
+}
+
+subtest 'Fail assertion works' => {
+    # / a<!> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("a"),
+      RakuAST::Regex::Assertion::Fail.new
+    );
+    is-deeply $deparsed, '/ a<!> /', 'deparse';
+    match-nok "abc";
+}
+
+subtest 'Assertion with predicate block works' => {
+    # / o<?{ True }>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::PredicateBlock.new(
+        block => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::Name.new(
+                  RakuAST::Name.from-identifier("True")
+                )
+              )
+            )
+          )
+        )
+      )
+      
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o<?{
+    True
+}>/
+CODE
+
+    match-ok "foo", 'o';
+}
+
+subtest 'Negated assertion with predicate block works' => {
+    # / o<!{ False }>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::PredicateBlock.new(
+        negated => True,
+        block   => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::Name.new(
+                  RakuAST::Name.from-identifier("False")
+                )
+              )
+            )
+          )
+        )
+      )
+      
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o<!{
+    False
+}>/
+CODE
+
+    match-ok "foo", 'o';
+}
+
+subtest 'Assertion with interpolated var works' => {
+    # / <$expected>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::InterpolatedVar.new(
+        # refers to '$expected' inside "match-ok"
+        var => RakuAST::Var::Lexical.new('$expected')
+      )
+    );
+    is-deeply $deparsed, '/ <$expected>/', 'deparse';
+    match-ok "foo", 'oo';
+}
+
+subtest 'Assertion with interpolated block works' => {
+    # / o<{ "o" }>/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::InterpolatedBlock.new(
+        block => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::StrLiteral.new("o")
+              )
+            )
+          )
+        )
+      )
+      
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o<{
+    "o"
+}>/
+CODE
+
+    match-ok "foo", 'oo';
+}
+
+subtest 'Assertion with recursive ast works' => {
+    # /o[ <~~> | a ]/"
+
+    my $dummy = RakuAST::QuotedRegex.new(body =>
+        RakuAST::Regex::Sequence.new(
+          RakuAST::Regex::Literal.new("o")
+          )
+    );
+
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Group.new(
+          RakuAST::Regex::Alternation.new(
+            RakuAST::Regex::Assertion::Recurse.new($dummy),
+            RakuAST::Regex::Literal.new("a")
+          ),
+      )
+     );
+
+    is-deeply $deparsed, '/ o[<~~> | a]/', 'deparse';
+    match-ok "fooa", "ooa";
+}
+
+subtest 'Assertion with callable works' => {
+    # / <&abc>/"
+
+    my regex abc { abc }
+
+    ast RakuAST::Regex::Assertion::Callable.new(
+      callee => RakuAST::Var::Lexical.new("\&abc")
+    );
+
+    is-deeply $deparsed, '/ <&abc>/', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is "abcd" ~~ EVAL($it), "abc", "$type: EVAL";
+        is $/.list.elems, 0, "$type: No positional captures";
+        is $/.hash.elems, 0, "$type: No named captures";
+    }
+}
+
+# vim: expandtab shiftwidth=4

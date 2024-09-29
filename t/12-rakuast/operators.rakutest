@@ -1,0 +1,436 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 30;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = |<AST Str Raku> xx *;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Application of an infix operator on two literals' => {
+    # 44 + 22
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(44),
+      infix => RakuAST::Infix.new('+'),
+      right => RakuAST::IntLiteral.new(22)
+    );
+
+    is-deeply $deparsed, '44 + 22', 'deparse';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form || operator works (1)' => {
+    # 22 || 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(22),
+      infix => RakuAST::Infix.new('||'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '22 || 44', 'deparse';
+    is-deeply $_, 22, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form || operator works (2)' => {
+    # 0 || 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(0),
+      infix => RakuAST::Infix.new('||'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '0 || 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form or operator works (1)' => {
+    # 22 or 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(22),
+      infix => RakuAST::Infix.new('or'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '22 or 44', 'deparse';
+    is-deeply $_, 22, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form or operator works (2)' => {
+    # 0 or 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(0),
+      infix => RakuAST::Infix.new('or'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '0 or 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form && operator works (1)' => {
+    # 22 && 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(22),
+      infix => RakuAST::Infix.new('&&'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '22 && 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form && operator works (2)' => {
+    # 0 && 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(0),
+      infix => RakuAST::Infix.new('&&'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '0 && 44', 'deparse';
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form and operator works (1)' => {
+    # 22 and 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(22),
+      infix => RakuAST::Infix.new('and'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '22 and 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The special form and operator works (2)' => {
+    # 0 and 44
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(0),
+      infix => RakuAST::Infix.new('and'),
+      right => RakuAST::IntLiteral.new(44)
+    );
+
+    is-deeply $deparsed, '0 and 44', 'deparse';
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of a prefix operator to a literal (1)' => {
+    # ?2
+    ast RakuAST::ApplyPrefix.new(
+      prefix => RakuAST::Prefix.new('?'),
+      operand => RakuAST::IntLiteral.new(2)
+    );
+
+    is-deeply $deparsed, '?2', 'deparse';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of a prefix operator to a literal (2)' => {
+    # ?0
+    ast RakuAST::ApplyPrefix.new(
+      prefix => RakuAST::Prefix.new('?'),
+      operand => RakuAST::IntLiteral.new(0)
+    );
+
+    is-deeply $deparsed, '?0', 'deparse';
+    is-deeply $_, False, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Basic assignment to a Scalar container' => {
+    my $a;
+
+    # $a = 4
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::Var::Lexical.new('$a'),
+      infix => RakuAST::Infix.new('='),
+      right => RakuAST::IntLiteral.new(4)
+    );
+
+    is-deeply $deparsed, '$a = 4', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $a = 666;
+        is-deeply EVAL($it), 4, "$type: return value is ok";
+        is-deeply $a, 4, "$type: was variable set ok";
+    }
+}
+
+subtest 'Application of a list infix operator on three operands' => {
+    # 10, 11, 12
+    ast RakuAST::ApplyListInfix.new(
+      infix => RakuAST::Infix.new(','),
+      operands => (
+        RakuAST::IntLiteral.new(10),
+        RakuAST::IntLiteral.new(11),
+        RakuAST::IntLiteral.new(12),
+      )
+    );
+
+    is-deeply $deparsed, '10, 11, 12', 'deparse';
+    is-deeply $_, (10, 11, 12), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of a list infix operator on no operands' => {
+    # ()
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => ()
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '()', 'deparse';
+    is-deeply $_, (), @type[$++]
+      for EVAL($ast), EVAL($deparsed)
+# , EVAL(EVAL $raku); XXX
+}
+
+subtest 'Chaining operator has correct outcome' => {
+    my $x;
+
+    # 5 > $x++ > 3
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::ApplyInfix.new(
+        left => RakuAST::IntLiteral.new(5),
+        infix => RakuAST::Infix.new('>'),
+        right => RakuAST::ApplyPostfix.new(
+          postfix => RakuAST::Postfix.new(:operator<++>),
+          operand => RakuAST::Var::Lexical.new('$x')
+        )
+      ),
+      infix => RakuAST::Infix.new('>'),
+      right => RakuAST::IntLiteral.new(3)
+    );
+    is-deeply $deparsed, '5 > $x++ > 3', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $x = 4;
+        is-deeply EVAL($it), True, "$type: did the expression get evaluated";
+        is-deeply $x, 5, "$type: was the update done";
+    }
+}
+
+subtest 'Correct outcome of ternary operator' => {
+    # $a ?? 22 !! 33
+    ast RakuAST::Ternary.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::IntLiteral.new(22),
+      else => RakuAST::IntLiteral.new(33)
+    );
+    is-deeply $deparsed, '$a ?? 22 !! 33', 'deparse';
+
+    my $a = 1;
+    is-deeply $_, 22, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    $a = 0;
+    is-deeply $_, 33, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Correct outcome of nested ternary operator' => {
+    # $a ?? $b ?? 22 !! 33 !! 44
+    ast RakuAST::Ternary.new(
+      condition => RakuAST::Var::Lexical.new("\$a"),
+      then      => RakuAST::Ternary.new(
+        condition => RakuAST::Var::Lexical.new("\$b"),
+        then      => RakuAST::IntLiteral.new(22),
+        else      => RakuAST::IntLiteral.new(33)
+      ),
+      else      => RakuAST::IntLiteral.new(44)
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$a
+  ?? $b
+    ?? 22
+    !! 33
+  !! 44
+CODE
+
+    for 0,0,44, 1,0,33, 0,1,44, 1,2,22 -> $a, $b, $result {
+        is-deeply $_, $result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Application of dotty infix `.`' => {
+    # "foo" .uc
+    ast RakuAST::ApplyDottyInfix.new(
+      left => RakuAST::StrLiteral.new('foo'),
+      infix => RakuAST::DottyInfix::Call.new,
+      right => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('uc')
+      )
+    );
+
+    is-deeply $deparsed, '"foo" .uc', 'deparse';
+    is-deeply $_, 'FOO', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of dotty infix `.=` evaluates to expected value' => {
+    my $var = 'foo';
+
+    # $var .= tc
+    ast RakuAST::ApplyDottyInfix.new(
+      left => RakuAST::Var::Lexical.new('$var'),
+      infix => RakuAST::DottyInfix::CallAssign.new,
+      right => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('tc')
+      )
+    );
+    is-deeply $deparsed, '$var .= tc', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $var = "foo";
+        is-deeply EVAL($it), 'Foo', "$type: did we get the right value";
+        is-deeply $var, 'Foo', "$type: was the value stored";
+    }
+}
+
+subtest 'Application of a function infix on two literals' => {
+    # 44 [&sum] 22
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(44),
+      infix => RakuAST::FunctionInfix.new(
+        RakuAST::Var::Lexical.new('&sum')
+      ),
+      right => RakuAST::IntLiteral.new(22)
+    );
+
+    is-deeply $deparsed, '44 [&sum] 22', 'deparse';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+for
+  'ff', <A C D B>, '^ff', <C D B>, 'ff^', <A C D>, '^ff^', <C D>
+-> $operator, @result {
+    my @source := <A C D B E F>;
+    subtest "Application of $operator" => {
+        # @source.grep({ "A" $operator "B" }
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@source"),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier("grep"),
+            args => RakuAST::ArgList.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::StrLiteral.new("A"),
+                        infix => RakuAST::FlipFlop.new($operator),
+                        right => RakuAST::StrLiteral.new("B")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
+@source.grep({ "A" $operator "B" })
+CODE
+        is-deeply $_, @result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+for
+  'fff', <AB C D B>, '^fff', <C D B>, 'fff^', <AB C D>, '^fff^', <C D>
+-> $operator, @result {
+    my @source := <AB C D B E F>;
+    subtest "Application of $operator" => {
+        # @source.grep({ /A/ $operator /B/ }
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@source"),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier("grep"),
+            args => RakuAST::ArgList.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::QuotedRegex.new(
+                          body => RakuAST::Regex::Literal.new("A")
+                        ),
+                        infix => RakuAST::FlipFlop.new($operator),
+                        right => RakuAST::QuotedRegex.new(
+                          body => RakuAST::Regex::Literal.new("B")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
+@source.grep({ / A/ $operator / B/ })
+CODE
+        is-deeply $_, @result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+for
+  '@a', '==>', '@b',
+  '@b', '<==', '@a'
+-> $left, $op, $right {
+    my @a = <ab cd ef>;
+    my @b;
+    my @result = @a.map(*.flip);
+    subtest "Feed operation $op" => {
+        # $left $operator mqp(&flip) $operator $right
+        ast RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Feed.new($op),
+          operands => (
+            RakuAST::Var::Lexical.new($left),
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier("map"),
+              args => RakuAST::ArgList.new(
+                RakuAST::Var::Lexical.new("\&flip")
+              )
+            ),
+            RakuAST::Var::Lexical.new($right),
+          )
+        );
+
+        is-deeply $deparsed, "$left $op map(&flip) $op $right", 'deparse';
+        for $ast, 'AST', $deparsed, 'Str', EVAL($raku), 'Raku' -> $it, $type {
+            is-deeply EVAL($it), <ba dc fe>, "$type: EVAL $op";
+            is-deeply @b, [<ba dc fe>], "$type: stored $op";
+            @b.splice;
+        }
+    }
+}
+
+# vim: expandtab shiftwidth=4

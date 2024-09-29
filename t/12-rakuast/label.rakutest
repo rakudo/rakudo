@@ -1,0 +1,556 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 19; # Do not change this file to done-testing
+
+given RakuAST::Label.new('Foo') {
+    isa-ok $_, RakuAST::Label, '.new constructs a label';
+    is .lexical-name, "Foo", 'is the name correct';
+    is .default-scope, 'my', 'is default scope ok';
+    is-deeply .allowed-scopes, ('my',), 'are allowed-scopes ok';
+    is-deeply .DEPARSE, 'Foo: ', 'Deparses in an expected way';
+}
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = 'AST', 'Str', 'Raku';
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Statement list with labels evaluates to its final statement' => {
+    my $x = 12;
+    my $y = 99;
+
+    # FOO: ++$x; BAR: ; ++$y
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$x')
+        ),
+        labels => [RakuAST::Label.new("FOO")]
+      ),
+      RakuAST::Statement::Empty.new(
+        labels => [RakuAST::Label.new("BAR")]
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$y')
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+FOO: ++$x;
+BAR: ;
+++$y
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    is-deeply EVAL($ast), 100,
+      'AST: Statement list evaluates to its final statement';
+    is $x, 13,
+      'AST: First side-effecting statement was executed';
+    is $y, 100,
+      'AST: Second side-effecting statement was executed';
+
+    is-deeply EVAL($deparsed), 101,
+      'Str: Statement list evaluates to its final statement';
+    is $x, 14,
+      'Str: First side-effecting statement was executed';
+    is $y, 101,
+      'Str: Second side-effecting statement was executed';
+}
+}
+
+subtest 'Basic if structure with a label' => {
+    my $a;
+
+    # FOO: if $a { 1 }
+    ast RakuAST::Statement::If.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+FOO: if $a {
+    1
+}
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $a = True;
+        is-deeply EVAL($it), 4,
+          "$type: When condition true, evaluates to 1";
+
+        $a = False;
+        is-deeply EVAL($it), Empty,
+          "$type: Latest elsif reachable when matched";
+    }
+}
+}
+
+subtest 'Basic with structure with label' => {
+    my $a;
+
+    # FOO: with $a -> $x { 1 }
+    ast RakuAST::Statement::With.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$x')
+            )
+          )
+        )
+      ),
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+FOO: with $a -> $x {
+    $x
+}
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $a = Nil;
+        is-deeply EVAL($it), Empty,
+          "$type: When condition undefined, return Empty";
+
+        $a = 42;
+        is-deeply EVAL($it), 42,
+          "$type: When condition defined, return what we got";
+    }
+}
+}
+
+subtest 'simple unless with a false condition and a label' => {
+    my $x = False;
+    my $y = 9;
+
+    # FOO: unless $x { ++$y }
+    ast RakuAST::Statement::Unless.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+FOO: unless $x {
+    ++$y
+}
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    is-deeply EVAL($ast), 10,
+      'AST: unless block with a false condition evaluates to its body';
+    is $y, 10, 'AST: Side-effect of the body was performed';
+
+    is-deeply EVAL($deparsed), 11,
+      'Str: unless block with a false condition evaluates to its body';
+    is $y, 11, 'Str: Side-effect of the body was performed';
+}
+}
+
+subtest 'simple without with an undefined condition and a label' => {
+    my $x = Nil;
+    my $y = 9;
+
+    # FOO: without $x { $y++ }
+    ast RakuAST::Statement::Without.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPostfix.new(
+                postfix => RakuAST::Postfix.new(:operator<++>),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+FOO: without $x {
+    $y++
+}
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    is-deeply EVAL($ast), 9,
+      'AST: without block with an undefined object evaluates to its body';
+    is $y, 10, 'AST: Side-effect of the body was performed';
+
+    is-deeply EVAL($deparsed), 10,
+      'Str: without block with an undefined object evaluates to its body';
+    is $y, 11, 'Str: Side-effect of the body was performed';
+}
+}
+
+subtest 'given with explicit signature' => {
+    # FOO: given $a -> $x { $x }
+    ast RakuAST::Statement::Given.new(
+      labels => [RakuAST::Label.new("FOO")],
+      source => RakuAST::Var::Lexical.new('$a'),
+      body => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$x')
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: given $a -> $x {
+    $x
+}
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        my $a = 'concrete';
+        is-deeply EVAL($it), 'concrete',
+          "$type: given topicalizes on the source (signature)";
+
+        $a = Str;
+        is-deeply EVAL($it), Str,
+          "$type: given topicalizes even an undefined source (signature)";
+    }
+}
+}
+
+subtest 'While loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # FOO: while $x { --$x }
+    ast RakuAST::Statement::Loop::While.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: while $x {
+    --$x
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $x = 5;
+
+        is-deeply EVAL($it), Nil,
+          "$type: while loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: Loop variable was decremented to zero";
+    }
+}
+
+subtest 'Until loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # FOO: until !$x { --$x }
+    ast RakuAST::Statement::Loop::Until.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('!'),
+        operand => RakuAST::Var::Lexical.new('$x')
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: until !$x {
+    --$x
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $x = 5;
+
+        is-deeply EVAL($it), Nil,
+          "$type: until loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: Loop variable was decremented to zero";
+    }
+}
+
+subtest 'Repeat while loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # FOO: repeat { --$x } while $x
+    ast RakuAST::Statement::Loop::RepeatWhile.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: repeat {
+    --$x
+} while $x
+CODE
+
+    for 'AST', $ast,  'Str', $deparsed -> $type, $it {
+        $x = 5;
+
+        is-deeply EVAL($it), Nil,
+          "$type: repeat until loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: loop variable decremented to 0";
+    }
+}
+
+subtest 'Repeat until loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # FOO: repeat { --$x } until $x
+    ast RakuAST::Statement::Loop::RepeatUntil.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: repeat {
+    --$x
+} until $x
+CODE
+
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+        $x = 0;
+
+        is-deeply EVAL($it), Nil,
+          "$type: repeat until loop at statement level evaluates to Nil";
+        is-deeply $x, -1, "$type: loop ran once";
+    }
+}
+
+subtest 'Loop block with setup and increment expression' => {
+    my $count;
+
+    # FOO: loop (my $i = 9; $i; --$i) { ++$count }
+    ast RakuAST::Statement::Loop.new(
+      labels    => [RakuAST::Label.new("FOO")],
+      setup => RakuAST::VarDeclaration::Simple.new(
+        sigil => '$',
+        desigilname => RakuAST::Name.from-identifier('i'),
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(9)
+        )
+      ),
+      condition => RakuAST::Var::Lexical.new('$i'),
+      increment => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('--'),
+        operand => RakuAST::Var::Lexical.new('$i')
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$count')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: loop (my $i = 9; $i; --$i) {
+    ++$count
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $count = 0;
+
+        is-deeply EVAL($it), Nil,
+          "$type: loop with setup and increment evaluates to Nil";
+        is-deeply $count, 9, "$type: loop ran as expected";
+    }
+}
+
+subtest 'Statement level for loop' => {
+    my $count;
+
+    # FOO: for 2 .. 7 -> $x { ++$count }
+    ast RakuAST::Statement::For.new(
+      labels => [RakuAST::Label.new("FOO")],
+      source => RakuAST::ApplyInfix.new(
+        left => RakuAST::IntLiteral.new(2),
+        infix => RakuAST::Infix.new('..'),
+        right => RakuAST::IntLiteral.new(7)
+      ),
+      body => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$count')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: for 2 .. 7 -> $x {
+    ++$count
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $count = 0;
+
+        is-deeply EVAL($it), Nil,
+          "$type: for loop evaluates to Nil";
+        is-deeply $count, 6, "$type: loop ran with expected number of times";
+    }
+}
+
+# This test calls an imported `&ok` to check the `use` works; the test plan
+# verifies that it really works.
+{
+    sub ok(|) { die "Imported ok was not used" };
+
+    # use Test; ok 1, "use statement works"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        labels      => [RakuAST::Label.new("FOO")],
+        module-name => RakuAST::Name.from-identifier('Test')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('ok'),
+          args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(1),
+            RakuAST::StrLiteral.new('use statements work')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+FOO: use Test;
+ok(1, "use statements work")
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    # EVALling produces test output
+    EVAL($ast);
+    EVAL($deparsed);
+}
+}
+
+subtest "check parsing of 'need' pragma" => {
+    # need Test
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Need.new(
+        labels       => (
+          RakuAST::Label.new("FOO"),
+        ),
+        module-names => (
+          RakuAST::Name.from-identifier("Test"),
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+FOO: need Test
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    is-deeply EVAL($_), Nil, @type[$++] for $ast, $deparsed, EVAL($raku);
+}
+}
+
+# vim: expandtab shiftwidth=4

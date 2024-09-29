@@ -1,7 +1,4 @@
-use v6.d;
-use lib <t/packages/>;
 use Test;
-use Test::Helpers;
 
 plan 1;
 

@@ -1,75 +1,101 @@
+#- Metamodel::REPRComposeProtocol ----------------------------------------------
 role Perl6::Metamodel::REPRComposeProtocol {
     has $!composed_repr;
 
-    method compose_repr($obj) {
+    method compose_repr($target) {
+
+        # Can only compose once
         unless $!composed_repr {
+            my %composition;
+
             # Is it an array type?
-            if nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
-                if self.attributes($obj) {
-                    nqp::die("Cannot have attributes on an array representation");
-                }
-                nqp::composetype(nqp::decont($obj), nqp::hash('array',
-                    nqp::hash('type', nqp::decont(self.array_type($obj)))));
+            if nqp::can(self, 'is_array_type') && self.is_array_type {
+                nqp::die("Cannot have attributes on an array representation")
+                  if nqp::elems(self.attributes($target));
+
+                nqp::bindkey(%composition,
+                  'array', nqp::hash('type', nqp::decont(self.array_type))
+                );
             }
 
             # Otherwise, presume it's an attribute type.
             else {
+
                 # Use any attribute information to produce attribute protocol
                 # data. The protocol consists of an array...
                 my @repr_info;
 
                 # ...which contains an array per MRO entry...
-                for self.mro($obj) -> $type_obj {
-                    my @type_info;
-                    nqp::push(@repr_info, @type_info);
+                my @mro := self.mro($target);
+
+                my int $m := nqp::elems(@mro);
+                my int $i;
+                while $i < $m {
+                    my $type       := nqp::decont(nqp::atpos(@mro, $i));
+                    my @attributes := $type.HOW.attributes($type, :local);
 
                     # ...which in turn contains the current type in the MRO...
-                    nqp::push(@type_info, nqp::decont($type_obj));
+                    nqp::push(
+                      @repr_info,
+                      (my @type_info := nqp::list($type))
+                    );
 
                     # ...then an array of hashes per attribute...
-                    my @attrs;
-                    nqp::push(@type_info, @attrs);
-                    for $type_obj.HOW.attributes(nqp::decont($type_obj), :local) -> $attr {
-                        my %attr_info;
-                        %attr_info<name> := $attr.name;
-                        %attr_info<type> := $attr.type;
-                        if $attr.box_target {
-                            # Merely having the key serves as a "yes".
-                            %attr_info<box_target> := 1;
-                        }
-                        if nqp::can($attr, 'auto_viv_container') {
-                            %attr_info<auto_viv_container> := $attr.auto_viv_container;
-                        }
-                        if $attr.positional_delegate {
-                            %attr_info<positional_delegate> := 1;
-                        }
-                        if $attr.associative_delegate {
-                            %attr_info<associative_delegate> := 1;
-                        }
-                        if nqp::can($attr, 'inlined') {
-                            %attr_info<inlined> := $attr.inlined;
-                        }
-                        if nqp::can($attr, 'dimensions') {
-                            %attr_info<dimensions> := $attr.dimensions;
-                        }
-                        nqp::push(@attrs, %attr_info);
+                    my @attr_info;
+                    nqp::push(@type_info, @attr_info);
+
+                    my int $n := nqp::elems(@attributes);
+                    my int $j;
+                    while $j < $n {
+                        my $attribute := nqp::atpos(@attributes, $j);
+
+                        nqp::push(
+                          @attr_info,
+                          (my %info := nqp::hash(
+                            'name', $attribute.name,
+                            'type', $attribute.type
+                          ))
+                        );
+
+                        # Merely having the key serves as a "yes".
+                        nqp::bindkey(%info, 'box_target', 1)
+                          if $attribute.box_target;
+
+                        nqp::bindkey(%info,
+                          'auto_viv_container', $attribute.auto_viv_container
+                        ) if nqp::can($attribute, 'auto_viv_container');
+
+                        nqp::bindkey(%info, 'positional_delegate', 1)
+                          if $attribute.positional_delegate;
+
+                        nqp::bindkey(%info, 'associative_delegate', 1)
+                          if $attribute.associative_delegate;
+
+                        nqp::bindkey(%info, 'inlined', $attribute.inlined)
+                          if nqp::can($attribute, 'inlined');
+
+                        nqp::bindkey(%info, 'dimensions', $attribute.dimensions)
+                          if nqp::can($attribute, 'dimensions');
+
+                        ++$j;
                     }
 
                     # ...followed by a list of immediate parents.
-                    nqp::push(@type_info, $type_obj.HOW.parents(nqp::decont($type_obj), :local));
+                    nqp::push(@type_info, $type.HOW.parents($type, :local));
+
+                    ++$i;
                 }
 
-                # Compose the representation using it.
-                nqp::composetype(nqp::decont($obj), nqp::hash('attribute', @repr_info));
+                nqp::bindkey(%composition, 'attribute', @repr_info);
             }
 
+            # Compose the representation using it.
+            nqp::composetype(nqp::decont($target), %composition);
             $!composed_repr := 1;
         }
     }
 
-    method repr_composed($obj) {
-        $!composed_repr;
-    }
+    method repr_composed($XXX?) { $!composed_repr }
 }
 
 # vim: expandtab sw=4

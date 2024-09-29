@@ -282,7 +282,7 @@ E: rightfold@gmail.com
 
 N: Elizabeth Mattijsen
 U: lizmat
-E: liz@wenzperl.nl
+E: liz@raku.rocks
 
 N: Erik Johansen
 E: perl6-git@uniejo.dk
@@ -330,7 +330,7 @@ E: gam@grok.no
 
 N: Geoff Broadwell
 U: japhb
-E: geoff@broadwell.org
+E: gjb@sonic.net
 
 N: Gerd Pokorra
 E: pokorra@uni-siegen.de
@@ -378,9 +378,6 @@ E: jani+perl6-2010@ifi.uio.no
 N: Jan-Olof Hendig
 U: dogbert17
 E: jan-olof.hendig@bredband.net
-
-N: japhb
-E: gjb@sonic.net
 
 N: Jarkko Hietaniemi
 U: jhi
@@ -646,8 +643,9 @@ D: Perl 6 (Rakudo Perl) lead developer
 E: pmichaud@pobox.com
 
 N: Patrick Böker
-U: patzim
-E: patrickz@cpan.org
+U: patrickb
+U: patrickbkr
+E: patrick.boeker@posteo.de
 
 N: Paul Cochrane
 U: paultcochrane
@@ -815,7 +813,7 @@ E: tokuhirom@gmail.com
 N: Tom Browder
 E: tom.browder@gmail.com
 U: tbrowder
-S: Niceville, Florida, USA
+S: Gulf Breeze, Florida, USA
 
 N: Tomasz Konojacki
 E: me@xenu.tk
@@ -856,10 +854,10 @@ N: Wenzel P. P. Peppmeyer
 E: wenzel.peppmeyer@gmx.de
 U: gfldex
 
-N: Will "Coke" Coleda
+N: Will Coleda
 U: coke
+D: Christmas Release Manager, raku/doc
 E: will@coleda.com
-D: Christmas Release Manager
 
 N: William Orr
 E: will@worrbase.com

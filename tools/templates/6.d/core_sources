@@ -1,3 +1,3 @@
-src/core.d/core_prologue.pm6
-src/core.d/await.pm6
-src/core.d/operators.pm6
+src/core.d/core_prologue.rakumod
+src/core.d/await.rakumod
+src/core.d/operators.rakumod

@@ -1,0 +1,861 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 20;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node, :$no-pod --> Nil) {
+    $ast := $no-pod
+      ?? $node
+      !! RakuAST::ApplyListInfix.new(
+           infix    => RakuAST::Infix.new(","),
+           operands => (
+             $node,
+             RakuAST::Var::Doc.new('pod')
+           )
+         );
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+sub test-declarator(
+   $object,
+   $pod,
+   $type,
+  :$leading  = "leading comment",
+  :$trailing = "trailing comment",
+  :$trailing-dropped,
+  :$object-cloned
+) {
+    isa-ok $pod, Array, "$type: did we get an Array";
+    is $pod.elems, 1, "$type: does it have one element";
+
+    my $declarator := $pod.head;
+    isa-ok $declarator, Pod::Block::Declarator,
+      "$type: did we get a Pod::Block::Declarator";
+
+    # The object appears to be cloned, so check the .raku representation
+    # with the memory addresses blanked out
+    if $object-cloned {
+        is
+          $declarator.WHEREFORE.raku.subst(/\d+/),
+          $object.raku.subst(/\d+/),
+          "$type: is the object the target of the declarator";
+    }
+    elsif $object ~~ Nil {
+        # nothing to compare with
+    }
+    else {
+        is-deeply $declarator.WHEREFORE, $object,
+          "$type: is the object the target of the declarator";
+    }
+    is-deeply $declarator.leading, "leading comment",
+      "$type: is the leading comment correct";
+    todo("$type: trailing comment dropped somehow") if $trailing-dropped;
+    is-deeply $declarator.trailing, "trailing comment",
+      "$type: is the trailing comment correct";
+}
+
+subtest 'Simple leading and trailing pod declarator test' => {
+    # #| leading comment␤sub a {␤#= trailing comment␤    42␤}
+    ast RakuAST::Doc::Declarator.new(   # created from declarator's viewpoint
+      WHEREFORE => RakuAST::Sub.new(
+        name => RakuAST::Name.from-identifier("a"),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      ),
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    ), :no-pod;
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+sub a { #= trailing comment
+    42
+}
+CODE
+    }
+}
+
+subtest 'Simple block with leading and trailing pod test' => {
+    # #| leading comment␤{␤#= trailing comment␤    42␤}␤$=pod
+    ast RakuAST::Block.new(   # created from sub's viewpoint
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+{ #= trailing comment
+    42
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($block, $pod) := EVAL($it);
+        isa-ok $block, Block, "$type: did we get a block";
+        is-deeply $block(), 42, "$type: can it run and return value";
+        test-declarator($block, $pod, $type);
+    }
+}
+
+subtest 'Simple pointy block with leading and trailing pod test' => {
+    # #| leading comment␤-> {␤#= trailing comment␤    42␤}␤$=pod
+    ast RakuAST::PointyBlock.new(   # created from sub's viewpoint
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+-> { #= trailing comment
+    42
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($block, $pod) := EVAL($it);
+        isa-ok $block, Block, "$type: did we get a block";
+        is-deeply $block(), 42, "$type: can it run and return value";
+        test-declarator($block, $pod, $type);
+    }
+}
+
+subtest 'Simple sub with leading and trailing pod test' => {
+    # #| leading comment␤sub a {␤#= trailing comment␤    42␤}␤$=pod
+    ast RakuAST::Sub.new(   # created from sub's viewpoint
+      name => RakuAST::Name.from-identifier("a"),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+sub a { #= trailing comment
+    42
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($sub, $pod) := EVAL($it);
+        isa-ok $sub, Sub, "$type: did we get a sub";
+        is $sub.name, 'a', "$type: did it get the right name";
+        is-deeply $sub(), 42, "$type: can it run and return value";
+        test-declarator($sub, $pod, $type);
+    }
+}
+
+subtest 'Simple class with declarator pod' => {
+    # #| leading comment␤my class A {␤#= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new()
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+my class A { #= trailing comment
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+        test-declarator($class, $pod, $type);
+    }
+}
+
+subtest 'Simple class with declarator pod, one attribute' => {
+    # my class A {␤    #| leading comment␤    has $.foo␤    #= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => "has",
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            )
+          )
+        )
+      ),
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    has $.foo #= trailing comment
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $attribute := $class.^attributes.head;
+        test-declarator($attribute, $pod, $type,
+          :trailing-dropped(!%*ENV<RAKUDO_RAKUAST> && $type eq 'Str')
+        );
+    }
+}
+
+subtest 'Simple class with declarator pod, two attributes' => {
+    # my class A {␤    #| leading comment␤    has $.foo␤    #= trailing comment␤    has $.bar␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => "has",
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => "has",
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('bar'),
+              )
+            )
+          )
+        )
+      ),
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    has $.foo; #= trailing comment
+    has $.bar
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $attribute := $class.^attributes.head;
+        test-declarator($attribute, $pod, $type);
+    }
+}
+
+subtest 'Simple class with declarator pod, one method' => {
+    # my class A {␤    #| leading comment␤    method foo() { }␤    #= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    method foo { #= trailing comment
+    }
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $method := $class.^methods.head;
+        test-declarator($method, $pod, $type, :object-cloned);
+    }
+}
+
+subtest 'Simple class with declarator pod, one submethod' => {
+    # my class A {␤    #| leading comment␤    submethod foo() { }␤    #= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Submethod.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    submethod foo { #= trailing comment
+    }
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $submethod := $class.^methods(:all).head;
+        test-declarator($submethod, $pod, $type, :object-cloned);
+    }
+}
+
+subtest 'Simple class with declarator pod, one private method' => {
+    # my class A {␤    #| leading comment␤    method !foo() { }␤    #= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name    => RakuAST::Name.from-identifier("foo"),
+                body    => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                private => True
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    method !foo { #= trailing comment
+    }
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $private-method := $class.^private_methods.head;
+        test-declarator($private-method, $pod, $type, :object-cloned);
+    }
+}
+
+subtest 'Simple class with declarator pod, one meta method' => {
+    # my class A {␤    #| leading comment␤    method ^foo() { }␤    #= trailing comment␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                meta => True
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    method ^foo { #= trailing comment
+    }
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $meta-method := $class.HOW.^methods.first(*.name eq 'foo');
+        test-declarator($meta-method, $pod, $type, :object-cloned);
+    }
+}
+
+subtest 'Simple class with declarator pod, two methods' => {
+    # my class A {␤    #| leading comment␤    method foo() {␤    #= trailing comment␤    }␤    method bar { }␤}␤$=pod
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => ("leading comment\n",),
+                trailing => ("trailing comment\n",)
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("bar"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class A {
+    #| leading comment
+    method foo { #= trailing comment
+    }
+    method bar { }
+}, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($class, $pod) := EVAL($it);
+        isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
+        is $class.^name, 'A', "$type: did it get the right name";
+        isa-ok $class.new, $class, "$type: can it instantiate";
+
+        my $method := $class.HOW.methods($class).first(*.name eq 'foo');
+        test-declarator($method, $pod, $type, :object-cloned);
+    }
+}
+
+subtest 'Simple enum with declarator pod' => {
+    # #| leading comment␤my enum Foo <A B C>;␤#= trailing comment␤$=pod
+    ast RakuAST::Type::Enum.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("Foo"),
+      term  => RakuAST::QuotedString.new(
+        processors => <words val>,
+        segments   => (
+          RakuAST::StrLiteral.new("A B C"),
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+my enum Foo <A B C> #= trailing comment
+, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($enum, $pod) := EVAL($it);
+        is-deeply $enum, Map.new((:A(0),:B(1),:C(2))), "$type: did we get a Map";
+        test-declarator(Nil, $pod, $type, :trailing-dropped($type eq 'Str'));
+    }
+}
+
+subtest 'Simple subset with declarator pod' => {
+    # #| leading comment␤my subset Foo of Int;␤#= trailing comment␤$=pod
+    ast RakuAST::Type::Subset.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+my subset Foo of Int #= trailing comment
+, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($subset, $pod) := EVAL($it);
+        isa-ok $subset.HOW, Metamodel::SubsetHOW, "$type: did we get a subset";
+        is $subset.^name, 'Foo', "$type: did it get the right name";
+        isa-ok $subset, Int, "$type: does the subset accept Int";
+        test-declarator($subset, $pod, $type, :trailing-dropped($type eq 'Str'));
+    }
+}
+
+subtest 'Simple regex with declarator pod' => {
+    # #| leading comment␤my regex foo {␤#= trailing comment␤bar }␤$=pod
+    ast RakuAST::RegexDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("foo"),
+      body  => RakuAST::Regex::Sequence.new(
+        RakuAST::Regex::WithWhitespace.new(
+          RakuAST::Regex::Literal.new("bar")
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading comment\n",),
+      trailing => ("trailing comment\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+my regex foo { #= trailing comment
+bar }, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($regex, $pod) := EVAL($it);
+        isa-ok $regex, Regex, "$type: did we get a regex";
+        is $regex.name, 'foo', "$type: did it get the right name";
+        test-declarator($regex, $pod, $type);
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (1)' => {
+    # sub a (␤#| leading comment␤$b␤#= trailing comment␤) { }␤$=pod
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+          ).declarator-docs(
+            leading  => ("leading comment\n",),
+            trailing => ("trailing comment\n",)
+          ),
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub a (
+  #| leading comment
+  $b #= trailing comment
+) { }, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($sub, $pod) := EVAL($it);
+        isa-ok $sub, Sub, "$type: did we get a sub";
+        is $sub.name, 'a', "$type: did sub get the right name";
+
+        my $parameter := $sub.signature.params.head;
+        is $parameter.name, '$b', "$type: did parameter get the right name";
+        test-declarator($parameter, $pod, $type);
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (2)' => {
+    # sub a (␤#| leading comment␤$b␤#= trailing comment␤␤$c,) { }␤$=pod
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+          ).declarator-docs(
+            leading  => ("leading comment\n",),
+            trailing => ("trailing comment\n",)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$c>)
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub a (
+  #| leading comment
+  $b, #= trailing comment
+  $c
+) { }, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($sub, $pod) := EVAL($it);
+        isa-ok $sub, Sub, "$type: did we get a sub";
+        is $sub.name, 'a', "$type: did sub get the right name";
+
+        my $parameter := $sub.signature.params.head;
+        is $parameter.name, '$b', "$type: did parameter get the right name";
+        test-declarator($parameter, $pod, $type);
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (3)' => {
+    # sub a (␤#| leading comment␤$b, $c) { }␤$=pod
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading  => ("leading comment b\n",)
+            )
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$c>),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading  => ("leading comment c\n",)
+            )
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub a (
+  #| leading comment b
+  $b,
+  #| leading comment c
+  $c
+) { }, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($sub, $pod) := EVAL($it);
+        isa-ok $sub, Sub, "$type: did we get a sub";
+        is $sub.name, 'a', "$type: did sub get the right name";
+
+        my ($b, $c) = $sub.signature.params.head(2);
+        is $b.name, '$b', "$type: did first parameter get the right name";
+        is $c.name, '$c', "$type: did second parameter get the right name";
+
+        isa-ok $pod, Array, "$type: did we get an Array";
+        is $pod.elems, 2, "$type: does it have two elements";
+
+        for $pod[0], $b, 'b', $pod[1], $c, 'c' -> $declarator, $object, $name {
+            isa-ok $declarator, Pod::Block::Declarator,
+              "$type: did we get a Pod::Block::Declarator";
+
+            is-deeply $declarator.WHEREFORE, $object,
+              "$type: is the object the target of the declarator";
+            is-deeply $declarator.leading, "leading comment $name",
+              "$type: is the leading comment $name correct";
+        }
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (4)' => {
+    # #| leading sub␤sub a (␤#= trailing sub␤#| leading param␤$b␤#=trailing param␤) { }␤$=pod
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+          ).declarator-docs(
+            leading  => ("leading param\n",),
+            trailing => ("trailing param\n",)
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    ).declarator-docs(
+      leading  => ("leading sub\n",),
+      trailing => ("trailing sub\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading sub
+sub a ( #= trailing sub
+  #| leading param
+  $b #= trailing param
+) { }, $=pod
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($sub, $pod) := EVAL($it);
+        isa-ok $sub, Sub, "$type: did we get a sub";
+        is $sub.name, 'a', "$type: did sub get the right name";
+
+        my $b := $sub.signature.params.head;
+        is $b.name, '$b', "$type: did parameter get the right name";
+
+        isa-ok $pod, Array, "$type: did we get an Array";
+        is $pod.elems, 2, "$type: does it have two elements";
+
+        for $pod[0], $sub, 'sub', $pod[1], $b, 'param' -> $declarator, $object, $name {
+            isa-ok $declarator, Pod::Block::Declarator,
+              "$type: did we get a Pod::Block::Declarator";
+
+            is-deeply $declarator.WHEREFORE, $object,
+              "$type: is the object the target of the declarator";
+            is-deeply $declarator.leading, "leading $name",
+              "$type: is the leading $name correct";
+            is-deeply $declarator.trailing, "trailing $name",
+              "$type: is the trailing $name correct";
+        }
+    }
+}
+
+subtest 'a simple lexical var' => {
+    # #| leading comment␤my $foo; #= trailing comment␤$=pod
+    ast RakuAST::VarDeclaration::Simple.new(
+      scope       => "my",
+      sigil       => '$',
+      desigilname => RakuAST::Name.from-identifier('foo'),
+    ).declarator-docs(
+      leading  => ("leading B<comment>\n",),
+      trailing => ("trailing C<comment>\n",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading B<comment>
+my $foo #= trailing C<comment>
+, $=pod
+CODE
+
+    # since the $=pod semantics are unsure, we're not going
+    # to test that here and now
+
+    is-deeply
+      $ast.first(RakuAST::Doc::DeclaratorTarget).WHY.paragraphs,
+      (RakuAST::Doc::Paragraph.new(
+        "leading ",
+        RakuAST::Doc::Markup.new(
+          letter => "B",
+          opener => "<",
+          closer => ">",
+          atoms  => (
+            "comment",
+          )
+        ),
+        "\n"
+      ),
+      RakuAST::Doc::Paragraph.new(
+        "trailing ",
+        RakuAST::Doc::Markup.new(
+          letter => "C",
+          opener => "<",
+          closer => ">",
+          atoms  => (
+            "comment",
+          )
+        ),
+        "\n"
+      )
+    ),
+    'did we find the paragraphs ok';
+}
+
+# vim: expandtab shiftwidth=4

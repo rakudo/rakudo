@@ -1,0 +1,1680 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 36; # Do not change this file to done-testing because of END block tests
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'BEGIN phaser producing a literal expression works' => {
+    CATCH {
+        when X::AdHoc {
+            # Any other kind of exception or having different message means
+            # different issue and we take measure not to mask it.
+            .rethrow unless  .message eq q<Unknown compilation input 'qast'>;
+            skip "BEGIN phaser is having some issues yet", 2;
+        }
+    }
+    # BEGIN 12
+    ast RakuAST::StatementPrefix::Phaser::Begin.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(12)
+      )
+    );
+
+    is-deeply $deparsed, 'BEGIN 12', 'deparse';
+    is-deeply $_, 12, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
+    my $handled;
+
+    # { CATCH { default { $handled++ } }; die "oops" }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Catch.new(
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Default.new(
+                    body => RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                              operand => RakuAST::Var::Lexical.new('$handled'),
+                              postfix => RakuAST::Postfix.new(:operator<++>)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+{
+    CATCH {
+        default {
+            $handled++
+        }
+    }
+    die("oops")
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $handled = 0;
+
+        is-deeply EVAL($it), Nil,
+          "$type: block with CATCH/default handles exception, evaluates to Nil";
+        is-deeply $handled, 1, "$type: the exception handler ran once";
+        is $!, 'oops', "$type: \$! in the outer scope has the exception";
+    }
+}
+
+subtest 'Exception is rethrown if unhandled' => {
+    # { CATCH { }; die "gosh" }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Catch.new(
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+{
+    CATCH { }
+    die("gosh")
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) },
+          X::AdHoc,
+          message => /gosh/,
+          "$type: exception is rethrown if unhandled";
+    }
+}
+
+subtest 'CONTROL phaser catching a warning' => {
+    # CONTROL {
+    #     isa-ok $_, CX::Warn
+    #     .resume
+    # }
+    # warn();
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Control.new(
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("isa-ok"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$_'),
+                    RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier-parts('CX', 'Warn')
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("resume")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("warn")
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+
+    plan 7;  # additional tests here that need to pass
+    is-deeply $deparsed,
+      qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume\n}\nwarn();\n42\n|,
+      'deparse';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'CATCH phaser catching an exception' => {
+    # CATCH {
+    #     isa-ok $_, X::AdHoc
+    #     .resume
+    # }
+    # die();
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Catch.new(
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("todo"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::StrLiteral.new("Getting a warning instead of an exception???")
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("isa-ok"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$_'),
+                    RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier-parts('X', 'AdHoc')
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("resume")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("die")
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666)
+      )
+    );
+
+    plan 7;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!s:!c:to/CODE/, 'deparse';
+CATCH {
+    todo("Getting a warning instead of an exception???");
+    isa-ok($_, X::AdHoc);
+    .resume
+}
+die();
+666
+CODE
+
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Block with INIT phaser thunk' => {
+    my $init;
+
+    # -> { INIT ++$init }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Init.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$init')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    INIT ++$init
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $init = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $init, 1, "$type: INIT actually ran";
+        is-deeply $block(), 1, "$type: INIT phaser returns expression";
+    }
+}
+
+subtest 'Block with INIT phaser block' => {
+    my $init;
+
+    # -> { INIT { ++$init; 42 } }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Init.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$init')
+                      )
+                    ),
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    INIT {
+        ++$init;
+        42
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $init = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $init, 1, "$type: INIT actually ran";
+        is-deeply $block(), 42, "$type: INIT phaser returns expression";
+    }
+}
+
+subtest 'Block with ENTER phaser thunk' => {
+    my $enter;
+
+    # -> { ENTER ++$enter }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Enter.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$enter')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    ENTER ++$enter
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        $enter = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 1, "$type: ENTER phaser returns expression";
+        is-deeply $enter, 1, "$type: ENTER actually ran";
+    }
+}
+
+subtest 'Block with ENTER phaser block' => {
+    my $enter;
+
+    # -> { ENTER ++$enter; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Enter.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$enter')
+                      )
+                    ),
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    ENTER {
+        ++$enter;
+        42
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        $enter = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 42, "$type: ENTER phaser returns expression";
+        is-deeply $enter, 1, "$type: ENTER actually ran";
+    }
+}
+
+subtest 'LEAVE phaser thunk being run' => {
+    my $done = 666;
+
+    # { $done = False; LEAVE pass("leaving"); $done = True }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::False.new
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Leave.new(
+              RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier("pass"),
+                args => RakuAST::ArgList.new(
+                  RakuAST::StrLiteral.new("leaving")
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::True.new
+            )
+          )
+        )
+      )
+    );
+
+    plan 10;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c:!s:to/CODE/.chomp, 'deparse';
+{
+    $done = False;
+    LEAVE pass("leaving");
+    $done = True
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), True, "$type: result correct";
+        is-deeply $done, True, "$type: did block run to completion";
+    }
+}
+
+subtest 'LEAVE phaser block being run' => {
+    my $done = 666;
+
+    # { $done = False; LEAVE { pass("leaving") }; $done = True }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::False.new
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Leave.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Call::Name.new(
+                        name => RakuAST::Name.from-identifier("pass"),
+                        args => RakuAST::ArgList.new(
+                          RakuAST::StrLiteral.new("leaving")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::True.new
+            )
+          )
+        )
+      )
+    );
+
+    plan 10;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c:!s:to/CODE/.chomp, 'deparse';
+{
+    $done = False;
+    LEAVE {
+        pass("leaving")
+    }
+    $done = True
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), True, "$type: result correct";
+        is-deeply $done, True, "$type: did block run to completion";
+    }
+}
+
+subtest 'KEEP / UNDO phaser thunk successful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP ++$keep; UNDO ++$undo; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$keep')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$undo')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
+-> {
+    KEEP ++$keep;
+    UNDO ++$undo;
+    42
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 42, "$type: exited block correctly";
+        is-deeply $keep, 1, "$type: KEEP actually ran";
+        is-deeply $undo, 0, "$type: UNDO did *not* run";
+    }
+}
+
+subtest 'KEEP / UNDO phaser block successful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP { ++$keep }; UNDO { ++$undo }; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$keep')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$undo')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
+-> {
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
+    42
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 42, "$type: exited block correctly";
+        is-deeply $keep, 1, "$type: KEEP actually ran";
+        is-deeply $undo, 0, "$type: UNDO did *not* run";
+    }
+}
+
+subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP ++$keep; UNDO ++$undo; Int }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$keep')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$undo')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Int")
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
+-> {
+    KEEP ++$keep;
+    UNDO ++$undo;
+    Int
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Int, "$type: exited block correctly";
+        is-deeply $keep, 0, "$type: KEEP did *not* run";
+        is-deeply $undo, 1, "$type: UNDO actually ran";
+    }
+}
+
+subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP { ++$keep }; UNDO { ++$undo }; Int }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$keep')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$undo')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Int")
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
+-> {
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
+    Int
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Int, "$type: exited block correctly";
+        is-deeply $keep, 0, "$type: KEEP did *not* run";
+        is-deeply $undo, 1, "$type: UNDO actually ran";
+    }
+}
+
+subtest 'END phaser thunk being run' => {
+    # END pass("leaving END thunk")
+    ast RakuAST::StatementPrefix::Phaser::End.new(
+      RakuAST::Call::Name.new(
+       name => RakuAST::Name.from-identifier("pass"),
+        args => RakuAST::ArgList.new(
+          RakuAST::StrLiteral.new("leaving END thunk")
+        )
+      )
+    );
+
+    is-deeply $deparsed, qq:!c/END pass("leaving END thunk")/, 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'END phaser block being run' => {
+    # END { pass("leaving END block") }
+    ast RakuAST::StatementPrefix::Phaser::End.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier("pass"),
+                args => RakuAST::ArgList.new(
+                  RakuAST::StrLiteral.new("leaving END block")
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+END {
+    pass("leaving END block")
+}
+CODE
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'For loop with FIRST phaser thunk' => {
+    my $run;
+
+    # for ^3 { FIRST is-deeply $run, 0, "inside FIRST"; FIRST ++$run }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier("is-deeply"),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Var::Lexical.new('$run'),
+                      RakuAST::IntLiteral.new(0),
+                      RakuAST::StrLiteral.new('inside FIRST'),
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$run')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 10;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+for ^3 {
+    FIRST is-deeply($run, 0, "inside FIRST");
+    FIRST ++$run
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $run = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $run, 1, "$type: did second FIRST run once";
+    }
+}
+
+subtest 'For loop with FIRST phaser block' => {
+    my $run;
+
+    # for ^3 { FIRST { is-deeply $run, 0, "inside FIRST" }; ++$run }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::Call::Name.new(
+                          name => RakuAST::Name.from-identifier("is-deeply"),
+                          args => RakuAST::ArgList.new(
+                            RakuAST::Var::Lexical.new('$run'),
+                                  RakuAST::IntLiteral.new(0),
+                            RakuAST::StrLiteral.new('inside FIRST'),
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$run')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 7;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+for ^3 {
+    FIRST {
+        is-deeply($run, 0, "inside FIRST")
+    }
+    ++$run
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $run = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+    }
+}
+
+todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
+subtest 'While loop with FIRST phaser block and return value' => {
+    my $run;
+    my $guard = True;
+    my $result;
+
+    # my $guard = True; while $guard { FIRST { is-deeply $run, 0, "inside FIRST"; $guard = False }; ++$run }
+    ast RakuAST::Statement::Loop::While.new(
+          condition => RakuAST::Var::Lexical.new('$guard'),
+          body => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                      infix => RakuAST::Assignment.new(:item),
+                      left => RakuAST::Var::Lexical.new('$result'),
+                      right => RakuAST::StatementPrefix::Phaser::First.new(
+                        RakuAST::Block.new(
+                          body => RakuAST::Blockoid.new(
+                            RakuAST::StatementList.new(
+                              RakuAST::Statement::Expression.new(
+                                expression => RakuAST::Call::Name.new(
+                                  name => RakuAST::Name.from-identifier("is-deeply"),
+                                  args => RakuAST::ArgList.new(
+                                    RakuAST::Var::Lexical.new('$run'),
+                                    RakuAST::IntLiteral.new(0),
+                                    RakuAST::StrLiteral.new('inside FIRST'),
+                                  )
+                                )
+                              ),
+                              RakuAST::Statement::Expression.new(
+                                expression => RakuAST::ApplyInfix.new(
+                                  infix => RakuAST::Assignment.new(:item),
+                                  left => RakuAST::Var::Lexical.new('$guard'),
+                                  right => RakuAST::Term::Name.new(
+                                    RakuAST::Name.from-identifier('False')
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyPrefix.new(
+                      prefix => RakuAST::Prefix.new('++'),
+                      operand => RakuAST::Var::Lexical.new('$run')
+                    )
+                  )
+                )
+              )
+            )
+          );
+
+    plan 13;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+while $guard {
+    $result = FIRST {
+        is-deeply($run, 0, "inside FIRST");
+        $guard = False
+    }
+    ++$run
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $run = 0;
+        $guard = True;
+        $result = Nil;
+
+        is-deeply EVAL($it), Nil, "$type: while loop evaluates to Nil";
+        is-deeply $result, False, "$type: FIRST returns a value";
+        is-deeply $run, 1, "$type: loop block ran";
+    }
+}
+
+todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
+subtest 'Subroutine with FIRST phaser block and return value' => {
+    my $run;
+    my $guard;
+    my $result;
+
+    # my $guard = True; while $guard { FIRST { is-deeply $run, 0, "inside FIRST"; $guard = False }; ++$run }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier("s"),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new("\$guard"),
+                  infix => RakuAST::Assignment.new(:item),
+                  right => RakuAST::StatementPrefix::Phaser::First.new(
+                    RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::Call::Name.new(
+                              name => RakuAST::Name.from-identifier("is-deeply"),
+                              args => RakuAST::ArgList.new(
+                                RakuAST::Var::Lexical.new("\$run"),
+                                RakuAST::IntLiteral.new(0),
+                                RakuAST::QuotedString.new(
+                                  segments   => (
+                                    RakuAST::StrLiteral.new("in FIRST"),
+                                  )
+                                )
+                              )
+                            )
+                          ),
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyInfix.new(
+                              left  => RakuAST::Var::Lexical.new("\$guard"),
+                              infix => RakuAST::Infix.new("+"),
+                              right => RakuAST::IntLiteral.new(1)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new("\$run"),
+                  postfix => RakuAST::Postfix.new(
+                    operator   => "++",
+                    colonpairs => $( )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier("s")
+          ),
+          infix => RakuAST::Infix.new("xx"),
+          right => RakuAST::IntLiteral.new(3)
+        )
+      )
+    );
+
+    plan 13;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+sub s {
+    $guard = FIRST {
+        is-deeply($run, 0, "in FIRST");
+        $guard + 1
+    }
+    $run++
+}
+s() xx 3
+
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $run = 0;
+        $guard = 41;
+        $result = Nil;
+
+        is-deeply EVAL($it), (0,1,2), "$type: expression returns as expected";
+        is-deeply $guard, 42, "$type: FIRST returns a static value";
+        is-deeply $run, 3, "$type: loop block ran";
+    }
+}
+
+subtest 'For loop with NEXT / LAST phaser thunk' => {
+    my $next;
+    my $last;
+
+    # for ^3 { NEXT ++$next; LAST ++$last }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Next.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$next')
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Last.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$last')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+for ^3 {
+    NEXT ++$next;
+    LAST ++$last
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $next = $last = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $next, 3, "$type: NEXTed expected number of times";
+        is-deeply $last, 1, "$type: LASTed expected number of times";
+    }
+}
+
+subtest 'For loop with NEXT / LAST phaser block' => {
+    my $next;
+    my $last;
+
+    # for ^3 { NEXT { ++$next }; LAST { ++$last } }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Next.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyPrefix.new(
+                          prefix => RakuAST::Prefix.new('++'),
+                          operand => RakuAST::Var::Lexical.new('$next')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Last.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyPrefix.new(
+                          prefix => RakuAST::Prefix.new('++'),
+                          operand => RakuAST::Var::Lexical.new('$last')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+for ^3 {
+    NEXT {
+        ++$next
+    }
+    LAST {
+        ++$last
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $next = $last = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $next, 3, "$type: NEXTed expected number of times";
+        is-deeply $last, 1, "$type: LASTed expected number of times";
+    }
+}
+
+# QUIT / CLOSE phasers are Supply specific, however *any* block
+# may have them: they only are called automatically in a Supply
+# context.  Assuming that if they exist in a block, they are
+# called at the right time, we're only going to check here
+# whether the phasers are attached to the block correctly,
+# and run the phasers "manually" as it were.
+subtest 'Block with CLOSE phaser thunk' => {
+    my $close;
+
+    # -> { CLOSE ++$close }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Close.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$close')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    CLOSE ++$close
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        $close = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        todo("Thunked CLOSE phaser returns expression");
+        is-deeply $block.callable_for_phaser("CLOSE")(), Nil,
+          "$type: CLOSE phaser returns Nil";
+        is-deeply $close, 1, "$type: CLOSE actually ran";
+    }
+}
+
+subtest 'Block with CLOSE phaser block' => {
+    my $close;
+
+    # -> { CLOSE { ++$close; 42 } }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Close.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$close')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    CLOSE {
+        ++$close
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        $close = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        todo("Old implementation returns expression");
+        is-deeply $block.callable_for_phaser("CLOSE")(), Nil,
+          "$type: CLOSE phaser returns Nil";
+        is-deeply $close, 1, "$type: CLOSE actually ran";
+    }
+}
+
+subtest 'Block with QUIT phaser block' => {
+    my $quit;
+
+    # -> { QUIT { $quit = $_ } }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Quit.new(
+              RakuAST::Block.new(
+                implicit-topic => 3,
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new('$quit'),
+                        infix => RakuAST::Infix.new('='),
+                        right => RakuAST::Var::Lexical.new('$_')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    QUIT {
+        $quit = $_
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        $quit = Nil;
+        my $exception := X::AdHoc.new(:payload<foo>);
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        todo("Old implementation returns expression");
+        is-deeply $block.callable_for_phaser("QUIT")($exception), Nil,
+          "$type: QUIT phaser returns Nil";
+
+        is-deeply $quit, $exception, "$type: QUIT actually ran";
+    }
+}
+
+subtest 'Block with PRE phaser thunk' => {
+    my $pre;
+
+    # -> { PRE ++$pre }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Pre.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$pre')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    PRE ++$pre
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $pre = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Nil, "$type: PRE phaser does not return expression";
+        is-deeply $pre, 1, "$type: PRE actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $pre = -1;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => Q|Precondition '++$pre' failed|,
+          phaser  => "PRE",
+          "$type: PRE phaser throws";
+    }
+}
+
+subtest 'Block with PRE phaser block' => {
+    my $pre;
+
+    # -> { PRE { ++$pre } }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Pre.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$pre')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    PRE {
+        ++$pre
+    }
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $pre = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Nil, "$type: PRE phaser does not return expression";
+        is-deeply $pre, 1, "$type: PRE actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $pre = -1;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => / '++$pre' /,
+          phaser  => "PRE",
+          "$type: PRE phaser throws";
+        is-deeply $pre, 0, "$type: PRE actually ran";
+    }
+}
+
+subtest 'Block with POST phaser thunk' => {
+    my $post;
+    my $result;
+
+    # -> { POST $post = $_; $result }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Post.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$post'),
+                  infix => RakuAST::Infix.new('='),
+                  right => RakuAST::Var::Lexical.new('$_')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$result')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    POST $post = $_;
+    $result
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $post   = 0;
+        $result = 42;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), $result, "$type: block returns expression";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $post   = 666;
+        $result = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => Q|Postcondition '$post = $_' failed|,
+          phaser  => "POST",
+          "$type: POST phaser throws";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+}
+
+subtest 'Block with POST phaser block' => {
+    my $post;
+    my $result;
+
+    # -> { POST { $post = $_ }; $result }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Post.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new('$post'),
+                        infix => RakuAST::Infix.new('='),
+                        right => RakuAST::Var::Lexical.new('$_')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$result')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    POST {
+        $post = $_
+    }
+    $result
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $post   = 0;
+        $result = 42;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), $result, "$type: block returns expression";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $post   = 666;
+        $result = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => / '$post = $_' /,
+          phaser  => "POST",
+          "$type: POST phaser throws";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+}
+
+# vim: expandtab shiftwidth=4

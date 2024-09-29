@@ -7,7 +7,7 @@ LAUNCHER = @default_prefix@-runner-default
 all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER)
 
 install: @for_backends(@backend_prefix@-install )@ $(LAUNCHER)-install
-	@echo(+++ Rakudo installed succesfully!)@
+	@echo(+++ Rakudo installed successfully!)@
 
 clean: @for_backends(@backend_prefix@-clean )@
 	$(RM_F) perl6@runner_suffix@
@@ -25,7 +25,7 @@ quicktest:  @for_backends(@backend_prefix@-quicktest$(HARNESS_TYPE) )@
 
 @for_backends(@ctx_include(Makefile)@)@
 
-@nfp(t/*/*.t t/*.t t/*/*/*.t)@: all
+@nfp(t/*/*.t t/*/*.rakutest t/*.t t/*/*/*.t t/*/*/*/*.t)@: all
 	$(@uc(@default_prefix@)@_HARNESS5_WITH_FUDGE) --verbosity=1 $@
 
 # vim: ft=make noexpandtab ts=4 sw=4

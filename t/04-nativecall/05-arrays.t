@@ -1,11 +1,13 @@
-use v6;
-
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 46;
+plan 47;
+
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub ReturnADoubleArray>;
+};
 
 compile_test_lib('05-arrays');
 
@@ -155,7 +157,6 @@ compile_test_lib('05-arrays');
 # https://github.com/Raku/old-issue-tracker/issues/5859
 {
     my CArray[uint8] $a .= new(200 xx 16);
-    todo "RT #130267";
     is $a[0], 200, 'unsigned uint8 value';
 }
 
@@ -206,5 +207,9 @@ subtest 'CArray allocation' => {
     my @t2682 := CArray[int32].new(1,2,3);
     is-deeply @t2682[0..*-2], (1, 2), 'Indexing with WhateverStar works on CArray';
 }
+
+# https://irclogs.raku.org/raku/2024-05-09.html#23:55-0002
+is-deeply CArray[uint8].new("(b)".encode)[^3], (40,98,41),
+  "Make sure optimisation didn't break anything";
 
 # vim: expandtab shiftwidth=4

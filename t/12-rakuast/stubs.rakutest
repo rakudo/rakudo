@@ -1,0 +1,157 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 6;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'can make a simple ... stub' => {
+    # ...
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Fail.new
+      )
+    );
+    is-deeply $deparsed, qq/...\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $result := sub () {
+            CONTROL {
+                isa-ok $_, CX::Return, "$type: did we get return?";
+            }
+            EVAL($it);
+        }();
+        isa-ok $result, Failure, "$type: did we get a Failure";
+        isa-ok $result.exception, X::StubCode,
+          "$type: did we get right exception";
+        is $result.exception.message,
+          'Stub code executed', "$type: payload ok";
+}
+}
+
+subtest 'can make a ... stub with info' => {
+    # ... "foobar"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Fail.new(
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("foobar")
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, qq/... "foobar"\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $result := sub () {
+            CONTROL {
+                isa-ok $_, CX::Return, "$type: did we get return?";
+            }
+            EVAL($it);
+        }();
+        isa-ok $result, Failure, "$type: did we get a Failure";
+        isa-ok $result.exception, X::StubCode,
+          "$type: did we get right exception";
+        is $result.exception.message,
+          'foobar', "$type: payload ok";
+}
+}
+
+subtest 'can make a simple !!! stub' => {
+    # !!!
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Die.new
+      )
+    );
+    is-deeply $deparsed, qq/!!!\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) },
+          X::StubCode,
+          message => 'Stub code executed'
+        ;
+    }
+}
+
+subtest 'can make a !!! stub with info' => {
+    # !!! "foobar"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Die.new(
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("foobar")
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, qq/!!! "foobar"\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) },
+          X::StubCode,
+          message => "foobar"
+        ;
+    }
+}
+
+subtest 'can make a simple ??? stub' => {
+    # ???
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Warn.new
+      )
+    );
+    is-deeply $deparsed, qq/???\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        CATCH {
+            flunk "$type has internal error";
+            .resume;
+        }
+        CONTROL {
+            isa-ok $_, CX::Warn, "$type: did we get a warning?";
+            is .message, "Stub code executed", "$type: the right warning";
+            .resume;
+        }
+        EVAL($it);
+    }
+}
+
+subtest 'can make a ??? stub with info' => {
+    # ??? "foobar"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Warn.new(
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("foobar")
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, qq/??? "foobar"\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        CATCH {
+            flunk "$type has internal error";
+            .resume;
+        }
+        CONTROL {
+            isa-ok $_, CX::Warn, "$type: did we get a warning?";
+            is .message, "foobar", "$type: the right warning";
+            .resume;
+        }
+        EVAL($it);
+    }
+}
+
+# vim: expandtab shiftwidth=4

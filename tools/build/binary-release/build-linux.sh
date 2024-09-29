@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# This script should be allowed to run sudo in a CentOS 6 installation (a
+# This script should be allowed to run sudo in a CentOS 7 installation (a
 # container will do just fine).
 # For some strange reason the environment variables are lost when running this
 # script with `sudo` in azure pipelines. So we just do sudo ourselves for the
@@ -15,8 +15,22 @@ echo "========= Updating CentOS 7"
 sudo yum -y update
 sudo yum clean all
 
+echo "========= install a new enough gcc"
+sudo yum -y install centos-release-scl
+
+# Fix up repo specs for out of support CentOS 7 again
+sudo sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
+sudo sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
+
+sudo yum -y install devtoolset-8
+# Somehow scl_source fails on Azure CI (but works in an identical local container).
+# So just skip scl_source entirely and just source the target file directly.
+#source scl_source enable devtoolset-8
+source /opt/rh/devtoolset-8/enable
+
 echo "========= Downloading dependencies"
-sudo yum -y install curl git perl perl-core gcc make
+sudo yum -y install curl git perl perl-core
 
 echo "========= Downloading release"
 curl -o rakudo.tgz $RELEASE_URL
@@ -35,7 +49,7 @@ echo "========= Installing Rakudo"
 make install
 
 echo "========= Testing Rakudo"
-rm -r t/spec
+rm -fr t/spec
 prove -e install/bin/raku -vlr t
 
 echo "========= Cloning Zef"
@@ -47,7 +61,7 @@ pushd zef
 popd
 
 echo "========= Copying auxiliary files"
-cp -r tools/build/binary-release/Linux/* install
+cp -r tools/build/binary-release/assets/Linux/* install
 cp LICENSE install
 
 echo "========= Preparing archive"

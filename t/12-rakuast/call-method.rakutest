@@ -1,0 +1,254 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 15;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+class TestTarget {
+    my $.route = 66;
+    method subtract($x, $y) { $x - $y }
+    submethod subby(--> 42) { }
+}
+
+subtest 'Can make a call on a method without arguments' => {
+    # TestTarget.route
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('route')
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.route', 'deparsed';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call on a submethod without arguments' => {
+    # TestTarget.subby
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('subby')
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.subby', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call on a method with positional arguments' => {
+    # TestTarget.subtract(14, 6)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('subtract'),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(14),
+          RakuAST::IntLiteral.new(6),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.subtract(14, 6)', 'deparsed';
+    is-deeply $_, 8, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call WHAT compiles into MOP primitive' => {
+    # 42.WHAT
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHAT')
+      )
+    );
+    is-deeply $deparsed, '42.WHAT', 'deparsed';
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call HOW compiles into MOP primitive' => {
+    # 42.HOW
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('HOW')
+      )
+    );
+    is-deeply $deparsed, '42.HOW', 'deparsed';
+    is-deeply $_, Int.HOW, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call WHO compiles into MOP primitive' => {
+    # 42.WHO
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHO')
+      )
+    );
+    is-deeply $deparsed, '42.WHO', 'deparsed';
+    isa-ok $_, Stash, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call DEFINITE compiles into MOP primitive' => {
+    # 42.DEFINITE
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('DEFINITE')
+      )
+    );
+    is-deeply $deparsed, '42.DEFINITE', 'deparsed';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call REPR compiles into MOP primitive' => {
+    # 42.REPR
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('REPR')
+      )
+    );
+    is-deeply $deparsed, '42.REPR', 'deparsed';
+    is-deeply $_, 'P6opaque', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a quoted call on a method without arguments' => {
+    # TestTarget."route"()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('route')]
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget."route"()', 'deparsed';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a quoted call on a method with positional arguments' => {
+    # TestTarget."subtract"(14, 6)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('subtract')]
+        ),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(14),
+          RakuAST::IntLiteral.new(6),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget."subtract"(14, 6)', 'deparsed';
+    is-deeply $_, 8, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a meta-method call' => {
+    # 42.^name
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::MetaMethod.new(name => 'name')
+    );
+    is-deeply $deparsed, '42.^name', 'deparsed';
+    is-deeply $_, 'Int', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a method call if the method exists' => {
+    # TestTarget.?subtract(50,8)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('subtract'),
+        dispatch => '.?',
+        args     => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(50),
+          RakuAST::IntLiteral.new(8),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?subtract(50, 8)', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a method call if the method does not exist' => {
+    # TestTarget.?dunno
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('dunno'),
+        dispatch => '.?'
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?dunno', 'deparsed';
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a private method call' => {
+    class A {
+        method !private(--> 42) { }
+
+        # A!private
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('A')
+          ),
+          postfix => RakuAST::Call::PrivateMethod.new(
+            name => RakuAST::Name.from-identifier('private')
+          )
+        );
+        is-deeply $deparsed, 'A!private', 'deparsed';
+        is-deeply $_, 42, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Can make a method call on a sub' => {
+    # "foo".&uc()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StrLiteral.new("foo"),
+      postfix => RakuAST::Call::VarMethod.new(
+        name => RakuAST::Name.from-identifier('uc')
+      )
+    );
+    is-deeply $deparsed, '"foo".&uc()', 'deparsed';
+    is-deeply $_, "FOO", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

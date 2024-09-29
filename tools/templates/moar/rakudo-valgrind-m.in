@@ -9,7 +9,7 @@ Running a program in valgrind usually takes *a lot* more time than running it di
 so please be patient.
 Valgrind options can be added with MVM_VALGRIND_OPTS environment variable.
 END
-say "This Rakudo version is $*PERL.compiler.version() built on MoarVM version $*VM.version(),";
+say "This Rakudo version is $*RAKU.compiler.version() built on MoarVM version $*VM.version(),";
 say "running on $*DISTRO.gist() / $*KERNEL.gist()";
 
 say "-" x 96;

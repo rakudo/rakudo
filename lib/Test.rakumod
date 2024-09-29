@@ -1,8 +1,7 @@
-use v6.c;
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2021 The Perl Foundation.
+# Copyright (C) 2007 - 2022 The Perl Foundation.
 
 # settable from outside
 my int $raku_test_times =
@@ -199,7 +198,7 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                     _diag "expected: '$expected'\n"
                     ~ "     got: '$got'";
                     True;
-                } or {
+                } or do {
                     _diag "expected: $expected.raku()\n"
                     ~ "     got: $got.raku()";
                 }
@@ -262,9 +261,9 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     #  #3 handles all the rest by escaping '<' and '>' with backslashes.
     #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
     my $matcher = nqp::istype($op, Callable) ?? $op
-        !! &CALLERS::("infix:<$op>") #1
-            // &CALLERS::("infix:«$op»") #2
-            // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
+        !! &CALLER::LEXICAL::("infix:<$op>") #1
+            // &CALLER::LEXICAL::("infix:«$op»") #2
+            // &CALLER::LEXICAL::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
 
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
@@ -293,21 +292,6 @@ sub bail-out ($desc?) is export {
     $output.put: join ' ', 'Bail out!', ($desc if $desc);
     $done_testing_has_been_run = 1;
     exit 255;
-}
-
-multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    Rakudo::Deprecations.DEPRECATED('is-approx'); # Remove for 6.d release
-
-    $time_after = nqp::time;
-    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
-    my $test = ($got - $expected).abs <= $tol;
-    my $ok = proclaim($test, $desc);
-    unless $test {
-        _diag "expected: $expected\n"
-            ~ "got:      $got";
-    }
-    $time_before = nqp::time;
-    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 # We're picking and choosing which tolerance to use here, to make it easier
@@ -401,12 +385,13 @@ multi sub todo($reason, $count = 1) is export {
     $time_before = nqp::time;
 }
 
+proto  sub skip(|) is export {*}
 multi sub skip() {
     $time_after = nqp::time;
     proclaim(1, '', "# SKIP");
     $time_before = nqp::time;
 }
-multi sub skip($reason, $count = 1) is export {
+multi sub skip($reason, $count = 1) {
     $time_after = nqp::time;
     die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
@@ -593,7 +578,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 # tests as well. So... for the foreseeable future we decided to leave it
 # as is. If a user really wants to ensure Seq comparison, there's always
 # `cmp-ok` with `eqv` op.
-# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-04#l100
+# https://irclogs.raku.org/perl6-dev/2017-05-04.html#15:38-0001
 ######################################################################
 multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;
@@ -643,6 +628,14 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             default {
                 pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
+                if !$type_ok && $ex_type ~~ X::Comp && $_ ~~ X::Comp::Group {
+                    # Compile time exceptions may be found in a group if the compiler reports
+                    # more than one problem.
+                    with $_.sorrows.first($ex_type) -> $ex {
+                        $_ := $ex;
+                        $type_ok = True;
+                    }
+                }
                 ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {

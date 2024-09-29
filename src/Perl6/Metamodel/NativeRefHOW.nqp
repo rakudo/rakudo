@@ -1,6 +1,9 @@
+#- Metamodel::NativeRefHOW -----------------------------------------------------
 class Perl6::Metamodel::NativeRefHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
@@ -8,74 +11,65 @@ class Perl6::Metamodel::NativeRefHOW
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
 {
-    has $!type;
-    has $!refkind;
-    has $!composed;
-    has $!repr_composed;
+    has     $!type;
+    has     $!refkind;
+    has int $!repr_composed;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
-    method archetypes() {
-        $archetypes
+    my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal, :inheritable);
+    method archetypes($XXX?) { $archetypes }
+
+    method new_type(*%_) {
+        my $HOW    := self.new;
+        my $target := nqp::settypehll(nqp::newtype($HOW, 'NativeRef'), 'Raku');
+
+        $HOW.set_identity($target, %_);
+        $HOW.add_stash($target);
     }
 
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+    method compose($target, *%_) {
+        $target := nqp::decont($target);
+
+        self.compose_repr($target);
+        self.compute_mro($target);
+        self.publish_method_cache($target);
+        self.publish_type_cache($target);
+        self.set_composed;
+        $target
     }
 
-    method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
-        my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'Raku');
-        $metaclass.set_name($obj, $name);
-        $metaclass.set_ver($obj, $ver);
-        $metaclass.set_auth($obj, $auth) if $auth;
-        $metaclass.set_api($obj, $api) if $api;
-        self.add_stash($obj);
-    }
-
-    method compose($the-obj, :$compiler_services) {
-        my $obj := nqp::decont($the-obj);
-
-        self.compose_repr($obj);
-        self.compute_mro($obj);
-        self.publish_method_cache($obj);
-        self.publish_type_cache($obj);
-        $!composed := 1;
-        $obj
-    }
-
-    method compose_repr($obj) {
-        if !$!repr_composed {
-            my $info := nqp::hash();
-            $info<nativeref> := nqp::hash();
-            $info<nativeref><type> := nqp::decont($!type);
-            $info<nativeref><refkind> := $!refkind // 'unknown';
-            nqp::composetype(nqp::decont($obj), $info);
+    method compose_repr($target) {
+        unless $!repr_composed {
+            nqp::composetype(nqp::decont($target), nqp::hash(
+              'nativeref', nqp::hash(
+                'type',    nqp::decont($!type),
+                'refkind', $!refkind // 'unknown'
+              )
+            ));
             $!repr_composed := 1;
         }
     }
 
-    method is_composed($obj) {
-        $!composed
-    }
+    method set_native_type($XXX, $type   ) { $!type    := $type    }
+    method set_ref_kind(   $XXX, $refkind) { $!refkind := $refkind }
 
-    method set_native_type($obj, $type) {
-        $!type := $type;
-    }
+    method native_type($XXX?) { $!type    }
+    method ref_kind($XXX?)    { $!refkind }
 
-    method native_type($obj) {
-        $!type
-    }
+    my constant METHOD_TABLE := nqp::hash('new',
+      nqp::getstaticcode(sub (*@_, *%_) {
+        nqp::die('Cannot instantiate a native reference type')
+      })
+    );
+    my constant SUBMETHOD_TABLE := nqp::hash;
 
-    method set_ref_kind($obj, $refkind) {
-        $!refkind := $refkind;
+    method method_table(   $XXX?) { METHOD_TABLE    }
+    method submethod_table($XXX?) { SUBMETHOD_TABLE }
+    method declares_method($XXX, str $name) {
+        $name eq 'new'
     }
-
-    method ref_kind($obj) {
-        $!refkind
+    method code_of_method( $XXX, str $name) {
+        nqp::atkey(METHOD_TABLE, $name)
     }
-
-    method method_table($obj) { nqp::hash() }
-    method submethod_table($obj) { nqp::hash() }
 }
 
 # vim: expandtab sw=4

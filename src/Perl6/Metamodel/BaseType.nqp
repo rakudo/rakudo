@@ -1,39 +1,57 @@
+#- Metamodel::BaseType ---------------------------------------------------------
 # Implemented by meta-objects that don't do inheritance per se,
 # but want to base themselves on another type and mostly behave
 # like they support it.
+
 role Perl6::Metamodel::BaseType {
     has $!base_type;
-    has $!base_type_set;
     has @!mro;
 
-    method set_base_type($obj, $base_type) {
-        if $!base_type_set {
-            nqp::die("Base type has already been set for " ~ self.name($obj));
-        }
-        $!base_type := $base_type;
-        $!base_type_set := 1;
+    method TWEAK(*%_) {
+        $!base_type := nqp::null;
+    }
+
+    method set_base_type($target, $base_type) {
+        nqp::isnull($!base_type)
+          ?? ($!base_type := $base_type)
+          !! nqp::die(
+               "Base type has already been set for " ~ self.name($target)
+             )
     }
 
     # Our MRO is just that of base type.
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
-        unless @!mro {
-            @!mro := nqp::list();
-            @!mro[0] := $obj;
-            for $!base_type.HOW.mro($!base_type, :$roles, :$unhidden) {
-                @!mro.push($_);
-            }
+    method mro($target, :$roles, :$concretizations, :$unhidden) {
+        # XXX it feels incorrect that the first call to .mro with any given
+        # set of named arguments, should determine any future returns. Yet
+        # if we remove the @!mro attribute and create the @mro each call on
+        # the fly (like in the else block here), we get spectest failures in
+        # integration/advent2012-day13.t
+        if nqp::elems(@!mro) {
+            @!mro
         }
-        @!mro
+        else {
+            self.protect({
+                my @mro := nqp::clone($!base_type.HOW.mro(
+                  $!base_type, :$roles, :$concretizations, :$unhidden
+                ));
+                nqp::unshift(@mro, $target);
+                @!mro := @mro
+            })
+        }
     }
 
-    method parents($obj, :$local, :$excl, :$all) {
-        my @parents := [$!base_type];
-        unless $local {
-            for $!base_type.HOW.parents($!base_type, :excl($excl), :all($all)) {
-                @parents.push($_);
-            }
+    method parents($XXX?, :$local, :$excl, :$all) {
+        if $local {
+            nqp::list($!base_type)
         }
-        @parents
+        else {
+            my $base_type := $!base_type;
+            my @parents := nqp::clone($base_type.HOW.parents(
+              $base_type, :$excl, :$all
+            ));
+            nqp::unshift(@parents, $base_type);
+            @parents
+        }
     }
 }
 

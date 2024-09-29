@@ -1,0 +1,289 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 11;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Negate meta-op evaluates to expected value' => {
+  # 1 !== 2
+  ast RakuAST::ApplyInfix.new(
+    left  => RakuAST::IntLiteral.new(1),
+    infix => RakuAST::MetaInfix::Negate.new(
+      RakuAST::Infix.new("==")
+      ),
+    right => RakuAST::IntLiteral.new(2)
+    );
+
+  is-deeply $deparsed, '1 !== 2', 'deparse';
+  is-deeply $_, True, @type[$++]
+  for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Assignment meta-op evaluates to expected value' => {
+    my $a = 10;
+
+    # $a += 3
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::Var::Lexical.new('$a'),
+      infix => RakuAST::MetaInfix::Assign.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(3)
+    );
+
+    is-deeply $deparsed, '$a += 3', 'deparse';
+
+    my $expected = 13;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), $expected, "$type: evaluates to expected value";
+        is-deeply $a, $expected, "$type: Really did mutate the variable";
+        $expected += 3;
+    }
+}
+
+subtest 'Reverse meta-op evaluates to expected value' => {
+    # 42 R- 666
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(42),
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new("-")
+      ),
+      right => RakuAST::IntLiteral.new(666)
+    );
+
+    is-deeply $deparsed, '42 R- 666', 'deparse';
+    is-deeply $_, 624, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Cross meta-op evaluates to expected value' => {
+    # (1, 2) X+ (1, 3)
+    ast RakuAST::ApplyListInfix.new(
+      infix    => RakuAST::MetaInfix::Cross.new(
+        RakuAST::Infix.new("+")
+      ),
+      operands => (
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(2),
+                )
+              )
+            )
+          )
+        ),
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(3),
+                )
+              )
+            )
+          )
+        ),
+      )
+    );
+
+    is-deeply $deparsed, '(1, 2) X+ (1, 3)', 'deparse';
+    is-deeply $_, (2,4,3,5), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hyper meta-op evaluates to expected value' => {
+    # (1, 2) >>+>> (1, 3)
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(","),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2),
+              )
+            )
+          )
+        )
+      ),
+      infix => RakuAST::MetaInfix::Hyper.new(
+        infix      => RakuAST::Infix.new("+"),
+        dwim-right => True
+      ),
+      right => RakuAST::IntLiteral.new(1)
+    );
+
+    is-deeply $deparsed, '(1, 2) >>+>> 1', 'deparse';
+    is-deeply $_, (2,3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hypering evaluates to expected value' => {
+    # <pies cats>>>.uc
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::QuotedString.new(
+        processors => <words val>,
+        segments   => (
+          RakuAST::StrLiteral.new("pies cats"),
+        )
+      ),
+      postfix => RakuAST::MetaPostfix::Hyper.new(
+        RakuAST::Call::Method.new(
+          name => RakuAST::Name.from-identifier("uc")
+        )
+      )
+    );
+
+    is-deeply $deparsed, '<pies cats>>>.uc', 'deparse';
+    is-deeply $_, ("PIES", "CATS"), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Zip meta-op evaluates to expected value' => {
+    # (1, 2) Z== (1, 3)
+    ast RakuAST::ApplyListInfix.new(
+      infix    => RakuAST::MetaInfix::Zip.new(
+        RakuAST::Infix.new("==")
+      ),
+      operands => (
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(2),
+                )
+              )
+            )
+          )
+        ),
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(3),
+                )
+              )
+            )
+          )
+        ),
+      )
+    );
+
+    is-deeply $deparsed, '(1, 2) Z== (1, 3)', 'deparse';
+    is-deeply $_, (True, False), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
+    my $test = 10;
+    my $update = 2;
+
+    # $test ||= $update++
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::Var::Lexical.new('$test'),
+      infix => RakuAST::MetaInfix::Assign.new(
+        RakuAST::Infix.new('||')
+      ),
+      right => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Var::Lexical.new('$update'),
+        postfix => RakuAST::Postfix.new(:operator<++>)
+      )
+    );
+
+    is-deeply $deparsed, '$test ||= $update++', 'deparse';
+
+    my $test-expected = 10;
+    my $update-expected = 2;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), $test-expected,
+          "$type: short-circuit || evaluates to true LHS";
+        is-deeply $update, $update-expected,
+          "$type: Really did short-circuit, and not evaluate RHS";
+    }
+
+    is-deeply EVAL($deparsed), 10,
+      'Str: short-circuit || evaluates to true LHS';
+    is-deeply $update, 2,
+      'Str: Really did short-circuit, and not evaluate RHS';
+
+    $test = 0;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', $raku -> $type, $it {
+        is-deeply EVAL($ast), 2,
+          "$type: no short-circuit || evaluates to RHS when LHS false";
+        is-deeply $update, 3,
+          "$type: Really did evaluate RHS";
+    }
+}
+
+subtest 'Literal reduce meta-op on left associative operator' => {
+    # [+] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::Infix.new('+'),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(1),
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3)
+      )
+    );
+
+    is-deeply $deparsed, '[+] 1, 2, 3', 'deparse';
+    is-deeply $_, 6, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+{
+    my @a = 1,2,3,4;
+    subtest 'Array reduce meta-op on left associative operator' => {
+        # [+] @a
+        ast RakuAST::Term::Reduce.new(
+          infix => RakuAST::Infix.new('+'),
+          args => RakuAST::ArgList.new(
+            RakuAST::Var::Lexical.new('@a')
+          )
+        );
+
+        is-deeply $deparsed, '[+] @a', 'deparse';
+        is-deeply $_, 10, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Triangle reduce meta-op on left associative operator' => {
+    # [\+] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::Infix.new('+'),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(1),
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3)
+      ),
+      triangle => True
+    );
+
+    is-deeply $deparsed, '[\+] 1, 2, 3', 'deparse';
+    is-deeply $_, (1,3,6), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

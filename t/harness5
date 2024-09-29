@@ -43,7 +43,8 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 $ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = "./lib"; 
+$ENV{'RAKULIB'} = "./lib";
+my $rakuast = $ENV{'RAKUDO_RAKUAST'};
 
 my @slow;
 if ($list_file) {
@@ -53,7 +54,7 @@ if ($list_file) {
     if (!$perl5) {
         print "Inline::Perl5 not installed: not running Perl 5 integration tests\n";
         print "You can install Inline::Perl5 into the build directory with\n\n";
-        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5\n\n";
+        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5 --exclude='perl'\n\n";
     }
 
     open(my $f, '<', $list_file)
@@ -65,12 +66,13 @@ if ($list_file) {
         s/\s+\z//;
         my ($fn, $fudgespec) = split /\s+#\s*/;
         if ($fudgespec) {
-            next if ($fudgespec =~ m/perl5/)  && !$perl5;
-            next if ($fudgespec =~ m/long/)   && $do_quick;
-            next if ($fudgespec =~ m/stress/) && !$do_stress;
-            next if ($fudgespec =~ m/jvm/)    && !$jvm;
-            next if ($fudgespec =~ m/moar/)   && !$moar;
-            next if ($fudgespec =~ m/conc/)   && !($moar || $jvm);
+            next if ($fudgespec =~ m/perl5/)   && !$perl5;
+            next if ($fudgespec =~ m/long/)    && $do_quick;
+            next if ($fudgespec =~ m/stress/)  && !$do_stress;
+            next if ($fudgespec =~ m/jvm/)     && !$jvm;
+            next if ($fudgespec =~ m/moar/)    && !$moar;
+            next if ($fudgespec =~ m/conc/)    && !($moar || $jvm);
+            next if ($fudgespec =~ m/rakuast/) && !$rakuast;
         }
 
         $fn = "t/spec/$fn" unless $fn =~ m/^t\Q$slash\Espec\Q$slash\E/;
@@ -199,7 +201,8 @@ sub all_in {
             if ( -d $currfile ) {
                 push( @hits, all_in( $currfile ) );
             } else {
-                push( @hits, $currfile ) if $currfile =~ /\.t$/;
+                push( @hits, $currfile )
+                  if $currfile =~ /\.t$/ || $currfile =~ /\.rakutest$/;
             }
         }
     } else {

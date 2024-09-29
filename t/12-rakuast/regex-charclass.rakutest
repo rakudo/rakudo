@@ -1,0 +1,114 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 5;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $body --> Nil) {
+    $ast      := RakuAST::QuotedRegex.new(:$body);
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'All of the simple character classes' => {
+    # / ."\b"\r\d\e\f\h\n\0\s\t\v\w/'
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::Any.new,
+      RakuAST::Regex::CharClass::BackSpace.new,
+      RakuAST::Regex::CharClass::CarriageReturn.new,
+      RakuAST::Regex::CharClass::Digit.new,
+      RakuAST::Regex::CharClass::Escape.new,
+      RakuAST::Regex::CharClass::FormFeed.new,
+      RakuAST::Regex::CharClass::HorizontalSpace.new,
+      RakuAST::Regex::CharClass::Newline.new,
+      RakuAST::Regex::CharClass::Nul.new,
+      RakuAST::Regex::CharClass::Space.new,
+      RakuAST::Regex::CharClass::Tab.new,
+      RakuAST::Regex::CharClass::VerticalSpace.new,
+      RakuAST::Regex::CharClass::Word.new,
+    );
+    is-deeply $deparsed,
+      '/ ."\b"\r\d\e\f\h\n\0\s\t\v\w/',
+      'deparse';
+
+    my $target := ".\b\r7\e\f \n\0 \t\nx";
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
+    }
+}
+
+subtest 'All of the simple character classes than can be negated' => {
+    # / \R\D\E\F\H\N\S\T\V\W/'
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::CarriageReturn.new(:negated),
+      RakuAST::Regex::CharClass::Digit.new(:negated),
+      RakuAST::Regex::CharClass::Escape.new(:negated),
+      RakuAST::Regex::CharClass::FormFeed.new(:negated),
+      RakuAST::Regex::CharClass::HorizontalSpace.new(:negated),
+      RakuAST::Regex::CharClass::Newline.new(:negated),
+      RakuAST::Regex::CharClass::Space.new(:negated),
+      RakuAST::Regex::CharClass::Tab.new(:negated),
+      RakuAST::Regex::CharClass::VerticalSpace.new(:negated),
+      RakuAST::Regex::CharClass::Word.new(:negated),
+    );
+    is-deeply $deparsed,
+      '/ \R\D\E\F\H\N\S\T\V\W/',
+      'deparse';
+
+    my $target := "abcdefghi.";
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
+    }
+}
+
+subtest 'A single unicode character specified by name' => {
+    my $characters = ",";
+
+    # / \c[COMMA]/'
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::Specified.new(:$characters)
+    );
+    is-deeply $deparsed, '/ \c[COMMA]/', 'deparse';
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $characters ~~ $result, $characters, "@type[$++]: pass case";
+    }
+}
+
+subtest 'Multiple unicode characters specified by name' => {
+    my $characters = "🇺🇦";
+
+    # / \c[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A]/'
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::Specified.new(:$characters)
+    );
+    is-deeply $deparsed,
+      '/ \c[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
+      'deparse';
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $characters ~~ $result, $characters, "@type[$++]: pass case";
+    }
+}
+
+subtest 'Multiple unicode characters specified by name negated' => {
+    my $characters = "🇺🇦";
+
+    # / \C[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A]/'
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::Specified.new(:$characters, :negated)
+    );
+    is-deeply $deparsed,
+      '/ \C[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
+      'deparse';
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is "ab" ~~ $result, "a", "@type[$++]: pass case";
+    }
+}
+
+# vim: expandtab shiftwidth=4

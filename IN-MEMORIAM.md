@@ -5,6 +5,24 @@ the development of the Raku Programming Language, but unfortunately have
 departed this existence.  We thank them for their contributions and hope
 to keep their memory alive here, as well as in other places.
 
+David H. Adler (dha)
+--------------------
+David had many hobbies, in which he all excelled (like knowledge about Monty
+Python, Doctor Who, really, really bad movies, to name but a few of them).
+The Perl / Raku community was only one of the communities he was part of.
+
+David was involved in the very early Raku development process. More recently,
+he was involved in documenting various features of the Raku Programming
+Language.  Attending many Perl and related Open Source Conferences, he was
+a familiar sight and a good person to spend time with. He is sorely missed.
+
+See also:
+- [Family memorial](https://www.dignitymemorial.com/obituaries/forest-hills-ny/david-adler-10451028)
+- [FaceBook](https://www.facebook.com/ginarsnape/posts/10227412275758366)
+- [/r/perl](https://www.reddit.com/r/perl/comments/qvxdun/dha_rip/)
+- [blogs.perl.org](http://blogs.perl.org/users/damian_conway/2021/11/vale-david.html)
+- [Rakudo Weekly](https://rakudoweekly.blog/2021/11/23/2021-47-david-h-adler-rip/)
+
 Jonathan Scott Duff (perlpilot)
 -------------------------------
 In the early days of the Rakudo implementation, Jonathan Scott Duff
@@ -35,6 +53,20 @@ From the obituary at: https://www.facebook.com/marcia.goff.5/posts/1021375569728
 > Throughout his career, Jeff worked as a senior computer programmer and engineer. He lived and worked in numerous cities in the United States and, for 10 years, lived and worked in Europe. He was often a presenter at international open source computer conferences. His passion was the continuing development and promotion of the Perl programming language. He loved to travel, experience new cultures and adventures, and challenge himself to learn new skills and develop new talents. Among his many hobbies were glassblowing, origami, juggling, photography, and writing articles and blogs to share with the Perl community.
 
 > He is survived by his parents; his brother and sister-in-law, Brandon and Rebecca Goff, St. Ignatius, MT; his aunt and uncle, Christine and Roger Sebby, Colorado Springs, CO; cousins Amber and Ed Shipp and family of Colorado Springs, and Chad and Renae Sebby and family of Olathe, KS; and many dear friends throughout the world.
+
+Robert Lemmen (ROBERTLE)
+------------------------
+In June 2020, Robert Lemmen passed away after a serious illness.  Among other contributions, he packaged modules for Raku (Perl6 at that time) and helped other contributors to get involved in the Raku Team.  Robert Lemmen further contributed to MoarVM, nqp and the Raku documentation, as well as being the author of several ecosystem modules.
+
+From the obituary at: https://www.debian.org/News/2021/20210812
+
+Ben Davies (Kaiepi / @Mrofnet)
+------------------------------
+On January 14th 2023, Ben Davies passed away suddenly at home in the early hours January 14, 2023 with his father Eric.  Ben has worked on MoarVM, NQP and Rakudo since 2017. As such he worked on configuration issues, provided JIT templates  and added support for asynchronous sockets in MoarVM.  As well as working a lot on support of the JVM backend and optimizing Rakudo performance in general.
+
+From the obituary at: https://www.tributearchive.com/obituaries/27062822/benjamin-nelson-davies
+
+Ben was a talented musician and artist whose passion was for computer programming which he did both as hobby and on occasion for pay and had intended to pursue a degree in. He liked to learn languages and was a brilliant young man who excelled in whatever he set his mind to.
 
 Final words
 -----------

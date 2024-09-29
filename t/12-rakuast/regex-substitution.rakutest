@@ -1,0 +1,194 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 7;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Simple literal substitution on topic' => {
+    # s/o/x/;
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("o"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      ),
+    );
+    is-deeply $deparsed, 's/o/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "foo";
+
+        is-deeply EVAL($it).gist, '｢o｣', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $_, "fxo", "$type: is topic changed";
+    }
+}
+
+subtest 'Simple literal modification on topic' => {
+    # S/o/x/;
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("o"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      ),
+      :immutable
+    );
+    is-deeply $deparsed, 'S/o/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "foo";
+
+        is-deeply EVAL($it), 'fxo', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $_, "foo", "$type: is topic unchanged";
+    }
+}
+
+subtest 'Simple literal substitution using infix syntax' => {
+    # s{o} = "x"
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("o"),
+      infix       => RakuAST::Infix.new("="),
+      replacement => RakuAST::StrLiteral.new("x")
+    );
+    is-deeply $deparsed, 's{o} = "x"', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "foo";
+
+        is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $_, "fxo", "$type: is the result correct";
+    }
+}
+
+subtest 'Simple literal substitution on variable' => {
+    my $string;
+
+    # $string ~~ s/o/x/;
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Var::Lexical.new('$string'),
+      infix => RakuAST::Infix.new("~~"),
+      right => RakuAST::Substitution.new(
+        pattern     => RakuAST::Regex::Literal.new("o"),
+        replacement => RakuAST::QuotedString.new(
+          segments => [RakuAST::StrLiteral.new("x")]
+        )
+      )
+    );
+    is-deeply $deparsed, '$string ~~ s/o/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $string = "foo";
+
+        is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $string, "fxo", "$type: is the result correct";
+    }
+}
+
+subtest 'Simple literal substitution on variable with adverbs' => {
+    my $string;
+
+    # $string ~~ s:g:i/O/x/;
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Var::Lexical.new('$string'),
+      infix => RakuAST::Infix.new("~~"),
+      right => RakuAST::Substitution.new(
+        adverbs     => [
+          RakuAST::ColonPair::True.new('g'),
+          RakuAST::ColonPair::True.new('i')
+        ],
+        pattern     => RakuAST::Regex::Literal.new("O"),
+        replacement => RakuAST::QuotedString.new(
+          segments => [RakuAST::StrLiteral.new("x")]
+        )
+      )
+    );
+    is-deeply $deparsed, '$string ~~ s:g:i/O/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $string = "foO";
+
+        is EVAL($it).gist, '(｢o｣ ｢O｣)', "$type: did we get right return value";
+        is $/.gist, '(｢o｣ ｢O｣)', "$type: did it set \$/ correctly";
+        is $string, "fxx", "$type: is the result correct";
+    }
+}
+
+subtest 'Simple variable substitution on variable' => {
+    my $string;
+    my $x = "x";
+
+    # $string ~~ s/o/$x/;
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Var::Lexical.new('$string'),
+      infix => RakuAST::Infix.new("~~"),
+      right => RakuAST::Substitution.new(
+        pattern     => RakuAST::Regex::Literal.new("o"),
+        replacement => RakuAST::QuotedString.new(
+          segments => [RakuAST::Var::Lexical.new('$x')]
+        )
+      )
+    );
+    is-deeply $deparsed, '$string ~~ s/o/$x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $string = "foo";
+
+        is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $string, "fxo", "$type: is the result correct";
+    }
+}
+
+subtest 'Simple Callable substitution on variable' => {
+    my $string;
+    my $x = "x";
+
+    # $string ~~ s/o/{ $x }/;
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Var::Lexical.new('$string'),
+      infix => RakuAST::Infix.new("~~"),
+      right => RakuAST::Substitution.new(
+        pattern     => RakuAST::Regex::Literal.new("o"),
+        replacement => RakuAST::QuotedString.new(
+          segments => [
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$x')
+                  )
+                )
+              )
+            )
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$string ~~ s/o/{
+    $x
+}/
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $string = "foo";
+
+        is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
+        is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
+        is $string, "fxo", "$type: is the result correct";
+    }
+}
+
+# vim: expandtab shiftwidth=4

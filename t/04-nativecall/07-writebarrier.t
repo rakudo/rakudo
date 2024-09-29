@@ -1,11 +1,13 @@
-use v6;
-
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
 use Test;
 
 plan 7;
+
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub _deref>;
+};
 
 compile_test_lib('07-writebarrier');
 

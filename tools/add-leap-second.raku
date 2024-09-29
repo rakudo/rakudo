@@ -14,8 +14,8 @@ use v6.c;
 sub MAIN(
   #| the date for which to add a leap second
   Str $the-date,
-  #| the source file containing leap second logic (default: src/core.c/Rakudo/Internals.pm6)
-  $the-source = 'src/core.c/Rakudo/Internals.pm6'
+  #| the source file containing leap second logic (default: src/core.c/Rakudo/Internals.rakumod)
+  $the-source = 'src/core.c/Rakudo/Internals.rakumod'
 ) {
 
     # set up the new leap second info

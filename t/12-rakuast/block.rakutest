@@ -1,0 +1,225 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 5;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'A pointy block node evaluates to a Block' => {
+    # -> { 101 }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(101)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        ok $block.WHAT === Block,
+          "$type: A pointy block node evaluates to a Block";
+        is $block.signature.params.elems, 0,
+          "$type: The block has no parameters";
+        is-deeply $block.arity, 0,
+          "$type: The block has 0 arity";
+        is-deeply $block.count, 0,
+          "$type: The block has 0 count";
+        is $block(), 101,
+          "$type: Invoking the block returns the expected value";
+        dies-ok { $block(1) },
+          "$type: Invoking the block with an argument dies";
+    }
+}
+
+subtest 'A pointy block node taking a parameter evaluates to a Block' => {
+    # -> $param { $param }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $param {
+    $param
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        ok $block.WHAT === Block,
+          "$type: A pointy block node taking a parameter evaluates to a Block";
+        is $block.signature.params.elems, 1,
+          "$type: The block has one parameters";
+        is-deeply $block.arity, 1,
+          "$type: The block has 1 arity";
+        is-deeply $block.count, 1,
+          "$type: The block has 1 count";
+        is $block(199), 199,
+          "$type: Invoking the block with an argument returns the expected value";
+        dies-ok { $block(my $a = 42) = 1 },
+          "$type: Argument is bound read-only";
+        dies-ok { $block() },
+          "$type: Invoking the block without an argument dies";
+    }
+}
+
+subtest 'Bare block at statement level is executed' => {
+    my $x = 99;
+
+    # { $x++ };
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Var::Lexical.new('$x'),
+                postfix => RakuAST::Postfix.new(:operator<++>)
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+{
+    $x++
+}
+CODE
+
+    my $expected = 99;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $block {
+        is-deeply EVAL($block), $expected,
+          "$type: Bare block at statement level is executed";
+        is-deeply $x, ++$expected,
+          "$type: Side-effects were performed as expected";
+    }
+}
+
+subtest 'Bare block in parentheses evaluates to Block' => {
+    my $x = 99;
+
+    # ({ $x++ })
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Var::Lexical.new('$x'),
+                      postfix => RakuAST::Postfix.new(:operator<++>)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+({
+    $x++
+})
+CODE
+
+    my $expected = 99;
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed)
+#      ,'Raku', EVAL(EVAL $raku)  XXX
+    -> $type, $block {
+        is-deeply $block.WHAT, Block,
+          "$type: Bare block in parentheses evaluates to Block";
+        is $block.arity, 0,
+          "$type: Block has arity 0";
+        is $block.count, 1,
+          "$type: Block has count 1";
+        is-deeply $x, $expected,
+          "$type: No side-effects were performed";
+        is-deeply $block(), $expected,
+          "$type: Can evaluate the returned block";
+        is-deeply $x, ++$expected,
+          "$type: Block did perform side-effects when evaluated";
+    }
+}
+
+subtest 'Block has default parameter' => {
+    # ({ $_ })
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$_')
+                  ),
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+({
+    $_
+})
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed)
+#      ,'Raku', EVAL(EVAL $raku)  XXX
+    -> $type, $block {
+        is-deeply $block('xxx'), 'xxx',
+          "$type: Block has default $type parameter";
+        lives-ok { $block() },
+          "$type: That $type parameter is optional";
+    }
+}
+
+# vim: expandtab shiftwidth=4

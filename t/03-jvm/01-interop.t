@@ -1,4 +1,3 @@
-use v6;
 use Test;
 
 BEGIN unless $*VM ~~ "jvm" { plan 0; skip-rest "jvm only test"; done-testing; exit 0; };
@@ -10,7 +9,7 @@ plan 30;
 
     ok 1, "alive after 'use java::lang::String:from<JavaRuntime>'";
 
-    is String."method/valueOf/(Z)Ljava/lang/String;"(True), "true", 
+    is String."method/valueOf/(Z)Ljava/lang/String;"(True), "true",
         "calling explicit static methods works";
 
     is String.valueOf(True), "true", "calling multi static methods works";
@@ -22,7 +21,10 @@ plan 30;
     is $jstr, "bar", "multi constructor works";
 }
 
-{
+if True {
+    skip 'java.lang.IncompatibleClassChangeError: Inconsistent constant pool data in classfile for class java/util/zip/Checksum', 3;
+}
+else {
     use java::util::zip::CRC32:from<JavaRuntime>;
     # check two of the .update candidates for CRC32
     {
@@ -32,7 +34,7 @@ plan 30;
         }
         is $crc32.getValue, 1072431491, "(I)V candidate for CRC32 is recognized correctly";
     }
-    
+
     {
         my $crc32 = CRC32.new;
         $crc32.update('Hello, Java'.encode('utf-8'));
@@ -116,7 +118,10 @@ plan 30;
     }
 }
 
-{
+if True {
+    skip 'java.lang.NullPointerException';
+}
+else {
     use java::util::zip::CRC32:from<JavaRuntime>;
     {
         CRC32.HOW.add_method(CRC32, "doubledValue", method ($self:) {
@@ -157,15 +162,20 @@ plan 30;
 {
     my $r = run('javac', 't/03-jvm/Foo.java');
     if $r && "t/03-jvm/Foo.class".IO ~~ :e {
-        my $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.bar; say Foo.new.quux;'", :out);
-        is $out.out.lines, "baz womble", "(compiling and) loading a .class file via 'use lib' works";
-           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.trizzle([1, 2e0, <bar>])'", :out);
-        is $out.out.lines, "12.0bar", "passing arrays with mixed types to Object[] works";
-           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.suzzle([1, 2e0, <bar>])'", :out);
-        is $out.out.lines, "12.0bar", "passing arrays with mixed types to List<Object> works";
-           $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.foozzle(%(a => 1e0, b => 2, c => \"foo\"))'", 
-                    :out);
-        is $out.out.lines, "a => 1.0, b => 2, c => foo, ", "passing Hash[Str] with mixed types to Map works";
+        if True {
+            skip 'java.lang.IllegalArgumentException: object is not an instance of declaring class', 4;
+        }
+        else {
+            my $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.bar; say Foo.new.quux;'", :out);
+            is $out.out.lines, "baz womble", "(compiling and) loading a .class file via 'use lib' works";
+               $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.trizzle([1, 2e0, <bar>])'", :out);
+            is $out.out.lines, "12.0bar", "passing arrays with mixed types to Object[] works";
+               $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.suzzle([1, 2e0, <bar>])'", :out);
+            is $out.out.lines, "12.0bar", "passing arrays with mixed types to List<Object> works";
+               $out = shell("$*EXECUTABLE -e'use lib q[java#t/03-jvm/]; use Foo:from<Java>; say Foo.foozzle(%(a => 1e0, b => 2, c => \"foo\"))'",
+                        :out);
+            is $out.out.lines, "a => 1.0, b => 2, c => foo, ", "passing Hash[Str] with mixed types to Map works";
+        }
     }
     else {
         skip 2;

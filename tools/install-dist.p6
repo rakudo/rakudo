@@ -86,7 +86,6 @@ sub build(IO::Path :$dist-prefix) {
 
         if $builder.can-build {
             $builder.build;
-            exit;
         }
         else {
             note "Failed to build";

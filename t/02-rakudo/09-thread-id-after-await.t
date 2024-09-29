@@ -1,4 +1,3 @@
-use v6.d;
 use Test;
 use nqp;
 
@@ -19,16 +18,16 @@ my class Wrapper {
 my $t1 = Thread.start({
     my constant PROMPT = Mu.new;
     my $*FOO = 'original';
-    nqp::continuationreset(PROMPT, {
+    nqp::continuationreset(PROMPT, nqp::getattr({
         sub foo() {
             diag $*FOO;
-            nqp::continuationcontrol(0, PROMPT, -> \cont {
+            nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> \cont {
                 $c.send(Wrapper.new(cont => cont));
-            });
+            }, Code, '$!do'));
             $p.keep($*FOO);
         };
         foo();
-    });
+    }, Code, '$!do'));
 });
 
 my $t2 = Thread.start({

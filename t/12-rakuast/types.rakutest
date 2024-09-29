@@ -1,0 +1,164 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 10;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'look up an existing type' => {
+    ast RakuAST::Type::Simple.new(
+      RakuAST::Name.from-identifier-parts('Proc', 'Async')
+    );
+    is-deeply $deparsed, 'Proc::Async', 'deparse';
+
+    is-deeply $_, Proc::Async, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with definedness constraint' => {
+    # Int:D
+    ast RakuAST::Type::Definedness.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      definite  => True
+    );
+    is-deeply $deparsed, 'Int:D', 'deparse';
+
+    is-deeply $_, Int:D, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with undefinedness constraint' => {
+    # Int:U
+    ast RakuAST::Type::Definedness.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      definite  => False
+    );
+    is-deeply $deparsed, 'Int:U', 'deparse';
+
+    is-deeply $_, Int:U, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with unspecified coercion' => {
+    # Int()
+    ast RakuAST::Type::Coercion.new(
+      base-type  => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+    );
+    is-deeply $deparsed, 'Int()', 'deparse';
+
+    is-deeply $_, Int(), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with specific coercion' => {
+    # Int(Str)
+    ast RakuAST::Type::Coercion.new(
+      base-type  => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      constraint => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Str")
+      )
+    );
+    is-deeply $deparsed, 'Int(Str)', 'deparse';
+
+    is-deeply $_, Int(Str), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with chained coercion' => {
+    # Int(Str())
+    ast RakuAST::Type::Coercion.new(
+      base-type  => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      constraint => RakuAST::Type::Coercion.new(
+        base-type => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Str")
+        )
+      )
+    );
+    is-deeply $deparsed, 'Int(Str())', 'deparse';
+
+    is-deeply $_, Int(Str()), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'parameterized type without type' => {
+    # Rational[]
+    ast RakuAST::Type::Parameterized.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Rational")
+      )
+    );
+    is-deeply $deparsed, 'Rational', 'deparse';
+
+    is-deeply $_, Rational, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'parameterized type with type' => {
+    # Rational[Int]
+    ast RakuAST::Type::Parameterized.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Rational")
+      ),
+      args      => RakuAST::ArgList.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      )
+    );
+    is-deeply $deparsed, 'Rational[Int]', 'deparse';
+
+    is-deeply $_, Rational[Int], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Single-part type from the setting' => {
+    # SETTING::<Date>
+    ast RakuAST::Type::Setting.new(
+      RakuAST::Name.from-identifier("Date")
+    );
+    is-deeply $deparsed, 'SETTING::<Date>', 'deparse';
+
+    my \SETTING-Date := Date;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my class Date { }
+        is-deeply EVAL($it), SETTING-Date,
+          "$type: did we get the setting version";
+    }
+}
+
+subtest 'Multi-part type from the setting' => {
+    # SETTING::<IO>.WHO<Path>.WHO<Parts>
+    ast RakuAST::Type::Setting.new(
+      RakuAST::Name.from-identifier-parts("IO","Path","Parts")
+    );
+    is-deeply $deparsed, 'SETTING::<IO>.WHO<Path>.WHO<Parts>', 'deparse';
+
+    my \SETTING-Parts := IO::Path::Parts;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my class IO::Path::Parts { }
+        todo "no actual lookup in SETTING only yet";
+        is-deeply EVAL($it), SETTING-Parts,
+          "$type: did we get the setting version";
+    }
+}
+
+# vim: expandtab shiftwidth=4

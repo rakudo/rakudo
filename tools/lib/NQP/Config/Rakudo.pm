@@ -39,7 +39,7 @@ sub configure_nqp {
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
             $self->sorry(
                 "Passed value to --backends ($passed_backends) is overwritten ",
-                "by the one infered by --with-nqp ($nqp_backend)"
+                "by the one inferred by --with-nqp ($nqp_backend)"
             );
         }
     }
@@ -174,6 +174,10 @@ sub configure_refine_vars {
       : $config->{rakudo_home};
 }
 
+sub rev2spec {
+    chr(98 + $_[1]); # 98 stands for 'b'
+}
+
 sub parse_lang_specs {
     my $self = shift;
 
@@ -182,7 +186,8 @@ sub parse_lang_specs {
     open my $sh, "<", $self->template_file_path( $tmpl, required => 1 )
       or self->sorry("Can't open $tmpl: $!");
 
-    my @specs;    # Array to preserve the order or specs
+    my @revs;    # Array to preserve the order or specs
+    my @specs;   # Perl6 spec letters
     my $ln        = 0;
     my %flag_name = ( '-' => 'deprecate', '!' => 'require', );
     my $fail      = sub {
@@ -193,14 +198,15 @@ sub parse_lang_specs {
         chomp $line;
         $line =~ s/\h*#.*$//;    # Cut off comment
         next unless $line;
-        if ( $line =~ s/^\h*(?<default>\*)?(?<letter>[c-z])\b// ) {
-            my $letter = $+{letter};
+        if ( $line =~ s/^\h*(?<default>\*)?(?<number>\d+)\b// ) {
+            my $number = $+{number};
             if ( $+{default} ) {
-                $fail->("duplicate default spec") if $config->{lang_spec};
-                $config->{lang_spec} = $letter;
+                $fail->("duplicate default spec") if $config->{lang_rev};
+                $config->{lang_rev} = $number;
             }
-            my @def = ($letter);
-            push @specs, \@def;
+            my @def = ($number);
+            push @revs, \@def;
+            push @specs, $self->rev2spec($number);
             my @mods;            # Array to preserve the order of modificators
             while ($line) {
                 unless ( $line =~ s/^\h+// ) {
@@ -221,10 +227,11 @@ sub parse_lang_specs {
             push @def, @mods;
         }
         else {
-            $fail->("expected a revision letter");
+            $fail->("expected a revision number");
         }
     }
 
+    $self->{raku_revisions} = \@revs;
     $self->{raku_specs} = \@specs;
 
     close $sh;
@@ -242,23 +249,6 @@ sub configure_misc {
         slurp( $self->template_file_path( 'NQP_REVISION', required => 1, ) ) );
 
     $self->parse_lang_specs;
-
-    #my $spec_line = sub {
-    #    my @elems = split ' ', shift;
-    #    if ( $elems[0] =~ s/^\*// ) {
-    #        $config->{lang_spec} = $elems[0];
-    #    }
-    #    return \@elems;
-    #};
-
-    #$self->{raku_specs} = [
-    #    map { $spec_line->($_) }
-    #      grep { s/\s*#.*$//; length }
-    #      split(
-    #        /\n/s,
-    #        slurp( $self->template_file_path( 'RAKU_SPECS', required => 1, ) )
-    #      )
-    #];
 
     # Get version info from VERSION template and git.
     my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION' ) );
@@ -555,10 +545,15 @@ sub clean_old_p6_libs {
     }
 }
 
-# Returns all active language specification entries except for .c
+# Returns all active language specification 
 sub raku_specs {
     my $self = shift;
     return @{ $self->{raku_specs} };
+}
+
+sub raku_revisions {
+    my $self = shift;
+    return @{ $self->{raku_revisions} };
 }
 
 sub post_active_backends {
@@ -733,7 +728,7 @@ use warnings;
 use File::Find;
 
 # --- Rakudo-specific macro methods.
-sub _specs_iterate {
+sub _revs_iterate {
     my $self   = shift;
     my $cb     = shift;
     my %params = @_;
@@ -742,12 +737,17 @@ sub _specs_iterate {
 
     $self->not_in_context( specs => 'spec' );
 
-    my $prev_spec_char;
-    for my $spec ( $cfg->raku_specs ) {
-        my $spec_char   = $spec->[0];
-        $prev_spec_char //= $spec_char; # Map c -> c
+    my $prev_rev_num;
+    for my $rev ( $cfg->raku_revisions ) {
+        my $rev_num   = $rev->[0];
+        $prev_rev_num //= $rev_num; # Map 1 -> 1
+        my $spec_char = $cfg->rev2spec($rev_num);
+        my $prev_spec_char = $cfg->rev2spec($prev_rev_num);
         my $spec_subdir = "6.$spec_char";
         my %config      = (
+            lang_rev      => $rev_num,
+            prev_lang_rev => $prev_rev_num,
+            lrev_with_mod => $rev_num,
             ctx_subdir    => $spec_subdir,
             spec_subdir   => $spec_subdir,
             spec          => $spec_char,
@@ -758,17 +758,18 @@ sub _specs_iterate {
             ucprevspec    => uc $prev_spec_char,
             lcprevspec    => lc $prev_spec_char,
         );
-        my $spec_ctx = {
-            spec    => $spec,
+        my $rev_ctx = {
+            rev     => $rev,
             configs => [ \%config ],
         };
-        my $s = $cfg->push_ctx($spec_ctx);
+        my $s = $cfg->push_ctx($rev_ctx);
         $cb->(@_);
-        if ( $params{with_mods} && @$spec > 1 ) {
-            for my $mod ( @$spec[ 1 .. $#$spec ] ) {
+        if ( $params{with_mods} && @$rev > 1 ) {
+            for my $mod ( @$rev[ 1 .. $#$rev ] ) {
                 my %mod = (
-                    spec_mod      => $mod->[0],
-                    spec_dot_mod  => ".$mod->[0]",
+                    lrev_mod      => $mod->[0],
+                    lrev_dot_mod  => ".$mod->[0]",
+                    lrev_with_mod => "$rev_num.$mod->[0]",
                     spec_with_mod => "$spec_char.$mod->[0]",
                 );
                 my $mod_s = $cfg->push_ctx(
@@ -779,7 +780,7 @@ sub _specs_iterate {
                 $cb->(@_);
             }
         }
-        $prev_spec_char = $spec_char;
+        $prev_rev_num = $rev_num;
     }
 }
 
@@ -797,21 +798,20 @@ sub _specs_iterate {
                     push @all_sources,
                       File::Spec->abs2rel(
                         File::Spec->catfile( $File::Find::dir, $_ ), $base_dir )
-                      if /\.(nqp|pm6)\z/;
+                      if /\.(nqp|pm6|rakumod)\z/;
                 },
                 File::Spec->catdir( $base_dir, "src" )
             );
-            push @all_sources, 'gen/nqp-version';
         }
-        return @all_sources;
+        return sort(@all_sources);
     }
 }
 
 # --- Macro implementations
 
-# for_specs(text)
-# Iterates over active backends and expands text in the context of each backend.
-sub _m_for_specs {
+# for_specs(text), for_revs(texT)
+# Iterates over active language revisions from RAKU_SPEC and expands text in the context of each revision.
+sub _m_for_revs {
     my $self   = shift;
     my $text   = shift;
     my %params = @_;
@@ -822,17 +822,17 @@ sub _m_for_specs {
         $out .= $self->_expand($text);
     };
 
-    _specs_iterate( $self, $cb, %params );
+    _revs_iterate( $self, $cb, %params );
 
     return $out;
 }
 
-# for_specmods(text)
-# Same as for_specs but iterates including spec modifications, i.e. 6.x.PREVIEW
-sub _m_for_specmods {
+# for_specmods(text), for_revmods(text)
+# Same as for_revs but iterates including modifications, i.e. <rev>.PREVIEW
+sub _m_for_revmods {
     my $self = shift;
     my $text = shift;
-    return _m_for_specs( $self, $text, with_mods => 1 );
+    return _m_for_revs( $self, $text, with_mods => 1 );
 }
 
 # for_toolchain(text)
@@ -938,8 +938,10 @@ $text
 TPL
 }
 
-NQP::Macros->register_macro( 'for_specs',           \&_m_for_specs );
-NQP::Macros->register_macro( 'for_specmods',        \&_m_for_specmods );
+NQP::Macros->register_macro( 'for_specs',           \&_m_for_revs );
+NQP::Macros->register_macro( 'for_revs',            \&_m_for_revs );
+NQP::Macros->register_macro( 'for_specmods',        \&_m_for_revmods );
+NQP::Macros->register_macro( 'for_revmods',         \&_m_for_revmods );
 NQP::Macros->register_macro( 'for_toolchain',       \&_m_for_toolchain );
 NQP::Macros->register_macro( 'for_langalias',       \&_m_for_langalias );
 NQP::Macros->register_macro( 'source_digest',       \&_m_source_digest );

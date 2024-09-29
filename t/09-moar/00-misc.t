@@ -1,8 +1,8 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 5;
 
 # https://github.com/rakudo/rakudo/issues/1534
 {
@@ -18,22 +18,20 @@ lives-ok { class C { }; await start { for ^10_0000 { C.^set_name('B') } } xx 4 }
 {
     use nqp;
     nqp::srand(1);
-    my $first  := nqp::rand_I(100,Int);
-    my $second := nqp::rand_I(100,Int);
+    my @first  := nqp::rand_I(100,Int), nqp::rand_I(100,Int);
     nqp::srand(1);
-    is-deeply nqp::rand_I(100,Int), $first,
-      'does srand produce same rand_I values 1';
-    is-deeply nqp::rand_I(100,Int), $second,
-      'does srand produce same rand_I values 2';
+    my @second := nqp::rand_I(100,Int), nqp::rand_I(100,Int);
+    is-deeply @second, @first, 'does srand produce same rand_I values';
 
     nqp::srand(1);
-    $first  := nqp::rand_n(100e0);
-    $second := nqp::rand_n(100e0);
+    @first  := nqp::rand_n(100e0), nqp::rand_n(100e0);
     nqp::srand(1);
-    is-deeply nqp::rand_n(100e0), $first,
-      'does srand produce same rand_n values 1';
-    is-deeply nqp::rand_n(100e0), $second,
-      'does srand produce same rand_n values 2';
+    @second := nqp::rand_n(100e0), nqp::rand_n(100e0);
+    is-deeply @second, @first, 'does srand produce same rand_n values';
 }
+
+lives-ok
+    { my $l = Lock.new; for ^100_000 { try $l.clone } },
+    'Repeatedly trying to clone a Lock does not lead to a crash';
 
 # vim: expandtab shiftwidth=4

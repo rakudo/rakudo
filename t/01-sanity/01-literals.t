@@ -1,5 +1,3 @@
-use v6;
-
 # check literals
 say '1..24';
 

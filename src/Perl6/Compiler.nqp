@@ -3,20 +3,135 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!language_version;  # Default language version in form 6.c
-    has $!language_modifier; # Active language modifier; PREVIEW mostly.
-    has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
-    has $!can_language_versions; # List of valid language version
+    has @!language_version;  # Default language revision, 1 stands for v6.c
+    has $!language_revisions; # Hash of language revision properties. See gen/<vm>/main-version.nqp
+    has $!can_language_versions; # List of valid language versions
     has $!rakudo-home;
+
+    class LanguageVersionServices {
+        method p6rev(int $internal-revision) {
+            $internal-revision < 1
+                ?? nqp::die("Internal revision " ~ $internal-revision ~ " cannot be converted into Perl6 representation")
+                !! nqp::chr(98 + $internal-revision)
+        }
+
+        method internal-from-p6(str $p6rev) {
+            nqp::chars($p6rev) > 1
+                ?? nqp::die("Perl6 revision can only be a single letter, got '$p6rev'")
+                !! (my $irev := nqp::ord($p6rev) - 98) < 1
+                    ?? nqp::die("'$p6rev' cannot be a Perl6 revision")
+                    !! $irev
+        }
+
+        my sub as(@parts, :$plus, :$as-str, :$as-version) {
+            if $as-str || $as-version {
+                my $i := -1;
+                while ++$i < +@parts {
+                    @parts[$i] := ~@parts[$i];
+                }
+
+                my $vstr := join(".", @parts) ~ $plus;
+
+                return $vstr unless $as-version;
+
+                my $Version := nqp::gethllsym('Raku', 'Version');
+                if nqp::isnull($Version) {
+                    nqp::die("Symbol 'Version' is not available at this time; is BOOTSTRAP loaded?")
+                }
+
+                # This can be micro-optimized by using nqp::create + nqp::bindattr, but does it make any sense?
+#?if jvm
+                # Version.new tries to coerce argument to Str, and that doesn't work with BOOTStr.
+                return $Version.new(nqp::hllizefor($vstr,'Raku'));
+#?endif
+#?if !jvm
+                return $Version.new($vstr);
+#?endif
+            }
+            @parts
+        }
+
+        # Get language version representation, guess its format, and return it as internal. with :as-version
+        # will try to get Version class from HLL symbols and return an instance of it.
+        method from-public-repr(str $repr, :$as-str, :$as-version) {
+            my $config := nqp::gethllsym('default', 'SysConfig');
+            my @parts;
+            my $plus := '';
+
+            if !$repr || $repr eq 'v6' {
+                # Default revision implied
+                @parts.push: nqp::gethllsym('default', 'SysConfig').rakudo-build-config<language-revision>;
+            }
+            else {
+                my $m := $repr ~~ /^ v? $<vstr>=[ [ \w+ | '*' ]+ % '.' ] $<plus>='+'? $/;
+                @parts := nqp::split('.', $m<vstr>);
+                $plus := ~$m<plus>;
+                if $repr ~~ /^ v? 6 [\D | $]/ {
+                    # Perl6 representation. Skip the starting '6' first
+                    if @parts[0] eq '6' {
+                        # Since we excluded the 'v6' variant then @parts would never end up being empty here
+                        @parts.shift;
+                    }
+                    else {
+                        @parts[0] := nqp::substr(@parts[0], 1);
+                    }
+
+                    if @parts[0] ne '*' {
+                        @parts[0] := self.internal-from-p6(@parts[0]);
+                    }
+                }
+                else {
+                    nqp::die("Requested language version '$repr' is not valid");
+                }
+            }
+
+            as(@parts, :$plus, :$as-str, :$as-version)
+        }
+
+        method as-perl6($internal, :$as-str, :$as-version) {
+            my $Version := nqp::gethllsym('Raku', 'Version');
+            my $primspec := nqp::objprimspec($internal);
+            my $is-list := nqp::islist($internal);
+            my $is-version := !nqp::isnull($Version) && nqp::istype($internal, $Version);
+            my @parts;
+            if $primspec == nqp::const::BIND_VAL_STR || $is-list || $is-version {
+                # A string
+                @parts := $is-version
+                    ?? nqp::clone(nqp::getattr($internal, $Version, '$!parts'))
+                    !! $is-list
+                        ?? nqp::clone($internal)
+                        !! nqp::split(".", $internal);
+                my $rev := @parts[0];
+                if nqp::objprimspec($rev) == nqp::const::BIND_VAL_STR
+                  && $rev ~~ /^ v? $<vnum>=\d+ $<plus>='+'? $/ -> $m {
+                    # Turn internal revision number info a Perl6-revision char
+                    @parts[0] := self.p6rev(+$m<vnum>) ~ $m<plus>;
+                }
+                else {
+                    @parts[0] := self.p6rev($rev);
+                }
+            }
+            elsif $primspec == nqp::const::BIND_VAL_INT
+              || $primspec == nqp::const::BIND_VAL_UINT {
+                @parts.push: self.p6rev($internal);
+            }
+            else {
+                nqp::die("Don't know how to create Perl6-style language version from " ~ $internal.HOW.name($internal));
+            }
+
+            @parts.unshift('6');
+
+            as(@parts, :$as-str, :$as-version)
+        }
+
+        method as-public-repr($internal, :$as-str, :$as-version) {
+            # When v6.x is replaced with another representation this method will change too.
+            self.as-perl6($internal, :$as-str, :$as-version);
+        }
+    }
 
     method config() {
         nqp::gethllsym('default', 'SysConfig').rakudo-build-config();
-    }
-
-    method compilation-id() {
-        my class IDHolder { }
-        BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
-        $IDHolder::ID
     }
 
     method version() {
@@ -24,12 +139,14 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::exit(0);
     }
 
+    method lvs() { LanguageVersionServices }
+
     method version_string(:$shorten-versions, :$no-unicode) {
         my $config-version  := self.config()<version>;
         my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
-
         my $raku;
         my $rakudo;
+
         if $shorten-versions {
             my $index := nqp::index($config-version,"-");
             $config-version := nqp::substr($config-version,0,$index)
@@ -41,21 +158,24 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         if $no-unicode {
-            $raku   := "Raku(tm)";
+            $raku   := "Raku(R)";
             $rakudo := "Rakudo(tm)";
         }
         else {
-            $raku   := "𝐑𝐚𝐤𝐮™";
-            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
+            $raku   := "Raku®";
+            $rakudo := "Rakudo™";
         }
+        my $flavor := #RAKUDO_FLAVOR#;
+        $flavor := " $flavor" if $flavor;
 
         "Welcome to "
           ~ $rakudo
+          ~ $flavor
           ~ " v"
           ~ $config-version
           ~ ".\nImplementing the "
           ~ $raku
-          ~ " programming language v"
+          ~ " Programming Language v"
           ~ self.language_version()
           ~ ".\nBuilt on "
           ~ $backend-version
@@ -66,28 +186,28 @@ class Perl6::Compiler is HLL::Compiler {
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
     method reset_language_version() {
-        $!language_version := NQPMu;
-        $!language_modifier := NQPMu;
+        @!language_version := [];
     }
     method set_language_version($version) {
-        $!language_version := $version;
+        @!language_version := nqp::islist($version)
+            ?? $version
+            !! self.lvs.from-public-repr($version);
     }
-    method set_language_modifier($modifier) {
-        $!language_modifier := $modifier;
+    method set_language_revision(int $rev) {
+        @!language_version := [$rev];
+    }
+    method language_version_parts() {
+        unless nqp::defined(@!language_version) && @!language_version {
+            @!language_version := self.lvs.from-public-repr(%*COMPILING<%?OPTIONS><language_version> // '');
+        }
+        @!language_version
     }
     method language_version() {
-        if nqp::defined($!language_version) {
-            $!language_version
-        }
-        else {
-            $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
-        }
+        self.set_language_version('') unless @!language_version;
+        LanguageVersionServices.as-public-repr: @!language_version, :as-str
     }
     method language_revision() {
-        nqp::substr(self.language_version,2,1)
-    }
-    method language_modifier() {
-        $!language_modifier
+        self.language_version_parts[0]
     }
     method    can_language_versions() {
             $!can_language_versions
@@ -103,10 +223,6 @@ class Perl6::Compiler is HLL::Compiler {
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
-        }
-
-        if nqp::existskey(%options, 'nqp-lib') {
-            note('Option `--nqp-lib` is deprecated, has no effect and will be removed in 2021.06.');
         }
 
         my $argiter := nqp::iterator(@args);
@@ -139,6 +255,19 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
+    method ast($match, *%adverbs) {
+        my $ast := $match.ast;
+        self.panic("Unable to obtain AST from parse result")
+            unless nqp::isconcrete($ast);
+        $ast
+    }
+
+    method qast($rakuast, *%adverbs) {
+        my $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
+        $rakuast.cleanup();
+        $comp_unit;
+    }
+
     method verbose-config() {
         self.eval('Compiler.verbose-config(:say)');
         nqp::exit(0);
@@ -156,10 +285,43 @@ class Perl6::Compiler is HLL::Compiler {
 
     method usage($name?, :$use-stderr = False) {
 	my $print-func := $use-stderr ?? &note !! &say;
-    my $compiler := nqp::getcomp("Raku").backend.name;
-    my $moar-options := '';
-    if nqp::getcomp("Raku").backend.name eq 'moar' {
-        $moar-options := q♥  --profile[=name]     write profile information to a file
+    $print-func(($name ?? $name !! "") ~ qq♥ [switches] [--] [programfile] [arguments]
+
+With no arguments, enters a REPL (see --repl-mode option).
+With a "[programfile]" or the "-e" option, compiles the given program
+and, by default, also executes the compiled code.
+
+  -                    read program source from STDIN or start REPL if a TTY
+  -c                   check syntax only (runs BEGIN and CHECK blocks)
+  --rakudoc            extract documentation and print it as text
+  --rakudoc=module     use RakuDoc::To::[module] to render inline documentation
+  -e program           one line of program, strict is enabled by default
+  -h, --help           display this help text
+  -n                   run program once for each line of input
+  -p                   same as -n, but also print \$_ at the end of lines
+  -I path              adds the path to the module search path
+  -M module            loads the module prior to running the program
+  --target=stage       specify compilation stage to emit
+  --optimize=level     use the given level of optimization (0..3)
+  --rakudo-home=path   Override the path of the Rakudo runtime files
+  -o, --output=name    specify name of output file
+  -v, --version        display version information
+  -V                   print configuration summary
+  --stagestats         display time spent in the compilation stages
+  --ll-exception       display a low level backtrace on errors
+  --doc                extract documentation and print it as text
+  --doc=module         use Pod::To::[module] to render inline documentation
+  --repl-mode=interactive|non-interactive
+                       when running without "-e" or filename arguments,
+                       a REPL is started. By default, if STDIN is a TTY,
+                       "interactive" REPL is started that shows extra messages
+                       and prompts, otherwise a "non-interactive" mode is used
+                       where STDIN is read entirely and evaluated as if it were
+                       a program, without any extra output (in fact, no REPL
+                       machinery is even loaded). This option allows to bypass
+                       TTY detection and force one of the REPL modes.
+#?if moar
+  --profile[=name]     write profile information to a file
                        Extension controls format:
                            .json outputs in JSON
                            .sql  outputs in SQL
@@ -189,52 +351,18 @@ class Perl6::Compiler is HLL::Compiler {
   --full-cleanup       try to free all memory and exit cleanly
   --debug-port=port    listen for incoming debugger connections
   --debug-suspend      pause execution at the entry point
-  --tracing            output a line to stderr on every interpreter instr (only if
-                       enabled in MoarVM)
-♥;
-    }
-    $print-func(($name ?? $name !! "") ~ qq♥ [switches] [--] [programfile] [arguments]
-
-With no arguments, enters a REPL (see --repl-mode option).
-With a "[programfile]" or the "-e" option, compiles the given program
-and, by default, also executes the compiled code.
-
-  -                    read program source from STDIN or start REPL if a TTY
-  -c                   check syntax only (runs BEGIN and CHECK blocks)
-  --doc                extract documentation and print it as text
-  -e program           one line of program, strict is enabled by default
-  -h, --help           display this help text
-  -n                   run program once for each line of input
-  -p                   same as -n, but also print \$_ at the end of lines
-  -I path              adds the path to the module search path
-  -M module            loads the module prior to running the program
-  --target=stage       specify compilation stage to emit
-  --optimize=level     use the given level of optimization (0..3)
-  --rakudo-home=path   Override the path of the Rakudo runtime files
-  -o, --output=name    specify name of output file
-  -v, --version        display version information
-  -V                   print configuration summary
-  --stagestats         display time spent in the compilation stages
-  --ll-exception       display a low level backtrace on errors
-  --doc=module         use Pod::To::[module] to render inline documentation
-  --repl-mode=interactive|non-interactive
-                       when running without "-e" or filename arguments,
-                       a REPL is started. By default, if STDIN is a TTY,
-                       "interactive" REPL is started that shows extra messages and
-                       prompts, otherwise a "non-interactive" mode is used where
-                       STDIN is read entirely and evaluated as if it were a program,
-                       without any extra output (in fact, no REPL machinery is even
-                       loaded). This option allows to bypass TTY detection and
-                       force one of the REPL modes.
-$moar-options
+  --tracing            output a line to stderr on every interpreter instr
+                       (only if enabled in MoarVM)
+#?endif
 Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:
 
-  RAKULIB     Modify the module search path
-  PERL6LIB    Modify the module search path # to be deprecated
-  RAKUDO_HOME Override the path of the Rakudo runtime files
-  NQP_HOME    Override the path of the NQP runtime files
+  RAKULIB       Modify the module search path
+  PERL6LIB      Modify the module search path (DEPRECATED)
+  NQP_HOME      Override the path of the NQP runtime files
+  RAKUDO_HOME   Override the path of the Rakudo runtime files
+
 
 ♥); # end of usage statement
 

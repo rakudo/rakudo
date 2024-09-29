@@ -1,3 +1,1823 @@
+New in 2024.09:
+
++ Improvements:
+
++ Additions:
+    + [6.e] Provide `is revision-gated("6.x")` trait [c2c8d7a0][6fa7c425]
+
++ Fixes:
+
++ Deprecations:
+
++ Internal:
+    + Use binding for all sub aliases [e1a77dc3]
+    + spell out MVMROOT macro for now for compatibility [46d219b4][46d219b4]
+    + set-env.ps1: Fix detecting build tools with multiple installed [c4c540eb]
+    + Micro-opt for non-existing keys in hash [60dbc201]
+    + Micro-opt for %h<a>:exists [dd66162a]
+    + Micro-opt %h<a>:exists:p [83d7a7ff]
+    + Micro-opt %h<a>:exists:kv [cc194cdc]
+    + Add dedicated { }:p|kv|k|v candidates [36e8403d]
+    + Micro-opt { }:delete:exists [753c7559]
+    + Micro-opt { }:delete:(:p|kv) [e2288121]
+    + Micro-opt { }:delete:exists:(:p|kv) [eb7a8279]
+    + Micro-opt { }:delete:(k|v) [49be2cf5]
+    + Remove all SLICE_ONE_HASH references in %h<key> [74b45bb3]
+    + Simplify %h<a b c> handling [4646481e]
+    + Micro-opt []:(k|p|kv|v) [0dd0d72e]
+    + Micro-opt [x]:exists [b093bc42]
+    + Micro-opt []:foo by Boolifying in the signature [50b86140]
+    + Micro-opt [foo]:(p|kv|v) [86a5a10c]
+    + Actually only allow concrete iterables in %h{...} [045644e0]
+    + Address a small but significant corner case in the optimizer [ba303f4a]
+    + Fix small breakage in the Mu:U sm optimization [fdeb87d0]
+    + Add test for "not-Mu:U" ~~ Mu:U [6e182acd]
+    + Remove $?FILE and $?LINE where they don't make much sense [2ee68bff]
+    + Make sure we have a Bool to check against with :exists
+
++ RakuAST Development:
+    + over 30 commits, 142/153 (make test), and 1158/1355 (make spectest)
+      [778c7a63][65c318f0][9ffadf80][7c3b2b18][1081b051][c612b32b][59257a4b]
+      [7857b802][ed5c906c][1fda647f][0c9a00ad][a27ae5ed][3e2684a4][a383c8bb]
+      [307efa6d][cd0e6ee6][81d43af6][38fa6c48][a8111db8][a260251b][07c8b119]
+      [d0a70281][4ccbad96][7ddaf755][850a5a71][5032aad2][fb7d3e7f][6888e977]
+      [866eec37][dde75687][27565cc1][8162f3eb][8eef4c79]
+
+New in 2024.08:
+
++ Improvements:
+    + Ensure path-spec is a Str (in CompUnit::) [c1742f04]
+
++ Additions:
+    + Implement @a[**] with hammering flattening behavior [0bdd27db]
+
++ Fixes:
+    + Ensure that sunk failed lookups in native arrays always explode [a8745fe8]
+    + Fix iterating over Junction with non-simple loop bodies [fde5d87f]
+    + Prevent dispatch errors on Regex.Bool [29a03213]
+
++ Deprecations:
+
++ Internal:
+    + Fix precomp build [a445da42]
+    + Support will complain on X::Syntax::Number::LiteralType [43d2b0fb]
+
++ RakuAST Development:
+    + over 200 commits, 142/153 (make test), and 1144/1356 (make spectest)
+      [3cf20717][b250ffe7][c6067668][9ef8949f][03ed5ae7][0fea3de3][76b4c655]
+      [57624715][4ff3dc07][1ea5fb7f][6276062f][5b9b6cff][3b4d36ad][315afc85]
+      [4d8d6f08][63b87f25][96e7d21f][927a98b9][1391345b][bbce2206][25005c9b]
+      [f600848a][a2182152][466ca907][71278b66][e20fb393][06a4cccd][85a91398]
+      [6075bdf5][630c0115][1fa1a949][00daa29c][afca9150][58f1edf3][8eeaf0ba]
+      [ba1594f2][a23bc866][f61ed6b9][b148ca72][d66097a3][03e773b9][a7af6dad]
+      [9bb892ab][46d9b19c][5baa9076][d9b8ab79][dfa74eca][4c60227d][bae68c74]
+      [940938c8][0b04d210][9291f43f][ee3c85e7][87065a32][bfdbf1cf][c5267fc7]
+      [05a9907e][1c912bc5][aa0ad4c6][c21e0fd9][5b24cf03][45d891a5][fed4ae38]
+      [70346a93][0f1e175e][9635b3cb][1ab4600a][eec9a322][6a72394c][f74da8c2]
+      [8ac3f1eb][85489cb4][e74deef2][f7eea363][8c9263f1][9af44342][eb9ee510]
+      [0bf7c876][0ad81419][bb7de9ca][d899e868][835bf7a2][8507514a][efeac953]
+      [ef959d08][b8762051][846bc284][e8bd820b][d93f6970][0f862af0][977b11e4]
+      [5f5fe4fe][bcb39d0b][06d11b59][e007c708][6f687f10][e16400b1][d7130cb8]
+      [43af30aa][09deed5d][99c530a0][6e253ef5][e6c6f5c0][10fecfb5][74c48ea3]
+      [3d9361a9][a80fcb1a][b50eb200][7971a150][80abf79c][87f150f7][1586e96a]
+      [3a615004][1549a841][3240b2fc][575f0e8e][d853a08f][ae98e84c][0091408b]
+      [d74604d8][af7acf0c][081147ee][0b4048f2][1a616bfb][ed1c48a5][dfd2ccda]
+      [d87bd876][d9037aea][cd1aae89][f340f39e][bac1ee8f][c3c6e458][4cfc7900]
+      [10297c64][bc16b3c2][191787bb][f6b628f3][ebfd4dad][db44e946][5acdfcc0]
+      [1887d27b][466740bb][ec381c70][37b5aeb8][1849fc8b][c1f424a5][8bbd7104]
+      [d0be5d1b][7114c6c1][5fc65475][331d5ea2][ba94f702][5cca0b4f][1b843c75]
+      [82e5aada][dcec75e9][c0880471][76d9e1c2][86502c46][25e6280a][87db5bdd]
+      [e6c2490e][f829dd37][efea1da0][67ab2fb4][a04a8199][56a80347][ce311700]
+      [4397c0e2][9f34623f][cd674298][06e1fe6c][f61870cf][5de09e0b][a90eeabb]
+      [866c77d8][c7c25037][0be319b8][4d35f1e3][70059eb1][bce9c3db][74b357b0]
+      [aada362f][c2fac3ba][11bf1065][f7c1242a][a30ba8aa][fd9cd0a5][c1520df7]
+      [5c532a3e][35b89a37][c7dd2bc5][7907eeab][09a96033][b46572e2][24bc8f41]
+      [e69bb58a][de09b60b][bf371c67][f3c9a598][6ad7aaa9][0932318b]
+
+New in 2024.07:
+
++ Improvements:
+    + Improve execution speed by about 5% on Intel hardware and the MoarVM
+      backend by disabling the EXPRession JIT by default [4d3723bd]
+
++ Additions:
+    + Add :hammer named argument to .flat for thorough flattening [74cfe8e3]
+
++ Fixes:
+    + Bump NQP to get fix for return from LEAVE phaser on MoarVM [0554ae9e]
+    + Partially fix mixed bin/no bin reads in IO::Socket [5008807b]
+    + Fix sprintf thinko in BUILDPLAN module [6536e756]
+
++ Deprecations:
+
++ Internal:
+    + Change colabti log links to irclogs.raku.org links [3e4d19bb]
+    + Remove the signature check from .duckmap for now [1bd985a3]
+
++ RakuAST Development:
+    + Added Raku grammar based syntax highlighting API, and basic support
+      for highlighting using ANSI color codes
+    + over 60 commits, 144/153 (make test), and 1065/1356 (make spectest)
+      [4085432e][3e55eb62][17f0148a][02526784][fd72fc3e][692677ff][ea6c68ab]
+      [604d6617][8752d081][e0afa0a8][a7b41f73][31336240][c7af1953][f8b56432]
+      [9d959fae][5795560f][cf3f0aa2][a14a94df][d782d8b0][17f89c6f][d57b4109]
+      [267edeb1][c50e477c][7a0c0e3f][b984ddfb][1534733d][c64dc9f4][39b987ab]
+      [9fc5f662][5a431ad4][133a25a2][115fdee2][6b9a163e][59fb9ebc][ca479813]
+      [552a88ba][b09a5ee8][38ba882a][8e00a517][527b9788][3ab6c96b][509ee1b6]
+      [8a138038][3079f914][c56375da][f8e64356][4dae7e5b][55754f8d][015e4a3b]
+      [ff48e039][dcaf53e6][487f1eda][f84ae43b][2144863d][fab5c99a][f4b4b219]
+      [e622928d][a469bd8d][19bd06b5][16b059c0][62e523a9][2992649f][088180b6]
+      [d7731e7d][1004a2ad][26622f63]
+
+New in 2024.06:
+
++ Improvements:
+    + Use inclusive TPF alias. [271f8320]
+    + Give `Seq` some `.head` shortcuts (prevents unnecessary reifying) [07865140]
+    + Check expectations of `.deepmap` / `.duckmap` / `.nodemap` [18d128ab]
+    + Make `Seq.end` return a proper `Failure` [bea61881]
+
++ Additions:
+
++ Fixes:
+    + Make sure the `LAST` phaser is always fired in `.map` [16ce594e]
+    + Don't bother calling op in `.duckmap` on sig failure [af6df816]
+    + Fix regresssion on `NativeCall::Compiler::MSVC`, introduced in 2024.05 [cc52ff12]
+    + Don't set the `FIRST` flag always when iterating (fix and micro-optimization) [ad0afb04]
+
++ Deprecations:
+
++ Internal:
+    + Micro-optimize .head(N) [141228a3]
+
++ RakuAST Development:
+    + 20 commits, 144/153 (make test), and 1063/1356 (make spectest) [3f804996]
+      [9c53c92e][1ddbcbc1][5c10672c][16d126bc][ffc59e46][0cde5bfc][0b937b15]
+      [946ab902][c99d4369][1a61ed02][587cd72f][e2fa55b9][46511d59][49751627]
+      [a51ee10d][5b44a64b][b2f81c23][5dd0ad6f][093009a0]
+
+New in 2024.05:
+
++ Improvements:
+    + Provide the host:port that compose the address in use [ecd2dd46]
+    + Improve .IO.open.lock failure messages [774cc864]
+    + Make (^Inf).reverse fail rather than infiniloop [26f1c494]
+    + Provide deeper context into `run` failures [aca5e4c1]
+
++ Additions:
+    + Add rakudo flavor [6e55b118][c888a116][f253d68b][69a33564]
+    + Add worry for WhateverCode on LHS of smartmatch [d9863e9a]
+    + Add Cool.nomark in 6.e [5eb1da8c]
+    + Introduce Any.are(type --> Bool:D) in 6.e [23b94de6]
+    + Add :invocant option to Parameter.new [f17cd58f]
+
++ Fixes:
+    * Fix various unicode property bugs [22492982]
+    + Provide conditional exit status for USAGE [a4c7d5d1]
+    + Supply an Any.match method candidate for Any:D [d6dc3610][51b0ef25]
+      [881c1e87]
+    + Fix mysterious failures when class construction process order changes
+      [2cba37f5]
+    + Make sure type objects without MRO don't break .are [e227a4f2]
+    + Fix memory leaking in infinity-bound ... [99bfab8c]
+    + Allow the use of enum values in MAIN that shadow core types [e3ad75a6]
+      [f5218834][5fbda71d][45966a8c]
+    + Clarify Range.rand failure cases, fix infinite loop, and optimize
+      [06e45d89][f233458e]
+    + Z<> is a comment - do not render it as text. [c1cc007f]
+    + Allow reduce to return containers as generated [ecd75809]
+    + Make dd handle Failures better [0a0435d7]
+    + Make dd be more verbose about hash/array elements [e1bd3ffd][2b2e896b]
+      [184c2ec2]
+
++ Deprecations:
+
++ Internal:
+    + Streamline NativeCall [40c7b77f][30410664][bf81c62f][4a64b3af][d5eb39f7]
+      [0c9e990d][4de8e84a][d374dbb2][89407558][14bde025][9ef2df5b][586c7832]
+      [73776552][8dd91896][3ec47540][9d297a3d][335a0b0c][46a8f324][967d1a5a]
+    + Streamline NativeCall::Dispatcher [8a7ed37c][2182fee5][9b078a12]
+      [ed4db102][c9a0de80]
+    + Move sub map_return_type logic to NativeCall::Types [b6cc74b5]
+    + Streamline NativeCall::Types [3861b8f8][89d4d42b][75fa3da4][d0cbe4ae]
+      [b36cceb3][b6028f9d]
+    + Streamline NativeCall::Compiler::GNU [bd426162][92da00a9]
+    + Only ignore last arg in a Method if '%_' (NativeCall) [f25dcacc]
+    + Streamline NativeCall::Compiler::MSVC [cb6e5080][92113fe4][7766fbbd]
+      [ca4bd66c]
+    + Use HLL::SysConfig to obtain path-sep [c8855956]
+    + Refactor t/packages to follow idiomatic distribution file structure
+      [d25af712]
+    + Use NQP for open mode detection in IO::Handle.lock [cf87ccf9]
+    + Micro-optimize basic iterators [2e4bc48a][72b46fe2][6846c49e]
+
++ RakuAST Development:
+    + 43 commits, 143/152 (make test), and 1063/1356 (make spectest) [fe579a3b]
+      [d890d89e][cd197264][5485db22][ee525814][fcbd5303][622f58ad][b50fb0c4]
+      [1278c5bb][c0c5e9ed][4e547d17][5a1e0161][a3907c3a][80ae959a][4988fb37]
+      [331f0192][1d5cd34f][24f3a168][eee426ea][66c4acad][5748ac20][aec7a49d]
+      [22a7a897][ddde58be][2c3602de][39705b00][3ce05fa0][3a928a56][5a122c60]
+      [22932c27][097b50cd][a26b756a][a1f98bf1][13f5a744][b08810e4][a690eecc]
+      [53eebb7c][cd74aa79][de12a755][5fb665ba][042660d8][b7116755][851aa490]
+
+New in 2024.04:
+
++ Improvements:
+    + Make X::Syntax::Number::LiteralType a subclass of
+      X::TypeCheck::Assignment [5b7cf94c]
+    + Make Rakudo up to 2x as fast on the JVM backend by using fastutil [05aae712][23a9fdbe]
+      [955bc856]
+
++ Additions:
+    + Add Allomorph.narrow [e6a28e1c]
+    + Add dispatch disambiguation via 'is item' parameter trait [70f16f63]
+      [3b42de18][36901bb0][0ce55752][c02bd131]
+
++ Fixes:
+    + Fix "No exception handler located for catch" trying to report
+      method-not-found [b61de7a9]
+    + Fix naming of anonymous classes [ad12f2a9]
+    + Increase JVM max heap [2d76783a]
+    + Fix reporting of X::Role::Initialization errors [0eb99b8a]
+    + Fix race condition in lazy deserialization on MoarVM backend [d6320eaf]
+    + Fix obscure pattern bug in regex engine on MoarVM backend [f56a3973]
+
++ Deprecations:
+
++ Internal:
+    * Streamline "core" (bootstrap, core, metamodel) [169b28f3][b37302cb]
+      [010d6fe5][b5f3b474][67f662a4][8a628aa2][9c71fae0][73e1c716][fd6ffe33]
+      [aa02c8b8][b411252a][d1a5b479][3b736e56][c7d24b3d][d1fbc0d7][ef942c5c]
+      [00256ffb][189ce4f7][6c663f78][dc243d12][dab45fa3][1af29151][5ed668d4]
+      [1b5c0820][039dbe49][c48fc1e3][9ecfb483][54a4c8cf][4d33d371][45dfb1bd]
+      [ab1784b8][5cd846b2][758500f4][802e8140][e35ac0b4][555f4b00][406ad16b]
+      [392213dd][037fab6c][502a6a15][a4423566][9f0b8689][5256102d][a153c729]
+      [87feb40a][4cec36b7][56970893][b8330182][8753b0d9][b1167851][57498126]
+      [df5fc0e3][e57d8233][ece58501][d442a5ba][4fa4ca52][5c27242b][f4943c9b]
+      [c6adc333][cee9f572][0f3c775f][8159ed44][c751668b][d29d3c11][0f8c0d7e]
+      [35b87f36][48e87465][5cbd82d3][7235b599][f329c52d][2a233d52][e7d72619]
+      [309686a8][f73683f7][0c2c8cf9][9fb5674a][4e79d6b7][5211345d][a15f9f41]
+      [75e63ce6][b1aaf338][f6cc5d95][45491ef5][5b80043a][5287d7ea][22795931]
+      [25573f0c][1ee6bc46]
+    + Convert uses of `if nqp::getcomp('Raku').backend.name eq <...>` to
+      `#?if <...>` [f43128bd]
+
++ RakuAST Development:
+    + 91 commits, 142/151 (make test), and 1057/1356 (make spectest) [5c195f12]
+      [b4f58fe3][821e056c][c467e04c][d31e99e4][1f02a800][3709aeb2][e5c35555]
+      [cdaca915][43fe36fb][ab0a1e12][9d6f2842][33f41e6a][7ce8b6e5][0d1095a0]
+      [6507e0cf][06381659][30ff12ec][1f458a0f][e066203d][7ae4c397][e2e7e583]
+      [9b90a609][ea84171c][fe279b05][65f349a5][ea0aa21d][ca0d1708][e64145d2]
+      [a4b6c401][54854d93][3a70c503][f0d5a942][c6fb210a][1d609daf][9b377fcd]
+      [e75c4168][1ccb95d4][c9b75d73][ea0b0d15][aeccbb40][6be6f159][08d439b3]
+      [d0ed8cd9][312a5d85][9ca35fb9][69883683][e52a456f][09abf820][3a836f23]
+      [c1582285][830727e5][08b77e94][4adf9395][fce6e368][b6d8425d][90cbfde5]
+      [f7e50318][cee25a7c][c0f0ad3c][151236e8][c053144a][b213dba7][8f568c66]
+      [dd62a30b][1bd789e9][a219c9bc][35cc0d6a][171307e9][5f8c7bbe][de518e47]
+      [6c0e2466][9624046c][b6e8f275][7d855c4b][d1cf55cb][54ff30e8][f3b9b8e0]
+      [6cf9a5cb][541a9c7d][c9c2197d][d7ded459][76f0278c][326dc12b][dbe698c4]
+      [abc1a5f5][604663a3][c118661d][b899592b][eb1069ac][7de82585]
+
+New in 2024.03:
+
++ Improvements:
+
++ Additions:
+
++ Fixes:
+    + Add Parameter.of method [586f32cf]
+    + Unbreak the JVM build [612dd255][fa853abc][55518662]
+    + Unbreak t/harness [9395af5d]
+
++ Deprecations:
+
++ Internal:
+    * Streamline "core" (bootstrap, core, metamodel) [50fc7284][eea99c2b]
+      [704fda60][96c0a5d5][485fc866][a4ac1720][97a0eeab][18989a66][fb7e44fc]
+      [bef608a8][4b124a98][1491f822][8e863c81][7dee0530][375393fa][4ee064dc]
+      [ec11e06b][8f9ad9a3][8b00ff5b][0b65e78b][3a66dc10][c9ecbda2][48509e00]
+      [70b8b229][591792d7][99f52bcd][70be8a09][4581555c][bc8f695e][c283942f]
+      [b4a21078][2a3a1f35][b107962c][76030573][14be2dab][3e476241][e294a3e0]
+      [3eed834c][43017b21][4d91de6d][01077ad7][1f56f1c6][f73b4ccf][0852efe9]
+      [8ee1919d][28a51cfe][008cd24e][1f073f84][9d7a4c26][b83e6fa5][aa1f2274]
+      [d8afa16e][08d9ebf6][85e07ec8][b73ed690][d8e9c1cd][c183d282][cf474c92]
+      [ae526254][57c92969][a55e7fd0][dce688d4][7ab1bba3][68628fe3][cf46bd5e]
+      [20fbb0f1][67c3b662][be990a2e][efeb9d77][b110ebb7][c49e05d8][20376f07]
+      [98ca8eb9][6945637f][85b65a9c][fc7c3f47][ccf48ad2][79ad42c7][18abe8c3]
+      [adff147e][bafa92a6][72c491f8][2b6cfaa9][e583fa08][ca2f0d1c][621b2c75]
+      [53649d4f][8dffcd30][4cdb8a3c][6312d5da]
+
++ RakuAST Development:
+    + Fix INIT blorsts running in wrong scope [237469d2]
+    + Treat =place as a directive [b82fa83d]
+    + ignore =finish if there is no code [f997c36c]
+    + fix declaration after bind in ExpressionThunk [b1b4329b]
+    + Replace fallback resolver with compile time lookups in BEGIN time code
+      [639f20a2]
+    + Fix QAST::Var type of captures [9a983ff4]
+    + Add a few missing set_braid_from_self calls to Grammar [4152833b]
+    + Support CORE:: compile time lookups [62b89107]
+    + Support CORE::v6<[cde]> compile time lookups [8467b84a]
+    + fix accessing 6.e PseudoStash at compile time [196fbee6]
+    + fix look up of our scoped subs in my scoped packages at compile time
+      [3853a0f8]
+
+New in 2024.02:
+
++ Improvements:
+    + Better errors for common array parameter mistakes [47fb8c35]
+    + Improve stability in heavy async situations [761153bc][5c289878]
+
++ Additions:
+    + Add Int/Real coercing versions of `infix:<div|mod>` [71c0151a]
+    + Implement sub form of &trans, mainly to support feed operators [b238fad8]
+    + Provide native int coercers to Int/Cool [a67842ac][1eaa9d71][dc5414d6]
+
++ Fixes:
+    + Avoid leaking repo.lock handle [155818f4][e6207699][7ca96bbd][a723c387]
+
++ Deprecations:
+
++ Internal:
+    * Document and/or streamline dispatchers and related [d176728c][78d4fbc0]
+      [344f7978][e6fd943f][02bc10c2][ccbe370a][07049e7f][b151e2d7][35760ceb]
+    * Streamline "core" (bootstrap, core, metamodel) [51297879][bae06a2c]
+      [6117df24][e93208ce][b0dd4ef4][6b231533][024212cd][8e840a51][19da50e3]
+      [88151678][975b6634][1dfd7b4b][9f0d361b][80ac4336][760e7a72][eef53371]
+      [02aaf9e9][0b759a7a][614571d2][67153138][4c86ef77][dab2c235][c944dae4]
+      [2e4113c5][69877047][d49cd4e0][9a828454][de923f1b][1ce9b4c6][3c9f07a8]
+      [24a1e67c][4181d461][2c64cbc7][4f64b487][5585454f][cf773dc2][68cd850f]
+      [fd936efe][04229899][3c218265][192d7d0a][3271329c][71dcfd42][52dfda3f]
+      [b720babd][9f7a3419]
+
++ RakuAST Development:
+    + RakuAST: some nano optimizations [9478d5c7]
+
+New in 2024.01:
+
++ Improvements:
+    + Make dd show types better [57bda882]
+    + Make use of native unsigned integers better performant [c0340fc7]
+    + Add dispatchers for handling unassigned elements in hashes and arrays
+      resulting in better performance in some specific idioms [0e2e20a4]
+      [fa4cc823][1ef51856][70d53fb6][79728078]
+
++ Additions:
+    + New nqp::syscall/register/delegate/track/guard ops as shortcuts
+      to otherwise very verbose nqp::dispatch arguments [a3645497][2d8839e1]
+    + Document dispatchers [9b179a55][690c6c01][93f2a8aa][bafa5ad4]
+      [f0673003][2aa796fd][ac5c89bb][6ba5ee53][1721f00b][5394496a][5dd90860]
+      [e0952486][9a07a6c8][87bcbe6a][b356bbfd][f651e9d6][2e9c0cc1][26ab5c21]
+      [4dc737c3][62a67452][93c31ce9][e002a7a8][7456e6dc][b94e98fc][6819b9de]
+      [bb384c41][fd5e4da6][f2b09f7e][6f75ed00][808885d7][fc670bb8][8bf824a5]
+      [2cfa0768][d6d7d154][45b1025a][6b6548d8][d327d14a][120a06c7][95770d31]
+      [f13ba1d0][12db03a5][11734d4f]
+
++ Fixes:
+    + Handle .extension("foo") on IOs without extension as if :parts(0) is
+      specified [8cda0bc6]
+
++ Deprecations:
+    + Deprecate many Distribution::Resource methods [c83eccfa][cd231798][4d797bbb]
+      [7ac9aeab]
+    + Deprecate the use of PERL6LIB [47fdc20d]
+
++ Internal:
+    + Show :auth:ver:api of module loaded (for RAKUDO_MODULE_DEBUG) [91a062d2]
+      [fcf22b4f]
+    + Prevent possible recursion in archetypes dispatcher [6b61de2c]
+    + Move backend tests from runtime to system build time [69b8a24a]
+    + Use new nqp::syscall/register/delegate ops [becb682e]
+    + nqp::syscall is Moar specific, so protect it [b8aaffd6]
+    + Use new nqp::track / nqp::guard ops [13439539]
+    + Ensure that nqp::track/guard also have their args unboxed [5d377a12]
+    + Use nqp::track/guard in NativeCall dispatchers [6008a00e]
+    + Document and/or streamline dispatchers and related [9b179a55][690c6c01]
+      [93f2a8aa][bafa5ad4][f0673003][2aa796fd][ac5c89bb][6ba5ee53][1721f00b]
+      [5394496a][5dd90860][e0952486][9a07a6c8][87bcbe6a][0e2e20a4][b356bbfd]
+      [fa4cc823][1ef51856][70d53fb6][79728078][f651e9d6][2e9c0cc1][26ab5c21]
+      [4dc737c3][62a67452][93c31ce9][e002a7a8][7456e6dc][b94e98fc][6819b9de]
+      [bb384c41][fd5e4da6][f2b09f7e][6f75ed00][808885d7][fc670bb8][8bf824a5]
+      [2cfa0768][d6d7d154][45b1025a][6b6548d8][d327d14a][120a06c7][95770d31]
+      [f13ba1d0][12db03a5][11734d4f]
+
++ RakuAST Development:
+    + some work was done on RakuAST development, but the number of passing
+      spectest files did not increase this round.
+
+      [1ecff5c5][3b9de763][35484381][54ee127b][5268106d][000ac084][94e58e05]
+      [3c7057c0][c389de26][e1fef673][4bfde24c][91c157d2][3f6fff74][bef0a9bf]
+      [3c1ad110][4b6f77f4][f5e9b2dc][bdfea0b0][d992bf6a][7ea760a0]
+
+New in 2023.12:
+
++ Improvements:
+    + Don't set callers $/ with Grammar.parse in 6.e [8542ad21]
+    + Move close to complete generic instantiation [fc2a5f64][97e6a436]
+      [7739c0d0][aa83d509][2df1be5d][4076476f][eabc07c3][d8a063ae][056f9c33]
+      [3d05492c][b4fd57bf][0b544d6d][5190dcc6][9614026d][5f9f094a][63f24857]
+      [2e453b9c][eef5734b][aa8fbd5b][4218796a][f8a17994][67194314][f4cad695]
+      [b9c09832][21d35888][44f529da][fcd787c1][7e73023b][510c3156][c22439e5]
+      [5f8cf56f][fe40b8e8][09429104][c6890b40][c032e2f8][18d626bd][3c88689b]
+      [c6f4a09c][6c0b54e5][15a787cb][4d38d698][69dd7d66][52aec48c]
+
++ Additions:
+    + Make the Format class a Callable [bd43800b]
+
++ Fixes:
+    + Fix rare deadlocks during supply setup [d31e4f62][6fe16327]
+    + Make sure :chomp is honoured on $*ARGFILES.lines [8dca71e8]
+    + Make sure if 1..0 { } does NOT fire in 6.e [4e75ae14]
+    + Make Match.print more aware of its surroundings [5606fb65]
+
++ Removals:
+
++ Internal:
+    + Microoptimize Promise.then(:synchronous) [ecea4878]
+    + Streamline Grammar, largely de-nqpify [ca1fd753]
+    + Simplify internal QX sub [e22987f4]
+
++ RakuAST Development:
+    + some work was done on RakuAST development, but the number of passing
+      spectest files did not increase this round.
+
+      [eb032f03][3827870b][7584bd1c][1604909b][4f17fb52][b06e170b][17e3d0e6]
+      [b0c03083][cc57b408][50df535c][1a18183a][1410e712][5a51c6f2][68927535]
+      [d62f7780][2d1ce780][497899ee][af27c2f6]
+
+New in 2023.11:
+
++ Improvements:
+    + Don't open handles when calling Distribution.content [9db25993]
+    + Use new stat-time-nanos syscall (in IO::Path) [cc15340f]
+
++ Additions:
+    + Add :slang argument to Cool.AST [4707dc5a]
+    + Add L10N::PT [d1812ff1]
+    + Add "Sonoma" as known MacOS description (for v14 in Distro) [08b35312]
+    + Add Raku.legacy implementation-detail class method [a9da976e]
+
++ Fixes:
+    + Check if requested backtrace is null (fixes jvm bug) [76bfebf5]
+    + (Re-)align backtraces on JVM with MoarVM [53a79941]
+    + Fix handling of dynamic containers on 6.e PseudoStash [0479e2fd]
+    + Make sure that "no actions" really means it (in grammars) [bd2c719e]
+    + Replace incorrect CoC report link [2846ea59]
+    + Fix some aspects of using "is default" [8b800e02][c0b19bec][4b7a9bf6]
+      [d32b729a][c34d60b6]
+    + Fix X::Hash::Store::OddNumber message with undefined last element [f29cecfa]
+    + Fix a regression where exception is thrown for a generic type [49ddf5fe]
+
++ Removals:
+    + Remove largely unknown flags from installed raku script shims [bdd77290]
+
++ Internal:
+    + Make sure t/13-localization tests are actually run [f3a7c045]
+    + Add test for Unicode 15.1 [bd53ad25]
+
++ RakuAST Development:
+    + A lot of work was done on RakuAST development (over 100 commits), raising
+      the number of passing spectest files from 975 to 981 (out of 1358).
+
+      [86458273][ed97a478][5567dd45][8b659b55][47585807][711032b0][9b6c660d]
+      [b5c9c9b3][fe8123d0][92ed414c][f712bdf8][c0eb6b6f][45b1a26b][bd5a28c9]
+      [05a2c26e][d8d79a32][36844606][2b365ac9][9a115ba4][7fcbfd65][60f4b8b9]
+      [f1de73e9][790c7ac9][7a3b2bec][3a44581f][090e6f51][6a991a02][06d9773e]
+      [f6e7475b][efe05847][63fd90ac][fcde2745][ec8628c5][5e3f8f33][4ef932fd]
+      [57ea28d1][e008984a][30b944e7][d6b33aef][a992d305][94caf95a][464ffab3]
+      [98f71865][7049370f][f6c41fcc][42f402c9][70b477ba][4b5333bf][33a6bccf]
+      [3fea4738][18551ef9][a186dd05][a3baa9df][688b625a][c727c2ae][4a5e0181]
+      [9ca11986][0fb3d809][1623e67e][1d626078][6d64ee39][95973945][974c48bb]
+      [24fdf40c][d6de1390][89f58733][b689ae07][4d4e2a8a][8e096c24][721906f6]
+      [ec57a59f][aff290da][cf3feb58][3d91a34c][b468d243][30697fea][fd99f6dc]
+      [12a13c48][92522e89][50b8e191][dc85a994][37fbee11][f53c6505][e8b49542]
+      [2f59eeeb][37e8d29f][9438ef1a][ad87284a][d7c64bdb][349ee9c2][d47c8feb]
+      [98da5961][d15cec91][356faf99][f2c39412][a3bbb380][b224a091][f20f7eee]
+      [41b4a971][16526185][50bd91f0]
+
+New in 2023.10:
+
++ Improvements:
+    + Produce fewer of LTA messages, especially when coercing [8c94fa43]
+      [0dfb9959][7a43c125][04a31275]
+    + Don't link to docs.raku.org for non-CORE types [6050735e]
+
++ Fixes:
+    + Make sure Rational.raku is correct [54c5682f]
+    + Sort input file list for reproducible builds [34eda66c]
+
++ RakuAST Development:
+    + Add a sigilless-variable token to the Raku grammar [7dc21fcf]
+    + A lot of work was done on RakuAST development (over 120 commits), raising
+      the number of passing spectest files from 953 to 975 (out of 1358).
+
+      [0307ea9a][dfaa8c28][a6ec8dfe][05ba0ef0][89755eb0][75c615c4][e8ac6e03]
+      [b58c3203][9b29fdca][92485d66][fbacec38][a9d8b783][d9f2767c][f4ceaf95]
+      [95dce3cd][c52d55b3][ffbb53fd][c06027d0][4701845c][86991e14][9be9c24d]
+      [c8144167][70885883][21720d90][f261b1ea][6a2e895a][96b35253][c7ffcbe9]
+      [76535824][e462889f][6a198f08][bfb8ff77][c90b0393][c5adff6f][adfdef88]
+      [66be950f][1f03312c][4ba8870c][5a8ad916][d6695687][2be8be9f][42dc0854]
+      [c9dcfe3e][e330d6f1][4d700c5d][f8a2b984][549f03db][6209be81][80b47da5]
+      [fb62e729][fad55ca9][d6fc50d6][5d12c329][1eaaded1][daee3985][f63749b8]
+      [a4fae404][b13df056][3a98902d][f9fbde70][0d1c4d3a][67816a58][9ee5023c]
+      [934f8063][dd24f978][a5d947d9][8bc5bdd5][aa5f512b][dacdebeb][1e5de123]
+      [0c5f5ddb][d1952b9e][97c8e4e0][4e1a869a][0c2db5bf][51d80fde][9180ad77]
+      [668913d9][d7cb3070][6b598859][bbb57adb][80557f3a][f45297d5][09d87ecb]
+      [95d3c30e][e419d930][65b1dbd6][401c11b5][10bf44de][bb43068d][1beee9b7]
+      [29e29e90][70362cf4][5fb5480c][301533bb][70b8165c][7626e1ff][d76eb961]
+      [0ae02edf][fef0c629][48068a03][bb9496e5][7e66cd2f][495bec9f][1e86903a]
+      [b1c2f151][4e0c8ce1][b8b323a1][f452fc3f][babd7a47][59ebf8ce][aa58383e]
+      [7660d369][8defd108][55952f67][03592fc6][7b822bd1][ad3b55d6][7a4d0839]
+      [be282712][644f5030][b599b57a][92567220][91d07f59][483ff06c][b47da0d9]
+      [fa812743][ee062e9d][ca1f20c9][ea1ea2d1]
+
+New in 2023.09:
+
++ Improvements:
+    * Work on 6.e PseudoStash clarification [6f6951c0][5d1198e7][4b9679a9]
+      [7d1e8b8b][1b9a434a][f3d97602][9e298840]
+    + Make .combinations about 32% faster [f09fa022][695b9dc4]
+    + Make .permutations about 20% faster [e41e823c]
+
++ Additions:
+    + Introduce Operator class, subclass of Sub [fc8bf7c0][73d02cc0][70944f73]
+    + Introduce X::QuoteWords::Missing::Closer class [b245dcbb][1eb3db77]
+
++ Fixes:
+    + Fix setting operator properties on some operators («>» and «<» and
+      friends) [7f6f2512]
+    + Provide a workaround for macOS Security Integrity Protection [402bcb8e]
+    + Fix JVM build [1227b407]
+
++ Removals:
+    + Remove Test.is_approx [e958040c]
+
++ Internal:
+    + Use new stat syscalls [e258c2cf][64eb3e17][79784420][56294538][57e658c4]
+      [4597e20d][a7f368c8]
+    + Remove superfluous "is equiv" [92758cc5]
+    + Remove "is equiv", it isn't necessary with OperatorProperties [50a4f690]
+    + Move operator related trait_mods to much later in the setting [3937c862]
+    + Handle operator traits with string better [16595e84]
+    + Make sure OperatorProperties are set on new 6.e operators [c9eb5953]
+    + Remove unused attribute in Iterator [ec207675]
+    + Rename all .pm6 files to .rakumod [81d2aa6f]
+    + Make X::Worry::P5::LeadingZero exception more readable [a369b57f]
+    + Streamline Routine.gist [5ed482e0]
+
++ RakuAST Development:
+    + A lot of work was done on RakuAST development (over 230 commits), raising
+      the number of passing spectest files from 938 to 953 (out of 1358).
+
+      [8be7bfe2][e6bc6878][81446212][4a4be8de][76308eb5][c509e758][ce29ccda]
+      [042e1e4d][be6428ba][eec42c77][5aeeb39d][e0b7e831][1380fa3b][ba9f4050]
+      [e6fdb853][168a67ff][cefa085c][ad4c580d][66414c04][b248ae12][e7df63a4]
+      [4b2c4072][48838af4][ea40e4c6][def3a4ad][d3b53807][fc9debac][c4674f70]
+      [c21f4b6b][ceb3d407][978e2d78][61097bd1][74cd925b][3777e2db][4c3d0ede]
+      [c08ebbee][960a40dd][abc13a3c][f723f72c][d86cc550][6574c0e4][cc19095e]
+      [1c47bb26][056bf03f][3ed02c34][1a33df17][646d548e][a0936a7e][37283cd6]
+      [4db885c4][491b8469][b1560d3a][5b8f98b9][bda2be54][bc9a7123][e0975a5a]
+      [743c4252][6605c0a8][238fa003][066d1d95][a6cbf201][b5e9f6fe][57b92f07]
+      [f3da4c1f][89912801][66506c79][0395c7bb][29f3826a][c82791b0][1d785551]
+      [5d43ff5b][8797bf95][fac51f9a][cb0f4ec2][ab613324][008b73de][f3215d05]
+      [d33af758][c0667de0][ea12dec9][98312dcb][2a331f1f][c38af03b][24c05ee0]
+      [4fd34508][eb3f30f4][48ae9919][562926fc][137ff2b9][32cddc56][abbbdd01]
+      [f5e3bc94][e08eadf6][8dc2e53e][2b36f85f][c7338f96][e8076ae4][c035db23]
+      [95dbd6cd][310e40da][51b0afc4][5fe1bd82][ee170b9f][5841afb2][1626cbfb]
+      [76ad99d4][6da14def][e337c823][e026c1b0][65789659][6fa642c6][c19e7a1c]
+      [4b09c649][c821ffeb][5e10f295][b60812ea][68070835][84419efb][c978bf21]
+      [8ec9ae8b][e0864b19][5667eaa7][700e5248][8ed9f681][ec4d75ca][628c71bd]
+      [44ba0636][5881f0b9][577498bc][8631e3ab][3a70184a][be944af2][94eb0c34]
+      [3a0b05d6][9fe819e7][fc5d02ad][d192c18c][6817b10b][7779b565][c5d36f2f]
+      [6b331d9c][ca05e9fb][fe9ff1c6][73737c5b][f4c9f606][5ad51ca5][3e652d5f]
+      [8938e551][b5fcda9f][daec7797][9311a720][cacefa6a][e41ffda4][4f13da10]
+      [8832f11c][c4cd9af1][f4c228dc][f67797db][eb8fea81][9d711ea5][863373a6]
+      [3a91b495][636c8789][42c2f5a7][50c2f86e][8d82622a][7004c563][2671792a]
+      [ebd4c00e][a39765a6][1504fc2f][04ec9234][cfcf9fb3][f950ca13][97fac492]
+      [66b6f788][bc16a7ac][cd32d6a3][381cf921][ae833884][7ebd9bb3][42a92611]
+      [5d784a9c][1b6f5791][4c0ffe67][f05f7746][770ac47b][866e4310][ded9b37c]
+      [6f73a9c2][0079b03b][6d3904d0][60ec27c6][40a94e23][97683f98][ef0aa2b6]
+      [3e81831a][8c2062c2][cbfdaeec][f9de8160][b7a59287][d08c2f98][4d1ff732]
+      [d6b2a465][cdc7c1d5][714f2f6d][783c7900][bc3cc07a][c716de92][e3f23896]
+      [9da6db8f][1e797d64][cdcd9c58][c776e55a][19bd3089][35bdbbc6][44659105]
+      [f4fc256b][d6fd0f60][65cc4b66][150488c1][65d84a4d][1702a8e2][b70ca769]
+      [a1a658ab][c4511e4c][ebe8322a][6771c4ae][e46425c5][8e375870][f1c6261c]
+      [9866e7a1][dba3b448]
+
+New in 2023.08:
+
++ Improvements:
+    + Re-imagine Formatter + Format updates [2cdab744][3e5a3fb6][672999fd]
+      [91f221f0][f6762fa3][6eef82f6][85c83ade][ae149fcc][64e4499a]
+      [fe788b0a][90ccaeb5][3cf10fdc][2e53c872][5deb9eed]
+    + Improve error message on iterating Ranges that can't be iterated
+      [4562d708]
+    + Improve null regex error message a bit [19191971]
+    + Deprecate including an ambiguous .pm module file [4d5f6ff9]
+    + Don't mangle with exception backtrace (related to CompUnit) [e1b5fd0b]
+    + Respect CUPR.may-precomp() in CURI [41ae15a0]
+    + Optimize .min/.max/.minmax/.minpairs/.maxpairs [1579da00]
+    + Make reverse/unlink/rmdir complain when called w/o arguments [bfc5af69]
+    + Make X::Syntax::Confused more logical [375d04e3]
+
++ Additions:
+    + Add sprintf(Format:D) candidate for now [120d929b]
+    + Add format.directives method [474ca30c]
+    + Add Format.AST [9ccd3c37]
+    + Add support for Version.new("1,2,3-") [73d07b4b]
+    + Make v1.2 eqv v1.2.0.0.0 True [d37e6e83]
+    + Implement methods `andthen` and `orelse` on Promise [acd8cc45]
+    + Add support for RAKUDO_NO_PRECOMPILATION environment variable [6750ab31]
+    + Implement .min|max :k :v :kv :p [ec000772]
+    + Implement .(min|max)pairs(&by) + (min|max)(&by, :foo) [4645317d]
+    + Implement List.sort(&by?, :k) to return result indices [53edf4e4]
+      [53794833]
+    + Make sure sub versions of min/max handle adverbs [c5cc2675]
+    + Make sure sub sort takes named args and passes them on [e0a882f0]
+    + Add X::NoZeroArgMeaning exception class [fc11963d]
+    + Add sub versions of WHERE WHICH WHO (#5336) [dbde821f]
+    + Add HOW/VAR/WHAT/WHO as Mu methods [7bc98ec4]
+
++ Fixes:
+    + Fix syntax error when building on JVM [53440ad7]
+    + Backport threadsafe update of quote-lang cache from RakuAST [60a96bb6]
+    + Fix thinko introduced in e6c0b5e919 (DateTime) [b58bf6db]
+    + Fix stringification of v6.* [8e394fad]
+    + Fix version issues when * was involved [824a500b]
+    + Make Regex.gist|raku handle absence of $!source properly [924d5341]
+    + Fix use of CALLERS/CALLER pseudo stashes [4cedc949][e334eb56][16ae94c5]
+    + Fix a coercion in `Range` constructor [b4b77952]
+    + Ensure lock is created before NativeCall role is setup [a4a2bbd2]
+    + Make $*KERNEL.bits correct on ARM64 processors [5d4bb333]
+    + Fix issue with uint64 Bufs and -1 [43473202]
+    + Fix signatures in some Code methods [866099aa]
+
++ Removals:
+    + Remove deprecated --nqp-lib option [55537e9b]
+    + Remove deprecated Proc.status [91fdd538]
+
++ Internal:
+    + Fix some cases of improper language revision tests [68dbf929]
+    + Increase max heap space to 6G for building jvm rakudo [26e7d650]
+    + Remove nqp-home/lib and rakudo-home/lib from vm search paths [4a661911]
+      [64fef804]
+    + Remove unused transcode compiler option [aca81e92]
+    + Don't store a Whatever instance in Version, but a type object [1045f1b2]
+    + Make Any.iterator-and-first an implementation detail [99a01075]
+    + Introduce Range.Inf-Inf implementation detail method [dbb95d1f]
+    + Abstract comparator logic [8157c033]
+    + Buglet with dd [8144415a]
+    + Allow "sorrows" to be specified as "sorries" [c4b68d7f]
+    + Use OperatorProperties.new-compat to set %prec [5fb6d836]
+
++ RakuAST Development:
+    + A lot of work was done on RakuAST development (over 150 commits), raising
+      the number of passing spectest files from 884 to 938 (out of 1358).
+
+      [dd55ffe2][0550ae76][3c2af237][fed1515d][93dd19f8][fcf1c3ff][101d3ca5]
+      [90aa9c66][2c2c4d4e][c7e6e5af][d72c562d][15f9685b][1beeb166][1b68eb7d]
+      [5fa96e37][7d037bbb][b17f9c1c][a31bdc78][5f488afb][ef764677][eb169c3f]
+      [84ffe2b1][e36ac593][a05c4061][2184c5a8][d520abb7][a0466136][82cdc95e]
+      [f2cbac39][5f03e704][b8a3096b][eb753a3b][564a6df1][126e726d][88b22e2c]
+      [743cc08b][5e2c6a39][9fc4f69f][d3a90fc1][1d48d351][6abb6534][d45fb6e5]
+      [cfa7f8d7][794d89a4][7b6c81c7][0d641880][c4059d7d][34a1a5da][1c25d071]
+      [a8a0416e][c02c07e9][dd009197][9f866810][5fc5c32e][632a2ecc][862e3874]
+      [24aa0229][d15d6d7d][6a9e9963][51ebbe80][c002940c][2aca0151][a9e83a93]
+      [6c345f4f][d923a4f5][b390e203][defca25f][947b49c9][3bca9516][de7151fa]
+      [aed6be5b][bef9ea40][b4d8a48d][977d9bee][baf8906b][0ee02288][52f49344]
+      [66d53dcd][ddfe6ae8][ffe631e8][eb60db5d][2588b4cf][01cf0c04][f151aba3]
+      [7114b4d7][3072e91e][f325c404][e1f801fc][390b8227][22e78454][20bfeaf2]
+      [09b452bf][1cf0b06d][5e353bcd][f7a314b2][c4053f20][4e0ecaa3][edd5d4e7]
+      [4afbc34c][5b2f58ba][a0ed2ae9][517e53a5][47577b8a][e4787df9][206c4552]
+      [5af65d33][1b44da3e][ec6671d1][4c1ea9fe][652b3050][e13a6b0f][c1b1ae8a]
+      [8f612e39][36f561a3][8dd2f004][bdf80215][0e79b375][3e437d76][09a16585]
+      [20bd4165][c1f7e4d4][941143d4][011d2ce7][519ec6e8][e20d7b44][0396233a]
+      [02a2bd30][512f5cc4][2caaf9f4][f604c788][703363eb][86557c94][205fb661]
+      [11334377][34a6c01d][c7ad58de][e6f33599][28d266ff][efb58664][35467a20]
+      [5ef70c6a][0ad03b5e][244ea5e9][632f952b][88ca1e38][e5d5d48e][a17588f8]
+      [b20c7993][8a7f4b72][1d5a9508][779f0f79][386cac8a][083f2857][32e078ca]
+      [d9085270][37aa0544][18786514][dc078bfd][b1f54e17][2dbcdafd]
+
+New in 2023.06:
+
++ Improvements:
+    + Make unknown method calls on strings mention the string [563addbb]
+    + Make sure format is reported with `Formatter` errors [10cc908d]
+    + Provide better error message for `my %h = Callable` [65febb98]
+    + Make extensions for CURFS configurable [924386f5]
+    + Make `.fmt` a multi everywhere [69d570d2][a2d616a0]
+
++ Additions:
+    + Implement `Uni.encode` [e3a74746]
+    + Add `X::Temporal::OutOfRange` [83cc6e71]
+    + Add `connect-path` and `listen-path` to IO::Socket::Async thereby
+      implementing asynchronous Unix socket support (MoarVM only for
+      now) [6f9bc5b1][c452fdbf]
+    + Introduce the `Format` class in 6.e [ebe0e0b2][f3bb7a2c][5a7a2e5f]
+    + Add `.fmt(Format:D)` candidates where appropriate [eceaeeae]
+
++ Fixes:
+    + Fix role typechecking over its parent class [a4201c28]
+    + Add one more level of dirs to check for .t fudging [1dc496ad]
+    + Precomp Pipeline: Fix building on CentOS 7 [c0a95290]
+    + Consider META6.json contents when calculating CURFS id [5ec81cad]
+    + Fix copy-pasto in `Capture.Bool` [a2f71d80]
+
++ Removals:
+    + Remove largely unknown / undocumented flags from installed raku
+      script shims [73888f45]
+
++ Internal:
+    + Re-commenced work on Formatter class [a54b99b6][67d8dc76][c3df563b]
+    + Streamline X::Str::Sprintf::Directives::BadType [40aa1605]
+    + Optimize CURFS startup time [77aa79ce][d30ac3e4][655ac635]
+    + Optimize internal directory recursion [0ae02284][78d79112][2642bf2d]
+      [3fa0fdf7][71240f00]
+    + Streamline List.fmt a bit, a few % faster [1617881d]
+    + Combine 6.e augments and additions into single files [7d3b9d6b][3d0b3222]
+    + Don't need to use _I version of nqp::radix... [efa78db6]
+    + Add "rakuast" as key to filter roast on [fa9cd8ef]
+    + Make CURFS extensions more idiomatic [6e8339a6][4d077623]
+
++ RakuAST Development:
+    + A lot of work was done on RakuAST development (over 100 commits), raising
+      the number of passing spectest files from 825 to 884 (out of 1356).
+
+      [c88291e2][d320deed][4a46ee17][6eafacd0][5da5c605][566f878e][b76e2bc0]
+      [1028ceb6][1ab2e3e7][dd475ed0][9b207ab7][4df49e66][790b6b05][d3372c8d]
+      [b593dc9a][0df71cfc][d2203ccb][cc9d1ec0][0bb11fe2][feffac51][22acb30c]
+      [02548b5b][b7c73685][174c941a][881ce570][237b28b9][628bcdca][4b3bfbb3]
+      [dd95fd1c][93f560a7][cebe2ad6][9b071c2c][2e77a038][013a2fa4][000648ed]
+      [653e0c22][c9a5d62d][678aced8][6baa4d56][253a5d8d][7f0ba792][5a8402f5]
+      [c7ecdd82][5d8ca405][ee80ae0d][dce0875a][9095d86b][4813dfb8][11c012a8]
+      [bd10858e][eaa6293f][c6b21ec6][63219673][639e7e90][305a839b][da5fb80f]
+      [885a86a8][54fee5e6][2d2920f0][1c6097b8][17b97c19][003777c4][554c9fc6]
+      [c8a4a214][f05cd033][7661383e][9b9b7216][823f5516][58d638d3][e0cefedb]
+      [e015bfe7][baf1aa0f][84d14dc9][cb887de7][45cc0d4e][f2bff1f7][2cff038d]
+      [e8b477b5][75bdcd64][432c1d62][158c0c75][37e0a0b6][e0ec2749][55a26222]
+      [97d13c59][1657c0f4][a6bec923][4932c2c1][e5568f93][34854eb4][0ff1118a]
+      [489cb328][4dd49339][f581d020][c5b917db][0557d834][0fecf561][e10e3aa0]
+      [5b456299][c884b166][c6ceff3e][e95c45a5][60a10f8a][8a4f4d8e][8ab9d11f]
+      [33cb11be][5790e589][e66bcd67][655ac635]
+
+New in 2023.05:
+
++ Improvements:
+    + Allow Nil as payload to X::AdHoc [45b3a050]
+    + Separate =input/=output from =code [6f482ca0]
+    + Handle uncontainerized type objects as invocant to AT-POS better
+      [3139b6c0]
+    + Introduce Iterator.is-monotonically-increasing [149dd880][2edcaa35][e702f0e6]
+    + Give subsets their .^mro method [7e785883]
+
++ Additions:
+    + Make Int.Str take a :superscript/:subscript named argument [01e82224][0248cc3e]
+
++ Fixes:
+    + Nil.Int should coerce to 0, not to "" [70dc3c8a]
+
++ Removals:
+
++ Internal:
+    + Introduce Str.is-whitespace implementation detail method [fa2b9e34]
+    + Make Str.naive-word-wrapper aware of ANSI escape sequences [bb4514c9]
+    + Streamline X::Syntax::Number::LiteralType a bit [bc51ff46][6e20165a]
+    + Generalize -0123456789 to ⁻⁰¹²³⁴⁵⁶⁷⁸⁹ mapping [5d6ab03c][c33c5538]
+
++ RakuAST Development:
+
+    + A lot of work was done on RakuAST development (over 120 commits), raising
+      the number of passing spectest files from 787 to 825 (out of 1355).
+
+      [7ca567b4][f8ac118c][7a442c6d][9cd11f75][7ac66112][2d656cd2][f12c8598]
+      [7267e7f1][6235256a][13e96284][812ed5f6][1f010bd8][14fed334][a7571cb4]
+      [c7f4ab14][7b86e38b][134418bd][2dd66bcb][b29e1084][aedeadf9][8b462b40]
+      [2bd73522][a72af165][3b302c06][904d3126][eef4a7ca][97325f65][9ca2e9d1]
+      [f4f61663][38cdaf3c][e253ce45][3a801285][edaa90ac][654fb380][eddff44e]
+      [8d74e4e7][80c35e42][ae7a219c][c55455d7][5965d7fb][8e513078][2e3690bd]
+      [ae1856db][6f3c5352][d1ca18f1][eedc165f][c10767e5][242f3098][cc173d83]
+      [d9179b2c][b317b4dd][7bbc2f99][3b705faf][d58e68bd][d1d64b38][b5a30e70]
+      [3f62a6f4][b6fb937d][4b69dd51][8bb54bf5][74d021c4][cd6bc209][cf3d937f]
+      [a4c7b199][5c4f9efe][e92e6f2f][bfb1fe31][ad422bb6][dd5125ae][fc879d6f]
+      [c4275902][6604178b][703378ea][5ea3f79a][08da4bfe][a1d39af5][a2102a96]
+      [6b6f28ed][ee5e4c3b][50fc47cf][eaf4aea2][ff29c918][10742c99][6a79c0f5]
+      [7243e228][b881fe84][b0339c20][c14084ec][01790de4][4f6da10a][80397225]
+      [a3f0f365][34c3e7a8][826eca3f][809f84cc][6b5171d6][e17840d8][cdb9a836]
+      [f4fa7318][7a49b6ec][b50187e4][a4698793][af54c0b2][592d11d3][2ed5c891]
+      [09c4b057][f2b69f53][188fbb62][b45b054d][c2449ef6][14b803f5][73a6ff6f]
+      [213bacbb][fdb84124][ba7f659c][8099dd3c][1fd990fb][6325d10f][a78234e1]
+      [65dc1204][cb8e052b][e6c9e8f1][2592579c][916bdd45][47e1fd0c]
+
+New in 2023.04:
+
++ Improvements:
+    + Make `Mu.WHY` a bit smarter, also handling CORE subroutines [faff9091]
+    + Give `IO::Path.chown` more `unlink` like semantics [dde366ee]
+    + `snip` now can also handle infinite lists [ec8cdd54]
+    + Some exception message tweaking [331fd237]
+
++ Additions:
+    + use v6.e.PREVIEW or v6.* implies `use experimental :rakuast` [fcdb78ce]
+    + Add rotor capabilities to sub `comb` in 6.e [28a32766]
+
++ Fixes:
+    + Fix `Range.Bool` for empty and infinite ranges in 6.e [83caae8e][188beb55]
+      [53135c8d][f31a6d56]
+    + Make sure `snitch` caches Seqs [61b8bee3]
+    + Make prefix `//` working again [efb59f78]
+    + Make `Cool.uninames` actually work [500ad5f6]
+    + Make `Cool.uniname` actually match the documentation [af0c88cc]
+    + Make `List.Set` work again without hanging [5a0e7a76]
+    + Make `Distr.desc` correct for MacOS 11 and higher [eae02e8e]
+    + Fix the git clone cmd in install docs [f79ae571]
+    + Fix `IO::Path::Parts.raku` to handle type objects correctly [16924b41]
+    + Fix "Unexpected named argument 'no_fallback' passed" on some meta types
+      [b01d996d]
+    + Warn about missing perl5 mods (Configure.pl) instead of crashing
+      [6f86699f]
+    + Make Supply.zip handle some potential deadlock situations better
+      [6e2a46f6][2225e207]
+
++ Removals:
+    + Remove support for PERL6_EXCEPTIONS_HANDLER [5d7e3857]
+
++ Internal:
+    + Use HLL comparison for floating point noise check [3bd73896]
+    + Remove some unnecessary BUILD methods [1a86348a]
+    + Add Str.leading/trailing-whitespace implemementation-detail [5feb7f7f]
+
++ RakuAST Development:
+    + A lot of work was done on RakuAST development (over 300 commits), raising
+      the number of passing spectest files from 694 to 787 (out of 1355).
+
+      [1f45b310][098a26e3][8809e87a][1338f4ae][e73f3bbd][48c19e15][f6fe1168]
+      [272cfdbf][39b536bf][f5221b97][880ca8dd][cbf3cd58][c5f555de][95e0a178]
+      [f2fb7b40][e9f438f5][376eb918][97d15491][55bf595d][f4335a84][463e7ed4]
+      [d769af80][84d1ec71][1bfe7a0b][e3e250c2][a620d0fb][ae4ce14a][6489eb82]
+      [6c3468c8][b3d704fe][c74e1608][3bc6e525][e32bcd1f][7f6cfaa8][003c7753]
+      [6c035ff2][2b0d1019][a220d715][543ecd9d][f2fff6ea][a003c3c8][7e334408]
+      [6669c0f2][377f6015][dadeb74e][7f3802c4][c32836f2][93609de3][9d55cb25]
+      [2183ec72][9995ba19][5d8ddaf5][d4633b15][a2cd27b5][110c39d1][d75df77d]
+      [4fa44f8d][e8f419ae][e177bc2e][f49b1080][3f7deafb][46a99d18][610bcfaf]
+      [9406dfe9][c9987b7c][c487eb15][bc24e6f2][79ec334e][ac217e86][525dd643]
+      [5a869366][322f287d][11cf9aa8][d93536e2][6079cf0b][1ae83e43][675c7717]
+      [5787c4f6][13c2bade][9c030754][2a5220a5][b5d1ddee][62122e57][08930e8a]
+      [fa79f834][965520bf][2d54be72][d78754cb][26801016][f06c9c35][0d9a7756]
+      [8a3289ce][f07fae0d][ce6e9031][cf2f709a][b710020b][13005cdd][8cb0dcb3]
+      [301ca0dc][f3c050ef][0482ee7f][c0c08a7f][4a1fad58][7fae9a11][96c68ec5]
+      [d96a1b95][bd23fda5][073da5cd][991ebca9][a5be6d2a][b685e676][892d76e4]
+      [40e2e095][47342e10][7ca3189b][166e1668][3e241ad9][15586b8e][822a74a6]
+      [ede05210][8bfb2c41][217a47b2][2fa64b59][c0be572f][d2eabd01][38c4e0ee]
+      [98cc71c0][1d7bf1c6][23a7c140][90a8183f][bdafcd10][199ff77a][db608f16]
+      [cacc3e39][98169657][d8d9a9f6][f7d1ad37][3540ce25][2f3e6bf9][58770a4f]
+      [761a5a8a][93c02664][23433abe][fa384e23][588d0f6a][cd218869][9db0bc97]
+      [6d9c4c76][eb72312e][6ac6cd09][c3b55cdc][7c6624b3][789a8096][1dcf6452]
+      [b583c333][f41c769d][f72d58bc][9245f985][6a2fee72][c5599481][be633ca0]
+      [c843b6f9][e08b201d][59115717][3b0adfa4][837a2eb8][18a5dab5][b8488d24]
+      [83ed64e9][58157b8d][6ae35eb9][b3ac1d74][28822c84][ad97d8d5][c6b2f8ac]
+      [a7748738][fb53d50a][9ef618ff][bc481335][3a9c1540][36b6244a][81f2ea21]
+      [fb30afae][5ff428dc][e514d5d9][fb988331][07d46773][b258927b][6e8abbf9]
+      [e5e5acb4][0a79b6a9][b5042248][238931ac][d4792fde][ba372596][4b1eaecc]
+      [b6525348][a30f08cb][cacd8bba][3080103b][9cc7cfe0][6eb3fa01][caa6d00d]
+      [33e9a585][b340c2b1][3ebdffd4][7f4554c1][dbe6ae88][b5b4e16a][da6ac812]
+      [db0b6feb][709c0546][7f08b0b5][9774de50][26d9a2ef][cecba5a4][e42ecff0]
+      [34905037][1f149b1a][0235a9be][f5dda722][7bcf8d1b][83f2cb8f][d3b58a34]
+      [a48bfb80][c921a0ec][a1f20e56][e6e28761][88e479f8][7dd3696b][bd084fc3]
+      [00d35fbd][f7a0caea][a930b3ba][679d5c41][f380b87b][458c0fc3][03db2614]
+      [ed7aca5f][ae5c20fa][fd8d76e3][dbad89cd][a4dad180][3fd6ccbd][54e10712]
+      [4d1ddc39][b6a2b1f4][ec5b592c][d540942a][38254c49][d1fe3fee][283eb484]
+      [4682d2ed][45dd84f6][ad5e8305][dc8b66ae][536b5eb7][e68322db][55660490]
+      [d9dd95c1][ae0c69a9][01abff75][8f5bb47f][f9027be3][56d63c96][5f66d853]
+      [b5277b99][a1c73f38][30e15f04][48fc2445][51c3b7bd][c8262a23][46eb6d2c]
+      [fba82975][3fb68b35][b817812b][c45fa248][68614a0a][eed0148a][b09a6a15]
+      [770ff00f][c4ab78b4][f040293a][36ec8e33][b8763c35][b8e1ba3b][262cc42e]
+      [351f053d][72b8b8b0][2d66116b][d9658202][6df32e8b][159cd628][150200c2]
+      [1fd667cf][31fb2b9e][027e37cc][5d1d02d9][7b4b680e][3b838eaf][62d263fc]
+
+New in 2023.02:
+
++ Improvements:
+    + Make use of line directive information for compile time errors [6bc209fc]
+      [89c23ddf]
+    + Improve error message on "foo".Order [665375ba]
+    + Try to be more explicit when exception reporting dies [45b19784]
+    + Make X::Method::NotFound more resilient [eff02440]
+
++ Additions:
+    + Allow for .rakutest as extension of Rakudo test files [4a42b211]
+      [0d49c2e7]
+    + Implement numeric coercers for Date/DateTime [72856df9]
+    + Allow * to be used as identity on classify|categorize [4b264b80]
+    + Introduce `$*EXIT` / `$*EXCEPTION` dynamic vars [50050866]
+    + Add In Memoriam for Ben Davies [ccbf9a09][3d2f8bd9]
+    + Add Complex.sign to v6.e [34cf82aa]
+    + Add Unicode class to v6.c [db7ca2dd]
+    + Make log and sqrt handle negative values mathematically correct
+      in v6.e [760e21c1]
+    + Make RakuAST:: classes available with `use experimental :rakuast`
+      [c9cb334e]
+
++ Efficiency:
+    + Make List.head() about 2.4x as fast [7e69a6de][615b9bf9]
+    + Don't pollute PROCESS:: with failed $*FOO lookups [6ef8993f]
+
++ Fixes:
+    + Fix EVAL regression on symbol leakage [1ea6be79]
+    + Resolve the case of CUPR auto-vivifying some dynamics [7194b1e6]
+    + Fix the list of expected symbols [c6afe382]
+    + Fix swapped iterators in Seq.ACCEPTS [f078896c]
+    + Don't error without git, but all needed files are present [e3e962c2]
+    + Fix `race` to actually race and not secretly hypering [ffc9fc74]
+    + Fix defaults for typed optional @/% params [JVM] [49facdc0]
+    + Fix storing of typed Hashes from a list [c9e391f0][5ed14bc4]
+    + Fix type constraints on QuantHashes [03b3b13d]
+    + Fix breakage with "use v6.e.PREVIEW" [JVM] [c88f50d5]
+    + Hopefully fix all inheritance issues with set operators [586466e9]
+    + Set Xmx4G for building Rakudo [JVM] [67ba2dfc]
+    + Fix error reporting for feeds [e09f20ca]
+    + Fix serialization issues with Version [9e4fa286]
+    + Make Junction:D.(Int|Numeric|Real) work [1841d6d9]
+    + Don't special case [+] to List.sum [5c66515d][6b6c0ec8]
+    + Correct description of BUILD/TWEAK in BUILDPLAN [fbb669ae]
+
++ Removals:
+    + Eradicate knowledge of unimplemented COMPOSE phaser [0040f813]
+
++ Internal:
+    + Make Azure pipelines know about the `main` branch [c3e0eb7c]
+    + Fix a syntax error in Perl code [ad9302d7]
+    + Fix NQP version check [7cd8adfa]
+    + Some minor harness6 fixes [d50a8667]
+    + Upgrade Rakudo tests to Unicode 15.0 [37826798][47ec76bd]
+    + (test fixes) .classify|categorize(*) no longer throw [0baf2c0e]
+    + Micro-optimize ADD-PAIRS-TO-BAG|MIX [7a6c3095]
+    + Fix "ctxlexpad needs an MVMContext" regression in SETTING:: [b21cd61c]
+    + Fix test description for unknown modifier (#5179) [69f1aa1f]
+    + Warn about Unicode versioning issue wrt tests [268da12b]
+    + Many, many commits related to RakuAST development:
+      [e05474b6][956bd776][de998b6f][df72d0b1][fd3ed60e][93a39a6a][356e31cc]
+      [ebe0c896][bc3ab866][a9f4ffb7][88dd3c0b][ad3bc88b][ea42c963][e47d5634]
+      [ae5a599b][62e8f029][51fa4b14][e972178e][c4af208d][77917ed3][0d28cd5e]
+      [b4c1acf0][2d29a5d4][f33888f4][cfac29ae][f6da82bc][736001f6][46f2960d]
+      [ca6f3096][e79b8cf7][02207076][f77e195c][df9e41c5][99db315d][5d7f94aa]
+      [910292ea][30288c3a][f43b66d5][a4233bda][8bdbce85][66a149e4][f9525119]
+      [814b6186][c5a08920][08d7349c][421d57c1][2cd932ab][d0e608ab][5bfbd526]
+      [bddd0685][a9b6cd89][9837caa3][d5a408a9][f40f8b8a][fa170fcb][86b0d01e]
+      [67bb7a27][7acdd9f8][4c6b1e76][f3efb3e2][3989d3e9][6d026119][e193d8c7]
+      [3f4dba9b][ca0742d2][5fe88c03][78ff8057][4fc888d2][1d38dfb9][bd39e9e2]
+      [1bf6f3cf][4e6da7c9][6e501135][f76b86d1][414bb838][c8f8b4e4][9380dc29]
+      [eca14cc9][093974aa][7c28f93e][d5eaf055][5d249be4][01d6624e][f4ab1cdc]
+      [a175ad30][18fea042][c95e0c7b][b57b4132][cf0d95a2][20d282de][44039d74]
+      [161d1182][4ecb99a3][8f27ecc8][75a3f9f2][8bd84524][e1ffa4de][71686ee6]
+      [78247b0c][2fa9a242][b631129a][7f2fd696][fa8841fc][e4eefe3c][49ebe9f5]
+      [29ba81e4][ade15c81][2573378f][56ec60cf][ddf7336a][cb802953][b7439c13]
+      [72e80874][ecb8399d][185152df][dfbe5680][b2542b5d][50c02aac][517f0e1f]
+      [d68afa83][8ba4e59b][eecc8dde][1ea7a07e][2ef5ba8f][8f7b18ba][3513aa3d]
+      [74626de5][8bf06ec6][5dbd30af][4863d612][d0cd82f6][84bde282][4af72c04]
+      [641b36e4][a69a79ed][bf7b9461][a5e5a56c][c8dd111f][a3d90c45][6bf84783]
+      [56e1c7dd][07e81a50][40505920][98dcdd6d][4e75c2c6][f9d1ab4c][d90b2974]
+      [5c8a13d7][73c99451][9072bef0][3e64114a][6f6af938][1a5ae542][669bd130]
+      [8b35e015][ae36b70a][cbff9299][56a22494][78d72a00][e5f9572b][bb7c0d43]
+      [d3cd8a65][b5a3e605][19016866][b3e4d8a5][2c510103][2c53297f][2ae89773]
+      [c2a4d0f8][69bb1bdc][dcfbf3f3][15bdf615][b0974b77][114d59d9][f9ae5178]
+      [1a121077][fac1c49e][25582954][e0c31a4e][bd545822][e22a5f00][03a2d275]
+      [6ca3e817][a9acc308][9acde7a4][51486ed1][dd264844][6529cfcc][49cc2d22]
+      [3a4754ee][824893c2][462824d3][0d9f4f52][80ed4e9d][a6b7569c][9f9dd88f]
+      [60af9df9][6058326c][28d7b1b1][5e800399][a321e27e][fbfd2dc5][cd029491]
+      [0c5d37a4][022a95d4][e67e517a][cbf0db51][9ea7fed8][46016260][827e45b6]
+      [5e5c187c][f21b4afa][b664949d][1aecb4a6][f5ecd9b2][4ce1233d][8954e18a]
+      [771a3899][e2badf02][9ba49196][479774bf][474e9c6c][16822268][7996004b]
+      [f84133ea][bd259c99][c9a8ce7a][1487aae3][dc23129e][f3bd6c59][a12d5c71]
+      [ee717b79][03d59793][faf35023][27ed812d][5b410ba0][dedf4ec8][42cf463f]
+      [466659ab][5fd119af][19bbb1f4][3073c0c9][ce9426be][a6ba9e25][2729c171]
+      [3c2751a7][ad02cb8d][3deb09f1][74a782dc][c894bfa0][70bbe3d7][db8b83ac]
+      [ca49bdd3][6a958b76][7bd32e10][982a658e][af8ef19f][5b10b91c][785fc51a]
+      [c5cf19a1][274e255c][c01cad8d][7ecdb443][05a1e3ec][bae48821][28056c79]
+      [602a5fd3][eb246c27][5ae16fff][0e5bf559][aa506ba0][c2c43fe0][e5ba09da]
+      [e5cdfded][a905cf60][2acde281][1b2bc5f9][250f7859][662e78ac][1f239cd9]
+      [88eefa6c][c014b970][e1a9388d][01c4b74b][678e6a2e][2ab235dc][78fcc2cd]
+      [4e0c305f][125884fb][0182c08e][434786f7][d1fe4e16][d0060a4d][b57678f6]
+      [702f44d4][78e56918][706f6b1e][d85cca48][adf1fa74][a2bd6291][c9970ca2]
+      [285a8d29][0b35f7a6][1240b867][5c0e9a3f][76385ce8][c9647cc2][5eaaaf0d]
+      [ac61d457][f1b870e6][fdafab52][6322b171][0331e302][0d9db08a][9aebf7b6]
+      [ec101f94][8c3ac505][6f9c02b0][8df93dde][7f89093e][036025b3][75d72d57]
+      [0a8faf6a][a698ff06][b261bbb9][4432699d][2562bb11][dce94bb8][3e6f5297]
+      [a71a1a5b][64ca81b1][fa0b5f15][dbceeaba][812c7d18][4abb1134][df7d3129]
+      [dfb20c1b][91716f78][9c00fd83][9598d551][a55b6dc4][1301c9fb][43fead09]
+      [b9e6b7c3][535f6d81][7d3fa91a][daa20321][af86ac0c][af42c158][ad9a3078]
+      [03f96a7b][729efb1c][f109a678][2281bf5b][5d2a0550][aa6f5d0c][a9ff7dbb]
+      [35901c9e][90456552][5a9e1bbd][4f692a5c][40671f48][1387e490][6d6ffccd]
+      [d81f54d6][1af73a77][09d3ee61][cf5b926d][ee73f7fb][500b8e05][20c7345c]
+      [d2f40b23][a2a9208a][20eb4eb9][c22c286e][8ab89b44][0983207a][c4907f0a]
+      [868c8322][6c10f579][8975c2f4][4c3e46ea][e157005a][5051dcd8][a87d9f77]
+      [da0f4484][671476ec][a3bf626b][6d6316bc][0b84aef4][4b7dfc08][edae0ea8]
+      [31fbd7b9][6e41b8f7][36ab2f2c][21ecad40][af7db189][a2ed5826][bfb119f8]
+      [166f257b][c3d104aa][ed69091a][763910f9][6b40c2a5][7bc7cb20][1a219730]
+      [c4a89741][2e707230][d7d4007e][27f977bf][7dc9b8d7][3b2d223e][78edc121]
+      [fa9c2b80][b3a5626e][288b5a95][9ce76692][7e499dfe][65cbd86e][8f0fe8c2]
+      [bdc85c20][f09cb960][deb5a9b0][eb86a7bc][6d3f9d74][fcfbdd63][7c18871a]
+      [3b6551c5][0cb7b4e2][6e354c57][e609ac65][a67bebf8][11a53e7f][e2714599]
+      [86430997][e2756d61][c47ce4e4][9f724d9c][469d3860][5721538f][e0d8fc09]
+      [ee45dfed][8f738ebd][6c210ce2][302378ee][2363ab46][58b1d361][471432e5]
+      [c34c3b92][124c8cc0][50dfab76][73aefe53][0414316f][54943c3d][21b924b5]
+      [96ca0b2a][c9d6d96b][0656a382][2572c1b8][3f80f136][4bc0ca76][985ea4c0]
+      [92dc6b33][1c3cfc01][d414c58c][e67f7aca][3efa3604][4f97ea86][cb727cc1]
+      [899a4593][3a4ba0c8][06e19367][f45af05c][e8d074da][c3044326][64ed6925]
+      [276753ca][6f48e308][a072106f][d38d1c5d][4117642d][4fe1c859][e08fd893]
+      [77036a92][1d7c8fb7][960f3086][2e0feac8][eb4a5b2a][7c76a53b][8fa2240b]
+      [af51b0f0][bd5851a8][63ceb411][b5e676a5][6429a393][26cdab2c][b5d48ce2]
+      [9c22b8e2][f6b68b2b][7d9841eb][f3ddd024][23df134e][0869c5cf][0b95dae7]
+      [67171c08][8bd7f06f][8f378efc][0d2cc125][d8308f5d][805faf43][1b2880c0]
+      [e50668b9][b72a20fc][ad852824][ea0ebc90][94eab407][6d8f8740][c8c30823]
+      [b7d575c8][c16684e3][30810f4f][b02fe6a3][3fca37c1][f0847371][c8629513]
+      [c094494a][a3f7785e][21bda1d7][da7bd2d8][daeaa44e][657d7c8d][2bbee1fa]
+      [85564fc5][1d35c883][3acae169][cf150618][3544b9ac][48d86e61][d9790692]
+      [b5f8be92][979edc1f][8e308201][3ef17793][ce891bb1][33b44db1][b4b094d7]
+      [d296a1bf][097843e9][5985171a][c9c6b2f2][4af1d9b7][109bb92a][e675a241]
+      [f28db05a][2fb330ca][458f07d6][a9854054][49e72fc5][95fb97b8][a7a34dce]
+      [26a8cfcb][b1528886][a4ab9682][69ce0cf8][d09b7b9b][c98d3746][243e8dc9]
+      [e205f362][bad08dae][85f4fc2d][939eb2ff][3d406713][a64d8390][9d15c496]
+      [bcec0356][dbe6b329][79c28ccc][2add87e4][4cbf0032][948da773][f25f6304]
+      [c94ee45a][6ddf3941][de6bcfbd][c4739ff1][62fac9bf][37814937][4b62f4bf]
+      [2295d571][1b4e1fcd][c58e7616][b90cb9f9][4011c269][16cd9b36][e023cc56]
+      [ae5cc55b][6cf62e99][199f9548][d9f49f0b][7d41c960][ed9db185][84811ea5]
+      [ed760d56][5f7c2d05][167e23dd][9e26bf4a][8978230e][8b20dd1b][4b895e87]
+      [06a56a0d][87bf4d1e][62a388cb][1c60e5e0][64e3bb47][1c74e758][7e428f87]
+      [0b656f47][732d95ea][c4da1ef6][2c8a9d0c][80d9122c][3be38cd5][c9be7083]
+      [49ea8493][8c890dd6][72fa2a78][b054eb25][fbd0b628][f22be2d1][46836dc1]
+      [0e4c6207][2873c4b5][51495c57][11f4c2f1][b4b462b8][edb21f32][0ebd9a85]
+      [02dcc282][cee00fd0][12e15779][07452f94][eefe0a50][ade4484e][3ae59cd1]
+      [8798ddc0][439e72e3][298555d3][ac7d479f][760f3944][8191f2e4][18538fb5]
+      [ea51b5c3][61171f4a][875c33a4][e818c692][874becf2][522f1b02][b8900999]
+      [ea1919ec][8be48005][119ea0cb][0bd2deb1][f30a8b21][51762f5d][533fe92a]
+      [d2d731d6][79cd2a78][971763f2][31f28de6][e5cfb41d][263ad354][7e536922]
+      [e92e3c54][4fbe897e][5ef01bcf][67ed1c3c][8549417b][57bdeba2][7542441b]
+      [4519b9d5][c69caa73][86a246d3][f4aeb3e0][6a89d237][912f518c][fc2892e9]
+      [64c969cc][eac76a34][13b1c90e][5fb16cb5][3c6bf179][b223572b][666f392d]
+      [d0c2daa4][b393602e][3e5f3a2e][78fecda9][3d7b4fd9][a9353677][ddf09631]
+      [9cd7378c][caca0657][f51679fa][27d6e385][d45c450e][96e4c568][2d63d156]
+      [9d4a15cf][2fda7e11][3c85b965][e5578ada][e27af066][676aa173][9ab08d3b]
+      [b0f61734][61b01140][a02e4991][1ced0235][59943271][88d37023][06b7d398]
+      [9e2d4082][066e4010][44d8bcae][a8faf17d][cb2c03d8][9d5f35a5][46d8c1ac]
+      [f1f757c1][ee96a9f1][b047b0e6][9dd0764d][1ba87d3b][7fb3c8cc][5ea53b3a]
+      [2247a98b][0b6e76f9][877a08ba][9b8a160e][b7173a29][86663cb0][9d5824cb]
+      [e8bd1b3f][3aa8c877][a5dd70af][0f86d6f7][7d4c4ae0][347d4eb4][82aa030d]
+      [69be8b3a][3dd43586][a072e1ea][d4598e47][fa046b96][eb37f8cc][cd2b8d4e]
+      [e3b5f88d][ba5265ef][af9e6b92][af0b3f14][59bfc18a][0742c95b][f97269a1]
+      [bc0cc7fc][173f601e][700cd0ce][bd67cc99][c9f60a1d][ce0b72f7][1c4a226c]
+      [20f8d3ea][a4c97538][2b4470dd][7e93562c][ae9edaa9][6fb171f1][e39ef789]
+      [8018d8c2][0a32de19][84d34691][9d650660][0d4da93e][4d74a83d][42f1f912]
+      [dd49f98e][ddecbe68][6d7b357f][512ef78a][7102dc77][10894226][88b8060a]
+      [4535adc0][de4a41c2][d40250ea][b5df6e28][5f7ff013][2814e016][dcfb306b]
+      [b8f56ee6][2006fcff][30cf5c79][0562c894][19b3757e][5abd8960][4a6c5541]
+      [123ad032][8b9fb402][2279a0ae][dc452c57][0354c478][9aea72f5][8ee5e99b]
+      [d0916e9a][dcff39f6][5758c351][c5c93a92][e9030098][14958337][d8854eb6]
+      [034ed9ac][d9c9837e][ac5a0090][2fb1427a][8a5e0f8c][93ea024a][58fbc27c]
+      [db32b0d2][44232e76][baf03432][6ca9aada][3f195d2a][6ed3df4b][41284c03]
+      [d992c064][a92a632e][9c69f842][30106844][b6a3abe0][9192900e][85b91b6e]
+      [4e2e9906][656450e2][5890894f][dd906791][64a3bd22][5a7e07d6][5189750d]
+      [edf67891][464a8c68][539557bf][36638d2f][e6cfc4c8][c4080f95][57dd1901]
+      [b436566e][34efa236][50fd019f][b832f70d][677db9cc][f9b01f80][e8c23f84]
+      [dfd27038][6d837b38][212e5e6e][683648cd][468bdb28][6a04f8f5][43298c90]
+      [90df8d81][0b0d4ecb][08f3995e][83fb2518][1adc2ab1][16cc1702][a6ee8bce]
+      [86c0f401][3439c9ad][54984602][436e0d87][54a85b77][69746968][1b5b5751]
+      [35e498eb][91a1020d][5444c4c1][c9e4122a][916aa9a6][e339e027][1a31c3bf]
+      [1e384b2a][9270133e][9686757a][e3b32da1][b23f3815][6f1d1da6][c72aa169]
+      [1ae9b404][095615b8][73271c60][ccccfb72][00a1978d][a63f557a][64a80676]
+      [4db8d3e1][cdb87287][0e218e37][67647f72][a9067598][9b8ffafa][c45c2580]
+      [1f4eb03d][937d058b][47374fcd][7b2264ee][935d843e][5878ac39][c4b3ffbb]
+      [05cfed1b][63d49ac9][1eee6367][872edc5c][0f21ff2c][abb4de67][c8a480fd]
+      [78526bcc][7551c672][be13e518][3c817a16][127fb089][e614d978][a525e487]
+      [80241850][16bc5008][b09f11c8][f7412d1c][b1e40e64][fa23dd4b][c3e81a77]
+      [f0bcdcd2][ed8d70d4][ee21efd8][4b11fea7][56705f35][1c966e57][b1234bcc]
+      [454507c0][672ac184][35b6b6d6][d5dfb523][ac5fef43][6cbd0617][598a9d9c]
+      [da963241][8ee61927][9998d133][a8edae2c][79075ad2][c1c6ef26][a99da6c1]
+      [75b4f5b2][a564ff37][ee983161][84fe0503][a67c8598][2e20149a][882d6a48]
+      [ac282b4f][5234e0bb][1ec15a8d][70a50d51][8c64a479][49b4566e][2cffc13f]
+      [8589e80b][0b0bce89][dfcb5f47][0049c301][14f56a2c][4ab4907a][4f207505]
+      [e1a7ca62][54328e9b][34a9d51c][25d583bf][bbdaf832][68f4a96d][c0cee2e5]
+      [bbe447db][49cb197a][d8184117][9fc9b061][91ebaa01][03b2cf35][69fa6bba]
+      [04329e45][b2f61d86][d2c1de3c][d10c2750][bc7189cc][73839db2][28cb8cc2]
+      [39acef1e][2cb6fe37][6846bc1b][c8eeb941][7702e6b7][fdb42827][896ffc14]
+      [46c2324e][d366e67a][9cfaff1a][85240f0c][1072872e][bab7f837][445a2241]
+      [4a53b6b9][3a73a67e][775bdb28][fc9cbd3e][0ccec24c][8f9a54e9][ea60d168]
+      [ade6861e][a49f5a97][52b90921][c3c1f9c5][95f6c5b4][c3155c05][349b1a83]
+      [97a68d10][6f1b0fe7][015aacf2][48e61f8a][b4fe21c2][f98f316c][886a00d1]
+      [97ecc4d7][37f52599][d824e6d2][40a8d032][e45436ef][e1899640][df1fbfed]
+      [dbbd515a][0e99334e][5dc5bb71][47408ed8][91965978][6405f379][46982a94]
+      [32a733c5][403b680a][0d9f70a0][33c2b283][1d97dceb][5cc476e7][4a6ea806]
+      [156fc2cf][e3b9c663][0d1444d2][14923ccb][fff19795][e67941e9][d8d34a12]
+      [d20bea56][46fc663e][ad940dec][af90aed7][419d371d][95a5479f][035544f2]
+      [88e862a8][e39a546b][c17d5b2f][1be78baa][4c325212][27d1d704][93caca51]
+      [7b4e9823][d3d839cd][30b398b1][1f0fe647][b915dd3a][2b6b4019][cbe8d97b]
+      [63d48fad][83a870cb][4663edbf][b010e70b][8db41819][d2c3e931][b77f6c44]
+      [fb205b31][f89db51c][7ad82e9c][f2b2015a][bb75b628][1f31a41b][d1ce57ad]
+      [fd75bb0f][dcbd66ce][a174de25][760b9198][b0f9d832][53da367b][d371cb51]
+      [c9cb334e][6e337de7][afb700e2][430d6d29][64442a2e][674917ef][6b3c0a60]
+      [2ebe50b1][9841db37][09bdc417][289c4826][b6203f07][ccf3b24b][5b20a8c7]
+      [2d559ef4][01a8faa7][4f1bbdbf][656b58bc][424de2f0][b6df0034][f8e22b6f]
+      [1acb74d8]
+
+New in 2022.12:
+
++ Improvements:
+    + Improve flow of calling set-env.sh from a script [57337212]
+    + Make the "needle (elem) list" message more clear [958537b1]
+    + Make X::TypeCheck::Assignment message better [05d60e21]
+    + Simplify X::TypeCheck::Assignment for containers [1e30b43c]
+
++ Additions:
+    + Allow for --no-foo as alternative to --/foo when
+      %SUB-MAIN-OPTS<allow-no> is set [61617b12]
+    + Allow for -j2 as an alternative to --j=2 when
+      %SUB-MAIN-OPTS<numeric-suffix-as-value> [388924d6]
+    + Allow for .skip(produce,skip,produce,skip,...) in 6.e [2a1ace84]
+    + Introduce "nano" term in 6.e [10feda11][feb97323]
+    + Add IO::Path.created returning the Instant a path was created [dbf035d8]
+    + Introduce // as a definedness prefix operator in 6.e [d05f7eed]
+    + Add method Any.snitch in 6.e [10066021]
+    + Introduce Dateish.days-in-year method [3d181c89][4d43bbf9][67513cb8]
+    + Add rotor-like capability to Str.comb in 6.e [84abeb52]
+    + Make sure Type.are also works [983cf3ec]
+    + Implement IO::Path.chown and chown() [1e02f566]
+
++ Efficiency:
+    + Add a lot of uint candidates for a lot of ops [47f9b286]
+    + Add proper support for uint comparisons [25c76aed]
+
++ Fixes:
+    + Make List:D.iterator a multi so that List:U.iterator works [5ad2c0c6]
+    + Add missing Allomorph.words method [59a34853]
+    + Revert "Add CUR::Staging.candidates method" to fix issue with
+      precompiling modules for packaging [9360c650][6937da17][454752e3]
+    + Implement nominalizable transparency for definites [71de2232][c915b07c]
+    + Make World's `is_type` method more reliable [13f7416c]
+    + Don't blindly make a Version object for vN [7ddb90ce]
+    + Add missing $obj? to Perl6::Metamodel::JavaHOW.archetypes [d059921b]
+    + Fix role parameterization over generics [94f3028e]
+    + Get job done well for coercive nominalizeables [9e18b391]
+    + Make generics work with return type in signature [a3021944][47c35cab]
+      [4cdb5585]
+    + Make (1,2,3,4,1,2).QuantHash>>-- work [63d03eb8][d0ec99a8]
+    + Report deprecated subs/methods that are hidden-from-backtrace [43a6575b]
+    + Feeds require .append to work, not .push [29eadbb2]
+    + Make feed error message more comprehensible [2070ceeb]
+    + Fix module installation writing precomp files into the wrong precomp
+      store [cc7193d0]
+    + Fix NEXT / LEAVE phaser interaction on JVM [ce1af0fa]
+    + Fix definite type parameterization [07164fec] [8a7d84c5]
+    + Fix a regression introduced by new 'dispatch' path related to
+      smartmatch [35b180b8]
+    + Make sure that Array.raku doesn't die on a lazy iterator [2037ffba]
+    + Make sure .elems don't mention the class [3859d6cb]
+    + Fix smartmatch in EVAL regression [0a9e2014][2702b001]
+    + Avoid loss in precision on FatRat .Str conversion [441e71a5]
+    + Revert "Simplify setting up standard handles" to fix seemingly
+      unrelated issue with IO::Notifications not working [64f552f3]
+
++ Removals:
+    + Remove nqp::p6client* ops [126aa804]
+
++ Internal:
+    + Tune Java in response to nqp's (de)serialization rewrite [018e549b]
+      [5a57f84e][18122e02][a78033f1]
+    + Reuse $v-how instead of calling HOW again [191964c5]
+    + Change internal API of RI:Snip [feb04dbe]
+    + Move the iterator logic of Str.comb(N) to RI::Ngrams [e826dbdc][d12461b0]
+    + Actions: Avoid repeated $<sym> eq 'S' [bc3b5824]
+
+New in 2022.07:
+
++ Changes:
+    + Re-imagine DateTime.new(Str) / Str.DateTime [aa462b41]
+    + Make sort() a runtime error [0c9169dc]
+    + Implement coercion via new-disp and re-consider return typechecking
+      dispatcher [7774c331][4ab61720][efd610cb][b4a26fbe][3e45f709][6c3cb859]
+      [f448ac47][a9606b29]
+    + Make Iterable.hyper|race take Any as a default for :batch and :degree
+      [d73d035e]
+
++ Additions:
+    + Implement fallback support for MRO [1128d5cf][83197e34][9710a85e]
+    + Add IO::Path inode, dev, and devtype methods [5c4970c5][599a6362]
+      [6dc2f92c]
+    + Add sub version of .head / .skip / .tail [af31b1df]
+    + Implement Haskell's "span" as "snip" in 6.e [16ccb573]
+
++ Removals:
+
++ Efficiency:
+    + Add native sub versions for .elems and .end (up to 4x speedup) [4fedb6f0]
+    + Make coercions up to 1.6x as fast [5a8aa66b]
+    + Add candidates for sub substr(str,int,int) for up to 2.8x speedup
+      [09ead96e]
+
++ Fixes:
+    + Fix cases where we try calling methods on BOOTCode [4130846b]
+    + Make PostionalBindFailover.iterator die [dd7f3eb9]
+    + Fix subclasses of .Date(Time) coercion [1a7b4b1b]
+    + Revert relaxation of positional bind failover binding [bb944723]
+    + Fix an LTA error message on passing Seq to a List parameter [db13e402]
+    + Fix copy-pasto in error message for native unsigned ints [ffdeecd1]
+    + Add missing private error handling method in Buf[32a40791]
+    + Consider Positional/Associative type parameters in optional defaults
+      [7148da1c]
+    + Fix a deep recursion issue in return typecheck dispatcher [9fa76ec6]
+      [808b0768]
+    + Fix a regression where coercing into a role didn't work [0e09a287]
+    + Implement lazy 'handles' trait application for methods [6430d41d]
+    + Get around a problem where a module duplicates method objects [324adc5a]
+    + Fix lone "-" in MAIN handling with :named-anywhere [3d3966b0]
+    + Add ACCEPTS method for DateTime [31779f47][621d69e0]
+    + Fix some cases of coercion over containerized values [fbe3acd0]
+      [02f32d51]
+    + Make code object based delegation 6.e feature [c6c8dfee]
+
++ Internal:
+    + Micro-opt on CoercionHOW.typecheck [41e07ab9]
+    + Make coercion more easily inlineable [eceea95c]
+    + Simplify $has_varname setting [378a89e6]
+    + Simplify native value / container check in binder [750487c6]
+    + Further simplify native binding check [fc149e22]
+    + Streamline native match check [a2f92b2b]
+    + Ternearize lexpad binding of natives [f2546b44]
+
+New in 2022.06:
+
++ Changes:
+    + Allow optional : on LHS of signature binding declaration [20fd4f04]
+    + Make &[max] and &[min] return RHS for ties [175e716f]
+    + Make handles on attribute of type object more natural [1c04360d]
+    + Allow openbsd to locate shared libraries by version [5abd57a8]
+    + Allow :from<Raku> in identities [3051eefa]
+    + Reconsider the way `$*PERL` is deprecated [10d73ada]
+    + Allow setting ThreadPoolScheduler's max_threads to semi-infinite
+      value [4e56f241] [b0ebb5e6] [febff8fb]
+
++ Additions:
+    + Categorize exceptions thrown by role appliers [7a2f3b19][9155b92b]
+      [d79a261d][86d2a75a]
+    + Add :real named argument to DateTime.posix [1ffedd66]
+    + Introduce (Exception|Cool).Failure coercer [51c00fdd]
+
++ Removals:
+
++ Efficiency:
+    + Slightly speedup exponentiation by Ints [6f6fd1f7][1a12c34d]
+    + Fix unneeded dependency check [636c805e]
+    + Make .tail() on native arrays 25x as fast [7a25fc91]
+    + Make .head/.tail faster on native arrays [7a25fc91][3c47f1d4][73b43e5f]
+    + Make Date.new(Str) a few % faster [39298f10]
+    + Make block exit handling faster for blocks having phasers [9a29735d]
+      [080abcd8]
+
++ Fixes:
+    + Fix install issue on JVM [e4ba84af]
+    + Fix exponentiation by large negative Ints and speedup exponentiation by
+      any sized negative Ints [c66c98fe][e4ae4737][b2c44bf3]
+    + Fix for positional argument binding [83ea6474]
+    + Fix infix le on two native strings [e93447cf]
+    + Fix execution error when referencing non-existing captures [aaa5615c]
+    + Remove counterproductive fallback from ModuleLoader [217960e2]
+    + Resolve race conditions when working with symbols and repositories
+      [6fc2e6c6][0293ae58][ad2fdca4][d1b58910][f5dbd15a][082c7122][466a21d3]
+      [cef53ac1][2e17ca3d][8940d688][95fb9260][3b4061f6][c2f495b0][18c19fc9]
+      [6b117a36][2c6bccb4][ddef6461][a5cf1227]
+    + Make "make test" clean on newer MacOSes [a6a856a4]
+    + Fix my %h is (Set|Bag|Mix|)Hash = foo [62b6792a][51fd091a]
+
++ Internal:
+    + Update BUILDPLAN helper module to uint renumbering [bea59762][9fd893f7]
+    + Let core module installer use information from Compiler object [ce86a7db]
+    + Put CATCH blocks at the start of the scope for maintainability [9f8eea41]
+    + Various micro optimizations and dead code removal [ca5cfed8][0e55e9ff]
+      [36bdd01a][280a2090][b01c493a][a84e1684][64317c4e][8f70f8db][b84a6d2e]
+      [59d07871][556f1a2a][bf979d08][e9de06b8][ce86a7db]
+
+New in 2022.04:
+
++ Changes:
+    + Improve error when `make` encounters non-Match $/ (#4834) [2da9eb22]
+      [540c7365]
+
++ Additions:
+    + Make previous values in REPL accessible with `$*N` [190e303d][1292357d]
+    + Add `INSIDE_EMACS` environment variable for better embedding of the REPL
+      inside Emacs [76035de0]
+    + Add an `IO::Path.dir-with-entries` method, returning a `Bool` indicating
+      if the directory has any entries (without danger of resource leaking)
+      [8a1e7788]
+    + Implement `will complain` trait [a203a5af][2c2c5306][beeb9ffc][2baf8bc6]
+
++ Removals:
+    + Remove the $?COMPILATION-ID constant as it was not documented and not
+      tested [b2a8bfc9]
+
++ Efficiency:
+    + Make IO::Path.mkdir 2x as fast if dir already exists [57a65562]
+    + Shortcut many methods on `Empty` (returning `Empty` without needing
+      to set up an iterator and a `Seq` [1b4977c6][8f5a07d0][943c443c]
+      [1afc3f4f][78ca49eb]
+    + Some optimizations for regex substitution [79cd9d97][55c833ad]
+      [72f2f400][4503faac]
+    + Micro-optimizations to make compilation of Raku code faster
+      [3b692b1b][9a860ca8][9b07b66c][f6d9e90f][6736bd74][2555660b][f00fa82a]
+      [a0303b18][0cb12fee][c74b1275][7c1e80c6][3187922b][5dfa9c4e][c891075f]
+      [91185079][0fe48931]
+    + Micro-optimizations to make module loading faster [f19d36b3][412c4625]
+      [ec20a3f0][173a75b0][97ad3f79][04c8bd6b][55685572][397145a6][83bf9d26]
+      [1c73cb8d][fc5ee2b0][1fd2d843]
+    + Micro-optimize creation of `IO::Special` objects a bit (3x at each
+      Raku startup) [3e217a0d]
+
++ Fixes:
+    + Add mention of 'sub' potentially missing [a56d239d]
+    + Revert "An object will never work if native is expected" compile-time
+      error [94d4820a]
+    + Only assign to caller's `$/` during a regex substitution if it's
+      writable [aed27864]
+    + Make sure we serialize exports [f4cba21c]
+    + Ignore any dot files in "dist" directory [07b4422b]
+    + Make `*CWD` initialization non-lazy, it is almost always needed and
+      making it non-lazy prevents a race-condition [e9575349]
+    + Don't initialize PROCESS:: variables more than once [e7143e00]
+    + Protect setting loading with a lock [5dd82a62][07d3030a][d53d2da9]
+    + Don't treat `!=` as a meta-op of `==` [f3b1e95d][12dd09e1]
+    + Fix race condition in Rakudo::Supply::BlockState [5658f4da]
+    + Fix for a lexical being localized while used in a nested scope [19c6c52f]
+    + Fix typed named argument arrays not reporting type correctly [dcb0ac09]
+    + Make `uniprop`/`uniprops` thread safe [2bd2ca0f]
+    + Correctly check for writeable containers [90d876a3]
+
++ Internal:
+
+New in 2022.03:
+
++ Deprecations:
+
++ Additions:
+    + Expose the `.file` and `.line` methods on `Label` objects [028828ac]
+    + Allow `Date` / `DateTime` *day* parameter to be a `Callable` /
+      `Whatever` allowing e.g. Date.new(2022,3,*) for the last date in
+      March 2022. (#4808) [37756433]
+    + Make sure tools/install-dist.p6 is also available as .raku [6ddf7529]
+
++ Removals:
+
++ Changes:
+    + Make error on `Date.later(:hour|minute|second)` more awesome [7f00f798]
+    + Give `.chomp` the possibility to specify a needle (#4739) [cccc3e8c]
+    + Improve error message for invalid arguments passed to traits [eb151d53]
+    + Test should work with any default version of the language [9425d0fa]
+
++ Fixes:
+    + Un =my= `X::Comp::Group` [74cca333]
+    + Turn junctions into value objects [cc3ed94b]
+    + Fix a bug with gist over `Junction` keys [df09bef0]
+    + Fix classification and categorization over junctions [c50f51f9]
+    + Fix typo'd missing : in .nominal_type signature (#4788) [59dcca66]
+    + Decrement # of calls in a block if any are optimized away [4d19c236]
+    + Fix [native array `.repeated` / `.unique`] issues on JVM backend [b46fed9c]
+    + Fix `IO::Path.parent` [4ef9426f][e53716aa]
+    + Fix multi-method candidates lost when 6.e role is applied [6b58cc03]
+    + Workaround for cases where `.ACCEPTS` may return non-Raku object [f1f5d5cd]
+    + Fix issue with native array.splice [blin] [63830142]
+    + Fix issue with `Net::Curl` [blin] [6d04cc39]
+    + Make `DateTime.new(Allomorph:D)` work [60603bac]
+    + Restore `given` / `when` optimization for `Numeric` cases [986b1df4]
+    + Fix/test `Pod::To::Text` rendering of `=defn` elements (#4803) [ca2d1d6c]
+    + Remove erroneous early exit from install-dist.raku [edb8a200]
+    + Fix resources of the parent repo not found when using Staging [07d580bc]
+
++ Internal:
+    + Optimize more cases of p6decontrv ops (#4793) [2ed88523]
+    + Use new native unsigned integer NQP ops where applicable [ceaa38fc]
+      [4d61a582][28a734d1][548c2550][167c2394][72b9e1c2][e000840d][88386a09]
+      [3e89b30a][96cbc2be][f807186e][de9eeeb2][a71ec345][7c5595e2][a965cdcb]
+      [771655b0][5c8a2cf7]
+    + Generate the SignedBlob/UnsignedBlob roles [65507b89][7870b446][4677dcb7]
+      [fb25bd4e]
+    + Use --/++$i instead of $i = nqp::add/sub_i($i,1) for readability, as
+      this is no longer needed for performance [5caf7aaf][648d02a1][0fac2da8]
+      [db277ae2][11494f98][e06e32ef][2dfc69e2][3b64a627][81099326][a6019d51]
+      [2bf84660][c92b44ec][af7c1c32][8077ebd3][6513988b][b79e9ba5][802a4737]
+      [8529cc97][a236d438][08dcab8d][c1345c57][c7231cd7][bd722aba][473e903a]
+      [f8e69321]
+    + Streamline the Blob/Buf generated code a bit [6a21196c][6230645a]
+    + Generate the sorting logic for native arrays [64c7dfa1]
+    + Make Complex multiplication factor constant [7bc572e7]
+    + Streamline Complex -> Real coercion [e3b836a5]
+    + Simplify creating a Complex object [967a130f]
+    + Enable num->str coercion in native.repeated/unique [979cc607]
+    + Remove unneeded/confusing can('prec') checks [232a55b9]
+    + Remove some unnecessary `try`s (#4773) [0949d67c]
+    + Stop telling users to avoid mimalloc [200579f7]
+    + CURS simplifications (use TWEAK over BUILD, remove .name) [3f10f7da]
+
+New in 2022.02:
+
++ Deprecations:
+
++ Additions:
+    + Add support for $RAKUDO_OPT environment variable [e82e6774]
+    + Implement sub rotor [90a04ac0]
+    + Introducing $*RAT-UPGRADE-CLASS (#4299) [f737b080]
+    + Add Cool.Order "coercer" (#4473) [4b2fc66f]
+    + Add CI job that runs a spectest instead of Rakudo tests [7ef7b6ed]
+    + Add :slip named argument to roundrobin() [de605e84]
+    + Add an Any(iterable).infer method (#4626) [4d263779]
+    + Add ACCEPTS candidate for Junction to Bool [f21af28e]
+    + Add missing checks for nulls [821195b2]
+    + Add missing precedence info for some infix ops (#4725) [cd86606e]
+    + Add .unique to native arrays [bc8c286f]
+    + Add .repeated to native arrays [369093c8]
+    + Add .squish to native arrays [284b5623]
+    + Finally add in memoriam for David Adler [510c24ed]
+
++ Removals:
+    + Remove uniprop-(int|str|bool) [cc5f17a0] [2b355dc4]
+    + Remove check for nullness of descriptor [b2f0a9d2]
+    + Remove some no longer needed CALL-MEs [25ca2064]
+    + Remove RESTRICTED setting (#3965) [6a8fa2f4]
+    + Remove two dummy parameters from (Fat)Rat coercer [6c765609]
+    + Remove dead code from MoarVM and JVM extops [e912bf2e][1ba3fe04]
+      [421dd982][969ae326]
+
++ Changes:
+    + Relax cross-language revision role-class boundaries [d493a051]
+    + Get rid of trailing ] and } when dd-ing typed arrays/hashes [49608021]
+    + Adapt to nqp::radix(_I)? now returning # chars converted [4a3753fb]
+    + Disallow creating Uni with out-of-range codepoints [c56c578c][ef35db06]
+    + Make Complex.new about 30x as fast [586f2f3c]
+    + Get IO::Path!SET-SELF below inlining limit [4f3ff580][efdc1a9e]
+    + $x ** ±Inf is sometimes 0 (#4226) [03065e29]
+    + Make dd output consistent for arrays and hashes [59929f0a]
+    + Call .perl(:arglist) for Capture's list elements [27ede8cb]
+    + Make class A does B{ } error more awesome [535e0151]
+    + Make .WHY on role group delegate to default role [8f989d1a][d3e74427]
+      [91e3c983]
+    + Make set-env.sh script work on MacOS (#4704) [19696916]
+    + Protect some typechecks with try [e3f22147][5f843222]
+    + Make sure that subclasses of FatRat .raku correctly [d6e6afb0]
+    + Make Rat.FatRat about 5x as fast [82afbbf0]
+    + Rename Any.infer to Any.are [186bd0b0]
+    + Bring Rational.floor/ceiling/round/Int below inlining limit [59ea71f7]
+    + Reduce bytecode size of Array[TR].BIND-POS [daeb9915]
+    + Make adverbless @a[iterable] about 2.5x as fast [30f1fba3]
+    + Make adverbless @a[*] about 20% faster [8ac55c57]
+    + Make the adverbless zen-slice (@a[]) a few percent faster [21829c33]
+    + Make FatRat.Rat coercion about 6x as fast [2fe1bb85]
+    + Bring down bytecode size of nativearray.splice helper [38648b4f]
+    + Re-arrange Int.base a bit [4d78bc6a]
+    + Make unsuccessful .first about 40% faster [ed99df18]
+    + Extract failure creation into separate subs [7dc3add8]
+    + Make Capture[n] (and thus $0, $1, ...) about 5x as fast [11c8f82a]
+    + Implement smartmatch as a dispatcher [32401c47]
+    + Set up nativeref types for unsigned integers [b70d1147]
+    + Support primspec 10 for unsigned integers [b092cc6c]
+    + Also check iscont_u when looking for native references [2509e183]
+    + Support uints as their own argument kind in dispatch [c0fbd367]
+    + Use unsigned ops when handling unsigned buffers [63b2b846]
+    + New uint candidates for operators [4db92b18]
+    + Switch to unsigned ops where appropriate [c38b6b42]
+    + Unsigned versions of some iterators [56923c12]
+    + uint versions of native arrays [1ef6001f]
+    + Bring uint improvements to the JVM [27f3b719]
+    + Introduce NYI as a sub (#4716) [94456edf]
+    + Make Int.roll/pick act as (^Int).roll/pick on 6.e (#4695) [45090c91]
+    + Make Int.roll/pick about 6x as fast in v6.e [6222a14c]
+    + Make ^Int:D about 14x as fast [21ee1fa0]
+    + Make creation of Int .. Int object about 14x as fast [8fbe6c0a]
+    + Specify base of non base 10 invalid numbers (#4717) [522155d5]
+    + Further improvements to smartmatch dispatcher [cd20a2bc][6148b75c]
+      [abfb9f86][2486960b]
+    + Do some better job optimizing Junction on RHS [6f925ea2][eba72f4b]
+      [49955840]
+    + Properly support uints in BUILDPLANs [a38bebec]
+    + Don't assume "year" as unit [34455138]
+    + Use proper unsigned ops for accessing multidim uint arrays [8777e923]
+    + Use nqp::istype for nominalizable smartmatch [ef4abcc7]
+
++ Fixes:
+    + Make ranges coerce LHS into a numeric if range boundaries are numeric
+      [7f73dcbd][dd5fabf9]
+    + Many improvements to smartmatching and given/when [d0f2690f][7f1189fe]
+      [7554d733][80fbaadd][fedfd716][91ec1bbf][5855c1d5][6616440d][9f80771c]
+      [966e77fe][a1bb638f][ed85bad6][6b828fe6]
+    + Fix Map ACCEPTS by collapsing explicit junctions [87621e1a]
+    + [JVM] Mention routine in error for wrong arity [522e49a7]
+    + Fix the behaviour of Pair ~~ Pair (#4671) [026c51a0]
+    + Additional fixes and improvements of smartmatch optimizations [2a3f61ef]
+    + Don't use MVM_free if we didn't use MVM_malloc [1b5c0b95]
+    + Fix Nil warning in dd [a8498e8a]
+    + Fix dd for nameless things [95d60623]
+    + Fix potential race condition in Proc::Async start [8321ce10]
+    + Test return constraints for role implementors (#3249) [56b57f61]
+    + Use simpler code for correct `.length` suggestions test (#4703)
+      [9310799c]
+    + Fix warning in Pod::To::Text signature processing (#3528) [36cee696]
+    + Make sure rebuilds of native array will generate ok [21d988d1]
+    + Make add_constant lookup setting symbols only [28b51238]
+    + Make initialization of core dynamic variables threadsafe [768ebea7]
+    + Fix is_array_type on roles [944debd3]
+    + Fix writes to native arrays via [] returning arbitrary data [72ef4e4d]
+    + Fix "This container does not reference a native unsigned integer"
+      [3823f88c]
+    + Fix "This container does not reference a native integer" in Blob/Buf
+      [a64c2f55]
+    + Fix CArray treating all native integers as signed [fee9e822]
+    + Eliminate p6decontrv ops caused by *_u ops [e5b67c1d][b3a71fbc]
+    + Fix custom-lib race (#4738) [dab9cd66]
+    + Fix method put failing on junctions [e521c8e4]
+    + Fix Attribute.(get|set)_value treating uints like str [382f2f10]
+    + Add unsigned candidate of +^ (bitwise negation) prefix operator
+      [ffa09ff6]
+    + Fix "Invalid ....BUILDALL plan: 24" error [118a0c3d]
+    + Fix Attribute treating all native integers as signed [753c173e]
+    + Fix optimizations of smartmatches over subsets [d6fb1919][b9d8aa49]
+    + Fix "container does not reference a native integer" in UnsignedBlob.STORE
+      [14bacc24]
+    + Fix "No registered operation handler for 'iseq_u'" [4e1a7721]
+    + Fix NativeCall wrongly expecting signed integer for size_t rw args
+      [c92833f3]
+    + Fix UInt where block trying to unbox a Scalar [26215f20]
+    + Fix "container does not reference a native integer" with mixed int/uint
+      multidim array indexes [7cb21467]
+    + Fix "container does not reference a native integer" in multi slice
+      [e4a4a92f]
+    + Allow for using uint and int as indexes in native array slice assignment
+      [a35a7791]
+    + Fix precomp file rename race condition [006a920c]
+    + Fix X::Method::NotFound on my-classes [8edc6d88]
+
++ Internal:
+    + Replace nqp::attrinited with a descriptor-based approach [425913dc]
+      [c3448773][13522362][71f8981b][c76c1e64][80f122d1][f96048c1][b6135861]
+      [bdb0cc23][c719eab8][cd585f9d][8f796f5b][28053bd2][43f4e8a5]
+
+New in 2021.12:
+
++ Deprecations:
+
++ Additions:
+    + Add is-wrapped method to Routine (#4579) [99bc766e]
+    + Introducing RAKUDO_PRECOMPILATION_PROGRESS [d88d1cc0]
+    + Add In Memoriam stub for David H. Adler [dba8dbb0]
+    + Add a IterationBuffer.new(iterable) candidate (#4599) [ad145b4c]
+    + Add IterationBuffer.unshift/prepend methods (#4641) [259d29b3]
+    + Add knowledge about MacOS Monterey [1fc8cce3]
+    + Add the ability to display any default values in sub MAIN to the default
+      USAGE message [0b286ed2]
+
++ Changes:
+    + Remove tai-offset-nanos from CORE::.keys [a8c579b6]
+    + Make .subst-mutate faster by simplifying proto [d619e026]
+    + Make .match faster by simplifying proto [2204c7cb]
+    + Make .subst upto 1.9x as fast [0dae67a6]
+    + Remove redundant multi method list(QuantHash:U:) [8fd65670]
+    + Replace some empty TWEAKs by "is built"s [82a9ca4f]
+    + Better cope with megamorphic callsites after new-disp [85df0ba1]
+      [3229ef12][2df1d01a][091005f3][9ad99eb9][441e103f][0d84699c][5de7faf4]
+      [e4b0ddf9][1fbeb4c6][f9aa1d65]
+    + Support Terminal::LineEditor in the Raku REPL [5db6a344][138aca10]
+      [694f648b][7b188795][15a13ffc]
+    + Change SetHash.values() from `is rw` to `is raw` [65987460]
+    + Very simple ACCEPTS for Int:D vs Int:D (#4625) [57387455]
+    + Get either parametric or concrete roles in MRO when requested [641a86d5]
+      [832a8476][bf2a07fb][856f1af0]
+    + Create checksums for release files [8cb674ac]
+    + Clean up list of people to ask for rakudo.org access [a31db709]
+    + Micro-optiize IterationBuffer.append(IterationBuffer:D) [92c490ee]
+    + Remove support for use experimental :collation (#4616) [eb837dee]
+    + New disp nativecall (#4629) [f67fb4ab][30a7e94e][889754d5][d46a826f]
+      [ad5cc86f][f20d448e][452781f3][624f3a7a][02539e96][3e3b5ca8][01470de8]
+      [a6633242][d5b98cf7]
+    + Update Release Guide to have actual information (#4639) [b3b4ca21]
+    + Make Date.new(year,month,day) about 40% faster [74c8c861]
+    + Make Telemetry::snap(:head) return the filename [ad1fddbb]
+    + Make the max number of threads depend on number of cores (#4652)
+      [afc56429]
+    + Make Inline::Perl5 installation suggestion complete [4e23452c]
+    + Speedup Instant.Num by manual inlining [4985f8a6][8642808e]
+    + Add "ceiling" as a suggestion for "ceil" [57adbb1e]
+    + Reduce number of nqp::cpucores calls (#4659) [c7e456d3]
+
++ Fixes:
+    + Make enums and Bool throw on .new [42738187]
+    + Use distribution specific comp unit ids in CURFS [7ab396a0]
+    + Fix X::Assignment::RO message when assignment to Nil is attempted
+      [1ea47322][15ed1566]
+    + Make sure return value of Str.match is threadsafe [1d0a903a]
+    + Fix gisting Buf or Blob parameterized with an unsized type [62c04646]
+    + Use better default for nativesize in Buf/Blob gist [e99e2742]
+    + Clarify let and temp operators [1fec0ef2]
+    + Make StrDistance.ACCEPTS also a multi [3ef09a72]
+    + Make sure IO::Path.slurp returns failures [ce0d31fb]
+    + Make sure ParallelSequence is included in shas [e98e17da]
+    + Fix handling of constrained Mu parameters in signature smartmatching
+      [4329a995][c6e24eba][034768de][e6a68a94][088e0c4e]
+    + Prevent rebinding for readonly parameters [PR #4536] [ea42b3df][5e1f25d9]
+      [32e307b6][90307035][aeaf6f5e]
+    + Fix segfaults when multiple threads initialize dynamics [db136bc5]
+    + Make concurrent access to an enum by value safe (#4634) [4c238bdc]
+    + Fix CATCH blocks setting $! leading to serialization errors with BEGIN
+      time exceptions [b994c6bb]
+    + Fix stupid copy-pasto, fixes #4660 [57801d59]
+    + Minimal change for fix on MacOS Monterey [f029ac83]
+    + Don't suggest method of the same name as "not found" [27082897][58c3d950]
+      [d4914edd][af0153df][545f8d0e]
+    + [JVM] Don't let signal(SIGINT) break the REPL [1ef7019b]
+    + [JVM] Skip or todo failing tests for JVM [d301860e]
+    + Restore larger limit for using string_to_int on 64bit systems [7772b737]
+    + Fix segfaults due to concurrent hash access in parallel module loading
+      [835d0f12]
+    + Fix removing proxies in native calls [f0713c42][a6fad879]
+
++ Internal:
+    + Lift $!do reading out of `for` loop body [560ff8c6]
+    + Fix unnecessary boxing by routines with native return types [6bd955e6]
+    + Prepare extops for a MoarVM internals change [3127861c]
+    + Reduce visibility of Str internal classes [380c7758]
+    + Only simplify protos on the MoarVM backend [c50bc998]
+    + Add a missing MVMROOT in extops [ab02205e]
+    + Remove an unnecessary decont on a hot path [24333b11]
+
+New in 2021.10:
+
+  + SPECIAL NOTES:
+    + Introduce a new dispatch mechanism, including more general
+      and efficient handling of various language constructs.
+      For more info see  [The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
+      [d557f72b][3e086599][1f359956][959eaeab][dc456a1a][a114255c]
+      [055ca78b][4e5e5329][41de71cf][4ecb1995][83f66c59][482f2561]
+      [5c72c7b0][1023c381][8bd88c2e][d9b75e82][7d5f251c][10e5e32b]
+      [54c085e9][e20ee30f][54f2d5ec][34d48682][69d8d938][734ecd2f]
+      [b6359402][68aaeb1e][75a9cb65][52587136][38407083][d28a8aff]
+      [3c5193d1][db03d022][e598691a][39cc4ee7][2b189a51][074c5fc7]
+      [03b524dc][a42047fe][42b52ec9][997af70f][66dc358b][4302f94d]
+      [f146f705][306a9e02][b4bb83c2][0d2db69c][b42f34e9][8ba49228]
+      [868c05ff][90410697][753d269a][4f9ac059][8cc60acc][8845d57a]
+      [71086d4f][c58d69eb][1360ffe1][3dd4314d][4956784e][db543fc6]
+      [3aeb8e31][1ca8b728][417d17c5][8fc8a7f8][fba37c5b][85d4aaee]
+      [dda0ea03][2baa490b][50fcef71][419d21a6][6e4a5420][21680e1f]
+      [ccf7fa59][ca4d3f76][5973a1c6][5b4ee2e5][533978d0][192821f8]
+      [c34964b3][7f15f505][39eb6778][049d1300][6bd5a86b][7055e93c]
+      [df9c3939][26ee39e1][258610e8][fd9d62be][cff8e98f][9b39ae14]
+      [269d9394][610a6c81][5d93c2ea][8b52034d][7e9aa39b][ce7e94e6]
+      [29973253][13cae29b][b21bf9a8][7816de91][1c2b7149][c6342f8d]
+      [de24aac1][ddcaf413][67501437][1355f036][3ebee705][1ab7674b]
+      [8e760be0][4c14af68][25f0ef88][fa5b82af][dafb08cf][daa954fa]
+      [652079e7][7afa7bf6][dc070055][11e73132][4e0ceea0][cf46a3c6]
+      [8e20ea60][d17f00b5][5ba7cf0a][885f4ab5][84da856a][f8fa8844]
+      [25d2f634][5d07d600][1f172ecb][5dedf062][20a3ed03][79e5919b]
+      [605cd8e5][61f6984b][96e15cf5][439fc5bd][7583f21e][fa4efbf1]
+      [52338a0c][b8183107][84b1820c][f496be1d][edf17b3d][9d7d164c]
+      [c1a89bc0][1253f4bd][c0098e3f][ebd03058][3e5e217f][cee2053c]
+      [9e7499ed][a267025f][33a6655e][fd383374][1220a3ec][a638cf61]
+      [c1a89bc0][1253f4bd][c0098e3f][ebd03058][3e5e217f][cee2053c]
+      [9e7499ed][a267025f][33a6655e][fd383374][1220a3ec][a638cf61]
+      [c61d91a6][65b5b4a9][e7fee3ac][b63ff146][0400253c][6d05ce36]
+      [90e650cf][73b82cf2][02d4e74f][336d488b][34df830a][558dccc0]
+      [d2d21236][6d395816][72d9a0de][e8910a4e][e19bcbf2][d4062aa0]
+      [69fb2d79][9441ef4a][8668ebf0][a04fe6c0][fab8e646][39b60a2c]
+      [383a2fb2][36664650][2afbf2a2][7ff1a8a2][0805986b][a0c5c20e]
+      [009f4d39][1bc136ac][0d4ba023][4d25d5d9][4c2be058][2051e7e6]
+      [d9d30744][0da1bec2][41d478e8][45d642f6][0f323688][36738fac]
+      [2ee73dbf][dc2efba6][b8e55656][8504a9a9][dfb8446b][080f772c]
+      [19e0c985][4830a042][f488a6e8][305afb75][9a277af2][77a186f2]
+      [3513296b][3ad1a93f][ebe6682d][32f1e20e][0b6f3b33][c412cd76]
+      [de5ee1e8][0259d451][d2c88868][bfd8a36b][583a6da5][133807ca]
+      [9ea760d8][dd2b274f][38f6f873][21271aa5][cddcdb71][191fbba9]
+      [ff92bac5][aa728ef7][40bf3f3e][8d1f24f9][ca3355a8][d6d90f41]
+      [02c13fad][8fc643ec][b34ae24a]
+  + Deprecations:
+   + The `$*PERL` variable usage will warn starting from `6.e` language release,
+     using `$*RAKU` is preferred now [11fd2d70][3dc4aca2]
+  + Additions:
+    + Add Cool.Version coercer [dab7404c]
+  + Changes:
+    + De-unicodify `Raku` and `Rakudo` in the welcome message [ba15173f]
+  + Fixes:
+    + Fix a bug where using a signature constraint with a named callable parameter did not work
+      [e9a0b18c][9c2cc9c2][ffb587f2][51968148][d47185eb]
+    + Make sure name suggestions shown in the `X::Method::NotFound` exception are properly sorted
+      [0152e3c3][569f90ea]
+    + Fix a bug in module loading preventing the `Inline::Python` module to be loaded twice
+      from different locations [88862a9f]
+    + Ensure symbols installed into `GLOBAL` during loading of a compunit are not lost [0cb2cb50][bb607b6b]
+    + Fix loading wrong version of a module among ones with the same name happening in some cases [33296d40]
+    + Fix overwriting of the `.repo-id` file in some cases [fbb5228e][bc2cac13]
+    + Fix `require` of a package with globally existing class names [d4f7d174]
+    + Fix displaying a warning when using `is` routine from the `Test` module
+      when comparing objects where calling `.Str` is impossible [69aaa424]
+    + Prevent heredocs from improperly using block variables when continuing after the block [a78c9f0d]
+    + Fix a bug where calling `substr` method on a `Str` object without arguments led to infinite loop [93f0d86f]
+  + Internal:
+    + Log event of exhausting system threads when `RAKUDO_SCHEDULER_DEBUG` env var is enabled [ffaf453d]
+    + Pass `lib` in `RAKULIB` instead of `-I` in the `harness6` script [e09df02c]
+    + Rewrite `INDIRECT_NAME_LOOKUP` [431c3d6b]
+    + Use `$*RAKU` instead of `$*PERL` in more places [ff6951f5]
+    + Add `:override` parameter to `Rakudo::Internals.REGISTER-DYNAMIC` [4b8b566a]
+    + Consistently use a number for value in name suggestions hash [c99ffc51]
+
+New in 2021.09:
+
+  + Additions:
+    + Introduce the `safe-snapper` module. It is a shorthand
+      for loading `Telemetry` and starting a snapper with control-c
+      safety, allowing one to stop the script with control-c and
+      still get a report [87152eba]
+    + Add ability to subtract an `Instant` value from a `DateTime`
+      object and vice versa [9a4af4b6]
+    + Add `Numeric` coercer to `DateTime` [67138ec0]
+  + Changes:
+    + Make the `sprintf` method show its format string on error [ea8a95e5][57841911]
+    + The `test` named parameter of the `dir` routine now handles Junctions [21a7117d]
+    + Improve error message for the `X::Pragma::CannotPrecomp` exception [a52f1f62][fe461d17]
+  + Efficiency:
+    + Numerous small speed-ups and memory-related improvements
+      [94462dfa][3aba9707][3c1c709c]
+  + Fixes:
+    + Properly handle List of Lists in the `List.fmt` method [a86ec91e]
+    + Don't lose concurrent modifications to `%!conc_table` [72bc5623]
+    + Fix potential race in `Metamodel::Concretization` [d666dfe8]
+    + Make the default scheduler properly see `RAKUDO_MAX_THREADS` env variable [b14d404a]
+  + Internal:
+    + Support `ROAST_TIMING_SCALE` in telemetry tests [9681a093]
+    + Fix false positive in basic telemetry test [c0a6823b]
+    + Pass along whether the Rakudo runner was called with `--full-cleanup` [5492452b]
+    + Update the concretization table more sparingly [b236dcfd]
+
+New in 2021.08:
+
+  + Additions:
+    + Enable rendering of nested blocks in the `Pod::To::Text` module [07517164][27f7924e][36de39f6]
+  + Changes:
+    + Raise priority of `let` and `temp` operators compared to `.=`, `.` and
+      auto-increment, making `let $foo .= &{ Nil }` work more intuitively compared to
+      `(let $foo) .= &{ Nil }` as was necessary before [ca40fca0][723e7488]
+    + Change the `Scalar.WHICH` method implementation, fixing the semantics to reflect
+      that `Scalar` is not a value object [56fce9e7]
+  + Efficiency:
+    + Make the `&&`, `||` and `//` operators about 2x as fast for the `+@a` candidates [db441c2c]
+    + Improve performance of smartmatching between two `Signature` objects [66ae8612]
+  + Fixes:
+    + Fix some occurrences of hash-related concurrency issues [58ae9394]
+    + Fix the `List.reduce` method when used with `&infix:<&&>` [ea389d66][db441c2c]
+    + Fix matching of native types against roles `Numeric`, `Real` and `Stringy` [a8a78132]
+    + Make `Pointer.Numeric` and `Pointer.Int` methods return 0 instead of resulting in an error [681e3b5e]
+    + Fix a race in the `ClassHOW.new_type` method [08f5448d][83b0bca7]
+  + Internal:
+    + Make checking for Windows cheaper [89df7f4b]
+    + Simplify `Rakudo::Iterator::While` iterator code [ffde2ba2]
+    + Fix location of the `Proc.status` deprecation message [54f1b7a5]
+    + Add tests to make sure float and double `NaN` can be passed to native code
+      via NativeCall using the Raku `NaN` value [8ae6f394]
+
+New in 2021.07:
+
+  + Additions:
+    + Make `cmp` routine work properly on `Iterator`, `Seq`, `Uni`, native arrays and empty `List`s
+      [efb3116a][f3ff0621][76714ca4][39ba8884]
+    + Add the `ACCEPTS(Uni)` method on `Uni` candidate [6b6459f3]
+    + Implement `last` and `next` with a value for `6.e` language revision
+      [402ea056][2542a0ac][a5d81353][0761d4b2][47ebc86c][a2faac4b]
+      [e777fc4f][4f190875][21576423]
+    + Properly support nearly all HTML5 entities in Pod `E<>` formatting code [910179d7]
+    + Allow `Ctrl-C` to stop entry in REPL  [cf7b4f18]
+    + Add `⩶` and `⩵` as Unicode synonyms for `===` and `==` [eab780f3]
+  + Deprecations:
+    + Deprecate the `status` method on `Proc` in place of `exitcode` and `signal` methods
+      [249fdba2][2fd458cc]
+  + Build System:
+    + Tidy and improve cleanup rules [e771bd8a]
+    + Support creating an MSI installer [4e93b84e]
+  + Changes:
+    + Allow `add` method on `IO::Path` to take multiple values (e.g. `"foo".IO.add(<bar baz>)`) [b4d33982]
+  + Efficiency:
+    + Optimize calls to `map` [a8f144cc][38626c68]
+    + Optimize loops without phasers for one and two arguments case [265888ce]
+    + Make for / map with 2+ arguments up to 2x as fast [4c417f31][4f5fb9e6][bfa6b295]
+    + Make `List cmp List` about 25% faster [50bd1717]
+    + Reduce overhead of loops with phasers by at least 5% [5ecc8308][7a1b729b]
+    + Make the `grep(Callable)` method about 3% faster [52ffc125][bb09bbb8][71f6bada]
+  + Fixes:
+    + Fix `rakuw.exe` to be a non-console app [57885f66]
+    + Fix CURI probing and installation edge case issue on Windows [2839cef6][d668d992]
+    + Clean up sockets created by `IO::Socket::INET.new` on error [bee5c7af][271f17b0]
+    + Fix freezes caused by concurrently produced iterators
+      [8eae05b9][2d396ae7][6e66c2e5][24b0df8a]
+    + Fix `unimatch` for non-base properties [0a1256af]
+  + Internal:
+    + Implement support for `moar::hllincludes` config variable [a96bfdc2][552f2810]
+    + Fix binary release `set-env.*` scripts with space in path [a4a46e3c]
+    + `Rakudo::Iterator::UnendingValue` no longer a `PredictiveIterator` [917d674b]
+    + Separate `Rakudo::Iterator::IntRange` into two classes [03aef65c]
+    + `PredictiveIterator` provides own `push-until-lazy` [7cf3927d]
+    + Various internal fixes and improvements
+      [5976e30e][bdc5092f][1bd0411c][f2959ad5][ddc7c9ff][9c69b7d5]
+      [941349d0][eae82f09][2efe4302][7f5f60e8][22f78f4e][9bf1e1c2]
+
 New in 2021.06:
 
   + Additions:

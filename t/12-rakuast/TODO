@@ -1,0 +1,31 @@
+These classes most likely still need tests.  Once you've made tests for a
+class, please remove from this list.
+
+NOTE: This list is by no means exhaustive, nor is there a guarantee that it
+is possible to create a test for a given class.  If you think it's not possible
+to create a test for a given class in this list, please remove that class from
+this list and explain in the commit message why it is not possible to create
+a test for that class.
+
+RakuAST::BracketedInfix
+RakuAST::Categorical
+RakuAST::ContainerCreator
+RakuAST::CurryThunk
+RakuAST::Declaration::External
+RakuAST::Declaration::External::Constant
+RakuAST::Declaration::Import
+RakuAST::Declaration::LexicalPackage
+RakuAST::Declaration::Mergeable
+RakuAST::Declaration::ResolvedConstant
+RakuAST::Origin
+RakuAST::Origin::Match
+RakuAST::Origin::Source
+RakuAST::QuoteWordsAtom
+RakuAST::Regex::Assertion::Named::Args
+RakuAST::Regex::BacktrackModifiedAtom
+RakuAST::Regex::Quantifier::BlockRange
+RakuAST::Regex::SequentialConjunction
+RakuAST::Statement::ExceptionHandler
+RakuAST::Statement::Require
+RakuAST::UndeclaredSymbolDescription
+RakuAST::UndeclaredSymbolDescription::Routine

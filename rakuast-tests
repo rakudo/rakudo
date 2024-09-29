@@ -1,0 +1,41 @@
+#!/usr/bin/env raku
+
+say run(<raku --version>, :out).out.slurp;
+
+say "Testing RakuAST";
+
+my @failed;
+my $done   = 0;
+for "t/12-rakuast".IO.dir(:test(*.ends-with: '.t' | '.rakutest')).map(*.Str).sort {
+    say "=== $_";
+    my $proc = run "raku", "--ll-exception", "-Ilib", $_, :out, :merge;
+    if $proc {
+        $proc.out.slurp;
+    }
+    else {
+        @failed.push($_);
+        if $proc.out.slurp -> $output {
+            my @lines = $output.lines;
+            with @lines.first(*.starts-with(" from gen/moar/stage2"),:k) -> $index {
+                say @lines[^$index].join("\n");
+            }
+            else {
+                say $output;
+            }
+        }
+        else {
+            say "No output received, exit-code $proc.exitcode()";
+        }
+    }
+    $done++;
+}
+
+if @failed {
+    say "FAILED: {+@failed} of $done:";
+    say "  $_" for @failed;
+    exit +@failed;
+}
+
+say "\nALL {"$done " if $done > 1}OK";
+
+# vim: expandtab shiftwidth=4

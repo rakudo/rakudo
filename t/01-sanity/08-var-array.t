@@ -1,5 +1,3 @@
-use v6;
-
 # check array variables
 say '1..11';
 

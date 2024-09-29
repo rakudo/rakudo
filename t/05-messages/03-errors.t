@@ -1,8 +1,8 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 25;
+plan 26;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -22,6 +22,7 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             'using substr instead of subst';
 
 # https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -143,9 +144,7 @@ is-run 'sub rt125181 returns Str returns Int {}',
 
 { # coverage; 2016-09-18
     throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
-    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
-    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
 }
 
 # https://github.com/rakudo/rakudo/issues/2110
@@ -174,5 +173,18 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/issues/2385
+is-run 'role R2385 { multi method r2385(--> Str) { ... } }; class C2385 does R2385 { multi method r2385(--> Int) { 1 } }',
+    'Role methods implemented by a class are checked for return type as well as for arguments',
+    :err(/ 'Multi method' .+? 'must be implemented' /), :exitcode(so *);
+
+# https://github.com/rakudo/rakudo/issues/2921
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
+'Absurd adverbing results in a proper error message';
+
+# https://github.com/rakudo/rakudo/issues/4178
+is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
+'An attempt to use a closed handle results in a proper error message';
 
 # vim: expandtab shiftwidth=4

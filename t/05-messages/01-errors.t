@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
@@ -52,12 +52,12 @@ subtest 'chr with large codepoints throws useful error' => {
     }
 }
 
-# https://colabti.org/irclogger/irclogger_log/perl6?date=2017-03-14#l1018
-throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
+# https://irclogs.raku.org/perl6/2017-03-14.html#18:26
+throws-like ｢my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 
-# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-04-14#l101
+# https://irclogs.raku.org/perl6-dev/2017-04-14.html#13:42
 # https://github.com/Raku/old-issue-tracker/issues/2262
 {
     my $param = '$bar';
@@ -145,6 +145,7 @@ for <fail die throw rethrow resume> -> $meth {
 subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     plan 2;
 
+    todo "dies at compile time with: '୯' is not a valid number", 2 if $*VM.name eq 'jvm';
     with run $*EXECUTABLE, '-e', 'say 0୯', :err, :out {
         is   .out.slurp(:close), "9\n", 'STDOUT is right';
         like .err.slurp(:close), /'୯ is not a valid octal number'/,
@@ -184,14 +185,15 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a signature mentions the name of the method';
 }
 
-{ # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-31#l169
+{ # https://irclogs.raku.org/perl6-dev/2017-05-31.html#13:26
+    todo "X::Method::NotFound doesn't offer suggestions here", 2 if $*VM.name eq 'jvm';
     throws-like '42.length      ', Exception, '.length on non-List Cool',
         :message{ .contains: <chars codes>.all & none <elems graphs> };
 
     throws-like '[].length      ', Exception, '.length on List',
         :message{ .contains: 'elems' & none <chars codes graphs>     };
 
-    throws-like 'class {}.length', Exception, '.length on non-Cool',
+    throws-like 'bag(1).length  ', Exception, '.length on non-Cool',
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 
     throws-like 'length 42      ', Exception, '&length',
@@ -216,6 +218,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
 # https://github.com/Raku/old-issue-tracker/issues/5093
 # https://github.com/Raku/old-issue-tracker/issues/3569
 {
+    todo "X::Method::NotFound doesn't offer suggestions here", 1 if $*VM.name eq 'jvm';
     throws-like q| class RT123078_1 { method foo { self.bar }; method !bar { }; method baz { } }; RT123078_1.new.foo |,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_1'>>/, /\W '!bar'>>/, /<<'baz'>>/),
@@ -224,10 +227,12 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
         'a public method of the same name as the missing private method is suggested';
+
+    todo "X::Method::NotFound doesn't offer suggestions here", 3 if $*VM.name eq 'jvm';
     throws-like q| class RT123078_3 { method !bar { }; method baz { } }; RT123078_3.new.bar |,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_3'>>/, /\s+ Did \s+ you \s+ mean/),
-        suggestions => <Bag baz>,
+        suggestions => <Bag VAR baz>,
         'a private method of the same name as the public missing method is not suggested for out-of-class call';
     throws-like q| <a a b>.uniq |,
         X::Method::NotFound,
@@ -246,6 +251,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         :message{ !.contains: "Did you mean 'x'" },
         'Ancestor submethods should not be typo-suggested';
 
+    todo "X::Method::NotFound doesn't offer suggestions here", 1 if $*VM.name eq 'jvm';
     throws-like q| class GH1758_2 { submethod x { };}; GH1758_2.new._ |,
         X::Method::NotFound,
         message => /"Did you mean 'x'"/,

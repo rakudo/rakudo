@@ -1,0 +1,1970 @@
+# Block or statement, used in statement prefixes which can take either a
+# block or a statement
+class RakuAST::Blorst
+  is RakuAST::Node
+{
+    method as-block() {
+        nqp::die("RakuAST::Blorst classes must define 'as-block'. " ~ self.HOW.name(self) ~ " does not.")
+    }
+}
+
+
+# Something that can be the target of a contextualizer.
+class RakuAST::Contextualizable
+  is RakuAST::Node {}
+
+# A label, which can be placed on a statement.
+class RakuAST::Label
+  is RakuAST::Declaration
+  is RakuAST::ImplicitLookups
+  is RakuAST::Meta
+{
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Label, '$!name', $name);
+        $obj
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { ['my'] }
+
+    method lexical-name() { $!name }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Label')),
+        ])
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $label-type :=
+          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+        # TODO line, prematch, postmatch
+        $label-type.new(:name($!name), :line(0), :prematch(''), :postmatch(''))
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(
+            :scope('lexical'), :decl('static'), :name($!name),
+            :value(self.meta-object)
+        )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my $label := self.meta-object;
+        $context.ensure-sc($label);
+        QAST::WVal.new( :value($label) )
+    }
+}
+
+# Everything that can appear at statement level does RakuAST::Statement.
+class RakuAST::Statement
+  is RakuAST::Blorst
+{
+    has Mu  $.labels;
+    has int $.trace;
+    has int $.statement-id;
+
+    # this attribute is only for collecting doc blocks in the Raku grammar
+    # so that they can be inserted into the appropriate statement list at
+    # the appropriate time.  It has no meaning anywhere else.
+    has Mu $!doc-blocks;
+
+    method set-labels(List $labels) {
+        nqp::bindattr(self, RakuAST::Statement, '$!labels',
+          $labels ?? self.IMPL-UNWRAP-LIST($labels) !! []);
+        Nil
+    }
+    method add-label(RakuAST::Label $label) {
+        nqp::push($!labels, $label);
+        Nil
+    }
+    method labels() { self.IMPL-WRAP-LIST($!labels) }
+
+    # Attach any collected RakuDoc blocks to this statement
+    method attach-doc-blocks() {
+        my @collected := $*DOC-BLOCKS-COLLECTED;
+        if nqp::elems(@collected) {
+            nqp::bindattr(self, RakuAST::Statement, '$!doc-blocks', @collected);
+            $*DOC-BLOCKS-COLLECTED := [];
+        }
+    }
+
+    # Add any RakuDoc blocks attached to this statement to the given
+    # statementlisty object, and add the statement itself to it as well.
+    method add-to-statements($statements) {
+        if $!doc-blocks {
+            for $!doc-blocks {
+                $statements.add-doc-block($_);
+            }
+        }
+        $statements.add-statement(self);
+        Nil
+    }
+
+    method set-statement-id(int $statement-id) {
+        nqp::bindattr_i(self, RakuAST::Statement, '$!statement-id', $statement-id);
+    }
+
+    method set-trace(Bool $trace) {
+        nqp::bindattr_i(self, RakuAST::Statement, '$!trace', $trace ?? 1 !! 0);
+    }
+
+    method visit-labels(Code $visitor) {
+        for $!labels {
+            $visitor($_);
+        }
+        Nil
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        False
+    }
+
+    method IMPL-WRAP-WHEN-OR-DEFAULT(RakuAST::IMPL::QASTContext $context, Mu $qast) {
+        my $succeed-qast := QAST::Op.new( :op('call'), :name('&succeed'), $qast );
+        QAST::Op.new(
+            :op('handle'),
+            $succeed-qast,
+            'PROCEED',
+            QAST::Op.new(
+                :op('getpayload'),
+                QAST::Op.new( :op('exception') )
+            )
+        )
+    }
+
+    method as-block() {
+        RakuAST::Block.new:
+            :body(RakuAST::Blockoid.new:
+                RakuAST::StatementList.new: self)
+    }
+}
+
+# Some nodes cause their child nodes to gain an implicit, or even required,
+# topic. They can supply a callback to do that during resolution.
+class RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::Node
+{
+    method apply-implicit-block-semantics() {
+        nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
+    }
+}
+
+class RakuAST::ForLoopImplementation
+  is RakuAST::Node
+{
+    method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
+        # TODO various optimized forms are possible here
+        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
+            $body-qast, $label // RakuAST::Label)
+    }
+
+    # The most general, least optimized, form for a `for` loop, which
+    # delegates to `map`.
+    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label) {
+        # Bind the source into a temporary.
+        my $for-list-name := QAST::Node.unique('for-list');
+        my $bind-source := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+            $source-qast
+        );
+
+        # Produce the map call.
+        my $map-call := QAST::Op.new(
+            :op('if'),
+            QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Var.new( :name($for-list-name), :scope('local') ),
+                $body-qast,
+                QAST::IVal.new( :value(1), :named('item') )
+            ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Op.new(
+                    :op<callmethod>, :name($mode),
+                    QAST::Var.new( :name($for-list-name), :scope('local') )
+                ),
+                $body-qast
+            )
+        );
+        if $label {
+            my $label-qast := $label.IMPL-LOOKUP-QAST($context);
+            $label-qast.named('label');
+            $map-call[1].push($label-qast);
+            $map-call[2].push($label-qast);
+        }
+
+        # Apply after mode to the map result, and we're done.
+        self.IMPL-SET-NODE(
+            QAST::Stmts.new(
+                $bind-source,
+                QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )), :key)
+    }
+}
+
+# A list of statements, often appearing as the body of a block.
+class RakuAST::StatementList
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitLookups
+  is RakuAST::CheckTime
+{
+    has List $!statements;
+    has int $!is-sunk;
+    has Mu   $.code-statements;  # internal only: actual code statements
+
+    method new(*@statements, Bool :$trace) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementList, '$!statements',@statements);
+        nqp::bindattr_i($obj, RakuAST::StatementList, '$!is-sunk', 0);
+
+        # make sure any code statements are known in the internal code-only list
+        my @code;
+        nqp::bindattr($obj, RakuAST::StatementList, '$!code-statements', @code);
+        for @statements {
+            unless nqp::istype($_,RakuAST::Doc::Block) {
+                nqp::push(@code,$_);
+            }
+        }
+
+        $obj
+    }
+
+    method add-doc-block(RakuAST::Statement $doc-block) {
+        nqp::push($!statements, $doc-block);
+    }
+    method insert-doc-block(int $i, RakuAST::Node $block) {
+        nqp::splice($!statements,nqp::list($block),$i,0);
+    }
+    method add-statement(RakuAST::Statement $statement) {
+        nqp::push(     $!statements, $statement);
+        nqp::push($!code-statements, $statement);
+    }
+    method unshift-statement(RakuAST::Statement $statement) {
+        nqp::unshift(     $!statements, $statement);
+        nqp::unshift($!code-statements, $statement);
+    }
+    method statements() {
+        self.IMPL-WRAP-LIST($!statements)
+    }
+
+    # Return whether there are any whenevers
+    method any-whenevers() {
+        for $!statements {
+            return True
+              if nqp::istype($_,RakuAST::Statement::Whenever)
+              || (nqp::istype($_,RakuAST::Block) && $_.any-whenevers)
+        }
+        False
+    }
+
+    # Return whether there is a single whenever and it's the last one
+    method single-last-whenever() {
+        if nqp::isconcrete(self) {
+            my int $i := +$!statements;
+            if $i {
+                my $last := $!statements[--$i];
+                if nqp::istype($last,RakuAST::Statement::Whenever) {
+                    return False                      # embedded whenevers
+                      if $last.body.any-whenevers;
+
+                    while $i-- {
+                        return False if nqp::istype(  # found another here!
+                          $!statements[$i],
+                          RakuAST::Statement::Whenever
+                        );
+                    }
+                    return True;                      # no other found
+                }
+            }
+        }
+        False
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $catch-seen := 0;
+        my $control-seen := 0;
+        for $!code-statements {
+            if nqp::istype($_, RakuAST::Statement::Catch) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CATCH';
+                }
+                $catch-seen++;
+            }
+            if nqp::istype($_, RakuAST::Statement::Control) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CONTROL';
+                }
+                $control-seen++;
+            }
+        }
+        True
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+        my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
+        my @statements := self.code-statements;
+        my $Nil := self.get-implicit-lookups.AT-POS(1);
+        for @statements {
+            my $qast := $_.IMPL-TO-QAST($context);
+            my $stmt-orig := $_.origin;
+            if nqp::isconcrete($stmt-orig) && $stmt-orig.is-key {
+                $qast := QAST::Stmt.new(
+                    :node($stmt-orig.as-match),
+                    $qast
+                );
+            }
+            if $_.trace && nqp::isconcrete($stmt-orig) && !$*CU.precompilation-mode {
+                my $Blob :=
+                  self.get-implicit-lookups.AT-POS(0).compile-time-value;
+                $context.ensure-sc($Blob);
+                my $line := $stmt-orig.source.original-line($stmt-orig.from);
+                my $file := $stmt-orig.source.original-file;
+                my $code := nqp::substr($stmt-orig.source.orig, $stmt-orig.from, $stmt-orig.to - $stmt-orig.from);
+                if $code ne 'use trace' {
+                    my $id := $_.statement-id;
+                    $stmts.push(QAST::Op.new(
+                        :op<writefh>,
+                        QAST::Op.new(:op<getstderr>),
+                        QAST::Op.new(
+                            :op('encode'),
+                            QAST::SVal.new(:value("$id ($file line $line)\n$code\n")),
+                            QAST::SVal.new(:value('utf8')),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('new'),
+                                QAST::WVal.new( :value($Blob) )
+                            )
+                        )
+                    ));
+                }
+            }
+            $stmts.push($qast);
+        }
+        if !nqp::elems(@statements) {
+            $stmts.push($Nil.IMPL-TO-QAST($context));
+        }
+        else {
+            my $last-stmt := @statements[nqp::elems(@statements) - 1];
+            if $!is-sunk || $last-stmt.IMPL-DISCARD-RESULT {
+                $stmts.push($Nil.IMPL-TO-QAST($context));
+            }
+            else {
+                my $last := $stmts[nqp::elems($stmts) - 1];
+                $last.final(1);
+                $stmts.returns($last.returns);
+            }
+        }
+        $stmts
+    }
+
+    method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
+        # Sink all statements, with the possible exception of the last one (only if
+        # we are not sunk).
+        my @statements := self.code-statements;
+        my int $i;
+        my int $n := nqp::elems(@statements);
+        my int $wanted-statement := $is-sunk ?? -1 !! $n - 1;
+        while $i < $n {
+            my $cur-statement := @statements[$i];
+            $cur-statement.apply-sink($i == $wanted-statement ?? False !! True);
+            if $has-block-parent && nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
+                $cur-statement.mark-block-statement();
+            }
+            ++$i;
+        }
+        nqp::bindattr_i(self, RakuAST::StatementList, '$!is-sunk', $is-sunk ?? 1 !! 0);
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        for $!statements {
+            $visitor($_);
+        }
+    }
+
+    method is-empty() {
+        nqp::elems(self.code-statements) == 0 ?? True !! False
+    }
+
+    method IMPL-IS-SINGLE-EXPRESSION {
+        nqp::elems($!statements) == 1
+        && nqp::istype($!statements[0], RakuAST::Statement::Expression)
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        for self.code-statements {
+            return False unless $_.IMPL-CAN-INTERPRET;
+        }
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $result;
+        my @statements := self.code-statements;
+        for @statements {
+            $result := $_.IMPL-INTERPRET($ctx);
+        }
+        $!is-sunk
+          || !@statements
+          || @statements[nqp::elems(@statements) - 1].IMPL-DISCARD-RESULT
+            ?? self.get-implicit-lookups.AT-POS(1).compile-time-value
+            !! $result
+    }
+}
+
+# A semilist is a semicolon-separted list of statements, but used for the
+# purpose of multi-dimensional array and hash indexing.
+class RakuAST::SemiList
+  is RakuAST::StatementList
+  is RakuAST::ImplicitLookups
+{
+    method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
+        # Sink all statements only if the whole list is sunk
+        # If not, we're gonna need all values as they are used for creating an indexing list.
+        my @statements := self.code-statements;
+        my int $i;
+        my int $n := nqp::elems(@statements);
+        while $i < $n {
+            my $cur-statement := @statements[$i];
+            $cur-statement.apply-sink($is-sunk);
+            ++$i;
+        }
+        nqp::bindattr_i(self, RakuAST::StatementList, '$!is-sunk', $is-sunk ?? 1 !! 0);
+        Nil
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('&infix:<,>'),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @statements := self.code-statements;
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
+        }
+        else {
+            my $name :=
+              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+            my $list := QAST::Op.new(:op('call'), :$name);
+            for @statements {
+                $list.push($_.IMPL-TO-QAST($context));
+            }
+            $list
+        }
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @statements := self.code-statements;
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-INTERPRET($ctx)
+        }
+        else {
+            my @list;
+            for @statements {
+                nqp::push(@list, $_.IMPL-INTERPRET($ctx));
+            }
+            self.IMPL-WRAP-LIST(@list)
+        }
+    }
+}
+
+# A statement sequence is a semicolon-separated list of statements, used as
+# the target for a contextualizer. Like a normal statement list, it puts all
+# but its last statement in sink context and evaluates to the value of the
+# final statement. However, if empty it evaluates instead to an empty list.
+class RakuAST::StatementSequence
+  is RakuAST::StatementList
+  is RakuAST::ImplicitLookups
+  is RakuAST::Contextualizable
+{
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('&infix:<,>'),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @statements;
+        for self.code-statements {
+            @statements.push($_)
+              unless nqp::istype($_,RakuAST::Statement::Empty);
+        }
+
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
+        }
+        elsif $n == 0 {
+            my $name :=
+              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+            QAST::Op.new(:op('call'), :$name);
+        }
+        else {
+            my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
+            for @statements {
+                $stmts.push($_.IMPL-TO-QAST($context));
+            }
+            $stmts
+        }
+    }
+}
+
+# Done by all classes that always produce Nil
+class RakuAST::ProducesNil
+  is RakuAST::ImplicitLookups
+{
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+    }
+}
+
+# Any empty statement. Retained because it can have a semantic effect (for
+# example, in block vs. hash distinction with a leading `;`).
+class RakuAST::Statement::Empty
+  is RakuAST::Statement
+  is RakuAST::ProducesNil
+{
+    method new(List :$labels) {
+        my $obj := nqp::create(self);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        self.visit-labels($visitor);
+    }
+}
+
+# An expression statement is a statement consisting of the evaluation of an
+# expression. It may have modifiers also, and the expression may consist of a
+# single term.
+class RakuAST::Statement::Expression
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::Sinkable
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::BeginTime
+{
+    has RakuAST::Expression $.expression;
+    has RakuAST::StatementModifier::Condition $.condition-modifier;
+    has RakuAST::StatementModifier::Loop $.loop-modifier;
+
+    method new(RakuAST::Expression :$expression!, List :$labels,
+               RakuAST::StatementModifier::Condition :$condition-modifier,
+               RakuAST::StatementModifier::Loop :$loop-modifier) {
+        my $obj := nqp::create(self);
+        $obj.set-expression($expression);
+        $obj.set-labels($labels);
+        nqp::bindattr($obj, RakuAST::Statement::Expression, '$!condition-modifier',
+            $condition-modifier // RakuAST::StatementModifier::Condition);
+        nqp::bindattr($obj, RakuAST::Statement::Expression, '$!loop-modifier',
+            $loop-modifier // RakuAST::StatementModifier::Loop);
+        $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression',
+          $expression // RakuAST::Expression);
+        Nil
+    }
+
+    method replace-condition-modifier(RakuAST::StatementModifier::Condition $condition-modifier) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-modifier',
+            $condition-modifier);
+        Nil
+    }
+
+    method replace-loop-modifier(RakuAST::StatementModifier::Loop $loop-modifier) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-modifier',
+            $loop-modifier);
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # If there is a condition modifier, and the expression is a block
+        # with either an explicit signature or a placeholder signature,
+        # we should compile it immediate in order that the arity is set
+        # right and things like `{ say $^x } if $y` work. Blocks with no
+        # signature aren't handled this way, since the $_ should not be
+        # counted.
+        my $qast;
+        if $!condition-modifier && nqp::istype($!expression, RakuAST::Block) &&
+                ($!expression.signature || $!expression.placeholder-signature) {
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context,
+                $!expression.IMPL-TO-QAST($context, :immediate));
+        }
+        else {
+            $qast := $!expression.IMPL-TO-QAST($context);
+            if self.sunk && $!expression.needs-sink-call {
+                $qast := QAST::Op.new( :op('p6sink'), $qast );
+            }
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier && !$!loop-modifier;
+        }
+        if $!loop-modifier {
+            my $sink := self.IMPL-DISCARD-RESULT;
+            $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink,
+                :block(nqp::istype(self.expression, RakuAST::Block)));
+        }
+        $qast
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        (
+            self.is-block-statement
+                && $!loop-modifier
+                && !nqp::istype($!loop-modifier, RakuAST::StatementModifier::Given)
+            || self.sunk
+        ) ?? 1 !! 0
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!expression.apply-sink($is-sunk);
+        $!condition-modifier.apply-sink(False) if $!condition-modifier;
+        $!loop-modifier.apply-sink(False) if $!loop-modifier;
+    }
+
+    method mark-block-statement() {
+        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
+        if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
+            $!expression.mark-block-statement();
+        }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!loop-modifier {
+            my $thunk := $!loop-modifier.expression-thunk;
+            if $thunk && !nqp::istype($!expression, RakuAST::Code) {
+                # only need to thunk the condition if we also have a loop thunk
+                if $!condition-modifier {
+                    my $thunk := $!condition-modifier.expression-thunk;
+                    $!expression.wrap-with-thunk($thunk);
+                    $thunk.ensure-begin-performed($resolver, $context);
+                }
+                $!expression.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+            }
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expression);
+        $visitor($!condition-modifier) if $!condition-modifier;
+        $visitor($!loop-modifier) if $!loop-modifier;
+        self.visit-labels($visitor);
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        !$!condition-modifier && !$!loop-modifier && $!expression.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!expression.IMPL-INTERPRET($ctx)
+    }
+}
+
+# Mark out things that immediately consume their body, rather than needing it as
+# a closure.
+class RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::Node
+{
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
+}
+
+# Base class for if / with conditional, with optional elsif/orwith/else parts
+class RakuAST::Statement::IfWith
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    has RakuAST::Expression $.condition;
+    has RakuAST::Expression $.then;
+    has List                $!elsifs;
+    has RakuAST::Block      $.else;
+
+    method new(
+      RakuAST::Expression :$condition!,
+      RakuAST::Expression :$then!,
+                     List :$elsifs,
+           RakuAST::Block :$else,
+                     List :$labels
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj,RakuAST::Statement::IfWith,'$!condition',$condition);
+        nqp::bindattr($obj,RakuAST::Statement::IfWith,'$!then',$then);
+        $obj.set-elsifs($elsifs);
+        $obj.set-else($else);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method set-elsifs($elsifs) {
+        nqp::bindattr(self,RakuAST::Statement::IfWith,'$!elsifs',
+          $elsifs ?? self.IMPL-UNWRAP-LIST($elsifs) !! []
+        );
+        Nil
+    }
+    method elsifs() { self.IMPL-WRAP-LIST($!elsifs) }
+
+    method set-else($else) {
+        nqp::bindattr(self,RakuAST::Statement::IfWith,'$!else',
+          $else // RakuAST::Block);
+    }
+
+    method apply-implicit-block-semantics() {
+        my int $last-was-with;
+        if self.IMPL-QAST-TYPE eq 'with' {
+            $last-was-with := 1;
+            $!then.set-implicit-topic(True, :required);
+        }
+        else {
+            $!then.set-implicit-topic(False, :local);
+        }
+        for $!elsifs {
+            $_.apply-implicit-block-semantics();
+            $last-was-with := $_.IMPL-QAST-TYPE eq 'with';
+        }
+        if $!else {
+            if $last-was-with {
+                $!else.set-implicit-topic(True, :required);
+            }
+            else {
+                $!else.set-implicit-topic(False, :local);
+            }
+        }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST: $!else
+            ?? []
+            !! [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))]
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # Start with the else (or Empty).
+        my $cur-end;
+        if $!else {
+            $cur-end := $!else.IMPL-TO-QAST($context, :immediate);
+        }
+        else {
+            $cur-end :=
+              self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context);
+        }
+
+        # Add the branches.
+        my int $i := nqp::elems($!elsifs);
+        while $i-- > 0 {
+            my $branch := $!elsifs[$i];
+            $cur-end := QAST::Op.new(
+                :op($branch.IMPL-QAST-TYPE),
+                $branch.condition.IMPL-TO-QAST($context),
+                $branch.then.IMPL-TO-QAST($context, :immediate),
+                $cur-end
+            );
+        }
+
+        # Finally, the initial condition.
+        QAST::Op.new(
+            :op(self.IMPL-QAST-TYPE),
+            $!condition.IMPL-TO-QAST($context),
+            $!then.IMPL-TO-QAST($context, :immediate),
+            $cur-end
+        )
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!then.body.apply-sink($is-sunk);
+        for $!elsifs {
+            $_.condition.apply-sink(False);
+            $_.then.body.apply-sink($is-sunk);
+        }
+        if $!else {
+            $!else.body.apply-sink($is-sunk);
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!then);
+        for $!elsifs {
+            $visitor($_.condition);
+            $visitor($_.then);
+        }
+        if $!else {
+            $visitor($!else);
+        }
+        self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        return False if $node =:= $!condition;
+        for $!elsifs {
+            return False if $node =:= $_.condition;
+        }
+        True
+    }
+}
+
+# An if conditional, with optional elsif/orwith/else parts.
+class RakuAST::Statement::If
+  is RakuAST::Statement::IfWith
+{
+    method IMPL-QAST-TYPE() { 'if' }
+}
+
+# A with conditional, with optional elsif/orwith/else parts.
+class RakuAST::Statement::With
+  is RakuAST::Statement::IfWith
+{
+    method IMPL-QAST-TYPE() { 'with' }
+}
+
+# An elsif part. Not a standalone RakuAST node; can only be used inside
+# of an Statement::If or Statement::With node.
+class RakuAST::Statement::Elsif {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Expression $.then;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Elsif, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Elsif, '$!then', $then);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!then.set-implicit-topic(False, :local);
+    }
+
+    method IMPL-QAST-TYPE() { 'if' }
+}
+
+# An orwith part. Not a standalone RakuAST node; can only be used inside of an If
+# or With node.
+class RakuAST::Statement::Orwith
+  is RakuAST::Statement::Elsif
+{
+    method IMPL-QAST-TYPE() { 'with' }
+
+    method apply-implicit-block-semantics() {
+        self.then.set-implicit-topic(True, :required);
+    }
+}
+
+# An unless statement control.
+class RakuAST::Statement::Unless
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(False, :local);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('unless'),
+            $!condition.IMPL-TO-QAST($context),
+            $!body.IMPL-TO-QAST($context, :immediate),
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+        )
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.apply-sink($is-sunk);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        $node =:= $!body
+    }
+}
+
+# A without statement control.
+class RakuAST::Statement::Without
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Without, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Without, '$!body', $body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('without'),
+            $!condition.IMPL-TO-QAST($context),
+            $!body.IMPL-TO-QAST($context, :immediate),
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+        )
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.apply-sink($is-sunk);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        $node =:= $!body
+    }
+}
+
+# The base for various kinds of loop. Used directly for the loop construct,
+# and subclassed with assorted defaults for while/until/repeat.
+class RakuAST::Statement::Loop
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::Sinkable
+  is RakuAST::SinkPropagator
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    # The setup expression for the loop.
+    has RakuAST::Expression $.setup;
+
+    # The condition of the loop.
+    has RakuAST::Expression $.condition;
+
+    # The body of the loop.
+    has RakuAST::Block $.body;
+
+    # The increment expression for the loop.
+    has RakuAST::Expression $.increment;
+
+    method new(RakuAST::Block :$body!, RakuAST::Expression :$condition,
+               RakuAST::Expression :$setup, RakuAST::Expression :$increment,
+               List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!body', $body);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!setup', $setup);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!increment', $increment);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    # Is the condition negated?
+    method negate() { False }
+
+    # Is the loop always executed once?
+    method repeat() { False }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(False, :local);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
+        ])
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
+        my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+        if self.IMPL-DISCARD-RESULT {
+            # Select correct node type for the loop and produce it.
+            my str $op := self.repeat
+                ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
+                !! (self.negate ?? 'until' !! 'while');
+            my $loop-qast := QAST::Op.new(
+                :$op,
+                $!condition ?? $!condition.IMPL-TO-QAST($context) !! QAST::IVal.new( :value(1) ),
+                $!body.IMPL-TO-QAST($context, :immediate),
+            );
+            my @post;
+            if @next-phasers {
+                for @next-phasers {
+                    $context.ensure-sc($_);
+                    @post.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
+            if $!increment {
+                @post.push($!increment.IMPL-TO-QAST($context));
+            }
+            if @post {
+                $loop-qast.push(nqp::elems(@post) == 1 ?? @post[0] !! QAST::Stmts.new(|@post));
+            }
+
+            # Add a label if there is one.
+            my @labels := self.IMPL-UNWRAP-LIST(self.labels);
+            if @labels {
+                my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
+                $label-qast.named('label');
+                $loop-qast.push($label-qast);
+            }
+
+            # Prepend setup code and evaluate to Nil if not sunk.
+            my $wrapper := self.IMPL-SET-NODE(QAST::Stmt.new(), :key);
+            if $!setup {
+                $wrapper.push($!setup.IMPL-TO-QAST($context));
+            }
+            $wrapper.push($loop-qast);
+            for @last-phasers {
+                $context.ensure-sc($_);
+                $wrapper.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+            }
+            unless self.sunk {
+                $wrapper.push(
+                  self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+                );
+            }
+
+            $wrapper
+        }
+        elsif ($!condition || $!increment) {
+            nqp::die("Non-trivial lazy loops NYI");
+        }
+        else {
+            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            # In theory we could use the from-loop candidate without condition
+            # for plain loop but that would create a lazy loop and for unknown
+            # reason the old implementation didn't go that route.
+            my $cond := -> { 1 };
+            $context.ensure-sc($cond);
+            my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
+                $Seq,
+                $!body.IMPL-TO-QAST($context),
+                QAST::WVal.new(:value($cond)),
+            );
+            if @next-phasers {
+                my $run-phasers := -> { $_() for @next-phasers };
+                $context.ensure-sc($run-phasers);
+                $qast.push(QAST::WVal.new(:value($run-phasers)));
+            }
+            if @last-phasers {
+                $qast := QAST::Stmts.new(:resultchild(0), $qast);
+                for @last-phasers {
+                    $context.ensure-sc($_);
+                    $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
+            $qast
+        }
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False) if $!condition;
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!setup.apply-sink(True) if $!setup;
+        $!increment.apply-sink(True) if $!increment;
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!setup) if $!setup;
+        $visitor($!condition) if $!condition;
+        $visitor($!increment) if $!increment;
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        self.sunk && $node =:= $!body
+    }
+}
+
+# A while loop.
+class RakuAST::Statement::Loop::While
+  is RakuAST::Statement::Loop
+{ }
+
+# An until loop.
+class RakuAST::Statement::Loop::Until
+  is RakuAST::Statement::Loop
+{
+    method negate() { True }
+}
+
+# A repeat while loop.
+class RakuAST::Statement::Loop::RepeatWhile
+  is RakuAST::Statement::Loop
+{
+    method repeat() { True }
+}
+
+# A repeat until loop.
+class RakuAST::Statement::Loop::RepeatUntil
+  is RakuAST::Statement::Loop
+{
+    method negate() { True }
+    method repeat() { True }
+}
+
+# A for loop.
+class RakuAST::Statement::For
+  is RakuAST::Statement
+  is RakuAST::ForLoopImplementation
+  is RakuAST::Sinkable
+  is RakuAST::SinkPropagator
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    # The thing to iterate over.
+    has RakuAST::Expression $.source;
+
+    # The body of the loop.
+    has RakuAST::Block $.body;
+
+    # The block to run if nothing to iterate over
+    has RakuAST::Block $.otherwise;
+
+    # The mode of evaluation, (defaults to serial, may be race or hyper also).
+    has str $.mode;
+
+    method new(
+      RakuAST::Expression :$source!,
+           RakuAST::Block :$body!,
+           RakuAST::Block :$otherwise,
+                      str :$mode,
+                     List :$labels
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!source', $source);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!body', $body);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!otherwise', $otherwise);
+        nqp::bindattr_s($obj, RakuAST::Statement::For, '$!mode', $mode || 'serial');
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method replace-mode(str $mode) {
+        nqp::bindattr_s(self, RakuAST::Statement::For, '$!mode', $mode);
+        Nil
+    }
+
+    method replace-otherwise(RakuAST::Block $otherwise) {
+        nqp::bindattr(self, RakuAST::Statement::For, '$!otherwise', $otherwise);
+        Nil
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!source.apply-sink(False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # Figure out the execution mode modifiers to apply.
+        my str $mode := $!mode;
+        my str $after-mode := '';
+        if $!otherwise {
+            $mode := 'serial';
+            $after-mode := 'eager';
+        }
+        elsif $mode eq 'lazy' {
+            $mode := 'serial';
+            $after-mode := 'lazy';
+        }
+        else {
+            $after-mode := self.IMPL-DISCARD-RESULT ?? 'sink' !! 'eager';
+        }
+
+        # Delegate to the for loop compilation helper (which we pass various
+        # attributes to in order to make it callable for the statement modifier
+        # form also).
+        my @labels := self.IMPL-UNWRAP-LIST(self.labels);
+        my $qast := self.IMPL-FOR-QAST(
+          $context,
+          $mode,
+          $after-mode,
+          $!source.IMPL-TO-QAST($context),
+          $!body.IMPL-TO-QAST($context),
+          @labels ?? @labels[0] !! RakuAST::Label
+        );
+
+        $!otherwise
+          ?? QAST::Op.new(:op<unless>,
+               $qast,
+               QAST::Op.new(:op<call>,
+                 $!otherwise.IMPL-TO-QAST($context)
+               )
+             )
+          !! $qast
+    }
+
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
+        $visitor($!body);
+        $visitor($!otherwise) if $!otherwise;
+        self.visit-labels($visitor);
+    }
+}
+
+# A given statement.
+class RakuAST::Statement::Given
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    # The thing to topicalize.
+    has RakuAST::Expression $.source;
+
+    # The body of the given statement.
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Given, '$!source', $source);
+        nqp::bindattr($obj, RakuAST::Statement::Given, '$!body', $body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!source.apply-sink(False);
+        $!body.apply-sink($is-sunk);
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('call'),
+            $!body.IMPL-TO-QAST($context),
+            $!source.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
+# A when statement, smart-matching the topic against the specified expression,
+# with `succeed`/`proceed` handling.
+class RakuAST::Statement::When
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
+{
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::When, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::When, '$!body', $body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(False);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.apply-sink(False); # Used as enclosing block outcome
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.require-succeed-handler();
+        }
+        else {
+            nqp::die('when found no enclosing block to attach to');
+        }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('$_'),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $sm-qast := QAST::Op.new(
+            :op('callmethod'), :name('ACCEPTS'),
+            $!condition.IMPL-TO-QAST($context),
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+        );
+        QAST::Op.new(
+            :op('if'),
+            $sm-qast,
+            self.IMPL-WRAP-WHEN-OR-DEFAULT($context,
+                QAST::Op.new( :op('call'), $!body.IMPL-TO-QAST($context) )
+            ))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
+# A whenever statement.
+class RakuAST::Statement::Whenever
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    has RakuAST::Expression $.trigger;
+    has RakuAST::Block      $.body;
+
+    method new(
+      RakuAST::Expression :$trigger!,
+           RakuAST::Block :$body!,
+                     List :$labels
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj,RakuAST::Statement::Whenever,'$!trigger',$trigger);
+        nqp::bindattr($obj,RakuAST::Statement::Whenever,'$!body',$body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!trigger.apply-sink(False);
+        $!body.apply-sink($is-sunk);
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<call>, :name<&WHENEVER>,
+          QAST::Op.new(:op<hllize>,
+            $!trigger.IMPL-TO-QAST($context)
+          ),
+          $!body.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!trigger);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
+# A default statement.
+class RakuAST::Statement::Default
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::BeginTime
+{
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Block :$body!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Default, '$!body', $body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(1);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.apply-sink(False); # Used as enclosing block outcome
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.require-succeed-handler();
+        }
+        else {
+            nqp::die('default found no enclosing block to attach to');
+        }
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-WRAP-WHEN-OR-DEFAULT($context,
+            QAST::Op.new( :op('call'), $!body.IMPL-TO-QAST($context) )
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
+# The commonalities of exception handlers (CATCH and CONTROL).
+class RakuAST::Statement::ExceptionHandler
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::ProducesNil
+{
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::ExceptionHandler, '$!body', $body);
+        $obj.set-labels(Mu);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :exception);
+        $!body.set-fresh-variables(:match, :exception);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.apply-sink(True);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
+# A CATCH statement.
+class RakuAST::Statement::Catch
+  is RakuAST::Statement::ExceptionHandler
+  is RakuAST::BeginTime
+{
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.attach-catch-handler(self);
+        }
+        else {
+            nqp::die('CATCH found no enclosing block to attach to');
+        }
+    }
+}
+
+# A CONTROL statement.
+class RakuAST::Statement::Control
+  is RakuAST::Statement::ExceptionHandler
+  is RakuAST::BeginTime
+{
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.attach-control-handler(self);
+        }
+        else {
+            nqp::die('CONTROL found no enclosing block to attach to');
+        }
+    }
+}
+
+class RakuAST::Categorical {
+    has Str $.category;
+    has Str $.opname;
+    has Str $.subname;
+    has RakuAST::Declaration $.declarand;
+
+    method new(Str :$category!, Str :$opname!, Str :$subname!, RakuAST::Declaration :$declarand!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!category', $category);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!opname', $opname);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!subname', $subname);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!declarand', $declarand);
+        $obj
+    }
+
+    method canname {
+        $!category ~ ':sym' ~ RakuAST::ColonPairish.IMPL-QUOTE-VALUE($!opname);
+    }
+}
+
+class RakuAST::ModuleLoading {
+    has List $!categoricals;
+
+    method categoricals() {
+        self.IMPL-WRAP-LIST($!categoricals)
+    }
+
+    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
+        # Build dependency specification for the module.
+        my $dependency-specification := $resolver.type-from-setting(
+          'CompUnit', 'DependencySpecification'
+        );
+        my $opts := nqp::hash();
+        for $module-name.colonpairs {
+            $opts{$_.key} := $_.simple-compile-time-quote-value;
+        }
+        my $spec := $dependency-specification.new(
+            :short-name($module-name.canonicalize(:colonpairs(False))),
+            :from($opts<from> // 'Perl6'),
+            :auth-matcher($opts<auth> // True),
+            :api-matcher($opts<api> // True),
+            :version-matcher($opts<ver> // True),
+        );
+
+        # Load it using the registry.
+        my $registry := $resolver.type-from-setting(
+          'CompUnit', 'RepositoryRegistry'
+        );
+        my $comp-unit := $registry.head.need($spec);
+        my $globalish := $comp-unit.handle.globalish-package;
+        self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish));
+        $comp-unit
+    }
+
+    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
+        my $EXPORT := $handle.export-package;
+        if nqp::isconcrete($EXPORT) {
+            $EXPORT := $EXPORT.FLATTENABLE_HASH();
+            # TODO deal with non-default imports due to tags
+            my @to-import := ['MANDATORY'];
+            my @positional-imports;
+            if nqp::isconcrete($arglist) {
+                my $Pair := $resolver.setting-constant('Pair');
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        my str $tag-name := nqp::unbox_s($tag.key);
+                        unless nqp::existskey($EXPORT, $tag-name) {
+                            # TODO X::Import::NoSuchTag
+                            nqp::die('No such tag')
+                        }
+                        nqp::push(@to-import, $tag-name);
+                    }
+                    else {
+                        nqp::push(@positional-imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to-import, 'DEFAULT');
+            }
+            for @to-import -> str $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}.WHO));
+                }
+            }
+
+            my &EXPORT := $handle.export-sub;
+            if nqp::isconcrete(&EXPORT) {
+                my $result := &EXPORT(|@positional-imports);
+                if nqp::istype($result, Map) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    self.IMPL-IMPORT-ONE(
+                        $resolver,
+                        $storage,
+                        :need-decont(!(nqp::what($result) =:= Map)),
+                    );
+                }
+                else {
+                    nqp::die("&EXPORT sub did not return a Map");
+                }
+            }
+        }
+    }
+
+    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
+        my $target-scope := $resolver.current-scope;
+        for self.IMPL-SORTED-KEYS($stash) -> $key {
+            next if $key eq 'EXPORT';
+            my $value := $stash{$key};
+            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
+                $value := nqp::decont($value);
+            }
+            my $declarand := RakuAST::Declaration::Import.new:
+                    :lexical-name($key), :compile-time-value($value);
+            $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+
+            my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
+            if $categorical {
+                nqp::push($!categoricals, RakuAST::Categorical.new(
+                    :category($categorical[0]),
+                    :opname($categorical[1]),
+                    :subname(nqp::substr($key, 1)),
+                    :$declarand
+                ));
+            }
+        }
+    }
+
+    method IMPL-STASH-HASH(Mu $pkg) {
+        my $hash := $pkg;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
+    }
+}
+
+# A use statement.
+class RakuAST::Statement::Use
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+{
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the module load, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+
+        my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $!module-name);
+        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+        $visitor($!argument) if $!argument;
+        self.visit-labels($visitor);
+    }
+}
+
+# A need statement.
+class RakuAST::Statement::Need
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+{
+    has List $!module-names;
+
+    method new(List :$module-names!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names',
+          self.IMPL-UNWRAP-LIST($module-names));
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        for $!module-names {
+            self.IMPL-LOAD-MODULE($resolver, $_);
+        }
+    }
+
+    method module-names() { self.IMPL-WRAP-LIST($!module-names) }
+
+    method visit-children(Code $visitor) {
+        for $!module-names {
+            $visitor($_);
+        }
+        self.visit-labels($visitor);
+    }
+}
+
+# An import statement.
+class RakuAST::Statement::Import
+  is RakuAST::Statement
+  is RakuAST::ParseTime
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+  is RakuAST::Lookup
+  is RakuAST::ImplicitLookups
+{
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Import, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        nqp::bindattr($obj, RakuAST::Statement::Import, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
+        ])
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $resolver.resolve-name-constant($!module-name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the import, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+
+        my $module := self.resolution.compile-time-value;
+        my $CompUnitHandle := self.get-implicit-lookups().AT-POS(0).compile-time-value;
+        my $handle := $CompUnitHandle.from-unit($module.WHO);
+        self.IMPL-IMPORT($resolver, $handle, $arglist);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+        $visitor($!argument) if $!argument;
+        self.visit-labels($visitor);
+    }
+}
+
+# A require statement.
+class RakuAST::Statement::Require
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ImplicitLookups
+{
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+    has List $!arglist;
+    has RakuAST::Package $!module;
+    has RakuAST::Node $!existing-lookup;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups;
+        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')));
+        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')));
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the import, if any.
+        my @arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+        nqp::bindattr(self, RakuAST::Statement::Require, '$!arglist', @arglist);
+
+        my $target-scope := $resolver.current-scope;
+        my $stash := Stash.new;
+        $context.ensure-sc($stash);
+        $target-scope.merge-generated-lexical-declaration:
+            :$resolver,
+            RakuAST::VarDeclaration::Implicit::Constant.new:
+                :name<%?REQUIRE-SYMBOLS>,
+                :value($stash);
+
+        if @arglist {
+            for @arglist {
+                my $declarand := RakuAST::Type::Capture.new: RakuAST::Name.from-identifier($_.Str);
+                $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+            }
+        }
+
+        if $!module-name && !$!module-name.is-indirect-lookup() {
+            my $top := $!module-name.parts.AT-POS(0);
+            my $resolved := $resolver.resolve-name(RakuAST::Name.new($top));
+            nqp::bindattr(self, RakuAST::Statement::Require, '$!existing-lookup', $resolved);
+
+            nqp::bindattr(
+                self,
+                RakuAST::Statement::Require,
+                '$!module',
+                RakuAST::Package.new(:scope<my>, :name($!module-name), :is-require-stub),
+            );
+            $!module.to-begin-time($resolver, $context);
+            $resolver.leave-scope;
+            $!module.set-is-stub(True);
+        }
+
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $lookups := self.get-implicit-lookups;
+        my $depspec  := $lookups.AT-POS(0).compile-time-value;
+        my $registry := $lookups.AT-POS(1).compile-time-value;
+        my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
+        $short-name.named('short-name');
+
+        my $spec := QAST::Op.new(
+            :op('callmethod'), :name('new'),
+            QAST::WVal.new(:value($depspec)),
+            $short-name,
+        );
+        my $compunit_past := QAST::Op.new(
+            :op('callmethod'), :name('need'),
+            QAST::Op.new(
+                :op('callmethod'), :name('head'),
+                QAST::WVal.new(:value($registry)),
+            ),
+            $spec,
+        );
+        my $require-past := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit_past);
+        # A list of the components of the pre-existing outer symbols name (if any)
+        my $existing-path := QAST::Var.new( :name('Any'), :scope('lexical') );
+        # The top level package object of the  pre-existing outer package (if any)
+        my $top-existing := QAST::Var.new( :name('Any'), :scope('lexical') );
+        # The name of the lexical stub we insert (if any)
+        my $lexical-stub;
+        if $!module-name && !$!module-name.is-indirect-lookup() {
+            my $current := nqp::null;
+            my @components := nqp::clone(self.IMPL-UNWRAP-LIST($!module-name.parts));
+            my $top := @components.shift.name;
+            $existing-path := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+            my $existing-lookup := $!existing-lookup;
+            if $existing-lookup && nqp::istype($existing-lookup, RakuAST::CompileTimeValue) {
+                my $existing := $existing-lookup.compile-time-value;
+                $current := nqp::who($existing);
+                $top-existing := QAST::WVal.new(:value($existing));
+                $existing-path.push: QAST::SVal.new(:value($top));
+            }
+            else {
+                $lexical-stub := QAST::SVal.new(:value($top));
+            }
+
+            if !nqp::isnull($current) {
+                for @components -> $component-part {
+                    my $component := $component-part.name;
+                    if nqp::existskey($current,$component) {
+                        $existing-path.push: QAST::SVal.new(:value($component));
+                        $current := nqp::who($current{$component});
+                    }
+                    else {
+                        last;
+                    }
+                }
+            }
+        }
+        $require-past.push($existing-path);
+        $require-past.push($top-existing);
+        $require-past.push($lexical-stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
+        my $scalar := $!module.compile-time-value;
+        $context.ensure-sc($scalar);
+        $require-past.push(QAST::WVal.new(:value($scalar)));
+        my $name-parts := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+        if $!module-name {
+            for self.IMPL-UNWRAP-LIST($!module-name.parts) {
+                $name-parts.push: QAST::SVal.new(:value($_.name));
+            }
+        }
+        $context.ensure-sc($name-parts);
+        $require-past.push($name-parts);
+        if $!argument {
+            for $!arglist {
+                $require-past.push(QAST::SVal.new(:value($_.Str)));
+            }
+        }
+
+        my $past := QAST::Stmts.new;
+        $past.push($require-past);
+        $past;
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+    }
+}

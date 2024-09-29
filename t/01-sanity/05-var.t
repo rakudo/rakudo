@@ -1,5 +1,3 @@
-use v6;
-
 # check variables
 say '1..12';
 

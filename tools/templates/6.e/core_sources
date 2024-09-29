@@ -4,6 +4,7 @@ src/core.e/Grammar.rakumod
 src/core.e/EXPORTHOW.rakumod
 src/core.e/array_multislice.rakumod
 src/core.e/hash_multislice.rakumod
+src/core.e/hash_hyperslice.pm6
 src/core.e/Formatter/Grammar.rakumod
 src/core.e/Formatter.rakumod
 src/core.e/Format.rakumod

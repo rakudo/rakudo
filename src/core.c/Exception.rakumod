@@ -682,6 +682,7 @@ do {
 
 my role X::OS is Exception {
     has $.os-error;
+    has $.error-code;
     method message() { $.os-error }
 }
 
@@ -2134,8 +2135,15 @@ my class X::Syntax::CannotMeta does X::Syntax {
 
 my class X::Syntax::Adverb does X::Syntax {
     has $.what;
-
     method message() { "You can't adverb " ~ $.what }
+}
+
+my class X::Syntax::AmbiguousAdverb does X::Syntax {
+    has Str $.adverb;
+    method message() {
+        "Cannot determine the destination for named argument: $!adverb\n" ~
+            "Try placing parentheses around the desired callsite to disambiguate."
+    }
 }
 
 my class X::Syntax::Regex::Adverb does X::Syntax {
@@ -2944,6 +2952,12 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
         the variable to be of type $.suggestiontype, or try to coerce the
         value with $value.$conversionmethod or $conversionmethod\($value\)";
         try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
+        if nqp::istype($!vartype.HOW, Metamodel::Explaining) {
+            my $complainee = $!vartype.HOW.complainee;
+            $val ~= '; ' ~ ($complainee ~~ Callable || $complainee.^can('CALL-ME')
+                ?? $complainee($!value)
+                !! $complainee.Str)
+        }
         "$val.".naive-word-wrapper
     }
 }
@@ -3750,6 +3764,7 @@ my class X::Proc::Unsuccessful is Exception {
     has $.proc;
     method message() {
         "The spawned command '{$.proc.command[0]}' exited unsuccessfully (exit code: $.proc.exitcode(), signal: $.proc.signal())"
+        ~ ($.proc.os-error ?? "\n(OS error = $.proc.os-error())" !! "")
     }
 }
 

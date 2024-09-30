@@ -71,7 +71,7 @@ sub build-steps(@plan) is export {
 # description of given BUILDPLAN/BUILDALLPLAN
 sub build-description(@plan --> Str:D) is export {
     if build-steps(@plan) -> @steps {
-        @steps.kv.map( -> \step, $text { sprintf "%2d: $text", step } )
+        @steps.kv.map( -> \step, $text { sprintf('%2d ', step) ~ $text } )
         .join("\n")
     }
     else {

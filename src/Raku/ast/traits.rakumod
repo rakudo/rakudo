@@ -1,6 +1,7 @@
 # Done by everything that can have traits applied to it.
 class RakuAST::TraitTarget {
     has Mu $!traits;
+    has List $!sorries;
 
     # Set the list of traits on this declaration.
     method set-traits(List $traits) {
@@ -34,11 +35,24 @@ class RakuAST::TraitTarget {
         self.IMPL-WRAP-LIST(nqp::islist($traits) ?? $traits !! [])
     }
 
+    method add-trait-sorries() {
+        if $!sorries {
+            self.add-sorry($_) for $!sorries;
+        }
+    }
+
     # Apply all traits (and already applied will not be applied again).
     method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         if $!traits {
             for $!traits {
                 $_.apply($resolver, $context, $target, |%named) unless $_.applied;
+                CATCH {
+                    nqp::bindattr(self, RakuAST::TraitTarget, '$!sorries', []) unless nqp::isconcrete($!sorries);
+                    my $ex := nqp::getpayload($_);
+                    $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
+                        unless nqp::isconcrete($ex);
+                    nqp::push($!sorries, $ex);
+                }
             }
         }
         Nil
@@ -87,7 +101,7 @@ class RakuAST::Trait
     # and then applies it.
     method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         unless self.applied {
-            self.IMPL-CHECK($resolver, $context, False);
+            self.to-begin-time($resolver, $context);
             my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
                 compile-time-value => $target.compile-time-value;
             my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
@@ -97,7 +111,7 @@ class RakuAST::Trait
                     RakuAST::ColonPair::Value.new(:key(nqp::iterkey_s($_)), :value(nqp::iterval($_)))
                 );
             }
-            $args.IMPL-CHECK($resolver, $context, False);
+            $args.IMPL-BEGIN($resolver, $context);
             $target.IMPL-BEGIN-TIME-CALL(
               self.get-implicit-lookups.AT-POS(0),
               $args,
@@ -219,28 +233,51 @@ class RakuAST::Trait::Returns
     method IMPL-TRAIT-NAME() { 'returns' }
 }
 
-# The will trait.
-class RakuAST::Trait::Will
+# The will build trait on attributes. For internal usage only.
+class RakuAST::Trait::WillBuild
   is RakuAST::Trait
 {
-    has str $.type;
     has RakuAST::Expression $.expr;
 
-    method new(str $type, RakuAST::Expression $expr) {
+    method new(RakuAST::Expression $expr) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!type', $type);
-        nqp::bindattr($obj, RakuAST::Trait::Will, '$!expr', $expr);
+        nqp::bindattr($obj, RakuAST::Trait::WillBuild, '$!expr', $expr);
         $obj
     }
 
     method IMPL-TRAIT-NAME() { 'will' }
 
     method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
-        RakuAST::ArgList.new($target, RakuAST::ColonPair::Value.new(:key($!type), :value($!expr)))
+        RakuAST::ArgList.new($target, RakuAST::ColonPair::Value.new(:key('build'), :value($!expr)))
     }
 
     method visit-children(Code $visitor) {
         $visitor($!expr);
+    }
+}
+
+# The will trait.
+class RakuAST::Trait::Will
+  is RakuAST::Trait
+{
+    has str $.phase;
+    has RakuAST::Block $.block;
+
+    method new(str :$phase, RakuAST::Block :$block) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!phase', $phase);
+        nqp::bindattr($obj, RakuAST::Trait::Will, '$!block', $block);
+        $obj
+    }
+
+    method IMPL-TRAIT-NAME() { 'will' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        RakuAST::ArgList.new($target, $!block, RakuAST::ColonPair::True.new($!phase))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
     }
 }
 

@@ -1,6 +1,7 @@
 # An argument list.
 class RakuAST::ArgList
   is RakuAST::CaptureSource
+  is RakuAST::SinkPropagator
 {
     has List $!args;
     has RakuAST::Expression $.invocant;
@@ -62,6 +63,14 @@ class RakuAST::ArgList
         $visitor($!invocant) if $!invocant;
         for @args {
             $visitor($_);
+        }
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        my @args := $!args;
+        $!invocant.apply-sink($is-sunk) if $!invocant;
+        for @args {
+            $_.apply-sink($is-sunk);
         }
     }
 
@@ -206,6 +215,7 @@ class RakuAST::Call {
 class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Lookup
 {
@@ -232,9 +242,15 @@ class RakuAST::Call::Name
 
     method needs-resolution() { $!name.is-identifier }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method undeclared-symbol-details() {
+        RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!package', $resolver.current-package);
-        my $resolved := $resolver.resolve-name($!name, :sigil('&'));
+        my $resolved := $!name.is-identifier
+            ?? $resolver.resolve-lexical('&' ~ $!name.canonicalize)
+            !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -248,15 +264,14 @@ class RakuAST::Call::Name
                 }
             }
         }
-        Nil
-    }
-
-    method undeclared-symbol-details() {
-        RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my int $ARG_IS_LITERAL := 32;
+
+        unless self.is-resolved {
+            self.PERFORM-BEGIN($resolver, $context);
+        }
 
         if self.is-resolved && (
             nqp::istype(self.resolution, RakuAST::CompileTimeValue)
@@ -414,14 +429,22 @@ class RakuAST::Call::Term
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('()')
-    }
+    method default-operator-properties() { OperatorProperties.postfix('()') }
+
+    method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new(
+            :op<call>,
+            :name('&METAOP_HYPER_CALL'),
+            $operand-qast,
+        )
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -442,6 +465,25 @@ class RakuAST::Call::Methodish
   is RakuAST::Call
   is RakuAST::Postfixish
 {
+    has str $!dispatcher;
+
+    # expected to be '.?' | '.+' | '.*' | '.=' but custom ones will be codegenned also
+    method set-dispatcher($dispatch) {
+        nqp::bindattr_s(self, RakuAST::Call::Methodish, '$!dispatcher',
+          $dispatch && $dispatch ne '.' ?? "dispatch:<$dispatch>" !! ""
+        );
+    }
+    method dispatcher() { $!dispatcher // "" }
+    method dispatch() {
+        $!dispatcher
+          ?? nqp::substr($!dispatcher, 10, nqp::chars($!dispatcher) - 11)
+          !! ""
+    }
+
+    method default-properties(str $default) {
+        OperatorProperties.postfix(self.dispatch || $default)
+    }
+
     method IMPL-CURRIES() { 3 }
 }
 
@@ -454,10 +496,19 @@ class RakuAST::Call::Method
 {
     has RakuAST::Name $.name;
 
-    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+    method new(
+         RakuAST::Name :$name!,
+      RakuAST::ArgList :$args,
+                   str :$dispatch
+    ) {
         my $obj := nqp::create(self);
+
         nqp::bindattr($obj, RakuAST::Call::Method, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        nqp::bindattr($obj, RakuAST::Call, '$!args',
+          $args // RakuAST::ArgList.new
+        );
+
+        $obj.set-dispatcher($dispatch);
         $obj
     }
 
@@ -466,9 +517,7 @@ class RakuAST::Call::Method
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('.')
-    }
+    method default-operator-properties() { self.default-properties(".") }
 
     method macroish() {
         $!name.is-identifier
@@ -504,47 +553,113 @@ class RakuAST::Call::Method
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name := $!name.canonicalize;
+        my $call;
         if $name {
             my @parts := nqp::split('::', $name);
             if nqp::elems(@parts) == 1 {
-                my $op := self.IMPL-SPECIAL-OP($name);
-                if $op {
-                    # Not really a method call, just using that syntax.
-                    QAST::Op.new(:$op, $invocant-qast)
+                my $dispatcher := self.dispatcher;
+                if $dispatcher {
+                    # A method call going through a dispatch: method
+                    $call := QAST::Op.new(
+                        :op('callmethod'),
+                        :name($dispatcher),
+                        $invocant-qast,
+                        QAST::SVal.new(:value($name))
+                    );
                 }
                 else {
-                    # A standard method call.
-                    my $call := QAST::Op.new(:op('callmethod'), :$name, $invocant-qast);
-                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
-                    $call
+                    my $op := self.IMPL-SPECIAL-OP($name);
+                    $call  := $op
+                       # Not really a method call, just using that syntax
+                       ?? QAST::Op.new(:$op, $invocant-qast)
+                       # A standard method call
+                       !! QAST::Op.new(:op('callmethod'), :$name, $invocant-qast);
                 }
-            } else {
-                # TODO: In base behavior, the attempt to dispatch is performed before determining whether the type
-                #       actually exists in this scope (throwing a X::Method::InvalidQualifier).
-                #       The resolution below will die if the type object cannot be found, deviating from base.
+            }
+            else {
+# TODO: In base behavior, the attempt to dispatch is performed before
+# determining whether the type actually exists in this scope (throwing
+# a X::Method::InvalidQualifier).  The resolution below will die if the
+# type object cannot be found, deviating from base.
                 my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
                 $context.ensure-sc($Qualified);
                 $name := @parts[ nqp::elems(@parts)-1 ];
-                my $call := QAST::Op.new(:op('callmethod'), :name('dispatch:<::>'), $invocant-qast,  QAST::SVal.new(:value($name)), QAST::WVal.new(:value($Qualified)));
-                self.args.IMPL-ADD-QAST-ARGS($context, $call);
-                $call
+                my $dispatcher := self.dispatcher;
+
+                $call := $dispatcher
+                  ?? QAST::Op.new:
+                       :op('callmethod'),
+                       :name($dispatcher),
+                       QAST::SVal.new( :value('dispatch:<::>') ),
+                       $invocant-qast,
+                       QAST::SVal.new(:value($name)),
+                       QAST::WVal.new(:value($Qualified))
+                  !! QAST::Op.new:
+                       :op('callmethod'),
+                       :name('dispatch:<::>'),
+                       $invocant-qast,
+                       QAST::SVal.new(:value($name)),
+                       QAST::WVal.new(:value($Qualified));
             }
         }
         else {
             nqp::die('Qualified method calls NYI');
         }
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
     }
 
     method can-be-used-with-hyper() { !self.macroish }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        # TODO later expand this to the qualified case
         my $name := $!name.canonicalize;
-        my $call := QAST::Op.new:
-            :op('callmethod'), :name('dispatch:<hyper>'),
-            $operand-qast,
-            QAST::SVal.new( :value('') ),
-            QAST::SVal.new( :value($name) );
+        my $call;
+        if $name {
+            my @parts := nqp::split('::', $name);
+
+            if nqp::elems(@parts) == 1 {
+                my $dispatcher := self.dispatcher;
+
+                $call := $dispatcher
+                  ?? QAST::Op.new:
+                       :op('callmethod'), :name('dispatch:<hyper>'),
+                       $operand-qast,
+                       QAST::SVal.new( :value($name) ),
+                       QAST::SVal.new( :value($dispatcher) ),
+                       QAST::SVal.new( :value($name) )
+                  !! QAST::Op.new:
+                       :op('callmethod'), :name('dispatch:<hyper>'),
+                       $operand-qast,
+                       QAST::SVal.new( :value('') ),
+                       QAST::SVal.new( :value($name) );
+            }
+            else {
+                my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                $context.ensure-sc($Qualified);
+                $name := @parts[ nqp::elems(@parts)-1 ];
+                my $dispatcher := self.dispatcher;
+
+                $call := $dispatcher
+                  ?? QAST::Op.new:
+                       :op('callmethod'), :name('dispatch:<hyper>'),
+                       $operand-qast,
+                       QAST::SVal.new( :value($name) ),
+                       QAST::SVal.new( :value($dispatcher) ),
+                       QAST::SVal.new( :value('dispatch:<::>') ),
+                       QAST::SVal.new( :value($name) ),
+                       QAST::WVal.new( :value($Qualified) )
+                  !! QAST::Op.new:
+                       :op('callmethod'), :name('dispatch:<hyper>'),
+                       $operand-qast,
+                       QAST::SVal.new( :value($name) ),
+                       QAST::SVal.new( :value('dispatch:<::>') ),
+                       QAST::SVal.new( :value($name) ),
+                       QAST::WVal.new( :value($Qualified) );
+            }
+        }
+        else {
+            nqp::die('Qualified method calls NYI');
+        }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -598,12 +713,19 @@ class RakuAST::Call::Method
 class RakuAST::Call::QuotedMethod
   is RakuAST::Call::Methodish
 {
-    has RakuAST::QuotedString $.name;
+    has RakuAST::QuotedString   $.name;
 
-    method new(RakuAST::QuotedString :$name!, RakuAST::ArgList :$args) {
+    method new(
+      RakuAST::QuotedString :$name!,
+           RakuAST::ArgList :$args,
+                        str :$dispatch
+    ) {
         my $obj := nqp::create(self);
+
         nqp::bindattr($obj, RakuAST::Call::QuotedMethod, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+
+        $obj.set-dispatcher($dispatch);
         $obj
     }
 
@@ -612,13 +734,45 @@ class RakuAST::Call::QuotedMethod
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('.')
-    }
+    method default-operator-properties() { self.default-properties(".") }
+
+    method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
-        my $call := QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
+        my $dispatcher := self.dispatcher;
+
+        my $call := $dispatcher
+          ?? QAST::Op.new( :op('callmethod'), :name($dispatcher), $invocant-qast, $name-qast )
+          !! QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
+        my $call;
+        my $dispatcher := self.dispatcher;
+
+        if $dispatcher {
+            my $name-var := QAST::Node.unique: 'nodal-name';
+            my $nodal-name := QAST::Op.new: :op<bind>,
+                QAST::Var.new(:name($name-var), :scope<lexical>, :decl<var>),
+                $name-qast;
+            $call := QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                $nodal-name,
+                QAST::SVal.new( :value($dispatcher) ),
+                QAST::Var.new: :name($name-var), :scope<lexical>
+        }
+        else {
+            $call := QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                QAST::SVal.new( :value('') ),
+                $name-qast;
+        }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -629,6 +783,7 @@ class RakuAST::Call::PrivateMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
   is RakuAST::ImplicitLookups
+  is RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -645,13 +800,11 @@ class RakuAST::Call::PrivateMethod
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('!')
-    }
+    method default-operator-properties() { OperatorProperties.postfix('!') }
 
     method needs-resolution() { False }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::PrivateMethod, '$!package', $resolver.current-package);
         Nil
     }
@@ -700,9 +853,7 @@ class RakuAST::Call::MetaMethod
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('.^')
-    }
+    method default-operator-properties() { OperatorProperties.postfix('.^') }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $call := QAST::Op.new( :op('p6callmethodhow'), :name($!name), $invocant-qast );
@@ -711,49 +862,24 @@ class RakuAST::Call::MetaMethod
     }
 }
 
-# A safe call to a method, i.e. returns Nil if no method was found by that name.
-class RakuAST::Call::MaybeMethod
-  is RakuAST::Call::Methodish
-{
-    has str $.name;
-
-    method new(str :$name!, RakuAST::ArgList :$args) {
-        my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Call::MaybeMethod, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
-        $obj
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor(self.args);
-    }
-
-    method default-operator-properties() {
-        OperatorProperties.postfix('.?')
-    }
-
-    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $call := QAST::Op.new(
-            :op('callmethod'),
-            :name('dispatch:<.?>'),
-            $invocant-qast,
-            QAST::SVal.new(:value($!name))
-        );
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        $call
-    }
-}
-
 class RakuAST::Call::VarMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
+  is RakuAST::BeginTime
 {
     has RakuAST::Name $.name;
 
-    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+    method new(
+         RakuAST::Name :$name!,
+      RakuAST::ArgList :$args,
+                   str :$dispatch
+    ) {
         my $obj := nqp::create(self);
+
         nqp::bindattr($obj, RakuAST::Call::VarMethod, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+
+        $obj.set-dispatcher($dispatch);
         $obj
     }
 
@@ -764,13 +890,11 @@ class RakuAST::Call::VarMethod
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('.&')
-    }
+    method default-operator-properties() { self.default-properties('.&') }
 
     method needs-resolution() { $!name.is-identifier }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
@@ -783,25 +907,47 @@ class RakuAST::Call::VarMethod
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $call := QAST::Op.new(:op<call>, $invocant-qast);
-        if $!name.is-identifier {
-            $call.name(self.resolution.lexical-name);
-        }
-        else {
+        unless $!name.is-identifier {
             nqp::die('compiling complex call names NYI')
         }
+        my $name-qast  := self.resolution.IMPL-LOOKUP-QAST($context);
+        my $dispatcher := self.dispatcher;
+
+        my $call := $dispatcher
+            ?? QAST::Op.new(
+                :op('callmethod'),
+                :name($dispatcher),
+                $invocant-qast,
+                QAST::SVal.new( :value('dispatch:<var>')),
+                $name-qast
+            )
+            !! QAST::Op.new(
+                :op('call'),
+                $name-qast,
+                $invocant-qast
+            );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := $!name.canonicalize;
-        my $call := QAST::Op.new:
-            :op('callmethod'), :name('dispatch:<hyper>'),
-            $operand-qast,
-            self.resolution.IMPL-LOOKUP-QAST($context),
-            QAST::SVal.new( :value('dispatch:<var>') ),
-            self.resolution.IMPL-LOOKUP-QAST($context);
+        my $name       := $!name.canonicalize;
+        my $dispatcher := self.dispatcher;
+
+        my $call := $dispatcher
+            ?? QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                self.resolution.IMPL-LOOKUP-QAST($context),
+                QAST::SVal.new( :value($dispatcher) ),
+                QAST::SVal.new( :value('dispatch:<var>') ),
+                self.resolution.IMPL-LOOKUP-QAST($context)
+            !! QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                self.resolution.IMPL-LOOKUP-QAST($context),
+                QAST::SVal.new( :value('dispatch:<var>') ),
+                self.resolution.IMPL-LOOKUP-QAST($context);
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -812,10 +958,17 @@ class RakuAST::Call::BlockMethod
 {
     has RakuAST::Block $.block;
 
-    method new(RakuAST::Block :$block!, RakuAST::ArgList :$args) {
+    method new(
+        RakuAST::Block :$block!,
+      RakuAST::ArgList :$args,
+                   str :$dispatch
+    ) {
         my $obj := nqp::create(self);
+
         nqp::bindattr($obj, RakuAST::Call::BlockMethod, '$!block', $block);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+
+        $obj.set-dispatcher($dispatch);
         $obj
     }
 
@@ -826,23 +979,45 @@ class RakuAST::Call::BlockMethod
         $visitor(self.args);
     }
 
-    method default-operator-properties() {
-        OperatorProperties.postfix('.&')
-    }
+    method default-operator-properties() { self.default-properties('.&') }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $call := QAST::Op.new(:op<call>, $!block.IMPL-EXPR-QAST($context), $invocant-qast);
+        my $dispatcher := self.dispatcher;
+
+        my $call := $dispatcher
+            ?? QAST::Op.new(
+                :op('callmethod'),
+                :name($dispatcher),
+                $invocant-qast,
+                QAST::SVal.new( :value('dispatch:<var>')),
+                $!block.IMPL-EXPR-QAST($context),
+            )
+            !! QAST::Op.new(
+                :op<call>,
+                $!block.IMPL-EXPR-QAST($context),
+                $invocant-qast
+            );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $call := QAST::Op.new:
-            :op('callmethod'), :name('dispatch:<hyper>'),
-            $operand-qast,
-            $!block.IMPL-EXPR-QAST($context),
-            QAST::SVal.new( :value('dispatch:<var>') ),
-            $!block.IMPL-EXPR-QAST($context);
+        my $dispatcher := self.dispatcher;
+
+        my $call := $dispatcher
+            ?? QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                $!block.IMPL-EXPR-QAST($context),
+                QAST::SVal.new( :value($dispatcher) ),
+                QAST::SVal.new( :value('dispatch:<var>') ),
+                $!block.IMPL-EXPR-QAST($context)
+            !! QAST::Op.new:
+                :op('callmethod'), :name('dispatch:<hyper>'),
+                $operand-qast,
+                $!block.IMPL-EXPR-QAST($context),
+                QAST::SVal.new( :value('dispatch:<var>') ),
+                $!block.IMPL-EXPR-QAST($context);
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

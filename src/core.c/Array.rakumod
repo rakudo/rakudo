@@ -410,7 +410,11 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method flat(Array:U:) { self }
-    multi method flat(Array:D:) { Seq.new(self.iterator) }
+    multi method flat(Array:D: $levels = Whatever, :$hammer = False) {
+        Seq.new: $hammer
+          ?? Rakudo::Iterator.Flat: self.iterator, $levels, $hammer
+          !! self.iterator  # not hammering, always conted, so no-op
+    }
 
     method reverse(Array:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
@@ -428,28 +432,35 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
+    multi method List(Array:D: :view($)! --> List:D) is implementation-detail {
+        self.is-lazy    # reifies
+          ?? self.throw-iterator-cannot-be-lazy('.List')
+          !! nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified'))
+            ?? $reified.List
+            !! nqp::create(List)
+    }
+    multi method List(Array:D: --> List:D) {
         nqp::if(
-          self.is-lazy,                           # can't make a List
+          self.is-lazy,                         # can't make a List
           self.throw-iterator-cannot-be-lazy('.List'),
 
-          nqp::if(                                # all reified
+          nqp::if(                              # all reified
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
-            nqp::if(
-              $view,                              # assume no change in array
-              $reified.List,
-              nqp::stmts(                         # make cow copy
-                (my int $elems = nqp::elems($reified)),
-                (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(++$i,$elems),
-                  nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
+            nqp::stmts(                         # make cow copy
+              (my int $elems = nqp::elems($reified)),
+              (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(++$i,$elems),
+                nqp::bindpos(
+                  $cow,
+                  $i,
+                  nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)
                 ),
-                $cow.List
-              )
+              ),
+              $cow.List
             ),
-            nqp::create(List)                     # was empty, is empty
+            nqp::create(List)                   # was empty, is empty
           )
         )
     }
@@ -1093,8 +1104,8 @@ my class Array { # declared in BOOTSTRAP
                :range("0..^{self.elems - $offset}")
              ).throw
     }
-    #------ splice(offset,size,array) candidates
 
+    #------ splice(offset,size,array) candidates
     # we have these 9 multies to avoid infiniloop when incorrect types are
     # given to $offset/$size. Other attempts to resolve this showed 30%+
     # performance decreases
@@ -1142,6 +1153,69 @@ my class Array { # declared in BOOTSTRAP
       Int:D $offset, Int:D $size, **@new
     --> Array:D) {
         self.splice($offset, $size, @new)
+    }
+
+    #----- splice(offset, index, $pos) candidates
+    # we want to be able to insert an itemized array ($[]) at a location
+    # without flattening its contents like in the default behavior
+    multi method splice(Array:D:
+                        Whatever $, Whatever $, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice(self.elems,0,[$@new])
+    }
+    multi method splice(Array:D:
+                        Whatever $, Int:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice(self.elems,$size,[$@new])
+    }
+    multi method splice(Array:D:
+                        Whatever $, Callable:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        my int $elems = self.elems;
+        self.splice($elems,$size(nqp::sub_i($elems,$elems)),[$@new])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Callable:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        my int $elems = self.elems;
+        my int $from  = $offset($elems);
+        self.splice($from,$size(nqp::sub_i($elems,$from)),[$@new])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Whatever $, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        my int $elems = self.elems;
+        my int $from  = $offset($elems);
+        self.splice($from,nqp::sub_i($elems,$from),[$@new])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Int:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice($offset(self.elems),$size,[$@new])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Whatever $, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice($offset,self.elems - $offset,[$@new])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Callable:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice($offset,$size(self.elems - $offset),[$@new])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Int:D $size, @new is item
+                        --> Array:D) is revision-gated("6.e")
+    {
+        self.splice($offset,$size,[$@new])
     }
 
     multi method splice(Array:D: Whatever $, Whatever $, @new --> Array:D) {

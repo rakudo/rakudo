@@ -6,6 +6,7 @@ class RakuAST::CompUnit
   is RakuAST::ImplicitDeclarations
   is RakuAST::AttachTarget
   is RakuAST::ScopePhaser
+  is RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -17,6 +18,7 @@ class RakuAST::CompUnit
     has int $!is-eval;
     has Mu $!global-package-how;
     has Mu $!init-phasers;
+    has Mu $!check-phasers; # For use by trait_mod:<will>
     has Mu $!end-phasers;
     has RakuAST::VarDeclaration::Implicit::Doc::Pod     $.pod;
     has RakuAST::VarDeclaration::Implicit::Doc::Data    $.data;
@@ -67,6 +69,7 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
           $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!check-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
@@ -122,8 +125,15 @@ class RakuAST::CompUnit
         $obj
     }
 
+    # Perform all outstanding BEGIN-time activities on the compilation unit.
+    # This implies outstanding parse-time activities.
+    method begin(RakuAST::Resolver $resolver) {
+        $!mainline.IMPL-BEGIN($resolver, $!context);
+        self.IMPL-BEGIN($resolver, $!context);
+    }
+
     # Perform all CHECK-time activities on the compilation unit. This includes
-    # doing any symbol resolution, any leftover sink marking, and performing
+    # doing function resolution, any leftover sink marking, and performing
     # any CHECK-time error checking. This may also produce information useful
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {
@@ -235,13 +245,6 @@ class RakuAST::CompUnit
         self.IMPL-WRAP-LIST(['compunit'])
     }
 
-    method clear-attachments() {
-        nqp::setelems($!init-phasers, 0);
-        nqp::setelems($!end-phasers, 0);
-        self.clear-handler-attachments();
-        Nil
-    }
-
     # Set the pod content at the indicated position
     method set-pod-content(int $i, $pod) {
 
@@ -263,10 +266,7 @@ class RakuAST::CompUnit
     }
 
     # Helper method for a given phasers list
-    method add-phaser($phasers, $phaser) {
-        # Cannot rely on clear-attachments here as a node's attach can be
-        # called multiple times while going up and down the tree and
-        # clear-attachments will only be called once.
+    method add-cu-phaser($phasers, $phaser) {
         for $phasers {
             return Nil if nqp::eqaddr($_,$phaser);  # already added
         }
@@ -275,11 +275,15 @@ class RakuAST::CompUnit
     }
 
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
-        self.add-phaser($!init-phasers, $phaser);
+        self.add-cu-phaser($!init-phasers, $phaser);
     }
 
-    method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
-        self.add-phaser($!end-phasers, $phaser);
+    method add-check-phaser(Code $phaser) {
+        self.add-cu-phaser($!check-phasers, $phaser);
+    }
+
+    method add-end-phaser(Code $phaser) {
+        self.add-cu-phaser($!end-phasers, $phaser);
     }
 
     method queue-heredoc($herestub) {
@@ -318,12 +322,31 @@ class RakuAST::CompUnit
         $!precompilation-mode ?? True !! False
     }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.visit-children(-> $child {
+            $child.to-begin-time($resolver, $context);
+        });
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        while $!check-phasers {
+            nqp::pop($!check-phasers)();
+        }
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
                 'CompUnit', 'RepositoryRegistry',
-            ))
+            )),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
         ])
+    }
+
+    method IMPL-FATALIZE {
+        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -353,6 +376,9 @@ class RakuAST::CompUnit
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
 
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+          name => '$?LANGUAGE-REVISION', value => $!language-revision.Int
+        ));
         # Various markers
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name => '!UNIT_MARKER', value => 1
@@ -490,14 +516,15 @@ class RakuAST::CompUnit
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $*CU := self;
         self.IMPL-SET-NODE:
-            QAST::Stmts.new(
-                QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
-                self.IMPL-QAST-DECLS($context),
-                self.IMPL-QAST-INIT-PHASERS($context),
-                self.IMPL-QAST-END-PHASERS($context),
-                self.IMPL-QAST-CTXSAVE($context),
-                self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
-            )
+            self.IMPL-MAYBE-FATALIZE-QAST:
+                QAST::Stmts.new(
+                    QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
+                    self.IMPL-QAST-DECLS($context),
+                    self.IMPL-QAST-INIT-PHASERS($context),
+                    self.IMPL-QAST-END-PHASERS($context),
+                    self.IMPL-QAST-CTXSAVE($context),
+                    self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
+                )
     }
 
     method IMPL-QAST-INIT-PHASERS(RakuAST::IMPL::QASTContext $context) {
@@ -521,13 +548,14 @@ class RakuAST::CompUnit
     method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {
         my $end-setup := QAST::Stmts.new;
         for $!end-phasers {
+            $context.ensure-sc($_);
             $end-setup.push(QAST::Op.new(
                 :op('callmethod'), :name('unshift'),
                 QAST::Op.new(
                     :op('getcurhllsym'),
                     QAST::SVal.new( :value('@END_PHASERS') ),
                 ),
-                QAST::WVal.new( :value($_.meta-object) )
+                QAST::WVal.new( :value($_) )
             ));
         }
         $end-setup
@@ -559,12 +587,17 @@ class RakuAST::CompUnit
                     )))))
     }
 
+    method IMPL-ADD-ENTER-PHASERS-TO-QAST(QAST::Node $qast, QAST::Node $enter-setup) {
+        $qast[2][2].push($enter-setup); # Add them after INIT phasers
+    }
+
     method generated-global() {
         nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
         self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!mainline);
         $visitor($!statement-list);
         $visitor($!pod)     if $!pod;
         $visitor($!data)    if $!data;

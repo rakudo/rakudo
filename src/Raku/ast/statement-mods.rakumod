@@ -161,7 +161,7 @@ class RakuAST::StatementModifier::Loop
 class RakuAST::StatementModifier::While
   is RakuAST::StatementModifier::Loop
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         if $sink {
             QAST::Op.new(
                 :op('while'),
@@ -179,7 +179,7 @@ class RakuAST::StatementModifier::While
 class RakuAST::StatementModifier::Until
   is RakuAST::StatementModifier::Loop
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         if $sink {
             QAST::Op.new(
                 :op('until'),
@@ -197,11 +197,22 @@ class RakuAST::StatementModifier::Until
 class RakuAST::StatementModifier::Given
   is RakuAST::StatementModifier::Loop
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
-        self.IMPL-TEMPORARIZE-TOPIC(
-            self.expression.IMPL-TO-QAST($context),
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
+        if $block {
+            if $sink {
+                $statement-qast[0].push(self.expression.IMPL-TO-QAST($context));
+            }
+            else {
+                $statement-qast.push(self.expression.IMPL-TO-QAST($context));
+            }
             $statement-qast
-        )
+        }
+        else {
+            self.IMPL-TEMPORARIZE-TOPIC(
+                self.expression.IMPL-TO-QAST($context),
+                $statement-qast
+            )
+        }
     }
 }
 
@@ -210,9 +221,10 @@ class RakuAST::StatementModifier::For
   is RakuAST::StatementModifier::Loop
   is RakuAST::ForLoopImplementation
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         my $expression := self.expression;
         my $expression-qast := $expression.IMPL-TO-QAST($context);
+        $statement-qast := $sink ?? $statement-qast[0][0] !! $statement-qast[0] if $block;
 
         nqp::istype($expression, RakuAST::QuotedRegex)
                         ??
@@ -271,9 +283,6 @@ class RakuAST::StatementModifier::Condition::Thunk
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         Nil
     }
-
-    method is-begin-performed-before-children() { False }
-    method is-begin-performed-after-children() { False }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         Nil

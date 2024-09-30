@@ -179,16 +179,21 @@ augment class RakuAST::Node {
     }
 }
 
-my class RakuAST::Doc::Row is RakuAST::Node {
+my class RakuAST::Doc::LegacyRow is RakuAST::Node {
     has str  $.column-dividers;
     has      $.column-offsets is built(:bind);  # native int array
     has      $.cells          is built(:bind);  # Str or Markup
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
+    # Stringify all cells (needed for headers)
+    method stringify-cells(RakuAST::Doc::LegacyRow:D: --> Nil) {
+        $!cells := $!cells.map(*.Str).List;
+    }
+
     # Merge the cells of one or more rows with the current, by
     # concatenating the corresponding cells with a newline,
     # assuming no markup in cells.
-    method merge-rows(RakuAST::Doc::Row:D: *@rows --> Nil) {
+    method merge-rows(RakuAST::Doc::LegacyRow:D: *@rows --> Nil) {
         if @rows && nqp::istype($!cells.are,Str) {
             my str @merged = $!cells;
             $!multi-line := True;
@@ -223,7 +228,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         }
     }
 
-    multi method raku(RakuAST::Doc::Row:D:) {
+    multi method raku(RakuAST::Doc::LegacyRow:D:) {
         my sub nameds() {
             RakuAST::Node.^find_private_method('nameds')(
               self, <column-dividers column-offsets cells>
@@ -242,7 +247,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         }
     }
 
-    multi method Str(RakuAST::Doc::Row:D:) {
+    multi method Str(RakuAST::Doc::LegacyRow:D: &highlight = { $_ }) {
         my str $dividers = nqp::hllizefor($!column-dividers,'Raku') // '';
 
         # Stringify the given strings with the current dividers / offsets
@@ -265,7 +270,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
                   nqp::stmts(
                     @parts.push(cells.AT-POS($i).Str),
                     @parts.push(' '),
-                    @parts.push(nqp::substr($dividers,++$j,1)),
+                    @parts.push(highlight nqp::substr($dividers,++$j,1)),
                     @parts.push(' ')
                   )
                 );
@@ -299,6 +304,8 @@ my class RakuAST::Doc::Row is RakuAST::Node {
         $!cells.head.leading-whitespace
     }
 }
+
+class RakuAST::Doc::Row is RakuAST::Doc::LegacyRow is DEPRECATED { }
 
 augment class RakuAST::Doc {
 
@@ -347,7 +354,7 @@ augment class RakuAST::Doc::Markup {
     }
 
     # Extract any meta information from the atoms, perform the expected
-    # flattening of 'C', 'V' and letterless markup, and set that in the
+    # flattening of 'V' and letterless markup, and set that in the
     # meta information of the given markup
     method !extract-meta(--> Nil) {
         my @atoms;
@@ -364,7 +371,7 @@ augment class RakuAST::Doc::Markup {
                           !! $atom;
                     }
                     else {
-                        .set-atoms(.atoms.join) if $letter eq 'C' | 'V';
+#                        .set-atoms(.atoms.join) if $letter eq 'V';
                         @meta.push($_);
                     }
                 }
@@ -393,31 +400,46 @@ augment class RakuAST::Doc::Markup {
         }
     }
 
+    method !add-entities($raw) {
+        for $raw.split(';') -> $entity {
+            with self!convert-entity($entity) -> $converted {
+                self.add-meta($entity => $converted);
+            }
+            else {
+                self.add-atom($entity);
+            }
+        }
+    }
+
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = $!letter;
-        if $letter eq 'L' | 'D' | 'M' | 'X' {
+        if $letter eq 'D' | 'F' | 'L' | 'M' | 'X' {
             self!extract-meta;
         }
         elsif $letter eq 'E' {
-            my @atoms = self.atoms;
-            if nqp::istype(@atoms.tail,Str) {
-                self.set-atoms;  # reset so we can add again
-                for @atoms.pop.split(';') -> $entity {
-                    with self!convert-entity($entity) -> $converted {
-                        self.add-meta($entity);
-                        self.add-atom($converted);
-                    }
-                    else {
-                        self.add-atom($entity);
-                    }
+
+            # Has an alternate representation
+            self!extract-meta;
+            if self.meta -> $meta {
+                self.set-meta;  # reset so we can add again
+                self!add-entities($meta);
+            }
+
+            # No alternate representation given
+            else {
+                my @atoms = self.atoms;
+                if nqp::istype(@atoms.tail,Str) {
+                    self.set-atoms;  # reset so we can add again
+                    self!add-entities(@atoms.pop);
                 }
             }
         }
         elsif $letter eq 'A' {
             my $aliases := $*DOC-ALIASES;
-            unless nqp::istype($aliases,Failure) {
-                if nqp::atkey($aliases,self.atoms.head) -> $alias {
+            if nqp::not_i(nqp::istype($aliases,Failure))
+              && self.atoms.head -> $key {
+                if nqp::atkey($aliases,$key.Str) -> $alias {
                     self.set-meta($alias);
                 }
             }
@@ -436,10 +458,14 @@ augment class RakuAST::Doc::Markup {
         }
 
         if self.meta -> @meta {
-            $!letter eq 'E'
-              ?? @parts.pop # stringification so far is incorrect
-              !! @parts.push('|');
-            @parts.push: @meta.join
+            if $!letter eq 'E' {
+                @parts.pop if nqp::elems(@parts);  # so far incorrect
+                @parts.push: @meta.map(*.value).join;
+            }
+            else {
+                @parts.push('|');
+                @parts.push: @meta.join;
+            }
         }
 
         @parts.push: $!closer if $container;
@@ -459,7 +485,7 @@ augment class RakuAST::Doc::Markup {
 
         for self.atoms -> $atom {
             if nqp::istype($atom,RakuAST::Doc::Markup) {
-                $atom.verbatimize;  # recurse first
+                $atom.splat-letterless;  # recurse first
 
                 if $atom.letter {
                     splat($atom)
@@ -477,23 +503,20 @@ augment class RakuAST::Doc::Markup {
         self.set-atoms(@atoms.List);
     }
 
-    # recursively verbatimize any C<> and V<> markups and splay <> markup
-    method verbatimize(RakuAST::Doc::Markup:D: --> Nil) {
-        $!letter eq 'C' | 'V'
-          ?? self.set-atoms(self.flatten.List)
-          !! self.splat-letterless
-    }
-
     multi method Str(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
         my str @parts  = $letter, self.opener;
         if $letter eq 'E' {
-            @parts.push: self.meta.join(';');
+            if self.atoms -> @atoms {
+                @parts.push(.Str) for @atoms;
+                @parts.push("|") if self.meta;
+            }
+            @parts.push: self.meta.map(*.key).join(';');
         }
         else {
             @parts.push: self.atoms.join;
 
-            if $letter eq 'L' {
+            if $letter eq 'F' | 'L' {
                 if self.meta.join -> $meta {
                     @parts.push: '|';
                     @parts.push: $meta;
@@ -720,7 +743,7 @@ augment class RakuAST::Doc::Paragraph {
         # some markup created
         else {
             add-graphemes($paragraph);
-            .verbatimize for $paragraph.atoms.grep(RakuAST::Doc::Markup);
+            .splat-letterless for $paragraph.atoms.grep(RakuAST::Doc::Markup);
             $paragraph
         }
     }
@@ -738,6 +761,12 @@ augment class RakuAST::Doc::Block {
     # conceptual leading whitespace of first element
     method leading-whitespace() is implementation-detail {
         self.paragraphs.head.leading-whitespace
+    }
+
+    # return True if a legacy, visual type of table
+    method visual-table(RakuAST::Doc::Block:D:) {
+        $!type eq 'table'
+          && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
     }
 
     # return a Map with allowed markup codes as keys, conceptually
@@ -759,7 +788,7 @@ augment class RakuAST::Doc::Block {
 
         # all or nothing
         else {
-            $!type eq <code defn implicit-code table>.any
+            self.visual-table || $!type eq 'code' | 'implicit-code' | 'defn'
               ?? NOK
               !! OK
         }
@@ -773,20 +802,25 @@ augment class RakuAST::Doc::Block {
             my $buffer := nqp::create(IterationBuffer);
 
             for @raw -> $lines {
-                $buffer.push: $lines.lines(:!chomp).map({
-                    if .leading-whitespace.chars >= $margin {
-                        .substr($margin)
-                    }
-                    elsif .is-whitespace {
-                        "\n"
-                    }
-                    else {
-                        die # self.worry-ad-hoc:  XXX need better solution
-                          "'$_.chomp()'
-does not have enough whitespace to allow for a margin of $margin positions";
-                        .trim-leading
-                    }
-                }).join;
+                if nqp::istype($lines,RakuAST::Doc) {
+                    $buffer.push: $lines;
+                }
+                else {
+                    $buffer.push: $lines.lines(:!chomp).map({
+                        if .leading-whitespace.chars >= $margin {
+                            .substr($margin)
+                        }
+                        elsif .is-whitespace {
+                            "\n"
+                        }
+                        else {
+                            die # self.worry-ad-hoc:  XXX need better solution
+                              "'$_.chomp()'
+    does not have enough whitespace to allow for a margin of $margin positions";
+                            .trim-leading
+                        }
+                    }).join;
+                }
             }
 
             $buffer.List
@@ -800,24 +834,23 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
     # create block from =alias
     method from-alias(
-      :$lemma, :paragraphs(@raw), *%_
-    --> RakuAST::Doc::Block:D) is implementation-detail {
+      :$lemma, :@paragraphs --> RakuAST::Doc::Block:D
+    ) is implementation-detail {
 
         # set up basic block
-        my $block      := self.new(|%_);
-        my @paragraphs := $block!marginalize(@raw);
+        my $block := self.new(|%_);
 
         # add rest with possible markup
-        my $paragraph :=
+        my $paragraphs :=
           RakuAST::Doc::Paragraph.from-string(@paragraphs.join("\n"));
 
         # collect alias info if being collected
         my $aliases := $*DOC-ALIASES;
-        nqp::bindkey($aliases,$lemma,$paragraph)
+        nqp::bindkey($aliases,$lemma,$paragraphs)
           unless nqp::istype($aliases,Failure);
 
         $block.add-paragraph($lemma);
-        $block.add-paragraph($paragraph);
+        $block.add-paragraph($paragraphs);
 
         $block
     }
@@ -859,10 +892,15 @@ does not have enough whitespace to allow for a margin of $margin positions";
         }
 
         elsif $type eq 'table' {
-            $block!interpret-as-table(@paragraphs);
+            if nqp::istype(@paragraphs.head,Str) {
+                $block!interpret-as-table(@paragraphs);
+            }
+            else {
+                $block.add-paragraph($_) for @paragraphs;
+            }
         }
 
-        elsif $type eq 'defn' {
+        elsif $type eq 'defn' | 'numdefn' {
             my @parts = @paragraphs;
             # first line is the lemma, separate that
             @parts.splice(0,1,@parts.head.split("\n",2));
@@ -951,8 +989,8 @@ in line '$line'";
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
         # virtual dividers, or any empty array if none were found so far.
-        # Otherwise returns a Seq of RakuAST::Doc::Row objects with Str
-        # row dividers.
+        # Otherwise returns a Seq of RakuAST::Doc::LegacyRow objects with
+        # Str row dividers.
         my sub parse-assuming-virtual-dividers() {
             my int   $start;
             my @codes-per-row;
@@ -1074,7 +1112,9 @@ in line '$line'";
                       !! RakuAST::Doc::Paragraph.from-string(
                            nqp::substr($line,$start)
                          );
-                    RakuAST::Doc::Row.new(:@column-offsets, :cells($cells.List))
+                    RakuAST::Doc::LegacyRow.new(
+                      :@column-offsets, :cells($cells.List)
+                    )
                 }
 
                 #divider
@@ -1160,7 +1200,7 @@ in line '$line'";
                   nqp::substr($line,$start)
                 ) unless $start > $chars;
 
-                RakuAST::Doc::Row.new(
+                RakuAST::Doc::LegacyRow.new(
                   :column-dividers(@dividers.join),
                   :column-offsets(@offsets),
                   :cells($cells.List)
@@ -1169,7 +1209,7 @@ in line '$line'";
 
             # not a row, so a row divider, so return as is
             else {
-                $line
+                $line ~ "\n"
             }
         }
 
@@ -1180,7 +1220,7 @@ in line '$line'";
 
         # Add the rows collected so far, merge them if so specified
         # or implied by the occurrence of multiple dividers
-        sub add-rows-collected-sofar(:$merge = $merge-multi-row--> Nil) {
+        sub add-rows-collected-sofar(:$merge = $merge-multi-row --> Nil) {
             if $merge && @sofar > 1 {
                 my $first := @sofar.shift;
                 $first.merge-rows(@sofar.splice);
@@ -1216,6 +1256,7 @@ in line '$line'";
 
                 # first divider will *always* merge multiple rows
                 elsif @sofar {
+                    .stringify-cells for @sofar;
                     add-rows-collected-sofar(:merge);
                     @paragraphs.push: $_;
                 }

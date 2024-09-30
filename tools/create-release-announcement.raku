@@ -33,7 +33,7 @@ If you would like to contribute or get more information, visit
 <https://raku.org>, <https://rakudo.org/community>, ask on the
 <perl6-compiler@perl.org> mailing list, or ask on IRC #raku on Libera.
 
-Additionally, we invite you to make a donation to The Perl Foundation
+Additionally, we invite you to make a donation to The Perl & Raku Foundation
 to sponsor Raku development: <https://donate.perlfoundation.org/>
 (put “Raku Core Development Fund” in the ‘Purpose’ text field)
 

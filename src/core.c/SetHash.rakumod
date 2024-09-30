@@ -174,9 +174,14 @@ my class SetHash does Setty {
     multi method values(SetHash:D:) { Seq.new(Values.new(:$!elems)) }
 
 #--- coercion methods
-    multi method Set(SetHash:D: :$view) {  # :view is implementation-detail
+    multi method Set(SetHash:D: :view($)!) is implementation-detail {
         $!elems && nqp::elems($!elems)
-          ?? nqp::create(Set).SET-SELF($view ?? $!elems !! nqp::clone($!elems))
+          ?? nqp::create(Set).SET-SELF($!elems)
+          !! nqp::create(Set)
+    }
+    multi method Set(SetHash:D:) {
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Set).SET-SELF(nqp::clone($!elems))
           !! nqp::create(Set)
     }
     multi method SetHash(SetHash:D:) { self }

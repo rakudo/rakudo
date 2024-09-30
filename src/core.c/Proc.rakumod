@@ -4,6 +4,7 @@ my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
     has IO::Pipe $.err;
+    has Str $.os-error;
     has $.exitcode is default(Nil);
     has $.signal;
     has $.pid is default(Nil);
@@ -183,7 +184,10 @@ my class Proc {
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
-            CATCH { default { self!set-status(0x100) } }
+            CATCH {
+                when X::OS { $!os-error = $_.os-error; self!set-status($_.error-code) }
+                default { self!set-status(0x100) }
+            }
             $!pid = await $!proc.ready;
             True
         } // False;
@@ -220,7 +224,7 @@ my class Proc {
 
     method sink(--> Nil) {
         self!wait-for-finish;
-        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode > 0 || $!signal > 0;
+        X::Proc::Unsuccessful.new(:proc(self)).throw if $!exitcode != 0 || $!signal > 0;
     }
 }
 

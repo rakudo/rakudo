@@ -1,6 +1,21 @@
 # This file contains fixups to existing core classes by means of augmentation
 # for language level 6.e.
 
+#-------------------------------------------------------------------------------
+augment class Mu {
+
+    # introducing .Callable($method)
+    method Callable(str $method) {
+        nqp::ifnull(
+          nqp::tryfindmethod(self,$method),
+          X::Method::NotFound.new(
+            :invocant(self), :typename(self.^name), :$method
+          ).Failure
+        )
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Any {
 
     # introducing snip
@@ -70,6 +85,15 @@ augment class Cool {
 }
 
 #-------------------------------------------------------------------------------
+augment class Date {
+    multi method DateTime(
+      Date:D: :$timezone = $*TZ --> DateTime:D
+    ) is revision-gated("6.e")  {
+        DateTime.new(:$!year, :$!month, :$!day, :$timezone)
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Int {
 
     # handle negative sqrts being Complex
@@ -91,6 +115,22 @@ augment class Int {
     proto method pick(|) {*}
     multi method pick() { nqp::rand_I(self,Int) }
     multi method pick($count) { (^self).pick($count) }
+}
+
+#-------------------------------------------------------------------------------
+augment class IO::Path {
+    method stem(IO::Path:D: $parts = * --> Str:D) {
+        my str $basename = self.basename;
+        (my @indices := indices($basename, '.'))
+          ?? nqp::substr(
+               $basename,
+               0,
+               nqp::istype($parts,Whatever) || $parts > @indices
+                ?? @indices[0]
+                !! @indices[@indices - $parts]
+             )
+          !! $basename
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -226,7 +266,6 @@ augment class Str {
           ?? self.comb
           !! Seq.new:
                Rakudo::Iterator.NGrams: self, $size, $limit, $step, $partial
-
     }
 
 #?if !jvm
@@ -280,8 +319,63 @@ augment class Str {
     }
 #?endif
 #?if jvm
-     method nomark(Str:D:) { NYI('nomark').throw }
+    method nomark(Str:D:) { NYI('nomark').throw }
 #?endif
+
+    # Return 1 if invocant has no uppercase chars, else 0
+    method !lowercase-only() {
+        nqp::iseq_i(
+          nqp::chars(self),
+          nqp::findcclass(                      #?js: NFG
+            nqp::const::CCLASS_UPPERCASE,
+            self,0,nqp::chars(self)
+          )
+        )
+    }
+
+    multi method contains(Str:D: Str:D $needle, :$smartcase! --> Bool:D) {
+        self.contains(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method ends-with(Str:D: Str:D $needle, :$smartcase! --> Bool:D) {
+        self.ends-with(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method index(Str:D: Str:D $needle, :$smartcase! --> Int:D) {
+        self.index(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method indices(Str:D: Str:D $needle, :$smartcase!) {
+        self.indices(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method rindex(Str:D: Str:D $needle, :$smartcase! --> Int:D) {
+        self.rindex(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method starts-with(Str:D: Str:D $needle, :$smartcase! --> Bool:D) {
+        self.starts-with(
+          $needle, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
+
+    multi method substr-eq(
+      Str:D: Str:D $needle, Int:D $pos, :$smartcase! --> Bool:D
+    ) {
+        self.substr-eq(
+          $needle, $pos, :ignorecase($smartcase && $needle!lowercase-only), |%_
+        )
+    }
 }
 
 #-------------------------------------------------------------------------------

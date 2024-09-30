@@ -356,6 +356,7 @@ subtest 'class with accessor usage' => {
     # my class TestClassWithAttributeUsage {
     #     has Int $.bar;
     #     method test-meth { $!bar }
+    #     method test-accessor { $.bar }
     # }
     ast RakuAST::Class.new(
       scope => 'my',
@@ -385,6 +386,18 @@ subtest 'class with accessor usage' => {
                   )
                 )
               )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-accessor'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Attribute::Public.new('$.bar')
+                    )
+                  )
+                )
+              )
             )
           )
         )
@@ -395,6 +408,9 @@ my class TestClassWithAttributeUsage {
     has Int $.bar;
     method test-meth {
         $!bar
+    }
+    method test-accessor {
+        $.bar
     }
 }
 CODE

@@ -17,7 +17,7 @@ function activate_buildtools() {
             $chosen_cim = $cim
         }
         else {
-            if ($cim.Version > $chosen_cim.Version) {
+            if ($cim.Version -gt $chosen_cim.Version) {
                 $chosen_cim = $cim
             }
         }

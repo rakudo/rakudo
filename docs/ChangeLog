@@ -1,3 +1,225 @@
+New in 2024.09:
+
++ Improvements:
+
++ Additions:
+    + [6.e] Provide `is revision-gated("6.x")` trait [c2c8d7a0][6fa7c425]
+
++ Fixes:
+
++ Deprecations:
+
++ Internal:
+    + Use binding for all sub aliases [e1a77dc3]
+    + spell out MVMROOT macro for now for compatibility [46d219b4][46d219b4]
+    + set-env.ps1: Fix detecting build tools with multiple installed [c4c540eb]
+    + Micro-opt for non-existing keys in hash [60dbc201]
+    + Micro-opt for %h<a>:exists [dd66162a]
+    + Micro-opt %h<a>:exists:p [83d7a7ff]
+    + Micro-opt %h<a>:exists:kv [cc194cdc]
+    + Add dedicated { }:p|kv|k|v candidates [36e8403d]
+    + Micro-opt { }:delete:exists [753c7559]
+    + Micro-opt { }:delete:(:p|kv) [e2288121]
+    + Micro-opt { }:delete:exists:(:p|kv) [eb7a8279]
+    + Micro-opt { }:delete:(k|v) [49be2cf5]
+    + Remove all SLICE_ONE_HASH references in %h<key> [74b45bb3]
+    + Simplify %h<a b c> handling [4646481e]
+    + Micro-opt []:(k|p|kv|v) [0dd0d72e]
+    + Micro-opt [x]:exists [b093bc42]
+    + Micro-opt []:foo by Boolifying in the signature [50b86140]
+    + Micro-opt [foo]:(p|kv|v) [86a5a10c]
+    + Actually only allow concrete iterables in %h{...} [045644e0]
+    + Address a small but significant corner case in the optimizer [ba303f4a]
+    + Fix small breakage in the Mu:U sm optimization [fdeb87d0]
+    + Add test for "not-Mu:U" ~~ Mu:U [6e182acd]
+    + Remove $?FILE and $?LINE where they don't make much sense [2ee68bff]
+    + Make sure we have a Bool to check against with :exists
+
++ RakuAST Development:
+    + over 30 commits, 142/153 (make test), and 1158/1355 (make spectest)
+      [778c7a63][65c318f0][9ffadf80][7c3b2b18][1081b051][c612b32b][59257a4b]
+      [7857b802][ed5c906c][1fda647f][0c9a00ad][a27ae5ed][3e2684a4][a383c8bb]
+      [307efa6d][cd0e6ee6][81d43af6][38fa6c48][a8111db8][a260251b][07c8b119]
+      [d0a70281][4ccbad96][7ddaf755][850a5a71][5032aad2][fb7d3e7f][6888e977]
+      [866eec37][dde75687][27565cc1][8162f3eb][8eef4c79]
+
+New in 2024.08:
+
++ Improvements:
+    + Ensure path-spec is a Str (in CompUnit::) [c1742f04]
+
++ Additions:
+    + Implement @a[**] with hammering flattening behavior [0bdd27db]
+
++ Fixes:
+    + Ensure that sunk failed lookups in native arrays always explode [a8745fe8]
+    + Fix iterating over Junction with non-simple loop bodies [fde5d87f]
+    + Prevent dispatch errors on Regex.Bool [29a03213]
+
++ Deprecations:
+
++ Internal:
+    + Fix precomp build [a445da42]
+    + Support will complain on X::Syntax::Number::LiteralType [43d2b0fb]
+
++ RakuAST Development:
+    + over 200 commits, 142/153 (make test), and 1144/1356 (make spectest)
+      [3cf20717][b250ffe7][c6067668][9ef8949f][03ed5ae7][0fea3de3][76b4c655]
+      [57624715][4ff3dc07][1ea5fb7f][6276062f][5b9b6cff][3b4d36ad][315afc85]
+      [4d8d6f08][63b87f25][96e7d21f][927a98b9][1391345b][bbce2206][25005c9b]
+      [f600848a][a2182152][466ca907][71278b66][e20fb393][06a4cccd][85a91398]
+      [6075bdf5][630c0115][1fa1a949][00daa29c][afca9150][58f1edf3][8eeaf0ba]
+      [ba1594f2][a23bc866][f61ed6b9][b148ca72][d66097a3][03e773b9][a7af6dad]
+      [9bb892ab][46d9b19c][5baa9076][d9b8ab79][dfa74eca][4c60227d][bae68c74]
+      [940938c8][0b04d210][9291f43f][ee3c85e7][87065a32][bfdbf1cf][c5267fc7]
+      [05a9907e][1c912bc5][aa0ad4c6][c21e0fd9][5b24cf03][45d891a5][fed4ae38]
+      [70346a93][0f1e175e][9635b3cb][1ab4600a][eec9a322][6a72394c][f74da8c2]
+      [8ac3f1eb][85489cb4][e74deef2][f7eea363][8c9263f1][9af44342][eb9ee510]
+      [0bf7c876][0ad81419][bb7de9ca][d899e868][835bf7a2][8507514a][efeac953]
+      [ef959d08][b8762051][846bc284][e8bd820b][d93f6970][0f862af0][977b11e4]
+      [5f5fe4fe][bcb39d0b][06d11b59][e007c708][6f687f10][e16400b1][d7130cb8]
+      [43af30aa][09deed5d][99c530a0][6e253ef5][e6c6f5c0][10fecfb5][74c48ea3]
+      [3d9361a9][a80fcb1a][b50eb200][7971a150][80abf79c][87f150f7][1586e96a]
+      [3a615004][1549a841][3240b2fc][575f0e8e][d853a08f][ae98e84c][0091408b]
+      [d74604d8][af7acf0c][081147ee][0b4048f2][1a616bfb][ed1c48a5][dfd2ccda]
+      [d87bd876][d9037aea][cd1aae89][f340f39e][bac1ee8f][c3c6e458][4cfc7900]
+      [10297c64][bc16b3c2][191787bb][f6b628f3][ebfd4dad][db44e946][5acdfcc0]
+      [1887d27b][466740bb][ec381c70][37b5aeb8][1849fc8b][c1f424a5][8bbd7104]
+      [d0be5d1b][7114c6c1][5fc65475][331d5ea2][ba94f702][5cca0b4f][1b843c75]
+      [82e5aada][dcec75e9][c0880471][76d9e1c2][86502c46][25e6280a][87db5bdd]
+      [e6c2490e][f829dd37][efea1da0][67ab2fb4][a04a8199][56a80347][ce311700]
+      [4397c0e2][9f34623f][cd674298][06e1fe6c][f61870cf][5de09e0b][a90eeabb]
+      [866c77d8][c7c25037][0be319b8][4d35f1e3][70059eb1][bce9c3db][74b357b0]
+      [aada362f][c2fac3ba][11bf1065][f7c1242a][a30ba8aa][fd9cd0a5][c1520df7]
+      [5c532a3e][35b89a37][c7dd2bc5][7907eeab][09a96033][b46572e2][24bc8f41]
+      [e69bb58a][de09b60b][bf371c67][f3c9a598][6ad7aaa9][0932318b]
+
+New in 2024.07:
+
++ Improvements:
+    + Improve execution speed by about 5% on Intel hardware and the MoarVM
+      backend by disabling the EXPRession JIT by default [4d3723bd]
+
++ Additions:
+    + Add :hammer named argument to .flat for thorough flattening [74cfe8e3]
+
++ Fixes:
+    + Bump NQP to get fix for return from LEAVE phaser on MoarVM [0554ae9e]
+    + Partially fix mixed bin/no bin reads in IO::Socket [5008807b]
+    + Fix sprintf thinko in BUILDPLAN module [6536e756]
+
++ Deprecations:
+
++ Internal:
+    + Change colabti log links to irclogs.raku.org links [3e4d19bb]
+    + Remove the signature check from .duckmap for now [1bd985a3]
+
++ RakuAST Development:
+    + Added Raku grammar based syntax highlighting API, and basic support
+      for highlighting using ANSI color codes
+    + over 60 commits, 144/153 (make test), and 1065/1356 (make spectest)
+      [4085432e][3e55eb62][17f0148a][02526784][fd72fc3e][692677ff][ea6c68ab]
+      [604d6617][8752d081][e0afa0a8][a7b41f73][31336240][c7af1953][f8b56432]
+      [9d959fae][5795560f][cf3f0aa2][a14a94df][d782d8b0][17f89c6f][d57b4109]
+      [267edeb1][c50e477c][7a0c0e3f][b984ddfb][1534733d][c64dc9f4][39b987ab]
+      [9fc5f662][5a431ad4][133a25a2][115fdee2][6b9a163e][59fb9ebc][ca479813]
+      [552a88ba][b09a5ee8][38ba882a][8e00a517][527b9788][3ab6c96b][509ee1b6]
+      [8a138038][3079f914][c56375da][f8e64356][4dae7e5b][55754f8d][015e4a3b]
+      [ff48e039][dcaf53e6][487f1eda][f84ae43b][2144863d][fab5c99a][f4b4b219]
+      [e622928d][a469bd8d][19bd06b5][16b059c0][62e523a9][2992649f][088180b6]
+      [d7731e7d][1004a2ad][26622f63]
+
+New in 2024.06:
+
++ Improvements:
+    + Use inclusive TPF alias. [271f8320]
+    + Give `Seq` some `.head` shortcuts (prevents unnecessary reifying) [07865140]
+    + Check expectations of `.deepmap` / `.duckmap` / `.nodemap` [18d128ab]
+    + Make `Seq.end` return a proper `Failure` [bea61881]
+
++ Additions:
+
++ Fixes:
+    + Make sure the `LAST` phaser is always fired in `.map` [16ce594e]
+    + Don't bother calling op in `.duckmap` on sig failure [af6df816]
+    + Fix regresssion on `NativeCall::Compiler::MSVC`, introduced in 2024.05 [cc52ff12]
+    + Don't set the `FIRST` flag always when iterating (fix and micro-optimization) [ad0afb04]
+
++ Deprecations:
+
++ Internal:
+    + Micro-optimize .head(N) [141228a3]
+
++ RakuAST Development:
+    + 20 commits, 144/153 (make test), and 1063/1356 (make spectest) [3f804996]
+      [9c53c92e][1ddbcbc1][5c10672c][16d126bc][ffc59e46][0cde5bfc][0b937b15]
+      [946ab902][c99d4369][1a61ed02][587cd72f][e2fa55b9][46511d59][49751627]
+      [a51ee10d][5b44a64b][b2f81c23][5dd0ad6f][093009a0]
+
+New in 2024.05:
+
++ Improvements:
+    + Provide the host:port that compose the address in use [ecd2dd46]
+    + Improve .IO.open.lock failure messages [774cc864]
+    + Make (^Inf).reverse fail rather than infiniloop [26f1c494]
+    + Provide deeper context into `run` failures [aca5e4c1]
+
++ Additions:
+    + Add rakudo flavor [6e55b118][c888a116][f253d68b][69a33564]
+    + Add worry for WhateverCode on LHS of smartmatch [d9863e9a]
+    + Add Cool.nomark in 6.e [5eb1da8c]
+    + Introduce Any.are(type --> Bool:D) in 6.e [23b94de6]
+    + Add :invocant option to Parameter.new [f17cd58f]
+
++ Fixes:
+    * Fix various unicode property bugs [22492982]
+    + Provide conditional exit status for USAGE [a4c7d5d1]
+    + Supply an Any.match method candidate for Any:D [d6dc3610][51b0ef25]
+      [881c1e87]
+    + Fix mysterious failures when class construction process order changes
+      [2cba37f5]
+    + Make sure type objects without MRO don't break .are [e227a4f2]
+    + Fix memory leaking in infinity-bound ... [99bfab8c]
+    + Allow the use of enum values in MAIN that shadow core types [e3ad75a6]
+      [f5218834][5fbda71d][45966a8c]
+    + Clarify Range.rand failure cases, fix infinite loop, and optimize
+      [06e45d89][f233458e]
+    + Z<> is a comment - do not render it as text. [c1cc007f]
+    + Allow reduce to return containers as generated [ecd75809]
+    + Make dd handle Failures better [0a0435d7]
+    + Make dd be more verbose about hash/array elements [e1bd3ffd][2b2e896b]
+      [184c2ec2]
+
++ Deprecations:
+
++ Internal:
+    + Streamline NativeCall [40c7b77f][30410664][bf81c62f][4a64b3af][d5eb39f7]
+      [0c9e990d][4de8e84a][d374dbb2][89407558][14bde025][9ef2df5b][586c7832]
+      [73776552][8dd91896][3ec47540][9d297a3d][335a0b0c][46a8f324][967d1a5a]
+    + Streamline NativeCall::Dispatcher [8a7ed37c][2182fee5][9b078a12]
+      [ed4db102][c9a0de80]
+    + Move sub map_return_type logic to NativeCall::Types [b6cc74b5]
+    + Streamline NativeCall::Types [3861b8f8][89d4d42b][75fa3da4][d0cbe4ae]
+      [b36cceb3][b6028f9d]
+    + Streamline NativeCall::Compiler::GNU [bd426162][92da00a9]
+    + Only ignore last arg in a Method if '%_' (NativeCall) [f25dcacc]
+    + Streamline NativeCall::Compiler::MSVC [cb6e5080][92113fe4][7766fbbd]
+      [ca4bd66c]
+    + Use HLL::SysConfig to obtain path-sep [c8855956]
+    + Refactor t/packages to follow idiomatic distribution file structure
+      [d25af712]
+    + Use NQP for open mode detection in IO::Handle.lock [cf87ccf9]
+    + Micro-optimize basic iterators [2e4bc48a][72b46fe2][6846c49e]
+
++ RakuAST Development:
+    + 43 commits, 143/152 (make test), and 1063/1356 (make spectest) [fe579a3b]
+      [d890d89e][cd197264][5485db22][ee525814][fcbd5303][622f58ad][b50fb0c4]
+      [1278c5bb][c0c5e9ed][4e547d17][5a1e0161][a3907c3a][80ae959a][4988fb37]
+      [331f0192][1d5cd34f][24f3a168][eee426ea][66c4acad][5748ac20][aec7a49d]
+      [22a7a897][ddde58be][2c3602de][39705b00][3ce05fa0][3a928a56][5a122c60]
+      [22932c27][097b50cd][a26b756a][a1f98bf1][13f5a744][b08810e4][a690eecc]
+      [53eebb7c][cd74aa79][de12a755][5fb665ba][042660d8][b7116755][851aa490]
+
 New in 2024.04:
 
 + Improvements:

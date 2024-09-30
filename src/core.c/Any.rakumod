@@ -490,7 +490,7 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
     )
 }
 # U+2A76 THREE CONSECUTIVE EQUALS SIGNS
-my constant &infix:<⩶> = &infix:<===>;
+my constant &infix:<⩶> := &infix:<===>;
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }

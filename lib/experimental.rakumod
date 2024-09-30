@@ -200,8 +200,6 @@ package EXPORT::will-complain {
     multi sub trait_mod:<will>(Mu:U \type, &complainee, :complain($)!) {
         if type.HOW.archetypes.composable {
             X::Comp::Trait::Invalid.new(
-                file       => $?FILE,
-                line       => $?LINE,
                 type       => 'will',
                 subtype    => 'complain',
                 declaring  => 'role',
@@ -221,8 +219,6 @@ package EXPORT::will-complain {
         my $desc = try $attr.container_descriptor;
         unless $desc && nqp::istype($desc, Metamodel::Explaining) {
             X::Comp::Trait::Invalid.new(
-                file       => $?FILE,
-                line       => $?LINE,
                 type       => 'will',
                 subtype    => 'complain',
                 declaring  => 'attribute',
@@ -236,8 +232,6 @@ package EXPORT::will-complain {
     }
     multi sub trait_mod:<will>(Mu \obj, &complainee, :complain($)!) {
         X::Comp::Trait::Invalid.new(
-            file       => $?FILE,
-            line       => $?LINE,
             type       => 'will',
             subtype    => 'complain',
             declaring  => 'a ' ~ obj.^shortname.lc,
@@ -249,8 +243,6 @@ package EXPORT::will-complain {
         my $desc := try nqp::getattr($var, $var.VAR.^mixin_base, '$!descriptor');
         unless nqp::defined($desc) && nqp::istype($desc, Metamodel::Explaining) {
             X::Comp::Trait::Invalid.new(
-                file       => $?FILE,
-                line       => $?LINE,
                 type       => 'will',
                 subtype    => 'complain',
                 declaring  => 'variable',

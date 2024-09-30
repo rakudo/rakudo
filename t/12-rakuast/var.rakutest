@@ -1007,7 +1007,7 @@ CODE
         );
         is-deeply $deparsed, q:to/CODE/, 'deparse';
 our $y = 99;
-$y
+$y;
 CODE
 
         # There is no equivalent string representation of a compilation unit

@@ -144,9 +144,9 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     /* Invoke the fake frame; note this doesn't return to the interpreter, so
      * we can do hackery after it. */
     tc->cur_frame->return_address = *(tc->interp_cur_op) + 6;
-    MVMROOT(tc, code, {
-        MVM_frame_dispatch_zero_args(tc, (MVMCode *)fake);
-    });
+    MVM_gc_root_temp_push(tc, (MVMCollectable **)&code);
+    MVM_frame_dispatch_zero_args(tc, (MVMCode *)fake);
+    MVM_gc_root_temp_pop(tc);
 
     /* Now we call the second code ref, thus meaning it'll appear to have been
      * called by the first. We set up a special return handler to properly

@@ -51,12 +51,6 @@ class RakuAST::Node {
         $resolver.build-exception: 'X::Bind'
     }
 
-    # Resolves all nodes beneath this one, recursively, using the specified
-    # resolver.
-    method resolve-all(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-CHECK($resolver, $context, True);
-    }
-
     method set-origin(RakuAST::Origin $origin) {
         nqp::bindattr(self, RakuAST::Node, '$!origin', $origin);
     }
@@ -87,58 +81,93 @@ class RakuAST::Node {
         self
     }
 
-    # Perform CHECK-time activities on this node.
-    method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
-        # Perform resolutions.
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
-            self.resolve-with($resolver);
-            if !$resolve-only && !self.is-resolved && self.needs-resolution {
-                $resolver.add-node-unresolved-after-check-time(self);
-            }
-        }
+    # Bring the node up to parse time. Returns the node itself.
+    method to-parse-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::istype(self, RakuAST::ImplicitLookups) {
-            self.resolve-implicit-lookups-with($resolver);
+            self.implicit-lookups-to-begin-time($resolver, $context);
         }
-        if nqp::istype(self, RakuAST::Attaching) {
-            self.attach($resolver);
+        if nqp::istype(self, RakuAST::ParseTime) {
+            self.ensure-parse-performed($resolver, $context);
         }
+        self
+    }
+
+    # Bring the node up to begin time. Returns the node itself.
+    method to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.implicit-lookups-to-begin-time($resolver, $context);
+        }
+        if nqp::istype(self, RakuAST::ParseTime) {
+            self.ensure-parse-performed($resolver, $context);
+        }
+        # Apply implicit block semantics.
+        if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
+            self.apply-implicit-block-semantics();
+        }
+        if nqp::istype(self, RakuAST::BeginTime) {
+            self.ensure-begin-performed($resolver, $context);
+        }
+        self
+    }
+
+    # Drive parse-time and BEGIN-time actitivites on this node and its children. In the context of
+    # the compiler, this is done while parsing takes place. For a synthetic AST, however, it needs
+    # to be performed.
+    method IMPL-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Ensure implicit lookups are driven to their begin state ahead of the node's parse
+        # time (in that sense, they are a bit like implicit children of the node).
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.implicit-lookups-to-begin-time($resolver, $context);
+        }
+        # Apply implicit block semantics.
         if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
             self.apply-implicit-block-semantics();
         }
 
-        # Apply any pre-children BEGIN-time effects that were not yet
-        # performed (and figure out if we have to do the later).
-        my int $needs-begin-after := nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-after-children();
-        if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-before-children() {
-            self.ensure-begin-performed($resolver, $context, :phase(1));
+        # Ensure parse time was performed already before visiting children, when it is a
+        # lexical scope that we are entering.
+        my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
+        my int $is-parse-time := nqp::istype(self, RakuAST::ParseTime);
+        if $is-scope && $is-parse-time {
+            self.ensure-parse-performed($resolver, $context);
+            $is-parse-time := 0;
         }
 
-        # Visit children. But don't run CHECK yet if this will be followed by more BEGIN handling
+        # Visit children.
+        my int $is-package := nqp::istype(self, RakuAST::Package);
+        $resolver.push-scope(self) if $is-scope;
+        $resolver.push-package(self) if $is-package;
+        self.visit-children(-> $child { $child.IMPL-BEGIN($resolver, $context) });
+        $resolver.pop-scope() if $is-scope;
+        $resolver.pop-package() if $is-package;
+
+        # Perform parse time and BEGIN time as needed.
+        my int $is-begin-time := nqp::istype(self, RakuAST::BeginTime);
+        if $is-parse-time {
+            self.ensure-parse-performed($resolver, $context);
+        }
+        if $is-begin-time {
+            self.ensure-begin-performed($resolver, $context);
+        }
+
+        Nil
+    }
+
+    # Drive CHECK-time activities on this node and its children. Assumes that BEGIN time and
+    # parse time has already completely happened.
+    method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
+        # Visit children and do their CHECK time.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only || $needs-begin-after) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
-        # Perform any after-children BEGIN-time effects.
-        if $needs-begin-after {
-            self.ensure-begin-performed($resolver, $context, :phase(2));
-        }
-
         # Unless in resolve-only mode, do other check-time activities.
+        # TODO eliminate resolve-only, since that's just check time.
         unless $resolve-only {
-            if $needs-begin-after {
-                # Run children's CHECK processing. Couldn't do it earlier as
-                # that would have interfered with our BEGIN handling.
-                $resolver.push-scope(self) if $is-scope;
-                $resolver.push-package(self) if $is-package;
-                self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
-                $resolver.pop-scope() if $is-scope;
-                $resolver.pop-package() if $is-package;
-            }
-
             if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
                 self.calculate-sink();
             }
@@ -147,7 +176,13 @@ class RakuAST::Node {
                 self.PERFORM-CHECK($resolver, $context);
                 if self.has-check-time-problems {
                     $resolver.add-node-with-check-time-problems(self);
+                    if $resolver.find-scope-property(-> $scope { $scope.fatal }) {
+                        self.promote-worries-to-sorries;
+                    }
                 }
+            }
+            if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+                $resolver.add-node-unresolved-after-check-time(self);
             }
         }
 

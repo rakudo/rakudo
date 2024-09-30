@@ -1,0 +1,237 @@
+use Test;
+use lib <t/packages/Test-Helpers>;
+use Test::Helpers;
+
+plan 38;
+
+# t/spec/S03-sequence/misc.t
+# https://github.com/rakudo/rakudo/issues/5520
+{
+    my @result;
+    Q| @result.push($_) for 1...5...3 |.AST.EVAL;
+    is-deeply @result, [1, 2, 3, 4, 5, 4, 3], ".say works with chained sequence and for";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/5546
+{
+    is-run 'Q| use trace; my %a{Str} |.AST.EVAL', :err("2 (EVAL_0 line 1)\nmy \%a\{Str} \n"),
+        "trace pragma works with hash shapes";
+}
+
+# t/spec/S04-phasers/in-loop.t
+# https://github.com/rakudo/rakudo/issues/5517
+{
+    my @a;
+    Q| for () { FIRST @a.push: 'first'; ENTER @a.push: 'enter'; NEXT @a.push: 'next'; LEAVE @a.push: 'leave'; LAST @a.push: 'last'; } |.AST.EVAL;
+    is-deeply @a, [], "phasers do not fire for loop that did not run";
+}
+
+# t/spec/S05-match/basics.t
+# https://github.com/rakudo/rakudo/issues/5454
+{
+    is Q| $_="0X"; m/\d/ ~ m/X/ |.AST.EVAL, "0X", "multiple m// works correctly";
+}
+
+# t/spec/S09-hashes/objecthash.t
+# https://github.com/rakudo/rakudo/issues/5419
+{
+    is Q| my %h{Int}; %h.of |.AST.EVAL, Mu, "creating an object hash without specifying an 'of type' defaults to Mu";
+}
+
+# t/spec/S06-currying/misc.t (?)
+# https://github.com/rakudo/rakudo/issues/5116
+{
+    nok Q| my &a = *.uc; my &b = *.lc; &a eqv &b |.AST.EVAL, "*.uc and *.lc are not considered equivalent";
+    ok  Q| my &a = *.uc; my &b = *.uc; &a eqv &b |.AST.EVAL, "*.uc and *.uc are considered equivalent";
+    todo "This was working but has regressed";
+    nok Q| my &a = *.uc ~ *.lc ~ (*.uc ~ *.lc); my &b = *.lc ~ *.lc ~ (*.lc ~ *.lc); &a eqv &b |.AST.EVAL,
+        "equivalence is still correct for more complicated WhateverCodes";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/2360
+# XXX: LIKELY DUE TO MISSING OPTIMIZATIONS
+{
+    lives-ok { Q| use nqp; my %*FOO is Set = <a b c> |.AST.EVAL }, "the :initialize flag is not sent to Set.STORE";
+}
+
+# t/spec/S04-blocks-and-statements/pointy.t
+# https://github.com/rakudo/rakudo/issues/2295
+{
+    is Q| .WHAT given -> --> Int:D {} |.AST.EVAL, Block but Callable[Int:D],
+        "Pointy blocks are parameterized with return types";
+
+    ok Q| my Int:D &foo = -> --> Int:D {}; &foo.signature |.AST.EVAL ~~ :( --> Int:D),
+        "Pointy blocks can be assigned to a parameterized Callable container";
+}
+
+# t/spec/S04-declarations/constant.t
+# https://github.com/rakudo/rakudo/issues/1587
+{
+    dies-ok { Q| my Int constant .= new: 42 |.AST.EVAL }, "creating a constant without a name dies";
+}
+
+# t/spec/S06-advanced/wrap.t
+# https://github.com/rakudo/rakudo/issues/1561
+# XXX: Almost certainly just due to lack of optimizations
+{
+    my @result;
+    {
+        my $handle;
+        Q§ $handle = &infix:<|>.wrap: -> | { @result.push("ok"); True }; -> $ where {$_ ~~ Int|Num} {}(42) §.AST.EVAL;
+        is-deeply @result, ["ok"], "wrapping infix:<|> works";
+        Q§ &infix:<|>.unwrap($handle) §.AST.EVAL;
+    }
+
+    @result = [];
+    {
+        my $handle;
+        Q§ $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++ §.AST.EVAL;
+        is-deeply @result, ["ok2"], "wrapping postfix:<++> works";
+        Q§ &postfix:<++>.unwrap($handle) §.AST.EVAL;
+    }
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1532
+{
+    my @result;
+    Q| my $foo = "bar"; my %bar = :42foo, :70bar; @result = [:%::($foo)] |.AST.EVAL;
+    is-deeply @result, ["::(\$foo)" => {:bar(70), :foo(42)}],
+        "Colonpairs with indirect-lookup as variables work";
+
+    Q| my $foo = "bar"; my %bar = :42foo, :70bar; @result = [$foo => %::($foo)] |.AST.EVAL;
+    is-deeply @result, [:bar({:bar(70), :foo(42)})],
+        "Colonpairs with indirect-lookup as variables work (complex)"
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1516
+{
+    lives-ok { Q| { my grammar A { token x(&a) { <.&a> } } } |.AST.EVAL }, "no error messages from code params to regexes (<.&a>)";
+    lives-ok { Q| { my grammar A { token x(&a) {  <&a> } } } |.AST.EVAL }, "no error messages from code params to regexes (<&a>)";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/1463
+{
+    lives-ok { Q| eager (1..10) |.AST.EVAL }, "eager on parenthesized range works without issue";
+}
+
+# t/spec/S12-introspection/definite.t (?)
+# https://github.com/rakudo/rakudo/issues/1412
+{
+    dies-ok  { Q| my Positional:D[Int] $x := ("x", "b") |.AST.EVAL }, "Parametarization with DefiniteHOWs is not ignored in binding";
+    is-deeply Q| my Positional:D[Int] $x := Array[Int].new(1, 2) |.AST.EVAL, Array[Int].new(1, 2),
+        "Parametarization with DefiniteHOWs works where it should";
+
+    ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
+        "Parameterization with DefiniteHOWs is propagated to scalar container";
+}
+
+# t/spec/S03-operators/adverbial-modifiers.t
+# https://github.com/rakudo/rakudo/issues/1378
+{
+    throws-like { Q| my %h = :1k; say 1 ~ %h<k>:exists ~ 1 |.AST.EVAL }, X::Syntax::AmbiguousAdverb, "Ambiguous adverb usage results in coherent exception";
+}
+
+# t/spec/S32-array/multislice-6e.t (?)
+# https://github.com/rakudo/rakudo/issues/1297
+{
+    is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
+}
+
+# t/spec/S02-types/signed-unsigned-native.t (?)
+# <no open issue>
+{
+    is Q| sub a(uint $a) { $a }; a -1 |.AST.EVAL, (my uint $a = -1), "unsigned native parameters wrap around when provided with negative numbers";
+}
+
+# t/spec/S03-metaops/???
+# https://github.com/rakudo/rakudo/issues/4424
+{
+    is-run 'Q| [[&say]] "hello ", "world" |.AST.EVAL', :out("hello world\n"),
+        "No useless use of sink reporting for [[&say]]";
+    is-run 'Q| "hello" R[&say] "world " |.AST.EVAL', :out("world hello\n"),
+        "No useless use of sink reporting for R[&say]";
+    is-run 'Q| sub equal($a, $b) { $a eqv $b };  say "hello" [&equal] "world" |.AST.EVAL', :out("False\n"),
+        "No useless use of sink reporting for user-declared function";
+}
+
+# t/spec/S19-command-line/arguments.t
+# https://github.com/rakudo/rakudo/issues/1915
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
+            'state @a; @a.push: $_; @a.elems.say; note @a.join("|")', :out("1\n2\n3\n"), :err("one\none|two\none|two|three\n"),
+            "'-n' compiler option iterates once per newline of input";
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-p']),
+            '$_ .= tc ~= .uc', :out("OneONE\nTwoTWO\nThreeTHREE\n"),
+            "'-p' compiler option iterates once per newline of input and the topic is writeable";
+    is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
+            'say "{$_}"', :out("one\ntwo\nthree\n"),
+            "topic variable is successfully lowered while using '-n'";
+}
+
+# t/spec/S06-currying/misc.t
+# https://github.com/rakudo/rakudo/issues/5004
+{
+    lives-ok { Q| sub problems($x) { (1 .. 100).roll(1) andthen .map(* + 2) andthen .grep(* %% $x) }; problems(16) |.AST.EVAL },
+        "andthen chaining does not disrupt WhateverCode construction";
+}
+
+# t/02-rakudo/repl.t
+# https://github.com/rakudo/rakudo/issues/1690
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+
+    my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
+    my $*REPL-SCRUBBER = -> $_ is copy {
+        .lines
+            .skip(4)
+            .join("\n")
+            .subst( /^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+        " or `zef install Terminal::LineEditor`"
+        " or use rlwrap for a line editor\n\n"/)
+            .subst( /^^ "To exit type 'exit' or $eof\n"/ )
+            .subst( /^^ '[' \d+ '] > '  /, :global)  # Strip out the prompts
+            .subst( /^^ "* "+ /,           :global)  # Strip out the continuation-prompts
+            .subst( /    ">" $ /,          :global)  # Strip out the final prompt
+    }
+
+    is-run-repl "use lib <t/packages/12-rakuast/lib>;\nuse Depth::One;\nuse Depth;\nDepth.new\n",
+        :out("Nil\nNil\nNil\nDepth.new\n"),
+        "repl can successfully use and instantiate a class ('Depth') that is shadowed and surpassed by an earlier used class ('Depth::One')";
+}
+
+# ??? (useless useless use removed)
+# https://github.com/rakudo/rakudo/issues/1525
+{
+    is-run 'Q|subset Char of Str where (*.chars == 1)|.AST.EVAL', :out<>, :err<>,
+        "no worry of a useless 'useless use' for parenthesized prime expression in where clause";
+}
+
+# ???
+# https://github.com/rakudo/rakudo/issues/4925
+{
+    lives-ok { Q|class A { class A::B { ... }; class A::B { has $.c } }|.AST.EVAL },
+        "stubbed classes that belong to parent package cause no issues when stubbed and defined within parent package scope";
+}
+
+# https://irclogs.raku.org/raku/2024-07-12.html#12:20
+{
+    my @a;
+    lives-ok { Q|for <a b c> { @a.push($_) with "{.succ}"; }|.AST.EVAL },
+        "using the topic inside a 'with' and an embedded code block in a qq string";
+    is-deeply @a, [<b c d>], 'did the code do the right thing';
+}
+
+# https://github.com/rakudo/rakudo/issues/5649
+{
+    todo "compilation error in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    is (try 'our Str $a = "foo"'.EVAL), "foo", 'can have constraint on "our" variable';
+}
+
+# vim: expandtab shiftwidth=4

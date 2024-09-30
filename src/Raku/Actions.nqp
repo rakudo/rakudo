@@ -29,18 +29,40 @@ sub setup-RakuAST-WHO() {
 # code, typically resulting in error messages stating a method
 # having been called on VMNull.
 sub Nodify(*@todo) {
-    my $res := nqp::atkey($RakuAST-WHO,nqp::shift(@todo));
-    my $last;
-    while @todo && !nqp::isnull($res) {
-        $res := nqp::atkey($res.WHO,$last := nqp::shift(@todo));
+    my $idx := 0;
+    my $todo-elems := nqp::elems(@todo);
+    my $res := nqp::atkey($RakuAST-WHO,nqp::atpos(@todo, $idx++));
+    while $idx < $todo-elems && !nqp::isnull($res) {
+        $res := nqp::atkey($res.WHO,nqp::atpos(@todo, $idx++));
     }
     nqp::ifnull(
       $res,
       nqp::stmts(
-        nqp::push(@todo,$last),
         nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
       )
     )
+}
+
+# Used by '-p' to print $_ on each iteration
+sub print-topic() {
+    Nodify('Statement', 'Expression').new(expression =>
+        Nodify('Call', 'Name').new(
+            name => Nodify('Name').from-identifier('say'),
+            args => Nodify('ArgList').new(Nodify('Var', 'Lexical').new('$_'))))
+}
+
+# Provide the functionality of '-n' and '-p'
+sub wrap-in-for-loop($ast) {
+    Nodify('StatementList').new(
+        Nodify('Statement', 'For').new(
+            source => Nodify('Call', 'Name').new(name => Nodify('Name').from-identifier('lines')),
+            body   => Nodify('PointyBlock').new(
+                signature => Nodify('Signature').new(
+                    parameters => (Nodify('Parameter').new(
+                        target => Nodify('ParameterTarget', 'Var').new(name => '$_'),
+                        traits => Nodify('Trait', 'Is').new(
+                            name => Nodify('Name').from-identifier('copy'))))),
+                body => Nodify('Blockoid').new($ast))));
 }
 
 #-------------------------------------------------------------------------------
@@ -51,15 +73,9 @@ role Raku::CommonActions {
     # information as we go. This factors out that process and attaches
     # the AST to the match object.
     method attach($/, $node, :$as-key-origin) {
-        if nqp::istype($node, Nodify('ImplicitLookups')) {
-            $node.resolve-implicit-lookups-with($*R);
-        }
-        if nqp::istype($node, Nodify('Attaching')) {
-            $node.attach($*R);
-        }
-
+        my $cu := $*CU; # Might be too early to even have a CompUnit
         self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
-
+        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         make $node;
     }
 
@@ -93,7 +109,7 @@ role Raku::CommonActions {
     }
 
     method quibble($/) {
-        self.attach: $/, $<nibble>.ast;
+        self.attach: $/, $<nibble>.ast // Nodify('Node');
     }
 
     # Grammars also need to be able to lookup RakuAST nodes.  Historically
@@ -134,10 +150,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Be ready to report locations in the source.
         $*ORIGIN-SOURCE := Nodify('Origin', 'Source').new(:orig($/.target()));
 
-        # Set up the literals builder, so we can produce and intern literal
-        # values.
-        $*LITERALS := Nodify('LiteralBuilder').new;
-
         # Set up the base resolver
         my %OPTIONS       := %*OPTIONS;
         my $context       := %OPTIONS<outer_ctx>;
@@ -149,6 +161,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $resolver-type.from-setting(
                :setting-name(%OPTIONS<setting> // 'CORE.d')
              );
+
+        # Set up the literals builder, so we can produce and intern literal
+        # values.
+        $*LITERALS := Nodify('LiteralBuilder').new(:resolver($RESOLVER));
 
         # Make debugging a *lot* easier
         &*DD := $RESOLVER.setting-constant('&dd');
@@ -296,7 +312,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $HLL-COMPILER.set_language_version(@final-version);
             $language-revision := @final-version[0];
             $HLL-COMPILER.set_language_revision: $language-revision;
-            resolver-from-revision();
+            resolver-from-revision() unless $is-EVAL;
 
             # Now the resolver is final, express our modifier concern!
             if $modifier-deprecated {
@@ -369,8 +385,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my %OPTIONS  := %*OPTIONS;
         my $RESOLVER := $*R;
 
+        # Do any requested wrapping (-n or -p)
+        my $statement-list := $<statementlist>.ast;
+        if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
+            $statement-list.add-statement(print-topic()) if $add-print-topic;
+            $statement-list := wrap-in-for-loop($statement-list);
+            # Give the wrapper nodes a chance to do BEGIN time effects
+            $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
+        }
+        $RESOLVER.enter-scope($COMPUNIT);
+
         # Put the body in place.
-        $COMPUNIT.replace-statement-list($<statementlist>.ast);
+        $COMPUNIT.replace-statement-list($statement-list);
+
+        $COMPUNIT.to-begin-time($RESOLVER, $COMPUNIT.context);
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
@@ -381,13 +409,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::existskey(%OPTIONS,'doc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
               'Pod', %OPTIONS<doc> || 'Text'
-            );
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
         }
         elsif nqp::existskey(%OPTIONS,'rakudoc') {
             $COMPUNIT.add-INIT-phaser-for-doc-handling(
-              'RakuDoc', %OPTIONS<rakudoc> || 'Text'
-            );
+              'RakuDoc', %OPTIONS<rakudoc> || 'RakuDoc'
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
         }
+
+        self.attach: $/, $COMPUNIT, :as-key-origin;
 
         # Have check time.
         $COMPUNIT.check($RESOLVER);
@@ -403,7 +433,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        self.attach: $/, $COMPUNIT, :as-key-origin;
+        $RESOLVER.leave-scope();
     }
 
     # Action method to load any modules specified with -M
@@ -477,12 +507,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Handle expression with optional condition/loop modifiers
         if $<EXPR> {
             my $ast := $<EXPR>.ast;
+            my $context := $*CU ?? $*CU.context !! NQPMu; # Might be too early to even have a CU
             if nqp::istype($ast, Nodify('ColonPairs')) {
                 $ast := Nodify('ApplyListInfix').new:
-                  :infix(Nodify('Infix').new(',')),
+                  :infix(Nodify('Infix').new(',').to-begin-time($*R, $context)),
                   :operands($ast.colonpairs);
             }
-            $statement := Nodify('Statement','Expression').new(:expression($ast));
+            $statement := Nodify('Statement','Expression').new(:expression($ast.to-begin-time($*R, $context)));
             $statement.replace-condition-modifier($<statement-mod-cond>.ast)
               if $<statement-mod-cond>;
             $statement.replace-loop-modifier($<statement-mod-loop>.ast)
@@ -517,20 +548,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Helper method for attaching (pointy) blocks
-    method attach-block($/, $signature?) {
+    method attach-block($/) {
         my $block := $*BLOCK;
-        $block.replace-signature($signature.ast) if $signature;
         $block.replace-body($<blockoid>.ast);
         if $*IN-LOOP {
             $block.set-is-loop-body;
         }
-        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
     # Action methods for handling (pointy) blocks
-    method pointy-block($/) { self.attach-block($/, $<signature>) }
-    method        block($/) { self.attach-block($/)               }
+    method pointy-block($/) { self.attach-block($/) }
+    method        block($/) { self.attach-block($/) }
 
     # Action method for handling the inside of (pointy) blocks
     method blockoid($/) {
@@ -544,7 +573,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $block := $*BLOCK;
         # Wrap the statements into a (non-existing) blockoid
         $block.replace-body(Nodify('Blockoid').new($<statementlist>.ast));
-        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
@@ -600,9 +628,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Assume the $*BLOCK dynamic var is appropriately localized as it
     # will set that with the RakuAST:: object being created.
     method enter-block-scope($/) {
+        my $signature := $*PARAMETERIZATION;
         my $block := $*MULTINESS
-          ?? Nodify($*SCOPE-KIND).new(:multiness($*MULTINESS))
-          !! Nodify($*SCOPE-KIND).new;
+          ?? Nodify($*SCOPE-KIND).new(:$signature, :multiness($*MULTINESS))
+          !! Nodify($*SCOPE-KIND).new(:$signature);
         $*R.enter-scope($block);
         $*BLOCK := $block;
 
@@ -732,7 +761,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $argument := $argument.ast if $argument;
 
             my $ast := $Pragma.new(:$name, :$argument, :off);
-            $ast.ensure-begin-performed($*R, $*CU.context);
             self.attach: $/, $ast;
         }
         else {
@@ -774,7 +802,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $ast := Nodify('Statement', 'Need').new(:@module-names);
-        $ast.ensure-begin-performed($*R, $*CU.context);
 
         self.attach: $/, $ast;
     }
@@ -786,7 +813,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := Nodify('Statement', 'Import').new(
           :module-name($<module-name>.ast), :$argument
         );
-        $ast.IMPL-CHECK($*R, $*CU.context, 1);
+        $ast.to-begin-time($*R, $*CU.context);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
             $/.add-categorical(
               $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
@@ -800,7 +827,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             module-name => $<module-name>.ast,
             argument => $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression'),
         );
-        $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
@@ -853,6 +879,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<NEXT>($/)  { self.SP-phaser($/, 'Next')  }
     method statement-prefix:sym<QUIT>($/)  { self.SP-phaser($/, 'Quit')  }
     method statement-prefix:sym<UNDO>($/)  { self.SP-phaser($/, 'Undo')  }
+    method statement-prefix:sym<TEMP>($/)  { self.SP-phaser($/, 'Temp')  }
 
     # BEGIN phaser needs to be executed *now* and produce a value
     method statement-prefix:sym<BEGIN>($/) {
@@ -969,14 +996,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $infix := $/.ast;
+        my $node;
         if nqp::istype($infix, Nodify('DottyInfixish')) {
-            self.attach: $/, Nodify('ApplyDottyInfix').new:
+            $node := Nodify('ApplyDottyInfix').new:
               infix => $infix, left => $/[0].ast, right => $/[1].ast;
         }
         else {
-            self.attach: $/, Nodify('ApplyInfix').new:
+            $node := Nodify('ApplyInfix').new:
               infix => $infix, left => $/[0].ast, right => $/[1].ast;
         }
+        if $<infix><colonpair> {
+            $node.add-colonpair($<infix><colonpair>.ast);
+        }
+        my $cu := $*CU; # Might be too early to even have a CompUnit
+        $node.set-origin(
+            Nodify('Origin').new(
+                :from($/[0].from),
+                :to($/[1].to),
+                :source($*ORIGIN-SOURCE)));
+        $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
+        make $node;
     }
 
     # A listy expression
@@ -1011,7 +1050,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
             }
             else {
-                $operand.add-colonpair($<colonpair>.ast);
+                if nqp::can($operand, 'add-colonpair') {
+                    $operand.add-colonpair($<colonpair>.ast);
+                }
+                else {
+                    $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
+                }
                 make $operand;
             }
         }
@@ -1060,7 +1104,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method prefixish($/) {
         my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
-        $ast := $<prefix-postfix-meta-operator>.ast.new($ast)
+        $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           if $<prefix-postfix-meta-operator>;
         self.attach: $/, $ast;
     }
@@ -1077,7 +1121,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           // Nodify('Postfix').new(:operator(~$<postfix><sym>));
 
         self.attach: $/, $<postfix-prefix-meta-operator>
-          ?? Nodify('MetaPostfix','Hyper').new($ast)
+          ?? Nodify('MetaPostfix','Hyper').new($ast.to-begin-time($*R, $*CU.context))
           !! $ast
     }
 
@@ -1090,6 +1134,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ~ " instead to mean hyper, or insert whitespace before"
           ~ " $sym to mean a quote terminator (or use different delimiters?)"
         ) if ($/.pragma("STOPPER") // '') eq $sym;
+    }
+
+    method postfix:sym<i>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('i'));
+    }
+
+    method postfix:sym<++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('++'));
+    }
+
+    method postfix:sym<-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('--'));
+    }
+
+    method postfix:sym<⚛++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛++'));
+    }
+
+    method postfix:sym<⚛-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛--'));
     }
 
     method postop($/) {
@@ -1133,6 +1197,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method dotty:sym<.&>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.+>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.*>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.=>($/) {
         self.attach: $/, $<dottyop>.ast;
     }
 
@@ -1183,38 +1259,37 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         my $ast;
+        my $DOTTY := $*DOTTY;
+        my $dispatch := $DOTTY eq '.?' || $DOTTY eq '.+' || $DOTTY eq '.*' || $DOTTY eq '.='
+          ?? $DOTTY
+          !! "";
 
         if $<longname> -> $longname {
             $ast     := $longname.ast.without-colonpairs;
             my $name := $ast.canonicalize;
 
-            if $*DOTTY {
-                my $DOTTY := $*DOTTY;
-                $/.dotty-non-ident($DOTTY) unless $ast.is-identifier;
-
+            if $DOTTY && !$dispatch {
                 $ast := $DOTTY eq '!'
-                  ?? Nodify('Call','PrivateMethod').new(:name($ast),:$args)
+                  ?? Nodify('Call','PrivateMethod').new(:name($ast), :$args)
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call','MetaMethod').new(:$name, :$args)
-                    !! $DOTTY eq '.?'
-                      ?? Nodify('Call', 'MaybeMethod').new(:$name, :$args)
-                      !! $DOTTY eq '.&'
-                        ?? Nodify('Call','VarMethod').new(:name($ast), :$args)
-                        !! nqp::die("Missing compilation of $DOTTY");
+                    !! $DOTTY eq '.&'
+                      ?? Nodify('Call','VarMethod').new(:name($ast), :$args)
+                      !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
                 $ast := Nodify('Call','Method').new(
-                  :name($longname.core2ast.without-colonpairs), :$args
+                  :name($longname.core2ast.without-colonpairs), :$args, :$dispatch
                 );
             }
         }
         elsif $<quote> {
             $ast := Nodify('Call','QuotedMethod').new(
-              :name($<quote>.ast), :$args
+              :name($<quote>.ast), :$args, :$dispatch
             );
         }
         elsif $<variable> {
-            $ast := Nodify('Call','BlockMethod').new(:block($<variable>.ast), :$args);
+            $ast := Nodify('Call','BlockMethod').new(:block($<variable>.ast), :$args, :$dispatch);
         }
         else {
             nqp::die('NYI kind of methodop');
@@ -1290,7 +1365,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # set the $*ITEM dynamic variable to a truthy value if item assignment
     # is to be assumed.
     method infix:sym<=>($/) {
-        make Nodify('Assignment').new(:item($*ITEM));
+        self.attach: $/, Nodify('Assignment').new(:item($*ITEM));
     }
 
     # These infix operators are purely a grammar construct at the moment
@@ -1454,16 +1529,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   !! nqp::die('Unknown kind of infix: ' ~ $/);
 
         self.attach: $/, $<infix-postfix-meta-operator>
-          ?? $<infix-postfix-meta-operator>.ast.new($ast)
+          ?? $<infix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           !! $ast;
     }
 
     method infix-prefix-meta-operator:sym<!>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Negate').new($<infixish>.ast);
+        my $infix := $<infixish>.ast;
+        if nqp::istype($infix, Nodify('Infix')) && $infix.operator eq '=' {
+            $infix := Nodify('Infix').new('==').to-begin-time($*R, $*CU.context);
+        }
+        self.attach: $/, Nodify('MetaInfix', 'Negate').new($infix);
     }
 
     method infix-prefix-meta-operator:sym<R>($/) {
         self.attach: $/, Nodify('MetaInfix', 'Reverse').new($<infixish>.ast);
+    }
+
+    method infix-prefix-meta-operator:sym<S>($/) {
+        self.attach: $/, Nodify('MetaInfix', 'Sequence').new($<infixish>.ast);
     }
 
     method infix-prefix-meta-operator:sym<X>($/) {
@@ -1652,7 +1735,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := $<longname>.core2ast;
         if $*META-OP {
             my $META := $*META-OP.ast;
-            $META.IMPL-CHECK($*R, $*CU.context, 1);
+            $META.to-begin-time($*R, $*CU.context);
 
             my $meta-op := $META.IMPL-HOP-INFIX;
             my $op := Nodify('Constant').new($meta-op);
@@ -1799,7 +1882,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method compile-variable-access($/, $sigil, $twigil, $desigilname) {
-        $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
+        $desigilname.to-begin-time($*R, $*CU.context);
         my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
         my $ast;
 
@@ -1849,6 +1932,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $twigil eq '!' {
             $ast := Nodify('Var','Attribute').new($name);
         }
+        elsif $twigil eq '.' {
+            $ast := Nodify('Var','Attribute','Public').new($name);
+        }
         elsif $twigil eq '?' {
             my $origin-source := $*ORIGIN-SOURCE;
             $ast := $name eq '$?FILE'
@@ -1888,28 +1974,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 nqp::die("Pod variable $name NYI");
             }
         }
-        elsif $twigil eq '.' {
-
-            # self.foo.item
-            $ast := Nodify('ApplyPostfix').new(
-              operand => Nodify('ApplyPostfix').new(
-                operand => Nodify('Term','Self').new,
-                postfix => Nodify('Call','Method').new(
-                  name => $desigilname,
-                  args => ($<arglist>
-                            ?? $<arglist>.ast
-                            !! Nodify('ArgList').new
-                          )
-                )
-              ),
-              postfix => Nodify('Call','Method').new(
-                name => Nodify('Name').from-identifier(
-                          nqp::lc(sigil-to-context($sigil))
-                        ),
-                args => Nodify('ArgList').new
-              )
-            );
-        }
         elsif $twigil eq '~' {
             my $name := $desigilname.canonicalize;
             $ast := Nodify('Var','Slang').new(
@@ -1934,7 +1998,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<reduce>($/) {
-        my $infix := $<op>.ast // Nodify('Infix').new($<op><OPER><sym>);
+        my $infix := $<op>.ast // Nodify('Infix').new($<op><OPER><sym>).to-begin-time($*R, $*CU.context);
         self.attach: $/, Nodify('Term', 'Reduce').new(:$infix, :args($<args>.ast),
             :triangle(?$<triangle>));
     }
@@ -1966,7 +2030,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
-            $ast.IMPL-CHECK($*R, $*CU.context, 1);
+            $ast.body.IMPL-BEGIN($*R, $*CU.context); # Have body Sub declare its implicits before we cache them
+            $ast.to-begin-time($*R, $*CU.context);
             $ast.IMPL-COMPOSE;
         }
 
@@ -1992,9 +2057,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :$how, :$name, :$scope, :$augmented
         );
 
-        $augmented
-          ?? $package.IMPL-CHECK($*R, $*CU.context, 1)
-          !! $package.resolve-with($*R);
+        if $augmented {
+            $package.to-begin-time($*R, $*CU.context);
+        }
+        else {
+            $package.to-parse-time($*R, $*CU.context);
+        }
 
         self.set-declarand($/, $*PACKAGE := $package);
     }
@@ -2003,10 +2071,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Perform BEGIN-time effects (declaring the package, applying traits,
         # etc.)
         my $R := $*R;
-        $*PACKAGE.ensure-begin-performed($R, $*CU.context);
+        my $package := $*PACKAGE;
+        if nqp::istype($package, Nodify('ParseTime')) {
+            $package.ensure-parse-performed($R, $*CU.context);
+        }
+        $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
-        $R.push-package($*PACKAGE);
+        $R.push-package($package);
 
         if $*SIGNATURE {
             my $params := $*SIGNATURE.ast;
@@ -2075,6 +2147,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<routine-declarator> {
             $ast := $<routine-declarator>.ast;
         }
+        elsif $<regex-declarator> {
+            $ast := $<regex-declarator>.ast;
+        }
         elsif $<defterm> {
             my str $scope   := $*SCOPE;
             my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
@@ -2124,7 +2199,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Need to check pragma setting *and* there is a setting
             if $pragma && $*LANG.pragma($pragma) -> $value {
                 my $definedness := Nodify('Type','Definedness');
+                my $is-base := 0;
+                for $*OFTYPE<longname><colonpair> {
+                    $is-base := 1 if $_.ast.key eq '_';
+                }
                 if !nqp::eqaddr($type.WHAT,$definedness)  # not already :D or :U
+                  && !$is-base                            # not :_
                   && ($value eq 'D' || $value eq 'U') {   # want :D or :U
                     $type := $definedness.new(            # wrap existing or new
                       :base-type($type // Nodify('Type','Simple').new(
@@ -2144,7 +2224,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $desigilname<longname>
                 ?? $desigilname<longname>.ast
                 !! Nodify('Name').from-identifier(~$desigilname);
-            $ast.IMPL-CHECK($*R, $*CU.context, 1);
+            $ast.to-begin-time($*R, $*CU.context);
 
             my str $twigil := $<twigil> || '';
             my str $name   := $sigil ~ $twigil ~ $ast.canonicalize;
@@ -2155,9 +2235,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
               :$shape, :$forced-dynamic, :$where;
 
-            $/.typed-worry('X::Redeclaration', :symbol($name))
-              if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
-              && $*R.declare-lexical($decl);
+            if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
+                && $*R.declare-lexical($decl)
+            {
+                $/.typed-worry('X::Redeclaration', :symbol($name));
+                $decl.set-already-declared;
+            }
 
             self.set-declarand($/, $decl);
         }
@@ -2170,6 +2253,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                      :$scope, :$type, :$sigil, :twigil(~$<twigil> || '')
                    ));
         }
+
+        $decl.to-parse-time($*R, $*CU.context);
 
         $*VARIABLE := $decl;
     }
@@ -2215,14 +2300,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method routine-def($/) {
         my $routine := $*BLOCK;
         my $return-type := $*OFTYPE.ast if $*OFTYPE;
-        if $<signature> {
-            $routine.replace-signature($<signature>.ast);
-        }
         $routine.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
         );
-        $routine.IMPL-CHECK($*R, $*CU.context, 1);
+        # Entering scope again would throw off proto installation
         self.attach: $/, $routine;
     }
 
@@ -2236,9 +2318,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               unless $sys-name eq $name;
         }
 
-        if $<signature> {
-            $method.replace-signature($<signature>.ast);
-        }
         if $<specials> {
             my $specials := ~$<specials>;
             if $specials eq '^' {
@@ -2252,9 +2331,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
         );
-        $method.IMPL-CHECK($*R, $*CU.context, 1);
-        $method.ensure-begin-performed($*R, $*CU.context);
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($method);
         self.attach: $/, $method;
+        $*R.leave-scope;
     }
 
     method regex-declarator:sym<regex>($/) {
@@ -2275,10 +2355,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<signature> {
             $regex.replace-signature($<signature>.ast);
         }
-        $regex.replace-body($<nibble>.ast);
-        $regex.IMPL-CHECK($*R, $*CU.context, 1);
-        $regex.ensure-begin-performed($*R, $*CU.context);
+        $regex.replace-body($<onlystar> ?? Nodify('OnlyStar').new !! $<nibble>.ast);
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($regex);
         self.attach: $/, $regex;
+        $*R.leave-scope;
     }
 
     method type-declarator:sym<constant>($/) {
@@ -2328,7 +2409,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl := Nodify('VarDeclaration','Constant').new(|%args);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 
@@ -2349,7 +2429,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $decl.add-trait($_.ast)
         }
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 
@@ -2368,7 +2447,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $decl.add-trait($_.ast);
         }
-        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 
@@ -2423,7 +2501,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :argument($circumfix ?? $circumfix.ast !! Mu)
             );
 
-        $trait.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $trait;
     }
 
@@ -2433,6 +2510,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method trait_mod:sym<does>($/) {
         self.attach: $/, Nodify('Trait', 'Does').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<will>($/) {
+        self.attach: $/, Nodify('Trait', 'Will').new(:phase(~$<identifier>), :block($<pointy-block>.ast));
     }
 
     method trait_mod:sym<of>($/) {
@@ -2538,25 +2619,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method decint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 10, -> {
+        make $*LITERALS.intern-int: ~$/, 10, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method hexint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 16, -> {
+        make $*LITERALS.intern-int: ~$/, 16, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method octint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 8, -> {
+        make $*LITERALS.intern-int: ~$/, 8, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method binint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 2, -> {
+        make $*LITERALS.intern-int: ~$/, 2, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
@@ -2565,7 +2646,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method signed-integer($/) {
         my $integer := $<integer>.ast;
-        self.attach: $/, $<sign> eq '-' || $<sign> eq '−'
+        make $<sign> eq '-' || $<sign> eq '−'
             ?? nqp::neg_I($integer, $integer.WHAT)
             !! $integer;
     }
@@ -2697,11 +2778,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method version($/) {
         # We don't self.attach: $/, an object for the initial language version line,
         # which occurs before a setting is loaded.
-        self.attach($/, Nodify('VersionLiteral').new(
+        make Nodify('VersionLiteral').new(
           $*R.resolve-lexical-constant('Version').compile-time-value.new(
             ~$<vstr>
           )
-        )) if $*R;
+        ) if $*R;
     }
 
     method quote:sym<apos>($/)  { self.attach: $/, $<nibble>.ast; }
@@ -2827,26 +2908,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Types
 
-    method type-for-name($/, $base-name) {
+    method type-for-name($/, $name) {
+        my $base-name := $name.without-colonpair('_').without-colonpair('D').without-colonpair('U');
         my $type := Nodify('Type','Simple').new(
-          $base-name.without-colonpair('_').without-colonpair('D').without-colonpair('U')
-        );
+          $base-name
+        ).to-begin-time($*R, $*CU.context);
 
-        $type := $base-name.has-colonpair('D')
-          ?? Nodify('Type','Definedness').new(:base-type($type), :definite)
-          !! $base-name.has-colonpair('U')
-            ?? Nodify('Type','Definedness').new(:base-type($type), :!definite)
+        for $base-name.IMPL-UNWRAP-LIST($base-name.colonpairs) {
+            $/.typed-sorry('X::InvalidTypeSmiley', :name($_.key));
+        }
+
+        $type := $name.has-colonpair('D')
+          ?? Nodify('Type','Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
+          !! $name.has-colonpair('U')
+            ?? Nodify('Type','Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
             !! $type;
 
         $type := Nodify('Type','Parameterized').new(
           :base-type($type), :args($<arglist>.ast)
-        ) if $<arglist>;
+        ).to-begin-time($*R, $*CU.context) if $<arglist>;
 
         $<accept>
           ?? Nodify('Type','Coercion').new(
-               :base-type($type), :constraint($<accept>.ast))
+               :base-type($type), :constraint($<accept>.ast)).to-begin-time($*R, $*CU.context)
           !! $<accept_any>
-            ?? Nodify('Type','Coercion').new(:base-type($type))
+            ?? Nodify('Type','Coercion').new(:base-type($type)).to-begin-time($*R, $*CU.context)
             !! $type
     }
 
@@ -2862,7 +2948,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<arglist> || $<typename> {
                 $/.panic("Cannot put type parameters on a type capture");
             }
-            if $<accepts> || $<accepts_any> {
+            if $<accept> || $<accept_any> {
                 $/.panic("Cannot base a coercion type on a type capture");
             }
             if $longname eq '::' {
@@ -2883,7 +2969,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Signatures
 
     method fakesignature($/) {
-        self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast
+        self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast, :block($*BLOCK)
     }
 
     method signature($/) {
@@ -2923,7 +3009,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if $returns;
             $returns := $*OFTYPE.ast;
         }
-        self.attach: $/, Nodify('Signature').new(:@parameters, :$returns);
+        my $signature := Nodify('Signature').new(:@parameters, :$returns);
+        if $*ON-ROUTINE {
+            $signature.set-default-type(
+                Nodify('Type', 'Setting').new(Nodify('Name').from-identifier('Any')).to-begin-time($*R, $*CU.context)
+            );
+        }
+        if $*ON-VARDECLARATION {
+            make $signature
+        }
+        else {
+            self.attach: $/, $signature
+        }
     }
 
     method parameter($/) {
@@ -2931,7 +3028,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $parameter := $parameter ?? $parameter.ast !! Nodify('Parameter').new;
 
         if $*DEFAULT-RW {
-            $parameter.set-bindable;
+            $parameter.set-bindable(1);
             $parameter.set-default-rw if $*DEFAULT-RW > 1;
         }
 
@@ -2992,7 +3089,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $parameter.set-sub-signature($post-constraint<signature>.ast);
             }
         }
-        self.attach: $/, $parameter;
+        # Leave the exact time of Parameter's BEGIN to the signature
+        make $parameter;
     }
 
     method param-var($/) {
@@ -3018,7 +3116,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Build the parameter.
-        self.attach: $/, self.set-declarand($/, Nodify('Parameter').new(|%args));
+        make self.set-declarand($/, Nodify('Parameter').new(|%args));
     }
 
     method param-term($/) {
@@ -3028,11 +3126,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $decl := Nodify('ParameterTarget','Term').new($ast );
             $/.typed-panic('X::Redeclaration', :symbol($ast.canonicalize))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
-            self.attach: $/, Nodify('Parameter').new(target => $decl);
+            make Nodify('Parameter').new(target => $decl);
         }
         else {
             # Anonymous
-            self.attach: $/, Nodify('Parameter').new();
+            make Nodify('Parameter').new();
         }
     }
 
@@ -3051,7 +3149,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast     := $param-var.ast;
             $ast.add-name(~($param-var<name> // ''));
         }
-        self.attach: $/, $ast;
+        make $ast;
     }
 
     method default-value($/) {
@@ -3077,9 +3175,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method semiarglist($/) {
-        nqp::elems($<arglist>) == 1
-          ?? self.attach: $/, $<arglist>[0].ast
-          !! nqp::die('Multiple arg lists NYI')
+        if nqp::elems($<arglist>) == 1 {
+            self.attach: $/, $<arglist>[0].ast
+        }
+        else {
+            my $R := $*R;
+            my $context := $*CU.context;
+            my $ast := Nodify('ArgList').new;
+            for $<arglist> {
+                my $infix  := Nodify('Infix').new(',').to-begin-time($R, $context);
+                my $apply  := Nodify('ApplyListInfix').new(:$infix, :operands($_.ast.args)).to-begin-time($R, $context);
+                my $stmt   := Nodify('Statement', 'Expression').new(:expression($apply)).to-begin-time($R, $context);
+                my $semi   := Nodify('SemiList').new($stmt).to-begin-time($R, $context);
+                my $parens := Nodify('Circumfix', 'Parentheses').new($semi).to-begin-time($R, $context);
+                $ast.push($parens);
+            }
+            self.attach: $/, $ast
+        }
     }
 
     method arglist($/) {
@@ -3126,15 +3238,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method morename($/) {
         if $<identifier> {
-            self.attach: $/, Nodify('Name','Part','Simple').new(~$<identifier>);
+            make Nodify('Name','Part','Simple').new(~$<identifier>);
         }
         elsif $<EXPR> {
             my $ast := $<EXPR>.ast;
-            $ast.IMPL-CHECK($*R, $*CU.context, True);
-            self.attach: $/, Nodify('Name', 'Part', 'Expression').new($ast);
+            $ast.to-begin-time($*R, $*CU.context);
+            make Nodify('Name', 'Part', 'Expression').new($ast);
         }
         else {
-            self.attach: $/, Nodify('Name', 'Part', 'Empty');
+            make Nodify('Name', 'Part', 'Empty');
         }
     }
 
@@ -3160,11 +3272,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
-                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration',
+                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
                     if $*R.declare-lexical-in-outer($*BLOCK);
             }
             elsif $*DEFAULT-SCOPE ne 'has' {
-                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration',
+                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
                     if $*R.declare-lexical($*BLOCK);
             }
         }
@@ -3323,26 +3437,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*CU.replace-finish-content(~$<finish>) if $*CU;
     }
 
+    method doc-origin($/, $node) {
+        self.SET-NODE-ORIGIN: $/, $*SEEN{$/.from} := $node;
+    }
+
     method doc-block:sym<alias>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-
-        my @paragraphs := nqp::list(~$<first>);
-        if $<line> {
-            for $<line> {
-                nqp::push(@paragraphs,~$_);
+        unless $*FROM-SEEN{$/.from}++ {
+            my @paragraphs := nqp::list(~$<first>);
+            if $<line> {
+                for $<line> {
+                    nqp::push(@paragraphs,~$_);
+                }
             }
-        }
 
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-alias:
-          :directive, :margin(~$<margin>), :type<alias>,
-          :lemma(~$<lemma>), :@paragraphs
+            self.doc-origin: $/, Nodify('Doc','Block').from-alias:
+              :directive, :margin(~$<margin>), :type<alias>,
+              :lemma(~$<lemma>), :@paragraphs
+        }
     }
 
     method doc-block:sym<column>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<column>,
               :config(self.extract-config($/))
         }
@@ -3350,7 +3466,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<row>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<row>,
               :config(self.extract-config($/))
         }
@@ -3358,101 +3474,103 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<place>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').new:
+            self.doc-origin: $/, Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type<place>,
               :config(self.extract-config($/))
         }
     }
 
+    method doc-block:sym<formula>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            my @paragraphs := nqp::list(~$<formula>);
+            self.doc-origin: $/, Nodify('Doc','Block').new:
+              :abbreviated, :margin(~$<margin>), :type<formula>,
+              :config(self.extract-config($/)), :@paragraphs
+        }
+    }
+
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := Nodify('Doc','Block').from-config:
+            self.doc-origin: $/, Nodify('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<config>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
         }
     }
 
     method doc-block:sym<verbatim>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
         }
-
-        my $config := self.extract-config($/);
-
-        my @paragraphs;
-        if $<lines> {
-            my $text := ~$<lines>;
-            nqp::push(@paragraphs,$text) if $text;
-        }
-
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
     }
 
     method doc-block:sym<begin>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-        my $SEEN := $*SEEN;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $SEEN := $*SEEN;
 
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
 
-        my @paragraphs;
-        if $<doc-content> {
-            for $<doc-content> {
-                my $from := ~$_.from;
-                if nqp::existskey($SEEN,$from) {
-                    nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
-                    nqp::deletekey($SEEN,$from);
-                }
-                else {
-                    my $text := ~$_;
-                    nqp::push(@paragraphs,$text) if $text;
+            my @paragraphs;
+            if $<doc-content> {
+                for $<doc-content> {
+                    my $from := ~$_.from;
+                    if nqp::existskey($SEEN,$from) {
+                        nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
+                        nqp::deletekey($SEEN,$from);
+                    }
+                    else {
+                        my $text := ~$_;
+                        nqp::push(@paragraphs,$text) if $text;
+                    }
                 }
             }
-        }
 
-        $SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
+        }
     }
 
     method doc-block:sym<for>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
 
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
-
-        my @paragraphs;
-        if $<lines> {
-            my $text := ~$<lines>;
-            nqp::push(@paragraphs,$text) if $text;
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
         }
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<abbreviated>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
+
+            my @paragraphs;
+            my $text := ($<header> ?? $<margin> ~ $<header> !! "")
+              ~ ($<lines> ?? ~$<lines> !! "");
+            @paragraphs := nqp::list($text) if $text;
+
+            self.doc-origin: $/, Nodify('Doc','Block').from-paragraphs:
+              :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
+              :@paragraphs;
         }
-
-        my $config := self.extract-config($/);
-        my $type   := self.extract-type($/);
-        my $level  := self.extract-level($/);
-
-        my @paragraphs;
-        my $text := ($<header> ?? $<margin> ~ $<header> !! "")
-          ~ ($<lines> ?? ~$<lines> !! "");
-        @paragraphs := nqp::list($text) if $text;
-
-        $*SEEN{$/.from} := Nodify('Doc','Block').from-paragraphs:
-          :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
-          :@paragraphs;
     }
 }
 
@@ -3466,7 +3584,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
           ?? nqp::chr($<integer>.made)
           !! nqp::strfromname(~$/);
         $codepoint := self.deprecated-charnames($/) if $codepoint eq '';
-        self.attach: $/, $codepoint;
+        make $codepoint;
     }
 
     # Check for deprecated charnames: worry if a deprecated one is found
@@ -3546,8 +3664,8 @@ Please use $worry.";
     }
 
     method backslash:sym<qq>($/) { self.attach: $/, $<quote>.ast; }
-    method backslash:sym<\\>($/) { self.attach: $/, '\\' }
-    method backslash:delim ($/) { self.attach: $/, $<text>.Str; }
+    method backslash:sym<\\>($/) { make '\\' }
+    method backslash:delim ($/) { make $<text>.Str }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
     method backslash:sym<misc>($/) { make ~$/; }
     method backslash:sym<c>($/) { make $<charspec>.ast }
@@ -3585,7 +3703,7 @@ Please use $worry.";
 
     method escape:sym<#>($/) { make ''; }
 
-    method escape:sym<\\>($/)  { self.attach: $/, $<item>.ast  }
+    method escape:sym<\\>($/)  { make $<item>.ast }
     method escape:sym<$>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<@>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<%>($/)   { self.attach: $/, $<EXPR>.ast  }
@@ -3683,7 +3801,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method atom($/) {
         self.attach: $/, (my $metachar := $<metachar>)
-          ?? $metachar.ast
+          ?? $metachar.ast // Nodify('Regex') # We'll error out later if no real AST
           !! Nodify('Regex','Literal').new(~$/);
     }
 
@@ -3867,6 +3985,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Regex', 'Quote').new($<quote>.ast);
     }
 
+    method metachar:sym<~>($/) {
+        self.attach: $/, Nodify('Regex', 'Nested').new($<GOAL>.ast, $<EXPR>.ast);
+    }
+
     method backslash:sym<e>($/) {
         self.attach: $/, Nodify('Regex', 'CharClass', 'Escape').new(negated => $<sym> le 'Z');
     }
@@ -3953,17 +4075,21 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('Regex','Assertion','Alias').new(
                :name(~$longname), :assertion($<assertion>.ast)
              )
-          !! $<arglist>
-            ?? Nodify('Regex','Assertion','Named','Args').new(
-                 :$name, :capturing, :args($<arglist>.ast)
-               )
-            !! $<nibbler>
-              ?? Nodify('Regex','Assertion','Named','RegexArg').new(
-                   :$name, :capturing, :regex-arg($<nibbler>.ast)
+          !! !$name.is-multi-part && $name.canonicalize eq 'sym'
+            ?? Nodify('Regex','Literal').new(
+                %*RX<name>.first-colonpair('sym').simple-compile-time-quote-value
+            )
+            !! $<arglist>
+              ?? Nodify('Regex','Assertion','Named','Args').new(
+                   :$name, :capturing, :args($<arglist>.ast)
                  )
-              !! Nodify('Regex','Assertion','Named').new(
-                   :$name, :capturing
-                 );
+              !! $<nibbler>
+                ?? Nodify('Regex','Assertion','Named','RegexArg').new(
+                     :$name, :capturing, :regex-arg($<nibbler>.ast)
+                   )
+                !! Nodify('Regex','Assertion','Named').new(
+                     :$name, :capturing
+                   );
     }
 
     method assertion:sym<{ }>($/) {

@@ -72,6 +72,7 @@ class RakuAST::Type
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple
   is RakuAST::Type
+  is RakuAST::ParseTime
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
@@ -82,17 +83,16 @@ class RakuAST::Type::Simple
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!name);
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
-    }
-
     method build-bind-exception(RakuAST::Resolver $resolver) {
         $resolver.build-exception: 'X::Bind::Rebind',
             :target(self.meta-object.raku), :is-type(1)
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $resolver.resolve-name-constant(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
     }
 
     method PRODUCE-META-OBJECT() {
@@ -139,26 +139,18 @@ class RakuAST::Type::Simple
 class RakuAST::Type::Setting
   is RakuAST::Type::Simple
 {
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name-constant-in-setting(self.name);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 }
 
 class RakuAST::Type::Derived
   is RakuAST::Type
-  is RakuAST::Lookup
 {
     has RakuAST::Type $.base-type;
-
-    method resolve-with(RakuAST::Resolver $resolver) {
-        $!base-type.resolve-with($resolver);
-        self.set-resolution(self);
-        Nil
-    }
 
     method is-coercive() {
         self.base-type.is-coercive
@@ -171,7 +163,7 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
-  is RakuAST::Declaration
+  is RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
 
@@ -184,6 +176,10 @@ class RakuAST::Type::Coercion
           )
         );
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!constraint.to-begin-time($resolver, $context);
     }
 
     method is-coercive() { True }
@@ -231,7 +227,6 @@ class RakuAST::Type::Coercion
 
 class RakuAST::Type::Definedness
   is RakuAST::Type::Derived
-  is RakuAST::Declaration
 {
     has Bool $.definite;
     has Bool $.through-pragma;
@@ -248,6 +243,18 @@ class RakuAST::Type::Definedness
         nqp::bindattr($obj, RakuAST::Type::Definedness, '$!through-pragma',
           $through-pragma ?? True !! False);
         $obj
+    }
+
+    method name() {
+        my str $name := self.base-type.name.canonicalize;
+        RakuAST::Name.from-identifier:
+          $!through-pragma
+            ?? $name
+            !! $name ~ ($!definite ?? ':D' !! ':U')
+    }
+
+    method IMPL-IMPLICIT() {
+        $!through-pragma ?? ($!definite ?? ':D' !! ':U') ~ ' by pragma' !! ''
     }
 
     method PRODUCE-META-OBJECT() {
@@ -451,8 +458,8 @@ class RakuAST::Type::Enum
   is RakuAST::Type
   is RakuAST::Declaration
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::TraitTarget
-  is RakuAST::Attaching
   is RakuAST::PackageInstaller
   is RakuAST::ImplicitLookups
   is RakuAST::Doc::DeclaratorTarget
@@ -502,10 +509,7 @@ class RakuAST::Type::Enum
         $visitor($!term);
         $visitor($!of)     if $!of;
         $visitor(self.WHY) if self.WHY;
-    }
-
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
+        self.visit-traits($visitor);
     }
 
     method is-lexical() { True }
@@ -537,6 +541,8 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
+
         my $lookups := self.get-implicit-lookups;
         my $Pair    := $lookups.AT-POS(0).resolution.compile-time-value;
         my $List    := $lookups.AT-POS(1).resolution.compile-time-value;
@@ -613,12 +619,16 @@ class RakuAST::Type::Enum
             $enumeration-kind := 'StringyEnumeration';
         }
         self.add-trait(RakuAST::Trait::Does.new(
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Enumeration'))
-        ));
+            RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Enumeration')
+            ).to-begin-time($resolver, $context)
+        ).to-begin-time($resolver, $context));
         if $enumeration-kind {
             self.add-trait(RakuAST::Trait::Does.new(
-                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($enumeration-kind))
-            ));
+                RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier($enumeration-kind)
+                ).to-begin-time($resolver, $context)
+            ).to-begin-time($resolver, $context));
         }
         self.apply-traits($resolver, $context, self);
         $meta.HOW.compose($meta);
@@ -672,6 +682,10 @@ class RakuAST::Type::Enum
         $meta.HOW.compose_values($meta);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+    }
+
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::EnumHOW.new_type(
             :name($!name.canonicalize),
@@ -684,10 +698,10 @@ class RakuAST::Type::Subset
   is RakuAST::Type
   is RakuAST::Lookup
   is RakuAST::Declaration
-  is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::StubbyMeta
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::PackageInstaller
   is RakuAST::Doc::DeclaratorTarget
 {
@@ -745,10 +759,6 @@ class RakuAST::Type::Subset
         $lookup
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
-    }
-
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!block) if $!block;
@@ -759,6 +769,7 @@ class RakuAST::Type::Subset
           if $!of
           && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
         $visitor(self.WHY) if self.WHY;
+        self.visit-traits($visitor);
     }
 
     method is-lexical() { True }
@@ -783,9 +794,9 @@ class RakuAST::Type::Subset
             :scope(self.scope);
     }
 
-    method is-begin-performed-after-children() { True }
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
 
-    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;
@@ -818,7 +829,7 @@ class RakuAST::Type::Subset
                 ),
             );
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
-            $block.IMPL-CHECK($resolver, $context, False);
+            $block.IMPL-BEGIN($resolver, $context); # TODO maybe also check?
         }
 
         # set up the meta object
@@ -844,6 +855,10 @@ class RakuAST::Type::Subset
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
             $block.IMPL-CURRIED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
         }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

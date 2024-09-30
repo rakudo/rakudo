@@ -27,13 +27,20 @@ my constant $type2letter = nqp::hash(
 );
 
 #- helper sub ------------------------------------------------------------------
-my sub cpp_param_letter($type, str $RPK = '') {
-    my str $name = $type.^name;
+our sub cpp_param_letter($type is raw, str $RPK = '') {
 
-    $RPK ~ nqp::ifnull(
-      (nqp::atkey($type2letter, $name) || cpp_param_letter($type.of)),
-      (nqp::chars($name) ~ $name)
-    )
+    if nqp::istype($type,NativeCall::Types::CArray)
+      || nqp::istype($type,NativeCall::Types::Pointer) {
+        $RPK ~ cpp_param_letter($type.of)
+    }
+    else {
+        my str $name = $type.^name;
+
+        $RPK ~ nqp::ifnull(
+          nqp::atkey($type2letter, $name),
+          (nqp::chars($name) ~ $name)
+        )
+    }
 }
 
 #- mangle_cpp_symbol -----------------------------------------------------------

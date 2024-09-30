@@ -11,45 +11,19 @@ class RakuAST::BeginTime
         nqp::die('Missing PERFORM-BEGIN implementation in ' ~ self.HOW.name(self))
     }
 
-    # Should the BEGIN-time effects be performed before or after the parse of
-    # this node or both?
-    method is-begin-performed-before-children() { False }
-    method is-begin-performed-after-children() { !self.is-begin-performed-before-children }
-
     # Ensure the begin-time effects are performed.
     method ensure-begin-performed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, int :$phase) {
-        if nqp::can(self, 'PERFORM-BEGIN-BEFORE-CHILDREN') || nqp::can(self, 'PERFORM-BEGIN-AFTER-CHILDREN') {
-            if $phase == 0 && self.is-begin-performed-before-children || $phase == 1 {
-                unless $!begin-performed +& 1 {
-                    self.PERFORM-BEGIN-BEFORE-CHILDREN($resolver, $context);
-                    nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed',  $!begin-performed +| 1);
-                }
-            }
-            if $phase == 0 && self.is-begin-performed-after-children || $phase == 2 {
-                unless $!begin-performed +& 2 {
-                    self.PERFORM-BEGIN-AFTER-CHILDREN($resolver, $context);
-                    nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', $!begin-performed +| 2);
-                }
-            }
-        }
-        else {
-            unless $!begin-performed {
-                self.PERFORM-BEGIN($resolver, $context);
-                nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 3);
-            }
+        unless $!begin-performed {
+            self.PERFORM-BEGIN($resolver, $context);
+            nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1);
         }
         Nil
-    }
-
-    method begin-performed() {
-        $!begin-performed == 3
     }
 
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
-        $code.IMPL-CHECK($resolver, $context, False);
         if $code.IMPL-CAN-INTERPRET {
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
         }

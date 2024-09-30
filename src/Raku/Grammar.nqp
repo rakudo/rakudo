@@ -2,6 +2,26 @@ NQPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        nqp::hllizefor(@copy, 'Raku')
+    }
+    elsif nqp::ishash($x) {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        nqp::hllizefor(%copy, 'Raku').item
+    }
+    else {
+        nqp::hllizefor($x, 'Raku')
+    }
+}
+
 #-------------------------------------------------------------------------------
 # Roles used by multiple slangs
 
@@ -473,8 +493,8 @@ role Raku::Common {
         [ <?{ $*RESTRICTED }>
           [                    # checking for restricted code
                $               # end of source reached, ok
-            || <.typed-panic:  # OR we've run into restricted code
-                 'X::SecurityPolicy::Eval', :payload($*RESTRICTED)>
+            || {self.typed-panic:  # OR we've run into restricted code
+                 'X::SecurityPolicy::Eval', :payload($*RESTRICTED)}
           ]
         ]?
         <!>
@@ -589,11 +609,93 @@ role Raku::Common {
 
         my $cursor := %opts<precursor> ?? self.PRECURSOR !! self;
         my @prepost := self.prepost($cursor);
+        my $pre := @prepost[0];
+        my $post := @prepost[1];
+
+        my @expected;
+        my $high := $cursor.'!highwater'();
+        if %opts<precursor> {
+            $cursor := self.PRECURSOR;
+        }
+        elsif %opts<expected> {
+            @expected := %opts<expected>;
+        }
+        elsif $high >= $cursor.pos() {
+            my @raw_expected := $cursor.'!highexpect'();
+            $cursor.'!cursor_pos'($high);
+            my %seen;
+            for @raw_expected {
+                unless %seen{$_} {
+                    my $end := +@expected;
+                    while $end && @expected[$end-1] gt $_ { $end := $end - 1 }
+                    nqp::splice(@expected, [$_], $end, 0);
+                    %seen{$_} := 1;
+                }
+            }
+        }
+
+        # Try and better explain "Confused".
+        if $name eq 'X::Syntax::Confused' {
+            if $post ~~ / ^ \s* <[ } ) \] > » ]> / {
+                %opts<reason> := "Unexpected closing bracket";
+                @expected := [];
+            }
+            elsif $pre ~~ / \} \s* $ / {
+                %opts<reason> := "Strange text after block (missing semicolon or comma?)";
+            }
+            else {
+                my $expected_infix := 0;
+                my $expected_term := 0;
+                for @expected {
+                    if nqp::index($_, "infix") >= 0 {
+                        $expected_infix := 1;
+                    }
+                    elsif nqp::index($_, "term") >= 0 {
+                        $expected_term := 1;
+                    }
+                }
+                if $expected_infix {
+                    if $expected_term {
+                        %opts<reason> := "Bogus term";
+                    }
+                    elsif $*IN_META {
+                        %opts<reason> := "Bogus infix";
+                    }
+                    elsif $cursor.MARKED('baresigil') {
+                        %opts<reason> := "Name must begin with alphabetic character";
+                    }
+                    elsif $post ~~ / ^ \s* <[ $ @ \w ' " ]> / ||
+                          $post ~~ / ^ \s+ <[ ( [ { « . ]> / {
+                        %opts<reason> := "Two terms in a row";
+                    }
+                    elsif $post ~~ / ^ '<EOL>' / {
+                        %opts<reason> := "Two terms in a row across lines (missing semicolon or comma?)";
+                    }
+                    elsif $post ~~ / ^ \S / {
+                        %opts<reason> := "Bogus postfix";
+                    }
+                    # "Confused" is already the default, so no "else" clause needed here.
+                }
+                # or here...
+            }
+            my $qs := $*LASTQUOTE[0];
+            my $qe := $*LASTQUOTE[1];
+            if HLL::Compiler.lineof($cursor.orig, $qe, :cache(1)) >= HLL::Compiler.lineof($cursor.orig, $cursor.pos, :cache(1)) - 1
+                && nqp::index(nqp::substr($cursor.orig, $qs, $qe - $qs), "\n") >= 0 {
+                my $quotes :=
+                    nqp::substr($cursor.orig, $qs - 1 , 1) ~
+                    nqp::substr($cursor.orig, $qe, 1);
+                $quotes := "<<>>" if $quotes eq '<>' && nqp::eqat($cursor.orig, '>', $qe + 1);
+                %opts<reason> := %opts<reason> ~ " (runaway multi-line " ~ $quotes ~
+                    " quote starting at line " ~ HLL::Compiler.lineof($cursor.orig, $qs, :cache(1)) ~ " maybe?)";
+            }
+        }
+
         $*R.build-exception: $name,
           line => HLL::Compiler.lineof($cursor.orig, $cursor.pos, :cache(1)),
           pos  => $cursor.pos,
-          pre  => @prepost[0],
-          post => @prepost[1],
+          pre  => $pre,
+          post => $post,
           filename => $file,
           |%opts
     }
@@ -729,7 +831,7 @@ role Raku::Common {
         return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
 
         # Nothing to do?
-        $ast.resolve-with($*R);
+        $ast.ensure-parse-performed($*R, $*CU.context);
         return Nil if $ast.is-resolved;
 
         my $name := $ast.name;
@@ -741,7 +843,7 @@ role Raku::Common {
             return Nil unless nqp::isconcrete($meta-op-name);
 
             my $META := $meta-op-name.ast;
-            $META.IMPL-CHECK($*R, $*CU.context, 1);
+            $META.to-begin-time($*R, $*CU.context);
 
             my $meta-op := $META.IMPL-HOP-INFIX;
             $ast.set-resolution(
@@ -750,6 +852,10 @@ role Raku::Common {
                 compile-time-value => $meta-op
               )
             );
+        }
+
+        elsif ($*VARIABLE-NAME && $*VARIABLE-NAME eq $name) {
+            self.typed-panic: 'X::Syntax::Variable::Initializer', :$name;
         }
 
         # Not resolved and not a Callable
@@ -849,6 +955,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xx         { xx}
 
     token meta-R { R}
+    token meta-S { S}
     token meta-X { X}
     token meta-Z { Z}
 
@@ -891,6 +998,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token phaser-POST    { POST}
     token phaser-PRE     { PRE}
     token phaser-QUIT    { QUIT}
+    token phaser-TEMP    { TEMP}
     token phaser-UNDO    { UNDO}
 
     token prefix-let  { let}
@@ -949,6 +1057,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term-time { time}
 
     token traitmod-does    { does}
+    token traitmod-will    { will}
     token traitmod-handles { handles}
     token traitmod-hides   { hides}
     token traitmod-is      { is}
@@ -1026,6 +1135,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LEFTSIGIL;              # sigil of LHS for item vs list assignment
         my $*IN-META := '';          # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;         # attempting to parse an [op] construct
+        my $*IN_TABLE := 0;          # > 0 if inside a =table
         my %*QUOTE-LANGS;            # quote language cache
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
@@ -1140,8 +1250,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           $                                         # all ok, reach the end
           || <?before <.[ } ) \] > » ]>>
-             <.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'>
-          || <.typed-panic: 'X::Syntax::Confused'>  # huh??
+             {self.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'}
+          || {self.typed-panic: 'X::Syntax::Confused'}  # huh??
         ]
         { $*R.leave-scope }
     }
@@ -1257,8 +1367,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              | <.block-while>
            ] » >
            { $/.'!clear_highwater'() }
-           <.typed-panic: 'X::Syntax::Confused', reason => "Missing semicolon">
-        || <.typed-panic: 'X::Syntax::Confused'> # OR give up
+           {self.typed-panic: 'X::Syntax::Confused', reason => "Missing semicolon"}
+        || {self.typed-panic: 'X::Syntax::Confused'} # OR give up
     }
 
     # Helper token to match the start of a pointy block
@@ -1275,13 +1385,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <pointy-block-starter>                 # block with signature
             :my $*GOAL := '{';
             <.enter-block-scope('PointyBlock')>
+            {
+                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                    $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                }
+            }
             {}
             :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->' ?? 2 !! 0;
             <signature>
+            { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
             <blockoid>
             <.leave-block-scope>
           | <?[{]>                                  # block without signature
             <.enter-block-scope('Block')>
+            {
+                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                    $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                }
+            }
             <blockoid>
             <.leave-block-scope>
           || <.missing-block($borg, $has-mystery)>  # OR give up
@@ -1289,7 +1410,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Parsing a block *without* a signature (e.g. phasers)
-    token block {
+    token block($kind = 'Block', :$parameterization) {
         :dba('scoped block')
         :my $borg := $*BORG;                        # keep current context
         :my $has-mystery := 0; # TODO
@@ -1297,7 +1418,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;                                # localize block to here
         [
           || <?[{]>                                 # block without signature
-             <.enter-block-scope('Block')>
+             <.enter-block-scope($kind, $parameterization)>
+             {
+                 if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                     $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+                 }
+             }
              <blockoid>
              <.leave-block-scope>
           || <.missing-block($borg, $has-mystery)>  # OR give up
@@ -1313,7 +1439,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*ORIGIN-NESTINGS := [];
         { $*BORG := {} }                            # initialize new context
         [
-          | '{YOU_ARE_H§ERE}' <you_are_here>        # TODO core setting
+          | '{YOU_ARE_HERE}' <you_are_here>        # TODO core setting
           | :dba('block')
             '{'                                     # actual block start
             <statementlist=.key-origin('statementlist')>
@@ -1323,8 +1449,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token you_are_here {
+        <?{ nqp::getlexdyn('$?FILES') ~~ /\.setting$/ }> ||
+            {self.typed-panic: 'X::Syntax::Reserved',
+                reserved => 'use of {YOU_ARE_HERE} outside of a setting',
+                instead => ' (use whitespace if not a setting, or rename file with .setting extension?)'
+            }
+    }
+
     # Parsing any unit scoped block (either package or sub)
-    token unit-block($decl) {
+    token unit-block($decl, $kind = 'Block', :$parameterization) {
         :my $*BLOCK;
         {                                           # entry check
             unless $*SCOPE eq 'unit' {
@@ -1332,14 +1466,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         { $*IN-DECL := ''; }                        # not inside declaration
-        <.enter-block-scope('Block')>
+        <.enter-block-scope($kind, $parameterization)>
+        {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+            }
+        }
         <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
     }
 
     # Helper token to set the kind of scope a block is in, *and* have
     # any appropriate actions executed on them
-    token enter-block-scope($*SCOPE-KIND) { <?> }
+    token enter-block-scope($*SCOPE-KIND, $*PARAMETERIZATION = Mu) { <?> }
 
     # Helper token to make the actions handle the end of a scope
     token leave-block-scope() { <?> }
@@ -1391,9 +1530,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>
         [ <!before [<.block-else>|<.block-elsif>|<.block-orwith>]» >
             || $<keyword>=[<.block-else>|<.block-elsif>|<.block-orwith>]» {}
-               <.typed-panic: 'X::Syntax::UnlessElse',
+               {self.typed-panic: 'X::Syntax::UnlessElse',
                    keyword => ~$<keyword>,
-               >
+               }
         ]
     }
     rule statement-control:sym<without> {
@@ -1404,9 +1543,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>
         [ <!before [<.block-else>|<.block-elsif>|<.block-orwith>]» >
             || $<keyword>=[<.block-else>|<.block-elsif>|<block-orwith>]» {}
-               <.typed-panic: 'X::Syntax::WithoutElse',
+               {self.typed-panic: 'X::Syntax::WithoutElse',
                    keyword => ~$<keyword>,
-               >
+               }
         ]
     }
 
@@ -1665,6 +1804,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<POST>  { <.phaser-POST>  <.kok> <blorst> }
     token statement-prefix:sym<PRE>   { <.phaser-PRE>   <.kok> <blorst> }
     token statement-prefix:sym<QUIT>  { <.phaser-QUIT>  <.kok> <blorst> }
+    token statement-prefix:sym<TEMP>  { <.phaser-TEMP>  <.kok> <blorst> }
     token statement-prefix:sym<UNDO>  { <.phaser-UNDO>  <.kok> <blorst> }
 
     # DOC phaser also takes a "sub" phaser identifier
@@ -1928,6 +2068,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     method EXPR-reduce(@termstack, @opstack) {
+        # if there is no @opstack, we have nowhere for the contents of @termstack to go...
+        #   (@termstack comes in with size 1 for this edge-case, so we can just pass the first argument)
+        return self.typed-sorry("X::Syntax::AmbiguousAdverb", adverb => ~nqp::atpos(@termstack, 0))
+            unless nqp::elems(@opstack);
+
         my $op := nqp::pop(@opstack);
 
         # Give it a fresh capture list, since we'll have assumed it has
@@ -2058,6 +2203,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 #-------------------------------------------------------------------------------
+    method can-meta($op, $meta, $reason = "fiddly") {
+        my $properties := self.properties-for-node($op);
+        self.typed-panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => $properties.dba, reason => "too $reason"
+            if $properties.ternary;
+        self;
+    }
 
     proto token infix-prefix-meta-operator {*}
 
@@ -2069,22 +2220,30 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [    <infixish('neg')>
           || <.panic: "Negation metaoperator not followed by valid infix">
         ]
-        <!{ $<infixish>.Str eq '=' }>
     }
 
     # Rfoo
     token infix-prefix-meta-operator:sym<R> {
-        <.meta-R> <infixish('R')> {}
+        <sym=.meta-R> <infixish('R')> {}
+        <.can-meta($<infixish>, "reverse the args of")>
+    }
+
+    # Sfoo
+    token infix-prefix-meta-operator:sym<S> {
+        <sym=.meta-S> <infixish('S')> {}
+        <.can-meta($<infixish>, "sequence the args of")>
     }
 
     # Xfoo
     token infix-prefix-meta-operator:sym<X> {
-        <.meta-X> <infixish('X')> {}
+        <sym=.meta-X> <infixish('X')> {}
+        <.can-meta($<infixish>, "cross with")>
     }
 
     # Zfoo
     token infix-prefix-meta-operator:sym<Z> {
-        <.meta-Z> <infixish('Z')> {}
+        <sym=.meta-Z> <infixish('Z')> {}
+        <.can-meta($<infixish>, "zip with")>
     }
 
 #-------------------------------------------------------------------------------
@@ -2282,6 +2441,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <dottyop('.&')>
     }
 
+    token dotty:sym<.+> {
+        <.sym>
+        <dottyop('.+')>
+    }
+
+    token dotty:sym<.*> {
+        <.sym>
+        <dottyop('.*')>
+    }
+
+    token dotty:sym<.=> {
+        <.sym>
+        <dottyop('.=')>
+    }
+
     token dottyop($special?) {
         :dba('dotty method or postfix')
         <.unspace>?
@@ -2313,7 +2487,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
-          <.dotty-non-ident($*DOTTY)>
         ]
         <.unspace>?
         :dba('method arguments')
@@ -2409,64 +2582,64 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Prefixes requiring scope interaction
     token prefix:sym<let>  {
-        <.prefix-let>
+        <sym=.prefix-let>
         <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-let }
     }
     token prefix:sym<temp> {
-        <.prefix-temp>
+        <sym=.prefix-temp>
         <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-temp }
     }
 
-    token prefix:sym<so>  { <.prefix-so>  <.end-prefix> }
-    token prefix:sym<not> { <.prefix-not> <.end-prefix> }
+    token prefix:sym<so>  { <sym=.prefix-so>  <.end-prefix> }
+    token prefix:sym<not> { <sym=.prefix-not> <.end-prefix> }
 
 #-------------------------------------------------------------------------------
 # Alpha infixes that may need a right word boundary, and which can be easily
 # sub-classed for non-English versions of the Raku Programming Language
 
     proto token infix {*}
-    token infix:sym<after>      { <.infix-after> »      }
-    token infix:sym<and>        { <.infix-and> »        }
-    token infix:sym<andthen>    { <.infix-andthen> »    }
-    token infix:sym<before>     { <.infix-before> »     }
-    token infix:sym<but>        { <.infix-but> »        }
-    token infix:sym<cmp>        { <.infix-cmp> »        }
-    token infix:sym<(cont)>     { <.infix-pcontp>       }
-    token infix:sym<coll>       { <.infix-coll> »       }
-    token infix:sym<div>        { <.infix-div> »        }
-    token infix:sym<does>       { <.infix-does> »       }
-    token infix:sym<(elem)>     { <.infix-pelemp>       }
-    token infix:sym<eq>         { <.infix-eq> »         }
-    token infix:sym<eqv>        { <.infix-eqv> »        }
-    token infix:sym<ff>         { <.infix-ff> »         }
-    token infix:sym<^ff>        { <.infix-cff> »        }
-    token infix:sym<ff^>        { <.infix-ffc>          }
-    token infix:sym<^ff^>       { <.infix-cffc>         }
-    token infix:sym<fff>        { <.infix-fff> »        }
-    token infix:sym<^fff>       { <.infix-cfff> »       }
-    token infix:sym<fff^>       { <.infix-fffc>         }
-    token infix:sym<^fff^>      { <.infix-cfffc>        }
-    token infix:sym<gcd>        { <.infix-gcd> »        }
-    token infix:sym<ge>         { <.infix-ge> »         }
-    token infix:sym<gt>         { <.infix-gt> »         }
-    token infix:sym<lcm>        { <.infix-lcm> »        }
-    token infix:sym<le>         { <.infix-le> »         }
-    token infix:sym<leg>        { <.infix-leg> »        }
-    token infix:sym<lt>         { <.infix-lt> »         }
-    token infix:sym<max>        { <.infix-max> »        }
-    token infix:sym<min>        { <.infix-min> »        }
-    token infix:sym<minmax>     { <.infix-minmax> »     }
-    token infix:sym<mod>        { <.infix-mod> »        }
-    token infix:sym<ne>         { <.infix-ne> »         }
-    token infix:sym<notandthen> { <.infix-notandthen> » }
-    token infix:sym<or>         { <.infix-or> »         }
-    token infix:sym<orelse>     { <.infix-orelse> »     }
-    token infix:sym<unicmp>     { <.infix-unicmp> »     }
-    token infix:sym<x>          { <.infix-x> »          }
-    token infix:sym<xor>        { <.infix-xor> »        }
-    token infix:sym<xx>         { <.infix-xx> »         }
+    token infix:sym<after>      { <sym=.infix-after> »      }
+    token infix:sym<and>        { <sym=.infix-and> »        }
+    token infix:sym<andthen>    { <sym=.infix-andthen> »    }
+    token infix:sym<before>     { <sym=.infix-before> »     }
+    token infix:sym<but>        { <sym=.infix-but> »        }
+    token infix:sym<cmp>        { <sym=.infix-cmp> »        }
+    token infix:sym<(cont)>     { <sym=.infix-pcontp>       }
+    token infix:sym<coll>       { <sym=.infix-coll> »       }
+    token infix:sym<div>        { <sym=.infix-div> »        }
+    token infix:sym<does>       { <sym=.infix-does> »       }
+    token infix:sym<(elem)>     { <sym=.infix-pelemp>       }
+    token infix:sym<eq>         { <sym=.infix-eq> »         }
+    token infix:sym<eqv>        { <sym=.infix-eqv> »        }
+    token infix:sym<ff>         { <sym=.infix-ff> »         }
+    token infix:sym<^ff>        { <sym=.infix-cff> »        }
+    token infix:sym<ff^>        { <sym=.infix-ffc>          }
+    token infix:sym<^ff^>       { <sym=.infix-cffc>         }
+    token infix:sym<fff>        { <sym=.infix-fff> »        }
+    token infix:sym<^fff>       { <sym=.infix-cfff> »       }
+    token infix:sym<fff^>       { <sym=.infix-fffc>         }
+    token infix:sym<^fff^>      { <sym=.infix-cfffc>        }
+    token infix:sym<gcd>        { <sym=.infix-gcd> »        }
+    token infix:sym<ge>         { <sym=.infix-ge> »         }
+    token infix:sym<gt>         { <sym=.infix-gt> »         }
+    token infix:sym<lcm>        { <sym=.infix-lcm> »        }
+    token infix:sym<le>         { <sym=.infix-le> »         }
+    token infix:sym<leg>        { <sym=.infix-leg> »        }
+    token infix:sym<lt>         { <sym=.infix-lt> »         }
+    token infix:sym<max>        { <sym=.infix-max> »        }
+    token infix:sym<min>        { <sym=.infix-min> »        }
+    token infix:sym<minmax>     { <sym=.infix-minmax> »     }
+    token infix:sym<mod>        { <sym=.infix-mod> »        }
+    token infix:sym<ne>         { <sym=.infix-ne> »         }
+    token infix:sym<notandthen> { <sym=.infix-notandthen> » }
+    token infix:sym<or>         { <sym=.infix-or> »         }
+    token infix:sym<orelse>     { <sym=.infix-orelse> »     }
+    token infix:sym<unicmp>     { <sym=.infix-unicmp> »     }
+    token infix:sym<x>          { <sym=.infix-x> »          }
+    token infix:sym<xor>        { <sym=.infix-xor> »        }
+    token infix:sym<xx>         { <sym=.infix-xx> »         }
 
 #-------------------------------------------------------------------------------
 # Other infixes
@@ -2656,20 +2829,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
              '!!'
           || <?before '::' <.-[=]>>
-             <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",               second-part => "::">
+             {self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::"}
           || <?before ':' <.-[=\w]>>
-             <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",
-               second-part => ":">
+             {self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":"}
           || <infixish>
-             <.typed-panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose",
-               operator => ~$<infixish>>
+             {self.typed-panic("X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish>)}
           || <?{ ~$<EXPR> ~~ / '!!' / }>
              <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartGobbled">
           || <?before \N*? [\n\N*?]? '!!'>
-             <.typed-panic: "X::Syntax::Confused",
-               reason => "Confused: Bogus code found before the !! of conditional operator">
-          || <.typed-panic: "X::Syntax::Confused",
-               reason => "Confused: Found ?? but no !!">
+             {self.typed-panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator"}
+          || {self.typed-panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!"}
         ]
     }
 
@@ -3528,12 +3697,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [
-          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block>
+          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
           || ';'
              [
                || <?{ $*START-OF-COMPUNIT }>
                   { $*START-OF-COMPUNIT := 0; }
-                  <unit-block($*PKGDECL)>
+                  <unit-block($*PKGDECL, $*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
 
                || { $/.typed-panic: "X::UnitScope::TooLate", what => $*PKGDECL }
              ]
@@ -3606,7 +3775,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.kok>
         :my $*MULTINESS := 'multi';
         [ <?before '('>
-          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+          {self.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS}
         ]?
         [    <declarator>
           || <routine-def('sub')>
@@ -3618,7 +3787,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.kok>
         :my $*MULTINESS := 'proto';
         [ <?before '('>
-          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+          {self.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS}
         ]?
         [    <declarator>
           || <routine-def('sub')>
@@ -3630,7 +3799,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.kok>
         :my $*MULTINESS := 'only';
         [ <?before '('>
-          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+          {self.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS}
         ]?
         [    <declarator>
           || <routine-def('sub')>
@@ -3655,10 +3824,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | [
               :my $*DEFAULT-RW := 1;
-              '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+              '(' ~ ')' <signature(:ON-VARDECLARATION)> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
           ]
 
           | <routine-declarator>
+
+          | <regex-declarator>
 
           | <type-declarator>
         ]
@@ -3688,6 +3859,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable-declarator {
         :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
+        :my $*VARIABLE-NAME;
         :my $sigil;
         [
           | <sigil> <twigil>? <desigilname>?
@@ -3702,6 +3874,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $*IN-DECL := '';
             $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
             $sigil := $<sigil> ?? $<sigil>.Str !! "";
+            $*VARIABLE-NAME := $<sigil> ~ $<twigil> ~ $<desigilname>;
         }
         [
           <.unspace>?
@@ -3737,7 +3910,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $where := $<EXPR>.ast }
         ]?
         <.stub-variable($/, $where)>
-        [<.ws> <initializer>]?
+        [
+            [
+                <?{ $*VARIABLE.is-attribute }>
+                { $*R.enter-scope($*VARIABLE.initializer-method); $*R.create-scope-implicits(); }
+                [<.ws> <initializer>]?
+                { $*R.leave-scope }
+            ]
+            | [<.ws> <initializer>]?
+        ]
     }
 
     token stub-variable($*VARIABLE-MATCH, $*WHERE) { <?> }
@@ -3803,6 +3984,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+            }
+        }
+        {
             my $deflongname := $<deflongname>;
             if $deflongname && $deflongname<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
@@ -3825,9 +4011,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 );
             }
         }
-        [ '(' <signature> ')' ]?
+        [ '(' <signature(:ON-ROUTINE(1))> ')' ]?
         :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
+        { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
         [
           || ';'
@@ -3867,8 +4054,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
-        [ '(' <signature(1)> ')' ]?
+        {
+            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                $*BLOCK.to-parse-time($*R, $*CU.context);
+            }
+            $*R.create-scope-implicits();
+        }
+        [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
+        { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
         [
           || <onlystar>
@@ -3919,13 +4113,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($*IN-DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
-          { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }
+          {
+              if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                  $*BLOCK.ensure-parse-performed($*R, $*CU.context);
+              }
+          }
+          { if $<deflongname> { %*RX<name> := $*BLOCK.name } }
           { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
           <trait($*BLOCK)>*
           '{'
           [
-#            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>
@@ -3935,6 +4134,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token type-declarator {*}
 
+    method add-variable($name) {
+        my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
+        my $cat := ~$categorical[0][0];
+        if $categorical && nqp::can(self, $cat) {
+            my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
+            my $canname := $cat ~ ':sym' ~ $canop;
+            self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0]);
+        }
+    }
+
     token type-declarator:sym<constant> {
         :my $*IN-DECL := 'constant';
         <.sym>
@@ -3942,7 +4151,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | '\\'?
             <defterm>
-          | <variable>  # for new &infix:<foo> synonyms
+          | <variable> { $¢.add-variable(~$<variable>) } # for new &infix:<foo> synonyms
           | <?>
         ]
         { $*IN-DECL := ''; }
@@ -3952,7 +4161,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         [ <.ws>
           <term_init=initializer>
-            || <.typed-panic: "X::Syntax::Term::MissingInitializer">
+            || <.typed-panic: "X::Syntax::Missing">
         ]
 
         <.cheat-heredoc>?
@@ -4012,6 +4221,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     rule trait_mod:sym<does> {
         <.traitmod-does> [ <typename> || <.bad-traitmod-typename>]
+    }
+    rule trait_mod:sym<will> {
+        <.traitmod-will> [ <identifier> || <.panic: 'Invalid name'>] <pointy-block>
     }
     rule trait_mod:sym<of> {
         <.traitmod-of> [ <typename> || <.bad-traitmod-typename>]
@@ -4164,7 +4376,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token version {
-        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' ['+' | '-']? ]
+        <?before v\d+\w*
+            [ '.' \d
+              || <!{ $*R.resolve-lexical(~$/) }> ]>
+        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-']? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -4551,10 +4766,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Signatures
 
     token fakesignature {
+        :my $*BLOCK;
+        <.enter-block-scope('PointyBlock')>
         <signature(1, :DECLARE-TARGETS(0))>
+        <.leave-block-scope>
     }
 
-    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1) {
+    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION, :$*ON-ROUTINE) {
         :my $*MULTI-INVOCANT := 1;
         :my @*SEPS := nqp::list();
         <.ws>
@@ -4664,9 +4882,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN-DECL := '';
         :dba('constraint')
         [
-          | '[' ~ ']' <signature>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
-          | '(' ~ ')' <signature>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
           | <.constraint-where> <EXPR('i=')>
         ]
@@ -4675,9 +4893,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token param-var {
         :dba('formal parameter')
         [
-          | '[' ~ ']' <signature>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
-          | '(' ~ ')' <signature>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 
           | $<declname>=[
               <sigil>
@@ -4689,8 +4907,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 || <name=.identifier>
 
                 || <name=.decint>
-                   <.typed-panic: 'X::Syntax::Variable::Numeric',
-                     what => 'parameter'>
+                   {self.typed-panic: 'X::Syntax::Variable::Numeric', what => 'parameter'}
 
                 || $<name>=[<[/!]>]
               ]?
@@ -5002,7 +5219,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
 
         # Should be treated as a normal sub
-        elsif $category eq 'METAOP_TEST_ASSIGN' {
+        elsif $category eq 'METAOP_TEST_ASSIGN' || $category eq 'METAOP_TEST_ASSIGN_VALUE' {
             return 0;
         }
 
@@ -5205,11 +5422,17 @@ Rakudo significantly on *every* run."
         # Set up the rest of this statement to have new actions too.
         self.set_actions($actions);
 
+        my $scalar := p6ize_recursive(%*LANG);
+        my $descriptor_type := $*R.type-from-setting('ContainerDescriptor');
+        my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
+        nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
+
         $*R.outer-scope.merge-generated-lexical-declaration(
             :resolver($*R),
+            :force,
             self.actions.r('VarDeclaration', 'Implicit', 'Constant').new(
                 :name('%?LANG'),
-                :value(%*LANG),
+                :value($scalar),
             )
         );
 
@@ -5323,7 +5546,9 @@ Rakudo significantly on *every* run."
 
     # directives that may not be used as block names
     token rakudoc-directives {
+        [
         alias | begin | column | config | end | finish | for | place | row
+        ] >>
     }
 
     proto token doc-block {*}
@@ -5335,6 +5560,7 @@ Rakudo significantly on *every* run."
 
     # handle =alias
     token doc-block:sym<alias> {
+        :my $width;
 
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
@@ -5342,7 +5568,8 @@ Rakudo significantly on *every* run."
         # fetch lemma as first line
         '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
 
-        [\n $<margin> '=' \h+ $<line>=\N+]*
+        { $width := $<first>.from - $<margin>.to - 1 }
+        [\n $<margin> '='   " " ** {$width}   $<line>=\N+]*
 
         \n?
     }
@@ -5353,8 +5580,9 @@ Rakudo significantly on *every* run."
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # fetch any configuration
+        # fetch column and any configuration
         '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        { $/.panic("=column outside of table") unless $*IN_TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5366,8 +5594,9 @@ Rakudo significantly on *every* run."
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
-        # fetch any configuration
+        # fetch row and any configuration
         '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        { $/.panic("=row outside of table") unless $*IN_TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5381,6 +5610,22 @@ Rakudo significantly on *every* run."
 
         # needs a schema
         '=place' \s+ $<uri>=[ \w+ ':' \S+ ]
+
+        # fetch any configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =formula
+    token doc-block:sym<formula> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # needs an actual formula
+        '=formula' \s+ $<formula>=<-[ \v : ]>+
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
@@ -5450,6 +5695,16 @@ Rakudo significantly on *every* run."
         # identifier indicates type of block
         $<type>=<.doc-identifier>
 
+        {
+            my str $type := ~$<type>;
+            if $type eq 'table' {
+                $*IN_TABLE++;
+            }
+            elsif $type eq 'cell' {
+                $/.panic("=begin cell outside of table") unless $*IN_TABLE;
+            }
+        }
+
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
@@ -5467,13 +5722,15 @@ Rakudo significantly on *every* run."
           $<type> [ <.doc-newline> | $ ]
 
           # alas, a mismatch
-          || $<instead>=<.doc-identifier>? <.typed-panic(
+          || $<instead>=<.doc-identifier>? {self.typed-panic(
                'X::Syntax::Pod::BeginWithoutEnd.new',
                type    => ~$<type>,
                spaces  => ~$<margin>,
                instead => $<instead> ?? ~$<instead> !! ''
-              )>
+              )}
         ]
+
+        { $*IN_TABLE-- if ~$<type> eq 'table' }
     }
 
     token doc-block:sym<for> {
@@ -5503,6 +5760,12 @@ Rakudo significantly on *every* run."
         # identifier indicates type of block
         $<type>=<.doc-identifier>
 
+        # cells not allowed outside table
+        {
+            $/.panic("=for cell outside of table")
+              if ~$<type> eq 'cell' && !$*IN_TABLE;
+        }
+
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
@@ -5524,6 +5787,12 @@ Rakudo significantly on *every* run."
         # start of an abbreviated doc block with an optional hash
         # char to indicate :numbered in config, or just a string
         $<type>=<.doc-identifier> [\h+ <doc-numbered>]?
+
+        # cells not allowed outside table
+        {
+            $/.panic("=cell outside of table")
+              if ~$<type> eq 'cell' && !$*IN_TABLE;
+        }
 
         # the rest of the line is considered content
         [ [ \h+ $<header>=[\N+ \n?]? ] | <.doc-newline> ]
@@ -5637,7 +5906,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             <?[$]>
             <!RESTRICTED>
             [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
-               || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
+               || { self.typed-panic: 'X::Backslash::NonVariableDollar' } ]
         }
     }
 
@@ -6000,10 +6269,10 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.typed-panic: 'X::Backslash::UnrecognizedSequence',
+        {self.typed-panic: 'X::Backslash::UnrecognizedSequence',
           :sequence(~$/),
           :suggestion('$' ~ ($/ - 1))
-        >
+        }
     }
 
     token assertion:sym<name> {

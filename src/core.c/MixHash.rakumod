@@ -86,12 +86,14 @@ my class MixHash does Mixy {
     multi method new(MixHash:_:) { nqp::create(self) }
 
 #--- coercion methods
-    multi method Mix(MixHash:D: :$view) {  # :view is implementation-detail
+    multi method Mix(MixHash:D: :view($)!) is implementation-detail {
         $!elems && nqp::elems($!elems)
-          ?? nqp::p6bindattrinvres(
-               nqp::create(Mix),Mix,'$!elems',
-               $view ?? $!elems !! $!elems.clone
-             )
+          ?? nqp::p6bindattrinvres(nqp::create(Mix),Mix,'$!elems',$!elems)
+          !! mix()
+    }
+    multi method Mix(MixHash:D:) {
+        $!elems && nqp::elems($!elems)
+          ?? nqp::p6bindattrinvres(nqp::create(Mix),Mix,'$!elems',$!elems.clone)
           !! mix()
     }
     multi method MixHash(MixHash:D:) { self }

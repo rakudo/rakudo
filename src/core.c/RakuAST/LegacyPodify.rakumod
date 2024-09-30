@@ -167,13 +167,17 @@ class RakuAST::LegacyPodify {
         # Markup is allowed
         if %*OK{$letter} {
             $letter eq 'V'
-              ?? $ast.atoms.head.subst("\n", ' ', :g)
+              ?? $ast.atoms.map(*.Str).join.subst("\n", ' ', :g)
               !! Pod::FormattingCode.new(
                    type     => $letter,
-                   meta     => @meta,
+                   meta     => $letter eq 'E'
+                     ?? $ast.meta.map(*.key)
+                     !! @meta,
                    contents => $letter eq 'C'
-                     ?? $ast.atoms.head.subst("\n", ' ', :g)
-                     !! self!contentify($ast.atoms)
+                     ?? $ast.atoms.join.subst("\n", ' ', :g)
+                     !! $letter eq 'E'
+                       ?? $ast.meta.map(*.value)
+                       !! self!contentify($ast.atoms)
                  )
         }
 
@@ -311,7 +315,7 @@ class RakuAST::LegacyPodify {
 
     method podify-table(RakuAST::Doc::Block:D $ast) {
         my $config := $ast.resolved-config;
-        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
+        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::LegacyRow);
 
         # Make sure that all rows have the same number of cells
         my $nr-columns := @rows.map(*.cells.elems).max;

@@ -349,19 +349,14 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
       sub (+values) {
+          # get a reified list
+          (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
+          my $reified := nqp::getattr($list,List,'$!reified');
+
           nqp::if(
-            nqp::isge_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              $count
-            ),   # reifies
+            nqp::isgt_i((my int $i = nqp::elems($reified)),1),
             nqp::stmts(
-              (my $args := nqp::list(
-                my $result := nqp::atpos(
-                  (my $reified := nqp::getattr($v,List,'$!reified')),
-                  --$i
-                )
-              )),
+              (my $args := nqp::list(my $result := nqp::atpos($reified,--$i))),
               nqp::until(
                 nqp::islt_i(--$i,0),
                 nqp::stmts(
@@ -383,35 +378,29 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             ),
             nqp::if(
               $i,
-              op.(|nqp::getattr($v,List,'$!reified')),
+              op.(|$reified),
               op.()
             )
         )
       },
       sub (+values) {
+          # get a reified list
+          (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
+          my $reified := nqp::getattr($list,List,'$!reified');
+
           nqp::if(
-            nqp::isgt_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              1
-            ),
+            nqp::isgt_i((my int $i = nqp::elems($reified)),1),
             nqp::stmts(
-              (my $result := nqp::atpos(
-                nqp::getattr($v,List,'$!reified'),
-                --$i
-              )),
+              (my $result := nqp::atpos($reified,--$i)),
               nqp::while(
                 nqp::isge_i(--$i,0),
-                ($result := op.(
-                  nqp::atpos(nqp::getattr($v,List,'$!reified'),$i),
-                  $result
-                ))
+                ($result := op.(nqp::atpos($reified,$i), $result))
               ),
               $result
             ),
             nqp::if(
               $i,
-              op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0)),
+              op.(nqp::atpos($reified,0)),
               op.()
             )
           )

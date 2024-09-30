@@ -1,4 +1,3 @@
-NQPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 

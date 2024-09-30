@@ -400,7 +400,11 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             ),
             nqp::if(
               $i,
-              op.(nqp::atpos($reified,0)),
+              nqp::if(
+                op.count < Inf && nqp::iseq_i($i, op.count),
+                op.(nqp::atpos($reified,0)),
+                nqp::atpos($reified,0)
+              ),
               op.()
             )
           )

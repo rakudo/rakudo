@@ -628,6 +628,14 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             default {
                 pass $msg;
                 my $type_ok = $_ ~~ $ex_type;
+                if !$type_ok && $ex_type ~~ X::Comp && $_ ~~ X::Comp::Group {
+                    # Compile time exceptions may be found in a group if the compiler reports
+                    # more than one problem.
+                    with $_.sorrows.first($ex_type) -> $ex {
+                        $_ := $ex;
+                        $type_ok = True;
+                    }
+                }
                 ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {

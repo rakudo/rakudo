@@ -220,14 +220,14 @@ proto sub infix:<*>($?, $?, *%) is pure   {*}
 multi sub infix:<*>($x = 1)      { $x.Numeric }
 multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 # U+00D7 MULTIPLICATION SIGN
-my constant &infix:<×> = &infix:<*>;
+my constant &infix:<×> := &infix:<*>;
 
 proto sub infix:</>($?, $?, *%) is pure {*}
 multi sub infix:</>() { "infix:</>".no-zero-arg }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 # U+00F7 DIVISION SIGN
-my constant &infix:<÷> = &infix:</>;
+my constant &infix:<÷> := &infix:</>;
 
 proto sub infix:<div>($, $, *%) is pure  {*}
 # rest of infix:<div> is in Int.rakumod
@@ -269,7 +269,7 @@ multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
 
 # U+2A75 TWO CONSECUTIVE EQUALS SIGNS
-my constant &infix:<⩵> = &infix:<==>;
+my constant &infix:<⩵> := &infix:<==>;
 
 proto sub infix:<=~=>($?, $?, *%) {*}  # note, can't be pure due to dynvar
 multi sub infix:<=~=>($?) { Bool::True }
@@ -284,7 +284,7 @@ multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
     }
 }
 # U+2245 APPROXIMATELY EQUAL TO
-my constant &infix:<≅> = &infix:<=~=>;
+my constant &infix:<≅> := &infix:<=~=>;
 
 proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure  {*}
 multi sub infix:<!=>($?)                    { Bool::True }

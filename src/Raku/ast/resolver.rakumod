@@ -37,7 +37,6 @@ class RakuAST::Resolver {
 
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
-        $target.clear-attachments();
         for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
             my @stack := $!attach-targets{$name};
             unless nqp::isconcrete(@stack) {
@@ -203,8 +202,7 @@ class RakuAST::Resolver {
     }
 
     # Resolve a constant in the currently known packages, or GLOBAL
-    method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil) {
-
+    method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil, Bool :$partial) {
         # Try looking in the packages
         my str $name := $Rname.canonicalize;
 # This breaks "our &foo" lookup.  But if the sigil isn't needed, why is
@@ -213,14 +211,45 @@ class RakuAST::Resolver {
 
         for $!packages {
             my $stash := self.IMPL-STASH-HASH($_.compile-time-value);
-            return self.external-constant($stash, $name)
-              if nqp::existskey($stash,$name);
+            return $partial
+                ?? ($stash{$name}, List.new, 'global')
+                !! self.external-constant($stash, $name)
+                if nqp::existskey($stash,$name);
         }
 
-        my $stash := self.IMPL-STASH-HASH($!global);
-        nqp::existskey($stash,$name)
-          ?? self.external-constant($stash, $name)
-          !! Nil
+        my $symbol := $!global;
+        my @parts := nqp::clone($Rname.IMPL-UNWRAP-LIST($Rname.parts));
+        while @parts {
+            my $part := @parts.shift;
+            $name    := nqp::istype($part,RakuAST::Name::Part::Simple)
+              ?? $part.name
+              !! '';
+
+            # Add any sigil for last iteration
+            $name := $sigil ~ $name unless @parts;
+
+            # Lookup in the current symbol's stash
+            my $next := nqp::atkey(self.IMPL-STASH-HASH($symbol), $name);
+            if nqp::isnull($next) {
+                if $partial && ! $symbol =:= $!global {
+                    # put the symbol we failed to resolve back into the list
+                    nqp::unshift(@parts, $part);
+                    return ($symbol, $Rname.IMPL-WRAP-LIST(@parts), 'global');
+                }
+                else {
+                    return Nil
+                }
+            }
+            $symbol := $next;
+        }
+
+        $symbol =:= $!global
+            ?? Nil
+            !! $partial
+                ?? ($symbol, List.new, 'global')
+                !! RakuAST::Declaration::External::Constant.new(
+                    lexical-name => $name, compile-time-value => $symbol
+                )
     }
 
     method IMPL-RESOLVE-NAME-CONSTANT(
@@ -287,7 +316,7 @@ class RakuAST::Resolver {
                     if $partial {
                         # put the symbol we failed to resolve back into the list
                         nqp::unshift(@parts, $part);
-                        return ($symbol, $constant.IMPL-WRAP-LIST(@parts));
+                        return ($symbol, $constant.IMPL-WRAP-LIST(@parts), 'lexical');
                     }
                     else {
                         return Nil
@@ -302,12 +331,13 @@ class RakuAST::Resolver {
             );
         }
 
-        $partial ?? ($symbol, List.new) !! $resolved
+        $partial ?? ($symbol, List.new, 'lexical') !! $resolved
     }
 
     # Resolve a RakuAST::Name to a constant.
     method partially-resolve-name-constant(RakuAST::Name $Rname, str :$sigil) {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :partial)
+            // self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil, :partial)
     }
 
     method IMPL-STASH-HASH(Mu $pkg) {
@@ -705,6 +735,20 @@ class RakuAST::Resolver::EVAL
         Nil
     }
 
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $res := $evaluator($scope);
+            return $res if nqp::isconcrete($res);
+        }
+        Nil
+    }
+
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
@@ -890,6 +934,20 @@ class RakuAST::Resolver::Compile
             nqp::die('leave-scope should never be used on batch mode scopes');
         if nqp::istype($scope.scope, RakuAST::AttachTarget) {
             self.pop-attach-target($scope.scope);
+        }
+        Nil
+    }
+
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $res := $evaluator($scope.scope);
+            return $res if nqp::isconcrete($res);
         }
         Nil
     }

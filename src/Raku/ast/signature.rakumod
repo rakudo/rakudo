@@ -3,7 +3,8 @@
 class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
+  is RakuAST::ParseTime
   is RakuAST::Term
 {
     has List $.parameters;
@@ -39,15 +40,25 @@ class RakuAST::Signature
           ?? True
           !! False
     }
+    method set-parameters-initialized() {
+        nqp::bindattr(self, RakuAST::Signature, '$!parameters', []) unless nqp::isconcrete($!parameters);
+    }
 
-    method attach(RakuAST::Resolver $resolver) {
-        # If we're the signature for a method...
-        if $!is-on-method {
-            # ... retrieve the enclosing package so we can set an implicit
-            # invocant parameter up correctly.
-            nqp::bindattr(self, RakuAST::Signature, '$!method-package',
-                $resolver.find-attach-target('package'));
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Retrieve the enclosing package so we can set an implicit
+        # invocant parameter up correctly if we end up on a method.
+        nqp::bindattr(self, RakuAST::Signature, '$!method-package',
+            $resolver.find-attach-target('package'));
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
+        if $!parameters {
+            for $!parameters {
+                $_.to-begin-time($resolver, $context);
+            }
         }
+        $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
     }
 
     method set-is-on-method(Bool $is-on-method) {
@@ -102,7 +113,8 @@ class RakuAST::Signature
         False
     }
 
-    method IMPL-ENSURE-IMPLICITS() {
+    method IMPL-ENSURE-IMPLICITS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @generated;
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
@@ -111,7 +123,7 @@ class RakuAST::Signature
                     $type := self.get-implicit-lookups.AT-POS(0);
                 }
                 elsif $!is-on-named-method {
-                    if nqp::isconcrete($!method-package) {
+                    if nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
                         my $Class := self.get-implicit-lookups.AT-POS(1);
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
@@ -140,9 +152,12 @@ class RakuAST::Signature
                     nqp::bindattr(self, RakuAST::Signature, '$!implicit-slurpy-hash',
                         RakuAST::Parameter.new(
                           :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
-                          :target(RakuAST::ParameterTarget::Var.new(:name<%_>))
+                          :target(
+                              RakuAST::ParameterTarget::Var.new(:name<%_>)
+                          )
                         )
                     );
+                    nqp::push(@generated, $!implicit-slurpy-hash.target.declaration);
                 }
             }
         }
@@ -151,19 +166,27 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('$?CLASS'))
+                    RakuAST::Type::Capture.new(
+                        RakuAST::Name.from-identifier('$?CLASS')
+                    )
                 );
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
+                    RakuAST::Type::Capture.new(
+                        RakuAST::Name.from-identifier('::?CLASS')
+                    )
                 );
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
+                nqp::push(@generated, $_) for self.IMPL-UNWRAP-LIST($invocant.type-captures);
             }
         }
+
+        $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
+        $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
+        @generated
     }
 
     method PRODUCE-META-OBJECT() {
         # Produce meta-objects for each parameter.
-        self.IMPL-ENSURE-IMPLICITS();
         my @parameters;
         if $!implicit-invocant {
             @parameters.push($!implicit-invocant.meta-object);
@@ -193,7 +216,7 @@ class RakuAST::Signature
 
     method IMPL-RETURN-VALUE() {
         if nqp::istype($!returns, RakuAST::Type) {
-            $!returns.resolution.compile-time-value
+            $!returns.meta-object
         }
         elsif nqp::istype($!returns, RakuAST::CompileTimeValue) {
             $!returns.compile-time-value
@@ -210,7 +233,6 @@ class RakuAST::Signature
     }
 
     method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
-        self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
         if $needs-full-binder {
@@ -316,28 +338,44 @@ class RakuAST::Signature
 }
 
 class RakuAST::FakeSignature
+  is RakuAST::BeginTime
   is RakuAST::Meta
   is RakuAST::Term
   is RakuAST::LexicalScope
 {
     has RakuAST::Signature $.signature;
+    has RakuAST::Block $.block;
 
-    method new($signature) {
+    method new($signature, RakuAST::Block :$block) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::FakeSignature, '$!signature', $signature);
+        if nqp::isconcrete($block) {
+            $block.replace-signature($signature);
+        }
+        else {
+            $block := RakuAST::PointyBlock.new: :$signature;
+        }
+        nqp::bindattr($obj, RakuAST::FakeSignature, '$!block', $block);
         $obj
     }
 
     method PRODUCE-META-OBJECT() {
+        $!block.meta-object; # To bind block to signature
         $!signature.meta-object
     }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!block.to-begin-time($resolver, $context);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.meta-object;
         $!signature.IMPL-TO-QAST($context)
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!signature)
+        $visitor($!signature);
+        $visitor($!block);
     }
 }
 
@@ -346,9 +384,9 @@ class RakuAST::FakeSignature
 # which is optional.
 class RakuAST::Parameter
   is RakuAST::Meta
-  is RakuAST::Attaching
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Doc::DeclaratorTarget
@@ -470,8 +508,8 @@ class RakuAST::Parameter
         Nil
     }
 
-    method set-bindable() {
-        $!target.set-bindable(True);
+    method set-bindable(Bool $is-bindable) {
+        $!target.set-bindable($is-bindable ?? True !! False) if $!target;
         Nil
     }
 
@@ -586,7 +624,7 @@ class RakuAST::Parameter
         @type-captures
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Parameter, '$!owner',
             $resolver.find-attach-target('block'));
         nqp::bindattr(self, RakuAST::Parameter, '$!package',
@@ -757,7 +795,7 @@ class RakuAST::Parameter
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
-                        $!type.resolution.compile-time-value)
+                        $!type.meta-object)
                 !! $sigil-type
         }
         else {
@@ -779,8 +817,6 @@ class RakuAST::Parameter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.apply-traits($resolver, $context, self);
-
         if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
@@ -804,12 +840,19 @@ class RakuAST::Parameter
                     ),
                 ),
             );
+            $block.IMPL-BEGIN($resolver, $context);
             $block.IMPL-CHECK($resolver, $context, False);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
+
+        self.apply-traits($resolver, $context, self);
+
+        $!target.to-begin-time($resolver, $context) if $!target;
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-trait-sorries;
+
         if nqp::istype($!owner, RakuAST::Routine) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
@@ -850,7 +893,7 @@ class RakuAST::Parameter
             }
         }
 
-        if $!sub-signature {
+        if $!sub-signature || nqp::elems($!names) > 2 {
             $!owner.set-custom-args;
         }
 
@@ -1329,6 +1372,9 @@ class RakuAST::ParameterTarget
     method set-rw() { }
     method sigil() { '' }
     method name() { '' }
+    method set-bindable(Bool $is-bindable) {
+        nqp::die("set-bindable NYI on " ~ self.HOW.name(self));
+    }
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
@@ -1336,16 +1382,13 @@ class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
   is RakuAST::TraitTarget
   is RakuAST::Meta
-  is RakuAST::ContainerCreator
   is RakuAST::BeginTime
   is RakuAST::CheckTime
-  is RakuAST::Attaching
 {
     has str $.name;
     has RakuAST::Type $.type;
-    has Mu $!of;
     has RakuAST::Package $!attribute-package;
-    has RakuAST::VarDeclaration::Simple $!declaration;
+    has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
     has Bool $!is-bindable;
 
@@ -1353,10 +1396,7 @@ class RakuAST::ParameterTarget::Var
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
-        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
-          $forced-dynamic ?? True !! False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
         nqp::bindattr(
@@ -1365,7 +1405,7 @@ class RakuAST::ParameterTarget::Var
             '$!declaration',
             nqp::chars($name) == 1
               ?? RakuAST::VarDeclaration::Anonymous.new(
-                   :scope('anon'),
+                   :scope($obj.scope),
                    :sigil($name),
                    :type(Mu),
                    :is-parameter,
@@ -1451,11 +1491,6 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr_s(self, RakuAST::ParameterTarget::Var, '$!name', $name);
     }
 
-    method set-container-type(Mu $type, Mu $of) {
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
-    }
-
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
         $!declaration.set-bindable($bindable);
@@ -1470,13 +1505,6 @@ class RakuAST::ParameterTarget::Var
     }
 
     method PRODUCE-META-OBJECT() {
-        nqp::bindattr(
-            self,
-            RakuAST::ParameterTarget::Var,
-            '$!of',
-            $!type.resolution.compile-time-value
-        ) if $!type && nqp::eqaddr($!of, Mu);
-
         $!declaration.meta-object
     }
 
@@ -1497,15 +1525,16 @@ class RakuAST::ParameterTarget::Var
         for self.IMPL-UNWRAP-LIST(self.traits) {
             $var.add-trait($_);
         }
+        $var.to-begin-time($resolver, $context);
     }
 
     method PERFORM-CHECK(
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        self.add-trait-sorries;
+
         # Check for illegal post declaration is actually performed by RakuAST::Scope
-        # Need PERFORM-CHECK because we're a RakuAST::CheckTime and we need to be
-        # that to carry the sorry generated by the check.
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1520,8 +1549,6 @@ class RakuAST::ParameterTarget::Var
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
 
-    method is-begin-performed-before-children() { True }
-
     method visit-children(Code $visitor) {
         # We don't want to visit the declaration if it is a topic variable,
         # as that will result in multiple declarations because blocks already
@@ -1534,13 +1561,17 @@ class RakuAST::ParameterTarget::Var
 # A binding of a parameter into a lexical term.
 class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
+  is RakuAST::ContainerCreator
   is RakuAST::Declaration
+  is RakuAST::Meta
 {
     has RakuAST::Name $.name;
+    has Bool $!is-bindable;
 
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
     }
 
@@ -1552,6 +1583,18 @@ class RakuAST::ParameterTarget::Term
         $!name.canonicalize
     }
 
+    method type() { Mu }
+    method sigil() { '' }
+    method twigil() { '' }
+
+    method set-bindable(Bool $bindable) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!is-bindable', $bindable);
+    }
+
+    method can-be-bound-to() {
+        $!is-bindable
+    }
+
     # Generate a lookup of this parameter, already resolved to this declaration.
     method generate-lookup() {
         my $lookup := RakuAST::Term::Name.new($!name);
@@ -1559,8 +1602,33 @@ class RakuAST::ParameterTarget::Term
         $lookup
     }
 
+    method PRODUCE-META-OBJECT() {
+        my $of := self.IMPL-OF-TYPE;
+        my $default := $of;
+        my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($default);
+        self.IMPL-CONTAINER($of, $descriptor);
+    }
+
+    method IMPL-OF-TYPE() {
+        Mu
+    }
+
+    method IMPL-SIGIL-TYPE() {
+        nqp::null
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        if $!is-bindable {
+            my $container := self.meta-object;
+            $context.ensure-sc($container);
+            QAST::Var.new(
+                :scope('lexical'), :decl('contvar'), :name($!name.canonicalize),
+                :value($container)
+            )
+        }
+        else {
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        }
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {

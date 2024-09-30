@@ -261,7 +261,7 @@ class RakuAST::ColonPair::Number
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value.new(
-          self.key, $!value
+          self.key, $!value.IMPL-INTERPRET($ctx)
         )
     }
 }

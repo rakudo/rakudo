@@ -28,6 +28,31 @@ sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw is implementation-detail {
     lhs orelse (lhs = $rhs())
 }
 
+sub METAOP_TEST_ASSIGN_VALUE:<//>(\lhs, $rhs) is raw is implementation-detail {
+    lhs // (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<||>(\lhs, $rhs) is raw is implementation-detail {
+    lhs || (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<&&>(\lhs, $rhs) is raw is implementation-detail {
+    lhs && (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<or>(\lhs, $rhs) is raw is implementation-detail {
+    lhs or (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<and>(\lhs, $rhs) is raw is implementation-detail {
+    lhs and (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<andthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs andthen (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<notandthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs notandthen (lhs = $rhs)
+}
+sub METAOP_TEST_ASSIGN_VALUE:<orelse>(\lhs, $rhs) is raw is implementation-detail {
+    lhs orelse (lhs = $rhs)
+}
+
 sub METAOP_NEGATE(\op) is implementation-detail {
     -> |c { c.elems > 1 ?? !op.(|c) !! True }
 }
@@ -324,19 +349,14 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
       sub (+values) {
+          # get a reified list
+          (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
+          my $reified := nqp::getattr($list,List,'$!reified');
+
           nqp::if(
-            nqp::isge_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              $count
-            ),   # reifies
+            nqp::isgt_i((my int $i = nqp::elems($reified)),1),
             nqp::stmts(
-              (my $args := nqp::list(
-                my $result := nqp::atpos(
-                  (my $reified := nqp::getattr($v,List,'$!reified')),
-                  --$i
-                )
-              )),
+              (my $args := nqp::list(my $result := nqp::atpos($reified,--$i))),
               nqp::until(
                 nqp::islt_i(--$i,0),
                 nqp::stmts(
@@ -358,35 +378,33 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             ),
             nqp::if(
               $i,
-              op.(|nqp::getattr($v,List,'$!reified')),
+              op.(|$reified),
               op.()
             )
         )
       },
       sub (+values) {
+          # get a reified list
+          (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
+          my $reified := nqp::getattr($list,List,'$!reified');
+
           nqp::if(
-            nqp::isgt_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              1
-            ),
+            nqp::isgt_i((my int $i = nqp::elems($reified)),1),
             nqp::stmts(
-              (my $result := nqp::atpos(
-                nqp::getattr($v,List,'$!reified'),
-                --$i
-              )),
+              (my $result := nqp::atpos($reified,--$i)),
               nqp::while(
                 nqp::isge_i(--$i,0),
-                ($result := op.(
-                  nqp::atpos(nqp::getattr($v,List,'$!reified'),$i),
-                  $result
-                ))
+                ($result := op.(nqp::atpos($reified,$i), $result))
               ),
               $result
             ),
             nqp::if(
               $i,
-              op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0)),
+              nqp::if(
+                op.count < Inf && nqp::iseq_i($i, op.count),
+                op.(nqp::atpos($reified,0)),
+                nqp::atpos($reified,0)
+              ),
               op.()
             )
           )

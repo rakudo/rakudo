@@ -30,12 +30,6 @@ my class Block { # declared in BOOTSTRAP
         )
     }
 
-    method fatalize() is implementation-detail {
-        self.add_phaser: 'POST', -> $_ {
-            nqp::istype($_,Failure) ?? .throw !! True
-        }
-    }
-
     method add_phaser(str $name, &block --> Nil) {
         # $!phasers is either a Block (which indicates the fast path for
         # handling an only LEAVE phaser), or a hash (indicating one or more

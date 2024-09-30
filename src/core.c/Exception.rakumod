@@ -2952,6 +2952,12 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
         the variable to be of type $.suggestiontype, or try to coerce the
         value with $value.$conversionmethod or $conversionmethod\($value\)";
         try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
+        if nqp::istype($!vartype.HOW, Metamodel::Explaining) {
+            my $complainee = $!vartype.HOW.complainee;
+            $val ~= '; ' ~ ($complainee ~~ Callable || $complainee.^can('CALL-ME')
+                ?? $complainee($!value)
+                !! $complainee.Str)
+        }
         "$val.".naive-word-wrapper
     }
 }

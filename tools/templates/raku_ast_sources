@@ -6,6 +6,7 @@ src/Raku/ast/checktime.rakumod
 src/Raku/ast/sink.rakumod
 src/Raku/ast/scoping.rakumod
 src/Raku/ast/attaching.rakumod
+src/Raku/ast/parsetime.rakumod
 src/Raku/ast/begintime.rakumod
 src/Raku/ast/traits.rakumod
 src/Raku/ast/meta.rakumod

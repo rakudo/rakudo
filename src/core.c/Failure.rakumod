@@ -188,4 +188,9 @@ multi sub die(Failure:U $f --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 
+# Actual handler for "use fatal"
+proto sub FATALIZE(|) is implementation-detail {*}
+multi sub FATALIZE(Failure:D $f is raw --> Nil) { $f.exception.throw }
+multi sub FATALIZE(Mu $m is raw --> Mu) is raw  { $m                 }
+
 # vim: expandtab shiftwidth=4

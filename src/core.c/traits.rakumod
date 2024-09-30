@@ -106,8 +106,6 @@ multi sub trait_mod:<is>(Mu:U $type, *%fail) {
 
 multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'an attribute',
@@ -178,7 +176,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c) {
 
     sub trait-name(&t) { &t.signature.params[1].named_names[0] }
 
-    my %info = :file($?FILE), :line($?LINE), :type<is>, :$subtype,
+    my %info = :type<is>, :$subtype,
                :declaring($r.^name.split('+').head.lc);
 
     with @traits.first({.&trait-name eq $subtype}) -> &t {
@@ -222,8 +220,6 @@ BEGIN &trait_mod:<is>.set_onlystar();
 
 multi sub trait_mod:<is>(Parameter:D $param, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'a parameter',
@@ -263,6 +259,8 @@ multi sub trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
 my $!;
 my $/;
 my $_;
+
+
 
 multi sub trait_mod:<is>(Routine:D $r, :$export!, :$SYMBOL = '&' ~ $r.name) {
     my $to_export := $r.multi ?? $r.dispatcher !! $r;
@@ -375,6 +373,15 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
         if $sig.has_returns;
     $sig.set_returns($type);
     $target.^mixin(Callable.^parameterize($type))
+}
+
+multi sub trait_mod:<is>(Routine:D $r, Str :$revision-gated!) {
+    my $chars := nqp::chars($revision-gated);
+    my $internal-revision := 1 + nqp::ord($revision-gated, $chars - 1) - nqp::ord("c");
+    $r.set-revision-gated;
+    $r.^mixin(
+        role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }.^parameterize($internal-revision)
+    );
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$implementation-detail!) {
@@ -585,8 +592,6 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
 proto sub trait_mod:<will>(Mu $, |) {*}
 multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
-      file       => $?FILE,
-      line       => $?LINE,
       type       => 'will',
       subtype    => c.hash.keys[0],
       declaring  => 'an attribute',

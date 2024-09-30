@@ -266,6 +266,26 @@ my class Junction { # declared in BOOTSTRAP
         list(self).iterator
     }
 
+    proto method map(|) is nodal {*}
+    # We want map to be fast, so we go to some effort to build special
+    # case iterators that can ignore various interesting cases.
+    multi method map(Mu \SELF: &code;; :$label, :$item) {
+        my $count  := &code.count;
+        my $source := $item
+          ?? Rakudo::Iterator.OneValue(SELF)
+          !! SELF.iterator;
+
+        Seq.new: &code.?has-loop-phasers
+          ?? $count < 2 || $count == Inf
+            ?? Rakudo::IterateOneWithPhasers.new(&code, $source, $label)
+            !! Rakudo::IterateMoreWithPhasers.new(&code, $source, $count, $label)
+          !! $count < 2 || $count == Inf
+            ?? Rakudo::IterateOneWithoutPhasers.new(&code, $source, $label)
+            !! $count == 2
+              ?? Rakudo::IterateTwoWithoutPhasers.new(&code, $source, $label)
+              !! Rakudo::IterateMoreWithoutPhasers.new(&code, $source, $count, $label)
+    }
+
     multi method gist(Junction:D:) {
         my int $elems = nqp::elems($!eigenstates);
         my int $i     = -1;

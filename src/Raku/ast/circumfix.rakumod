@@ -42,11 +42,25 @@ class RakuAST::Circumfix::Parentheses
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!semilist.IMPL-TO-QAST($context)
+        # QAST::Stmts node needed to e.g. break up operator chaining
+        QAST::Stmts.new($!semilist.IMPL-TO-QAST($context))
     }
 
     method visit-children(Code $visitor) {
         $visitor($!semilist);
+    }
+
+    method IMPL-IS-CONSTANT() {
+        my $statements := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements);
+        for $statements {
+            if nqp::istype($_, RakuAST::Statement::Expression) {
+                return False unless $_.expression.IMPL-IS-CONSTANT;
+            }
+            else {
+                return False;
+            }
+        }
+        True
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -62,6 +76,7 @@ class RakuAST::Circumfix::Parentheses
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
+  is RakuAST::ParseTime
   is RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
@@ -88,7 +103,7 @@ class RakuAST::Circumfix::ArrayComposer
         }
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
         if $resolved {
             self.set-resolution($resolved);
@@ -128,6 +143,7 @@ class RakuAST::Circumfix::ArrayComposer
 class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has RakuAST::Expression $.expression;
     has int $.object-hash;
@@ -145,7 +161,7 @@ class RakuAST::Circumfix::HashComposer
         Nil
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $!object-hash
                              ?? $resolver.resolve-lexical('&circumfix:<:{ }>')
                              !! $resolver.resolve-lexical('&circumfix:<{ }>');

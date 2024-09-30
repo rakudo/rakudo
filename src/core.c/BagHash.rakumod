@@ -86,14 +86,17 @@ my class BagHash does Baggy {
     method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 
 #--- coercion methods
-    multi method Bag(BagHash:D: :$view) {  # :view is implementation-detail
+    multi method Bag(BagHash:D: :view($)!) is implementation-detail {
         $!elems && nqp::elems($!elems)
-          ?? nqp::create(Bag).SET-SELF(                     # not empty
-               $view
-                 ?? $!elems                                 # won't change
-                 !! Rakudo::QuantHash.BAGGY-CLONE($!elems)  # need deep copy
+          ?? nqp::create(Bag).SET-SELF($!elems)
+          !! bag()
+    }
+    multi method Bag(BagHash:D:) {
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Bag).SET-SELF(                # not empty
+               Rakudo::QuantHash.BAGGY-CLONE($!elems)  # need deep copy
              )
-          !! bag()                                          # empty
+          !! bag()                                     # empty
     }
     multi method BagHash(BagHash:D:) { self }
     multi method Mix(BagHash:D:) {

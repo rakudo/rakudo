@@ -247,7 +247,7 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
         }
     }
 
-    multi method Str(RakuAST::Doc::LegacyRow:D:) {
+    multi method Str(RakuAST::Doc::LegacyRow:D: &highlight = { $_ }) {
         my str $dividers = nqp::hllizefor($!column-dividers,'Raku') // '';
 
         # Stringify the given strings with the current dividers / offsets
@@ -270,7 +270,7 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
                   nqp::stmts(
                     @parts.push(cells.AT-POS($i).Str),
                     @parts.push(' '),
-                    @parts.push(nqp::substr($dividers,++$j,1)),
+                    @parts.push(highlight nqp::substr($dividers,++$j,1)),
                     @parts.push(' ')
                   )
                 );
@@ -509,7 +509,7 @@ augment class RakuAST::Doc::Markup {
         if $letter eq 'E' {
             if self.atoms -> @atoms {
                 @parts.push(.Str) for @atoms;
-                @parts.push("|");
+                @parts.push("|") if self.meta;
             }
             @parts.push: self.meta.map(*.key).join(';');
         }
@@ -763,10 +763,10 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
-    # return True if a new, procedural table type
-    method procedural(RakuAST::Doc::Block:D:) {
+    # return True if a legacy, visual type of table
+    method visual-table(RakuAST::Doc::Block:D:) {
         $!type eq 'table'
-          && !nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
+          && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
     }
 
     # return a Map with allowed markup codes as keys, conceptually
@@ -788,7 +788,7 @@ augment class RakuAST::Doc::Block {
 
         # all or nothing
         else {
-            $!type eq <code defn implicit-code table>.any
+            self.visual-table || $!type eq 'code' | 'implicit-code' | 'defn'
               ?? NOK
               !! OK
         }
@@ -802,20 +802,25 @@ augment class RakuAST::Doc::Block {
             my $buffer := nqp::create(IterationBuffer);
 
             for @raw -> $lines {
-                $buffer.push: $lines.lines(:!chomp).map({
-                    if .leading-whitespace.chars >= $margin {
-                        .substr($margin)
-                    }
-                    elsif .is-whitespace {
-                        "\n"
-                    }
-                    else {
-                        die # self.worry-ad-hoc:  XXX need better solution
-                          "'$_.chomp()'
-does not have enough whitespace to allow for a margin of $margin positions";
-                        .trim-leading
-                    }
-                }).join;
+                if nqp::istype($lines,RakuAST::Doc) {
+                    $buffer.push: $lines;
+                }
+                else {
+                    $buffer.push: $lines.lines(:!chomp).map({
+                        if .leading-whitespace.chars >= $margin {
+                            .substr($margin)
+                        }
+                        elsif .is-whitespace {
+                            "\n"
+                        }
+                        else {
+                            die # self.worry-ad-hoc:  XXX need better solution
+                              "'$_.chomp()'
+    does not have enough whitespace to allow for a margin of $margin positions";
+                            .trim-leading
+                        }
+                    }).join;
+                }
             }
 
             $buffer.List

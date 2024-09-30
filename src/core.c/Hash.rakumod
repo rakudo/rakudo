@@ -9,14 +9,14 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
     multi method Map(Hash:U:) { Map }
-    multi method Map(Hash:D: :$view) {  # :view is implementation-detail
-        $view
-             # Agreeing that the Hash won't be changed after the .Map
-          ?? nqp::p6bindattrinvres(
-               nqp::create(Map), Map, '$!storage',
-               nqp::getattr(self,Map,'$!storage')
-             )
-          !! nqp::create(Map).STORE(self, :INITIALIZE, :DECONT)
+    multi method Map(Hash:D: :view($)!) is implementation-detail {
+        nqp::p6bindattrinvres(
+          nqp::create(Map), Map, '$!storage',
+          nqp::getattr(self,Map,'$!storage')
+        )
+    }
+    multi method Map(Hash:D:) {
+        nqp::create(Map).STORE(self, :INITIALIZE, :DECONT)
     }
     method clone(Hash:D:) is raw {
         nqp::p6bindattrinvres(
@@ -26,7 +26,7 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D $key) is raw {
+    method !AT_KEY_CONTAINER(str $key) is raw {
         nqp::p6scalarfromcertaindesc(
           ContainerDescriptor::BindHashKey.new($!descriptor,self,$key)
         )

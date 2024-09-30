@@ -19,41 +19,37 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Mu \assignee) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos, $BIND);
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$delete!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$delete!) is raw {
     $delete ?? SELF.DELETE-POS(pos) !! SELF.AT-POS(pos)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$delete!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'delete', $delete)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$exists!) is raw {
-    $exists ?? SELF.EXISTS-POS(pos) !! !SELF.EXISTS-POS(pos)
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$exists!) is raw {
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-POS(pos)))
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$exists!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'exists', $exists)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$kv!) is raw {
-    $kv
-      ?? (SELF.EXISTS-POS(pos) ?? (pos, SELF.AT-POS(pos)) !! ())
-      !! (pos, SELF.AT-POS(pos))
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$kv!) is raw {
+    SELF.EXISTS-POS(pos) || !$kv ?? (pos, SELF.AT-POS(pos)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$kv!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'kv', $kv)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$p!) is raw {
-    $p
-      ?? (SELF.EXISTS-POS(pos) ?? Pair.new(pos, SELF.AT-POS(pos)) !! ())
-      !! Pair.new(pos, SELF.AT-POS(pos))
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$p!) is raw {
+    SELF.EXISTS-POS(pos) || !$p ?? Pair.new(pos, SELF.AT-POS(pos)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$p!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'p', $p)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$k!) is raw {
-    $k ?? (SELF.EXISTS-POS(pos) ?? pos !! ()) !! pos
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$k!) is raw {
+    SELF.EXISTS-POS(pos) || !$k ?? pos !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$k!, *%_) is raw {
     Array::Element.access(SELF, pos, %_, 'k', $k)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Bool() :$v!) is raw {
     $v
       ?? (SELF.EXISTS-POS(pos) ?? nqp::decont(SELF.AT-POS(pos)) !! ())
       !! SELF.AT-POS(pos)
@@ -72,44 +68,38 @@ multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu \assignee) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos.Int, $BIND)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$delete!) is raw {
     $delete ?? SELF.DELETE-POS(pos.Int) !! SELF.AT-POS(pos.Int)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'delete', $delete)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!) is raw {
-    $exists ?? SELF.EXISTS-POS(pos.Int) !! !SELF.EXISTS-POS(pos.Int)
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$exists!) is raw {
+    nqp::hllbool(nqp::eqaddr(nqp::decont($exists),SELF.EXISTS-POS(pos.Int)))
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'exists', $exists)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$kv!) is raw {
-    $kv
-      ?? (SELF.EXISTS-POS(pos.Int) ?? (pos, SELF.AT-POS(pos.Int)) !! ())
-      !! (pos, SELF.AT-POS(pos.Int))
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$kv!) is raw {
+    SELF.EXISTS-POS(pos.Int) || !$kv ?? (pos, SELF.AT-POS(pos.Int)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$kv!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'kv', $kv)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$p!) is raw {
-    $p
-      ?? (SELF.EXISTS-POS(pos.Int) ?? Pair.new(pos, SELF.AT-POS(pos.Int)) !! ())
-      !! Pair.new(pos, SELF.AT-POS(pos.Int))
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$p!) is raw {
+    SELF.EXISTS-POS(pos.Int) || !$p ?? Pair.new(pos, SELF.AT-POS(pos.Int)) !! ()
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$p!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'p', $p)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$k!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$k!) is raw {
     $k ?? (SELF.EXISTS-POS(pos.Int) ?? pos !! ()) !! pos
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$k!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'k', $k)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$v!) is raw {
-    $v
-      ?? (SELF.EXISTS-POS(pos.Int) ?? nqp::decont(SELF.AT-POS(pos.Int)) !! ())
-      !! SELF.AT-POS(pos.Int)
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Bool() :$v!) is raw {
+    postcircumfix:<[ ]>(SELF, pos.Int, :$v)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'v', $v)
@@ -159,7 +149,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$delete!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Bool() :$delete!) is raw {
     my $*INDEX := 'Effective index';
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $delete
@@ -175,7 +165,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$delete!, *%_) is raw {
       ?? Array::Element.access-any(SELF, pos, %_, 'delete', $delete)
       !! postcircumfix:<[ ]>(SELF, pos, :$delete, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$exists!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Bool() :$exists!) is raw {
     my $*INDEX := 'Effective index';
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $exists
@@ -189,7 +179,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$exists!, *%_) is raw {
       ?? Array::Element.access-any(SELF, pos, %_, 'exists', $exists)
       !! postcircumfix:<[ ]>(SELF, pos, :$exists, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$kv!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, Bool() :$kv!) is raw {
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $kv
         ?? SELF.EXISTS-POS(pos)
@@ -204,7 +194,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$kv!, *%_) is raw {
       ?? Array::Element.access-any(SELF, pos, %_, 'kv', $kv)
       !! postcircumfix:<[ ]>(SELF, pos, :$kv, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$p!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, Bool() :$p!) is raw {
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $p
         ?? SELF.EXISTS-POS(pos)
@@ -219,7 +209,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$p!, *%_) is raw {
       ?? Array::Element.access-any(SELF, pos, %_, 'p', $p)
       !! postcircumfix:<[ ]>(SELF, pos, :$p, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$k!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, Bool() :$k!) is raw {
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $k
         ?? SELF.EXISTS-POS(pos)
@@ -234,7 +224,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$k!, *%_) is raw {
       ?? Array::Element.access-any(SELF, pos, %_, 'k', $k)
       !! postcircumfix:<[ ]>(SELF, pos, :$k, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$v!) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, Bool() :$v!) is raw {
     nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
       ?? $v
         ?? SELF.EXISTS-POS(pos)
@@ -271,10 +261,10 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
 
 # @a[**]
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, *%adv) is raw {
-    NYI('HyperWhatever in array index').throw;
+    SELF.flat(:hammer)
 }
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
-    NYI('HyperWhatever in array index').throw;
+    assignee = SELF.flat(:hammer)
 }
 
 # @a[]

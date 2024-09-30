@@ -14,19 +14,22 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 subtest 'simple documentation' => {
-    #   =begin doc␤  This is documentation␤  =end doc␤␤
+    #   =begin doc␤␤  This is documentation␤␤  =end doc␤␤
     ast RakuAST::Doc::Block.new(
       margin      => '  ',
       type        => 'doc',
       paragraphs  => (
-        "This is documentation\n",
+        "This is documentation\n\n",
       )
     );
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =begin doc
+
   This is documentation
+
   =end doc
+
 CODE
     }
 }
@@ -44,13 +47,12 @@ subtest 'simple documentation abbreviated' => {
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =doc This is documentation
-
 CODE
     }
 }
 
 subtest 'simple documentation with markup' => {
-    #   =begin doc␤  This is B<doc>umentation␤  =end doc␤␤
+    #   =begin doc␤␤  This is B<doc>umentation␤␤  =end doc␤␤
     ast RakuAST::Doc::Block.new(
       margin      => '  ',
       type        => 'doc',
@@ -63,21 +65,24 @@ subtest 'simple documentation with markup' => {
               "doc",
             )
           ),
-          "umentation\n",
+          "umentation\n\n",
         ),
       )
     );
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =begin doc
+
   This is B<doc>umentation
+
   =end doc
+
 CODE
     }
 }
 
 subtest 'simple documentation in a statementlist (1)' => {
-    # 42␤  =begin doc␤  This is documentation␤  =end doc␤␤
+    # 42␤  =begin doc␤␤  This is documentation␤␤  =end doc␤␤
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
@@ -86,7 +91,7 @@ subtest 'simple documentation in a statementlist (1)' => {
         margin      => '  ',
         type        => 'doc',
         paragraphs  => (
-          "This is documentation\n",
+          "This is documentation\n\n",
         )
       )
     );
@@ -95,20 +100,23 @@ subtest 'simple documentation in a statementlist (1)' => {
         is-deeply $it, q:to/CODE/, "$type: deparse";
 42
   =begin doc
+
   This is documentation
+
   =end doc
+
 CODE
     }
 }
 
 subtest 'simple documentation in a statementlist (2)' => {
-    #   =begin doc␤  This is documentation␤=  end doc␤␤42␤
+    #   =begin doc␤␤  This is documentation␤␤=  end doc␤␤42␤
     ast RakuAST::StatementList.new(
       RakuAST::Doc::Block.new(
         margin      => '  ',
         type        => 'doc',
         paragraphs  => (
-          "This is documentation\n",
+          "This is documentation\n\n",
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -119,8 +127,11 @@ subtest 'simple documentation in a statementlist (2)' => {
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
   =begin doc
+
   This is documentation
+
   =end doc
+
 42
 CODE
     }
@@ -147,7 +158,6 @@ subtest 'abbreviated documentation in a statementlist (1)' => {
         is-deeply $it, q:to/CODE/, "$type: deparse";
 42
   =head1 This is documentation
-
 CODE
     }
 }
@@ -162,7 +172,7 @@ subtest 'abbreviated documentation in a statementlist (2)' => {
         abbreviated => True,
         config      => { :numbered },
         paragraphs  => (
-          "This is documentation\n",
+          "This is documentation\n\n",
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -216,6 +226,7 @@ for <row column> -> $name {
             type       => "table",
             paragraphs => (
               RakuAST::Doc::Block.new(
+                margin     => "  ",
                 type      => $name,
                 directive => True,
                 config    => ${:align(RakuAST::QuotedString.new(
@@ -232,12 +243,16 @@ for <row column> -> $name {
           )
         );
 
+# Complains about an unexplained RakuAST::Var::Lexical::Setting not
+# having been resolved, so skip for now
 #        is-deeply $ast.EVAL, 42, 'do we get the final result';
         for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
             is-deeply $it, qq:to/CODE/, "$type: deparse";
       =begin table
+
       =$name :align<left middle>
       =end table
+
     42
     CODE
         }

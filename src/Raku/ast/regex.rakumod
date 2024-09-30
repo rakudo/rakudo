@@ -340,6 +340,38 @@ class RakuAST::Regex::Group
     }
 }
 
+class RakuAST::Regex::Nested
+  is RakuAST::Regex::Atom
+{
+    has RakuAST::Regex $.goal;
+    has RakuAST::Regex $.expr;
+
+    method new(RakuAST::Regex $goal, RakuAST::Regex $expr) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Nested, '$!goal', $goal);
+        nqp::bindattr($obj, RakuAST::Regex::Nested, '$!expr', $expr);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new(
+            :rxtype<goal>,
+            $!goal.IMPL-REGEX-QAST($context, nqp::clone(%mods)),
+            $!expr.IMPL-REGEX-QAST($context, nqp::clone(%mods)),
+            QAST::Regex.new(
+                :rxtype<subrule>, :subtype<method>,
+                QAST::NodeList.new(
+                    QAST::SVal.new( :value('FAILGOAL') ),
+                    QAST::SVal.new( :value($!goal.DEPARSE) ),
+                    ) ) ); #TODO: |@dba) ) );
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!goal);
+        $visitor($!expr);
+    }
+}
+
 # A (positional, at least by default) capturing regex group, from the (...) syntax.
 class RakuAST::Regex::CapturingGroup
   is RakuAST::Regex::Atom
@@ -1102,7 +1134,10 @@ class RakuAST::Regex::Assertion::Named
             else {
                 my $lookups := self.get-implicit-lookups;
                 my $qast;
-                if $lookups.elems && $lookups.AT-POS(0).is-resolved {
+                if $lookups.elems && (my $lookup := $lookups.AT-POS(0)).is-resolved
+                    && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
+                    && nqp::istype($resolution.compile-time-value, Regex)
+                {
                     $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
                         QAST::NodeList.new:
                             QAST::SVal.new( :value('CALL_SUBRULE') ),

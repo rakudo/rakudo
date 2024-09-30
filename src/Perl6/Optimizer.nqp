@@ -28,6 +28,7 @@ my class Symbols {
 
     # Some interesting symbols.
     has $!Mu;
+    has $!Mu'U;
     has $!Junction;
     has $!Any;
     has $!Block;
@@ -66,6 +67,7 @@ my class Symbols {
         }
         nqp::push(@!block_stack, $!UNIT);
         $!Mu          := self.find_in_setting('Mu');
+        $!Mu'U        := nqp::gethllsym('Raku', 'Mu:U');
         $!Junction    := self.find_in_setting('Junction');
         $!Any         := self.find_in_setting('Any');
         $!Block       := self.find_in_setting('Block');
@@ -119,6 +121,7 @@ my class Symbols {
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
+    method Mu'U()        { $!Mu'U }
     method Junction()    { $!Junction }
     method Any()         { $!Any }
     method Block()       { $!Block }
@@ -1566,6 +1569,8 @@ my class SmartmatchOptimizer {
         self.respect_junctions( $optimized_ast, $fallback_ast, $lhs )
     }
 
+    my $Mu'U := nqp::null;
+
     method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
         my $sm_type;
         # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
@@ -1586,11 +1591,18 @@ my class SmartmatchOptimizer {
             if !nqp::can($sm_type_how, 'archetypes')
                 || $sm_type_how.archetypes($sm_type).generic;
 
+        # This edge case muddies up the visual waters quite a bit in hopes of keeping the optimizer speedy
+        return QAST::Op.new( :op<callmethod>, :name<Bool>,
+                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast )
+        )   if $lhs.value-kind == $OPERAND_VALUE_VAR
+            && nqp::eqaddr($sm_type, nqp::ifnull($Mu'U, $Mu'U := $!symbols.Mu'U))
+            && ! ($sm_type_how.archetypes($sm_type).definite && $sm_type_how.definite($sm_type));
+
         my $sm_is_subset :=
             $sm_type_how.archetypes($sm_type).nominalizable
             && !nqp::isnull($sm_type_how.wrappee-lookup($sm_type, :subset));
 
-        note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
+        note("Try typematch over RHS ", $sm_type_how.name($sm_type)) if $!debug;
 
         my $sm_ast;
 

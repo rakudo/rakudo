@@ -47,7 +47,7 @@ subtest 'creating a role with an attribute' => {
     ast RakuAST::Role.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier('A'),
-      body  => RakuAST::Block.new(
+      body  => RakuAST::RoleBody.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -152,7 +152,7 @@ subtest 'creating a parameterized role' => {
     ast RakuAST::Role.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier('D'),
-      body  => RakuAST::Block.new(
+      body  => RakuAST::RoleBody.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -206,7 +206,7 @@ subtest 'creating a parameterized role with a type capture' => {
     ast RakuAST::Role.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier('E'),
-      body  => RakuAST::Block.new(
+      body  => RakuAST::RoleBody.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(

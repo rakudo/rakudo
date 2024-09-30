@@ -32,6 +32,10 @@ class RakuAST::Name
         $!colonpairs.push: $pair;
     }
 
+    method set-colonpairs(@pairs) {
+        nqp::bindattr(self, RakuAST::Name, '$!colonpairs', @pairs);
+    }
+
     method parts() {
         self.IMPL-WRAP-LIST($!parts)
     }
@@ -43,7 +47,9 @@ class RakuAST::Name
     method is-identifier() {
         nqp::elems($!parts) == 1 && (
             nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
-            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression) && $!parts[0].has-compile-time-name
+            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
+                && $!parts[0].has-compile-time-name
+                && nqp::index($!parts[0].name, '::') == -1
         )
     }
 
@@ -94,6 +100,13 @@ class RakuAST::Name
             return True if $_.key eq $key;
         }
         False
+    }
+
+    method first-colonpair($key) {
+        for $!colonpairs {
+            return $_ if $_.key eq $key;
+        }
+        Nil
     }
 
     method without-colonpair($key) {
@@ -209,8 +222,20 @@ class RakuAST::Name
         )
     }
 
+    method IMPL-LOOKUP-PARTS() {
+        my @parts := nqp::clone($!parts);
+        if nqp::elems(@parts) && nqp::elems($!colonpairs) {
+            my $final := nqp::pop(@parts);
+            $final := RakuAST::Name.from-identifier($final.name);
+            $final.set-colonpairs($!colonpairs);
+            nqp::push(@parts, RakuAST::Name::Part::Simple.new($final.canonicalize));
+        }
+        @parts
+    }
+
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
-        my $final := $!parts[nqp::elems($!parts) - 1];
+        my @parts := self.IMPL-LOOKUP-PARTS;
+        my $final := @parts[nqp::elems(@parts) - 1];
         my $PseudoStash-lookup := self.get-implicit-lookups.AT-POS(1);
         my $result;
         if $*IMPL-COMPILE-DYNAMICALLY && $!parts[0].name eq 'CORE' {
@@ -230,7 +255,7 @@ class RakuAST::Name
             );
         }
         my int $first := 1;
-        for $!parts {
+        for @parts {
             if $first { # don't call .WHO on the pseudo package itself, index into it instead
                 $first := 0;
             }
@@ -274,7 +299,8 @@ class RakuAST::Name
     }
 
     method IMPL-QAST-INDIRECT-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
-        my $final   := $!parts[nqp::elems($!parts) - 1];
+        my @parts   := self.IMPL-LOOKUP-PARTS;
+        my $final   := @parts[nqp::elems(@parts) - 1];
         my $lookups := self.get-implicit-lookups;
         my $result  := QAST::Op.new(
             :op<call>,
@@ -286,7 +312,7 @@ class RakuAST::Name
             ),
         );
         nqp::push($result, QAST::SVal.new(:value($sigil))) if $sigil;
-        for $!parts {
+        for @parts {
             nqp::push($result, $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, $result, $_ =:= $final));
         }
         $result

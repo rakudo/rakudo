@@ -213,12 +213,8 @@ class RakuAST::StatementPrefix::Thunky
   is RakuAST::Code
   is RakuAST::BeginTime
 {
-
-    method is-begin-performed-before-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
-
         Nil
     }
 
@@ -306,6 +302,12 @@ class RakuAST::StatementPrefix::Blorst
     method apply-implicit-block-semantics() {
         self.blorst.set-fresh-variables(:match, :exception)
           if nqp::istype(self.blorst, RakuAST::Block);
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.to-begin-time($resolver, $context);
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
     }
 
     method IMPL-QAST-FORM-BLOCK(
@@ -494,7 +496,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::CheckTime
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::BeginTime
 {
     has Mu $!value;
 
@@ -506,13 +509,12 @@ class RakuAST::StatementPrefix::Phaser::Check
         $obj
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
-          nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst'),
-          $resolver, $context);
-
-        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value',
-          nqp::istype($producer,Code) ?? $producer() !! $producer);
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        $resolver.find-attach-target('compunit').add-check-phaser(-> {
+            nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer());
+        });
         Nil
     }
 
@@ -527,7 +529,7 @@ class RakuAST::StatementPrefix::Phaser::Check
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has Scalar $.container;
 
@@ -540,8 +542,9 @@ class RakuAST::StatementPrefix::Phaser::Init
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-init-phaser(self);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -561,7 +564,7 @@ class RakuAST::StatementPrefix::Phaser::Init
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has str $!result-name;
 
@@ -573,13 +576,14 @@ class RakuAST::StatementPrefix::Phaser::Enter
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::Enter, '$!result-name',
             ($resolver.find-attach-target('block')
               // $resolver.find-attach-target('compunit')
             ).add-enter-phaser(self)
         );
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method IMPL-RESULT-NAME() {
@@ -588,7 +592,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::die("ENTER phaser not attached but result accessed") unless $!result-name;
-        QAST::Var.new(:name($!result-name), :scope<local>)
+        QAST::Var.new(:name($!result-name), :scope<lexical>)
     }
 }
 
@@ -596,24 +600,25 @@ class RakuAST::StatementPrefix::Phaser::Enter
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     method type() { "END" }
 
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('compunit').add-end-phaser(self);
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $resolver.find-attach-target('compunit').add-end-phaser(self.meta-object);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 }
 
 # The QUIT phaser.
 class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     method type() { "QUIT" }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
     }
 
@@ -626,12 +631,15 @@ class RakuAST::StatementPrefix::Phaser::Quit
 class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::ParseTime
 {
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser(
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-phaser(
           self.type, self, :has-exit-handler(self.exit-handler));
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
     }
 
     method exit-handler() { False }
@@ -662,9 +670,6 @@ class RakuAST::StatementPrefix::Phaser::First
         $!original-blorst // nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst')
     }
 
-    method is-begin-performed-before-children { True }
-    method is-begin-performed-after-children  { False }
-
     # We do a lot of things like other RakuAST::StatementPrefix::Phaser::Block nodes,
     # but being sinky isn't one of those things.
     method propagate-sink(Bool $is-sunk) {
@@ -672,16 +677,14 @@ class RakuAST::StatementPrefix::Phaser::First
     }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::First, '$!original-blorst', $blorst);
 
         my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
 
         my $attach-block := $resolver.find-attach-target('block');
-        my $trigger-name := QAST::Node.unique('!first_block_triggered');
-        my $trigger-var := RakuAST::VarDeclaration::Implicit::State.new: $trigger-name;
-        my $trigger-lookup := $trigger-var.generate-lookup;
-        $attach-block.add-generated-lexical-declaration($trigger-var);
 
         my $value-name := QAST::Node.unique('!first_block_value');
         my $value-var := RakuAST::VarDeclaration::Implicit::State.new: $value-name;
@@ -694,24 +697,15 @@ class RakuAST::StatementPrefix::Phaser::First
             RakuAST::Block.new:
                 :body(RakuAST::Blockoid.new:
                     RakuAST::StatementList.new:
-                        RakuAST::Statement::Unless.new:
-                            :condition($trigger-lookup),
-                            :body(RakuAST::Block.new:
-                                :body(RakuAST::Blockoid.new:
-                                    RakuAST::StatementList.new:
-                                        RakuAST::Statement::Expression.new(
-                                            :expression(RakuAST::ApplyInfix.new:
-                                                :infix(RakuAST::Assignment.new(:item)),
-                                                :left($value-lookup),
-                                                :right(RakuAST::ApplyPostfix.new:
-                                                    :postfix(RakuAST::Call::Term.new),
-                                                    :operand($blorst)))), # 🛸 ... the actual FIRST code
-                                        RakuAST::Statement::Expression.new(
-                                            :expression(RakuAST::ApplyInfix.new:
-                                                :infix(RakuAST::Assignment.new(:item)),
-                                                :left($trigger-lookup),
-                                                :right($True))))));
+                        RakuAST::Statement::Expression.new(
+                            :expression(RakuAST::ApplyInfix.new:
+                                :infix(RakuAST::Assignment.new(:item)),
+                                :left($value-lookup),
+                                :right(RakuAST::ApplyPostfix.new:
+                                    :postfix(RakuAST::Call::Term.new),
+                                    :operand($blorst))))); # 🛸 ... the actual FIRST code
 
+        $blorst.IMPL-BEGIN($resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $blorst);
     }
 
@@ -740,6 +734,13 @@ class RakuAST::StatementPrefix::Phaser::Leave
 {
     method type() { "LEAVE" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-leave-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The KEEP phaser.
@@ -748,6 +749,13 @@ class RakuAST::StatementPrefix::Phaser::Keep
 {
     method type() { "KEEP" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-keep-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The PRE phaser.
@@ -804,6 +812,13 @@ class RakuAST::StatementPrefix::Phaser::Pre
         );
 
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.IMPL-BEGIN($resolver, $context);
+
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
     }
 }
 
@@ -881,6 +896,13 @@ class RakuAST::StatementPrefix::Phaser::Post
 
         $obj
     }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.blorst.IMPL-BEGIN($resolver, $context);
+
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
+    }
 }
 
 # The UNDO phaser.
@@ -889,6 +911,13 @@ class RakuAST::StatementPrefix::Phaser::Undo
 {
     method type() { "UNDO" }
     method exit-handler() { True }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-undo-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        self.IMPL-STUB-CODE($resolver, $context);
+    }
 }
 
 # The CLOSE phaser.
@@ -896,4 +925,11 @@ class RakuAST::StatementPrefix::Phaser::Close
   is RakuAST::StatementPrefix::Phaser::Block
 {
     method type() { "CLOSE" }
+}
+
+# The TEMP phaser.
+class RakuAST::StatementPrefix::Phaser::Temp
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "TEMP" }
 }

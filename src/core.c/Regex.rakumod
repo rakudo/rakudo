@@ -91,7 +91,7 @@ my class Regex { # declared in BOOTSTRAP
         nqp::istype_nd(topic, Rakudo::Internals::RegexBoolification6cMarker)
             ?? self!Bool6c()
             !! nqp::isconcrete(topic)
-                ?? ($!slash = topic.match(self)).Bool
+                ?? nqp::decont($!slash = topic.match(self)).Bool
                 !! False
     }
 
@@ -110,7 +110,7 @@ my class Regex { # declared in BOOTSTRAP
           False,
           nqp::stmts(
             (my $slash := nqp::getlexrelcaller($ctx,'$/')),
-            ($slash = $underscore.match(self)).Bool
+            nqp::decont($slash = $underscore.match(self)).Bool
           )
         )
     }

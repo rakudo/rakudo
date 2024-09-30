@@ -4621,7 +4621,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         elsif $category eq 'term' {
             $is_term := 1;
         }
-        elsif $category eq 'METAOP_TEST_ASSIGN' {
+        elsif $category eq 'METAOP_TEST_ASSIGN' || $category eq 'METAOP_TEST_ASSIGN_VALUE' {
             return 0;
         }
         else {

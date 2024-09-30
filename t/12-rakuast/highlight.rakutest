@@ -1,24 +1,26 @@
 use v6.e.PREVIEW;
+
+BEGIN %*ENV<RAKU_TEST_DIE_ON_FAIL> = 1;
 use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 25;
+plan 32;
 
-sub mapper(str $color, str $c) {
+sub default-mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
 }
 
-my %mapping =
-  black     => -> $c { mapper "black",   $c },
-  blue      => -> $c { mapper "blue",    $c },
-  cyan      => -> $c { mapper "cyan",    $c },
-  green     => -> $c { mapper "green",   $c },
-  magenta   => -> $c { mapper "magenta", $c },
-  none      => -> $c { mapper "none",    $c },
-  red       => -> $c { mapper "red",     $c },
-  yellow    => -> $c { mapper "yellow",  $c },
-  white     => -> $c { mapper "white",   $c },
+my %mapping = mapper
+  black     => -> $c { default-mapper "black",   $c },
+  blue      => -> $c { default-mapper "blue",    $c },
+  cyan      => -> $c { default-mapper "cyan",    $c },
+  green     => -> $c { default-mapper "green",   $c },
+  magenta   => -> $c { default-mapper "magenta", $c },
+  none      => -> $c { default-mapper "none",    $c },
+  red       => -> $c { default-mapper "red",     $c },
+  yellow    => -> $c { default-mapper "yellow",  $c },
+  white     => -> $c { default-mapper "white",   $c },
 ;
 
 sub is-highlighted(
@@ -27,15 +29,23 @@ sub is-highlighted(
   str $comment,
      :$unsafe
 ) is test-assertion {
-    diag highlight($got, "Text")
-      unless is highlight($got, %mapping, :$unsafe), $expected, $comment;
+    subtest $comment => {
+        plan 2;
+        diag highlight($got, "Text", :$unsafe)
+          unless is highlight($got, :$unsafe, :default(&default-mapper)),
+                    $expected, "using default";
+
+        diag highlight($got, "Text", :$unsafe)
+          unless is highlight($got, %mapping, :$unsafe),
+                    $expected, "using mapping";
+    }
 }
 
 for <nqp MONKEY MONKEY-GUTS Test> -> $name {
-    throws-like { highlight("use $name") },
+    throws-like { highlight("use $name;") },
       X::NotAllowedHighlighting,
       what => $name eq 'Test' ?? "module loading" !! "use $name",
-      "use $name not allowed";
+      "'use $name' not allowed";
 }
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use and pass', :unsafe;
@@ -45,7 +55,7 @@ pass "it's all ok";
 CODE
 <magenta>use</magenta> Test;<blue>  # standard test library</blue>
 
-<yellow>pass</yellow> <red>"it's all ok"</red>
+<yellow>pass</yellow> <red>"it's all ok"</red>;
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'class and attributes';
@@ -68,14 +78,14 @@ CODE
     <magenta>has</magenta> <green>Str</green> <cyan>$.foo</cyan> <yellow>=</yellow> <red>"foo"</red>;
     <magenta>has</magenta> <green>Int</green> <cyan>$.bar</cyan> <yellow>=</yellow> <red>42</red>;
 
-    <yellow>method</yellow> zippo {
+    <yellow>method</yellow> zippo () {
 
         <yellow><yellow>so</yellow> </yellow><cyan>$!foo</cyan> <yellow>+</yellow> <cyan>$.bar</cyan>
     }
 }
 
 
-<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>
+<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>;
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'vars, if and say';
@@ -96,11 +106,11 @@ HIGHLIGHTED
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'simple regex';
 say "foo" ~~ / [(o) $<foo>=o]+ $_ zippo "%&^" /;
 put $0;
-print $<foo>
+print $<foo>;
 CODE
 <yellow>say</yellow> <red>"foo"</red> <yellow>~~</yellow> <red>/ <blue>[<cyan>(<red>o</red>)</cyan> <cyan>$<foo>=</cyan><red>o</red>]<blue>+</blue> <cyan>$_</cyan> <red>zippo</red> <red>"\%\&^"</red> </blue>/</red>;
 <yellow>put</yellow> <cyan>$0</cyan>;
-<yellow>print</yellow> <cyan>$<foo></cyan>
+<yellow>print</yellow> <cyan>$<foo></cyan>;
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=alias';
@@ -133,22 +143,27 @@ CODE
     <cyan>foo bar</cyan>
 <magenta>    This That!
 </magenta>
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin defn';
     =begin defn
+
     foo bar
     Those!
 
     and Those!
     =end defn
+
 CODE
     <green>=begin</green> <red>defn</red>
+
     <cyan>foo bar</cyan>
 <magenta>    Those!
 
     and Those!</magenta>
     <green>=end</green> <red>defn</red>
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zip';
@@ -160,15 +175,15 @@ HIGHLIGHTED
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zap';
     =config zap :lang<raku>
 CODE
-    <green>=config</green> <cyan>zap</cyan> <blue>:lang<raku></blue>
+    <green>=config</green> <cyan>zap</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=config zop';
     =config zop :lang<raku>
     =           :zorg-industries
 CODE
-    <green>=config</green> <cyan>zop</cyan> <blue>:lang<raku></blue>
-    <green>=</green>           <blue>:zorg-industries</blue>
+    <green>=config</green> <cyan>zop</cyan> <red>:lang<raku></red>
+    <green>=</green>           <red>:zorg-industries</red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zip';
@@ -180,15 +195,15 @@ HIGHLIGHTED
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zap';
     =place file://zap.* :lang<raku>
 CODE
-    <green>=place</green> <cyan>file://zap.*</cyan> <blue>:lang<raku></blue>
+    <green>=place</green> <cyan>file://zap.*</cyan> <red>:lang<raku></red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=place zop';
     =place file://zop.* :lang<raku>
     =                   :zorg-industries
 CODE
-    <green>=place</green> <cyan>file://zop.*</cyan> <blue>:lang<raku></blue>
-    <green>=</green>                   <blue>:zorg-industries</blue>
+    <green>=place</green> <cyan>file://zop.*</cyan> <red>:lang<raku></red>
+    <green>=</green>                   <red>:zorg-industries</red>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
@@ -199,24 +214,24 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, =finish';
     That's all folks!
 CODE
 <blue># Testing the stuff of giants
+</blue>
+    <green>=finish</green>
 
-</blue><green>    =finish</green>
-<magenta>
-    That's all folks!
-</magenta>
+    <magenta>That's all folks!</magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'statements, =finish';
-42
+42;
+
     =finish
 
     That's all folks!
 CODE
-<red>42</red>
-<green>    =finish</green>
-<magenta>
-    That's all folks!
-</magenta>
+<red>42</red>;
+
+    <green>=finish</green>
+
+    <magenta>That's all folks!</magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'no statements, no =finish';
@@ -235,16 +250,16 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=code';
 say $a;
 CODE
 <red>=code</red> <magenta>my $a = 42;
-say $a;
-</magenta>
+say $a;</magenta>
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=for code';
 =for code :lang<raku>
 my $a = 42;
 say $a;
+
 CODE
-<green>=for</green> <red>code</red> <blue>:lang<raku></blue>
+<green>=for</green> <red>code</red> <red>:lang<raku></red>
 <magenta>my $a = 42;
 say $a;
 </magenta>
@@ -252,26 +267,141 @@ HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, '=begin code';
 =begin code :lang<raku>
+
 my $a = 42;
 say $a;
+
 =end code
+
 CODE
-<green>=begin</green> <red>code</red> <blue>:lang<raku></blue>
+<green>=begin</green> <red>code</red> <red>:lang<raku></red>
+
 <magenta>my $a = 42;
 say $a;
-</magenta><green>=end</green> <red>code</red>
+</magenta>
+<green>=end</green> <red>code</red>
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'implicit code block';
 =begin rakudoc
+
     my $a = 42;
     say $a;
+
 =end rakudoc
+
 CODE
 <green>=begin</green> <red>rakudoc</red>
+
 <magenta>    my $a = 42;
-    say $a;</magenta>
+    say $a;
+</magenta>
+
 <green>=end</green> <red>rakudoc</red>
+
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'procedural table';
+  =begin table
+
+    =row :header
+    =cell foo
+    =cell bar
+    =cell baz
+
+    =row
+    =cell 42
+    =cell 66
+    =cell 67
+
+  =end table
+
+CODE
+  <green>=begin</green> <red>table</red>
+
+    <green>=row</green> <red>:header</red>
+    <red>=cell</red> foo
+    <red>=cell</red> bar
+    <red>=cell</red> baz
+
+    <green>=row</green>
+    <red>=cell</red> 42
+    <red>=cell</red> 66
+    <red>=cell</red> 67
+
+  <green>=end</green> <red>table</red>
+
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'declarator doc';
+my $a = 42;  #= The answer
+#| The wrong answer
+my $b = 666;
+CODE
+<magenta>my</magenta> <cyan>$a</cyan> <yellow>=</yellow> <red>42</red>; <blue>#= The answer</blue>
+<blue>#| The wrong answer
+</blue><magenta>my</magenta> <cyan>$b</cyan> <yellow>=</yellow> <red>666</red>;
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
+  =table #
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+CODE
+  <red>=table</red> <red>#</red>
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
+  =for table :numbered
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+CODE
+  <green>=for</green> <red>table</red> <red>:numbered</red>
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';
+  =begin table :numbered
+
+  foo | bar | baz
+  ----|-----|----
+  42  | 666 | 137
+
+  =end table
+
+CODE
+  <green>=begin</green> <red>table</red> <red>:numbered</red>
+
+  foo <blue>|</blue> bar <blue>|</blue> baz
+  <blue>----|-----|----</blue>
+  42  <blue>|</blue> 666 <blue>|</blue> 137
+
+  <green>=end</green> <red>table</red>
+
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use v6 (1)';
+use v6;
+# comment
+CODE
+<green>use</green> <red>v6</red>;
+<blue># comment</blue>
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'use v6 (2)';
+# comment
+use v6;
+CODE
+<blue># comment</blue>
+<green>use</green> <red>v6</red>;
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

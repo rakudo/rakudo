@@ -214,6 +214,7 @@ class RakuAST::ForLoopImplementation
 class RakuAST::StatementList
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitLookups
+  is RakuAST::CheckTime
 {
     has List $!statements;
     has int $!is-sunk;
@@ -285,6 +286,28 @@ class RakuAST::StatementList
             }
         }
         False
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $catch-seen := 0;
+        my $control-seen := 0;
+        for $!code-statements {
+            if nqp::istype($_, RakuAST::Statement::Catch) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CATCH';
+                }
+                $catch-seen++;
+            }
+            if nqp::istype($_, RakuAST::Statement::Control) {
+                if $catch-seen {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Phaser::Multiple', block => 'CONTROL';
+                }
+                $control-seen++;
+            }
+        }
+        True
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -605,7 +628,8 @@ class RakuAST::Statement::Expression
         }
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;
-            $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink);
+            $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink,
+                :block(nqp::istype(self.expression, RakuAST::Block)));
         }
         $qast
     }
@@ -635,10 +659,9 @@ class RakuAST::Statement::Expression
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
-            if $thunk {
+            if $thunk && !nqp::istype($!expression, RakuAST::Code) {
                 # only need to thunk the condition if we also have a loop thunk
                 if $!condition-modifier {
-                    #nqp::die('have loop and condition modifier ' ~ self.dump);
                     my $thunk := $!condition-modifier.expression-thunk;
                     $!expression.wrap-with-thunk($thunk);
                     $thunk.ensure-begin-performed($resolver, $context);
@@ -896,7 +919,7 @@ class RakuAST::Statement::Unless
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -950,7 +973,7 @@ class RakuAST::Statement::Without
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -1011,7 +1034,8 @@ class RakuAST::Statement::Loop
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
         ])
     }
 
@@ -1020,6 +1044,8 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
+        my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
         if self.IMPL-DISCARD-RESULT {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
@@ -1030,8 +1056,18 @@ class RakuAST::Statement::Loop
                 $!condition ?? $!condition.IMPL-TO-QAST($context) !! QAST::IVal.new( :value(1) ),
                 $!body.IMPL-TO-QAST($context, :immediate),
             );
+            my @post;
+            if @next-phasers {
+                for @next-phasers {
+                    $context.ensure-sc($_);
+                    @post.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
             if $!increment {
-                $loop-qast.push($!increment.IMPL-TO-QAST($context));
+                @post.push($!increment.IMPL-TO-QAST($context));
+            }
+            if @post {
+                $loop-qast.push(nqp::elems(@post) == 1 ?? @post[0] !! QAST::Stmts.new(|@post));
             }
 
             # Add a label if there is one.
@@ -1048,6 +1084,10 @@ class RakuAST::Statement::Loop
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
             $wrapper.push($loop-qast);
+            for @last-phasers {
+                $context.ensure-sc($_);
+                $wrapper.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+            }
             unless self.sunk {
                 $wrapper.push(
                   self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
@@ -1056,14 +1096,40 @@ class RakuAST::Statement::Loop
 
             $wrapper
         }
+        elsif ($!condition || $!increment) {
+            nqp::die("Non-trivial lazy loops NYI");
+        }
         else {
-            nqp::die('Compilation of lazy loops NYI')
+            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            # In theory we could use the from-loop candidate without condition
+            # for plain loop but that would create a lazy loop and for unknown
+            # reason the old implementation didn't go that route.
+            my $cond := -> { 1 };
+            $context.ensure-sc($cond);
+            my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
+                $Seq,
+                $!body.IMPL-TO-QAST($context),
+                QAST::WVal.new(:value($cond)),
+            );
+            if @next-phasers {
+                my $run-phasers := -> { $_() for @next-phasers };
+                $context.ensure-sc($run-phasers);
+                $qast.push(QAST::WVal.new(:value($run-phasers)));
+            }
+            if @last-phasers {
+                $qast := QAST::Stmts.new(:resultchild(0), $qast);
+                for @last-phasers {
+                    $context.ensure-sc($_);
+                    $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+            }
+            $qast
         }
     }
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False) if $!condition;
-        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
         $!increment.apply-sink(True) if $!increment;
     }
@@ -1077,7 +1143,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        $node =:= $!body
+        self.sunk && $node =:= $!body
     }
 }
 
@@ -1161,7 +1227,7 @@ class RakuAST::Statement::For
 
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
-        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
     }
 
     method apply-implicit-block-semantics() {
@@ -1238,7 +1304,7 @@ class RakuAST::Statement::Given
 
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method apply-implicit-block-semantics() {
@@ -1267,7 +1333,7 @@ class RakuAST::Statement::When
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1286,10 +1352,10 @@ class RakuAST::Statement::When
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.apply-sink(False); # Used as enclosing block outcome
+        $!body.apply-sink(False); # Used as enclosing block outcome
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1350,7 +1416,7 @@ class RakuAST::Statement::Whenever
 
     method propagate-sink(Bool $is-sunk) {
         $!trigger.apply-sink(False);
-        $!body.body.apply-sink($is-sunk);
+        $!body.apply-sink($is-sunk);
     }
 
     method apply-implicit-block-semantics() {
@@ -1378,7 +1444,7 @@ class RakuAST::Statement::Default
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
 
@@ -1394,10 +1460,10 @@ class RakuAST::Statement::Default
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.body.apply-sink(False); # Used as enclosing block outcome
+        $!body.apply-sink(False); # Used as enclosing block outcome
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1442,7 +1508,7 @@ class RakuAST::Statement::ExceptionHandler
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.body.apply-sink(True);
+        $!body.apply-sink(True);
     }
 
     method visit-children(Code $visitor) {
@@ -1454,9 +1520,9 @@ class RakuAST::Statement::ExceptionHandler
 # A CATCH statement.
 class RakuAST::Statement::Catch
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1471,9 +1537,9 @@ class RakuAST::Statement::Catch
 # A CONTROL statement.
 class RakuAST::Statement::Control
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1696,6 +1762,7 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
@@ -1715,18 +1782,17 @@ class RakuAST::Statement::Import
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!module-name);
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
         ])
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $resolver.resolve-name-constant($!module-name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1809,7 +1875,7 @@ class RakuAST::Statement::Require
                 '$!module',
                 RakuAST::Package.new(:scope<my>, :name($!module-name), :is-require-stub),
             );
-            $!module.IMPL-CHECK($resolver, $context, 1);
+            $!module.to-begin-time($resolver, $context);
             $resolver.leave-scope;
             $!module.set-is-stub(True);
         }

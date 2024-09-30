@@ -32,7 +32,7 @@ class RakuAST::Pragma
         my constant KNOWN-PRAGMAS := nqp::hash(
           'attributes',         0,
           'dynamic-scope',      0,
-          'fatal',              1,
+          'fatal',              0,
           'internals',          1,
           'invocant',           0,
           'isms',               0,
@@ -231,6 +231,9 @@ class RakuAST::Pragma
                 # All variables.
                 $LANG.set_pragma('dynamic-scope', sub ($var) { 1 });
             }
+        }
+        elsif $name eq 'fatal' {
+            $resolver.current-scope.set-fatal($on ?? True !! False);
         }
         else {
             $resolver.build-exception("X::Pragma::Unknown",:$name).throw;

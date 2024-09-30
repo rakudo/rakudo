@@ -147,6 +147,10 @@ augment class RakuAST::Node {
           'directive', -> {
               :directive if self.directive
           },
+          'dispatch', -> {
+              my $dispatch := self.dispatch;
+              :dispatch($dispatch) if $dispatch;
+          },
           'dwim-left', -> {
               :dwim-left if self.dwim-left
           },
@@ -359,6 +363,18 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
+    multi method raku(RakuAST::Call::BlockMethod:D: --> Str:D) {
+        self!nameds: <block args dispatch>
+    }
+
+    multi method raku(RakuAST::Call::Methodish:D: --> Str:D) {
+        self!nameds: <name args dispatch>
+    }
+
+    multi method raku(RakuAST::Call::Name:D: --> Str:D) {
+        self!nameds: <name args>
+    }
+
     multi method raku(RakuAST::Call::Term:D: --> Str:D) {
         self!nameds: <args>
     }
@@ -529,7 +545,7 @@ augment class RakuAST::Node {
         @nameds.unshift("meta")      if self.meta;
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY(self!nameds(@nameds))
@@ -577,8 +593,8 @@ augment class RakuAST::Node {
             my $statements := self.body.body.statement-list.statements;
             nqp::bindattr($self, RakuAST::Package, '$!body',
               $statements.elems == 1
-                ?? RakuAST::Block
-                !! RakuAST::Block.new(
+                ?? RakuAST::RoleBody
+                !! RakuAST::RoleBody.new(
                      body => RakuAST::Blockoid.new(
                        RakuAST::StatementList.new(
                          # lose fabricated values
@@ -619,7 +635,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ParameterTarget::Var:D: --> Str:D) {
-        self!nameds: <name forced-dynamic>
+        self!nameds: <name>
     }
 
     multi method raku(RakuAST::ParameterTarget::Term:D: --> Str:D) {
@@ -631,7 +647,7 @@ augment class RakuAST::Node {
 #- Po --------------------------------------------------------------------------
 
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
-        self!add-WHY: self!nameds: self.signature.parameters-initialized
+        self!add-WHY: self!nameds: self.signature && self.signature.parameters-initialized
           ?? <signature body>
           !! <body>
     }
@@ -839,7 +855,7 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::RegexDeclaration:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;
@@ -1081,7 +1097,7 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;
@@ -1089,7 +1105,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
-        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
         self!add-WHY: self!nameds: @nameds;
@@ -1143,7 +1159,7 @@ augment class RakuAST::Node {
 #- Trait -----------------------------------------------------------------------
 
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
-        self!nameds: <name argument>
+        self!nameds: <name argument type>
     }
 
     # Generic handler for the RakuAST::Trait::Type classes
@@ -1153,6 +1169,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Trait::Will:D: --> Str:D) {
         self!nameds: <type expr>
+    }
+
+    multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {
+        self!positional(self.expr)
     }
 
 #- Type ------------------------------------------------------------------------

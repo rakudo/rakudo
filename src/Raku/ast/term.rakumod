@@ -4,6 +4,7 @@
 class RakuAST::Term::Name
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -19,7 +20,7 @@ class RakuAST::Term::Name
         nqp::bindattr(self, RakuAST::Term::Name, '$!package', $package);
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -81,6 +82,8 @@ class RakuAST::Term::True {
     method new() {
         RakuAST::Term::Name.new(RakuAST::Name.from-identifier("True"))
     }
+
+    method IMPL-IS-CONSTANT() { True }
 }
 
 # False
@@ -88,32 +91,35 @@ class RakuAST::Term::False {
     method new() {
         RakuAST::Term::Name.new(RakuAST::Name.from-identifier("False"))
     }
+
+    method IMPL-IS-CONSTANT() { True }
 }
 
 # The self term for getting the current invocant
 class RakuAST::Term::Self
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
   is RakuAST::CheckTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('self');
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
-            self.add-sorry:
-              $resolver.build-exception: 'X::Syntax::Self::WithoutObject';
+            self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
         }
     }
+
+    method IMPL-IS-CONSTANT() { True }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
@@ -131,6 +137,10 @@ class RakuAST::Term::TopicCall
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Term::TopicCall, '$!call', $call);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!call.add-colonpair($pair);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -155,6 +165,7 @@ class RakuAST::Term::TopicCall
 class RakuAST::Term::Named
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has str $.name;
 
@@ -164,7 +175,7 @@ class RakuAST::Term::Named
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-term($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -181,12 +192,13 @@ class RakuAST::Term::Named
 class RakuAST::Term::EmptySet
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&set');
         if $resolved {
             self.set-resolution($resolved);
@@ -203,12 +215,13 @@ class RakuAST::Term::EmptySet
 class RakuAST::Term::Rand
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&rand');
         if $resolved {
             self.set-resolution($resolved);
@@ -224,7 +237,7 @@ class RakuAST::Term::Rand
 # The whatever (*) term.
 class RakuAST::Term::Whatever
   is RakuAST::Term
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
@@ -232,7 +245,7 @@ class RakuAST::Term::Whatever
         nqp::create(self)
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-whatever($resolver);
         nqp::bindattr(self, RakuAST::Term::Whatever, '$!enclosing-comp-unit', $compunit);
@@ -250,16 +263,25 @@ class RakuAST::Term::Whatever
 class RakuAST::WhateverCode::Argument
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::BeginTime
 {
     has RakuAST::Name $!name;
 
-    method new(RakuAST::Name $name) {
+    method new() {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::WhateverCode::Argument, '$!name', $name);
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method set-name(RakuAST::Name $name) {
+        nqp::bindattr(self, RakuAST::WhateverCode::Argument, '$!name', $name);
+    }
+
+    method name() {
+        $!name.canonicalize
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::die('WhateverCode::Argument did not get a name') unless $!name;
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -279,7 +301,7 @@ class RakuAST::WhateverCode::Argument
 # The hyper whatever (**) term.
 class RakuAST::Term::HyperWhatever
   is RakuAST::Term
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
@@ -287,7 +309,7 @@ class RakuAST::Term::HyperWhatever
         nqp::create(self)
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-hyper-whatever($resolver);
         nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!enclosing-comp-unit', $compunit);
@@ -335,6 +357,7 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
@@ -354,7 +377,7 @@ class RakuAST::Term::Reduce
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        (my $reason := self.properties.not-reducable)
+        (my $reason := self.properties.not-reducible)
           ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "reduce",
@@ -371,7 +394,35 @@ class RakuAST::Term::Reduce
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
         ])
+    }
+
+    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
+        if nqp::elems($args) == 1
+            && nqp::istype((my $arg := $args[0]), RakuAST::Circumfix::Parentheses)
+        {
+            my $semilist := $arg.semilist;
+            my $statements := $semilist.IMPL-UNWRAP-LIST($semilist.statements);
+            if nqp::elems($statements) == 0 {
+                return;
+            }
+            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
+                if nqp::istype($statements[0].expression, RakuAST::ApplyListInfix) && $statements[0].expression.IMPL-IS-LIST-LITERAL {
+                    $args := self.IMPL-UNWRAP-LIST($statements[0].expression.operands);
+                }
+                else {
+                    return; # No use in thunking a single argument. We'd have to evaluate it anyway.
+                }
+            }
+        }
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |$args, :meta);
+    }
+
+    method IMPL-HOP-INFIX() {
+        my &reducer := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

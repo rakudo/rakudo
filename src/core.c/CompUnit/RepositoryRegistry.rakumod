@@ -53,7 +53,7 @@ class CompUnit::RepositoryRegistry {
         }
         else {
             CompUnit::Repository::Unknown.new(
-              :path-spec($spec),
+              :path-spec($spec.Str),
               :short-name($short-id)
             )
         }

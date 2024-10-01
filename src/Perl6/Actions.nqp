@@ -10251,7 +10251,9 @@ Did you mean a call like '"
 
         # don't allow $^A..Z as placeholders, as per spec
         if nqp::chars($full_name) == 3 && nqp::substr($full_name,2,1) ~~ /^<[A..Z]>$/ {
-            $world.throw($/, ['X', 'Syntax', 'Perl5Var'], name => $full_name );
+            unless $*LANG.pragma('p5isms') {
+                $world.throw($/, ['X', 'Syntax', 'Perl5Var'], name => $full_name );
+            }
         }
 
         # ensure we're not trying to put a placeholder in the mainline.

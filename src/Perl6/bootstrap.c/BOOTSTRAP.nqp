@@ -2825,12 +2825,16 @@ BEGIN {
 
         my int $flags := nqp::getattr_i($self, Parameter, '$!flags');
         if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+            $name := '' if nqp::isnull_s($name);
             Perl6::Metamodel::Configuration.throw_or_die(
               'X::Trait::Invalid',
               "Cannot use 'is rw' on optional parameter '$name'",
               :type<is>,
               :subtype<rw>,
-              :declaring('optional parameter'),
+              :declaring($name
+                ?? 'optional parameter'
+                !! 'an anonymous optional parameter'
+              ),
               :$name
             );
         }

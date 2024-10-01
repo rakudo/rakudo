@@ -1140,8 +1140,9 @@ my class X::Trait::Invalid does X::Trait {
     has $.name;       # target of trait, e.g., '$foo' in `$foo is rw`
     has $.reason;     # reason the trait was invalid (optional)
     method message () {
-        "Cannot use '$.type $.subtype' on $.declaring '$.name'"
-         ~($!reason ?? " because:\n$!reason.indent(4)" !! '.');
+        "Cannot use '$.type $.subtype' on $.declaring"
+          ~ ($.name ?? " '$.name'" !! '')
+          ~ ($.reason ?? " because:\n$.reason.indent(4)" !! '.');
     }
 }
 my class X::Comp::Trait::Invalid is X::Trait::Invalid does X::Comp { };

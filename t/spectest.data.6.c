@@ -902,6 +902,7 @@ S32-hash/delete.t
 S32-hash/delete-adverb.t
 S32-hash/exists.t
 S32-hash/exists-adverb.t
+S32-hash/hyperslice.t
 S32-hash/invert.t
 S32-hash/keys_values.t
 S32-hash/kv.t

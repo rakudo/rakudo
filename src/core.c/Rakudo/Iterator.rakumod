@@ -3462,11 +3462,19 @@ class Rakudo::Iterator {
         }
         method count-only(--> Int:D) { nqp::isgt_i($!todo,0) && $!todo }
     }
+    my class CowardlyRefusing does PredictiveIterator {
+        has Int $.n;
+        method pull-one() is hidden-from-backtrace {
+            die "Cowardly refusing to permutate more than {
+                $?BITS == 32 ?? 13 !! 20
+            } elements, tried $!n";
+        }
+        method count-only { [*] 1 .. $!n }
+        method bool-only(--> True) { }
+    }
     method Permutations($n, int $b) {
         $n > nqp::if(nqp::iseq_i($?BITS,32),13,20)  # must be HLL comparison
-          ?? die "Cowardly refusing to permutate more than {
-                 $?BITS == 32 ?? 13 !! 20
-             } elements, tried $n"
+          ?? CowardlyRefusing.new(:$n)
           !! $n < 1                                 # must be HLL comparison
             ?? Rakudo::Iterator.OneValue(
                  nqp::create(nqp::if($b,IterationBuffer,List))

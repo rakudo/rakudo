@@ -260,11 +260,12 @@ Need to re-check dependencies.")
     multi method load(
       Str:D $id,
       Instant :$since,
+      IO::Path :$source,
       CompUnit::PrecompilationStore :@precomp-stores =
         Array[CompUnit::PrecompilationStore].new($.store),
     ) {
         self.load(
-          CompUnit::PrecompilationId.new($id), :$since, :@precomp-stores)
+          CompUnit::PrecompilationId.new($id), :$since, :$source, :@precomp-stores)
     }
 
     multi method load(

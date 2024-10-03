@@ -508,7 +508,8 @@ my class Rakudo::Internals {
                     X::IllegalDimensionInShape.new(:$dim).throw,
                     nqp::stmts(
                       nqp::push($types,type),
-                      nqp::push_i($dims,$dim)
+                      nqp::push_i($dims,$dim),
+                      nqp::bindpos($spec,$i,$dim)
                     )
                   )
                 )

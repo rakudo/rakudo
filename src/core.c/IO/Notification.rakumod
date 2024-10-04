@@ -22,7 +22,9 @@ my class IO::Notification {
         }
     }
 
-    method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {
+    method watch-path($path is copy, :$scheduler = $*SCHEDULER) {
+        $path = nqp::istype($path,IO::Path) ?? $path.absolute !! $path.Str;
+
         my $is-dir = $path.IO.d;
         my $s = Supplier.new;
         nqp::watchfile(

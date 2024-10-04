@@ -431,11 +431,18 @@ multi sub infix:«>=»(Int:D $a, Rational:D $b --> Bool:D) {
 
 multi sub infix:«<=>»(Rational:D $a, Rational:D $b) {
 #    a.numerator * b.denominator <=> b.numerator * a.denominator
+    my $na := $a.numerator;
+    my $nb := $b.numerator;
+    my $da := $a.denominator;
+    my $db := $b.denominator;
+
     ORDER(
-      nqp::cmp_I(
-        nqp::mul_I($a.numerator,$b.denominator,Int),
-        nqp::mul_I($b.numerator,$a.denominator,Int)
-      )
+      $da == $db
+        ?? nqp::cmp_I($na,$nb)
+        !! nqp::cmp_I(
+             nqp::mul_I($na,$db,Int),
+             nqp::mul_I($nb,$da,Int)
+           )
     )
 }
 multi sub infix:«<=>»(Rational:D $a, Int:D $b) {

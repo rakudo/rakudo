@@ -2,6 +2,7 @@ use lib <lib>;
 use NativeCall :ALL;
 use Test;
 
+plan 36;
 
 class A is repr('CStruct') {
     has int32 $a;
@@ -122,7 +123,12 @@ eval-lives-ok 'use NativeCall; class Piko { method All_The_Things(int8, int16, i
 eval-lives-ok 'use NativeCall; sub p5_str_to_sv(int32, long, Blob) is native("foo") { * };', "Blob should work";
 eval-lives-ok 'use NativeCall; class Foo is repr("CPointer") {sub foo() returns Foo is native("foo") { * } }', "Return a type in its definition";
 
-done-testing
-
+# https://github.com/rakudo/rakudo/issues/1993
+{
+    my class B is repr("CStruct") {
+        has uint32 $.b is required
+    };
+    isa-ok B.new(:1b), B;
+}
 
 # vim: expandtab shiftwidth=4

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 40;
+plan 43;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -253,6 +253,24 @@ plan 40;
     a "foo".IO;
     todo "dispatch on coercion from Cool:D" unless %*ENV<RAKUDO_RAKUAST>;
     ok $ran, 'dispatch went correctly';
+}
+
+# https://github.com/rakudo/rakudo/issues/1986
+{
+    my $a;
+    try Q/42 R[||]= $a/.EVAL;
+    todo "R[||]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    is $a, 42, 'did R[||]= work';
+
+    my $b;
+    try Q/666 R[&&]= $b/.EVAL;
+    todo "R[&&]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    is $b, 666, 'did R[&&]= work';
+
+    my $c;
+    try Q|137 R[//]= $c|.EVAL;
+    todo "R[//]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    is $c, 137, 'did R[//]= work';
 }
 
 # vim: expandtab shiftwidth=4

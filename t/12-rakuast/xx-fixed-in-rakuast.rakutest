@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 39;
+plan 40;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -244,6 +244,15 @@ plan 39;
     todo "handling of X/= when sunk" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply @m, [[1.0, 2.0, 3.0], [1.0, 3.0, 5.0], [1.0, 4.0, 7.0]],
       'handled X/= correctly';
+}
+
+# https://github.com/rakudo/rakudo/issues/1947
+{
+    my $ran;
+    my sub a (IO(Cool:D) $) { $ran = True };
+    a "foo".IO;
+    todo "dispatch on coercion from Cool:D" unless %*ENV<RAKUDO_RAKUAST>;
+    ok $ran, 'dispatch went correctly';
 }
 
 # vim: expandtab shiftwidth=4

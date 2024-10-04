@@ -2,7 +2,7 @@ use lib $?FILE.IO.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 3;
+plan 4;
 
 { # Make sure CLIENT:: works for code invoked from NQP world
     # Wether or not a code object is invoked by Raku or NQP code is pretty much implementation specific. Moreover,
@@ -24,4 +24,11 @@ plan 3;
     }
 }
 
-done-testing;
+# https://github.com/rakudo/rakudo/issues/1835
+{
+    my $a;
+    $a = PseudoStash.new for ^9999;
+    is $a.gist, 'PseudoStash.new(($_ => 9998))', 'did not hang';
+}
+
+# vim: expandtab shiftwidth=4

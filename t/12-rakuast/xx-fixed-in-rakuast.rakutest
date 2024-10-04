@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 43;
+plan 44;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -271,6 +271,12 @@ plan 43;
     try Q|137 R[//]= $c|.EVAL;
     todo "R[//]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is $c, 137, 'did R[//]= work';
+}
+
+# https://github.com/rakudo/rakudo/issues/2034
+{
+    todo "signature smartmatch doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply (try ":(<a>) ~~ :()".EVAL), False, 'signature smartmatch ok';
 }
 
 # vim: expandtab shiftwidth=4

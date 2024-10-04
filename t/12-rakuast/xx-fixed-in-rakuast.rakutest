@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 38;
+plan 39;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -232,6 +232,18 @@ plan 38;
 {
     todo "compilation error in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
     is (try 'our Str $a = "foo"'.EVAL), "foo", 'can have constraint on "our" variable';
+}
+
+# https://github.com/rakudo/rakudo/issues/1898
+{
+    my @m = [1,2,3],[2,6,10],[3,12,21];
+    for @m -> @r {
+        my $div = @r[0];
+        @r X/= $div;
+    }
+    todo "handling of X/= when sunk" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply @m, [[1.0, 2.0, 3.0], [1.0, 3.0, 5.0], [1.0, 4.0, 7.0]],
+      'handled X/= correctly';
 }
 
 # vim: expandtab shiftwidth=4

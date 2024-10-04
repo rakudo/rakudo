@@ -488,6 +488,7 @@ my class Hash { # declared in BOOTSTRAP
 }
 
 proto sub circumfix:<{ }>(|) {*}
+multi sub circumfix:<{ }>() is default { my % }
 multi sub circumfix:<{ }>(*@elems) { my % = @elems }
 
 # XXX parse dies with 'don't change grammar in the setting, please!'
@@ -496,6 +497,7 @@ multi sub circumfix:<{ }>(*@elems) { my % = @elems }
 BEGIN my &circumfix:<:{ }> = sub (*@e) { Hash.^parameterize(Mu,Any).new(@e) }
 
 proto sub hash(|) {*}
+multi sub hash() is default { my %h }
 multi sub hash(*%h) { %h }
 multi sub hash(*@a, *%h) { my % = flat @a, %h }
 

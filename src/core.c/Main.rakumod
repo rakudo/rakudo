@@ -99,7 +99,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             }
         }
         while @args {
-            my str $passed-value = @args.shift;
+            my str $passed-value = @args.shift.Str;
 
             if nqp::iseq_s($passed-value,'--') { # -- marks rest as positional
                 nqp::push($positional, thevalue($_)) for @args;

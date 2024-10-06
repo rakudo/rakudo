@@ -59,6 +59,15 @@ class Perl6::Metamodel::EnumHOW
     method enum_value_list(    $XXX?) { @!enum_value_list     }
     method role_typecheck_list($XXX?) { @!role_typecheck_list }
 
+    method roles($XXX, *%_) {
+        my @roles;
+        unless nqp::isnull($!role) {
+            @roles := $!role.HOW.roles($!role, |%_);
+            nqp::unshift(@roles, $!role)
+        }
+        @roles;
+    }
+
     method new_type(
       :$name!,
       :$base_type?,

@@ -170,14 +170,17 @@ my class Cool { # declared in BOOTSTRAP
     multi method substr(Cool:D: \from, \chars) { self.Str.substr(from,chars) }
 
     proto method substr-rw(|) {*}
-    multi method substr-rw(Cool:D \SELF:) is rw {
-        (SELF = self.Str).substr-rw
+    multi method substr-rw(Cool:D: |) {
+        Failure.new("'substr-rw' requires a writeable container")
     }
-    multi method substr-rw(Cool:D \SELF: \from) is rw {
-        (SELF = self.Str).substr-rw(from)
+    multi method substr-rw(Cool:D $SELF is rw:) is rw {
+        ($SELF = self.Str).substr-rw
     }
-    multi method substr-rw(Cool:D \SELF: \from, \want) is rw {
-        (SELF = self.Str).substr-rw(from, want)
+    multi method substr-rw(Cool:D $SELF is rw: \from) is rw {
+        ($SELF = self.Str).substr-rw(from)
+    }
+    multi method substr-rw(Cool:D $SELF is rw: \from, \want) is rw {
+        ($SELF = self.Str).substr-rw(from, want)
     }
 
     proto method substr-eq(|) {*}

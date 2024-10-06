@@ -3488,16 +3488,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::istype(want, Callable) ?? want !! want.Int)
     }
 
-    multi method substr-rw(Str:D \SELF:) is rw {
-        SELF.substr-rw(0, nqp::chars($!value), self)
+    multi method substr-rw(Str:D: |) {
+        Failure.new("'substr-rw' requires a writeable container")
     }
-    multi method substr-rw(Str:D \SELF: \start) is rw {
-        SELF.substr-rw(start, Whatever, self)
+    multi method substr-rw(Str:D $SELF is rw:) is rw {
+        $SELF.substr-rw(0, nqp::chars($!value), self)
     }
-    multi method substr-rw(Str:D \SELF: \start, \want) is rw {
-        SELF.substr-rw(start, want, self)
+    multi method substr-rw(Str:D $SELF is rw: \start) is rw {
+        $SELF.substr-rw(start, Whatever, self)
     }
-    multi method substr-rw(Str:D \SELF:
+    multi method substr-rw(Str:D $SELF is rw: \start, \want) is rw {
+        $SELF.substr-rw(start, want, self)
+    }
+    multi method substr-rw(Str:D $SELF is rw:
       \start, $want, \what
     ) is rw is implementation-detail {
         my int $max  = nqp::chars($!value);
@@ -3523,10 +3526,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self!SUBSTR-CHARS-OOR($chars)
           !! Proxy.new(
                FETCH => sub ($) {        # need to access updated HLL Str
-                   nqp::substr(nqp::unbox_s(SELF),$from,$chars)
+                   nqp::substr(nqp::unbox_s($SELF),$from,$chars)
                },
                STORE => sub ($, Str() $new) {
-                   SELF = nqp::box_s(    # need to make it a new HLL Str
+                   $SELF = nqp::box_s(    # need to make it a new HLL Str
                      nqp::concat(
                        nqp::substr($!value,0,$from),
                        nqp::concat(

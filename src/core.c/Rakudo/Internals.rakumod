@@ -1195,8 +1195,8 @@ my class Rakudo::Internals {
         }
     }
 
-    method EXPAND-LITERAL-RANGE(Str:D \x,$list) {
-        my str $s      = nqp::unbox_s(x);
+    method EXPAND-LITERAL-RANGE(\x,$list) {
+        my str $s      = nqp::unbox_s(x.Str);
         my int $chars  = nqp::chars($s);
         my Mu $result := nqp::list();
         my int $start  = 1;

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 44;
+plan 45;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -277,6 +277,21 @@ plan 44;
 {
     todo "signature smartmatch doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (try ":(<a>) ~~ :()".EVAL), False, 'signature smartmatch ok';
+}
+
+# https://github.com/rakudo/rakudo/issues/2152
+{
+    my $code := Q:to/CODE/;
+my class A { has %.h = (a => 1) }
+my class B is A {
+    submethod BUILD () { %.h = (b => 1) }
+}
+B.new
+CODE
+
+    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    my $B = try $code.EVAL;
+    is-deeply ($B && $B.h<b>), 1, 'did the object get built';
 }
 
 # vim: expandtab shiftwidth=4

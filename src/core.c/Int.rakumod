@@ -264,9 +264,12 @@ my class Int does Real { # declared in BOOTSTRAP
             #when uint1  { Range.new( 0, 1                    ) }
 
             default {  # some other kind of Int
-                .^name eq 'UInt'
+                my str $name = .^name;
+                $name eq 'UInt'
                   ?? Range.new(    0, Inf, :excludes-max )
-                  !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
+                  !! $name eq 'atomicint'
+                    ?? ($?BITS == 64 ??  int64.Range !!  int32.Range)
+                    !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
             }
         }
     }

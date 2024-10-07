@@ -18,7 +18,8 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    method flat(Iterable:D: $levels = Whatever, :$hammer = False) {
+    multi method flat(Iterable:U: $?) { (self,) }
+    multi method flat(Iterable:D: $levels = Whatever, :$hammer = False) {
         Seq.new: Rakudo::Iterator.Flat: self.iterator, $levels, $hammer
     }
 

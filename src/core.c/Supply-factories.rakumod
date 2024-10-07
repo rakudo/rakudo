@@ -454,7 +454,7 @@
         }
     }
 
-    method flat(Supply:D:) {
+    multi method flat(Supply:D:) {
         supply {
             whenever self -> \inner {
                 whenever inner -> \value {

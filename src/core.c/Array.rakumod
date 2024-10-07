@@ -406,7 +406,6 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method flat(Array:U:) { self }
     multi method flat(Array:D: $levels = Whatever, :$hammer = False) {
         Seq.new: $hammer
           ?? Rakudo::Iterator.Flat: self.iterator, $levels, $hammer

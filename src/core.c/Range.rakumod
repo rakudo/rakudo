@@ -192,7 +192,7 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method list(Range:D:) { List.from-iterator(self.iterator) }
-    method flat(Range:D:) { Seq.new(self.iterator) }
+    multi method flat(Range:D:) { Seq.new(self.iterator) }
 
     my class NativeIntReverse does PredictiveIterator {
         has int $!i;

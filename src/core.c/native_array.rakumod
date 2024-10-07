@@ -4873,9 +4873,10 @@ my class array does Iterable does Positional {
     multi method end(array:D:)      { nqp::elems(self) - 1 }
 
     method eager() { self }
-    method flat()  { Seq.new(self.iterator) }
     method list()  { List.from-iterator(self.iterator) }
     method sink(--> Nil) { }
+
+    multi method flat(array:D:) { Seq.new(self.iterator) }
 
     multi method gist(array:D:) {
         '[' ~ self.map(-> $elem {

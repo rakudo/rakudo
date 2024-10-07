@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 45;
+plan 46;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -292,6 +292,13 @@ CODE
     todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     my $B = try $code.EVAL;
     is-deeply ($B && $B.h<b>), 1, 'did the object get built';
+}
+
+# https://github.com/rakudo/rakudo/issues/2360
+{
+    try my %*FOO is Set = <a b c>;
+    todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply %*FOO, <a b c>.Set, 'is Set on dynvar works';
 }
 
 # vim: expandtab shiftwidth=4

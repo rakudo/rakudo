@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 46;
+plan 47;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -299,6 +299,55 @@ CODE
     try my %*FOO is Set = <a b c>;
     todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply %*FOO, <a b c>.Set, 'is Set on dynvar works';
+}
+
+# https://github.com/rakudo/rakudo/issues/2362
+subtest 'use of &?ROUTINE and &?BLOCK' => {
+    my @r;
+    my @b;
+    my @subs =
+      sub for-sub {
+          for 1 {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK;
+          }
+      },
+      sub do-sub {
+          do {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK;
+          }
+      },
+      sub given-sub {
+          given Nil {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK;
+          }
+      },
+      sub if-sub {
+          if True {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK;
+          }
+      },
+      sub when-sub {
+          when ?True {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK;
+          }
+      },
+      sub loop-sub {
+          loop {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK; last;
+          }
+      },
+      sub while-sub {
+          while True {
+              @r.push: &?ROUTINE; @b.push: &?BLOCK; last;
+          }
+      }
+    ;
+
+    plan 2 * @subs;
+    for @subs.kv -> $i, &code {
+        is-deeply &code, @subs[$i], "sub @subs[$i].name() is ok";
+        nok &code =:= @b[$i]<>, "block inside @subs[$i].name() is different";
+    }
 }
 
 # vim: expandtab shiftwidth=4

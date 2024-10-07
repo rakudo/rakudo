@@ -1895,7 +1895,7 @@ class RakuAST::Statement::Require
             QAST::WVal.new(:value($depspec)),
             $short-name,
         );
-        my $compunit_past := QAST::Op.new(
+        my $compunit_qast := QAST::Op.new(
             :op('callmethod'), :name('need'),
             QAST::Op.new(
                 :op('callmethod'), :name('head'),
@@ -1903,7 +1903,7 @@ class RakuAST::Statement::Require
             ),
             $spec,
         );
-        my $require-past := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit_past);
+        my $require-qast := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit_qast);
         # A list of the components of the pre-existing outer symbols name (if any)
         my $existing-path := QAST::Var.new( :name('Any'), :scope('lexical') );
         # The top level package object of the  pre-existing outer package (if any)
@@ -1939,12 +1939,12 @@ class RakuAST::Statement::Require
                 }
             }
         }
-        $require-past.push($existing-path);
-        $require-past.push($top-existing);
-        $require-past.push($lexical-stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
+        $require-qast.push($existing-path);
+        $require-qast.push($top-existing);
+        $require-qast.push($lexical-stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
         my $scalar := $!module.compile-time-value;
         $context.ensure-sc($scalar);
-        $require-past.push(QAST::WVal.new(:value($scalar)));
+        $require-qast.push(QAST::WVal.new(:value($scalar)));
         my $name-parts := QAST::Op.new(:op<call>, :name('&infix:<,>'));
         if $!module-name {
             for self.IMPL-UNWRAP-LIST($!module-name.parts) {
@@ -1952,16 +1952,16 @@ class RakuAST::Statement::Require
             }
         }
         $context.ensure-sc($name-parts);
-        $require-past.push($name-parts);
+        $require-qast.push($name-parts);
         if $!argument {
             for $!arglist {
-                $require-past.push(QAST::SVal.new(:value($_.Str)));
+                $require-qast.push(QAST::SVal.new(:value($_.Str)));
             }
         }
 
-        my $past := QAST::Stmts.new;
-        $past.push($require-past);
-        $past;
+        my $qast := QAST::Stmts.new;
+        $qast.push($require-qast);
+        $qast
     }
 
     method visit-children(Code $visitor) {

@@ -217,13 +217,13 @@ Defaults to .1 for 10 snapshots per second.
 
 =item C<RAKUDO_HOME>
 
-Allows to override the Raku installation path. Defaults to
+Allows one to override the Raku installation path. Defaults to
 C<[rakudo_executable_dir]/../share/perl6> in relocatable builds and the
 absolute path to that folder in non-relocatable builds.
 
 =item C<NQP_HOME>
 
-Allows to override the NQP installation path. Defaults to
+Allows one to override the NQP installation path. Defaults to
 C<[rakudo_executable_dir]/../share/nqp> in relocatable builds and the absolute
 path to that folder in non-relocatable builds.
 

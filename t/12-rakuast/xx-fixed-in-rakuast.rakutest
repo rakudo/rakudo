@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 51;
+plan 53;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -362,6 +362,20 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "incorrect value for int16" unless %*ENV<RAKUDO_RAKUAST>;
     is $b++, 32767, 'did post increment int16 return correct value';
     is $b,  -32768, 'did int16 get correct value';
+}
+
+# https://github.com/rakudo/rakudo/issues/2581
+{
+    my role A { has Int $.a }
+    my class B does A {
+        method b(\a) {
+           $!a := a
+        }
+    }
+    my $b = B.new;
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    is (try $b.b(42)), 42, 'is the value being bound returned';
+    is $b.a, 42, 'did the value get bound';
 }
 
 # vim: expandtab shiftwidth=4

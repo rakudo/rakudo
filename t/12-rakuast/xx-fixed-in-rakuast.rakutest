@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 47;
+plan 51;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -348,6 +348,20 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         is-deeply &code, @subs[$i], "sub @subs[$i].name() is ok";
         nok &code =:= @b[$i]<>, "block inside @subs[$i].name() is different";
     }
+}
+
+# https://github.com/rakudo/rakudo/issues/2541
+{
+    my int8  $a = 127;
+    my int16 $b = 32767;
+
+    todo "incorrect value for int8" unless %*ENV<RAKUDO_RAKUAST>;
+    is $a++, 127, 'did post increment int8 return correct value';
+    is $a,  -128, 'did int8 get correct value';
+
+    todo "incorrect value for int16" unless %*ENV<RAKUDO_RAKUAST>;
+    is $b++, 32767, 'did post increment int16 return correct value';
+    is $b,  -32768, 'did int16 get correct value';
 }
 
 # vim: expandtab shiftwidth=4

@@ -126,7 +126,7 @@ my class Supplier {
         Supply.new($!taplist).sanitize
     }
 
-    method unsanitized-supply(Supplier:D:) {
+    method unsanitized-supply(Supplier:D:) is implementation-detail {
         Supply.new($!taplist)
     }
 }

@@ -523,11 +523,14 @@ augment class Str {
 
         nqp::while(
           nqp::elems($names),
-          nqp::push_s(
-            $parts,
-            nqp::unless(
-              nqp::strfromname(my $name := nqp::shift($names).trim),
-              X::Str::InvalidCharName.new(:$name).fail
+          nqp::if(
+            (my str $name = nqp::shift($names).trim),
+            nqp::push_s(
+              $parts,
+              nqp::unless(
+                nqp::strfromname($name),
+                X::Str::InvalidCharName.new(:$name).fail
+              )
             )
           )
         );

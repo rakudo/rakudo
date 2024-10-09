@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 53;
+plan 54;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -376,6 +376,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
     is (try $b.b(42)), 42, 'is the value being bound returned';
     is $b.a, 42, 'did the value get bound';
+}
+
+# https://github.com/rakudo/rakudo/issues/2619
+{
+    my $ran;
+    multi trait_mod:<is>(Attribute $attr, :&bla!) {
+        $ran = True;
+    }
+    try Q|role :: { has $.a is bla{;} }|.EVAL;
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply $ran, True, 'did the trait get run';
 }
 
 # vim: expandtab shiftwidth=4

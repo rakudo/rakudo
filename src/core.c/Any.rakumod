@@ -473,7 +473,7 @@ my class Any { # declared in BOOTSTRAP
     multi method Supply() { self.list.Supply }
 
     method nl-out(--> Str:D) { "\n" }
-    method print-nl() { self.print(self.nl-out) }
+    method print-nl() { self.nl-out.print }
 
     # no-op on non-Iterables
     method lazy-if($flag) is implementation-detail { self }

@@ -3257,7 +3257,9 @@ class Rakudo::Iterator {
         method sink-all(--> IterationEnd) { $!pos = nqp::chars($!str) }
     }
     method NGrams($string, $size, $limit, $step, $partial) {
-        NGrams.new($string, $size, $limit, $step, $partial)
+        nqp::istype($limit,Whatever) || $limit > 0
+          ?? NGrams.new($string, $size, $limit, $step, $partial)
+          !! EmptyIterator
     }
 
     # Return an iterator that only will return the given value once.

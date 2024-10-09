@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 54;
+plan 56;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -387,6 +387,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     try Q|role :: { has $.a is bla{;} }|.EVAL;
     todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $ran, True, 'did the trait get run';
+}
+
+# https://github.com/rakudo/rakudo/issues/2836
+{
+    my $i = 0;
+    my $last;
+    my sub runner { loop { last if $i == 7; $i++; LAST $last = True } }
+    runner if  %*ENV<RAKUDO_RAKUAST>;  # uncatchable crash
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    is $i, 7, 'loop completed successfully';
+    is-deeply $last, True, 'did LAST run';
 }
 
 # vim: expandtab shiftwidth=4

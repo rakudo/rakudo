@@ -530,11 +530,11 @@ my class Rakudo::Internals {
 
     our role ImplementationDetail {
         method new(|) { die self.gist }
-        method gist(--> Str:D) {
+        method Str( --> Str:D) { self.^name }
+        method gist(--> Str:D) { self.^name }
+        method raku(--> Str:D) {
             "The '{self.^name}' class is a Rakudo-specific implementation detail and has no serviceable parts inside"
         }
-        method Str( --> Str:D) { self.gist }
-        method raku(--> Str:D) { self.gist }
     }
 
     our role ShapedArrayCommon {

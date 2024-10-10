@@ -267,9 +267,10 @@ my class Complex is Cool does Numeric {
 }
 
 multi sub prefix:<->(Complex:D $a --> Complex:D) {
-    my $new := nqp::create(Complex);
-    nqp::bindattr_n($new,Complex,'$!re',
-      nqp::neg_n(nqp::getattr_n($a,Complex,'$!re'))
+    my $new  := nqp::create(Complex);
+    nqp::if(
+      nqp::isne_n((my $real := nqp::getattr_n($a,Complex,'$!re')),0e0),
+      nqp::bindattr_n($new,Complex,'$!re',nqp::neg_n($real))
     );
     nqp::bindattr_n($new,Complex,'$!im',
       nqp::neg_n(nqp::getattr_n($a,Complex,'$!im'))

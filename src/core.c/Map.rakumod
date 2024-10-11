@@ -6,8 +6,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Calling self.new for the arguments case ensures that the right
     # descriptor will be added for typed hashes.
-    multi method new(Map:        --> Map:D) {
-        nqp::create(self)
+    multi method new(Map: --> Map:D) {
+        %_
+          ?? self.new(%_.pairs)
+          !! nqp::create(self)
     }
     multi method new(Map: *@args --> Map:D) {
         self.new.STORE(@args, :INITIALIZE)

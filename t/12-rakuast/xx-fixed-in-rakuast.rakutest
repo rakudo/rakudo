@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 57;
+plan 58;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -406,6 +406,16 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     try '$fired = True if !! 42'.EVAL;
     todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $fired, True, 'was the syntax valid and did it fire';
+}
+
+# https://github.com/rakudo/rakudo/issues/3220
+{
+    my sub foo {
+        %( foobar => { &?ROUTINE.name => "bar" } )
+    }
+    todo "name is missing" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply foo(), { foobar => {foo => "bar"} },
+      'Routine name properly codegenned';
 }
 
 # vim: expandtab shiftwidth=4

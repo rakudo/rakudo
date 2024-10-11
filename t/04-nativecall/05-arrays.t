@@ -3,7 +3,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 47;
+plan 48;
 
 BEGIN if $*VM.name eq 'jvm' {
     plan :skip-all<NullPointerException in sub ReturnADoubleArray>;
@@ -211,5 +211,11 @@ subtest 'CArray allocation' => {
 # https://irclogs.raku.org/raku/2024-05-09.html#23:55-0002
 is-deeply CArray[uint8].new("(b)".encode)[^3], (40,98,41),
   "Make sure optimisation didn't break anything";
+
+# https://github.com/rakudo/rakudo/issues/3343
+{
+    my CArray[byte] $ba .= new( 255, 254, 3, 4);
+    is $ba[], '255 254 3 4', 'Did uints remain uints';
+}
 
 # vim: expandtab shiftwidth=4

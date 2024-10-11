@@ -1148,12 +1148,32 @@ my class X::Trait::Invalid does X::Trait {
 my class X::Comp::Trait::Invalid is X::Trait::Invalid does X::Comp { };
 
 my class X::Trait::Unknown does X::Trait {
+    my constant %forgotten =
+      "is" => Map.new((
+        cached         => 'experimental :cached',
+        cpp-const      => 'NativeCall',
+        cpp-ref        => 'NativeCall',
+        encoded        => 'NativeCall',
+        mangled        => 'NativeCall',
+        native         => 'NativeCall',
+        nativeconv     => 'NativeCall',
+        symbol         => 'NativeCall',
+        test-assertion => 'Test',
+      )),
+      "will" => Map.new((
+        complain => 'experimental :will-complain',
+      )),
+    ;
+
     method message () {
-        "Can't use unknown trait '{
-            try { $.type } // "unknown type"
-        }' -> '{
-            try { $.subtype } // "unknown subtype"
-        }' in $.declaring declaration."
+        my str $type    = (try $.type )    // "unknown type";
+        my str $subtype = (try $.subtype ) // "unknown subtype";
+
+        my str $message = "Can't use unknown trait '$type' -> '$subtype' in $.declaring declaration.";
+
+        (my $forgotten := %forgotten{$type}{$subtype})
+          ?? "$message\nDid you forget 'use $forgotten'?"
+          !! $message
     }
 }
 my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };

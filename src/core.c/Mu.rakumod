@@ -820,21 +820,23 @@ my class Mu { # declared in BOOTSTRAP
     proto method note(|) {*}
     proto method print(|) {*}
 
-    # Handle the typical "foo.say"
-    multi method say() {
-
+    method !output(str $how, $where) {
         my $method := self.^find_method("print");
+
         if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
           || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
-            $_ := $*OUT;
-            .print(nqp::concat(self.gist,.nl-out))
+            $where.print(nqp::concat(self."$how"(),$where.nl-out))
         }
 
         # has its own .print, let it handle the empty case
         else {
-            self.print(self.nl-out)
+            self.print;
+            self.nl-out.print;
         }
     }
+
+    # Handle the typical "foo.say"
+    multi method say() { self!output("gist", $*OUT) }
 
     # Fallback for classes that act as $*OUT / $*ERR, but which do not have
     # a .say method themselves.
@@ -850,20 +852,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     # Handle the typical "foo.put"
-    multi method put() {
-
-        my $method := self.^find_method("print");
-        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
-          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
-            $_ := $*OUT;
-            .print(nqp::concat(self.Str,.nl-out))
-        }
-
-        # has its own .print, let it handle the empty case
-        else {
-            self.print(self.nl-out)
-        }
-    }
+    multi method put() { self!output("Str", $*OUT) }
 
     # Fallback for classes that act as $*OUT / $*ERR, but which do not have
     # a .put method themselves.
@@ -879,20 +868,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     # Handle the typical "foo.note"
-    multi method note() {
-
-        my $method := self.^find_method("print");
-        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
-          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*ERR
-            $_ := $*ERR;
-            .print(nqp::concat(self.gist,.nl-out))
-        }
-
-        # has its own .print, let it handle the empty case
-        else {
-            self.print(self.nl-out)
-        }
-    }
+    multi method note() { self!output("gist", $*ERR) }
 
     # Handle the typical "foo.print"
     multi method print() {

@@ -28,7 +28,7 @@ class Outer is repr("CStruct") {
 my $out = Outer.new;
 $out.nested.integer = 17;
 
-sub prinx(Outer $v) is native("25-embedded") { * }
+sub prinx(Outer $v) is native("./25-embedded") { * }
 lives-ok { prinx $out }
 
 # vim: expandtab shiftwidth=4

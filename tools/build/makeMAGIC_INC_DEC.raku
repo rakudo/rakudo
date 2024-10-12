@@ -72,6 +72,8 @@ my @ranges =
   0x0FF10 .. 0x0FF19,  # fullwidth digits
   0x1F37A .. 0x1F37B,  # beer mugs
   0x1F42A .. 0x1F42B,  # camels
+  (my int @ = "🕛🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚".ords),  # clock face / hour
+  0x1F5AF .. 0x1F5B1,  # button mouse
 ;
 
 # ranges that start with these, carry (aka "9".succ -> "10" instead of "00")
@@ -117,6 +119,8 @@ my str $carrydigits =
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
    ~ "\x1F37A"  # beer mugs
    ~ "\x1F42A"  # camels
+   ~ "\x1F55B"  # clock face
+   ~ "\x1F5AF"  # button mouse
 ;
 
 # holes in otherwise contiguous ranges

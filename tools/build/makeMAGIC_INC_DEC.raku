@@ -51,7 +51,7 @@ my @ranges =
   0x01BB0 .. 0x01BB9,  # sundanese digits
   0x01C40 .. 0x01C49,  # lepcha digits
   0x01C50 .. 0x01C59,  # ol chiki digits
-  0x02070 .. 0x02079,  # superscripts
+  (my int @ = "⁰¹²³⁴⁵⁶⁷⁸⁹".ords),   # superscripts
   0x02080 .. 0x02089,  # subscripts
   0x02160 .. 0x0216b,  # clock roman uc
   0x02170 .. 0x0217b,  # clock roman lc
@@ -160,13 +160,13 @@ for $*IN.lines -> $line {
                 $char = nqp::chr($ord);
                 nqp::push_s($nlook,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
-                $char = nqp::chr($ord + 1);
+                $char = nqp::chr($range[$i + 1]);
                 nqp::push_s($nchrs,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
             }
             else {
                 nqp::push_s($blook,nqp::chr($ord));
-                nqp::push_s($bchrs,nqp::chr($first+$carry) ~ nqp::chr($first));
+                nqp::push_s($bchrs,nqp::chr($range[$carry]) ~ nqp::chr($first));
             }
         }
     }
@@ -196,7 +196,7 @@ SOURCE
                 $char = nqp::chr($ord);
                 nqp::push_s($nlook,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
-                $char = nqp::chr($ord - 1);
+                $char = nqp::chr($range[$i - 1]);
                 nqp::push_s($nchrs,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
             }

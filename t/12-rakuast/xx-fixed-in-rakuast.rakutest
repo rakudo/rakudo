@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 58;
+plan 62;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -416,6 +416,19 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "name is missing" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply foo(), { foobar => {foo => "bar"} },
       'Routine name properly codegenned';
+}
+
+# https://github.com/rakudo/rakudo/issues/3574
+{
+    my @a = (state $ = rand) xx 5;
+    todo "returned value is Any" unless %*ENV<RAKUDO_RAKUAST>;
+    ok @a[0], 'got a random value with state';
+    is-deeply ([==] @a), True, 'all values the same with state';
+
+    @a = (once rand) xx 5;
+    todo "returned value is VMNull", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    ok @a[0], 'got a random value with once';
+    is-deeply (try [==] @a), True, 'all values the same with once';
 }
 
 # vim: expandtab shiftwidth=4

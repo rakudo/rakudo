@@ -460,8 +460,11 @@ augment class Int {
     multi method uniname(Int:D: --> Str:D) {
         nqp::islt_I(self,0)       # (bigint) negative number?
           ?? '<illegal>'
-          !! nqp::isbig_I(self)   # bigint positive number?
-            ?? '<unassigned>'
+          !! nqp::isbig_I(self) || nqp::iseq_s(
+               (my str $name = nqp::getuniname(self)),
+               '<unassigned>'
+             )
+            ?? Failure.new("Unassigned codepoint: 0x" ~ self.base(16))
             !! nqp::getuniname(self)
     }
 

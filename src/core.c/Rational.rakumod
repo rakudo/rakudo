@@ -22,10 +22,10 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method new(NuT:D \nu = 0, DeT:D \de = 1) {
-        my \object := nqp::create(self);
         nqp::if(
           de,
           nqp::stmts(                                   # normal rational
+            (my \object := nqp::create(self)),
             (my \gcd := nqp::gcd_I(nqp::decont(nu), nqp::decont(de), Int)),
             (my \numerator   := nqp::div_I(nqp::decont(nu), gcd, NuT)),
             (my \denominator := nqp::div_I(nqp::decont(de), gcd, DeT)),
@@ -49,16 +49,12 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               )
             )
           ),
-          nqp::stmts(                                   # Inf / NaN
-            nqp::bindattr(object,::?CLASS,'$!numerator',
-              nqp::box_i(
-                nqp::isgt_I(nqp::decont(nu),0) || nqp::neg_i(nqp::istrue(nu)),
-                nu.WHAT
-              )
+          CREATE_RATIONAL_FROM_INTS(                     # Inf / NaN
+            nqp::box_i(
+              nqp::isgt_I(nqp::decont(nu),0) || nqp::neg_i(nqp::istrue(nu)),
+              nu.WHAT
             ),
-            nqp::p6bindattrinvres(object,::?CLASS,'$!denominator',
-              nqp::decont(de)
-            )
+            de, $?CLASS, $?CLASS
           )
         )
     }

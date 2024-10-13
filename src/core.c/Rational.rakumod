@@ -147,7 +147,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               !! self!UNITS(whole)                               # no fract val
         }
         else {                                                   # N / 0
-              DIVIDE_BY_ZERO
+              DIVIDE_BY_ZERO($!numerator)
         }
     }
 
@@ -175,8 +175,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
           !! $units
     }
 
-    sub DIVIDE_BY_ZERO() {
+    sub DIVIDE_BY_ZERO($numerator) {
         X::Numeric::DivideByZero.new(
+          :$numerator,
           :details('when coercing Rational to Str')
         ).throw
     }

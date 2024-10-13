@@ -161,7 +161,7 @@ my class Range is Cool does Iterable does Positional {
                )
             !! $!min === Inf
               # doesn't make much sense, but there you go
-              ?? NegativeInf.new
+              ?? Rakudo::Iterator.Empty()
               !! $!max === Inf
                 ?? nqp::istype($!min, Numeric)
                   # something quick and easy for 1..* style things

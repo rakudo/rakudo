@@ -199,7 +199,11 @@ my class Range is Cool does Iterable does Positional {
         has int $!n;
 
         method !SET-SELF(\i,\n) { $!i = i + 1; $!n = n; self }
-        method new(\i,\n)   { nqp::create(self)!SET-SELF(i,n) }
+        method new(\i,\n) {
+            i < n
+              ?? Rakudo::Iterator.Empty
+              !! nqp::create(self)!SET-SELF(i,n)
+        }
 
         method pull-one() { ( $!i = $!i - 1 ) >= $!n ?? $!i !! IterationEnd }
         method skip-one() { ( $!i = $!i - 1 ) >= $!n }

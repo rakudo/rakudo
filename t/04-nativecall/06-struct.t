@@ -3,7 +3,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 34;
+plan 35;
 
 compile_test_lib('06-struct');
 
@@ -212,5 +212,11 @@ is $iais2.b[0], 222, 'Can inline fixed sizes array (3)';
 is $iais2.b[1], 333, 'Can inline fixed sizes array (4)';
 is $iais2.b[2], 444, 'Can inline fixed sizes array (5)';
 is $iais2.c,    555, 'Can inline fixed sizes array (6)';
+
+# https://github.com/rakudo/rakudo/issues/3851
+{
+    my class simple is repr('CStruct') { has uint16 $.value }
+    is simple.new(:value(0xffff)).value, 65535, 'did we get unsigned value';
+}
 
 # vim: expandtab shiftwidth=4

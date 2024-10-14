@@ -273,14 +273,16 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::exit(0);
     }
 
-    method interactive(*%adverbs) {
+    method interactive(*@args, *%adverbs) {
         my $p6repl;
+
+        nqp::bindhllsym('Raku', '$!ARGITER', nqp::iterator(@args));
 
         my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         $p6repl := $repl-class.new(self, %adverbs);
         my $stdin    := stdin();
 
-        $p6repl.repl-loop(:interactive(1), |%adverbs)
+        $p6repl.repl-loop(:interactive(1), |%adverbs);
     }
 
     method usage($name?, :$use-stderr = False) {
@@ -312,11 +314,11 @@ and, by default, also executes the compiled code.
   --doc                extract documentation and print it as text
   --doc=module         use Pod::To::[module] to render inline documentation
   --repl-mode=interactive|non-interactive
-                       when running without "-e" or filename arguments,
-                       a REPL is started. By default, if STDIN is a TTY,
-                       "interactive" REPL is started that shows extra messages
-                       and prompts, otherwise a "non-interactive" mode is used
-                       where STDIN is read entirely and evaluated as if it were
+                       when running without "-e", a REPL is started.
+                       By default, if STDIN is a TTY, "interactive" REPL is
+                       started that shows extra messages and prompts,
+                       otherwise a "non-interactive" mode is used where
+                       STDIN is read entirely and evaluated as if it were
                        a program, without any extra output (in fact, no REPL
                        machinery is even loaded). This option allows to bypass
                        TTY detection and force one of the REPL modes.

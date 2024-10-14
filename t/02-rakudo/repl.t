@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 47;
+plan 48;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
@@ -332,5 +332,18 @@ is-run-repl 'my $fh = $*EXECUTABLE.open(:r)',
 	:out{.contains: 'IO::Handle' and not .contains('Failed to write')},
 	:err(''),
 	｢no complaints about failed writing to filehandle when opening a file｣;
+
+# https://github.com/rakudo/rakudo/issues/3952
+subtest 'check with additional CLI arguments' => {
+    plan 3;
+    my $p := run $*EXECUTABLE,
+      '--repl-mode=interactive', <foo bar baz>, :in, :out, :err;
+    $p.in.say: '@*ARGS';
+    $p.in.close;
+    ok $p.out.slurp(:close).contains('[foo bar baz]'),
+      'got the command line arguments';
+    is $p.err.slurp(:close).chars, 0,        'no STDERR output';
+    is $p.exitcode,                0,        'successful exit code';
+}
 
 # vim: expandtab shiftwidth=4

@@ -135,7 +135,7 @@ do {
     my role FallbackBehavior {
         method repl-read(Mu \prompt) {
             print prompt;
-            get
+            $*IN.get
         }
     }
 

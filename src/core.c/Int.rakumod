@@ -309,6 +309,28 @@ my class Int does Real { # declared in BOOTSTRAP
         my byte   $a = nqp::bitand_I(self, 0x00000000000000ff, Int);
         $a
     }
+
+    method power-up(Int:D $b) is implementation-detail {
+        # when a**b is too big nqp::pow_I returns Inf
+        nqp::istype((my $power := nqp::pow_I(self,$b,Num,Int)),Int)
+          ?? $power
+          !! X::Numeric::Overflow.new.Failure
+    }
+
+    method power-down(Int:D $b) is implementation-detail {
+        # when a**b is too big nqp::pow_I returns Inf
+        nqp::istype(
+          (my $power := nqp::pow_I(self,nqp::neg_I($b,Int),Num,Int)),
+          Num
+        ) || (nqp::istype(
+               ($power := CREATE_RATIONAL_FROM_INTS(1, $power, Int, Int)),
+               Num
+             ) && nqp::iseq_n($power,0e0)
+               && nqp::isne_I(self,0)
+             )
+          ?? X::Numeric::Underflow.new.Failure
+          !! $power
+    }
 }
 
 multi sub prefix:<++>(Int:D $a is rw --> Int:D) {
@@ -430,16 +452,7 @@ multi sub infix:<%%>(uint $a, uint $b --> Bool:D) {
 }
 
 multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
-    nqp::isge_I($b,0)
-      # when a**b is too big nqp::pow_I returns Inf
-      ?? nqp::istype((my $power := nqp::pow_I($a,$b,Num,Int)),Int)
-        ?? $power
-        !! X::Numeric::Overflow.new.Failure
-      # when a**b is too big nqp::pow_I returns Inf
-      !! nqp::istype(($power := nqp::pow_I($a,nqp::neg_I($b,Int),Num,Int)),Num) ||
-         (nqp::istype(($power := CREATE_RATIONAL_FROM_INTS(1, $power, Int, Int)),Num) && nqp::iseq_n($power,0e0) && nqp::isne_I($a,0))
-        ?? X::Numeric::Underflow.new.Failure
-        !! $power
+    nqp::isge_I($b,0) ?? $a.power-up($b) !! $a.power-down($b)
 }
 multi sub infix:<**>( int $a,  int $b --> int)  { nqp::pow_i($a, $b) }
 multi sub infix:<**>(uint $a, uint $b --> uint) { nqp::pow_i($a, $b) }

@@ -279,35 +279,35 @@ my class Int does Real { # declared in BOOTSTRAP
         $_ >= 0x8000000000000000 ?? $_ - 0x10000000000000000 !! $_
     }
 
-    method int  (--> int  ) is raw { my int   $a = self!int; $a }
-    method int64(--> int64) is raw { my int64 $a = self!int; $a }
-    method int32(--> int32) is raw { my int32 $a = self!int; $a }
-    method int16(--> int16) is raw { my int16 $a = self!int; $a }
-    method int8( --> int8 ) is raw { my int8  $a = self!int; $a }
+    method int  (--> int  ) is raw { my int   $ = self!int }
+    method int64(--> int64) is raw { my int64 $ = self!int }
+    method int32(--> int32) is raw { my int32 $ = self!int }
+    method int16(--> int16) is raw { my int16 $ = self!int }
+    method int8( --> int8 ) is raw { my int8  $ = self!int }
 
     method uint  (--> uint  ) is raw {
+        # fixed in RakuAST
+#        my uint   $ = nqp::bitand_I(self, 0xffffffffffffffff, Int)
         my uint   $a = nqp::bitand_I(self, 0xffffffffffffffff, Int);
         $a
     }
-    method uint64(--> uint32) is raw {
+    method uint64(--> uint64) is raw {
+        # fixed in RakuAST
+#        my uint64 $ = nqp::bitand_I(self, 0xffffffffffffffff, Int)
         my uint64 $a = nqp::bitand_I(self, 0xffffffffffffffff, Int);
         $a
     }
     method uint32(--> uint32) is raw {
-        my uint32 $a = nqp::bitand_I(self, 0x00000000ffffffff, Int);
-        $a
+        my uint32 $ = nqp::bitand_I(self, 0x00000000ffffffff, Int)
     }
     method uint16(--> uint16) is raw {
-        my uint16 $a = nqp::bitand_I(self, 0x000000000000ffff, Int);
-        $a
+        my uint16 $ = nqp::bitand_I(self, 0x000000000000ffff, Int)
     }
     method uint8( --> uint8 ) is raw {
-        my uint8  $a = nqp::bitand_I(self, 0x00000000000000ff, Int);
-        $a
+        my uint8  $ = nqp::bitand_I(self, 0x00000000000000ff, Int)
     }
     method byte(  --> byte  ) is raw {
-        my byte   $a = nqp::bitand_I(self, 0x00000000000000ff, Int);
-        $a
+        my byte   $ = nqp::bitand_I(self, 0x00000000000000ff, Int)
     }
 
     method power-up(Int:D $b) is implementation-detail {

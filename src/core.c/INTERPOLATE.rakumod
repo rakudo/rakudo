@@ -321,6 +321,16 @@ augment class Match {
             !! cur
     }
 
+    multi method INTERPOLATE(Junction:D \var, int \im, int \monkey, int \s, $, \context) {
+        my str $type = nqp::getattr_s(nqp::decont(var),Junction,'$!type');
+        $type eq 'any'
+          ?? self.INTERPOLATE(
+               nqp::getattr(nqp::decont(var),Junction,'$!eigenstates').List,
+               im, monkey, s, Any, context
+             )
+          !! die "Interpolation of '$type' junction is not supported"
+    }
+
     multi method INTERPOLATE(Mu:D \var, int \im, int \monkey, $, $, \context) {
         my \cur     = self.'!cursor_start_cur'();
         my str $tgt = cur.target;

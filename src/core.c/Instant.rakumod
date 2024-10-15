@@ -55,8 +55,12 @@ my class Instant is Cool does Real {
     method Int   (Instant:D: --> Int:D) { self.to-nanos div 1000000000                         }
     method narrow(Instant:D:          ) { self.tai.narrow                                      }
 
-    method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
-    method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }
+    method Date(Instant:D:     --> Date:D) {
+        Date.new(self)
+    }
+    method DateTime(Instant:D: --> DateTime:D) {
+        DateTime.new(self, :timezone($*TZ))
+    }
     method Instant() { self }
 
 #    TODO: should be the new .gist, probably

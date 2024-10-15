@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 70;
+plan 71;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -503,6 +503,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
       'was the variable not stale';
     todo "worries about RHS of xx" if %*ENV<RAKUDO_RAKUAST>;
     is $proc.err.slurp, '', 'no worries';
+}
+
+# https://github.com/rakudo/rakudo/issues/4198
+{
+    my $rx = /\w+/;
+    todo "doesn't interpolate correctly" unless %*ENV<RAKUDO_RAKUAST>;
+    is ('"foo".match: / $rx /'.EVAL).gist, '｢foo｣', 'regex interpolated ok';
 }
 
 # vim: expandtab shiftwidth=4

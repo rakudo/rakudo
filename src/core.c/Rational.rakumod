@@ -49,14 +49,34 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               )
             )
           ),
-          CREATE_RATIONAL_FROM_INTS(                     # Inf / NaN
+          self.zero-denominator(
             nqp::box_i(
               nqp::isgt_I(nqp::decont(nu),0) || nqp::neg_i(nqp::istrue(nu)),
               nu.WHAT
             ),
-            de, $?CLASS, $?CLASS
+            de
           )
         )
+    }
+
+    # Special creator that keeps a backtrace to be produced whenever a
+    # Rational with a zero denominator is used
+    method zero-denominator(Int:D $nu, Int:D $de) is implementation-detail {
+        my role Here {
+            has $!failure is built(:bind);
+            method throw() { $!failure.throw }
+            method raku() { callsame.subst('+{Rational::Here}') }
+        }
+
+        # Create handled failure to prevent noise at destruction
+        (my $failure := Failure.new(
+          X::Numeric::DivideByZero.new(numerator => $nu)
+        )).defined;
+
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(self),$?CLASS,'$!numerator',$nu),
+          $?CLASS,'$!denominator',$de
+        ) but Here($failure)
     }
 
     multi method raku(Rational:D: --> Str:D) {
@@ -143,7 +163,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               !! self!UNITS(whole)                               # no fract val
         }
         else {                                                   # N / 0
-              DIVIDE_BY_ZERO($!numerator)
+            self.throw
         }
     }
 
@@ -171,12 +191,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
           !! $units
     }
 
-    sub DIVIDE_BY_ZERO($numerator) {
-        X::Numeric::DivideByZero.new(
-          :$numerator,
-          :details('when coercing Rational to Str')
-        ).throw
-    }
     sub BASE_OUT_OF_RANGE(int $got) {
         X::OutOfRange.new(
           :what('base argument to base'),:$got,:range<2..36>

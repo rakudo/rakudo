@@ -2578,6 +2578,10 @@ CODE
 
 #- Trait -----------------------------------------------------------------------
 
+    multi method deparse(RakuAST::Trait::Handles:D $ast --> Str:D) {
+        self.syn-trait("handles") ~ ' ' ~ self.deparse($ast.term)
+    }
+
     multi method deparse(RakuAST::Trait::Is:D $ast --> Str:D) {
         my str $base = self.syn-trait("is") ~ ' ';
 
@@ -2598,6 +2602,12 @@ CODE
 
     multi method deparse(RakuAST::Trait::Type:D $ast --> Str:D) {
         self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
+    }
+
+    multi method raku(RakuAST::Trait::Will:D $ast --> Str:D) {
+        self.syn-trait("will")
+          ~ ' ' ~ self.deparse($ast.type)
+          ~ ' ' ~ self.deparse($ast.expr)
     }
 
     multi method deparse(RakuAST::Trait::WillBuild:D $ast --> Str:D) {

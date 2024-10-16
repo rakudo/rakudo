@@ -1158,6 +1158,10 @@ augment class RakuAST::Node {
 
 #- Trait -----------------------------------------------------------------------
 
+    multi method raku(RakuAST::Trait::Handles:D: --> Str:D) {
+        self!positional(self.term)
+    }
+
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
         self!nameds: <name argument type>
     }

@@ -271,6 +271,30 @@ multi sub val(\one-thing) is raw {
 }
 
 multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
+
+    # Unicode vulgar lookup, cannot use .unival at this point in setting
+    my constant $vulgars = nqp::hash(
+      '½', RatStr.new(Rat.new(1,2),  '½'),
+      '↉', RatStr.new(Rat.new(0,3),  '↉'),
+      '⅓', RatStr.new(Rat.new(1,3),  '⅓'),
+      '⅔', RatStr.new(Rat.new(2,3),  '⅔'),
+      '¼', RatStr.new(Rat.new(1,4),  '¼'),
+      '¾', RatStr.new(Rat.new(3,4),  '¾'),
+      '⅕', RatStr.new(Rat.new(1,5),  '⅕'),
+      '⅖', RatStr.new(Rat.new(2,5),  '⅖'),
+      '⅗', RatStr.new(Rat.new(3,5),  '⅗'),
+      '⅘', RatStr.new(Rat.new(4,5),  '⅘'),
+      '⅙', RatStr.new(Rat.new(1,6),  '⅙'),
+      '⅚', RatStr.new(Rat.new(5,6),  '⅚'),
+      '⅐', RatStr.new(Rat.new(1,7),  '⅐'),
+      '⅛', RatStr.new(Rat.new(1,8),  '⅛'),
+      '⅜', RatStr.new(Rat.new(3,8),  '⅜'),
+      '⅝', RatStr.new(Rat.new(5,8),  '⅝'),
+      '⅞', RatStr.new(Rat.new(7,8),  '⅞'),
+      '⅑', RatStr.new(Rat.new(1,9),  '⅑'),
+      '⅒', RatStr.new(Rat.new(1,10), '⅒')
+    );
+
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -280,6 +304,10 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     my str $str = nqp::unbox_s($MAYBEVAL);
     my int $eos = nqp::chars($str);
     return IntStr.new(0,"") unless $eos;  # handle ""
+
+    if $eos == 1 && nqp::atkey($vulgars,$str) -> $ratstr {
+        return $ratstr;
+    }
 
     # S02:3276-3277: Ignore leading and trailing whitespace
     my int $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,

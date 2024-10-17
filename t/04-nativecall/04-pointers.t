@@ -4,7 +4,7 @@ use NativeCall;
 use NativeCall::Types;
 use Test;
 
-plan 22;
+plan 23;
 
 compile_test_lib('04-pointers');
 
@@ -71,6 +71,11 @@ else {
 
         TakeCArrayToInt8( $x );
         CODE
+}
+
+# https://github.com/rakudo/rakudo/issues/4483
+{
+    is-deeply +Pointer, 0, 'Numerifying Pointer class works';
 }
 
 # vim: expandtab shiftwidth=4

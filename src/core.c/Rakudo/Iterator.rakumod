@@ -4764,6 +4764,10 @@ class Rakudo::Iterator {
                 (my int $i = -1),
                 (my int $elems = nqp::elems($!seen)),
                 (my $target := as($needle)),
+                nqp::if(
+                  nqp::istype($target,Seq),
+                  $target := $target.cache
+                ),
                 nqp::until(
                   nqp::iseq_i(++$i,$elems)
                     || with($target,nqp::atpos($seen,$i)),

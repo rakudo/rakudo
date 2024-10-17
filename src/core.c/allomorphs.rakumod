@@ -305,9 +305,8 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     my int $eos = nqp::chars($str);
     return IntStr.new(0,"") unless $eos;  # handle ""
 
-    if $eos == 1 && nqp::atkey($vulgars,$str) -> $ratstr {
-        return $ratstr;
-    }
+    return nqp::atkey($vulgars,$str)
+      if $eos == 1 && nqp::existskey($vulgars,$str);
 
     # S02:3276-3277: Ignore leading and trailing whitespace
     my int $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 74;
+plan 76;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -519,6 +519,18 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         todo "doesn't return correctly" unless %*ENV<RAKUDO_RAKUAST>;
         is-deeply (FIRST $a++), 42, 'Do we always get the first value';
     }
+}
+
+# https://github.com/rakudo/rakudo/issues/4493
+{
+    multi b(Int:D $x) { $x + 1 }
+    multi b(int $x)   { $x     }
+    todo "selects the wrong candidate" unless %*ENV<RAKUDO_RAKUAST>;
+    is b(0), 1, 'Int:D candidate selected';
+
+    multi d(Int:D $x) { $x     }
+    multi d(int $x)   { $x + 1 }
+    is d(0), 0, 'Int:D candidate selected';
 }
 
 # vim: expandtab shiftwidth=4

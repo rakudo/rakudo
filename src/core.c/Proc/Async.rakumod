@@ -51,6 +51,12 @@ my class X::Proc::Async::OpenForWriting does X::Proc::Async {
     }
 }
 
+my class X::Proc::Async::MissingColsRows does X::Proc::Async {
+    method message() {
+        ":pty must be set as follows: :pty(:cols(12), :rows(34))"
+    }
+}
+
 my class Proc::Async {
     # An asynchronous process output pipe is a Supply that also can provide
     # the native descriptor of the underlying pipe.
@@ -102,7 +108,9 @@ my class Proc::Async {
     has $.arg0;
     has $.win-verbatim-args = False;
     has Bool $.started = False;
-    has Bool $.pty = False;
+    has Bool $!pty = False;
+    has Int $.pty-cols is built(False);
+    has Int $.pty-rows is built(False);
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
     has $!stderr_supply;
@@ -122,6 +130,8 @@ my class Proc::Async {
     has $!start-lock = Lock.new;
 #?endif
 
+    method pty(--> Bool) { $!pty }
+
     proto method new(|) {*}
     multi method new(*@args where .so) {
         # XXX TODO .args and .path deprecated on 2018-11-04 to be
@@ -131,7 +141,17 @@ my class Proc::Async {
         self.bless(:$path, :@args, :@command, |%_)
     }
 
-    submethod TWEAK(--> Nil) {
+    submethod TWEAK(:$pty --> Nil) {
+        if $pty {
+            X::Proc::Async::MissingColsRows.new.throw unless $pty ~~ Positional;
+            my %pty = @$pty;
+            X::Proc::Async::MissingColsRows.new.throw unless [&&] %pty<cols rows>:exists;
+            $!pty = True;
+            $!w = True;
+            $!pty-cols := %pty<cols>.Int;
+            $!pty-rows := %pty<rows>.Int;
+        }
+
         $!encoder := Encoding::Registry.find($!enc).encoder(:$!translate-nl);
 
         $!arg0 //= $!path;
@@ -249,19 +269,19 @@ my class Proc::Async {
 
     proto method bind-stdin($) {*}
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
-        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
-          if $!w;
         X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :pty')).throw
           if $!pty;
+        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+          if $!w;
         $!stdin-fd := $handle.native-descriptor;
         @!close-after-exit.push($handle)
           if nqp::istype($handle,IO::Pipe);
     }
     multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
-        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
-          if $!w;
         X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :pty')).throw
           if $!pty;
+        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+          if $!w;
         $!stdin-fd := $pipe.native-descriptor;
         $!stdin-fd-close := True;
     }
@@ -431,7 +451,11 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'stdin_fd_close', True) if $!stdin-fd-close;
         nqp::bindkey($callbacks, 'stdout_fd', $!stdout-fd) if $!stdout-fd.DEFINITE;
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
-        nqp::bindkey($callbacks, 'pty', True) if $!pty;
+        if $!pty {
+            nqp::bindkey($callbacks, 'pty', True);
+            nqp::bindkey($callbacks, 'pty-cols', $!pty-cols);
+            nqp::bindkey($callbacks, 'pty-rows', $!pty-rows);
+        }
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),
             $!path.Str,

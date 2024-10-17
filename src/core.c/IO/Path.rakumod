@@ -621,14 +621,11 @@ my class IO::Path is Cool does IO {
         # enough to read entire buffer, assume there's more
         if nqp::iseq_i(nqp::elems($blob),slurp-size) {
             nqp::while(
-              nqp::iseq_i(
-                nqp::elems(
-                  nqp::readfh(PIO,(my $part := nqp::create(buf8.^pun)),slurp-size)),
-                slurp-size
+              nqp::elems(
+                nqp::readfh(PIO,(my $part := nqp::create(buf8.^pun)),slurp-size)
               ),
               $blob.append($part)
             );
-            $blob.append($part);  # add the final, incomplete part
         }
         $blob
     }

@@ -764,7 +764,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $ast;
         }
         else {
-            nqp::die("Don't know how to 'no " ~ $name ~ "'just yet")
+            nqp::die("Don't know how to 'no " ~ $name ~ "'")
         }
     }
 

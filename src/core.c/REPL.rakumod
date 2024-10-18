@@ -281,6 +281,17 @@ do {
             ( $new-self, $problem ) = mixin-terminal-lineeditor($self);
             return $new-self if $new-self;
 
+            # Try wrapping rlwrap for a more seamless experience
+            unless %*ENV<_>.ends-with('rlwrap') {
+                %*ENV<_>                 := 'rlwrap';
+                %*ENV<RAKUDO_NO_VERSION> := 1;
+                my $proc :=
+                  run "rlwrap", $*EXECUTABLE, "--repl-mode=interactive", @*ARGS;
+                $proc.exitcode
+                  ?? (%*ENV<_>:delete)
+                  !! exit;
+            }
+
             if $problem {
                 say "Continuing without tab completions or line editor.\n";
                 say 'You may want to consider installing `rlwrap` for simple line editor functionality.'
@@ -298,7 +309,7 @@ do {
             $self but FallbackBehavior
         }
 
-        method new(Mu \compiler, Mu \adverbs, $skip?) {
+        method new(Mu \compiler, Mu \adverbs, $skip = %*ENV<RAKUDO_NO_VERSION>) {
             unless $skip {
                 say compiler.version_string(
                   :shorten-versions,

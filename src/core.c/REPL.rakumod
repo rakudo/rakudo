@@ -282,13 +282,18 @@ do {
             return $new-self if $new-self;
 
             if $problem {
-                say 'Continuing without tab completions or line editor';
-                say 'You may want to consider using rlwrap for simple line editor functionality';
+                say "Continuing without tab completions or line editor.\n";
+                say 'You may want to consider installing `rlwrap` for simple line editor functionality.'
+                  .naive-word-wrapper;
+                say '';
             }
-            elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
-                say 'You may want to `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or use rlwrap for a line editor';
+            elsif !Rakudo::Internals.IS-WIN
+              && !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
+                say "No line editor found.\n";
+                say 'You may want to exit first and `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or install `rlwrap` for a line editor before entering the REPL again.'
+                  .naive-word-wrapper;
+                say '';
             }
-            say '';
 
             $self but FallbackBehavior
         }

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 76;
+plan 80;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -531,6 +531,18 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     multi d(Int:D $x) { $x     }
     multi d(int $x)   { $x + 1 }
     is d(0), 0, 'Int:D candidate selected';
+}
+
+# https://github.com/rakudo/rakudo/issues/4757
+{
+    my sub infix:<foo>($a, $b) is assoc<right> { "($a,$b)" }
+    my sub infix:<bar>($a, $b) is assoc<left>  { "($a,$b)" }
+
+    is-deeply ([foo]  1, 2, 3, 4), "(1,(2,(3,4)))", 'foo';
+    is-deeply ([Rfoo] 1, 2, 3, 4), "(4,(3,(2,1)))", 'Rfoo';
+    is-deeply ([bar]  1, 2, 3, 4), "(((1,2),3),4)", 'bar';
+    todo "gets associativity wrong" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply ([Rbar] 1, 2, 3, 4), "(4,(3,(2,1)))", 'Rbar';
 }
 
 # vim: expandtab shiftwidth=4

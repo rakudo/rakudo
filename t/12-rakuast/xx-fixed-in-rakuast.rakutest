@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 80;
+plan 84;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -433,7 +433,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/3626
 {
-    my $defined; 
+    my $defined;
     my sub foo () {
         loop {
             state $n = 0;
@@ -543,6 +543,20 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is-deeply ([bar]  1, 2, 3, 4), "(((1,2),3),4)", 'bar';
     todo "gets associativity wrong" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply ([Rbar] 1, 2, 3, 4), "(4,(3,(2,1)))", 'Rbar';
+}
+
+# https://github.com/rakudo/rakudo/issues/4797
+{
+    my int $test;
+    my sub f (|c) is test-assertion {
+        is-deeply c, \(:foo), ':foo test ' ~ ++$test;
+    }
+
+    f :foo(  'a'  ne 'd');
+    f foo => 'a'  ne 'd';
+    todo "passes positional instead of named", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    f :foo(  'a' !eq 'd');
+    f foo => 'a' !eq 'd';
 }
 
 # vim: expandtab shiftwidth=4

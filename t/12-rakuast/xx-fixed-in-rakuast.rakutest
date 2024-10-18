@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 84;
+plan 85;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -557,6 +557,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "passes positional instead of named", 2 unless %*ENV<RAKUDO_RAKUAST>;
     f :foo(  'a' !eq 'd');
     f foo => 'a' !eq 'd';
+}
+
+# https://github.com/rakudo/rakudo/issues/4847
+{
+    todo "does not compile", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    lives-ok { 'if 42 { } elsif "/knorkator".IO andthen .f && .r { }'.EVAL },
+      'can have andthen as part of an elseif';
 }
 
 # vim: expandtab shiftwidth=4

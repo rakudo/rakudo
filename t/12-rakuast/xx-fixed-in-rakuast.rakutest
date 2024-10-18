@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 85;
+plan 88;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -561,9 +561,23 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/4847
 {
-    todo "does not compile", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { 'if 42 { } elsif "/knorkator".IO andthen .f && .r { }'.EVAL },
       'can have andthen as part of an elseif';
+}
+
+# https://github.com/rakudo/rakudo/issues/4904
+{
+    my class C {
+        method add($x) { $!x += $x }
+        has int $.x
+    }
+    my $c = C.new;
+    is-deeply $c.x, 0, 'can access attribute';
+    todo "throws error" unless %*ENV<RAKUDO_RAKUAST>;
+    lives-ok { $c.add(1) }, 'can add to the attribute';
+    todo "did not get updated" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply $c.x, 1, 'attribute got incremented';
 }
 
 # vim: expandtab shiftwidth=4

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 88;
+plan 89;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -578,6 +578,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     lives-ok { $c.add(1) }, 'can add to the attribute';
     todo "did not get updated" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $c.x, 1, 'attribute got incremented';
+}
+
+# https://github.com/rakudo/rakudo/issues/5056
+{
+    class Value { method COERCE() { Value } }
+
+    multi foo(Hash:D) { "yes" };
+    multi foo(Value(Any:D)) { "no" };
+
+    todo "dispatch error" unless %*ENV<RAKUDO_RAKUAST>;
+    is (try foo { :foo }), "yes", "dispatch worked ok";
 }
 
 # vim: expandtab shiftwidth=4

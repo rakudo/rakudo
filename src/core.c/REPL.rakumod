@@ -122,7 +122,7 @@ do {
 
         method repl-read(Mu \prompt) {
             self.update-completions;
-            my $line = $cli.prompt(prompt);
+            my $line = $cli.prompt(prompt.chop);
 
             if $line.defined && $line.match(/\S/) {
                 $cli.add-history($line);

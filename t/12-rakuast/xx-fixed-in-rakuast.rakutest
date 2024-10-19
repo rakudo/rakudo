@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 89;
+plan 91;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -589,6 +589,15 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
     todo "dispatch error" unless %*ENV<RAKUDO_RAKUAST>;
     is (try foo { :foo }), "yes", "dispatch worked ok";
+}
+
+# https://github.com/rakudo/rakudo/issues/5100
+{
+    my $proc := run $*EXECUTABLE, '-e', 'sub MAIN( $a, $b = $a, #= boom
+) {}', :out, :err;
+    is $proc.out.slurp, "", 'no output';
+    todo "execution error" unless %*ENV<RAKUDO_RAKUAST>;
+    ok $proc.err.slurp.starts-with("Usage"), 'error message is about usage';
 }
 
 # vim: expandtab shiftwidth=4

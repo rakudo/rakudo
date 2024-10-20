@@ -1849,7 +1849,8 @@ class Rakudo::Iterator {
             );
 
             nqp::if(
-              nqp::istype($pulled,Iterable)
+              nqp::isconcrete($pulled)
+                && nqp::istype($pulled,Iterable)
                 && @!next.elems < $!levels
                 && $!decont >= nqp::iscont($pulled),
               nqp::stmts(

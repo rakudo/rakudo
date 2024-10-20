@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 92;
+plan 93;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -606,6 +606,21 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is-deeply qq:v:to/FOO/, IntStr.new(42, "42\n"), "val processing kept";
     42
     FOO
+}
+
+# https://github.com/rakudo/rakudo/issues/5329
+{
+    my %m = "a" => 1, "b" => 2, "c" => 3;
+    my subset X2 of Str() where * (elem) %m;
+    sub t2 (X2 $x) { }
+    if %*ENV<RAKUDO_RAKUAST> {
+        lives-ok { ("a" .. "c").hyper(:batch(1), :degree(2)).map(&t2) },
+          "should not crash with typecheck error";
+    }
+    else {
+        todo "crashes";
+        flunk "should not crash with typecheck error";
+    }
 }
 
 # vim: expandtab shiftwidth=4

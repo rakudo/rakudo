@@ -91,8 +91,9 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         nqp::hllbool(nqp::elems(self));
     }
 
+    multi method elems(Uni:D:) { nqp::elems(self) }
+
     method codes(Uni:D:)   { nqp::elems(self) }
-    method elems(Uni:D:)   { nqp::elems(self) }
     method Numeric(Uni:D:) { nqp::elems(self) }
     method Int(Uni:D:)     { nqp::elems(self) }
 

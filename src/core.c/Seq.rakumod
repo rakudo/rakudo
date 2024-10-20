@@ -44,7 +44,7 @@ my class Seq is Cool does Iterable does Sequence {
         self.List.Capture
     }
 
-    method elems() {
+    multi method elems(Seq:D:) {
         self.is-lazy
           ?? self.fail-iterator-cannot-be-lazy('.elems',"")
           !! nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)

@@ -65,7 +65,7 @@ my class PseudoStash is Map {
           !! self.pairs.sort
     }
 
-    method elems(:$implementation-detail) {
+    multi method elems(PseudoStash:D: :$implementation-detail) {
         $implementation-detail
           ?? (nextsame)
           !! self.values.elems

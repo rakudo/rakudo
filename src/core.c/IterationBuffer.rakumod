@@ -21,7 +21,7 @@ my class IterationBuffer {
         nqp::setelems(self, 0)
     }
 
-    method elems() { nqp::elems(self) }
+    multi method elems(IterationBuffer:D:) { nqp::elems(self) }
 
     method push(Mu \value) { nqp::push(self, value) }
     method append(IterationBuffer:D $buffer) {

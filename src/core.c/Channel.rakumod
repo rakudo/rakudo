@@ -286,7 +286,7 @@ my class Channel does Awaitable {
         $!async-notify.emit(True);
     }
 
-    method elems() {
+    multi method elems(Channel:D:) {
         ('Cannot determine number of elements on a ' ~ self.^name).Failure
     }
 

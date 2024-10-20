@@ -94,7 +94,7 @@ my class Capture { # declared in BOOTSTRAP
           !! nqp::create(List)
     }
 
-    method elems(Capture:D:) {
+    multi method elems(Capture:D:) {
         nqp::isconcrete(@!list) && nqp::elems(@!list)
     }
 

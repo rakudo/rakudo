@@ -122,7 +122,7 @@ my class Range is Cool does Iterable does Positional {
         0 <= $pos < self.elems;
     }
 
-    method elems {
+    multi method elems(Range:D:) {
         $!is-int
           ?? 0 max $!max - $!excludes-max - $!min - $!excludes-min + 1
           !! $!infinite

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 91;
+plan 92;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -598,6 +598,14 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is $proc.out.slurp, "", 'no output';
     todo "execution error" unless %*ENV<RAKUDO_RAKUAST>;
     ok $proc.err.slurp.starts-with("Usage"), 'error message is about usage';
+}
+
+# https://github.com/rakudo/rakudo/issues/5147
+{
+    todo "no val processing" unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply qq:v:to/FOO/, IntStr.new(42, "42\n"), "val processing kept";
+    42
+    FOO
 }
 
 # vim: expandtab shiftwidth=4

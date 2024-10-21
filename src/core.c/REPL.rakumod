@@ -563,6 +563,11 @@ do {
 sub repl(*%_) {
     my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
     nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+
+    # act as is we're already inside rlwrap so that we don't proc out
+    # to another "raku" executable and thus lose all of the environment
+    %*ENV<_> = 'rlwrap';
+
     $repl.repl-loop(:no-exit);
 }
 

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 97;
+plan 98;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -646,11 +646,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     R.new.m;
 }
 
-# https://github.com/Raku/problem-solving/issues/436
+# https://github.com/rakudo/rakudo/issues/1616
 {
     todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
     isa-ok (try Q|&[RRRRRRRRZZZZZZZZZZZZZZZZZZRRRRRRRRRSSSSSSSS+]|.EVAL), Block,
       'auto generated Callable ok';
+}
+
+# https://github.com/rakudo/rakudo/issues/1691
+{
+    todo "throws execution error" unless %*ENV<RAKUDO_RAKUAST>;
+    lives-ok { eager do loop { last } }, 'exits loop as expected';
 }
 
 # vim: expandtab shiftwidth=4

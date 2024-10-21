@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 100;
+plan 102;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -671,6 +671,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "throws wrong error" unless %*ENV<RAKUDO_RAKUAST>;
     throws-like { Q|1.::(1)|.EVAL }, X::Syntax::Number::IllegalDecimal,
       "throws an illegal decimal error";
+}
+
+# https://github.com/rakudo/rakudo/issues/1965
+{
+    todo "throws wrong error", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    try throws-like { Q|role R { }; &R|.EVAL }, X::Undeclared::Symbols,
+      unk_routines => { '&R' => (1,) },
+      "throws undeclared error";
+    try throws-like { Q|class C { }; &C|.EVAL }, X::Undeclared::Symbols,
+      unk_routines => { '&C' => (1,) },
+      "throws undeclared error";
 }
 
 # vim: expandtab shiftwidth=4

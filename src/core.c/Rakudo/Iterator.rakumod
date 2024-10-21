@@ -1875,7 +1875,12 @@ class Rakudo::Iterator {
     method Flat(\iterator, $levels, $decont) {
         Flat.new(
           iterator,
+#?if !jvm
           nqp::istype($levels,Whatever) || $levels == Inf ?? -1 !! $levels.Int,
+#?endif
+#?if jvm
+          nqp::istype($levels,Whatever) || $levels == Inf ?? int.Range.max !! $levels.Int,
+#?endif
           $decont.Int
         )
     }

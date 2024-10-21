@@ -21,42 +21,6 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
-    method compare-as-Int(&op, \a, \b) is implementation-detail {
-        nqp::istype((my $a := a.Numeric),Failure)
-          ?? $a
-          !! nqp::istype((my $b := b.Numeric),Failure)
-            ?? $b
-            !! op($a.Int, $b.Int)
-    }
-    method compare-as-Num(&op, \a, \b) is implementation-detail {
-        nqp::istype((my $a := a.Num),Failure)
-          ?? $a
-          !! nqp::istype((my $b := b.Num),Failure)
-            ?? $b
-            !! op($a, $b)
-    }
-    method compare-as-Real(&op, \a, \b) is implementation-detail {
-        nqp::istype((my $a := a.Real),Failure)
-          ?? $a
-          !! nqp::istype((my $b := b.Real),Failure)
-            ?? $b
-            !! op($a, $b)
-    }
-    method compare-as-Numeric(&op, \a, \b) is implementation-detail {
-        nqp::istype((my $a := a.Numeric),Failure)
-          ?? $a
-          !! nqp::istype((my $b := b.Numeric),Failure)
-            ?? $b
-            !! op($a, $b)
-    }
-    method compare-as-abs(&op, \a, \b) is implementation-detail {
-        nqp::istype((my $a := a.abs),Failure)
-          ?? $a
-          !! nqp::istype((my $b := b.abs),Failure)
-            ?? $b
-            !! op($a, $b)
-    }
-
     method SLICE_HUH(\object, @nogo, %d, %adv) {
         @nogo.unshift('delete')  # recover any :delete if necessary
           if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');

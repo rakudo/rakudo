@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 94;
+plan 95;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -628,6 +628,9 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "compilation error" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { 'use variables :D; my int $a'.EVAL },
       'native integers do not require an initializer with variables:D';
+    todo "typecheck error" unless %*ENV<RAKUDO_RAKUAST>;
+    lives-ok { 'use variables :D; my int $a = 42'.EVAL },
+      'native integers can be initialized  with variables:D';
 }
 
 # vim: expandtab shiftwidth=4

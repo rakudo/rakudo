@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 103;
+plan 104;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -686,8 +686,14 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/5249
 {
-    todo "throws compilation error", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "throws compilation error" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (try Q|"@.x"|.EVAL), '@.x', 'interpolation of non-existing @!x';
+}
+
+# https://github.com/rakudo/rakudo/issues/5119
+{
+    todo 'scoping issue with interpolated { }' unless %*ENV<RAKUDO_RAKUAST>;
+    is-deeply ("{$_}" for ^1).join, "0", 'was $_ set to 0';
 }
 
 # vim: expandtab shiftwidth=4

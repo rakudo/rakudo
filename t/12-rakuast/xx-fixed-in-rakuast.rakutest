@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 99;
+plan 100;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -664,6 +664,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub z { is &?ROUTINE.name, "z", 'name is ok' for ^1 }
     todo "name empty" unless %*ENV<RAKUDO_RAKUAST>;
     z;
+}
+
+# https://github.com/rakudo/rakudo/issues/1871
+{
+    todo "throws wrong error" unless %*ENV<RAKUDO_RAKUAST>;
+    throws-like { Q|1.::(1)|.EVAL }, X::Syntax::Number::IllegalDecimal,
+      "throws an illegal decimal error";
 }
 
 # vim: expandtab shiftwidth=4

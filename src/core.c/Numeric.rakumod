@@ -207,25 +207,36 @@ multi sub round(Numeric() $a)         { $a.round }
 multi sub round(Numeric() $a, $scale) { $a.round($scale) }
 
 proto sub infix:<+>($?, $?, *%) is pure   {*}
-multi sub infix:<+>($x = 0)      { $x.Numeric }
-multi sub infix:<+>(\a, \b)    { a.Numeric + b.Numeric }
+multi sub infix:<+>(--> 0) { }
+multi sub infix:<+>($x) { $x.Numeric }
+multi sub infix:<+>(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[+], a, b)
+}
 
 proto sub infix:<->($?, $?, *%) is pure   {*}
-multi sub infix:<->($x = 0)      { $x.Numeric }
-multi sub infix:<->(\a, \b)    { a.Numeric - b.Numeric }
+multi sub infix:<->(--> 0) { }
+multi sub infix:<->($x) { $x.Numeric }
+multi sub infix:<->(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[-], a, b)
+}
 # U+2212 MINUS SIGN
 my constant &infix:<−> := &infix:<->;
 
 proto sub infix:<*>($?, $?, *%) is pure   {*}
-multi sub infix:<*>($x = 1)      { $x.Numeric }
-multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
+multi sub infix:<*>(--> 1) { }
+multi sub infix:<*>($x) { $x.Numeric }
+multi sub infix:<*>(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[*], a, b)
+}
 # U+00D7 MULTIPLICATION SIGN
 my constant &infix:<×> := &infix:<*>;
 
 proto sub infix:</>($?, $?, *%) is pure {*}
 multi sub infix:</>() { "infix:</>".no-zero-arg }
-multi sub infix:</>($x)          { $x.Numeric }
-multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
+multi sub infix:</>($x) { $x.Numeric }
+multi sub infix:</>(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[/], a, b)
+}
 # U+00F7 DIVISION SIGN
 my constant &infix:<÷> := &infix:</>;
 
@@ -234,30 +245,42 @@ proto sub infix:<div>($, $, *%) is pure  {*}
 
 proto sub infix:<%>($?, $?, *%) is pure   {*}
 multi sub infix:<%>() { "infix:<%>".no-zero-arg }
-multi sub infix:<%>($x)          { $x }
-multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
+multi sub infix:<%>($x) { $x }
+multi sub infix:<%>(\a, \b) {
+    Rakudo::Internals.compare-as-Real(&[%], a, b)
+}
 
 proto sub infix:<%%>($?, $?, *%) is pure  {*}
 multi sub infix:<%%>() { "infix:<%%>".no-zero-arg }
-multi sub infix:<%%>($)         { Bool::True }
+multi sub infix:<%%>($ --> True) { }
 multi sub infix:<%%>(\a, \b) {
     b
-      ?? (a.Real % b.Real == 0)
+      ?? (Rakudo::Internals.compare-as-Real(&[%], a, b) == 0)
       !! X::Numeric::DivideByZero.new(
            using => 'infix:<%%>', numerator => a
          ).Failure
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}
-multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
+multi sub infix:<lcm>() { 'infix:<gcd>'.no-zero-arg }
+multi sub infix:<lcm>($x) { $x.Numeric.Int }
+multi sub infix:<lcm>(\a, \b) {
+    Rakudo::Internals.compare-as-Int(&[lcm], a, b)
+}
 
 proto sub infix:<gcd>($?, $?, *%) is pure {*}
 multi sub infix:<gcd>() { 'infix:<gcd>'.no-zero-arg }
-multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
+multi sub infix:<gcd>($x) { $x.Numeric.Int }
+multi sub infix:<gcd>(\a, \b) {
+    Rakudo::Internals.compare-as-Int(&[gcd], a, b)
+}
 
 proto sub infix:<**>($?, $?, *%) is pure  {*}
-multi sub infix:<**>($x = 1)     { $x.Numeric }
-multi sub infix:<**>(\a, \b)   { a.Numeric ** b.Numeric }
+multi sub infix:<**>(--> 1) { }
+multi sub infix:<**>($x) { $x.Numeric }
+multi sub infix:<**>(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[**], a, b)
+}
 
 proto sub postfix:<ⁿ>($, $, *%) is pure  {*}
 multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
@@ -265,79 +288,105 @@ multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
 ## relational operators
 
 proto sub infix:<==>($?, $?, *%) is pure {*}
-multi sub infix:<==>($?)        { Bool::True }
-multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
-
+multi sub infix:<==>(  --> True) { }
+multi sub infix:<==>($ --> True) { }
+multi sub infix:<==>(\a, \b) {
+    Rakudo::Internals.compare-as-Numeric(&[==], a, b)
+}
 # U+2A75 TWO CONSECUTIVE EQUALS SIGNS
 my constant &infix:<⩵> := &infix:<==>;
 
 proto sub infix:<=~=>($?, $?, *%) {*}  # note, can't be pure due to dynvar
-multi sub infix:<=~=>($?) { Bool::True }
+multi sub infix:<=~=>(  --> True) { }
+multi sub infix:<=~=>($ --> True) { }
 multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
-    # If operands are non-0, scale the tolerance to the larger of the abs values.
+    # If operands are non-0, scale tolerance to the larger of the abs values.
     # We test b first since $value ≅ 0 is the usual idiom and falsifies faster.
     if b && a && $tolerance {
-        abs(a - b) < (a.abs max b.abs) * $tolerance;
+        abs(a - b) < Rakudo::Internals.compare-as-abs(&[max], a, b) * $tolerance
     }
     else {  # interpret tolerance as absolute
-        abs(a.Num - b.Num) < $tolerance;
+        abs(Rakudo::Internals.compare-as-Num(&[-], a, b)) < $tolerance
     }
 }
 # U+2245 APPROXIMATELY EQUAL TO
 my constant &infix:<≅> := &infix:<=~=>;
 
 proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure  {*}
-multi sub infix:<!=>($?)                    { Bool::True }
-multi sub infix:<!=>(Mu \a, Mu \b)          { not a == b }
+multi sub infix:<!=>(  --> True) { }
+multi sub infix:<!=>($ --> True) { }
+multi sub infix:<!=>(Mu \a, Mu \b) { not a == b }
 # U+2260 NOT EQUAL TO
 my constant &infix:<≠> := &infix:<!=>;
 
 proto sub infix:«<»($?, $?, *%) is pure   {*}
-multi sub infix:«<»($?)         { Bool::True }
-multi sub infix:«<»(\a, \b)    { a.Real < b.Real }
+multi sub infix:«<»(  --> True) { }
+multi sub infix:«<»($ --> True) { }
+multi sub infix:«<»(\a, \b) {
+    Rakudo::Internals.compare-as-Real(&[<], a, b)
+}
 
 proto sub infix:«<=»($?, $?, *%) is pure {*}
-multi sub infix:«<=»($?)                   { Bool::True }
-multi sub infix:«<=»(\a, \b)               { a.Real <= b.Real }
+multi sub infix:«<=»(  --> True) { }
+multi sub infix:«<=»($ --> True) { }
+multi sub infix:«<=»(\a, \b) {
+    Rakudo::Internals.compare-as-Real(&[<=], a, b)
+}
 # U+2264 LESS-THAN OR EQUAL TO
 my constant &infix:<≤> := &infix:«<=»;
 
 proto sub infix:«>»($?, $?, *%) is pure   {*}
-multi sub infix:«>»($?)         { Bool::True }
-multi sub infix:«>»(\a, \b)    { a.Real > b.Real }
+multi sub infix:«>»(  --> True) { }
+multi sub infix:«>»($ --> True) { }
+multi sub infix:«>»(\a, \b) {
+    Rakudo::Internals.compare-as-Real(&[>], a, b)
+}
 
 proto sub infix:«>=»($?, $?, *%) is pure  {*}
-multi sub infix:«>=»($?)                    { Bool::True }
-multi sub infix:«>=»(\a, \b)                { a.Real >= b.Real }
+multi sub infix:«>=»(  --> True) { }
+multi sub infix:«>=»($ --> True) { }
+multi sub infix:«>=»(\a, \b) {
+    Rakudo::Internals.compare-as-Real(&[>=], a, b)
+}
 # U+2265 GREATER-THAN OR EQUAL TO
 my constant &infix:<≥> := &infix:«>=»;
 
 ## bitwise operators
 
 proto sub infix:<+&>($?, $?, *%) is pure {*}
-multi sub infix:<+&>()           { +^0 }
-multi sub infix:<+&>($x)         { $x }
-multi sub infix:<+&>($x, $y)     { $x.Numeric.Int +& $y.Numeric.Int }
+multi sub infix:<+&>() { +^0 }  # gets confused about --> +^0
+multi sub infix:<+&>($x) { $x }
+multi sub infix:<+&>($x, $y) {
+    Rakudo::Internals.compare-as-Int(&[+&], $x, $y)
+}
 
 proto sub infix:<+|>($?, $?, *%) is pure {*}
-multi sub infix:<+|>()           { 0 }
-multi sub infix:<+|>($x)         { $x }
-multi sub infix:<+|>($x, $y)     { $x.Numeric.Int +| $y.Numeric.Int }
+multi sub infix:<+|>(--> 0) { }
+multi sub infix:<+|>($x) { $x }
+multi sub infix:<+|>($x, $y) {
+    Rakudo::Internals.compare-as-Int(&[+|], $x, $y)
+}
 
 proto sub infix:<+^>($?, $?, *%) is pure {*}
-multi sub infix:<+^>()           { 0 }
-multi sub infix:<+^>($x)         { $x }
-multi sub infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
+multi sub infix:<+^>(--> 0) { }
+multi sub infix:<+^>($x) { $x }
+multi sub infix:<+^>($x, $y) {
+    Rakudo::Internals.compare-as-Int(&[+^], $x, $y)
+}
 
 proto sub infix:«+<»($?, $?, *%) is pure {*}
 multi sub infix:«+<»() { "infix:«+<»".no-zero-arg }
-multi sub infix:«+<»($x)         { $x }
-multi sub infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
+multi sub infix:«+<»($x) { $x }
+multi sub infix:«+<»($x,$y) {
+    Rakudo::Internals.compare-as-Int(&[+<], $x, $y)
+}
 
 proto sub infix:«+>»($?, $?, *%) is pure {*}
 multi sub infix:«+>»() { "infix:«+>»".no-zero-arg }
-multi sub infix:«+>»($x)         { $x }
-multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
+multi sub infix:«+>»($x) { $x }
+multi sub infix:«+>»($x,$y) {
+    Rakudo::Internals.compare-as-Int(&[+>], $x, $y)
+}
 
 proto sub prefix:<+^>($, *%) is pure {*}
 multi sub prefix:<+^>($x)        { +^ $x.Numeric.Int }

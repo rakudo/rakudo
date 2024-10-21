@@ -3344,7 +3344,9 @@ my class X::Multi::NoMatch is Exception {
     has $.dispatcher;
     has $.capture;
     method message {
-        my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+        my @cand = $.dispatcher.dispatchees.map(
+          *.signature.gist.subst(/ <!after \:> <[$@%&+]> <( <[\w-]>+ /, :g)
+        );
         my @un-rw-cand;
         if first / 'is rw' /, @cand {
             my $rw-capture = Capture.new(
@@ -3353,7 +3355,7 @@ my class X::Multi::NoMatch is Exception {
             );
             @un-rw-cand = $.dispatcher.dispatchees».signature.grep({
                 $rw-capture ~~ $^cand
-            })».gist;
+            })».gist».subst(/ <!after \:> <[$@%&+]> <( <[\w-]>+ /, :g);
         }
 
         my $where = so first / where /, @cand;

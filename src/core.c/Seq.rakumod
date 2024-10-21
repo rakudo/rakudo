@@ -69,6 +69,8 @@ my class Seq is Cool does Iterable does Sequence {
           !! self.cache.Bool
     }
 
+    multi method sort(Seq:D: |c) { self.List.sort(|c) }
+
     multi method raku(Seq:D \SELF:) {
         # If we don't have an iterator, someone grabbed it already;
         # Check for cached $!list; if that's missing too, we're consumed

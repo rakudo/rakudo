@@ -776,7 +776,8 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method sort(|) is nodal {*}
-    multi method sort() {
+    multi method sort(Any:U: |c) { (self,).sort(|c) }
+    multi method sort(Any:D:) {
         my $iterator := self.iterator;
         $iterator.is-monotonically-increasing
           ?? Seq.new($iterator)
@@ -791,7 +792,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   )
                !! X::Cannot::Lazy.new(:action<sort>).throw
     }
-    multi method sort(&by) {
+    multi method sort(Any:D: &by) {
         nqp::unless(
           nqp::eqaddr(
             self.iterator.push-until-lazy(

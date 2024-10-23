@@ -282,7 +282,7 @@ do {
             return $new-self if $new-self;
 
             # Try wrapping rlwrap for a more seamless experience
-            unless %*ENV<_>.ends-with('rlwrap') {
+            unless %*ENV<_> andthen .ends-with('rlwrap') {
                 %*ENV<_>                 := 'rlwrap';
                 %*ENV<RAKUDO_NO_VERSION> := 1;
                 my $proc :=

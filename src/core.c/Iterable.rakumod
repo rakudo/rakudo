@@ -18,9 +18,10 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    multi method flat(Iterable:U: $?) { (self,) }
-    multi method flat(Iterable:D: $levels = Whatever, :$hammer = False) {
-        Seq.new: Rakudo::Iterator.Flat: self.iterator, $levels, $hammer
+    method flat(Iterable: $levels = Whatever, :$hammer = False) is nodal {
+        nqp::isconcrete(self)
+          ?? Seq.new(Rakudo::Iterator.Flat: self.iterator, $levels, $hammer)
+          !! (self,)
     }
 
     method lazy-if($flag) is implementation-detail {

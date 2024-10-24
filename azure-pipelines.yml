@@ -34,7 +34,7 @@ variables:
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
     echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
-  NQP_CHECKOUT_TYPE: downstream
+  NQP_CHECKOUT_TYPE: "rev-04eab468dbb7f96f83b4fe0f70fb9279f71ac4f7-https://github.com/raku/nqp.git"
   MOAR_CHECKOUT_TYPE: "rev-9febceb2b3603797dad8fc356a3d4c58688b9408-https://github.com/MoarVM/MoarVM.git"
 
 stages:

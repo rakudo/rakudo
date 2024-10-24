@@ -254,6 +254,8 @@ stages:
             ${{ variables.PWSH_DEV }}
             perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
 
+            C:\Strawberry\perl\bin\perl.exe -MExtUtils::Command -e mkpath gen\moar\stage1 gen\moar\stage2
+
             $logsBefore = Get-WinEvent -ListLog *
             echo "first attempt to nmake the core setting"
             $Env:MVM_TELEMETRY_LOG = 'spam.txt'
@@ -264,16 +266,18 @@ stages:
             echo "TMP before:" $Env:TMP
             $Env:TMP = '$(Pipeline.Workspace)/nqp'
 
+            C:\Strawberry\perl\bin\perl.exe D:\a\1\nqp\tools\build\gen-cat.pl moar stage1 src\how\Helpers.nqp  src\how\NQPHOWLock.nqp  src\how\Archetypes.nqp  src\how\RoleToRoleApplier.nqp  src\how\NQPConcreteRoleHOW.nqp  src\how\RoleToClassApplier.nqp  src\how\NQPCurriedRoleHOW.nqp  src\how\NQPParametricRoleHOW.nqp  src\how\NQPClassHOW.nqp  src\how\NQPNativeHOW.nqp  src\how\NQPAttribute.nqp  src\how\NQPModuleHOW.nqp  src\how\EXPORTHOW.nqp > gen\moar\stage1\nqpmo.nqp
+
             # echo "turning ProcDump on"
             # ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
             echo "run procdump to wait for moar.exe"
             $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
 
-            echo "try to run with jit ..."
-
-            nmake gen\moar\stage1\nqpmo.nqp
+            echo "going to invoke lldb, wish me luck"
 
             lldb.exe --batch -o 'run' -o 'bt' -k 'bt' -k 'frame variable' -k 'disassemble' -k 'up' -k 'frame variable' -k 'disassemble' -- "D:\a\1\install\bin\moar.exe" --libpath=src\vm\moar\stage0 src\vm\moar\stage0\nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen\moar\stage1\nqpmo.moarvm gen\moar\stage1\nqpmo.nqp
+
+            echo "did that do anything??"
 
             nmake install
 

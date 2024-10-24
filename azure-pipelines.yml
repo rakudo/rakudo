@@ -275,9 +275,13 @@ stages:
 
             echo "going to invoke lldb, wish me luck"
 
-            lldb.exe --batch -o 'run' -o 'bt' -k 'bt' -k 'frame variable' -k 'disassemble' -k 'up' -k 'frame variable' -k 'disassemble' -- "D:\a\1\install\bin\moar.exe" --libpath=src\vm\moar\stage0 src\vm\moar\stage0\nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen\moar\stage1\nqpmo.moarvm gen\moar\stage1\nqpmo.nqp
+            lldb.exe --batch -o 'run' -o 'bt' -k 'bt' -k 'frame variable' -k 'disassemble' -k 'up' -k 'frame variable' -k 'disassemble' -- D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
 
             echo "did that do anything??"
+
+            echo "lldb version?"
+            lldb.exe --version
+            echo "hopefully that worked?????"
 
             nmake install
 

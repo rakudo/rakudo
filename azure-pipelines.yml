@@ -199,22 +199,6 @@ stages:
         - script: choco install sysinternals --confirm --no-progress --cache $(System.DefaultWorkingDirectory)/choco_cache
           displayName: 'install choco packages'
 
-        # Build NQP
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
-            nmake install && cp -r ..\install ..\install-nqp-and-moar
-          failOnStderr: false
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), ne( variables.NQP_CACHE_RESTORED, 'true') )
-          displayName: Build NQP (Windows)
-
-        - pwsh: |
-            Copy-Item -Path ..\install\bin -Destination . -Recurse
-          displayName: copy binaries and dlls into PWD
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: always()
-
         #- pwsh: |
         #    ${{ variables.PWSH_DEV }}
         #    echo "grabbing Get-PdbSymbol script"
@@ -264,6 +248,53 @@ stages:
             }
             echo "done...?"
 
+
+        # Build NQP
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
+
+            $logsBefore = Get-WinEvent -ListLog *
+            echo "first attempt to nmake the core setting"
+            $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            # $Env:MVM_JIT_DUMP_BYTECODE = 1
+            $Env:MVM_SPESH_BLOCKING = 1
+            echo "TMP before: $TMP"
+            echo "TMP before:" $Env:TMP
+            $Env:TMP = '$(Pipeline.Workspace)/nqp'
+
+            # echo "turning ProcDump on"
+            # ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
+            echo "run procdump to wait for moar.exe"
+            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
+
+            echo "try to run with jit ..."
+
+            nmake install
+
+            sleep 10
+
+            echo "output from procdump job:"
+            Receive-Job -Job $dumpjob
+            echo "end of output"
+            echo "killing procdump"
+            Stop-Job -Job $dumpjob
+            Receive-Job -Job $dumpjob -Wait
+
+            ls -l '$(Pipeline.Workspace)/nqp'
+            cp -r ..\install ..\install-nqp-and-moar
+          failOnStderr: false
+          workingDirectory: '$(Pipeline.Workspace)/nqp'
+          condition: and(succeeded(), ne( variables.NQP_CACHE_RESTORED, 'true') )
+          displayName: Build NQP (Windows)
+
+        - pwsh: |
+            Copy-Item -Path ..\install\bin -Destination . -Recurse
+          displayName: copy binaries and dlls into PWD
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: always()
+
         # Build Rakudo
         - script: |
             perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
@@ -312,7 +343,6 @@ stages:
             echo "killing procdump"
             Stop-Job -Job $dumpjob
             Receive-Job -Job $dumpjob -Wait
-            #>
 
             ls -l '$(Pipeline.Workspace)/rakudo'
           failOnStderr: false

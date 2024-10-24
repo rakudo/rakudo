@@ -271,6 +271,10 @@ stages:
 
             echo "try to run with jit ..."
 
+            nmake gen\moar\stage1\nqpmo.nqp
+
+            lldb.exe --batch -o 'run' -o 'bt' -k 'bt' -k 'frame variable' -k 'disassemble' -k 'up' -k 'frame variable' -k 'disassemble' -- "D:\a\1\install\bin\moar.exe" --libpath=src\vm\moar\stage0 src\vm\moar\stage0\nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen\moar\stage1\nqpmo.moarvm gen\moar\stage1\nqpmo.nqp
+
             nmake install
 
             sleep 10

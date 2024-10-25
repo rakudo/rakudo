@@ -306,6 +306,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::hllbool(nqp::eqat(self,$needle,$pos))
     }
 
+    multi method substr-eq(Str:D: Str:D $needle, Callable:D $pos --> Bool:D) {
+        self.substr-eq($needle, $pos(self.chars), |%_)
+    }
+
     multi method contains(Str:D:
       Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {

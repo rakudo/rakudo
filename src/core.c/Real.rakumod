@@ -64,25 +64,7 @@ my role Real does Numeric {
     }
     method isNaN { Bool::False }
 
-    method polymod(Real:D: +@mods) {
-        my $more = self;
-        my $lazy = @mods.is-lazy;
-        fail X::OutOfRange.new(
-          :what('invocant to polymod'), :got($more), :range<0..Inf>
-        ) if $more < 0;
-        gather {
-            for @mods -> $mod {
-                last if $lazy and not $more;
-                Failure.new(X::Numeric::DivideByZero.new:
-                  using => 'polymod', numerator => $more
-                ) unless $mod;
-                take my $rem = $more % $mod;
-                $more -= $rem;
-                $more /= $mod;
-            }
-            take $more if ($lazy and $more) or not $lazy;
-        }
-    }
+    method polymod(Real:D: +@mods) { Rakudo::Iterator.Polymod(self, @mods) }
 
     method base(Int:D $base, $digits? is copy) {
         $digits = Nil if nqp::istype($digits, Whatever);

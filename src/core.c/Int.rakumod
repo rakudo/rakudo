@@ -142,42 +142,6 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method base(Int:D: "camel" --> Str:D) { self!eggify: "🐪🐫" }
     multi method base(Int:D: "beer"  --> Str:D) { self!eggify: "🍺🍻" }
 
-    # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
-    # If do-not-want, user should cast invocant to proper domain.
-    method polymod(Int:D: +@mods --> Seq:D) {
-        fail X::OutOfRange.new(
-          :what('invocant to polymod'), :got(self), :range<0..^Inf>
-        ) if self < 0;
-
-        gather {
-            my $more = self;
-            if @mods.is-lazy {
-                for @mods -> $mod {
-                    $more
-                      ?? $mod
-                        ?? take $more mod $mod
-                        !! X::Numeric::DivideByZero.new(
-                             using => 'polymod', numerator => $more
-                           ).Failure
-                      !! last;
-                    $more = $more div $mod;
-                }
-                take $more if $more;
-            }
-            else {
-                for @mods -> $mod {
-                    $mod
-                      ?? take $more mod $mod
-                      !! X::Numeric::DivideByZero.new(
-                           using => 'polymod', numerator => $more
-                         ).Failure;
-                    $more = $more div $mod;
-                }
-                take $more;
-            }
-        }
-    }
-
     method expmod(Int:D: Int:D \base, Int:D \mod --> Int:D) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }

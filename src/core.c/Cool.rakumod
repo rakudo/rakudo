@@ -184,29 +184,14 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr-eq(|) {*}
-    multi method substr-eq(Cool:D:
-      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
-        self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
+    multi method substr-eq(Cool:D: Any:D $needle) {
+        self.Str.starts-with($needle.Str, |%_)
     }
-    multi method substr-eq(Cool:D:
-      Cool:D $needle, :m(:$ignoremark) --> Bool:D) {
-        self.Str.starts-with($needle.Str, :$ignoremark)
+    multi method substr-eq(Cool:D: Any:D $needle, Cool:D $pos) {
+        self.Str.substr-eq($needle.Str, $pos.Int, |%_)
     }
-    multi method substr-eq(Cool:D: Cool:D $needle --> Bool:D) {
-        self.Str.starts-with($needle.Str)
-    }
-
-    multi method substr-eq(Cool:D:
-      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
-    --> Bool:D) {
-        self.Str.substr-eq($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
-    }
-    multi method substr-eq(Cool:D:
-      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Bool:D) {
-        self.Str.substr-eq($needle.Str, $pos.Int, :$ignoremark)
-    }
-    multi method substr-eq(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
-        self.Str.substr-eq($needle.Str, $pos.Int)
+    multi method substr-eq(Cool:D: Any:D $needle, Any:D $pos) {
+        self.Str.substr-eq($needle.Str, $pos, |%_)
     }
 
     method !list-as-string($suggestion) is hidden-from-backtrace {

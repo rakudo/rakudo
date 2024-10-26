@@ -277,7 +277,7 @@ stages:
 
             echo "going to invoke gdb, wish me luck"
 
-            gdb -batch -ex 'start' -ex 'c' -ex 'bt full' --args D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
+            gdb -batch -ex 'start' -ex 'c' -ex 'bt full' D:/a/1/install/bin/moar.exe --args D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
 
             echo "did that do anything??"
 

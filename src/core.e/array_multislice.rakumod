@@ -219,13 +219,14 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                           EXISTS-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
+                    elsif nqp::istype(idx,Callable) {
+                        EXISTS-POS-recursively(
+                          SELF.AT-POS(.Int), nqp::atpos($indices,$dim)
+                        ) for idx.(SELF.elems);
+                    }
                     else  {
                         EXISTS-POS-recursively(
-                          SELF.AT-POS(nqp::istype(idx,Callable)
-                            ?? (idx.(SELF.elems)).Int
-                            !! idx.Int
-                          ),
-                          nqp::atpos($indices,$dim)
+                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
                         );
                     }
                     --$dim;  # done at this level
@@ -240,14 +241,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       nqp::push(target,$wantnot ?^ SELF.EXISTS-POS($i))
                     );
                 }
+                elsif nqp::istype(idx,Callable) {
+                    nqp::push(target, $wantnot ?^ SELF.EXISTS-POS(.Int))
+                      for idx.(SELF.elems);
+                }
                 else {
-                    nqp::push(
-                      target,
-                      $wantnot ?^ SELF.EXISTS-POS(nqp::istype(idx,Callable)
-                        ?? (idx.(SELF.elems)).Int
-                        !! idx.Int
-                      )
-                    );
+                    nqp::push(target, $wantnot ?^ SELF.EXISTS-POS(idx.Int));
                 }
             }
 
@@ -279,13 +278,14 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                           DELETE-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
+                    elsif nqp::istype(idx,Callable) {
+                        DELETE-POS-recursively(
+                          SELF.AT-POS(.Int), nqp::atpos($indices,$dim)
+                        ) for idx.(SELF.elems);
+                    }
                     else  {
                         DELETE-POS-recursively(
-                          SELF.AT-POS(nqp::istype(idx,Callable)
-                            ?? (idx.(SELF.elems)).Int
-                            !! idx.Int
-                          ),
-                          nqp::atpos($indices,$dim)
+                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
                         );
                     }
                     --$dim;  # done at this level
@@ -305,14 +305,19 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       )
                     );
                 }
-                else {
-                    my $index := nqp::istype(idx,Callable)
-                      ?? (idx.(SELF.elems)).Int
-                      !! idx.Int;
+                elsif nqp::istype(idx,Callable) {
                     nqp::push(
                       target,
-                      SELF.EXISTS-POS($index)
-                        ?? non-assignable(SELF.DELETE-POS($index))
+                      SELF.EXISTS-POS(.Int)
+                        ?? non-assignable(SELF.DELETE-POS(.Int))
+                        !! Nil
+                    ) for idx.(SELF.elems);
+                }
+                else {
+                    nqp::push(
+                      target,
+                      SELF.EXISTS-POS(idx.Int)
+                        ?? non-assignable(SELF.DELETE-POS(idx.Int))
                         !! Nil
                     );
                 }
@@ -479,13 +484,15 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         );
                     }
                     elsif nqp::istype(idx,Callable) {
-                        my $index := (idx.(SELF.elems)).Int;
-                        nqp::push($keys,$index),
-                        PROCESS-POS-recursively(
-                          SELF.AT-POS($index),
-                          nqp::atpos($indices,$dim)
-                        );
-                        nqp::pop($keys)
+                        for idx.(SELF.elems) {
+                            my $index = .Int;
+                            nqp::push($keys,$index);
+                            PROCESS-POS-recursively(
+                              SELF.AT-POS($index),
+                              nqp::atpos($indices,$dim)
+                            );
+                            nqp::pop($keys)
+                        }
                     }
                     else  {
                         nqp::push($keys,idx.Int);
@@ -506,11 +513,11 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       process(SELF, $i)
                     );
                 }
+                elsif nqp::istype(idx,Callable) {
+                    process(SELF, .Int) for idx.(SELF.elems);
+                }
                 else {
-                    process(
-                      SELF,
-                      nqp::istype(idx,Callable) ?? (idx.(SELF.elems)) !! idx.Int
-                    );
+                    process(SELF, idx.Int);
                 }
             }
 
@@ -544,13 +551,14 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       AT-POS-recursively(SELF.AT-POS($i), next-idx)
                     );
                 }
+                elsif nqp::istype(idx,Callable) {
+                    AT-POS-recursively(
+                      SELF.AT-POS(.Int), nqp::atpos($indices,$dim)
+                    ) for idx.(SELF.elems);
+                }
                 else  {
                     AT-POS-recursively(
-                      SELF.AT-POS(nqp::istype(idx,Callable)
-                        ?? (idx.(SELF.elems)).Int
-                        !! idx.Int
-                      ),
-                      nqp::atpos($indices,$dim)
+                      SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
                     );
                 }
                 --$dim;  # done at this level
@@ -565,14 +573,11 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                   nqp::push(target,SELF.AT-POS($i))
                 );
             }
+            elsif nqp::istype(idx,Callable) {
+                nqp::push(target,SELF.AT-POS(.Int)) for idx.(SELF.elems);
+            }
             else {
-                nqp::push(
-                  target,
-                  SELF.AT-POS(nqp::istype(idx,Callable)
-                    ?? (idx.(SELF.elems)).Int
-                    !! idx.Int
-                  )
-                );
+                nqp::push(target,SELF.AT-POS(idx.Int));
             }
         }
 

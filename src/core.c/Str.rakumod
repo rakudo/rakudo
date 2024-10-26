@@ -3492,59 +3492,69 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::istype(want, Callable) ?? want !! want.Int)
     }
 
-    multi method substr-rw(Str:D: |) {
-        Failure.new("'substr-rw' requires a writeable container")
+    multi method substr-rw(Str:D $container is rw:) is rw {
+        self!substr-proxify($container, 0, self.chars)
     }
-    multi method substr-rw(Str:D $SELF is rw:) is rw {
-        $SELF.substr-rw(0, nqp::chars($!value), self)
+    multi method substr-rw(Str:D $container is rw: Range:D $range) is rw {
+        my $start := $range.min.Int + $range.excludes-min;
+        self!substr-proxify(
+          $container,
+          $start,
+          $range.max == Inf
+            ?? self.chars - $start
+            !! $range.max.Int - $range.excludes-max - $start + 1
+        )
     }
-    multi method substr-rw(Str:D $SELF is rw: \start) is rw {
-        $SELF.substr-rw(start, Whatever, self)
+    multi method substr-rw(Str:D $container is rw: Callable:D $code) is rw {
+        my int $chars = self.chars;
+        my int $start = $code($chars);
+        self!substr-proxify($container, $start, $chars - $start)
     }
-    multi method substr-rw(Str:D $SELF is rw: \start, \want) is rw {
-        $SELF.substr-rw(start, want, self)
+    multi method substr-rw(Str:D $container is rw: Int(Any) $start) is rw {
+        self!substr-proxify($container, $start, self.chars - $start)
     }
-    multi method substr-rw(Str:D $SELF is rw:
-      \start, $want, \what
-    ) is rw is implementation-detail {
-        my int $max  = nqp::chars($!value);
-        my int $from = nqp::istype(start,Callable)
-          ?? (start)($max)
-          !! nqp::istype(start,Range)
-            ?? start.min + start.excludes-min
-            !! start.Int;
-        return self!SUBSTR-START-OOR($from)
-          if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
+    multi method substr-rw(Str:D $container is rw:
+      Int(Any) $start, Whatever
+    ) is rw {
+        self!substr-proxify($container, $start, self.chars - $start)
+    }
+    multi method substr-rw(Str:D $container is rw:
+      Int(Any) $start, Any:D $want
+    ) is rw {
+        self!substr-proxify($container, $start, $want)
+    }
 
-        my int $chars = nqp::istype(start,Range)
-          ?? start.max == Inf
-            ?? nqp::sub_i($max,$from)
-            !! start.max - start.excludes-max - $from + 1
-          !! nqp::istype($want,Whatever) || $want == Inf
-            ?? nqp::sub_i($max,$from)
-            !! nqp::istype($want,Callable)
-              ?? $want(nqp::sub_i($max,$from))
-              !! $want.Int;
+    method !substr-proxify(
+      Str:D $container is rw, int $from, Any:D $want is copy
+    ) is rw {
+        my int $max   = self.chars;
+        my int $chars = nqp::istype($want,Callable)
+          ?? $want($max) - $from
+          !! $want == Inf
+            ?? $max - $from
+            !! $want.Int;
 
-        nqp::islt_i($chars,0)
-          ?? self!SUBSTR-CHARS-OOR($chars)
-          !! Proxy.new(
-               FETCH => sub ($) {        # need to access updated HLL Str
-                   nqp::substr(nqp::unbox_s($SELF),$from,$chars)
-               },
-               STORE => sub ($, Str() $new) {
-                   $SELF = nqp::box_s(    # need to make it a new HLL Str
-                     nqp::concat(
-                       nqp::substr($!value,0,$from),
+        nqp::islt_i($from,0) || nqp::isge_i($from,$max)
+          ?? self!SUBSTR-START-OOR($from)
+          !! nqp::islt_i($chars,0)
+            ?? self!SUBSTR-CHARS-OOR($chars)
+            !! Proxy.new(
+                 FETCH => sub ($) {            # need to access updated HLL Str
+                     nqp::substr(nqp::unbox_s($container),$from,$chars)
+                 },
+                 STORE => sub ($, Str() $new) {
+                     $container = nqp::box_s(  # need to make it a new HLL Str
                        nqp::concat(
-                         nqp::unbox_s($new),
-                         nqp::substr($!value,nqp::add_i($from,$chars))
-                       )
-                     ),
-                     what
-                   )
-               }
-             )
+                         nqp::substr($!value,0,$from),
+                         nqp::concat(
+                           nqp::unbox_s($new),
+                           nqp::substr($!value,nqp::add_i($from,$chars))
+                         )
+                       ),
+                       self.WHAT
+                     )
+                 }
+               )
     }
 
     multi method codes(Str:D: --> Int:D) {

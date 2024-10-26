@@ -196,7 +196,9 @@ stages:
           inputs:
             key: '"chocolatey" | "sysinternals"'
             path: '$(System.DefaultWorkingDirectory)/choco_cache'
-        - script: choco install sysinternals llvm --confirm --no-progress --cache $(System.DefaultWorkingDirectory)/choco_cache
+        - script: |
+            choco install sysinternals --confirm --no-progress --cache $(System.DefaultWorkingDirectory)/choco_cache
+            choco info llvm
           displayName: 'install choco packages'
 
         #- pwsh: |

@@ -1,19 +1,16 @@
 my class IO::CatHandle is IO::Handle {
-    has $!handles;
+    has @!handles       is built(:bind);
+    has $!iterator;
     has $!active-handle is default(Nil);
 
-    has $.chomp is rw;
-    has $.nl-in;
-    has Str $.encoding;
-    has &.on-switch is rw;
+    has Str  $.encoding;
+    has      &.on-switch is rw;
+    has Bool $.chomp     is rw = True;
+    has      $.nl-in           = ["\x0A", "\r\n"];
 
     multi method raku(::?CLASS:D:) {
-        my @handles =
-            ($!active-handle if $!active-handle),
-            |nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!handles);
-
         my $parts = join ', ',
-            (@handles.List.raku if @handles),
+            @!handles.List.raku,
             (':!chomp' if not $!chomp),
             (":nl-in({$!nl-in.list.raku})" if $!nl-in !eqv ["\x0A", "\r\n"]),
             (nqp::isconcrete($!encoding)
@@ -24,74 +21,68 @@ my class IO::CatHandle is IO::Handle {
         "{self.^name}.new($parts)"
     }
 
-    method !SET-SELF (
-        @handles, &!on-switch, $!chomp, $!nl-in, $encoding, $bin
-    ) {
+    method new(*@handles) { self.bless(:@handles, |%_) }
+    submethod TWEAK(:$bin) {
         $bin
-          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
-          !! ($!encoding = $encoding || 'utf8');
+          ?? nqp::isconcrete($!encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding //= 'utf8');
 
-        @handles.elems; # reify
-        $!handles := nqp::getattr(@handles || [], List, '$!reified');
+        $!iterator := @!handles.iterator;
         self.next-handle;
-        self
     }
-    method new (
-        *@handles, :&on-switch,
-        :$chomp = True, :$nl-in = ["\x0A", "\r\n"], Str :$encoding, Bool :$bin
-    ) {
-        self.bless!SET-SELF:
-            @handles, &on-switch, $chomp, $nl-in, $encoding, $bin
-    }
-    method next-handle {
-      # Set $!active-handle to the next handle in line, opening it if necessary
-      nqp::stmts(
-        (my $old-handle is default(Nil) = $!active-handle),
-        nqp::if(
-          nqp::defined($!active-handle),
-          (my $ = $!active-handle.close)), # don't sink the result, since it might
-          # .. be an IO::Pipe that returns a Proc that might throw
-        nqp::if(
-          nqp::elems($!handles),
-          nqp::if(
-            nqp::istype(($_ := nqp::shift($!handles)), IO::Handle),
-            nqp::if(
-              .opened,
-              nqp::stmts(
-                (.encoding: $!encoding), # *Jedi wave*
-                (.nl-in = $!nl-in),      # These aren't the attribute assignment
-                (.chomp = $!chomp),      # inconsistencies you're looking for!
-                $!active-handle = $_),
-              nqp::if(
-                nqp::istype(
-                  ($_ = .open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                    :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
-                  Failure),
-                .throw,
-                ($!active-handle = $_))),
-            nqp::if(
-              nqp::istype(
-                ($_ := .IO.open: :r, :$!chomp, :$!nl-in, :enc($!encoding),
-                  :bin(nqp::hllbool(nqp::isfalse($!encoding)))),
-                Failure),
-              .throw,
-              ($!active-handle = $_))),
-          ($!active-handle = Nil)),
-        nqp::if(
-          &!on-switch,
-          nqp::stmts(
-            (my $c := &!on-switch.count),
-            nqp::if(
-              $c,
-              nqp::if(
-                nqp::istype($c, Num) || nqp::iseq_i($c, 2), # inf or 2
-                &!on-switch($!active-handle, $old-handle),
-                nqp::if(
-                  nqp::iseq_i($c, 1),
-                  &!on-switch($!active-handle),
-                  die ':&on-switch must have .count 0, 1, 2, or Inf')),
-              &!on-switch()))),
-        $!active-handle)
+
+    # Set $!active-handle to the next handle in line, opening it if necessary
+    method next-handle() is implementation-detail {
+        my $old-handle is default(Nil) = $!active-handle;
+
+        # Don't sink the result, since it might be an IO::Pipe that
+        # returns a Proc that might throw
+        my $ = .close with $!active-handle;
+
+        # Logic for actually activating the next handle
+        sub open($what) {
+            my $handle = $what.open:
+              :r, :$!chomp, :$!nl-in, :enc($!encoding),
+              :bin(nqp::hllbool(nqp::isfalse($!encoding)));
+            nqp::istype($handle,Failure)
+              ?? $handle.throw
+              !! $handle
+        }
+
+        if nqp::eqaddr((my $handle := $!iterator.pull-one),IterationEnd) {
+            $!active-handle = Nil;
+        }
+        elsif nqp::istype($handle,IO::Handle) {
+            if $handle.opened {
+                # These aren't the attribute assignment inconsistencies
+                # you're looking for!
+                $handle.encoding: $!encoding; # *Jedi wave*
+                $handle.nl-in   = $!nl-in;
+                $handle.chomp   = $!chomp;
+                $!active-handle = $handle;
+            }
+            else {
+                $!active-handle = open($handle);
+            }
+        }
+        else {
+            $!active-handle = open($handle.IO);
+        }
+
+        if &!on-switch {
+            if &!on-switch.count -> $c {
+                $c == Inf || $c == 2
+                  ?? &!on-switch($!active-handle, $old-handle)
+                  !! $c == 1
+                    ?? &!on-switch($!active-handle)
+                    !! die ':&on-switch must have .count 0, 1, 2, or Inf';
+            }
+            else {
+                &!on-switch();
+            }
+        }
+
+        $!active-handle
     }
 
     my class Handles does Iterator {
@@ -307,19 +298,16 @@ my class IO::CatHandle is IO::Handle {
         # Note: our IO::Handles might be IO::Pipes, whose .close
         # method returns the Proc object, which will explode when sunk if the
         # process exited unsuccessfully. So here, we ensure we never sink it.
-        nqp::stmts(
+
+        my $unsink = .close with $!active-handle;
+        nqp::until(
+          nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
           nqp::if(
-            nqp::defined($!active-handle),
-            my $ = $!active-handle.close),
-          (my int $i = -1),
-          (my int $els = nqp::elems($!handles)),
-          nqp::while(
-            nqp::isgt_i($els,++$i),
-            nqp::if(
-              nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
-              my $ = .close)),
-          ($!handles := nqp::list),
-          ($!active-handle = Nil))
+            nqp::istype($pulled,IO::Handle),
+            ($unsink = $pulled.close)
+          )
+        );
+        $!active-handle = Nil;
     }
 
     proto method encoding(|) {*}

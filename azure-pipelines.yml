@@ -270,10 +270,10 @@ stages:
 
             C:\Strawberry\perl\bin\perl.exe D:\a\1\nqp\tools\build\gen-cat.pl moar stage1 src\how\Helpers.nqp  src\how\NQPHOWLock.nqp  src\how\Archetypes.nqp  src\how\RoleToRoleApplier.nqp  src\how\NQPConcreteRoleHOW.nqp  src\how\RoleToClassApplier.nqp  src\how\NQPCurriedRoleHOW.nqp  src\how\NQPParametricRoleHOW.nqp  src\how\NQPClassHOW.nqp  src\how\NQPNativeHOW.nqp  src\how\NQPAttribute.nqp  src\how\NQPModuleHOW.nqp  src\how\EXPORTHOW.nqp > gen\moar\stage1\nqpmo.nqp
 
-            # echo "turning ProcDump on"
-            # ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
-            echo "run procdump to wait for moar.exe"
-            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
+            echo "turning ProcDump on"
+            ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
+            # echo "run procdump to wait for moar.exe"
+            # $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
 
             # echo "going to invoke gdb, wish me luck"
 
@@ -285,12 +285,12 @@ stages:
 
             sleep 10
 
-            echo "output from procdump job:"
-            Receive-Job -Job $dumpjob
-            echo "end of output"
-            echo "killing procdump"
-            Stop-Job -Job $dumpjob
-            Receive-Job -Job $dumpjob -Wait
+            # echo "output from procdump job:"
+            # Receive-Job -Job $dumpjob
+            # echo "end of output"
+            # echo "killing procdump"
+            # Stop-Job -Job $dumpjob
+            # Receive-Job -Job $dumpjob -Wait
 
             ls -l '$(Pipeline.Workspace)/nqp'
           failOnStderr: false

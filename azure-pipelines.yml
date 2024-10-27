@@ -55,7 +55,7 @@ stages:
           IMAGE_NAME: 'windows-latest'
           RAKUDO_OPTIONS: '--relocatable'
           NQP_OPTIONS: '--backends=moar --relocatable'
-          MOAR_OPTIONS: '--telemeh --relocatable --no-mimalloc'
+          MOAR_OPTIONS: '--relocatable --no-mimalloc'
            #Win_JVM:
            #  IMAGE_NAME: 'windows-latest'
            #  BACKEND: 'JVM'

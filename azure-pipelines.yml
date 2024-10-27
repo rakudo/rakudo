@@ -272,8 +272,8 @@ stages:
 
             # echo "turning ProcDump on"
             # ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
-            # echo "run procdump to wait for moar.exe"
-            # $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
+            echo "run procdump to wait for moar.exe"
+            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
 
             # echo "going to invoke gdb, wish me luck"
 
@@ -283,14 +283,14 @@ stages:
 
             nmake install
 
-            # sleep 10
+            sleep 10
 
-            # echo "output from procdump job:"
-            # Receive-Job -Job $dumpjob
-            # echo "end of output"
-            # echo "killing procdump"
-            # Stop-Job -Job $dumpjob
-            # Receive-Job -Job $dumpjob -Wait
+            echo "output from procdump job:"
+            Receive-Job -Job $dumpjob
+            echo "end of output"
+            echo "killing procdump"
+            Stop-Job -Job $dumpjob
+            Receive-Job -Job $dumpjob -Wait
 
             ls -l '$(Pipeline.Workspace)/nqp'
           failOnStderr: false

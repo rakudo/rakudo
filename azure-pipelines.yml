@@ -260,8 +260,8 @@ stages:
 
             $logsBefore = Get-WinEvent -ListLog *
             echo "first attempt to nmake the core setting"
-            $Env:MVM_TELEMETRY_LOG = 'spam.txt'
-            $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            # $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            # $Env:MVM_SPESH_LOG = 'speshlog.txt'
             # $Env:MVM_JIT_DUMP_BYTECODE = 1
             $Env:MVM_SPESH_BLOCKING = 1
             echo "TMP before: $TMP"
@@ -272,28 +272,27 @@ stages:
 
             # echo "turning ProcDump on"
             # ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
-            echo "run procdump to wait for moar.exe"
-            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
+            # echo "run procdump to wait for moar.exe"
+            # $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
 
-            echo "going to invoke gdb, wish me luck"
+            # echo "going to invoke gdb, wish me luck"
 
-            gdb -batch -ex 'start' -ex 'c' -ex 'bt full' D:/a/1/install/bin/moar.exe --args D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
+            # gdb -batch -ex 'start' -ex 'c' -ex 'bt full' D:/a/1/install/bin/moar.exe --args D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
 
-            echo "did that do anything??"
+            # echo "did that do anything??"
 
             nmake install
 
-            sleep 10
+            # sleep 10
 
-            echo "output from procdump job:"
-            Receive-Job -Job $dumpjob
-            echo "end of output"
-            echo "killing procdump"
-            Stop-Job -Job $dumpjob
-            Receive-Job -Job $dumpjob -Wait
+            # echo "output from procdump job:"
+            # Receive-Job -Job $dumpjob
+            # echo "end of output"
+            # echo "killing procdump"
+            # Stop-Job -Job $dumpjob
+            # Receive-Job -Job $dumpjob -Wait
 
             ls -l '$(Pipeline.Workspace)/nqp'
-            cp -r ..\install ..\install-nqp-and-moar
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
           condition: and(succeeded(), ne( variables.NQP_CACHE_RESTORED, 'true') )

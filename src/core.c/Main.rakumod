@@ -89,12 +89,15 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
         my %options-with-req-arg = Hash.new;
         for &main.candidates {
-            for .signature.params -> $param {
-                if !$param.named { next }
+            for .signature.params.map({ $_ if .named }) -> $param {
                 for $param.named_names -> str $name {
                     my int $accepts-true = $param.type.ACCEPTS: True;
-                    for $param.constraint_list { $accepts-true++ if try .ACCEPTS: True}
-                    if !$accepts-true { %options-with-req-arg.push($name => True) }
+                    for $param.constraint_list {
+                        ++$accepts-true if try .ACCEPTS: True
+                    }
+                    unless $accepts-true {
+                        %options-with-req-arg.push($name => True)
+                    }
                 }
             }
         }
@@ -121,7 +124,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     $optstring = nqp::substr($passed-value, 3);
                     $negated = 1;
                 }
-                else { $optstring = nqp::substr($passed-value, 2) }
+                else {
+                    $optstring = nqp::substr($passed-value, 2)
+                }
             }
             # short option
             elsif $passed-value ne '-'
@@ -133,7 +138,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     $optstring = nqp::substr($passed-value, 2);
                     $negated = 1;
                 }
-                else { $optstring = nqp::substr($passed-value, 1) }
+                else {
+                    $optstring = nqp::substr($passed-value, 1)
+                }
             }
             # positional
             else {
@@ -141,13 +148,17 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 next;
             }
 
-
             my $split  := nqp::split("=",$optstring);
             $optstring = nqp::shift($split);
             my str $arg = nqp::join('=', $split);
-            if $bundling && $short-opt && nqp::isgt_i(nqp::chars($optstring), 1) {
-                die "Can't combine bundling with explicit negation"  if $negated;
-                die "Can't combine bundling with explicit arguments" if nqp::elems($split);
+            if $bundling
+              && $short-opt
+              && nqp::isgt_i(nqp::chars($optstring),1) {
+                die "Can't combine bundling with explicit negation"
+                  if $negated;
+                die "Can't combine bundling with explicit arguments"
+                  if nqp::elems($split);
+
                 my int $cursor = 1;
                 my str $short-opt = nqp::substr($optstring, 0, 1);
                 while $short-opt {
@@ -155,10 +166,14 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     $short-opt = nqp::substr($optstring, $cursor++, 1);
                 }
             }
-            else  {
+            else {
                 if nqp::existskey(%options-with-req-arg, $optstring) {
-                    if !$arg { $arg = @args.shift // '' }
-                    %named.push: $optstring => ($negated ?? thevalue($arg) but False !! thevalue($arg));
+                    $arg = @args.shift // '' unless $arg;
+
+                    %named.push: $optstring => ($negated
+                      ?? thevalue($arg) but False
+                      !! thevalue($arg)
+                    );
                 }
                 elsif nqp::not_i(nqp::elems($split)) {
                     %named.push: $optstring => ($negated ?? False !! True)
@@ -420,7 +435,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
     # Get a list of candidates that match according to the dispatcher
     my @candidates = find-candidates($capture);
-    if !@candidates {
+    unless @candidates {
         my $alternate = scalars-into-arrays($capture);
         if find-candidates($alternate) -> @alternates {
             $capture   := $alternate;

@@ -53,6 +53,7 @@ my class Thread {
 
         my $entry := anon sub THREAD-ENTRY() {
             my $*THREAD = self;
+            nqp::setthreadname(nqp::threadid($!vm_thread) ~ ": " ~ $!name);
             CONTROL {
                 default {
 #?if !jvm

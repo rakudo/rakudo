@@ -127,7 +127,7 @@ my class Thread {
         "Thread<$.id>($.name)"
     }
     multi method gist(Thread:D:) {
-        "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
+        ($.app_lifetime ?? "App-Lifetime " !! "") ~ "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
     }
 
     method yield(Thread:U: --> Nil) {

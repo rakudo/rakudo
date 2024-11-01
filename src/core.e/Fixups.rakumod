@@ -210,6 +210,15 @@ augment class Pair {
 #-------------------------------------------------------------------------------
 augment class Range {
 
+    # See https://github.com/rakudo/rakudo/issues/2238
+    multi method generic-string-sequence() is default {
+        Rakudo::Iterator.SuccFromTo(
+          $!excludes-min ?? $!min.succ !! $!min,
+          $!excludes-max,
+          $!max
+        )
+    }
+
     # handle Range.Bool correctly
     multi method Bool(Range:D: --> Bool:D) is default {
         $!is-int

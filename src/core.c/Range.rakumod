@@ -145,6 +145,17 @@ my class Range is Cool does Iterable does Positional {
         method is-monotonically-increasing(--> True) { }
     }
 
+    proto method generic-string-sequence(|) is implementation-detail {*}
+    # In 6.c/d we use the magic sequence, identical to ...
+    # See https://github.com/rakudo/rakudo/issues/2238
+    multi method generic-string-sequence() {
+        SEQUENCE(
+          ($!excludes-min ?? $!min.succ !! $!min),
+          $!max,
+          :exclude_end($!excludes-max)
+        )
+    }
+
     method iterator() {
         if $!min after $!max {
             Rakudo::Iterator.Empty       # nothing to iterate over
@@ -179,11 +190,7 @@ my class Range is Cool does Iterable does Positional {
                    $!min,$!max.Str,$!excludes-min,$!excludes-max
                  )
               # generic string sequence
-              !! SEQUENCE(
-                   ($!excludes-min ?? $!min.succ !! $!min),
-                   $!max,
-                   :exclude_end($!excludes-max)
-                 )
+              !! self.generic-string-sequence
         }
         else {
             Rakudo::Iterator.SuccFromTo(

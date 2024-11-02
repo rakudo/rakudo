@@ -3534,9 +3534,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? $max - $from
             !! $want.Int;
 
-        nqp::islt_i($from,0) || nqp::isge_i($from,$max)
+        $from < 0 || $from > $max
           ?? self!SUBSTR-START-OOR($from)
-          !! nqp::islt_i($chars,0)
+          !! $chars < 0
             ?? self!SUBSTR-CHARS-OOR($chars)
             !! Proxy.new(
                  FETCH => sub ($) {            # need to access updated HLL Str

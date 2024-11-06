@@ -132,6 +132,12 @@ my class Proc::Async {
 
     method pty(--> Bool) { $!pty }
 
+    method resize-pty(Int :$cols, Int :$rows) {
+        $!pty-cols := $cols;
+        $!pty-rows := $rows;
+        nqp::syscall('pty-resize', $!process_handle, nqp::unbox_i($!pty-cols), nqp::unbox_i($!pty-rows));
+    }
+
     proto method new(|) {*}
     multi method new(*@args where .so) {
         # XXX TODO .args and .path deprecated on 2018-11-04 to be

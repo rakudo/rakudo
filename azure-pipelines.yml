@@ -22,13 +22,20 @@ variables:
   # Turn this Powershell console into a developer powershell console.
   # https://intellitect.com/enter-vsdevshell-powershell/
   PWSH_DEV: |
+    echo "getting install path from vswhere -latest"
     $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
-    $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+    echo "getting devshell dll location"
+    $devShell = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+    echo $installPath
+    echo $devShell
+    echo "import module devShell"
     Import-Module $devShell
+    echo "calling Enter-VsDevShell"
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
+    echo "done"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
-  NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: downstream
+  NQP_CHECKOUT_TYPE: "downstream"
+  MOAR_CHECKOUT_TYPE: "rev-a7d0c867e4487eceffdd1d9f617c2d04a0d6a8d9-https://github.com/MoarVM/MoarVM.git"
 
 stages:
 - stage: Test
@@ -40,68 +47,73 @@ stages:
       strategy:
        matrix:
          Win_MVM:
-           IMAGE_NAME: 'windows-2019'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Win_JVM:
-           IMAGE_NAME: 'windows-2019'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Win_MVM_relocatable:
-           IMAGE_NAME: 'windows-2019'
-           RELOCATABLE: 'yes'
+           IMAGE_NAME: 'windows-latest'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+           MOAR_OPTIONS: '--telemeh --relocatable'
+         Win_MVM_nomimalloc:
+          IMAGE_NAME: 'windows-latest'
+          RAKUDO_OPTIONS: '--relocatable'
+          NQP_OPTIONS: '--backends=moar --relocatable'
+          MOAR_OPTIONS: '--relocatable --no-mimalloc'
+           #Win_JVM:
+           #  IMAGE_NAME: 'windows-latest'
+           #  BACKEND: 'JVM'
+           #  MOAR_CHECKOUT_TYPE: 'none'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=jvm'
+           #  MOAR_OPTIONS: ''
+         #Win_MVM_relocatable:
+         #  IMAGE_NAME: 'windows-latest'
+         #  RELOCATABLE: 'yes'
+         #  RAKUDO_OPTIONS: '--relocatable'
+         #  NQP_OPTIONS: '--backends=moar --relocatable'
+         #  MOAR_OPTIONS: '--relocatable'
 
-         Mac_MVM:
-           IMAGE_NAME: 'macOS-12'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Mac_JVM:
-           IMAGE_NAME: 'macOS-12'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-12'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+           #Mac_MVM:
+           #  IMAGE_NAME: 'macOS-12'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
+           #Mac_JVM:
+           #  IMAGE_NAME: 'macOS-12'
+           #  BACKEND: 'JVM'
+           #  MOAR_CHECKOUT_TYPE: 'none'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=jvm'
+           #  MOAR_OPTIONS: ''
+           #Mac_MVM_reloc:
+           #  IMAGE_NAME: 'macOS-12'
+           #  RELOCATABLE: 'yes'
+           #  RAKUDO_OPTIONS: '--relocatable'
+           #  NQP_OPTIONS: '--backends=moar --relocatable'
+           #  MOAR_OPTIONS: '--relocatable'
 
-         Lin_MVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
-         Lin_JVM:
-           IMAGE_NAME: 'ubuntu-20.04'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
+           #Lin_MVM:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
+           #Lin_JVM:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  BACKEND: 'JVM'
+           #  MOAR_CHECKOUT_TYPE: 'none'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=jvm'
+           #  MOAR_OPTIONS: ''
+           #Lin_MVM_reloc:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  RELOCATABLE: 'yes'
+           #  RAKUDO_OPTIONS: '--relocatable'
+           #  NQP_OPTIONS: '--backends=moar --relocatable'
+           #  MOAR_OPTIONS: '--relocatable'
 
-         Lin_MVM_spec:
-           IMAGE_NAME: 'ubuntu-20.04'
-           SPECTEST_ONLY: 'yes'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
-           MOAR_OPTIONS: ''
+           #Lin_MVM_spec:
+           #  IMAGE_NAME: 'ubuntu-20.04'
+           #  SPECTEST_ONLY: 'yes'
+           #  RAKUDO_OPTIONS: ''
+           #  NQP_OPTIONS: '--backends=moar'
+           #  MOAR_OPTIONS: ''
 
       pool:
         vmImage: $(IMAGE_NAME)
@@ -120,18 +132,6 @@ stages:
             $shortened_path = "$(PATH)" -replace ';[^;]*(SeleniumWebDrivers|SQL Server|Mercurial|Amazon|mysql|\\sbt\\|NSIS|Windows Performance Toolkit|php|Subversion)[^;]*(?=(;|$))', ''
             echo "##vso[task.setvariable variable=PATH]$shortened_path"
           displayName: "Shorten PATH on Windows"
-          condition: eq( variables['Agent.OS'], 'Windows_NT' )
-
-        - script: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
-          displayName: "Set java version (non-Windows)"
-          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-        - pwsh: |
-            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
-            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
-          displayName: "Set java version (Windows)"
-          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - checkout: self
           path: selfrepo
@@ -139,44 +139,175 @@ stages:
 
         - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
           workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), ne(variables['BACKEND'], 'JVM'))
           displayName: Checkout repositories (MoarVM)
-        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
-          workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), eq(variables['BACKEND'], 'JVM'))
-          displayName: Checkout repositories (JVM)
+
+        - pwsh: |
+            $moar_git_rev = git describe --always
+            echo "##vso[task.setvariable variable=moar_git_rev]$moar_git_rev"
+          displayName: "Get moar revision"
+          workingDirectory: '$(Pipeline.Workspace)/MoarVM'
+          condition: eq( variables['Agent.OS'], 'Windows_NT' )
+
+        - task: Cache@2
+          displayName: "load cached NQP-m & moar"
+          inputs:
+            key: 'v2 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev) + $(nqp_git_rev)" | "$(NQP_CHECKOUT_TYPE)" | "$(NQP_OPTIONS)"'
+            path: ../install-nqp-and-moar
+            cacheHitVar: NQP_CACHE_RESTORED
+
+        - bash: |
+            mkdir ../install
+            cp -r ../install-nqp-and-moar/* ../install/
+          displayName: "extract nqp-and-moar cache"
+          condition: eq( variables['NQP_CACHE_RESTORED'], 'true' )
+
+        - task: Cache@2
+          displayName: "load cached moarvm"
+          inputs:
+            key: '3 | "$(MOAR_CHECKOUT_TYPE)" | "$(MOAR_OPTIONS)" | "$(IMAGE_NAME)" | "$(moar_git_rev)"'
+            path: ../install-moar
+            cacheHitVar: MOARVM_CACHE_RESTORED
+          condition: ne( variables['NQP_CACHE_RESTORED'], 'true' )
+
+        - bash: |
+            mkdir ../install
+            cp -r ../install-moar/* ../install/
+          displayName: "extract moar cache"
+          condition: eq( variables['MOARVM_CACHE_RESTORED'], 'true' )
 
         # Build MoarVM
-        - script: |
-            perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
-            make install
-          workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
-          displayName: Build MoarVM
         - pwsh: |
+            echo "before pwsh dev vars"
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(MOAR_OPTIONS)
+            echo "before trying to run configure"
+            perl Configure.pl --debug --prefix=..\install $(MOAR_OPTIONS)
+            echo "after running configure"
             nmake install
+            echo "after running install"
+            echo "any pdb files?"
+            ls *pdb
+            echo "copying them"
+            cp moar.exe.pdb ..\install\bin\
+            cp moar.dll.pdb ..\install\bin\
+            ls ..\install\bin\
+            cp -r ..\install ..\install-moar
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), and( ne( variables.MOARVM_CACHE_RESTORED, 'true' ), ne( variables.NQP_CACHE_RESTORED, 'true') ) )
           displayName: Build MoarVM (Windows)
 
-        # Build NQP
+        - task: Cache@2
+          displayName: 'Cache choco'
+          inputs:
+            key: '"chocolatey" | "sysinternals"'
+            path: '$(System.DefaultWorkingDirectory)/choco_cache'
         - script: |
-            perl Configure.pl --prefix=../install $(NQP_OPTIONS)
-            make install
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
-          displayName: Build NQP
+            choco install sysinternals mingw --confirm --no-progress --cache $(System.DefaultWorkingDirectory)/choco_cache
+            choco info mingw
+          displayName: 'install choco packages'
+
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    echo "grabbing Get-PdbSymbol script"
+        #    Invoke-WebRequest https://github.com/FranciscoNabas/PowerShellPublic/raw/refs/heads/main/Get-PdbSymbol.ps1 -OutFile Get-PdbSymbol.ps1
+        #    Import-Module ./Get-PdbSymbol.ps1
+        #
+        #    Get-PdbSymbol -Path @('C:\Windows\System32\ntdll.dll', 'C:\Windows\System32\win32u.dll', 'C:\Windows\System32\ucrtbase.dll', 'C:\Windows\System32\msvcrt.dll', 'C:\Windows\System32\dbghelp.dll', 'C:\Windows\System32\dbgcore.dll') -DestinationStore $(Pipeline.Workspace)/rakudo
+        #
+        #    ls -l .
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: always()
+        #  displayName: download pdb symbols
+
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(NQP_OPTIONS)
+            echo "before copying:"
+            try {
+              Get-ChildItem -Recurse -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "creating LocalDumps entry for moar.exe"
+            try {
+              Copy-Item -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\ResourceMonitor.exe' -Destination 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\moar.exe' -Recurse
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "setting the right DumpFolder"
+            try {
+              Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\moar.exe' -Name DumpFolder -Value '$(Pipeline.Workspace)/rakudo'
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "after copying:"
+            try {
+              Get-ChildItem -Recurse -Path 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
+            }
+            catch {
+              echo "well, that didn't work..."
+              echo $_
+            }
+            echo "done...?"
+
+
+        # Build NQP
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            perl Configure.pl --prefix=..\install --no-silent-build $(NQP_OPTIONS)
+
+            C:\Strawberry\perl\bin\perl.exe -MExtUtils::Command -e mkpath gen\moar\stage1 gen\moar\stage2
+
+            $logsBefore = Get-WinEvent -ListLog *
+            echo "first attempt to nmake the core setting"
+            # $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            # $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            # $Env:MVM_JIT_DUMP_BYTECODE = 1
+            $Env:MVM_SPESH_BLOCKING = 1
+            echo "TMP before: $TMP"
+            echo "TMP before:" $Env:TMP
+            $Env:TMP = '$(Pipeline.Workspace)/nqp'
+
+            C:\Strawberry\perl\bin\perl.exe D:\a\1\nqp\tools\build\gen-cat.pl moar stage1 src\how\Helpers.nqp  src\how\NQPHOWLock.nqp  src\how\Archetypes.nqp  src\how\RoleToRoleApplier.nqp  src\how\NQPConcreteRoleHOW.nqp  src\how\RoleToClassApplier.nqp  src\how\NQPCurriedRoleHOW.nqp  src\how\NQPParametricRoleHOW.nqp  src\how\NQPClassHOW.nqp  src\how\NQPNativeHOW.nqp  src\how\NQPAttribute.nqp  src\how\NQPModuleHOW.nqp  src\how\EXPORTHOW.nqp > gen\moar\stage1\nqpmo.nqp
+
+            echo "turning ProcDump on"
+            ProcDump -i '$(Pipeline.Workspace)\nqp' -ma -accepteula
+            # echo "run procdump to wait for moar.exe"
+            # $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\nqp' &
+
+            # echo "going to invoke gdb, wish me luck"
+
+            # gdb -batch -ex 'start' -ex 'c' -ex 'bt full' D:/a/1/install/bin/moar.exe --args D:/a/1/install/bin/moar.exe --libpath=src/vm/moar/stage0 src/vm/moar/stage0/nqp.moarvm --bootstrap --no-regex-lib --target=mbc --setting=NULL --stable-sc=stage1 --output=gen/moar/stage1/nqpmo.moarvm gen/moar/stage1/nqpmo.nqp
+
+            # echo "did that do anything??"
+
             nmake install
+
+            sleep 10
+
+            # echo "output from procdump job:"
+            # Receive-Job -Job $dumpjob
+            # echo "end of output"
+            # echo "killing procdump"
+            # Stop-Job -Job $dumpjob
+            # Receive-Job -Job $dumpjob -Wait
+
+            ls -l '$(Pipeline.Workspace)/nqp'
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
+          condition: and(succeeded(), ne( variables.NQP_CACHE_RESTORED, 'true') )
           displayName: Build NQP (Windows)
+
+        - pwsh: |
+            Copy-Item -Path ..\install\bin -Destination . -Recurse
+          displayName: copy binaries and dlls into PWD
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: always()
 
         # Build Rakudo
         - script: |
@@ -187,54 +318,119 @@ stages:
           displayName: Build Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            perl Configure.pl --prefix=..\install $(RAKUDO_OPTIONS)
-            nmake install
+            echo "property"
+            Get-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            echo "childitem"
+            Get-ChildItem -Recurse -Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+            echo "configure"
+            perl Configure.pl --prefix=..\install --no-silent-build $(RAKUDO_OPTIONS)
+            echo "configure done"
+            nmake blib/CORE.c.setting.moarvm 2>$null
+            echo "win event log listing before running crashy process"
+            $logsBefore = Get-WinEvent -ListLog *
+            echo "first attempt to nmake the core setting"
+            # $Env:MVM_TELEMETRY_LOG = 'spam.txt'
+            # $Env:MVM_SPESH_LOG = 'speshlog.txt'
+            # $Env:MVM_JIT_DUMP_BYTECODE = 1
+            $Env:MVM_SPESH_BLOCKING = 1
+            echo "TMP before: $TMP"
+            echo "TMP before:" $Env:TMP
+            $Env:TMP = '$(Pipeline.Workspace)/rakudo'
+
+            # echo "turning ProcDump on"
+            # ProcDump -i '$(Pipeline.Workspace)\rakudo' -ma -accepteula
+            echo "run procdump to wait for moar.exe"
+            $dumpjob = ProcDump -w moar.exe  '$(Pipeline.Workspace)\rakudo' &
+
+            echo "try to run with jit ..."
+
+            C:\Strawberry\perl\bin\perl.exe rakudo-m-early-build --setting=NULL.c --ll-exception --optimize=3 --target=mbc --stagestats --output=blib\CORE.c.setting.moarvm gen\moar\CORE.c.setting
+
+            # echo "turning ProcDump off"
+            # ProcDump -u
+
+            sleep 10
+
+            echo "output from procdump job:"
+            Receive-Job -Job $dumpjob
+            echo "end of output"
+            echo "killing procdump"
+            Stop-Job -Job $dumpjob
+            Receive-Job -Job $dumpjob -Wait
+
+            ls -l '$(Pipeline.Workspace)/rakudo'
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo (Windows)
 
-        # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
-        - script: mv install install-moved
-          workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Move installation
-        - pwsh: mv install install-moved
-          workingDirectory: $(Pipeline.Workspace)
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Move installation (Windows)
+        - task: PublishPipelineArtifact@1
+          displayName: publish all the stuff
+          condition: always()
+          inputs:
+            targetPath: $(Pipeline.Workspace)/rakudo
+            artifact: "debug output"
+            publishLocation: 'pipeline'
+  
+        - task: PublishPipelineArtifact@1
+          displayName: publish all the everything
+          condition: always()
+          inputs:
+            targetPath: $(Pipeline.Workspace)/
+            artifact: "full workspace"
+            publishLocation: 'pipeline'
+
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            $logsAfter = Get-WinEvent -ListLog *
+            $logsAfter
+            echo Application,Security,System,PowerShellCore/Operational,Microsoft-WindowsAzure-Diagnostics/Heartbeat,Microsoft-WindowsAzure-Diagnostics/GuestAgent,Microsoft-Windows-Resource-Exhaustion-Resolver/Operational,Microsoft-Windows-Resource-Exhaustion-Detector/Operational,Microsoft-Windows-CodeIntegrity/Operational | % { get-winevent $_ -maxevents 30 } | ft -groupby logname -wrap
+          failOnStderr: false
+          workingDirectory: '$(Pipeline.Workspace)/rakudo'
+          condition: always()
+          displayName: Output a bunch of windows event log entries
+
+        ## TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
+        #- script: mv install install-moved
+        #  workingDirectory: $(Pipeline.Workspace)
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Move installation
+        #- pwsh: mv install install-moved
+        #  workingDirectory: $(Pipeline.Workspace)
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Move installation (Windows)
 
         # Test Rakudo
-        - script: prove -e ../install/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Test Rakudo
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (Windows)
-        - script: prove -e ../install-moved/bin/perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated)
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -e ..\install-moved\bin\perl6 -vlr t
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test Rakudo (relocated, Windows)
+        #- script: prove -e ../install/bin/perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['SPECTEST_ONLY'], 'yes' ) )
+        #  displayName: Test Rakudo
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    prove -e ..\install\bin\perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (Windows)
+        #- script: prove -e ../install-moved/bin/perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (relocated)
+        #- pwsh: |
+        #    ${{ variables.PWSH_DEV }}
+        #    prove -e ..\install-moved\bin\perl6 -vlr t
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+        #  displayName: Test Rakudo (relocated, Windows)
 
         # Run spectest
-        - script: make TEST_JOBS=2 m-spectest
-          workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
-          displayName: Run spectest
+        #- script: make TEST_JOBS=2 m-spectest
+        #  workingDirectory: '$(Pipeline.Workspace)/rakudo'
+        #  condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ), eq( variables['SPECTEST_ONLY'], 'yes' ) )
+        #  displayName: Run spectest
 
-        - publish: $(Pipeline.Workspace)/install-moved
-          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
-          displayName: Publish build artifact
+        #- publish: $(Pipeline.Workspace)/install-moved
+        #  condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
+        #  displayName: Publish build artifact
 
 - stage: Build_Precomp_Release
   condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
@@ -289,7 +485,7 @@ stages:
     - job: windows
       displayName: Windows x86_64 build
       pool:
-        vmImage: 'windows-2019'
+        vmImage: 'windows-latest'
       workspace:
         clean: all
       steps:

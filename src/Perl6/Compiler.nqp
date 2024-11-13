@@ -280,8 +280,6 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $repl-class := self.eval('REPL', :outer_ctx(nqp::null()), |%adverbs);
         $p6repl := $repl-class.new(self, %adverbs);
-        my $stdin    := stdin();
-
         $p6repl.repl-loop(:interactive(1), |%adverbs);
     }
 

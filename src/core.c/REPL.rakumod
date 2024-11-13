@@ -40,8 +40,6 @@ do {
     }
 
     my role ReadlineBehavior[$WHO] {
-        my &readline    = $WHO<&readline>;
-        my &add_history = $WHO<&add_history>;
         my $Readline = try { require Readline }
         my $read = $Readline.new;
         if !Rakudo::Internals.IS-WIN {

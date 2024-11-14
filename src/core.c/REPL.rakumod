@@ -491,7 +491,10 @@ do {
             self.teardown;
         }
 
-        # Inside of the EVAL it does like caller.ctxsave
+        # This appears to be a magic method that is called somewhere inside
+        # the compiler.  The semantics of $*MAIN_CTX and $*CTXSAVE appear
+        # to be needed to get a persistency with regards to scope between
+        # lines entered in the REPL.
         method ctxsave(--> Nil) {
             $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
             $*CTXSAVE := 0;

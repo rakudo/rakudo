@@ -79,7 +79,9 @@ for NativeCall::EXPORT::.keys.sort {
 is @parts.join("\n"), AllExports, "are all identifiers reachable?";
 
 if $*VM.name eq 'jvm' {
-    plan :skip-all<NullPointerException in sub NCstrlen>;
+    plan 1;
+    skip-rest 'NullPointerException in sub NCstrlen';
+    exit;
 }
 
 { # https://github.com/rakudo/rakudo/issues/3235

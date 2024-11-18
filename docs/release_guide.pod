@@ -564,7 +564,7 @@ Previous releases were bundled as part of monthly Parrot releases.
 
 =head1 COPYRIGHT
 
-Copyright © 2009-2022, The Perl Foundation.
+Copyright © 2009-2022, The Raku Foundation.
 
 =cut
 

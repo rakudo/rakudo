@@ -3685,10 +3685,17 @@ class Perl6::Optimizer {
       }
       elsif self.op_eq_core($metaop, '&METAOP_NEGATE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var);
-        return QAST::Op.new: :op<call>, :name('&prefix:<!>'),
-                QAST::Op.new: :op<call>, :name($metaop[0].name),
-                    $op[1], $op[2];
-      }
+        if 2 < nqp::getcomp('Raku').language_revision {
+          return QAST::Op.new(:op<call>, :name($metaop[0].name),
+                   QAST::WVal.new(value => $!symbols.find_in_setting("False")),
+                   QAST::Op.new: :op<call>, :name($metaop[0].name),
+                      $op[1], $op[2]);
+        } else {
+          return QAST::Op.new(:op<call>, :name('&prefix:<!>'),
+                    QAST::Op.new: :op<call>, :name($metaop[0].name),
+                      $op[1], $op[2])
+        }
+			}
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)
           && nqp::elems($op) == 3;

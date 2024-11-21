@@ -53,8 +53,12 @@ sub METAOP_TEST_ASSIGN_VALUE:<orelse>(\lhs, $rhs) is raw is implementation-detai
     lhs orelse (lhs = $rhs)
 }
 
-sub METAOP_NEGATE(\op) is implementation-detail {
-    -> |c { c.elems > 1 ?? !op.(|c) !! True }
+proto sub METAOP_NEGATE(|) is implementation-detail is revision-gated("6.c") {*}
+multi sub METAOP_NEGATE(\op) is implementation-detail is revision-gated("6.c") {
+    -> |c { c.elems > 1 ?? not op.(|c) !! True }
+}
+multi sub METAOP_NEGATE(\op) is implementation-detail is revision-gated("6.e") {
+    -> |c { c.elems > 1 ?? op.(op.(|c), False) !! True }
 }
 
 sub METAOP_REVERSE(\op) is implementation-detail {

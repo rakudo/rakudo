@@ -785,7 +785,7 @@ my class Rakudo::Internals {
     }
 
     method error-rcgye() {  # red clear green yellow eject
-        self.NUMERIC-ENV-KEY("RAKUDO_ERROR_COLOR") // !self.IS-WIN
+        $*ERR.t && (self.NUMERIC-ENV-KEY("RAKUDO_ERROR_COLOR") // !self.IS-WIN)
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")
           !! ("", "", "", "", "<HERE>");
     }

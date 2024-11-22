@@ -869,7 +869,7 @@
     ) {
         my $timer = Supply.interval($seconds,$delay,:$scheduler);
         my int $limit   = $elems;
-        my int $vent = $vent-at if $bleed;
+        my int $vent = $bleed ?? $vent-at !! -1;
         supply {
             my @buffer;
             my int $allowed = $limit;
@@ -903,7 +903,7 @@
                     $emitted = $emitted + 1;
                     $allowed = $allowed - 1;
                 }
-                elsif $vent && +@buffer >= $vent {
+                elsif $vent >= 0 && +@buffer >= $vent {
                     $bleed.emit(val);
                 }
                 else {
@@ -945,7 +945,7 @@
                    }
                    elsif $type eq 'vent-at' && $bleed {
                        $vent = $value;
-                       if $vent && +@buffer > $vent {
+                       if $vent >= 0 && +@buffer > $vent {
                            $bleed.emit(@buffer.shift)
                              until !@buffer || +@buffer == $vent;
                        }
@@ -972,7 +972,7 @@
         my int $emitted;
         my int $bled;
         my int $done;
-        my int $vent = $vent-at if $bleed;
+        my int $vent = $bleed ?? $vent-at !! -1;
         my $ready = Supplier::Preserving.new;
         sub start-process(\val --> Nil) {
             my $p = Promise.start( $process, :$scheduler, val );
@@ -1029,7 +1029,7 @@
                     }
                     elsif $type eq 'vent-at' && $bleed {
                         $vent = $value;
-                        if $vent && +@buffer > $vent {
+                        if $vent >= 0 && +@buffer > $vent {
                             $bleed.emit(@buffer.shift)
                               until !@buffer || +@buffer == $vent;
                         }
@@ -1040,7 +1040,7 @@
             whenever self -> \val {
                 $allowed > 0
                   ?? start-process(val)
-                  !! $vent && $vent == +@buffer
+                  !! $vent >= 0 && $vent == +@buffer
                     ?? $bleed.emit(val)
                     !! @buffer.push(val);
                 LAST { $done = 1 }

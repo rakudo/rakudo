@@ -26,6 +26,7 @@ class OperatorProperties {
     has int $.fiddly;
     has int $.adverb;
     has int $.ternary;
+    has int $.commutative;
 
     # Basic interface
     method new(
@@ -39,7 +40,8 @@ class OperatorProperties {
       int :$diffy,
       int :$fiddly,
       int :$adverb,
-      int :$ternary
+      int :$ternary,
+      int :$commutative
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
@@ -65,6 +67,8 @@ class OperatorProperties {
           $adverb // (nqp::isconcrete(self) ?? $!adverb !! 0));
         nqp::bindattr_i($obj,OperatorProperties,'$!ternary',
           $ternary // (nqp::isconcrete(self) ?? $!ternary !! 0));
+        nqp::bindattr_i($obj,OperatorProperties,'$!commutative',
+          $commutative // (nqp::isconcrete(self) ?? $!commutative !! 0));
 
         $obj
     }
@@ -82,6 +86,7 @@ class OperatorProperties {
       int :$fiddly,
       int :$adverb,
       int :$ternary,
+      int :$commutative,
       *%_
     ) {
         self.new(
@@ -95,7 +100,8 @@ class OperatorProperties {
           :$diffy,
           :$fiddly,
           :$adverb,
-          :$ternary
+          :$ternary,
+          :$commutative
         )
     }
 
@@ -135,6 +141,7 @@ class OperatorProperties {
         nqp::push_s($parts,':fiddly')  if $!fiddly;
         nqp::push_s($parts,':adverb')  if $!adverb;
         nqp::push_s($parts,':ternary') if $!ternary;
+        nqp::push_s($parts,':commutative') if $!commutative;
 
         $name ~ '.new: ' ~ nqp::join(', ',$parts)
     }
@@ -254,6 +261,7 @@ class OperatorProperties {
     method fiddly()  { nqp::isconcrete(self) ?? $!fiddly  !! 0 }
     method adverb()  { nqp::isconcrete(self) ?? $!adverb  !! 0 }
     method ternary() { nqp::isconcrete(self) ?? $!ternary !! 0 }
+    method commutative() { nqp::isconcrete(self) ?? $!commutative !! 0 }
 
     # Convenience methods
     method chain() {
@@ -321,6 +329,7 @@ class OperatorProperties {
                 nqp::bindkey($hash,'fiddly',$!fiddly)      if $!fiddly;
                 nqp::bindkey($hash,'adverb',$!adverb)      if $!adverb;
                 nqp::bindkey($hash,'ternary',$!ternary)    if $!ternary;
+                nqp::bindkey($hash,'commutative',$!commutative) if $!commutative;
                 $hash
             }
         }
@@ -469,6 +478,9 @@ class OperatorProperties {
           ),
           'chaining', nqp::hash(
             'precedence','m=', 'associative','chain', 'iffy',1, 'diffy',1
+          ),
+          'chaining-commutative', nqp::hash(
+            'precedence','m=', 'associative','chain', 'iffy',1, 'diffy',1, 'commutative',1
           ),
           'tight-and', nqp::hash(
             'precedence','l=', 'associative','left', 'thunky','.t', 'iffy',1
@@ -668,19 +680,19 @@ class OperatorProperties {
           '≼',      'chaining',
           '(>+)',   'chaining',
           '≽',      'chaining',
-          '==',     'chaining',
-          '=~=',    'chaining',
-          '≅',      'chaining',
-          '!=',     'chaining',
-          'eq',     'chaining',
+          '==',     'chaining-commutative',
+          '=~=',    'chaining-commutative',
+          '≅',      'chaining-commutative',
+          '!=',     'chaining-commutative',
+          'eq',     'chaining-commutative',
           'ne',     'chaining',
           'le',     'chaining',
           'ge',     'chaining',
           'lt',     'chaining',
           'gt',     'chaining',
           '=:=',    'chaining',
-          '===',    'chaining',
-          'eqv',    'chaining',
+          '===',    'chaining-commutative',
+          'eqv',    'chaining-commutative',
           'before', 'chaining',
           'after',  'chaining',
           '~~',     'chaining',

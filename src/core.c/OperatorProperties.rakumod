@@ -9,8 +9,8 @@ class OperatorProperties {
 #    has int $.iffy;
 #    has int $.diffy;
 #    has int $.fiddly;
-#    has int $.adverb
-#    has int $.ternary
+#    has int $.adverb;
+#    has int $.ternary;
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');

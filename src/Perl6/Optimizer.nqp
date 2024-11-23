@@ -3685,17 +3685,30 @@ class Perl6::Optimizer {
       }
       elsif self.op_eq_core($metaop, '&METAOP_NEGATE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var);
-        if 2 < nqp::getcomp('Raku').language_revision {
-          return QAST::Op.new(:op<call>, :name($metaop[0].name),
-                   QAST::WVal.new(value => $!symbols.find_in_setting("False")),
-                   QAST::Op.new: :op<call>, :name($metaop[0].name),
-                      $op[1], $op[2]);
-        } else {
-          return QAST::Op.new(:op<call>, :name('&prefix:<!>'),
-                    QAST::Op.new: :op<call>, :name($metaop[0].name),
-                      $op[1], $op[2])
-        }
-			}
+
+        my %lookup := nqp::hash(
+          '&infix:<==>', 1,
+          '&infix:<eq>', 1,
+          # ('ne' ne 'troublesome') eq False
+          #'&infix:<ne>', 1,
+          '&infix:<===>', 1,
+          '&infix:<eqv>', 1,
+        );
+
+        return nqp::not_i(nqp::isnull($metaop[0]))
+            && nqp::not_i(nqp::isnull(my $raku-comp := nqp::getcomp('Raku')))
+            && nqp::not_i(nqp::isnull(my $revision := nqp::findmethod($raku-comp, 'language_revision')))
+            && nqp::islt_i(2, $revision($raku-comp))
+            && nqp::not_i(nqp::isnull(my $op-name := $metaop[0].name))
+            && nqp::existskey(%lookup, $op-name)
+          ??
+            QAST::Op.new(:op<call>, :name($metaop[0].name),
+              QAST::WVal.new(value => $!symbols.find_in_setting("False")),
+              QAST::Op.new(:op<call>, :name($metaop[0].name), $op[1], $op[2]))
+          !!
+            QAST::Op.new(:op<call>, :name('&prefix:<!>'),
+              QAST::Op.new(:op<call>, :name($metaop[0].name), $op[1], $op[2]));
+      }
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)
           && nqp::elems($op) == 3;

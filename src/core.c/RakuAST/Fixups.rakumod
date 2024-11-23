@@ -840,9 +840,10 @@ augment class RakuAST::Doc::Block {
         # set up basic block
         my $block := self.new(|%_);
 
-        # add rest with possible markup
-        my $paragraphs :=
-          RakuAST::Doc::Paragraph.from-string(@paragraphs.join("\n"));
+        # Add rest with possible markup
+        my $paragraphs := "=begin fake\n@paragraphs.join("\n")\n=end fake";
+        $paragraphs := $paragraphs.AST.statements.head.paragraphs;
+        $paragraphs := $paragraphs.join if $paragraphs.are(Str);
 
         # collect alias info if being collected
         my $aliases := $*DOC-ALIASES;
@@ -850,7 +851,7 @@ augment class RakuAST::Doc::Block {
           unless nqp::istype($aliases,Failure);
 
         $block.add-paragraph($lemma);
-        $block.add-paragraph($paragraphs);
+        $block.add-paragraph($_) for $paragraphs;
 
         $block
     }

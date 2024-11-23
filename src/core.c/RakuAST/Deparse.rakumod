@@ -846,9 +846,19 @@ CODE
 
         # handle =alias directive
         if $type eq 'alias' {
-            my ($lemma, $paragraph) = $ast.paragraphs;
-            $paragraph = self.deparse-without-highlighting($paragraph)
-              unless nqp::istype($paragraph,Str);
+            my ($lemma, @paragraphs) = $ast.paragraphs;
+
+            my $paragraph = do if @paragraphs.elems == 1
+              && nqp::istype(@paragraphs.head,Str) {
+                @paragraphs.head.chomp
+            }
+            else {
+                @paragraphs.map({
+                  nqp::istype($_,Str)
+                    ?? $_
+                    !! self.deparse-without-highlighting($_)
+                }).join.chomp
+            }
 
             # set up prefix for additional lines
             my str $prefix =

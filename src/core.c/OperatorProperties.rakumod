@@ -156,7 +156,8 @@ BEGIN {
       &infix:«minmax»,
       &infix:«min»,
       &infix:«mod»,
-      &infix:«ne»,
+#      &infix:«ne»,
+       # Properties added in core_epilogue.rakumod
       &infix:«notandthen»,
       &infix:«orelse»,
       &infix:«or»,

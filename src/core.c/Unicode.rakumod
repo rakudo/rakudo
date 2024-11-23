@@ -41,7 +41,7 @@ my class Unicode {
       '15.1' => 0x2EE5F.chr,
     # PLEASE ADD NEWER UNICODE VERSIONS HERE, AS SOON AS THE UNICODE
     # CONSORTIUM HAS RELEASED A NEW VERSION
-    ).first(*.value.uniprop('Age') ne 'Unassigned', :end).key.Version;
+    ).first(!(*.value.uniprop('Age') eq 'Unassigned'), :end).key.Version;
 #?endif
 
     has Version $.version = VERSION;

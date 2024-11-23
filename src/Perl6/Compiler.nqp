@@ -256,8 +256,10 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method ast($match, *%adverbs) {
+        self.panic("Unable to obtain AST from parse result (no match object)")
+            unless nqp::isconcrete($match);
         my $ast := $match.ast;
-        self.panic("Unable to obtain AST from parse result")
+        self.panic("Unable to obtain AST from parse result (no AST on match object)")
             unless nqp::isconcrete($ast);
         $ast
     }

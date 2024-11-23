@@ -3934,7 +3934,10 @@ BEGIN {
                                   ) || (
                                     ($flags +& nqp::const::TYPE_NATIVE_UINT)
                                       && nqp::iscont_u($arg)
-                                  ) || nqp::iscont_n($arg);  # NATIVE_NUM
+                                  ) || (
+                                    ($flags +& nqp::const::TYPE_NATIVE_NUM)
+                                      && nqp::iscont_n($arg)
+                                  )
                             }
 
                             # Got a native, does it match?
@@ -3947,7 +3950,10 @@ BEGIN {
                             ) || (
                               ($flags +& nqp::const::TYPE_NATIVE_UINT)
                                 && $got_prim != nqp::const::BIND_VAL_UINT
-                            ) || $got_prim != nqp::const::BIND_VAL_NUM {  # NATIVE_NUM
+                            ) || (
+                              ($flags +& nqp::const::TYPE_NATIVE_NUM)
+                                && $got_prim != nqp::const::BIND_VAL_NUM
+                            ) {
 
                                 # Mismatch.
                                 $no_mismatch := 0;

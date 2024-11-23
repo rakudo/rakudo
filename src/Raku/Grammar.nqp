@@ -5636,7 +5636,9 @@ Rakudo significantly on *every* run."
     # handle =config
     token doc-block:sym<config> {
 
-        ^^ $<margin>=[ \h* ] '=config' [\h+ <doc-identifier>]?
+        ^^ $<margin>=[ \h* ] '=config'
+
+        [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

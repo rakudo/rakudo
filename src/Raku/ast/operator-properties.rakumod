@@ -685,7 +685,7 @@ class OperatorProperties {
           '≅',      'chaining-commutative',
           '!=',     'chaining-commutative',
           'eq',     'chaining-commutative',
-          'ne',     'chaining',
+          'ne',     'chaining-commutative',
           'le',     'chaining',
           'ge',     'chaining',
           'lt',     'chaining',

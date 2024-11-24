@@ -324,7 +324,7 @@ and, by default, also executes the compiled code.
                        With this setting STDIN is read entirely (until EOF)
                        and evaluated as if it were a program, without any
                        extra output.
-                       Both 'process' and 'disabed' options bypass
+                       Both 'process' and 'disabled' options bypass
                        TTY detection.
 #?if moar
   --profile[=name]     write profile information to a file

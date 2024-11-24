@@ -57,7 +57,7 @@ multi sub is-run-repl(
 ) is test-assertion {
     $code .= join: "\n" if $code ~~ Positional|Seq;
     (temp %*ENV)<RAKUDO_ERROR_COLOR  RAKUDO_LINE_EDITOR> = 0, $line-editor;
-    my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
+    my $proc = run $*EXECUTABLE, '--repl-mode=process', :in, :out, :err;
     $proc.in.print: $code;
     $proc.in.close;
 

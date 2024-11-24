@@ -1,3 +1,8 @@
+my class X::REPL::InvalidEnvironment is Exception {
+    has $.reason is required;
+    method message() { "Invalid REPL environment: $!reason" }
+}
+
 class REPL { ... }
 
 do {
@@ -313,6 +318,10 @@ do {
         }
 
         method init(Mu \compiler, $multi-line-enabled --> Nil) {
+            if compiler.repl-mode eq 'tty' && not $*IN.t {
+                X::REPL::InvalidEnvironment.new(reason => "Unable to initialize REPL outside of a TTY").throw;
+            }
+
             $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
             PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {

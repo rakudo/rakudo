@@ -311,15 +311,21 @@ and, by default, also executes the compiled code.
   --ll-exception       display a low level backtrace on errors
   --doc                extract documentation and print it as text
   --doc=module         use Pod::To::[module] to render inline documentation
-  --repl-mode=interactive|non-interactive
+  --repl-mode=tty|process|disabled
                        when running without "-e", a REPL is started.
-                       By default, if STDIN is a TTY, "interactive" REPL is
-                       started that shows extra messages and prompts,
-                       otherwise a "non-interactive" mode is used where
-                       STDIN is read entirely and evaluated as if it were
-                       a program, without any extra output (in fact, no REPL
-                       machinery is even loaded). This option allows to bypass
-                       TTY detection and force one of the REPL modes.
+                       In this scenario, the repl-mode is automatically set
+                       to 'tty'. A user may choose to specify 'tty' explicitly
+                       in order to ensure that the REPL is only run under a TTY.
+                       In cases where a REPL session may be running outside
+                       of a TTY, such as in a spawned sub-process, the
+                       user should specify a repl-mode of 'process'.
+                       If the user desires to have no REPL machinery loaded
+                       at all, the repl-mode can be set to 'disabled'.
+                       With this setting STDIN is read entirely (until EOF)
+                       and evaluated as if it were a program, without any
+                       extra output.
+                       Both 'process' and 'disabed' options bypass
+                       TTY detection.
 #?if moar
   --profile[=name]     write profile information to a file
                        Extension controls format:

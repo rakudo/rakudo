@@ -13,7 +13,6 @@ class OperatorProperties {
 #    has int $.ternary
 #    has int $.commutative
 
-
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
 

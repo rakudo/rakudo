@@ -44,10 +44,6 @@ role Perl6::Metamodel::RolePunning {
 
     # Returns the pun (only creating it if it wasn't already created)
     method pun($target) {
-#?if jvm
-        ## Bandaid for missing nqp::null on first call.
-        $!pun := nqp::null if $!pun =:= NQPMu;
-#?endif
         nqp::ifnull(
           $!pun,
           self.protect({

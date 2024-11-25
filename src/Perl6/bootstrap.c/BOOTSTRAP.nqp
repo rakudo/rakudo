@@ -3827,6 +3827,55 @@ BEGIN {
         }
     }));
 
+#?if !moar
+    Routine.HOW.add_method(Routine, '!filter-revision-gated-candidates',
+      nqp::getstaticcode(sub ($self, $caller-revision, @candidates) {
+        $self := nqp::decont($self);
+
+        my int $idx := 0;
+        my int $allowed-idx := 0;
+        my @allowed-candidates;
+        my %gated-candidates;
+        while $idx < nqp::elems(@candidates) {
+          my $candidate := nqp::atpos(@candidates, $idx++);
+
+          unless nqp::isconcrete($candidate) {
+            nqp::push(@allowed-candidates, $candidate);
+            $allowed-idx++;
+            next;
+          }
+
+          my $required-revision := nqp::atkey($candidate, 'required_revision');
+          my $is-revision-specified := nqp::isconcrete($required-revision);
+          if !$is-revision-specified || $required-revision <= $caller-revision  {
+            if (nqp::existskey($candidate, 'signature')) && $is-revision-specified {
+              my $signature := nqp::atkey($candidate, 'signature').raku;
+              if nqp::existskey(%gated-candidates, $signature) {
+                my $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+                my $last-seen-revision := nqp::atkey(
+                        nqp::atpos(@allowed-candidates, $candidate-idx),
+                        'required_revision'
+                                                                                      );
+
+                if $last-seen-revision < $required-revision {
+                  nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
+                  nqp::bindpos(@allowed-candidates, $candidate-idx, $candidate);
+                  # Do *not* bump $allowed-idx here
+                }
+              } else {
+                nqp::push(@allowed-candidates, $candidate);
+                nqp::bindkey(%gated-candidates, $signature, $allowed-idx++);
+              }
+            } else {
+              nqp::push(@allowed-candidates, $candidate);
+              $allowed-idx++;
+            }
+          }
+        }
+        @allowed-candidates
+    }));
+#?endif
+
     Routine.HOW.add_method(Routine, 'dispatch_order',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
@@ -3839,6 +3888,12 @@ BEGIN {
             );
             nqp::scwbenable;
         }
+
+        my $caller-revision := nqp::getcomp('Raku').language_revision;
+        if nqp::can($self, 'REQUIRED-REVISION') && $self.REQUIRED-REVISION <= $caller-revision {
+          $dispatch_order := $self.'!filter-revision-gated-candidates'($caller-revision, $dispatch_order)
+        }
+
         $dispatch_order
     }));
 
@@ -3848,6 +3903,9 @@ BEGIN {
 
         # Count arguments.
         my int $num_args := nqp::captureposelems($capture);
+
+        # Get the compiler revision for handling the revision-gated trait
+        my $caller-revision := nqp::getcomp('Raku').language_revision;
 
         # Get list and number of candidates, triggering a sort if there are none.
         my @candidates := $self.dispatch_order;
@@ -3868,8 +3926,6 @@ BEGIN {
         my $Positional             := nqp::null;
         my $PositionalBindFailover := nqp::null;
         my $Associative            := nqp::null;
-
-        my $caller-revision := nqp::getlexcaller('$?LANGUAGE-REVISION');
 
         my int $done;
         until $done {

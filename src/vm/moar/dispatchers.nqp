@@ -2840,12 +2840,43 @@ sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
     my @candidates := $proto.dispatch_order;
 
     my int $idx := 0;
+    my int $allowed-idx := 0;
     my @allowed-candidates;
+    my %gated-candidates;
     while $idx < nqp::elems(@candidates) {
         my $candidate := nqp::atpos(@candidates, $idx++);
-        my $required-revision := nqp::atkey($candidate, 'required_revision');
-        if (! nqp::isconcrete($required-revision)) || $required-revision <= $caller-revision  {
+
+        unless nqp::isconcrete($candidate) {
             nqp::push(@allowed-candidates, $candidate);
+            $allowed-idx++;
+            next;
+        }
+
+        my $required-revision := nqp::atkey($candidate, 'required_revision');
+        my $is-revision-specified := nqp::isconcrete($required-revision);
+        if !$is-revision-specified || $required-revision <= $caller-revision  {
+            if (nqp::existskey($candidate, 'signature')) && $is-revision-specified {
+                my $signature := nqp::atkey($candidate, 'signature').raku;
+                if nqp::existskey(%gated-candidates, $signature) {
+                    my $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+                    my $last-seen-revision := nqp::atkey(
+                        nqp::atpos(@allowed-candidates, $candidate-idx),
+                        'required_revision'
+                    );
+
+                    if $last-seen-revision < $required-revision {
+                        nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
+                        nqp::bindpos(@allowed-candidates, $candidate-idx, $candidate);
+                        # Do *not* bump $allowed-idx here
+                    }
+                } else {
+                    nqp::push(@allowed-candidates, $candidate);
+                    nqp::bindkey(%gated-candidates, $signature, $allowed-idx++);
+                }
+            } else {
+                nqp::push(@allowed-candidates, $candidate);
+                $allowed-idx++;
+            }
         }
     }
 

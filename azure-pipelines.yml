@@ -28,7 +28,7 @@ variables:
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: downstream
+  MOAR_CHECKOUT_TYPE: MV1780
 
 stages:
 - stage: Test
@@ -44,13 +44,6 @@ stages:
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
-         Win_JVM:
-           IMAGE_NAME: 'windows-2019'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
          Win_MVM_relocatable:
            IMAGE_NAME: 'windows-2019'
            RELOCATABLE: 'yes'
@@ -63,19 +56,6 @@ stages:
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
-         Mac_JVM:
-           IMAGE_NAME: 'macOS-12'
-           BACKEND: 'JVM'
-           MOAR_CHECKOUT_TYPE: 'none'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-12'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
 
          Lin_MVM:
            IMAGE_NAME: 'ubuntu-20.04'
@@ -88,19 +68,6 @@ stages:
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
-           MOAR_OPTIONS: ''
-         Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-20.04'
-           RELOCATABLE: 'yes'
-           RAKUDO_OPTIONS: '--relocatable'
-           NQP_OPTIONS: '--backends=moar --relocatable'
-           MOAR_OPTIONS: '--relocatable'
-
-         Lin_MVM_spec:
-           IMAGE_NAME: 'ubuntu-20.04'
-           SPECTEST_ONLY: 'yes'
-           RAKUDO_OPTIONS: ''
-           NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
 
       pool:

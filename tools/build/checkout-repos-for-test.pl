@@ -20,6 +20,7 @@ my %repos = (
     rakudo => 'https://github.com/rakudo/rakudo.git',
     nqp    => 'https://github.com/Raku/nqp.git',
     MoarVM => 'https://github.com/MoarVM/MoarVM.git',
+    MV1780 => 'https://github.com/MasterDuke17/MoarVM.git',
 );
 
 # 'none' means, don't clone repository. Not valid for rakudo.
@@ -53,6 +54,11 @@ sub checkout_rev {
         exec_and_check('git', 'clone', $repos{$name}, $name, "Cloning $name failed.");
         chdir $name;
         exec_and_check('git', 'checkout', '-f', $type, "Checking out $name $type failed.");
+    }
+    elsif ($type eq 'MV1780') {
+        exec_and_check('git', 'clone', $repos{$type}, $name, "Cloning $name failed.");
+        chdir $name;
+        exec_and_check('git', 'checkout', '-f', 'use_more_libuv_dir_functions_with_windows-long-path-support_from_ugexe', "Checking out $name use_more_libuv_dir_functions_with_windows-long-path-support_from_ugexe failed.");
     }
     elsif ($type eq 'downstream') {
         die "Can't do downstream checkout for $name" unless $downstream_file;

@@ -209,7 +209,7 @@ plan 106;
 # ??? (useless useless use removed)
 # https://github.com/rakudo/rakudo/issues/1525
 {
-    is-run 'Q|subset Char of Str where (*.chars == 1)|.AST.EVAL', :out<>, :err<>,
+    is-run 'Q|subset Char of Str where (*.chars == 1)|.AST.EVAL', :out(''), :err(''),
         "no worry of a useless 'useless use' for parenthesized prime expression in where clause";
 }
 

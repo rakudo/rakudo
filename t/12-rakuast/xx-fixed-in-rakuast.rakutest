@@ -44,7 +44,6 @@ plan 106;
 {
     nok Q| my &a = *.uc; my &b = *.lc; &a eqv &b |.AST.EVAL, "*.uc and *.lc are not considered equivalent";
     ok  Q| my &a = *.uc; my &b = *.uc; &a eqv &b |.AST.EVAL, "*.uc and *.uc are considered equivalent";
-    todo "This was working but has regressed";
     nok Q| my &a = *.uc ~ *.lc ~ (*.uc ~ *.lc); my &b = *.lc ~ *.lc ~ (*.lc ~ *.lc); &a eqv &b |.AST.EVAL,
         "equivalence is still correct for more complicated WhateverCodes";
 }
@@ -251,7 +250,6 @@ plan 106;
     my $ran;
     my sub a (IO(Cool:D) $) { $ran = True };
     a "foo".IO;
-    todo "dispatch on coercion from Cool:D" unless %*ENV<RAKUDO_RAKUAST>;
     ok $ran, 'dispatch went correctly';
 }
 
@@ -692,7 +690,6 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/5119
 {
-    todo 'scoping issue with interpolated { }' unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply ("{$_}" for ^1).join, "0", 'was $_ set to 0';
 }
 

@@ -18,9 +18,9 @@ sub is-run (
     Str() $code, $desc = "$code runs",
     Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
 ) is export is test-assertion {
-    my @proc-args = $*EXECUTABLE, @compiler-args, '-e', $code, @args;
+    my @proc-args = $*EXECUTABLE, |@compiler-args, '-e', $code, |@args;
 
-    with run :in, :out, :err, @proc-args {
+    with run :in, :out, :err, |@proc-args {
         $in ~~ Blob ?? .in.write: $in !! .in.print: $in if $in;
         $ = .in.close;
         my $proc-out      = .out.slurp: :close;

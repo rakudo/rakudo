@@ -221,7 +221,7 @@ stages:
           displayName: Test Rakudo (relocated)
         - pwsh: |
             ${{ variables.PWSH_DEV }}
-            prove -e .\install-moved\bin\raku --ext .t --ext .rakutest -vlr t
+            prove -e ..\install-moved\bin\raku --ext .t --ext .rakutest -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
           condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo (relocated, Windows)

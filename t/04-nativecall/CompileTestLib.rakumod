@@ -15,6 +15,16 @@ sub compile_test_lib($name) is export {
 
         $c_line = "$cfg<cc> -c $cfg<ccshared> $cfg<ccout>$name$o $cfg<cflags> t/04-nativecall/$name.c";
         $l_line = "$cfg<ld> $ldshared $cfg<ldflags> $cfg<ldlibs> $cfg<ldout>$libname $name$o";
+
+        # Microsoft cl can't be run reliably in parallel when debugging is on.
+        # cl tries to write to a shared pdb file vc140.pdb.
+        # The linker options contain "/pdb:$@.pdb" which still contains a makefile placeholder. Here it's taken
+        # literally and also causes conflicts. So we filter the debugging flags out.
+        if $cfg<cc> eq "cl" {
+            $c_line = $c_line.split(" ").grep(none /^ "/Z"/).join(" ");
+            $l_line = $l_line.split(" ").grep(none /^ "/" [debug|pdb]/).join(" ");
+        }
+
         @cleanup = << "$libname" "$name$o" >>;
     }
     elsif $VM.name eq 'jvm' || $VM.name eq 'js' {

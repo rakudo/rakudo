@@ -9,6 +9,7 @@
 #  include <sys/stat.h>
 #  include <process.h>
 #  include <shlwapi.h>
+#  include <fileapi.h>
 #  include <io.h>
 #  if defined(_MSC_VER)
 #    define strtoll _strtoi64
@@ -77,14 +78,20 @@ static int parse_flag(const char *arg)
 
 int file_exists(const char *path) {
 #ifdef _WIN32
-    int             res;
-    struct _stat    sb;
-    const int       len   = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
-    wchar_t * const wpath = (wchar_t *)malloc(len * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, len);
-    res = _wstat(wpath, &sb);
+    const int       wpath_len = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+    wchar_t * const wpath     = (wchar_t *)calloc(wpath_len, sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, wpath_len);
+
+    int dos_path_size = wpath_len + 4;
+    wchar_t *dos_path = (wchar_t*)calloc(dos_path_size, sizeof(wchar_t));
+    wcscpy_s(dos_path, dos_path_size, L"\\\\?\\");
+    wcscat_s(dos_path, dos_path_size, wpath);
     free(wpath);
-    return res == 0;
+
+    unsigned long attr = GetFileAttributesW(dos_path);
+
+    return (attr != INVALID_FILE_ATTRIBUTES &&
+          !(attr & FILE_ATTRIBUTE_DIRECTORY));
 #else
     struct stat *sb = malloc(sizeof(struct stat));
     int res         = stat(path, sb) == 0;
@@ -93,14 +100,23 @@ int file_exists(const char *path) {
 #endif
 }
 
-void platformify_path(char *path) {
+void platformify_path(char **path) {
 #ifdef _WIN32
-    int i;
-    for (i = 0; path[i]; i++) {
-        if (path[i] == '/') {
-            path[i] = '\\';
-        }
+    int buf_size = GetFullPathNameA(*path, 0, NULL, NULL);
+    if (buf_size == 0) {
+        fprintf(stderr, "ERROR: Could not normalize home dir.\n");
+        exit(EXIT_FAILURE);
     }
+
+    char *norm_path = (char*)malloc(buf_size);
+    buf_size = GetFullPathNameA(*path, buf_size, norm_path, NULL);
+
+    if (buf_size == 0) {
+        fprintf(stderr, "ERROR: Could not normalize home dir.\n");
+        exit(EXIT_FAILURE);
+    }
+    free(*path);
+    *path = norm_path;
 #endif
 }
 
@@ -130,7 +146,7 @@ int retrieve_home(
         *out_home = (char*)malloc(home_size + 1);
         strcpy(*out_home, env_home);
 #ifdef _WIN32
-        if (*(*out_home + home_size - 1) == '\\') {
+        if (*(*out_home + home_size - 1) == '/' || *(*out_home + home_size - 1) == '\\') {
 #else
         if (*(*out_home + home_size - 1) == '/') {
 #endif
@@ -147,12 +163,13 @@ int retrieve_home(
         *out_home = (char*)malloc(home_size + 1);
         strncpy(*out_home, exec_dir_path, home_size);
         strncat(*out_home, rel_home, rel_home_size);
-        platformify_path(*out_home + exec_dir_path_size);
+        platformify_path(out_home);
     }
 
     check_file_path = (char*)malloc(home_size + check_file_size + 1);
     strncpy(check_file_path, *out_home, home_size + check_file_size);
     strncat(check_file_path, check_file, check_file_size);
+    platformify_path(&check_file_path);
 
     ret = file_exists(check_file_path);
     free(check_file_path);

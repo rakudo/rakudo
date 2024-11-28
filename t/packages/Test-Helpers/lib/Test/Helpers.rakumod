@@ -18,17 +18,9 @@ sub is-run (
     Str() $code, $desc = "$code runs",
     Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
 ) is export is test-assertion {
-    my @proc-args = flat do if $*DISTRO.is-win {
-        # $*EXECUTABLE is a batch file on Windows, that goes through cmd.exe
-        # and chokes on standard quoting. We also need to remove any newlines
-        <cmd.exe  /S /C>, $*EXECUTABLE, @compiler-args, '-e',
-        ($code,  @args).subst(:g, "\n", " ")
-    }
-    else {
-        $*EXECUTABLE, @compiler-args, '-e', $code, @args
-    }
+    my @proc-args = $*EXECUTABLE, |@compiler-args, '-e', $code, |@args;
 
-    with run :in, :out, :err, @proc-args {
+    with run :in, :out, :err, |@proc-args {
         $in ~~ Blob ?? .in.write: $in !! .in.print: $in if $in;
         $ = .in.close;
         my $proc-out      = .out.slurp: :close;

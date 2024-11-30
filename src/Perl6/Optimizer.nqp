@@ -4493,7 +4493,10 @@ class Perl6::Optimizer {
                     :op('atpos'),
                     QAST::Var.new(
                         :name('@!dispatchees'), :scope('attribute'),
-                        QAST::Var.new( :name($call.name), :scope('lexical') ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($call.name), :scope('lexical') )
+                        ),
                         QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
                     ),
                     QAST::IVal.new( :value($idx) )

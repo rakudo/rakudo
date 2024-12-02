@@ -3962,12 +3962,12 @@ BEGIN {
 
                         # Not a native parameter, but we may getting a native
                         # value, possibly in a container.
-#?if !jvm
                         else {
 
                             # Assume a native value unless proven otherwise
                             my int $primish := 1;
 
+#?if !jvm
                             # Set type to fall back to if no native involved
                             my $type := $arg.WHAT;
 
@@ -3995,6 +3995,30 @@ BEGIN {
                                     }
                                 }
                             }
+#?endif
+#?if jvm
+                            my $param := $arg;
+                            if $got_prim == nqp::const::BIND_VAL_OBJ {
+                                if    nqp::iscont_i($param) { $param := Int; }
+                                elsif nqp::iscont_u($param) { $param := Int; }
+                                elsif nqp::iscont_n($param) { $param := Num; }
+                                elsif nqp::iscont_s($param) { $param := Str; }
+                                else { $primish := 0; $param := nqp::hllizefor($param, 'Raku'); }
+                            }
+                            else {
+                                $param := $got_prim == nqp::const::BIND_VAL_INT ?? Int !!
+                                          $got_prim == nqp::const::BIND_VAL_UINT ?? Int !!
+                                          $got_prim == nqp::const::BIND_VAL_NUM ?? Num !!
+                                                                        Str;
+                            }
+                            if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                if $i == 0 && nqp::existskey($candidate, 'exact_invocant') {
+                                    unless $param.WHAT =:= $type_obj {
+                                        $no_mismatch := 0;
+                                    }
+                                }
+                            }
+#?endif
 
                             # Positional param needs PositionalBindFailover
                             elsif nqp::eqaddr(
@@ -4019,7 +4043,7 @@ BEGIN {
                                 $no_mismatch := 0;
                             }
 
-                            # Check conreteness if makes sense and so required
+                            # Check concreteness if makes sense and so required
                             $no_mismatch := 0
                               if $no_mismatch
                               && (my int $mask :=
@@ -4028,62 +4052,6 @@ BEGIN {
                                    ?? nqp::const::DEFCON_DEFINED
                                    !! nqp::const::DEFCON_UNDEFINED
                                  ) != $mask;
-#?endif
-#?if jvm
-                        else {
-                            my int $primish;
-                            my $param := $arg;
-                            if $got_prim == nqp::const::BIND_VAL_OBJ {
-                                if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
-                                elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
-                                elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
-                                elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-                                else { $param := nqp::hllizefor($param, 'Raku') }
-                            }
-                            else {
-                                $param := $got_prim == nqp::const::BIND_VAL_INT ?? Int !!
-                                          $got_prim == nqp::const::BIND_VAL_UINT ?? Int !!
-                                          $got_prim == nqp::const::BIND_VAL_NUM ?? Num !!
-                                                                        Str;
-                                $primish := 1;
-                            }
-                            if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
-                                if $i == 0 && nqp::existskey($candidate, 'exact_invocant') {
-                                    unless $param.WHAT =:= $type_obj {
-                                        $no_mismatch := 0;
-                                    }
-                                }
-                            }
-                            elsif nqp::eqaddr(
-                              $type_obj,
-                              nqp::ifnull(
-                                $Positional,
-                                $Positional := nqp::gethllsym('Raku', 'MD_Pos')
-                              )
-                            ) {
-                                $no_mismatch := 0 unless nqp::istype(
-                                  $param,
-                                  nqp::ifnull(
-                                    $PositionalBindFailover,
-                                    $PositionalBindFailover :=
-                                      nqp::gethllsym('Raku', 'MD_PBF')
-                                  )
-                                );
-                            }
-                            else {
-                                $no_mismatch := 0;
-                            }
-
-                            # Check for definedness if it still makes sense
-                            if $no_mismatch && $flags +& nqp::const::DEFCON_MASK {
-                                my int $defined := $primish || nqp::isconcrete($param);
-                                my int $desired := $flags +& nqp::const::DEFCON_MASK;
-                                if ($defined && $desired == nqp::const::DEFCON_UNDEFINED) ||
-                                   (!$defined && $desired == nqp::const::DEFCON_DEFINED) {
-                                    $no_mismatch := 0;
-                                }
-                            }
-#?endif
                         }
 
                         ++$i;

@@ -28,9 +28,16 @@ my %repos = (
 # 'rev-DEADBEEF-https://github.com/url-to/repo' means checkout the given rev.
 my ($rakudo, $nqp, $moar) = @ARGV;
 
+# if we're in azure pipelines, we can make prettier output
+my $is_azure_pipelines = exists $ENV{IS_AZURE_PIPELINES_BUILD};
+
 sub exec_and_check {
     my $msg = pop;
     my @command = @_;
+
+    if ($is_azure_pipelines) {
+        print("##[command]", join " ", map { $_ =~ s/"/\\"/; m/^[a-zA-Z_-]+$/ ? $_ : '"' . $_ . '"' } @command);
+    }
 
     open(my $handle, '-|', @command);
     my $out = '';

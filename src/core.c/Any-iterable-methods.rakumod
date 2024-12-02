@@ -100,6 +100,20 @@ Consider using a block if any of these are necessary for your mapping code."
               !! Rakudo::IterateMoreWithoutPhasers.new(&code, $source, $count, $label)
     }
 
+    # These candidates provide a more modern approach to specifying the map targets
+    multi method map(&block, :$label, :$flat!) {
+        self.flatmap(&block, :$label)
+    }
+    multi method map(&block, :$duck!) {
+        self.duckmap(&block)
+    }
+    multi method map(&block, :$node!) {
+        self.nodemap(&block)
+    }
+    multi method map(&block, :$deep!) {
+        self.deepmap(&block)
+    }
+
     proto method flatmap (|) is nodal {*}
     multi method flatmap(&block, :$label) {
         self.map(&block, :$label).flat

@@ -113,7 +113,7 @@ our class Pointer is repr<CPointer> {
         method AT-POS(::?CLASS:D: Int:D $pos) {
             nqp::nativecallcast(
               TValue,
-              map_return_type(TValue),
+              nqp::decont(map_return_type(TValue)),
               nqp::box_i(
                 nqp::unbox_i(self) + nqp::nativecallsizeof(TValue) * $pos,
                 Pointer

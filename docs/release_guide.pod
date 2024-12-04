@@ -2,8 +2,7 @@
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo’s development release cycle is the third Saturday of
-each month.
+Rakudo’s development release cycle is monthly.
 
 Each development release is given a sequential number and a name based
 on the release year and month.  Older releases had code names based on
@@ -18,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2024-11-21   Rakudo #178 (jdv)
+  2024-12-14   Rakudo #178 (jdv)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -94,9 +93,9 @@ A few days before the Rakudo release, it’s a good idea to...
 
 Remind people of the upcoming release, invite people to update the
 L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft> or
-do it yourself, etc. Note that the ChangeLog is kept on the wiki
-so that people can easily do minor corrections, but for the release it
-has to be moved into C<docs/ChangeLog>.
+do it yourself, etc. Note that the upcoming ChangeLog addition is kept on the
+wiki so that people can easily do minor corrections, but for the release it
+has to be added to the top of C<docs/ChangeLog>.
 
 =item *
 
@@ -191,6 +190,17 @@ you find any steps that are missing.
 
 =item *
 
+Call the contributors script to ensure all contributors are mentioned:
+
+    raku tools/contributors.raku
+
+Ensure you have all supporting repositories checked out, before running (this
+can be achieved by building rakudo and running a spectest as well as having
+the doc and doc-website repos nextdoor).  The script will say if a repo is
+missing.  Please check the result manually for duplicates and other errors.
+
+=item *
+
 Create a draft release announcement in docs/announce/YYYY.MM.md in
 markdown format.
 
@@ -201,22 +211,22 @@ save yourself some time, but please look over its output if you decide
 to use it:
 
     raku tools/create-release-announcement.raku > docs/announce/YYYY.MM.md
-    git add docs/announce/YYYY.MM.md
+    git add docs
     git commit docs
 
-Ensure dates of current and next releases are correct.
+Ensure dates of current and next releases are correct.  Note that there seems to
+be a bug where the next release date in the generated announce is wrong but the
+release # is correct.
 
 =item *
 
-Sometimes you need to call the contributors script and re-generate the
-announcement to ensure all contributors are mentioned:
+Add the ChangeLog material from the wiki to the top of C<docs/ChangeLog>.
 
-    raku tools/contributors.raku
+=item *
 
-Ensure you have all supporting repositories
-checked out, before running (this can be achieved by building rakudo
-and running a spectest). Please check the result manually for duplicates
-and other errors.
+Create the release commit (remember to look at previous for the special format)
+and push the release branch up.  This has to be done before the ake commands run
+as they update the remote.
 
 =item 6.
 
@@ -245,6 +255,9 @@ Prepare environment variables for the invocation, for example:
     TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main
 
 This means that:
+
+- Run up to 24 test jobs in parallel but setting it to however many "procs" you
+  have seems to work fine.
 
 - Version of the release made will be set to be 2021.10
 
@@ -307,15 +320,17 @@ errata branches.
 
 =item *
 
-Once this is done, create the artifact and test it afterwards.
+Once this is done, create the artifact and test it afterwards.  You can look at
+the resulting artifact unpacked in the C<temp/rakudo-test/$rel-branch-name>
+directory, run C<./install/bin/raku --version> and ensure mentioned version is
+correct.  Note that rakudo-post-test deletes the rakudo-test dir so must check
+version beforehand.
 
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-archive
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-extract
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-build
+  (check version aka raku --version)
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-test
-
-You can look at the resulting artifact unpacked in the C<temp/rakudo-test/> directory,
-run C<raku --version> and ensure mentioned version is correct.
 
 =item *
 
@@ -328,23 +343,37 @@ If everything looks correct, tag and sign the release:
 There is a C<human-upload> target to push all the commits to NQP and Rakudo repos, it
 also includes uploading tarballs, but this is usually done manually:
 
-    scp -P 2222 nqp/nqp-2021.10.tar.gz nqp/nqp-2021.10.tar.gz.asc rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/nqp
-    scp -P 2222 rakudo-2021.10.tar.gz rakudo-2021.10.tar.gz.asc \
-        rakudo-2021.10.tar.gz.checksums.txt \
-        rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/rakudo/
+scp -P 222 nqp/nqp-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
+scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
 
 But the Akefile has targets to do uploading, so it is possible to modify
 the script to automate this part. Uploading requires having rights to upload files,
-the best idea is to ping rba on one of Raku IRC channels and ask how to proceed.
+the best idea is to ping rba or coleman or andinus or any other "raku infra"
+person on one of Raku IRC channels and ask how to proceed.
+
+=item *
+
+Create PR and merge on remote (github) because ake puts commits there (that
+wouldn't be in your local).
 
 =item *
 
 Use the L<Github release|https://github.com/rakudo/rakudo/blob/main/tools/releasable/github-release.p6> script to create
 NQP and Rakudo Github release, refer to MoarVM release guide for the details about artifacts attachment.
 
+Note that the artifacts upload is broken so you have to do it manually.
+
+Copy the announce into the github release description field.
+
+See previous releases for any details.
+
 =item 9.
 
 Build binary packages by following the steps in C<docs/release_guide_binary.md>.
+
+NOTE:  I, jdv, have never done this step.  Instead, I just tell patrickb and
+El_Che on IRC that the source release is done and they build various downstream
+release artifacts.
 
 =item 10.
 
@@ -359,6 +388,10 @@ Change the heading to look as follows:
   %% date: 2020-06-19
 
 Commit and push the change to GitHub.
+
+Run this to get rakudo.org to pickup the changes:
+
+ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
 
 =item 11.
 

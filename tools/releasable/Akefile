@@ -26,11 +26,11 @@ my $WIKIPEDIA-NAME = %*ENV<WIKIPEDIA-NAME>; # currently not used
 my $ANTIFLAP = 3;
 
 # TODO automatically use local paths if possible
-my $MOAR-REPO   = ‘https://github.com/MoarVM/MoarVM.git’;
+my $MOAR-REPO   = ‘git@github.com:MoarVM/MoarVM.git’;
 my $MOAR-PATH   = ‘moar’.IO;
-my $NQP-REPO    = ‘https://github.com/perl6/nqp.git’;
+my $NQP-REPO    = ‘git@github.com:perl6/nqp.git’;
 my $NQP-PATH    = ‘nqp’.IO;
-my $RAKUDO-REPO = ‘https://github.com/rakudo/rakudo.git’;
+my $RAKUDO-REPO = ‘git@github.com:rakudo/rakudo.git’;
 my $RAKUDO-PATH = ‘rakudo’.IO;
 
 # TODO BRANCH_MOAR makes no difference now because it uses version claimed in NQP

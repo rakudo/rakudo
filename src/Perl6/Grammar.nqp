@@ -962,7 +962,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <!!{ $/.set_actions($actions); 1 }>
         <!before <.[\])}]> | $ >
         <!stopper>
-        <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
+        <!!{ if !nqp::eqaddr($/.WHAT, (my $sgm := self.slang_grammar('MAIN'))) { nqp::rebless($/, $sgm); }; 1 }>
         [
         | <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>

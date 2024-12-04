@@ -706,6 +706,8 @@ my class Binder {
             if $flags +& nqp::const::SIG_ELEM_IS_CAPTURE {
                 $capture := $oval;
             }
+
+            # Not a capture yet, try to mke it one
             elsif nqp::can($oval, 'Capture') {
                 $capture := $oval.Capture;
             }
@@ -726,8 +728,10 @@ my class Binder {
               $error
             );
             unless $result == nqp::const::BIND_RESULT_OK {
-                if nqp::defined($error)
-                  && nqp::isstr(my $message := nqp::atpos($error, 0)) {
+                if nqp::isconcrete($error) && nqp::islist($error) {
+                    my $message := nqp::atpos($error, 0);
+                    $message := $message() if nqp::isinvokable($message);
+                    $message := "Unknown binding error" unless $message;
 
                     # Note in error message that we're in a sub-signature.
                     $message := $message ~ " in sub-signature";
@@ -1177,7 +1181,9 @@ my class Binder {
             }
             else {
                 my $error := nqp::atpos(@error, 0);
-                nqp::isinvokable($error) ?? $error() !! nqp::die($error);
+                nqp::isinvokable($error)
+                  ?? $error()
+                  !! nqp::die($error // "Unexpected signature binding error");
             }
         }
         else {

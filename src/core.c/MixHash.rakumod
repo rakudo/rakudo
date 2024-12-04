@@ -85,6 +85,61 @@ my class MixHash does Mixy {
 #--- object creation methods
     multi method new(MixHash:_:) { nqp::create(self) }
 
+#--- stringification methods
+
+    multi method gist(MixHash:D: --> Str:D) {
+        self.gistseen: self.^name, {
+            nqp::concat(
+              nqp::concat(
+                nqp::concat(self.^name,'('),
+                nqp::join(' ',
+                  Rakudo::Sorting.MERGESORT-str(
+                    Rakudo::QuantHash.RAW-VALUES-MAP(self, {
+                        (my \value := nqp::getattr($_,Pair,'$!value')) == 1
+                          ?? nqp::getattr($_,Pair,'$!key').gist
+                          !! "{nqp::getattr($_,Pair,'$!key').gist}({value})"
+                    })
+                  )
+                )
+              ),
+              ')',
+            )
+        }
+    }
+
+    multi method raku(MixHash:D \SELF: --> Str:D) {
+        SELF.rakuseen: self.^name, {
+            nqp::if(
+              $!elems && nqp::elems($!elems),
+              nqp::stmts(
+                (my \pairs := nqp::join(',',
+                  Rakudo::QuantHash.RAW-VALUES-MAP(self, {
+                      nqp::concat(
+                        nqp::concat(
+                          nqp::getattr($_,Pair,'$!key').raku,
+                          '=>'
+                        ),
+                        nqp::getattr($_,Pair,'$!value').raku
+                      )
+                  })
+                )),
+                nqp::if(
+                  nqp::eqaddr(self.keyof,Mu),
+                  nqp::concat(
+                    nqp::concat('(',pairs),
+                    nqp::concat(').',self.^name)
+                  ),
+                  nqp::concat(
+                    nqp::concat(self.^name,'.new-from-pairs('),
+                    nqp::concat(pairs,')')
+                  )
+                )
+              ),
+              nqp::concat('().',self.^name)
+            )
+        }
+    }
+
 #--- coercion methods
     multi method Mix(MixHash:D: :view($)!) is implementation-detail {
         $!elems && nqp::elems($!elems)

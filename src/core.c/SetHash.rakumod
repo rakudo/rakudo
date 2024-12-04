@@ -173,6 +173,36 @@ my class SetHash does Setty {
     }
     multi method values(SetHash:D:) { Seq.new(Values.new(:$!elems)) }
 
+#--- stringification methods
+
+    multi method gist(SetHash:D: --> Str:D) {
+        self.gistseen: self.^name, {
+            nqp::concat(
+              nqp::concat(
+                nqp::concat(self.^name,'('),
+                nqp::join(" ",
+                  Rakudo::Sorting.MERGESORT-str(
+                    Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
+                  )
+                )
+              ),
+              ')'
+            )
+        }
+    }
+
+    multi method raku(SetHash:D \SELF: --> Str:D) {
+        SELF.rakuseen: self.^name, {
+            nqp::concat(
+              nqp::concat(
+                nqp::concat(self.^name,'.new('),
+                nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku))
+              ),
+              ')'
+            )
+        }
+    }
+
 #--- coercion methods
     multi method Set(SetHash:D: :view($)!) is implementation-detail {
         $!elems && nqp::elems($!elems)

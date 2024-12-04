@@ -152,33 +152,9 @@ my role Setty does QuantHash {
     }
 
     multi method Str(Setty:D $ : --> Str:D) {
-        nqp::join(" ",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
-    }
-    multi method gist(Setty:D $ : --> Str:D) {
-        nqp::concat(
-          nqp::concat(
-            nqp::concat(self.^name,'('),
-            nqp::join(" ",
-              Rakudo::Sorting.MERGESORT-str(
-                Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
-              )
-            )
-          ),
-          ')'
-        )
-    }
-    multi method raku(Setty:D $ : --> Str:D) {
-        nqp::if(
-          nqp::eqaddr(self,set()),
-          'set()',
-          nqp::concat(
-            nqp::concat(
-              nqp::concat(self.^name,'.new('),
-              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku))
-            ),
-            ')'
-          )
-        )
+        self.gistseen: self.^name, {
+            nqp::join(" ",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
+        }
     }
 
     proto method grab(|) {*}

@@ -76,6 +76,36 @@ my class Set does Setty {
         X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
     }
 
+#--- stringification methods
+
+    multi method gist(Set:D: --> Str:D) {
+        nqp::concat(
+          nqp::concat(
+            nqp::concat(self.^name,'('),
+            nqp::join(" ",
+              Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
+              )
+            )
+          ),
+          ')'
+        )
+    }
+
+    multi method raku(Set:D: --> Str:D) {
+        nqp::if(
+          nqp::eqaddr(self,set()),
+          'set()',
+          nqp::concat(
+            nqp::concat(
+              nqp::concat(self.^name,'.new('),
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku))
+            ),
+            ')'
+          )
+        )
+    }
+
 #--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {

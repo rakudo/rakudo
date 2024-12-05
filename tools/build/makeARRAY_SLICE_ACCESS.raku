@@ -54,26 +54,29 @@ while @lines {
       'no actionable adverbs',
       'none',
       Q:to/CODE/,
-        nqp::push($!result,$!iterable.AT-POS(pos));
+        nqp::push($!result,throw-if-Failure $!iterable.AT-POS(pos));
 CODE
       Q:to/CODE/,
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,$!iterable.AT-POS(pos))
+          ?? nqp::push($!result,$_)
           !! ($!done = 1);
 CODE
 
       ':kv',
       'kv',
       Q:to/CODE/,
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
-            nqp::push($!result,$!iterable.AT-POS(pos));
+            nqp::push($!result,$_);
         }
 CODE
       Q:to/CODE/,
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
-            nqp::push($!result,$!iterable.AT-POS(pos));
+            nqp::push($!result,$_);
         }
         else {
             $!done = 1;
@@ -84,35 +87,41 @@ CODE
       'not-kv',
       Q:to/CODE/,
         nqp::push($!result,pos);
-        nqp::push($!result,$!iterable.AT-POS(pos));
+        nqp::push($!result,throw-if-Failure $!iterable.AT-POS(pos));
 CODE
       "same as lazy :kv",
 
       ':p',
       'p',
       Q:to/CODE/,
-        nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)))
-          if $!iterable.EXISTS-POS(pos);
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
+        nqp::push($!result,Pair.new(pos,$_)) if $!iterable.EXISTS-POS(pos);
 CODE
       Q:to/CODE/,
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)))
+          ?? nqp::push($!result,Pair.new(pos,$_))
           !! ($!done = 1);
 CODE
 
       ':!p',
       'not-p',
       Q:to/CODE/,
-        nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)));
+        nqp::push(
+          $!result,
+          Pair.new(pos,throw-if-Failure $!iterable.AT-POS(pos))
+        );
 CODE
       "same as lazy :p",
 
       ':k',
       'k',
       Q:to/CODE/,
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos) if $!iterable.EXISTS-POS(pos);
 CODE
       Q:to/CODE/,
+        throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,pos)
           !! ($!done = 1);
@@ -121,6 +130,7 @@ CODE
       ':!k',
       'not-k',
       Q:to/CODE/,
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos);
 CODE
       "same as lazy :k",
@@ -128,12 +138,13 @@ CODE
       ':v',
       'v',
       Q:to/CODE/,
-        nqp::push($!result,$!iterable.AT-POS(pos))
-          if $!iterable.EXISTS-POS(pos);
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
+        nqp::push($!result,$_) if $!iterable.EXISTS-POS(pos);
 CODE
       Q:to/CODE/,
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,$!iterable.AT-POS(pos))
+          ?? nqp::push($!result,$_)
           !! ($!done = 1);
 CODE
 
@@ -201,6 +212,7 @@ CODE
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,False);
         }
 CODE
@@ -210,6 +222,7 @@ CODE
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -222,6 +235,9 @@ CODE
             nqp::push($!result,pos);
             nqp::push($!result,True);
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -230,6 +246,7 @@ CODE
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -238,8 +255,14 @@ CODE
       'exists-delete-not-kv',
       Q:to/CODE/,
         nqp::push($!result,pos);
-        self!delete(pos)
-          if nqp::push($!result,$!iterable.EXISTS-POS(pos));
+        if $!iterable.EXISTS-POS(pos) {
+            self!delete(pos);
+            nqp::push($!result,True);
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            nqp::push($!result,False);
+        }
 CODE
       "same as lazy :exists:delete:kv",
 
@@ -250,6 +273,9 @@ CODE
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,True));
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -257,6 +283,7 @@ CODE
             nqp::push($!result,Pair.new(pos,True));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -269,6 +296,7 @@ CODE
             nqp::push($!result,Pair.new(pos,True));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,Pair.new(pos,False));
         }
 CODE
@@ -338,6 +366,7 @@ CODE
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,True);
         }
 CODE
@@ -347,6 +376,7 @@ CODE
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -359,6 +389,9 @@ CODE
             nqp::push($!result,pos);
             nqp::push($!result,False);
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -367,6 +400,7 @@ CODE
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -374,6 +408,7 @@ CODE
       ':!exists:delete:!kv',
       'not-exists-delete-not-kv',
       Q:to/CODE/,
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos);
         self!delete(pos)
           unless nqp::push($!result,!$!iterable.EXISTS-POS(pos));
@@ -387,6 +422,9 @@ CODE
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,False));
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -394,6 +432,7 @@ CODE
             nqp::push($!result,Pair.new(pos,False));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -406,6 +445,7 @@ CODE
             nqp::push($!result,Pair.new(pos,False));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,Pair.new(pos,True));
         }
 CODE
@@ -414,12 +454,16 @@ CODE
       ':delete',
       'delete',
       Q:to/CODE/,
-        nqp::push($!result,self!delete(pos));
+        throw-if-Failure nqp::push($!result,self!delete(pos));
 CODE
       Q:to/CODE/,
-        $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,self!delete(pos))
-          !! ($!done = 1);
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,self!delete(pos));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
 CODE
 
       ':delete:kv',
@@ -429,6 +473,9 @@ CODE
             nqp::push($!result,pos);
             nqp::push($!result,self!delete(pos));
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -436,6 +483,7 @@ CODE
             nqp::push($!result,self!delete(pos));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -444,26 +492,31 @@ CODE
       'delete-not-kv',
       Q:to/CODE/,
         nqp::push($!result,pos);
-        nqp::push($!result,self!delete(pos));
+        nqp::push($!result,throw-if-Failure self!delete(pos));
 CODE
       "same as lazy :delete:kv",
 
       ':delete:p',
       'delete-p',
       Q:to/CODE/,
-        nqp::push($!result,Pair.new(pos,self!delete(pos)))
-          if $!iterable.EXISTS-POS(pos);
-CODE
-      Q:to/CODE/,
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,Pair.new(pos,self!delete(pos)))
-          !! ($!done = 1);
+          !! throw-if-Failure($!iterable.AT-POS(pos));
+CODE
+      Q:to/CODE/,
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,Pair.new(pos,self!delete(pos)));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
 CODE
 
       ':delete:!p',
       'delete-not-p',
       Q:to/CODE/,
-        nqp::push($!result,Pair.new(pos,self!delete(pos)));
+        nqp::push($!result,Pair.new(pos,throw-if-Failure self!delete(pos)));
 CODE
       "same as lazy :delete:p",
 
@@ -474,6 +527,9 @@ CODE
             self!delete(pos);
             nqp::push($!result,pos);
         }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+        }
 CODE
       Q:to/CODE/,
         if $!iterable.EXISTS-POS(pos) {
@@ -481,6 +537,7 @@ CODE
             nqp::push($!result,pos);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
 CODE
@@ -488,7 +545,9 @@ CODE
       ':delete:!k',
       'delete-not-k',
       Q:to/CODE/,
-        self!delete(pos) if $!iterable.EXISTS-POS(pos);
+        $!iterable.EXISTS-POS(pos)
+          ?? self!delete(pos)
+          !! throw-if-Failure($!iterable.AT-POS(pos));
         nqp::push($!result,pos);
 CODE
       "same as lazy :delete:k",
@@ -496,13 +555,18 @@ CODE
       ':delete:v',
       'delete-v',
       Q:to/CODE/,
-        nqp::push($!result,self!delete(pos))
-          if $!iterable.EXISTS-POS(pos);
-CODE
-      Q:to/CODE/,
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,self!delete(pos))
-          !! ($!done = 1);
+          !! throw-if-Failure($!iterable.AT-POS(pos));
+CODE
+      Q:to/CODE/,
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,self!delete(pos));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
 CODE
 
     ) -> $comment, $class, $code, $lazycode is copy {
@@ -546,6 +610,13 @@ my class Array::Slice::Access::#class# is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
 #code#
@@ -619,7 +690,7 @@ my class Array::Slice::Access::#class# is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -636,7 +707,7 @@ my class Array::Slice::Access::#class# is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)

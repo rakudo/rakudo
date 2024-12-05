@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2021-02-22T20:46:50+01:00 by tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2024-12-05T14:49:55+01:00 by tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -9,12 +9,20 @@ my class Array::Slice::Access::none is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,$!iterable.AT-POS(pos));
+        nqp::push($!result,throw-if-Failure $!iterable.AT-POS(pos));
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,$!iterable.AT-POS(pos))
+          ?? nqp::push($!result,$_)
           !! ($!done = 1);
     }
 
@@ -83,7 +91,7 @@ my class Array::Slice::Access::none is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -100,7 +108,7 @@ my class Array::Slice::Access::none is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -152,16 +160,25 @@ my class Array::Slice::Access::kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
-            nqp::push($!result,$!iterable.AT-POS(pos));
+            nqp::push($!result,$_);
         }
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
-            nqp::push($!result,$!iterable.AT-POS(pos));
+            nqp::push($!result,$_);
         }
         else {
             $!done = 1;
@@ -233,7 +250,7 @@ my class Array::Slice::Access::kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -250,7 +267,7 @@ my class Array::Slice::Access::kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -302,14 +319,22 @@ my class Array::Slice::Access::not-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
-        nqp::push($!result,$!iterable.AT-POS(pos));
+        nqp::push($!result,throw-if-Failure $!iterable.AT-POS(pos));
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
-            nqp::push($!result,$!iterable.AT-POS(pos));
+            nqp::push($!result,$_);
         }
         else {
             $!done = 1;
@@ -381,7 +406,7 @@ my class Array::Slice::Access::not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -398,7 +423,7 @@ my class Array::Slice::Access::not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -450,13 +475,21 @@ my class Array::Slice::Access::p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)))
-          if $!iterable.EXISTS-POS(pos);
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
+        nqp::push($!result,Pair.new(pos,$_)) if $!iterable.EXISTS-POS(pos);
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)))
+          ?? nqp::push($!result,Pair.new(pos,$_))
           !! ($!done = 1);
     }
 
@@ -525,7 +558,7 @@ my class Array::Slice::Access::p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -542,7 +575,7 @@ my class Array::Slice::Access::p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -594,12 +627,23 @@ my class Array::Slice::Access::not-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)));
+        nqp::push(
+          $!result,
+          Pair.new(pos,throw-if-Failure $!iterable.AT-POS(pos))
+        );
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,Pair.new(pos,$!iterable.AT-POS(pos)))
+          ?? nqp::push($!result,Pair.new(pos,$_))
           !! ($!done = 1);
     }
 
@@ -668,7 +712,7 @@ my class Array::Slice::Access::not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -685,7 +729,7 @@ my class Array::Slice::Access::not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -737,10 +781,19 @@ my class Array::Slice::Access::k is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos) if $!iterable.EXISTS-POS(pos);
     }
     method !accept-lazy(\pos --> Nil) {
+        throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,pos)
           !! ($!done = 1);
@@ -811,7 +864,7 @@ my class Array::Slice::Access::k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -828,7 +881,7 @@ my class Array::Slice::Access::k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -880,10 +933,19 @@ my class Array::Slice::Access::not-k is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos);
     }
     method !accept-lazy(\pos --> Nil) {
+        throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,pos)
           !! ($!done = 1);
@@ -954,7 +1016,7 @@ my class Array::Slice::Access::not-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -971,7 +1033,7 @@ my class Array::Slice::Access::not-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1023,13 +1085,21 @@ my class Array::Slice::Access::v is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,$!iterable.AT-POS(pos))
-          if $!iterable.EXISTS-POS(pos);
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
+        nqp::push($!result,$_) if $!iterable.EXISTS-POS(pos);
     }
     method !accept-lazy(\pos --> Nil) {
+        $_ := throw-if-Failure $!iterable.AT-POS(pos);
         $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,$!iterable.AT-POS(pos))
+          ?? nqp::push($!result,$_)
           !! ($!done = 1);
     }
 
@@ -1098,7 +1168,7 @@ my class Array::Slice::Access::v is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1115,7 +1185,7 @@ my class Array::Slice::Access::v is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1166,6 +1236,13 @@ my class Array::Slice::Access::exists is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,$!iterable.EXISTS-POS(pos));
@@ -1241,7 +1318,7 @@ my class Array::Slice::Access::exists is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1258,7 +1335,7 @@ my class Array::Slice::Access::exists is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1309,6 +1386,13 @@ my class Array::Slice::Access::exists-kv is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
@@ -1391,7 +1475,7 @@ my class Array::Slice::Access::exists-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1408,7 +1492,7 @@ my class Array::Slice::Access::exists-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1459,6 +1543,13 @@ my class Array::Slice::Access::exists-not-kv is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
@@ -1539,7 +1630,7 @@ my class Array::Slice::Access::exists-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1556,7 +1647,7 @@ my class Array::Slice::Access::exists-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1607,6 +1698,13 @@ my class Array::Slice::Access::exists-p is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,Pair.new(pos,True))
@@ -1683,7 +1781,7 @@ my class Array::Slice::Access::exists-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1700,7 +1798,7 @@ my class Array::Slice::Access::exists-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1751,6 +1849,13 @@ my class Array::Slice::Access::exists-not-p is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,Pair.new(pos,$!iterable.EXISTS-POS(pos)));
@@ -1826,7 +1931,7 @@ my class Array::Slice::Access::exists-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -1843,7 +1948,7 @@ my class Array::Slice::Access::exists-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -1895,12 +2000,20 @@ my class Array::Slice::Access::exists-delete is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,False);
         }
     }
@@ -1910,6 +2023,7 @@ my class Array::Slice::Access::exists-delete is implementation-detail {
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -1989,7 +2103,7 @@ my class Array::Slice::Access::exists-delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2006,7 +2120,7 @@ my class Array::Slice::Access::exists-delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2058,11 +2172,21 @@ my class Array::Slice::Access::exists-delete-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,pos);
             nqp::push($!result,True);
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -2072,6 +2196,7 @@ my class Array::Slice::Access::exists-delete-kv is implementation-detail {
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -2151,7 +2276,7 @@ my class Array::Slice::Access::exists-delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2168,7 +2293,7 @@ my class Array::Slice::Access::exists-delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2220,10 +2345,23 @@ my class Array::Slice::Access::exists-delete-not-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
-        self!delete(pos)
-          if nqp::push($!result,$!iterable.EXISTS-POS(pos));
+        if $!iterable.EXISTS-POS(pos) {
+            self!delete(pos);
+            nqp::push($!result,True);
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            nqp::push($!result,False);
+        }
     }
     method !accept-lazy(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
@@ -2232,6 +2370,7 @@ my class Array::Slice::Access::exists-delete-not-kv is implementation-detail {
             nqp::push($!result,True);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -2311,7 +2450,7 @@ my class Array::Slice::Access::exists-delete-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2328,7 +2467,7 @@ my class Array::Slice::Access::exists-delete-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2380,10 +2519,20 @@ my class Array::Slice::Access::exists-delete-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,True));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -2392,6 +2541,7 @@ my class Array::Slice::Access::exists-delete-p is implementation-detail {
             nqp::push($!result,Pair.new(pos,True));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -2471,7 +2621,7 @@ my class Array::Slice::Access::exists-delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2488,7 +2638,7 @@ my class Array::Slice::Access::exists-delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2540,12 +2690,20 @@ my class Array::Slice::Access::exists-delete-not-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,True));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,Pair.new(pos,False));
         }
     }
@@ -2555,6 +2713,7 @@ my class Array::Slice::Access::exists-delete-not-p is implementation-detail {
             nqp::push($!result,Pair.new(pos,True));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -2634,7 +2793,7 @@ my class Array::Slice::Access::exists-delete-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2651,7 +2810,7 @@ my class Array::Slice::Access::exists-delete-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2702,6 +2861,13 @@ my class Array::Slice::Access::not-exists is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,!$!iterable.EXISTS-POS(pos));
@@ -2777,7 +2943,7 @@ my class Array::Slice::Access::not-exists is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2794,7 +2960,7 @@ my class Array::Slice::Access::not-exists is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2845,6 +3011,13 @@ my class Array::Slice::Access::not-exists-kv is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
@@ -2927,7 +3100,7 @@ my class Array::Slice::Access::not-exists-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -2944,7 +3117,7 @@ my class Array::Slice::Access::not-exists-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -2995,6 +3168,13 @@ my class Array::Slice::Access::not-exists-not-kv is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
@@ -3075,7 +3255,7 @@ my class Array::Slice::Access::not-exists-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3092,7 +3272,7 @@ my class Array::Slice::Access::not-exists-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3143,6 +3323,13 @@ my class Array::Slice::Access::not-exists-p is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,Pair.new(pos,False))
@@ -3219,7 +3406,7 @@ my class Array::Slice::Access::not-exists-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3236,7 +3423,7 @@ my class Array::Slice::Access::not-exists-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3287,6 +3474,13 @@ my class Array::Slice::Access::not-exists-not-p is implementation-detail {
     has $!elems;
     has $!iterable;
     has int $!done;
+
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
 
     method !accept(\pos --> Nil) {
         nqp::push($!result,Pair.new(pos,!$!iterable.EXISTS-POS(pos)));
@@ -3362,7 +3556,7 @@ my class Array::Slice::Access::not-exists-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3379,7 +3573,7 @@ my class Array::Slice::Access::not-exists-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3431,12 +3625,20 @@ my class Array::Slice::Access::not-exists-delete is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,True);
         }
     }
@@ -3446,6 +3648,7 @@ my class Array::Slice::Access::not-exists-delete is implementation-detail {
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -3525,7 +3728,7 @@ my class Array::Slice::Access::not-exists-delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3542,7 +3745,7 @@ my class Array::Slice::Access::not-exists-delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3594,11 +3797,21 @@ my class Array::Slice::Access::not-exists-delete-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,pos);
             nqp::push($!result,False);
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -3608,6 +3821,7 @@ my class Array::Slice::Access::not-exists-delete-kv is implementation-detail {
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -3687,7 +3901,7 @@ my class Array::Slice::Access::not-exists-delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3704,7 +3918,7 @@ my class Array::Slice::Access::not-exists-delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3756,7 +3970,15 @@ my class Array::Slice::Access::not-exists-delete-not-kv is implementation-detail
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
+        throw-if-Failure $!iterable.AT-POS(pos);
         nqp::push($!result,pos);
         self!delete(pos)
           unless nqp::push($!result,!$!iterable.EXISTS-POS(pos));
@@ -3768,6 +3990,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv is implementation-detail
             nqp::push($!result,False);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -3847,7 +4070,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv is implementation-detail
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -3864,7 +4087,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv is implementation-detail
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -3916,10 +4139,20 @@ my class Array::Slice::Access::not-exists-delete-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,False));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -3928,6 +4161,7 @@ my class Array::Slice::Access::not-exists-delete-p is implementation-detail {
             nqp::push($!result,Pair.new(pos,False));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -4007,7 +4241,7 @@ my class Array::Slice::Access::not-exists-delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4024,7 +4258,7 @@ my class Array::Slice::Access::not-exists-delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4076,12 +4310,20 @@ my class Array::Slice::Access::not-exists-delete-not-p is implementation-detail 
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,Pair.new(pos,False));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             nqp::push($!result,Pair.new(pos,True));
         }
     }
@@ -4091,6 +4333,7 @@ my class Array::Slice::Access::not-exists-delete-not-p is implementation-detail 
             nqp::push($!result,Pair.new(pos,False));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -4170,7 +4413,7 @@ my class Array::Slice::Access::not-exists-delete-not-p is implementation-detail 
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4187,7 +4430,7 @@ my class Array::Slice::Access::not-exists-delete-not-p is implementation-detail 
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4239,13 +4482,24 @@ my class Array::Slice::Access::delete is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,self!delete(pos));
+        throw-if-Failure nqp::push($!result,self!delete(pos));
     }
     method !accept-lazy(\pos --> Nil) {
-        $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,self!delete(pos))
-          !! ($!done = 1);
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,self!delete(pos));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
     }
 
     method !SET-SELF(\iterable) {
@@ -4323,7 +4577,7 @@ my class Array::Slice::Access::delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4340,7 +4594,7 @@ my class Array::Slice::Access::delete is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4392,10 +4646,20 @@ my class Array::Slice::Access::delete-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             nqp::push($!result,pos);
             nqp::push($!result,self!delete(pos));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -4404,6 +4668,7 @@ my class Array::Slice::Access::delete-kv is implementation-detail {
             nqp::push($!result,self!delete(pos));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -4483,7 +4748,7 @@ my class Array::Slice::Access::delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4500,7 +4765,7 @@ my class Array::Slice::Access::delete-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4552,9 +4817,16 @@ my class Array::Slice::Access::delete-not-kv is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
-        nqp::push($!result,self!delete(pos));
+        nqp::push($!result,throw-if-Failure self!delete(pos));
     }
     method !accept-lazy(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
@@ -4562,6 +4834,7 @@ my class Array::Slice::Access::delete-not-kv is implementation-detail {
             nqp::push($!result,self!delete(pos));
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -4641,7 +4914,7 @@ my class Array::Slice::Access::delete-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4658,7 +4931,7 @@ my class Array::Slice::Access::delete-not-kv is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4710,14 +4983,26 @@ my class Array::Slice::Access::delete-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
-    method !accept(\pos --> Nil) {
-        nqp::push($!result,Pair.new(pos,self!delete(pos)))
-          if $!iterable.EXISTS-POS(pos);
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
     }
-    method !accept-lazy(\pos --> Nil) {
+
+    method !accept(\pos --> Nil) {
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,Pair.new(pos,self!delete(pos)))
-          !! ($!done = 1);
+          !! throw-if-Failure($!iterable.AT-POS(pos));
+    }
+    method !accept-lazy(\pos --> Nil) {
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,Pair.new(pos,self!delete(pos)));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
     }
 
     method !SET-SELF(\iterable) {
@@ -4795,7 +5080,7 @@ my class Array::Slice::Access::delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4812,7 +5097,7 @@ my class Array::Slice::Access::delete-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -4864,13 +5149,24 @@ my class Array::Slice::Access::delete-not-p is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        nqp::push($!result,Pair.new(pos,self!delete(pos)));
+        nqp::push($!result,Pair.new(pos,throw-if-Failure self!delete(pos)));
     }
     method !accept-lazy(\pos --> Nil) {
-        $!iterable.EXISTS-POS(pos)
-          ?? nqp::push($!result,Pair.new(pos,self!delete(pos)))
-          !! ($!done = 1);
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,Pair.new(pos,self!delete(pos)));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
     }
 
     method !SET-SELF(\iterable) {
@@ -4948,7 +5244,7 @@ my class Array::Slice::Access::delete-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -4965,7 +5261,7 @@ my class Array::Slice::Access::delete-not-p is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -5017,10 +5313,20 @@ my class Array::Slice::Access::delete-k is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
         if $!iterable.EXISTS-POS(pos) {
             self!delete(pos);
             nqp::push($!result,pos);
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
         }
     }
     method !accept-lazy(\pos --> Nil) {
@@ -5029,6 +5335,7 @@ my class Array::Slice::Access::delete-k is implementation-detail {
             nqp::push($!result,pos);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -5108,7 +5415,7 @@ my class Array::Slice::Access::delete-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -5125,7 +5432,7 @@ my class Array::Slice::Access::delete-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -5177,8 +5484,17 @@ my class Array::Slice::Access::delete-not-k is implementation-detail {
     has $!iterable;
     has int $!done;
 
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
+    }
+
     method !accept(\pos --> Nil) {
-        self!delete(pos) if $!iterable.EXISTS-POS(pos);
+        $!iterable.EXISTS-POS(pos)
+          ?? self!delete(pos)
+          !! throw-if-Failure($!iterable.AT-POS(pos));
         nqp::push($!result,pos);
     }
     method !accept-lazy(\pos --> Nil) {
@@ -5187,6 +5503,7 @@ my class Array::Slice::Access::delete-not-k is implementation-detail {
             nqp::push($!result,pos);
         }
         else {
+            throw-if-Failure $!iterable.AT-POS(pos);
             $!done = 1;
         }
     }
@@ -5266,7 +5583,7 @@ my class Array::Slice::Access::delete-not-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -5283,7 +5600,7 @@ my class Array::Slice::Access::delete-not-k is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)
@@ -5335,14 +5652,26 @@ my class Array::Slice::Access::delete-v is implementation-detail {
     has $!iterable;
     has int $!done;
 
-    method !accept(\pos --> Nil) {
-        nqp::push($!result,self!delete(pos))
-          if $!iterable.EXISTS-POS(pos);
+    # Helper sub to throw any failures being produced immediately
+    my sub throw-if-Failure(Mu \value) is raw {
+        nqp::istype(value,Failure)
+          ?? value.throw
+          !! value
     }
-    method !accept-lazy(\pos --> Nil) {
+
+    method !accept(\pos --> Nil) {
         $!iterable.EXISTS-POS(pos)
           ?? nqp::push($!result,self!delete(pos))
-          !! ($!done = 1);
+          !! throw-if-Failure($!iterable.AT-POS(pos));
+    }
+    method !accept-lazy(\pos --> Nil) {
+        if $!iterable.EXISTS-POS(pos) {
+            nqp::push($!result,self!delete(pos));
+        }
+        else {
+            throw-if-Failure $!iterable.AT-POS(pos);
+            $!done = 1;
+        }
     }
 
     method !SET-SELF(\iterable) {
@@ -5420,7 +5749,7 @@ my class Array::Slice::Access::delete-v is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions eagerly
-    method !handle-nonInt(\pos) {
+    method !handle-nonInt(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept(pos.Int)
@@ -5437,7 +5766,7 @@ my class Array::Slice::Access::delete-v is implementation-detail {
     }
 
     # Handle anything non-integer in the generated positions lazily
-    method !handle-nonInt-lazy(\pos) {
+    method !handle-nonInt-lazy(Mu \pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
             ?? self!accept-lazy(pos.Int)

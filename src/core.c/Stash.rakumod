@@ -59,7 +59,7 @@ my class Stash { # declared in BOOTSTRAP
     # 1. Hash is not thread-safe whereas Stash claims to be
     # 2. Stash candidates are fully overriding their counterparts from Hash
     # 3. Minor: could result in some minor improvement in multi-dispatch lookups due to lesser number of candidates
-    proto method ASSIGN-KEY(Stash:D: $, $) {*}
+    proto method ASSIGN-KEY(Stash:D: $, Mu $) {*}
     multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
         my $storage := nqp::getattr(self,Map,'$!storage');
         my \existing-key := nqp::atkey($storage, $key);

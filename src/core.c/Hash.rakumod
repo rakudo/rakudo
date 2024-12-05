@@ -154,6 +154,12 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method DELETE-KEY(Hash:D: \key) { self.DELETE-KEY(key.Str) }
 
+    multi method Str(Hash:D: --> Str:D) {
+        self.gistseen: self.^name, {
+          self.sort.join("\n")
+        }
+    }
+
     multi method raku(Hash:D \SELF:) {
         SELF.rakuseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted

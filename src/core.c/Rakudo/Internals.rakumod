@@ -743,7 +743,7 @@ my class Rakudo::Internals {
 
     method MAYBE-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my Mu \decont = nqp::decont(thing);
-        nqp::can(decont, nqp::decont_s($method))
+        (try nqp::can(decont, nqp::decont_s($method)))
           ?? decont."$method"()
           !! nqp::can(decont.HOW, 'name')
             ?? decont.^name

@@ -121,6 +121,51 @@ augment class Uni {
 }
 #?endif
 
+# This cannot live in Rakudo::Internals proper because allomorphs are
+# not yet known at that stage
+augment class Rakudo::Internals {
+    my Lock $fetch-lock := Lock.new;
+    method FETCH-USER-GROUP(Str:D $what) {
+        $fetch-lock.protect: {
+            unless PROCESS::{$what}:exists {
+                if self.IS-WIN {
+                    if $what eq '$USER' {
+                        PROCESS::<$USER> := try qx/whoami/.chomp;
+                    }
+                    # $what eq '$GROUP'
+                    elsif (try qx|whoami /groups /FO csv /nh|) -> $groups {
+                        PROCESS::<$GROUP> :=
+                          $groups.split('","',2).head.substr(1);
+                    }
+                    # alas
+                    else {
+                        PROCESS::<$GROUP> := Nil;
+                    }
+                }
+                elsif (try qx/LC_MESSAGES=POSIX id/) -> $id {
+                    if $id ~~ m/^
+                      [ uid "=" $<uid>=(\d+) ]
+                      [ "(" $<user>=(<-[ ) ]>+) ")" ]
+                      \s+
+                      [ gid "=" $<gid>=(\d+) ]
+                      [ "(" $<group>=(<-[ ) ]>+) ")" ]
+                    / { 
+                        PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
+                        PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
+                    }
+            
+                    # alas, no support yet
+                    else {
+                        PROCESS::<$USER>  := Nil;
+                        PROCESS::<$GROUP> := Nil;
+                    }
+                }
+            }
+            PROCESS::{$what}
+        }
+    }
+}
+
 # Subs that are DEPRECATED are moved here so that the "is DEPRECATED" trait
 # can be applied without bootstrapping issues.
 

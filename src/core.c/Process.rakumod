@@ -93,31 +93,11 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     PROCESS::<$HOME> := $HOME # bind container so Nil default is kept
 }
 
-{
-    sub fetch($what) {
-        once if !Rakudo::Internals.IS-WIN && try { qx/LC_MESSAGES=POSIX id/ } -> $id {
-            if $id ~~ m/^
-              [ uid "=" $<uid>=(\d+) ]
-              [ "(" $<user>=(<-[ ) ]>+) ")" ]
-              \s+
-              [ gid "=" $<gid>=(\d+) ]
-              [ "(" $<group>=(<-[ ) ]>+) ")" ]
-            / {
-                PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
-                PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
-            }
-
-            # alas, no support yet
-            else {
-                PROCESS::<$USER>  := Nil;
-                PROCESS::<$GROUP> := Nil;
-            }
-        }
-        PROCESS::{$what}
-    }
-
-    Rakudo::Internals.REGISTER-DYNAMIC: '$*USER',  { fetch('$USER') };
-    Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', { fetch('$GROUP') };
+Rakudo::Internals.REGISTER-DYNAMIC: '$*USER',  {
+    Rakudo::Internals.FETCH-USER-GROUP('$USER')
+}
+Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', {
+    Rakudo::Internals.FETCH-USER-GROUP('$GROUP')
 }
 
 # vim: expandtab shiftwidth=4

@@ -2945,6 +2945,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::box_s(nqp::join('',$parts),self)
     }
 
+    multi method trans(Str:D:) { self }
+
     multi method trans(Str:D: Pair:D $what, *%n --> Str:D) {
         my $from := $what.key;
         my $to   := $what.value;
@@ -3198,6 +3200,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # nothing to do
         return self unless self.chars;
+
+        # Make sure we just got Pairs
+        my $are := @changes.are;
+        X::Str::Trans::InvalidArg.new(got => $are).throw
+          unless nqp::istype($are,Pair);
 
         my $slash := nqp::getlexcaller('$/');
         $/ := $slash if nqp::iscont($slash);

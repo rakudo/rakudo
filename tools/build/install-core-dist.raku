@@ -31,6 +31,7 @@ if Compiler.backend eq 'moar' {
     %provides<SL>               = "lib/SL.rakumod";
     %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
     %provides<SIL>              = "lib/SIL.rakumod";
+    %provides<no-remote-debugging> = "lib/no-remote-debugging.rakumod";
 }
 
 my $prefix := @*ARGS[0];

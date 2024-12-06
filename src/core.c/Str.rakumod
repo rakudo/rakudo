@@ -2948,7 +2948,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method trans(Str:D: Pair:D $what, *%n --> Str:D) {
         my $from := $what.key;
         my $to   := $what.value;
-        $/ := nqp::getlexcaller('$/');
+        my $slash := nqp::getlexcaller('$/');
+        $/ := $slash if nqp::iscont($slash);
 
         return self.trans(($what,), |%n)
           if nqp::not_i(nqp::istype($from,Str))  # from not a string
@@ -3198,7 +3199,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # nothing to do
         return self unless self.chars;
 
-        $/ := nqp::getlexcaller('$/');
+        my $slash := nqp::getlexcaller('$/');
+        $/ := $slash if nqp::iscont($slash);
 
         my sub myflat(*@s) {
             @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ }

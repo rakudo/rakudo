@@ -116,6 +116,15 @@ class VM does Systemic {
 #?endif
     }
 
+    method remote-debugging() {
+#?if moar
+        nqp::syscall("is-debugserver-running")
+#?endif
+#?if !moar
+        0
+#?endif
+    }
+
     method request-garbage-collection(--> Nil) {
 #?if moar
         nqp::force_gc

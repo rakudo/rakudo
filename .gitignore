@@ -18,6 +18,7 @@ Makefile
 *.bundle
 *~
 .*.swp
+*.bak
 *.patch
 *.pdb
 *.res

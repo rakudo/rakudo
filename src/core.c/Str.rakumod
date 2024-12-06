@@ -2945,6 +2945,52 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::box_s(nqp::join('',$parts),self)
     }
 
+    # Expand a literal range of characters into an IterationBuffer
+    # according to the (partially un)documented .trans semantics
+    my sub expand-literal-range(str $range) {
+        my Mu $result := nqp::create(IterationBuffer);
+        my int $chars  = nqp::chars($range);
+        my int $start  = 1;
+        my int $found  = nqp::index($range,'..',$start);
+
+        # Found and not at the end without trailing range spec
+        nqp::while(
+          $found != -1 && $found != $chars - 2,
+          nqp::stmts(
+            nqp::if(
+              (my int $unsplit = $found - $start),
+              nqp::splice(
+                $result,
+                nqp::split("",nqp::substr($range,$start - 1,$unsplit)),
+                nqp::elems($result),
+                0
+              )
+            ),
+
+            # Add the range excluding last (may be begin point next range)
+            (my int $from = nqp::ordat($range,$found - 1) - 1),
+            (my int $to   = nqp::ordat($range,$found + 2)),
+            nqp::while(
+              ++$from < $to,
+              nqp::push($result,nqp::chr($from))
+            ),
+
+            # Look for next range
+            ($found = nqp::index($range,'..',$start = $found + 3))
+          )
+        );
+
+        # Add final bits
+        nqp::splice(
+          $result,
+          nqp::split("",nqp::substr($range,$start - 1)),
+          nqp::elems($result),
+          0
+        ) if $start <= $chars;
+
+        $result
+    }
+
     multi method trans(Str:D:) { self }
 
     multi method trans(Str:D: Pair:D $what, *%n --> Str:D) {
@@ -2966,7 +3012,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           self
         ) if $from.chars == 1;
 
-        my str $sfrom  = Rakudo::Internals.EXPAND-LITERAL-RANGE($from,0);
+        my str $sfrom  = nqp::join("",expand-literal-range($from.Str));
         my str $str    = self;
         my str $chars  = nqp::chars($str);
         my Mu $result := nqp::list_s();
@@ -2993,7 +3039,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # multiple chars to convert to
             else {
-                my str $sto = Rakudo::Internals.EXPAND-LITERAL-RANGE($to,0);
+                my str $sto = nqp::join("",expand-literal-range($to.Str));
                 my int $sfl = nqp::chars($sfrom);
                 my int $found;
 
@@ -3196,7 +3242,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method trans(Str:D:
-      *@changes, :c(:$complement), :s(:$squash), :d(:$delete) --> Str:D) {
+      *@changes,
+      Bool() :c(:$complement),
+      Bool() :s(:$squash),
+      Bool() :d(:$delete)
+    --> Str:D) {
 
         # nothing to do
         return self unless self.chars;
@@ -3215,18 +3265,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my sub expand($s) {
             nqp::istype($s,Iterable) || nqp::istype($s,Positional)
               ?? (my @ = myflat($s.list).Slip)
-              !! Rakudo::Internals.EXPAND-LITERAL-RANGE($s,1)
+              !! expand-literal-range($s.Str).Slip
         }
 
-        my int $just-strings = !$complement && !$squash;
+        my int $just-strings = !($complement || $squash);
         my int $just-chars   = $just-strings;
         my $needles := nqp::list;
         my $pins    := nqp::list;
 
         my $substitutions := nqp::list;
         for @changes -> $p {
-            X::Str::Trans::InvalidArg.new(got => $p).throw
-              unless nqp::istype($p,Pair);
 
             my $key   := $p.key;
             my $value := $p.value;
@@ -3241,8 +3289,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             else {
                 my $from := nqp::getattr(expand($key),  List,'$!reified');
                 my $to   := nqp::getattr(expand($value),List,'$!reified');
-                my $from-elems = nqp::elems($from);
-                my $to-elems   = nqp::elems($to);
+                my int $from-elems = nqp::elems($from);
+                my int $to-elems   = nqp::elems($to);
                 my $padding = $delete
                   ?? ''
                   !! $to-elems
@@ -3250,9 +3298,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     !! '';
 
                 my int $i = -1;
-                while nqp::islt_i($i = $i + 1,$from-elems) {
+                while ++$i < $from-elems {
                     my $key   := nqp::atpos($from,$i);
-                    my $value := nqp::islt_i($i,$to-elems)
+                    my $value := $i < $to-elems
                       ?? nqp::atpos($to,$i)
                       !! $padding;
                     nqp::push($substitutions,Pair.new($key,$value));

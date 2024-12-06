@@ -1195,46 +1195,6 @@ my class Rakudo::Internals {
         }
     }
 
-    method EXPAND-LITERAL-RANGE(\x,$list) {
-        my str $s      = nqp::unbox_s(x.Str);
-        my int $chars  = nqp::chars($s);
-        my Mu $result := nqp::list();
-        my int $start  = 1;
-        my int $found  = nqp::index($s,'..',$start);
-
-        # found and not at the end without trail
-        while nqp::isne_i($found,-1) && nqp::isne_i($found,$chars-2) {
-
-            if $found - $start -> $unsplit {
-                nqp::splice(
-                  $result,
-                  nqp::split("",nqp::substr($s,$start - 1,$unsplit)),
-                  nqp::elems($result),
-                  0
-                )
-            }
-
-            # add the range excluding last (may be begin point next range)
-            my int $from = nqp::ordat($s,$found - 1) - 1;
-            my int $to   = nqp::ordat($s,$found + 2);
-            nqp::push($result,nqp::chr($from))
-              while nqp::islt_i($from = $from + 1,$to);
-
-            # look for next range
-            $found = nqp::index($s,'..',$start = $found + 3);
-        }
-
-        # add final bits
-        nqp::splice(
-          $result,
-          nqp::split("",nqp::substr($s,$start - 1)),
-          nqp::elems($result),
-          0
-        ) if nqp::isle_i($start,$chars);
-
-        $list ?? $result !! nqp::join("",$result)
-    }
-
     my int $VERBATIM-EXCEPTION = 0;
     method VERBATIM-EXCEPTION($set?) {
         my int $value = $VERBATIM-EXCEPTION;

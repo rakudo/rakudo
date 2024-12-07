@@ -3259,8 +3259,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::box_s(nqp::join('', $result),$!what)
         }
     }
+
+    multi method trans(Str:D: *@changes) {
+        my $slash := nqp::getlexcaller('$/');
+        $/ := $slash if nqp::iscont($slash);
+        self.trans(@changes, |%_)
+    }
     multi method trans(Str:D:
-      *@changes,
+      @changes,
       Bool() :c(:$complement),
       Bool() :s(:$squash),
       Bool() :d(:$delete)

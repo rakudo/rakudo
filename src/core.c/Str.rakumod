@@ -2993,18 +2993,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method trans(Str:D:) { self }
 
-    multi method trans(Str:D: Pair:D $what, *%n --> Str:D) {
+    multi method trans(Str:D: Pair:D $what --> Str:D) {
         my $from := $what.key;
         my $to   := $what.value;
         my $slash := nqp::getlexcaller('$/');
         $/ := $slash if nqp::iscont($slash);
 
-        return self.trans(($what,), |%n)
+        return self.trans(($what,), |%_)
           if nqp::not_i(nqp::istype($from,Str))  # from not a string
           || !$from.defined                      # or a type object
           || nqp::not_i(nqp::istype($to,Str))    # or to not a string
           || !$to.defined                        # or a type object
-          || %n;                                 # or any named params passed
+          || %_.Bool;                            # or any named params passed
 
         # from 1 char
         return nqp::box_s(
@@ -3012,58 +3012,76 @@ my class Str does Stringy { # declared in BOOTSTRAP
           self
         ) if $from.chars == 1;
 
-        my str $sfrom  = nqp::join("",expand-literal-range($from.Str));
+        my str $sfrom  = nqp::join("",expand-literal-range($from));
         my str $str    = self;
         my str $chars  = nqp::chars($str);
-        my Mu $result := nqp::list_s();
+        my Mu $result := nqp::list_s;
         my str $check;
         my int $i = -1;
 
-        # something to convert to
+        # Something to convert to
         if $to.chars -> $tochars {
             nqp::setelems($result,$chars);
 
-            # all convert to one char
+            # All convert to one char
             if $tochars == 1 {
-                my str $sto = nqp::unbox_s($to);
-
-                while nqp::islt_i(++$i,$chars) {
-                    $check = nqp::substr($str,$i,1);
+                nqp::while(
+                  nqp::islt_i(++$i,$chars),
+                  nqp::stmts(
+                    ($check = nqp::substr($str,$i,1)),
                     nqp::bindpos_s(
-                      $result, $i, nqp::iseq_i(nqp::index($sfrom,$check),-1)
-                        ?? $check
-                        !! $sto
-                    );
-                }
+                      $result,
+                      $i,
+                      nqp::if(
+                        nqp::iseq_i(nqp::index($sfrom,$check),-1),
+                        $check,
+                        $to
+                      )
+                    )
+                  )
+                );
             }
 
-            # multiple chars to convert to
+            # Multiple chars to convert to
             else {
-                my str $sto = nqp::join("",expand-literal-range($to.Str));
-                my int $sfl = nqp::chars($sfrom);
+                my $bto := expand-literal-range($to);
                 my int $found;
 
-                # repeat until mapping complete
-                $sto = $sto ~ $sto while nqp::islt_i(nqp::chars($sto),$sfl);
+                # Repeat until mapping complete
+                nqp::while(
+                  nqp::islt_i(nqp::elems($bto),nqp::chars($sfrom)),
+                  nqp::splice($bto, $bto, nqp::elems($bto), 0)
+                );
 
-                while nqp::islt_i(++$i,$chars) {
-                    $check = nqp::substr($str,$i,1);
-                    $found = nqp::index($sfrom,$check);
-                    nqp::bindpos_s($result, $i, nqp::iseq_i($found,-1)
-                      ?? $check
-                      !! nqp::substr($sto,$found,1)
-                    );
-                }
+                nqp::while(
+                  nqp::islt_i(++$i,$chars),
+                  nqp::stmts(
+                    ($check = nqp::substr($str,$i,1)),
+                    ($found = nqp::index($sfrom,$check)),
+                    nqp::bindpos_s(
+                      $result,
+                      $i,
+                      nqp::if(
+                        nqp::iseq_i($found,-1),
+                        $check,
+                        nqp::atpos($bto,$found)
+                      )
+                    )
+                  )
+                );
             }
         }
 
-        # just remove
+        # Just remove
         else {
-            while nqp::islt_i(++$i,$chars) {
-                $check = nqp::substr($str,$i,1);
+            nqp::while(
+              nqp::islt_i(++$i,$chars),
+              ($check = nqp::substr($str,$i,1)),
+              nqp::if(
+                nqp::iseq_i(nqp::index($sfrom,$check),-1),
                 nqp::push_s($result, $check)
-                  if nqp::iseq_i(nqp::index($sfrom,$check),-1);
-            }
+              )
+            );
         }
 
         nqp::box_s(nqp::join('',$result),self);

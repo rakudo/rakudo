@@ -3009,19 +3009,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
           unless (my $from := $what.key).defined
               && (my $to   := $what.value).defined;
 
+        # Save caller's $/ now for when it's needed
         my $slash := nqp::getlexcaller('$/');
-        $/ := $slash if nqp::iscont($slash);
 
-        if nqp::istype($to,Str) {
+        # Slow path handler for DRYness
+        my &slow-path = {
+
+            # Make sure slow path will see caller's $/
+            $/ := $slash if nqp::iscont($slash);
+            return self.trans(($what,), |%_);
+        }
+
+        # Slow path for any nameds
+        if %_ {
+            slow-path
+        }
+        elsif nqp::istype($to,Str) {
 
             # Fast path regex to string: ccan be simplified to split/join
-            return self.split($from).join($to)
-              if nqp::istype($from,Regex);
+            return self.split($from).join($to) if nqp::istype($from,Regex);
 
-            # Slow path for none strings or nameds
-            return self.trans(($what,), |%_)
-              if nqp::not_i(nqp::istype($from,Str))
-              || %_.Bool;
+            # Slow path for
+            slow-path unless nqp::istype($from,Str);
 
             # Fast path single char to single other char
             return nqp::box_s(
@@ -3032,7 +3041,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # Slow path, the "to" is not a string
         else {
-            return self.trans(($what,), |%_)
+            slow-path;
         }
 
         my str $sfrom  = nqp::join("",expand-literal-range($from));

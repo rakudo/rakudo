@@ -2991,7 +2991,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result
     }
 
-    multi method trans(Str:D:) { self }
+    multi method trans(Str:D:) {
+        # Remove valid named args
+        %_<c complement d delete s squash>:delete;
+
+        # A noop only if there are no named args left
+        warn "Unexpected named variable(s) '%_.pairs.raku.substr(1,*-5)' specified with .trans, did you mean to specify Pair(s)?".naive-word-wrapper
+          if %_.Bool;
+
+        self
+    }
 
     multi method trans(Str:D: Pair:D $what --> Str:D) {
 

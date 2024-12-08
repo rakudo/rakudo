@@ -2994,16 +2994,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method trans(Str:D:) { self }
 
     multi method trans(Str:D: Pair:D $what --> Str:D) {
-        my $from := $what.key;
-        my $to   := $what.value;
+
+        # Nothing to do with type object on either side
+        return self
+          unless (my $from := $what.key).defined
+              && (my $to   := $what.value).defined;
+
         my $slash := nqp::getlexcaller('$/');
         $/ := $slash if nqp::iscont($slash);
 
         return self.trans(($what,), |%_)
           if nqp::not_i(nqp::istype($from,Str))  # from not a string
-          || !$from.defined                      # or a type object
           || nqp::not_i(nqp::istype($to,Str))    # or to not a string
-          || !$to.defined                        # or a type object
           || %_.Bool;                            # or any named params passed
 
         # from 1 char

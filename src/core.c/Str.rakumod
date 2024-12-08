@@ -3012,16 +3012,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $slash := nqp::getlexcaller('$/');
         $/ := $slash if nqp::iscont($slash);
 
-        return self.trans(($what,), |%_)
-          if nqp::not_i(nqp::istype($from,Str))  # from not a string
-          || nqp::not_i(nqp::istype($to,Str))    # or to not a string
-          || %_.Bool;                            # or any named params passed
+        if nqp::istype($to,Str) {
 
-        # from 1 char
-        return nqp::box_s(
-          Rakudo::Internals.TRANSPOSE(self, $from, $to.substr(0,1)),
-          self
-        ) if $from.chars == 1;
+            # Fast path regex to string: ccan be simplified to split/join
+            return self.split($from).join($to)
+              if nqp::istype($from,Regex);
+
+            # Slow path for none strings or nameds
+            return self.trans(($what,), |%_)
+              if nqp::not_i(nqp::istype($from,Str))
+              || %_.Bool;
+
+            # Fast path single char to single other char
+            return nqp::box_s(
+              Rakudo::Internals.TRANSPOSE(self, $from, $to.substr(0,1)),
+              self
+            ) if $from.chars == 1;
+        }
+
+        # Slow path, the "to" is not a string
+        else {
+            return self.trans(($what,), |%_)
+        }
 
         my str $sfrom  = nqp::join("",expand-literal-range($from));
         my str $str    = self;

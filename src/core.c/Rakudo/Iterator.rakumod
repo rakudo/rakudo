@@ -3541,12 +3541,20 @@ class Rakudo::Iterator {
                 self.done,                      # no more mods, so done
                 nqp::if(                        # got a mod
                   $mod > 1,
-                  nqp::stmts(                   # an actable mod
-                    (my $value := $!numerator mod $mod),
-                    nqp::bindattr(self,IntPolymod,'$!numerator',
-                      ($!numerator div $mod) || nqp::null
+                  nqp::if(                      # an actable mod
+                    $!numerator,
+                    nqp::stmts(                 # still values left
+                      (my $value := $!numerator mod $mod),
+                      nqp::bindattr(self,IntPolymod,'$!numerator',
+                        ($!numerator div $mod)
+                      ),
+                      $value
                     ),
-                    $value
+                    nqp::if(                    # no values left
+                      $!iterator.is-lazy,
+                      IterationEnd,
+                      0
+                    )
                   ),
                   nqp::if(                      # not an actable mod
                     $mod,
@@ -3576,14 +3584,22 @@ class Rakudo::Iterator {
                   self.done,                    # done
                   nqp::if(                      # possibly an actable mod
                     $mod,
-                    nqp::stmts(                 # an actable mod
-                      (my $value     := $!numerator % $mod),
-                      (my $numerator := $!numerator - $value),
-                      nqp::bindattr(self,IntPolymod,'$!numerator',
-                        ($numerator / $mod) || nqp::null
+                    nqp::if(                    # an actable mod
+                      $!numerator,
+                      nqp::stmts(               # still values left
+                        (my $value     := $!numerator % $mod),
+                        (my $numerator := $!numerator - $value),
+                        nqp::bindattr(self,IntPolymod,'$!numerator',
+                          ($numerator / $mod)
+                        ),
+                        $value
                       ),
-                      $value
-                    ),
+                      nqp::if(                  # no values left
+                        $!iterator.is-lazy,
+                        IterationEnd,
+                        0
+                      )
+                    ).
                     divide-by-zero($!numerator) # kaboom
                   )
                 )

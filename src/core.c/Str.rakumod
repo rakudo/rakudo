@@ -3609,10 +3609,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! $range.max.Int - $range.excludes-max - $start + 1
         )
     }
-    multi method substr-rw(Str:D $container is rw: Callable:D $code) is rw {
+    multi method substr-rw(Str:D $container is rw:
+      Callable:D $code, $want?
+    ) is rw {
         my int $chars = self.chars;
         my int $start = $code($chars);
-        self!substr-proxify($container, $start, $chars - $start)
+        self!substr-proxify($container, $start, $want // $chars - $start)
     }
     multi method substr-rw(Str:D $container is rw: Int(Any) $start) is rw {
         self!substr-proxify($container, $start, self.chars - $start)

@@ -4914,46 +4914,56 @@ my class array does Iterable does Positional {
 }
 
 multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
-    nqp::if(
-      nqp::iscont(range),
-      SELF.AT-POS(range.Int),                    # range in a container
-      nqp::if(
-        nqp::getattr_i(range,Range,'$!is-int'),
-        nqp::if(                                 # we have an integer range
-          nqp::islt_i(
-            (my int $min = nqp::add_i(
-              nqp::getattr(range,Range,'$!min'),
-              nqp::getattr_i(range,Range,'$!excludes-min')
-            )),
-            0
-          ),
-          SELF.out_of_range($min),                 # starts too low
-          nqp::if(                                   # start in range
-            nqp::isgt_i(
-              $min,
-              (my int $max = nqp::sub_i(
-                nqp::getattr(range,Range,'$!max'),
-                nqp::getattr_i(range,Range,'$!excludes-max')
-              ))
+    # range in a container
+    if nqp::iscont(range) {
+        SELF.AT-POS(range.Int)
+    }
+
+    # Shaped native arrays need to take slow-path, alas for now
+    elsif nqp::istype(SELF,array::shapedarray)  {
+        postcircumfix:<[ ]>(SELF, range.list)
+    }
+
+    # Unshaped native arrays can be fast-pathed with nqp::slice
+    else {
+        my $range := range.ended-by(SELF);
+        nqp::if(
+          nqp::getattr_i($range,Range,'$!is-int'),
+          nqp::if(                                 # we have an integer range
+            nqp::islt_i(
+              (my int $min = nqp::add_i(
+                nqp::getattr($range,Range,'$!min'),
+                nqp::getattr_i($range,Range,'$!excludes-min')
+              )),
+              0
             ),
-            nqp::create(SELF),                         # wrong order, empty!
-            nqp::if(                                   # correct order
-              nqp::islt_i($max,nqp::elems(SELF)),
-              nqp::slice(SELF,$min,$max),              # end in range, slice!
-              nqp::setelems(                             # end not in range
-                nqp::if(
-                  nqp::islt_i($min,nqp::elems(SELF)),
-                  nqp::slice(SELF,$min,-1),              # start in range
-                  nqp::create(SELF)                      # start not in range
-                ),
-                nqp::add_i(nqp::sub_i($max,$min),1)
+            SELF.out_of_range($min),                 # starts too low
+            nqp::if(                                   # start in range
+              nqp::isgt_i(
+                $min,
+                (my int $max = nqp::sub_i(
+                  nqp::getattr($range,Range,'$!max'),
+                  nqp::getattr_i($range,Range,'$!excludes-max')
+                ))
+              ),
+              nqp::create(SELF),                         # wrong order, empty!
+              nqp::if(                                   # correct order
+                nqp::islt_i($max,nqp::elems(SELF)),
+                nqp::slice(SELF,$min,$max),              # end in range, slice!
+                nqp::setelems(                             # end not in range
+                  nqp::if(
+                    nqp::islt_i($min,nqp::elems(SELF)),
+                    nqp::slice(SELF,$min,-1),              # start in range
+                    nqp::create(SELF)                      # start not in range
+                  ),
+                  nqp::add_i(nqp::sub_i($max,$min),1)
+                )
               )
             )
-          )
-        ),
-        postcircumfix:<[ ]>(SELF, range.list)
-      )
-    )
+          ),
+          postcircumfix:<[ ]>(SELF, $range.list)
+        )
+    }
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------

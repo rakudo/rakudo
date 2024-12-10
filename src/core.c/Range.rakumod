@@ -25,6 +25,23 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method is-lazy(Range:D:) { self.infinite }
 
+    # Internal method used to bound ..* slices to the size of their source
+    method ended-by(Range:D: \source) is implementation-detail {
+        if $!infinite && nqp::istype($!min,Int) {
+            with try source.end -> $max {
+                $max >= $!min
+                  ?? nqp::create(self)!SET-SELF($!min,$max,$!excludes-min,0,0)
+                  !! self
+            }
+            else {
+                self
+            }
+        }
+        else {
+            self
+        }
+    }
+
     multi method contains(Range:D: \needle) {
         warn "Applying '.contains' to a Range will look at its .Str representation.  Did you mean 'needle (elem) Range'?".naive-word-wrapper;
         self.Str.contains(needle)

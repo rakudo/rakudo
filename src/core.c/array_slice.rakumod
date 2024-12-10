@@ -105,6 +105,14 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
     Array::Element.access-any(SELF, pos, %_, 'v', $v)
 }
 
+# @a[1..N]
+multi sub postcircumfix:<[ ]>(\SELF, Range:D \range, *%_) is raw {
+    # MMD is not behaving itself so we do this by hand
+    postcircumfix:<[ ]>(
+      SELF, nqp::iscont(range) ?? range.Int !! range.ended-by(SELF).list, |%_
+    )
+}
+
 # @a[@i]
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
     nqp::iscont(positions)  # MMD is not behaving itself so we do this by hand

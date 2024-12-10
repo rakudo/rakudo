@@ -3599,7 +3599,7 @@ class Rakudo::Iterator {
                         IterationEnd,
                         0
                       )
-                    ).
+                    ),
                     divide-by-zero($!numerator) # kaboom
                   )
                 )

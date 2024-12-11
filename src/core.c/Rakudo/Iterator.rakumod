@@ -3591,7 +3591,7 @@ class Rakudo::Iterator {
                     nqp::stmts(                 # an actable mod
                       (my $value     := $!numerator % $mod),
                       (my $numerator := $!numerator - $value),
-                      nqp::bindattr(self,IntPolymod,'$!numerator',
+                      nqp::bindattr(self,RealPolymod,'$!numerator',
                         ($numerator / $mod)
                       ),
                       $value || nqp::if(

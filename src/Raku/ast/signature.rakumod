@@ -1252,7 +1252,8 @@ class RakuAST::Parameter
                           QAST::Op.new(:op<iseq_s>, $wval, $temp-qast-var));
         }
 
-        $context.ensure-sc(nqp::getattr($param-obj, Parameter, '$!container_descriptor'));
+        my $container_descriptor := $param-obj.container_descriptor;
+        $context.ensure-sc($container_descriptor) if $container_descriptor;
 
         # Bind parameter into its target.
         if self.invocant {
@@ -1295,7 +1296,6 @@ class RakuAST::Parameter
                         $value := QAST::Var.new( :name($copy-var), :scope<local> );
                     }
                     else {
-                        my $container_descriptor := $param-obj.container_descriptor;
                         if $container_descriptor {
                             $value := QAST::Op.new(
                                 :op<p6scalarwithvalue>,

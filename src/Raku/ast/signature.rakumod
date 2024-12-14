@@ -1253,7 +1253,7 @@ class RakuAST::Parameter
         }
 
         my $container_descriptor := $param-obj.container_descriptor;
-        $context.ensure-sc($container_descriptor) if $container_descriptor;
+        $context.ensure-sc($container_descriptor) unless nqp::isnull($container_descriptor);
 
         # Bind parameter into its target.
         if self.invocant {

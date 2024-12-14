@@ -17,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2024-12-14   Rakudo #178 (jdv)
+  2025-01-25   Rakudo #179 (Coke)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -216,7 +216,11 @@ to use it:
 
 Ensure dates of current and next releases are correct.  Note that there seems to
 be a bug where the next release date in the generated announce is wrong but the
-release # is correct.
+release # is correct.  Remember to add the ChangeLog material from the wiki.
+The helper script is supposed to do that using docs/ChangeLog but there's a bug
+where it sucks in the entire Changelog if this release's entries are there.
+That's why the changes to the Changelog are in the next step - this way the
+script will not read in any of ChangeLog.
 
 =item *
 
@@ -594,6 +598,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2024-08-29   Rakudo #175 "2024.08"           (jdv)
   2024-09-26   Rakudo #176 "2024.09"           (jdv)
   2024-10-24   Rakudo #177 "2024.10"           (jdv)
+  2024-12-14   Rakudo #178 "2024.12"           (jdv)
 
 =head1 COPYRIGHT
 

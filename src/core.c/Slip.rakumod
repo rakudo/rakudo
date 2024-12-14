@@ -48,16 +48,16 @@ my class Slip { # is List
     multi method map(Slip:D: &) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method map(Slip:D: &, :$deep!) {
+    multi method map(Slip:D: :&deep!) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method map(Slip:D: &, :$node!) {
+    multi method map(Slip:D: :&node!) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method map(Slip:D: &, :$flat!) {
+    multi method map(Slip:D: :&flat!) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method map(Slip:D: &, :$duck!) {
+    multi method map(Slip:D: :&duck!) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
     multi method first(Slip:D: &) {

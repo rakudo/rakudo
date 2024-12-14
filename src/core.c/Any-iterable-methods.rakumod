@@ -101,17 +101,17 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     # These candidates provide a more modern approach to specifying the map targets
-    multi method map(&block, :$label, :$flat!) {
-        self.flatmap(&block, :$label)
+    multi method map(:&flat!, :$label) {
+        self.flatmap(&flat, :$label)
     }
-    multi method map(&block, :$duck!) {
-        self.duckmap(&block)
+    multi method map(:&duck!) {
+        self.duckmap(&duck)
     }
-    multi method map(&block, :$node!) {
-        self.nodemap(&block)
+    multi method map(:&node!) {
+        self.nodemap(&node)
     }
-    multi method map(&block, :$deep!) {
-        self.deepmap(&block)
+    multi method map(:&deep!) {
+        self.deepmap(&deep)
     }
 
     proto method flatmap (|) is nodal {*}

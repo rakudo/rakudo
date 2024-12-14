@@ -1422,7 +1422,7 @@ class Perl6::World is HLL::World {
             }
         }
         else {
-            nqp::die("Don't know how to 'no $name' just yet");
+            nqp::die("Don't know how to 'no $name'");
         }
     }
 

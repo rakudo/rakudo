@@ -98,6 +98,17 @@ class VM does Systemic {
           !! $platform-name.IO
     }
 
+    method ownup() {
+#?if moar
+        nqp::syscall("all-thread-bt",1);
+#?endif
+#?if !moar
+        # Attempy to mimic the MoarVM functionality for now
+        CATCH { .note; exit 2 }
+        die;
+#?endif
+    }
+
     proto method osname(|) {*}
     multi method osname(VM:U:) {
 #?if jvm

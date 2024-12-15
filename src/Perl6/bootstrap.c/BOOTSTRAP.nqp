@@ -3889,10 +3889,13 @@ BEGIN {
             nqp::scwbenable;
         }
 
+
+#?if !moar
         my $caller-revision := nqp::getcomp('Raku').language_revision;
         if nqp::can($self, 'REQUIRED-REVISION') && $self.REQUIRED-REVISION <= $caller-revision {
           $dispatch_order := $self.'!filter-revision-gated-candidates'($caller-revision, $dispatch_order)
         }
+#?endif
 
         $dispatch_order
     }));

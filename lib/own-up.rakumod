@@ -2,6 +2,6 @@
 # a full backtrace of all threads on STDERR when control-c is
 # pressed.
 
-signal(SIGINT).tap: { VM.ownup }
+signal(SIGINT).tap: { VM.own-up }
 
 # vim: expandtab shiftwidth=4

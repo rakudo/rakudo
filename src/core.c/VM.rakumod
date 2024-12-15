@@ -98,7 +98,7 @@ class VM does Systemic {
           !! $platform-name.IO
     }
 
-    method ownup() {
+    method own-up() {
 #?if moar
         nqp::syscall("all-thread-bt",1);
 #?endif

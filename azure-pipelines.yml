@@ -682,7 +682,7 @@ stages:
     - job: linux
       displayName: Linux x86_64 build
       pool:
-        vmImage: 'ubuntu-24.04'
+        vmImage: 'ubuntu-20.04'
       container:
         image: centos:7
         options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"

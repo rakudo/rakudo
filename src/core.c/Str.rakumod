@@ -2349,7 +2349,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # must all be Cool, otherwise we'll just use a regex
         return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty) # / hl
-          unless Rakudo::Internals.ALL_TYPE(@needles,Cool);
+          unless @needles.are(Cool);
 
         self!ensure-limit-sanity($parts);
         return Seq.new(Rakudo::Iterator.Empty) if $parts <= 0;

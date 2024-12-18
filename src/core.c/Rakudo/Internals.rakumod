@@ -392,23 +392,6 @@ my class Rakudo::Internals {
         )
     }
 
-    # 1 if all elements of given type, otherwise 0
-    method ALL_TYPE(\values,\type) {
-        nqp::if(
-          (my int $elems = values.elems),   # reifies
-          nqp::stmts(
-            (my $values := nqp::getattr(values,List,'$!reified')),
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(++$i,$elems)
-                && nqp::istype(nqp::atpos($values,$i),type),
-              nqp::null
-            ),
-            nqp::iseq_i($i,$elems)
-          )
-        )
-    }
-
     # 1 if all elems defined && type, otherwise 0
     method ALL_DEFINED_TYPE(\values,\type) {
         nqp::if(

@@ -85,13 +85,13 @@ throws-like ｢my @a = for 1..3 <-> { $_ }｣, Exception,
         is-run ｢multi MAIN(q|foo"bar|) {}｣,
            :err(qq|Usage:\n  -e '...' 'foo"bar'\n|),
            :exitcode(*),
-           'a double qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+           'a double quote in a literal param to a MAIN() multi makes the suggestion quoted';
     }
 
     is-run ｢multi MAIN(q|foo'bar|) {}｣,
        :err(qq|Usage:\n  -e '...' 'foo'"'"'bar'\n|),
        :exitcode(*),
-       'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
+       'a single quote in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/3152

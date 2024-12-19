@@ -2082,6 +2082,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
     multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
 
+#-------------------------------------------------------------------------------
+# .split and associated logic
+
     multi method split(Str:D: Regex:D $regex, $limit = Whatever;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
 
@@ -2343,90 +2346,148 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    multi method split(Str:D: @needles, $parts is copy = Inf;;
-       :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
+    multi method split(
+      Str:D: @needles,
+             $parts is copy = Inf;;
+            :$v is copy,
+            :$k,
+            :$kv,
+            :$p,
+            :$skip-empty
+    --> Seq:D) {
         my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
-
-        # must all be Cool, otherwise we'll just use a regex
-        return self.split(rx/ @needles /,:$v,:$k,:$kv,:$p,:$skip-empty) # / hl
-          unless @needles.are(Cool);
 
         self!ensure-limit-sanity($parts);
         return Seq.new(Rakudo::Iterator.Empty) if $parts <= 0;
 
         my int $limit = $parts.Int
           unless nqp::istype($parts,Whatever) || $parts == Inf;
+        my str $str = nqp::unbox_s(self);
 
-        my str $str       = nqp::unbox_s(self);
-        my $positions    := nqp::list;
-        my $needles      := nqp::list_s;
-        my $needle-chars := nqp::list_i;
+        # A list with integer arrays containing for each needle found:
+        # - the start position
+        # - the number of chars
+        # - the needle index
+        my $pins := nqp::create(IterationBuffer);
+
+        # A hash with the needles seen so far, to prevent potentially
+        # expensive doublelookups
         my $needles-seen := nqp::hash;
-        my int $tried;
-        my int $fired;
+
+        my int $tried;  # number of needles tried
+        my int $fired;  # number of different needles with a match
 
         # search using all needles
-        my int $index = 0;
+        my int $index;
         for @needles -> $needle {
-            my str $need  = nqp::unbox_s($needle.DEFINITE ?? $needle.Str !! "");
-            my int $chars = nqp::chars($need);
-            nqp::push_s($needles,$need);
-            nqp::push_i($needle-chars,$chars);
+            my int $seen = nqp::elems($pins);
 
-            # search for this needle if there is one, and not done before
-            nqp::if(
-              nqp::isgt_i($chars,0)
-                && nqp::not_i(nqp::existskey($needles-seen,$need)),
-              nqp::stmts(
-                nqp::bindkey($needles-seen,$need,1),
-                (my int $pos),
-                (my int $i),
-                (my int $seen = nqp::elems($positions)),
-                nqp::if(
-                  nqp::isgt_i($limit,0),  # 0 = no limit
-                  nqp::stmts(
-                    (my int $todo = $limit),
-                    nqp::while(
-                      nqp::isge_i(--$todo,0)
-                        && nqp::isge_i($i = nqp::index($str,$need,$pos),0),
-                      nqp::stmts(
-                        nqp::push($positions,nqp::list_i($i,$index)),
-                        ($pos = nqp::add_i($i,1)),
-                      )
-                    )
-                  ),
-                  nqp::while(
-                    nqp::isge_i($i = nqp::index($str,$need,$pos),0),
-                    nqp::stmts(
-                      nqp::push($positions,nqp::list_i($i,$index)),
-                      ($pos = nqp::add_i($i,1))
-                    )
-                  )
-                ),
-                ($tried = nqp::add_i($tried,1)),
-                ($fired =
-                  nqp::add_i($fired,nqp::isge_i(nqp::elems($positions),$seen)))
-              )
+            if nqp::istype($needle,Regex) {
+                my str $gist = $needle.gist;
+                unless nqp::existskey($needles-seen,$gist) {
+                    nqp::bindkey($needles-seen,$gist,1);
+
+                    my $cursor;
+                    my int $pos;
+                    my int $c;
+
+                    if $limit {
+                        my int $todo = $limit;
+                        nqp::while(
+                          nqp::isge_i(--$todo,0)
+                            && nqp::isgt_i(
+                                 ($pos = (
+                                   $cursor := $needle($cursor-init(Match,$str,:$c))
+                                 ).pos),
+                                 -1
+                               ),
+                          nqp::stmts(
+                            nqp::push(
+                              $pins,
+                              nqp::list_i($pos - 1,$pos - $cursor.from,$index)
+                            ),
+                            ($c = nqp::add_i($pos,1))
+                          )
+                        );
+                    }
+                    else {
+                        nqp::while(
+                          nqp::isgt_i(
+                            ($pos = (
+                              $cursor := $needle($cursor-init(Match,$str,:$c))
+                            ).pos),
+                            -1
+                          ),
+                          nqp::stmts(
+                            nqp::push(
+                              $pins,
+                              nqp::list_i($pos - 1,$pos - $cursor.from,$index)
+                            ),
+                            ($c = nqp::add_i($pos,1))
+                          )
+                        );
+                    }
+                }
+            }
+            else {
+                my str $need = $needle.DEFINITE
+                  ?? nqp::unbox_s($needle.Str)
+                  !! "";
+                my int $chars = nqp::chars($need);
+
+                # search for this needle if there is one, and not done before
+                if nqp::isgt_i($chars,0)
+                  && nqp::not_i(nqp::existskey($needles-seen,$need)) {
+                    nqp::bindkey($needles-seen,$need,1);
+                    my int $pos;
+                    my int $i;
+
+                    if $limit {
+                        my int $todo = $limit;
+                        nqp::while(
+                          nqp::isge_i(--$todo,0)
+                            && nqp::isge_i($i = nqp::index($str,$need,$pos),0),
+                          nqp::stmts(
+                            nqp::push($pins,nqp::list_i($i,$chars,$index)),
+                            ($pos = nqp::add_i($i,1)),
+                          )
+                        );
+                    }
+                    else {
+                        nqp::while(
+                          nqp::isge_i($i = nqp::index($str,$need,$pos),0),
+                          nqp::stmts(
+                            nqp::push($pins,nqp::list_i($i,$chars,$index)),
+                            ($pos = nqp::add_i($i,1)),
+                          )
+                        );
+                    }
+                }
+            }
+
+            ++$tried;
+            $fired = nqp::add_i(
+              $fired,
+              nqp::isge_i(nqp::elems($pins),$seen)
             );
-            ++$index;
+
+            ++$index;  # next please!
         }
 
-        # no needle tried, assume we want chars
+        # No needle tried, assume we want chars
         return self.split("",$limit) if nqp::not_i($tried);
 
-        # sort by position if more than one needle fired
-        $positions := nqp::getattr(
+        # Sort by position if more than one needle fired
+        $pins := nqp::getattr(
           Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH-int(
-            nqp::p6bindattrinvres(
-              nqp::create(List),List,'$!reified',$positions
-            ),
+            $pins.List,
             -> \a, \b {
-                nqp::cmp_i(
+                nqp::cmp_i(           # by start position
                   nqp::atpos_i(a,0),
                   nqp::atpos_i(b,0)
-                ) || nqp::cmp_i(
-                  nqp::atpos_i($needle-chars,nqp::atpos_i(b,1)),
-                  nqp::atpos_i($needle-chars,nqp::atpos_i(a,1))
+                ) || nqp::cmp_i(      # at same position, longest first
+                  nqp::atpos_i(b,1),
+                  nqp::atpos_i(a,1)
                 )
             }
           ),
@@ -2437,51 +2498,54 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # remove elements we do not want
         if nqp::isgt_i($limit,0) {
             my int $limited = 1;   # split one less than entries returned
-            my int $elems = nqp::elems($positions);
+            my int $elems = nqp::elems($pins);
             my int $pos;
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,$elems)
                 && nqp::islt_i($limited,$limit),
               nqp::if(
-                nqp::isge_i(   # not hidden by other needle
-                  nqp::atpos_i(nqp::atpos($positions,$i),0),
+                nqp::isge_i(   # not hidden by pos of needle $i
+                  nqp::atpos_i(nqp::atpos($pins,$i),0),
                   $pos
                 ),
                 nqp::stmts(
                   ++$limited,
-                  ($pos = nqp::add_i(
-                    nqp::atpos_i(nqp::atpos($positions,$i),0),
-                    nqp::atpos_i($needle-chars,
-                      nqp::atpos_i(nqp::atpos($positions,$i),1))
+                  ($pos = nqp::add_i(  # move pos past needle $i
+                    nqp::atpos_i(nqp::atpos($pins,$i),0),
+                    nqp::atpos_i(nqp::atpos($pins,$i),1)
                   ))
                 )
               )
             );
 
+            # Clean out the rest
             nqp::splice(
-              $positions,$empty,$i,nqp::sub_i(nqp::elems($positions),$i)
+              $pins,$empty,$i,nqp::sub_i(nqp::elems($pins),$i)
             ) if nqp::islt_i($i,$elems);
         }
 
         # create the final result
         my int $skip = ?$skip-empty;
-        my int $pos = 0;
+        my int $pos;
         my $result := nqp::create(IterationBuffer);
         if $any {
             my int $i = -1;
-            my int $elems = nqp::elems($positions);
+            my int $elems = nqp::elems($pins);
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::isge_i( # not hidden by other needle
                   (my int $from = nqp::atpos_i(
-                    (my $pair := nqp::atpos($positions,$i)),0)
+                    (my $pin := nqp::atpos($pins,$i)),0)
                   ),
                   $pos
                 ),
                 nqp::stmts(
-                  (my int $needle-index = nqp::atpos_i($pair,1)),
+                  (my int $needle-index = nqp::atpos_i($pin,2)),
+                  (my str $found = nqp::substr(
+                    $str,nqp::atpos_i($pin,0),nqp::atpos_i($pin,1)
+                  )),
                   nqp::unless(
                     $skip && nqp::iseq_i($from,$pos),
                     nqp::push(
@@ -2492,33 +2556,35 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       )
                     )
                   ),
-                  nqp::if($k || $kv,
-                    nqp::push($result,nqp::clone($needle-index))
+                  nqp::if(
+                    $k || $kv,
+                    nqp::push($result,nqp::clone(nqp::atpos_i($pin,2)))
                   ),
-                  nqp::if($v || $kv,
-                    nqp::push($result,nqp::atpos_s($needles,$needle-index))
+                  nqp::if(
+                    $v || $kv,
+                    nqp::push($result,nqp::box_s($found,self))
                   ),
-                  nqp::if($p,
-                    nqp::push($result,Pair.new(
-                      $needle-index,nqp::atpos_s($needles,$needle-index)))
+                  nqp::if(
+                    $p,
+                    nqp::push(
+                      $result,
+                      Pair.new(nqp::atpos_i($pin,2),nqp::box_s($found,self))
+                    )
                   ),
-                  ($pos = nqp::add_i(
-                    $from,
-                    nqp::atpos_i($needle-chars,$needle-index)
-                  ))
+                  ($pos = nqp::add_i($from,nqp::chars($found)))
                 )
               )
             );
         }
         else {
             my int $i = -1;
-            my int $elems = nqp::elems($positions);
+            my int $elems = nqp::elems($pins);
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::isge_i( # not hidden by other needle
                   (my int $from = nqp::atpos_i(
-                    (my $pair := nqp::atpos($positions,$i)),0)
+                    (my $pin := nqp::atpos($pins,$i)),0)
                   ),
                   $pos
                 ),
@@ -2533,9 +2599,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       )
                     ),
                   ),
-                  ($pos = nqp::add_i($from,
-                    nqp::atpos_i($needle-chars,nqp::atpos_i($pair,1))
-                  ))
+                  ($pos = nqp::add_i($from,nqp::atpos_i($pin,1)))
                 )
               )
             );
@@ -2547,6 +2611,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         Seq.new(Rakudo::Iterator.ReifiedList($result))
     }
+
+#-------------------------------------------------------------------------------
 
     # Note that in these same* methods, as used by s/LHS/RHS/, the
     # pattern is actually the original string matched by LHS, while the
@@ -3408,6 +3474,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             LSM.new(self,$substitutions,$squash,$complement).result;
         }
     }
+
+#-------------------------------------------------------------------------------
+# .indent and associated subroutines
 
     # Zero indent does nothing
     multi method indent(Str:D: Int() $steps where { $_ == 0 }) {

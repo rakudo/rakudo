@@ -2397,14 +2397,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
                           nqp::isge_i(--$todo,0)
                             && nqp::isgt_i(
                                  ($pos = (
-                                   $cursor := $needle($cursor-init(Match,$str,:$c))
+                                   $cursor := $needle(
+                                     $cursor-init(Match,$str,:$c)
+                                   )
                                  ).pos),
                                  -1
                                ),
                           nqp::stmts(
                             nqp::push(
                               $pins,
-                              nqp::list_i($pos - 1,$pos - $cursor.from,$index)
+                              nqp::list_i(
+                                $cursor.from,
+                                $pos - $cursor.from,
+                                $index
+                              )
                             ),
                             ($c = nqp::add_i($pos,1))
                           )
@@ -2421,7 +2427,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                           nqp::stmts(
                             nqp::push(
                               $pins,
-                              nqp::list_i($pos - 1,$pos - $cursor.from,$index)
+                              nqp::list_i(
+                                $cursor.from,
+                                $pos - $cursor.from,
+                                $index
+                              )
                             ),
                             ($c = nqp::add_i($pos,1))
                           )

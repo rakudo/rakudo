@@ -2412,7 +2412,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                                 $index
                               )
                             ),
-                            ($c = nqp::add_i($pos,1))
+                            ($c = $pos)
                           )
                         );
                     }
@@ -2433,7 +2433,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                                 $index
                               )
                             ),
-                            ($c = nqp::add_i($pos,1))
+                            ($c = $pos)
                           )
                         );
                     }
@@ -3021,9 +3021,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::box_s(nqp::join('',$parts),self)
     }
 
+#-------------------------------------------------------------------------------
+# .trans handling and associated subroutines
+
     # Expand a literal range of characters into an IterationBuffer
     # according to the (partially un)documented .trans semantics
     my sub expand-literal-range(str $range) {
+
         my Mu $result := nqp::create(IterationBuffer);
         my int $chars  = nqp::chars($range);
         my int $start  = 1;
@@ -3067,7 +3071,278 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $result
     }
 
-    multi method trans(Str:D:) {
+    # Shortcuts for throwing tantrums
+    sub invalid-trans-arg($what) {
+        X::Str::Trans::InvalidArg.new(got => $what.WHAT).throw
+    }
+    sub illegal-trans-key($what) {
+        X::Str::Trans::IllegalKey.new(got => $what.WHAT).throw
+    }
+
+    # Simplified expansion logic
+    my proto sub expand(|) {*}
+    my multi sub expand(Iterable:D $iterable, $special is raw) {
+        my $buffer := nqp::create(IterationBuffer);
+
+        # Recursive splatter, also ensures we have strings
+        sub splat($iterator --> Nil) {
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype($pulled,Iterable),
+                splat($pulled.iterator),
+                nqp::if(
+                  nqp::istype($pulled,Callable),
+                  nqp::stmts(
+                    nqp::push($buffer,$pulled),
+                    ($special = True)
+                  ),
+                  nqp::if(
+                    nqp::istype($pulled,Cool),
+                    nqp::push($buffer,$pulled.Str),
+                    illegal-trans-key($pulled)
+                  )
+                )
+              )
+            );
+        }
+
+        splat($iterable.iterator);
+        $buffer
+    }
+    my multi sub expand(Callable:D $what, $special is raw ) {
+        my $buffer := nqp::create(IterationBuffer);
+        nqp::push($buffer,$what);
+        $special = True;
+        $buffer
+    }
+    my multi sub expand(Cool:D $what, $) {
+        expand-literal-range($what.Str)
+    }
+    my multi sub expand($what, $) {
+        illegal-trans-key($what);
+    }
+
+    # Process all specifications, return whether slow path needed
+    my sub needles-pins(@specs, $needles is raw, $pins is raw, $delete) {
+        my $needs-split;
+        for @specs {
+            my $from  := expand(.key, my $regex);
+            my $value := .value;
+            my $to    := $regex && nqp::not_i(nqp::istype($value,Iterable))
+              ?? nqp::list(nqp::istype($value,Callable)
+                   ?? $value
+                   !! nqp::istype($value,Cool)
+                     ?? $value.Str
+                     !! invalid-trans-arg($value)
+                 )
+              !! expand(.value, my $callable);
+
+            # Make sure there's a "to" for every "from"
+            if nqp::islt_i(nqp::elems($to),nqp::elems($from)) {
+                my $padding := $delete
+                  ?? ""
+                  !! nqp::atpos($to,nqp::elems($to) - 1);
+                my int $todo = nqp::elems($from) - nqp::elems($to);
+                nqp::while(
+                  $todo--,
+                  nqp::push($to,$padding)
+                );
+            }
+
+            # Add to jobs to do
+            nqp::splice($needles,$from,nqp::elems($needles),0);
+            nqp::splice($pins,$to,nqp::elems($pins),0);
+            $needs-split = True if $regex || $callable;
+        }
+
+        # Clear we need slow path
+        if $needs-split {
+            True
+        }
+
+        # May be possible to use fast path, make sure
+        else {
+            my int $i = nqp::elems($needles);
+            nqp::while(
+              --$i >= 0
+                && nqp::chars(nqp::atpos($needles,$i)) <= 1,
+              nqp::null
+            );
+            $i >= 0
+        }
+    }
+
+    # Slow path with multiple specs without any nameds
+    my sub trans-no-nameds(Str:D $string, @specs, $delete?) {
+
+        # Make sure we just got Pairs
+        invalid-trans-arg(@specs.are) unless @specs.are(Pair);
+
+        # Set up needles and pins
+        my $needles     := nqp::create(IterationBuffer);
+        my $pins        := nqp::create(IterationBuffer);
+        my $needs-split := needles-pins(@specs, $needles, $pins, $delete);
+
+        # Must use the slower split :kv path
+        if $needs-split {
+
+            # Make sure we have a writable $/
+            $/ := nqp::getlexcaller('$/');
+            $/ := my $ unless nqp::iscont($/);
+
+            my $parts := nqp::list_s;
+            # :kv produces: before, index, match, after, index, match, after ...
+            my $iterator := $string.split($needles.List, :kv).iterator;
+            nqp::push_s($parts,$iterator.pull-one);                     # before
+            nqp::until(
+              nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd),  # index
+              nqp::stmts(
+                ($/ = $iterator.pull-one),                              # match
+                nqp::push_s(
+                  $parts,
+                  nqp::if(
+                    nqp::istype((my $pin := nqp::atpos($pins,$i)),Callable),
+                    $pin($/).Str,
+                    $pin
+                  )
+                ),
+                nqp::push_s($parts,$iterator.pull-one)                  # after
+              )
+            );
+            nqp::box_s(nqp::join("",$parts),$string)
+        }
+
+        # Fast single char to char(s) trans
+        else {
+
+            # Create a lookup table
+            my $lookup   := nqp::hash;
+            my int $elems = nqp::elems($needles);
+            my int $i     = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::bindkey($lookup,
+                nqp::atpos($needles,$i),nqp::atpos($pins,$i)
+              )
+            );
+
+            # Run over each char and perform substitution if needed
+            my $result := nqp::split("",nqp::unbox_s($string));
+            $i = -1;
+            $elems = nqp::elems($result);
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::unless(
+                nqp::isnull(
+                  my $mapped := nqp::atkey($lookup,nqp::atpos($result,$i))
+                ),
+                nqp::bindpos($result,$i,nqp::decont($mapped))
+              )
+            );
+            nqp::box_s(nqp::join("",$result),$string)
+        }
+    }
+
+    my sub trans-with-nameds(Str:D $string, @specs, %_) {
+
+        # Make sure we have access to the caller's lexical $/
+        $/ := nqp::getlexcaller('$/');
+
+        # Get the named arguments manually
+        my int $complement = %_<c> // %_<complement> // 0;
+        my int $squash     = %_<s> // %_<squash>     // 0;
+        my     $delete    := %_<d> // %_<delete>;
+
+        # Use simplified path if possible
+        return trans-no-nameds($string, @specs, $delete)
+          unless $complement || $squash;
+
+        # Set up needles and pins
+        my $needles     := nqp::create(IterationBuffer);
+        my $pins        := nqp::create(IterationBuffer);
+        my $needs-split := needles-pins(@specs, $needles, $pins, $delete);
+
+        # Make sure we have a writable $/
+        $/ := my $ unless nqp::iscont($/);
+
+        # :kv produces: before, index, match, after, index, match, after ...
+        my $iterator := $string.split(
+          nqp::elems($needles) == 1
+            ?? nqp::atpos($needles,0)
+            !! $needles.List,
+          :kv
+        ).iterator;
+
+        my $parts := nqp::list_s;
+        if $complement {
+            my str $before = $iterator.pull-one;                       # before
+            my int $last-i;
+            my str $replacement;
+            nqp::until(
+              nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd), # index
+              nqp::stmts(
+                ($/ = $iterator.pull-one),                             # match
+                ($replacement = nqp::if(
+                  nqp::istype((my $pin := nqp::atpos($pins,$last-i)),Callable),
+                  $pin($/).Str,
+                  $pin
+                )),
+                nqp::if(
+                  nqp::chars($before),
+                  nqp::push_s(
+                    $parts,
+                    nqp::x($replacement,$squash || nqp::chars($before))
+                  )
+                ),
+                nqp::push_s($parts,$/.Str),
+                ($before = $iterator.pull-one),                        # after
+                ($last-i = $i)
+              )
+            );
+
+            nqp::if(
+              nqp::chars($before),
+              nqp::push_s(
+                $parts,
+                nqp::x($replacement,$squash || nqp::chars($before))
+              )
+            );
+        }
+
+        # Implied squash
+        else {
+            my str $lastpin = "";
+            nqp::push_s($parts,$iterator.pull-one);                    # before
+
+            nqp::until(
+              nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd), # index
+              nqp::stmts(
+                ($/ = $iterator.pull-one),                             # match
+                nqp::if(
+                  nqp::istype((my $pin := nqp::atpos($pins,$i)),Callable),
+                  $pin($/).Str,
+                  $pin
+                ),
+                nqp::if(
+                  nqp::isne_s($pin,$lastpin),
+                  nqp::stmts(
+                    nqp::push_s($parts,$pin),
+                    ($lastpin = $pin)
+                  )
+                ),
+                nqp::if(
+                  nqp::chars(nqp::push_s($parts,$iterator.pull-one)),  # after
+                  ($lastpin = "")
+                )
+              )
+            );
+        }
+
+        nqp::box_s(nqp::join("",$parts),$string)
+    }
+
+    multi method trans(Str:D: --> Str:D) {
         # Remove valid named args
         %_<c complement d delete s squash>:delete;
 
@@ -3080,409 +3355,195 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method trans(Str:D: Pair:D $what --> Str:D) {
 
-        # Nothing to do with type object on either side
+        # Type objects or empty string means no action to take
         return self
           unless (my $from := $what.key).defined
-              && (my $to   := $what.value).defined;
+              && (my $to   := $what.value).defined
+              && self.chars;
 
-        my $slash := nqp::getlexcaller('$/');
-        $/ := $slash if nqp::iscont($slash);
+        # Callables need access to the lexically visible $/ of the caller
+        $/ := nqp::getlexcaller('$/');
 
-        if nqp::istype($to,Str) {
-
-            # Fast path regex to string: ccan be simplified to split/join
-            return self.split($from).join($to)
-              if nqp::istype($from,Regex);
-
-            # Slow path for none strings or nameds
-            return self.trans(($what,), |%_)
-              if nqp::not_i(nqp::istype($from,Str))
-              || %_.Bool;
-
-            # Fast path single char to single other char
-            return nqp::box_s(
-              Rakudo::Internals.TRANSPOSE(self, $from, $to.substr(0,1)),
-              self
-            ) if $from.chars == 1;
+        # Slow path for any nameds
+        if nqp::elems(nqp::getattr(%_,Map,'$!storage')) {
+            self.trans(($what,), |%_)
         }
 
-        # Slow path, the "to" is not a string
-        else {
-            return self.trans(($what,), |%_)
-        }
+        # Common case: regex
+        elsif nqp::istype($from,Regex) {
 
-        my str $sfrom  = nqp::join("",expand-literal-range($from));
-        my str $str    = self;
-        my str $chars  = nqp::chars($str);
-        my Mu $result := nqp::list_s;
-        my str $check;
-        my int $i = -1;
-
-        # Something to convert to
-        if $to.chars -> $tochars {
-            nqp::setelems($result,$chars);
-
-            # All convert to one char
-            if $tochars == 1 {
-                nqp::while(
-                  nqp::islt_i(++$i,$chars),
+            # Fast path regex to string: can be simplified to split/join
+            if nqp::istype($to,Str) {
+                self.split($from).join($to)
+            }
+            elsif nqp::istype($to,Callable) {
+                my $parts := nqp::list_s;
+                # :kv produces: before, index, match, after, index, match, after ...
+                my $iterator := self.split($from, :kv).iterator;
+                nqp::push_s($parts,$iterator.pull-one);     # before
+                nqp::until(
+                  nqp::eqaddr(                              # index
+                    (my $i := $iterator.pull-one),
+                    IterationEnd
+                  ),
                   nqp::stmts(
-                    ($check = nqp::substr($str,$i,1)),
-                    nqp::bindpos_s(
-                      $result,
-                      $i,
-                      nqp::if(
-                        nqp::iseq_i(nqp::index($sfrom,$check),-1),
-                        $check,
-                        $to
-                      )
-                    )
+                    ($/ = $iterator.pull-one),              # match
+                    nqp::push_s($parts,$to($/).Str),
+                    nqp::push_s($parts,$iterator.pull-one)  # after
                   )
                 );
+                nqp::box_s(nqp::join("",$parts),self)
             }
 
-            # Multiple chars to convert to
+            # Something weird at the destination (Iterable)
             else {
-                my $bto := expand-literal-range($to);
-                my int $found;
+                nqp::istype($to,Cool)
+                  ?? trans-no-nameds(self, ($what,))
+                  !! invalid-trans-arg($what);
+            }
+        }
 
-                # Repeat until mapping complete
-                nqp::while(
-                  nqp::islt_i(nqp::elems($bto),nqp::chars($sfrom)),
-                  nqp::splice($bto, $bto, nqp::elems($bto), 0)
-                );
+        # Nothing weird at the destination
+        elsif nqp::istype($to,Str) {
 
-                nqp::while(
-                  nqp::islt_i(++$i,$chars),
-                  nqp::stmts(
-                    ($check = nqp::substr($str,$i,1)),
-                    ($found = nqp::index($sfrom,$check)),
-                    nqp::bindpos_s(
-                      $result,
-                      $i,
-                      nqp::if(
-                        nqp::iseq_i($found,-1),
-                        $check,
-                        nqp::atpos($bto,$found)
-                      )
+            # Nothing weird at the source
+            if nqp::istype($from,Str) {
+                my int $from-chars = $from.chars;
+
+                # Fast path single char to single other char
+                if $from-chars == 1 {
+                    nqp::box_s(
+                      Rakudo::Internals.TRANSPOSE(self,$from,$to.substr(0,1)),
+                      self
                     )
-                  )
-                );
-            }
-        }
-
-        # Just remove
-        else {
-            nqp::while(
-              nqp::islt_i(++$i,$chars),
-              ($check = nqp::substr($str,$i,1)),
-              nqp::if(
-                nqp::iseq_i(nqp::index($sfrom,$check),-1),
-                nqp::push_s($result, $check)
-              )
-            );
-        }
-
-        nqp::box_s(nqp::join('',$result),self);
-    }
-
-    my class LSM {
-        has str $!source;
-        has Mu  $!what;
-        has     $!substitutions;
-        has int $!squash;
-        has int $!complement;
-        has str $!prev_result;
-
-        has int $!index;
-        has int $!next_match;
-        has int $!substitution_length;
-
-        has $!first_substitution; # need this one for :c with arrays
-        has $!next_substitution;
-        has $!match_obj;
-        has $!last_match_obj;
-
-        has str $!unsubstituted_text;
-        has str $!substituted_text;
-
-        method !SET-SELF($source, \substitutions, $squash, $complement) {
-            $!source         = $source;
-            $!what          := $source.WHAT;
-            $!substitutions := nqp::getattr(substitutions,List,'$!reified');
-            $!squash         = $squash.Bool;
-            $!complement     = $complement.Bool;
-            $!prev_result    = '';
-            self
-        }
-        method new($source, \substitutions, $squash, $complement) {
-            nqp::create(self)!SET-SELF(
-              $source, substitutions, $squash, $complement
-            )
-        }
-
-        method !compare_substitution(
-          $substitution, int $pos, int $length --> Nil
-        ) {
-            if nqp::isgt_i($!next_match,$pos)
-              || nqp::iseq_i($!next_match,$pos)
-                   && nqp::islt_i($!substitution_length,$length) {
-
-                $!next_match          = $pos;
-                $!substitution_length = $length;
-                $!next_substitution   = $substitution;
-                $!match_obj           = $!last_match_obj;
-            }
-        }
-
-        method !increment_index($s --> Nil) {
-            $/ := nqp::getlexcaller('$/');
-            if nqp::istype($s,Regex) {
-                $!index = $!next_match + (
-                    substr($!source,$!index) ~~ $s ?? $/.chars !! 0
-                );
-                $!last_match_obj = $/;
-            }
-            else {
-                $!index = $!next_match
-                  + nqp::chars(nqp::istype($s,Str) ?? $s !! $s.Str);
-            }
-        }
-
-        # note: changes outer $/
-        method get_next_substitution_result {
-            my $value = $!complement
-              ?? $!first_substitution.value
-              !! $!next_substitution.value;
-
-            my $outer_slash := nqp::getlexcaller('$/');
-            $/ := nqp::getlexcaller('$/');
-            $outer_slash = $!match_obj;
-
-            my str $result = nqp::istype($value,Callable)
-              ?? $value().Str
-              !! nqp::istype($value,Str)
-                ?? $value
-                !! $value.Str;
-            my str $orig_result = $result;
-
-            $result = ''
-              if $!squash
-              && nqp::chars($!prev_result)
-              && nqp::iseq_s($!prev_result,$result)
-              && nqp::iseq_s($!unsubstituted_text,'');
-
-            $!prev_result = $orig_result;
-            $result
-        }
-
-        method next_substitution() {
-            $/ := nqp::getlexcaller('$/');
-            $!next_match = nqp::chars($!source);
-            $!first_substitution = nqp::atpos($!substitutions,0)
-              unless nqp::defined($!first_substitution);
-
-            # triage substitutions left to do
-            my $todo := nqp::list;
-            my int $i = -1;
-            while ++$i < nqp::elems($!substitutions) {
-                my $this := nqp::atpos($!substitutions,$i);
-                my $key  := $this.key;
-                if nqp::istype($key,Regex) {
-                    if $!source.match($key, :continue($!index)) -> \m {
-                        $!last_match_obj = $/;
-                        self!compare_substitution($this, m.from, m.to - m.from);
-                        nqp::push($todo,$this);
-                    }
                 }
-                elsif nqp::istype($key,Cool) {
-                    my str $skey = nqp::istype($key,Str) ?? $key !! $key.Str;
-                    my int $pos  = nqp::index($!source,$skey,$!index);
-                    if nqp::isge_i($pos,0) {
-                        self!compare_substitution($this,$pos,nqp::chars($skey));
-                        nqp::push($todo,$this);
-                    }
-                }
+
+                # Slower path with multiple source chars
                 else {
-                    X::Str::Trans::IllegalKey.new(key => $this).throw;
-                }
-            }
-            $!substitutions := $todo;
 
-            $!unsubstituted_text =
-              nqp::substr($!source,$!index,$!next_match - $!index);
-            if $!next_substitution.defined {
-                if $!complement {
-                    my $oldidx = $!index;
-                    if nqp::chars($!unsubstituted_text) -> \todo {
-                        my $result = self.get_next_substitution_result;
-                        self!increment_index($!next_substitution.key);
-                        $!substituted_text = nqp::substr(
-                          $!source,
-                          $oldidx + todo,
-                          $!index - $oldidx - todo,
-                        );
-                        $!unsubstituted_text = $!squash
-                          ?? $result
-                          !! $result x todo;
+                    my str $sfrom  = $from-chars < 4
+                      ?? $from  # cannot have a range to expand
+                      !! nqp::join("",expand-literal-range($from));
+                    my str $str    = self;
+                    my int $chars  = nqp::chars($str);
+                    my Mu $result := nqp::list_s;
+                    my str $check;
+                    my int $i = -1;
+
+                    # Something to convert to
+                    if $to.chars -> $tochars {
+                        nqp::setelems($result,$chars);
+
+                        # All convert to one char
+                        if $tochars == 1 {
+                            nqp::while(
+                              nqp::islt_i(++$i,$chars),
+                              nqp::stmts(
+                                ($check = nqp::substr($str,$i,1)),
+                                nqp::bindpos_s(
+                                  $result,
+                                  $i,
+                                  nqp::if(
+                                    nqp::iseq_i(nqp::index($sfrom,$check),-1),
+                                    $check,
+                                    $to
+                                  )
+                                )
+                              )
+                            );
+                        }
+
+                        # Multiple chars to convert to
+                        else {
+                            my $bto := expand-literal-range($to);
+                            my int $found;
+
+                            # Repeat until mapping complete
+                            nqp::while(
+                              nqp::islt_i(nqp::elems($bto),nqp::chars($sfrom)),
+                              nqp::splice($bto, $bto, nqp::elems($bto), 0)
+                            );
+
+                            nqp::while(
+                              nqp::islt_i(++$i,$chars),
+                              nqp::stmts(
+                                ($check = nqp::substr($str,$i,1)),
+                                ($found = nqp::index($sfrom,$check)),
+                                nqp::bindpos_s(
+                                  $result,
+                                  $i,
+                                  nqp::if(
+                                    nqp::iseq_i($found,-1),
+                                    $check,
+                                    nqp::atpos($bto,$found)
+                                  )
+                                )
+                              )
+                            );
+                        }
                     }
+
+                    # Just remove
                     else {
-                        return if $!next_match == nqp::chars($!source);
-                        my $result = self.get_next_substitution_result;
-                        self!increment_index($!next_substitution.key);
-                        $!substituted_text = '';
-                        $!unsubstituted_text =
-                          nqp::substr($!source,$oldidx,$!index - $oldidx);
+                        nqp::while(
+                          nqp::islt_i(++$i,$chars),
+                          ($check = nqp::substr($str,$i,1)),
+                          nqp::if(
+                            nqp::iseq_i(nqp::index($sfrom,$check),-1),
+                            nqp::push_s($result, $check)
+                          )
+                        );
                     }
-                }
-                else {
-                    return if $!next_match == nqp::chars($!source);
-                    $!substituted_text = self.get_next_substitution_result;
-                    self!increment_index($!next_substitution.key);
+
+                    nqp::box_s(nqp::join('',$result),self)
                 }
             }
 
-            nqp::islt_i($!next_match,nqp::chars($!source))
-              && nqp::elems($!substitutions)
-        }
-
-        method result() {
-            $/ := nqp::getlexcaller('$/');
-            my Mu $result := nqp::list_s;
-
-            while self.next_substitution {
-                nqp::push_s($result,$!unsubstituted_text);
-                nqp::push_s($result,$!substituted_text);
+            # Something weird at the source (probably an Iterable)
+            else {
+                trans-no-nameds(self, ($what,))
             }
-            nqp::push_s($result,$!unsubstituted_text);
-            nqp::box_s(nqp::join('', $result),$!what)
+        }
+
+        # Something weird at the destination (Iterable / Callable)
+        else {
+            nqp::istype($from,Cool)
+              ?? nqp::istype($to,Cool) || nqp::istype($to,Callable)
+                ?? trans-no-nameds(self, ($what,))
+                !! invalid-trans-arg($to)
+              !! illegal-trans-key($from)
         }
     }
 
-    multi method trans(Str:D: *@changes) {
-        my $slash := nqp::getlexcaller('$/');
-        $/ := $slash if nqp::iscont($slash);
-        self.trans(@changes, |%_)
-    }
-    multi method trans(Str:D:
-      @changes,
-      Bool() :c(:$complement),
-      Bool() :s(:$squash),
-      Bool() :d(:$delete)
-    --> Str:D) {
-
-        # nothing to do
-        return self unless self.chars;
+    # The slurpy path is quite a bit more expensive, so handle it
+    # separately so that the Positional candidate can be fast
+    multi method trans(Str:D: *@specs --> Str:D) {
 
         # Make sure we just got Pairs
-        my $are := @changes.are;
-        X::Str::Trans::InvalidArg.new(got => $are).throw
-          unless nqp::istype($are,Pair);
+        invalid-trans-arg(@specs.are) unless @specs.are(Pair);
 
-        my $slash := nqp::getlexcaller('$/');
-        $/ := $slash if nqp::iscont($slash);
+        # Callables need access to the lexically visible $/ of the caller
+        $/ := nqp::getlexcaller('$/');
 
-        my sub myflat(*@s) {
-            @s.map: { nqp::istype($_, Iterable) ?? .list.Slip !! $_ }
-        }
-        my sub expand($s) {
-            nqp::istype($s,Iterable) || nqp::istype($s,Positional)
-              ?? (my @ = myflat($s.list).Slip)
-              !! expand-literal-range($s.Str).Slip
-        }
+        self.chars
+          ?? %_
+            ?? trans-with-nameds(self, @specs, %_)
+            !! trans-no-nameds(self, @specs)
+          !! self
+    }
+    multi method trans(Str:D: @specs --> Str:D) {
 
-        my int $just-strings = !($complement || $squash);
-        my int $just-chars   = $just-strings;
-        my $needles := nqp::list;
-        my $pins    := nqp::list;
+        # Make sure we just got Pairs
+        invalid-trans-arg(@specs.are) unless @specs.are(Pair);
 
-        my $substitutions := nqp::list;
-        for @changes -> $p {
+        # Callables need access to the lexically visible $/ of the caller
+        $/ := nqp::getlexcaller('$/');
 
-            my $key   := $p.key;
-            my $value := $p.value;
-            if nqp::istype($key,Regex) {
-                $just-strings = 0;
-                nqp::push($substitutions,$p);
-            }
-            elsif nqp::istype($value,Callable) {
-                $just-strings = 0;
-                nqp::push($substitutions,Pair.new($_,$value)) for expand $key;
-            }
-            else {
-                my $from := nqp::getattr(expand($key),  List,'$!reified');
-                my $to   := nqp::getattr(expand($value),List,'$!reified');
-                my int $from-elems = nqp::elems($from);
-                my int $to-elems   = nqp::elems($to);
-                my $padding = $delete
-                  ?? ''
-                  !! $to-elems
-                    ?? nqp::atpos($to,$to-elems - 1)
-                    !! '';
-
-                my int $i = -1;
-                while ++$i < $from-elems {
-                    my $key   := nqp::atpos($from,$i);
-                    my $value := $i < $to-elems
-                      ?? nqp::atpos($to,$i)
-                      !! $padding;
-                    nqp::push($substitutions,Pair.new($key,$value));
-                    if $just-strings {
-                        if nqp::istype($key,Str) && nqp::istype($value,Str) {
-                            $key := nqp::unbox_s($key);
-                            $just-chars = 0 if nqp::isgt_i(nqp::chars($key),1);
-                            nqp::push($needles,$key);
-                            nqp::push($pins,nqp::unbox_s($value));
-                        }
-                        else {
-                            $just-strings = 0;
-                        }
-                    }
-                }
-            }
-        }
-
-        # can do special cases for just strings
-        if $just-strings {
-
-            # only need to go through string once
-            if $just-chars {
-                my $lookup   := nqp::hash;
-                my int $elems = nqp::elems($needles);
-                my int $i     = -1;
-                nqp::bindkey($lookup,
-                  nqp::atpos($needles,$i),nqp::atpos($pins,$i))
-                  while nqp::islt_i($i = $i + 1,$elems);
-
-                my $result := nqp::split("",nqp::unbox_s(self));
-                $i = -1;
-                $elems = nqp::elems($result);
-                nqp::bindpos($result,$i,
-                  nqp::atkey($lookup,nqp::atpos($result,$i)))
-                    if nqp::existskey($lookup,nqp::atpos($result,$i))
-                  while nqp::islt_i($i = $i + 1,$elems);
-                nqp::box_s(nqp::join("",$result),self)
-            }
-
-            # use multi-needle split with in-place mapping
-            else {
-                my $iterator := self.split($needles,:k).iterator;
-                my $strings := nqp::list_s($iterator.pull-one);
-                nqp::until(
-                  nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd),
-                  nqp::stmts(
-                    nqp::push_s($strings,nqp::atpos($pins,$i)),
-                    nqp::push_s($strings,$iterator.pull-one)
-                  )
-                );
-                nqp::box_s(nqp::join("",$strings),self)
-            }
-        }
-
-        # alas, need to use more complex route
-        else {
-            LSM.new(self,$substitutions,$squash,$complement).result;
-        }
+        self.chars
+          ?? %_
+            ?? trans-with-nameds(self, @specs, %_)
+            !! trans-no-nameds(self, @specs)
+          !! self
     }
 
 #-------------------------------------------------------------------------------

@@ -3278,7 +3278,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         if $complement {
             my str $before = $iterator.pull-one;                       # before
             my int $last-i;
-            my str $replacement;
+            my str $replacement = nqp::null_s;
             nqp::until(
               nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd), # index
               nqp::stmts(
@@ -3303,9 +3303,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             nqp::if(
               nqp::chars($before),
-              nqp::push_s(
-                $parts,
-                nqp::x($replacement,$squash || nqp::chars($before))
+              nqp::stmts(
+                nqp::if(  # make sure there is a replacement for final part
+                  nqp::isnull_s($replacement),
+                  ($replacement = nqp::if(
+                    nqp::istype(($pin := nqp::atpos($pins,0)),Callable),
+                    $pin($/).Str,
+                    $pin
+                  ))
+                ),
+                nqp::push_s(
+                  $parts,
+                  nqp::x($replacement,$squash || nqp::chars($before))
+                )
               )
             );
         }

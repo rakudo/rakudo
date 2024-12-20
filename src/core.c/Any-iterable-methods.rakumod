@@ -334,7 +334,7 @@ Consider using a block if any of these are necessary for your mapping code."
           !! $count == 2
             ?? Rakudo::IterateTwoWithoutPhasers.new(
                  -> \a, \b {
-                     my \params := (a, b);
+                     my \params := Slip.new(a, b);
                      nqp::handle(
                        (my $result := $test(a, b)),
                        'NEXT', nqp::if(
@@ -361,7 +361,7 @@ Consider using a block if any of these are necessary for your mapping code."
                )
             !! Rakudo::IterateMoreWithPhasers.new(
                  -> |c {
-                     my \params := c.list;
+                     my \params := c.list.Slip;
                      nqp::handle(
                        (my $result := $test(|c)),
                        'NEXT', nqp::if(

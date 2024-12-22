@@ -3179,17 +3179,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # Make sure we just got Pairs
         invalid-trans-arg(@specs.are) unless @specs.are(Pair);
 
+        # Make sure we have a writable $/
+        $/ := nqp::getlexcaller('$/');
+        $/ := my $ unless nqp::iscont($/);
+
         # Set up needles and pins
-        my $needles     := nqp::create(IterationBuffer);
-        my $pins        := nqp::create(IterationBuffer);
-        my $needs-split := needles-pins(@specs, $needles, $pins, $delete);
+        my $needles := nqp::create(IterationBuffer);
+        my $pins    := nqp::create(IterationBuffer);
 
         # Must use the slower split :kv path
-        if $needs-split {
-
-            # Make sure we have a writable $/
-            $/ := nqp::getlexcaller('$/');
-            $/ := my $ unless nqp::iscont($/);
+        if needles-pins(@specs, $needles, $pins, $delete) {
 
             my $parts := nqp::list_s;
             # :kv produces: before, index, match, after, index, match, after ...

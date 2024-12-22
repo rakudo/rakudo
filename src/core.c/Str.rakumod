@@ -3140,7 +3140,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # Make sure there's a "to" for every "from"
             if nqp::islt_i(nqp::elems($to),nqp::elems($from)) {
-                my $padding := $delete
+                my $padding := $delete || nqp::not_i(nqp::elems($to))
                   ?? ""
                   !! nqp::atpos($to,nqp::elems($to) - 1);
                 my int $todo = nqp::elems($from) - nqp::elems($to);

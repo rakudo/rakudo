@@ -133,8 +133,8 @@ sub make-rand-path (--> IO::Path:D) {
 my @FILES-FOR-make-temp-file;
 my @DIRS-FOR-make-temp-dir;
 END {
-    unlink @FILES-FOR-make-temp-file;
-    rmdir  @DIRS-FOR-make-temp-dir;
+    try { unlink $_ } for @FILES-FOR-make-temp-file;
+    try { rmdir $_ } for @DIRS-FOR-make-temp-dir;
 }
 sub make-temp-path(|c) is export { make-temp-file |c }
 sub make-temp-file

@@ -2,6 +2,46 @@
 # This could be either as additional multi sub candidates, or new subs / terms
 # altogether.
 
+# Deprecate multi-path operations and introduce single path candidate
+proto sub chmod($, |) {*}
+multi sub chmod($mode, $path) { $path.IO.chmod($mode) }
+multi sub chmod($mode, *@filenames) {
+    DEPRECATED('@paths.grep(*.IO.chmod)', :what("multi-path operation"));
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
+    @ok;
+}
+
+# Deprecate multi-path operations and introduce single path candidate
+proto sub chown($, |) {*}
+multi sub chown($path, :$uid, :$gid) { $path.IO.chown(:$uid, :$gid) }
+multi sub chown(*@filenames, :$uid, :$gid) {
+    DEPRECATED('@paths.grep(*.IO.chown)', :what("multi-path operation"));
+    @filenames.grep: *.IO.chown(:$uid, :$gid)
+}
+
+# Deprecate multi-path operations and introduce single path candidate
+proto sub unlink(|) {*}
+multi sub unlink() { "unlink()".no-zero-arg }
+multi sub unlink($path) { $path.IO.unlink }
+multi sub unlink(*@filenames) {
+    DEPRECATED('@paths.grep(*.IO.unlink)', :what("multi-path operation"));
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
+    @ok;
+}
+
+# Deprecate multi-path operations and introduce single path candidate
+proto sub rmdir(|) {*}
+multi sub rmdir() { "rmdir()".no-zero-arg }
+multi sub rmdir($path) { $path.IO.rmdir }
+multi sub rmdir(*@filenames) {
+    DEPRECATED('@paths.grep(*.IO.rmdir)', :what("multi-path operation"));
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
+    @ok;
+}
+
 # introducing rotor-like capabilities to comb
 multi sub comb(Pair:D $rotor, Cool:D $input, *%_) { $input.comb($rotor, |%_) }
 

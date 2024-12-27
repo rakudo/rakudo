@@ -3,7 +3,7 @@ my class CompUnit::Repository::FileSystemWithRecording is CompUnit::Repository::
         method load-unit(CompUnit::PrecompilationId $compiler-id,
                     CompUnit::PrecompilationId $precomp-id)
         {
-            my $unit = self.CompUnit::PrecompilationStore::File::load-unit($compiler-id, $precomp-id);
+            my $unit = self.CompUnit::PrecompilationStore::FileSystem::load-unit($compiler-id, $precomp-id);
             if $unit {
                 say('LOAD-UNIT ID:', $precomp-id.id, ' DEPS:', $unit.dependencies.map(*.id.id).join(','), ' PATH:', $unit.path.Str);
             }

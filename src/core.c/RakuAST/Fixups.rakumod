@@ -414,7 +414,7 @@ augment class RakuAST::Doc::Markup {
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = $!letter;
-        if $letter eq 'D' | 'F' | 'L' | 'M' | 'X' {
+        if $letter eq 'A' | 'D' | 'F' | 'L' | 'M' | 'P' | 'X' | 'Δ' {
             self!extract-meta;
         }
         elsif $letter eq 'E' {

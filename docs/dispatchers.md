@@ -11,6 +11,47 @@ Dispatchers provided by MoarVM.
 
 ---
 
+### all-thread-bt
+```
+nqp::syscall("all-thread-bt");    # continues
+nqp::syscall("all-thread-bt",1);  # exits
+```
+Produces a backtrace of *all* threads on STDERR.  If 1 is specified
+as an additional argument, the program will immediately exit after
+producing the backtrace.
+
+### async-unix-connect
+```
+nqp::syscall('async-unix-connect',queue,code,path,class);
+```
+Establish an asychronous connection for the given queue (an instantiated
+object with `ConcBlockingQueue` REPR, a `Callable` taking 6 positional
+arguments, the path for which to open the socket, and a type object
+having the `AsyncTask` REPR.
+
+The 6 positional arguments of the `Callable` should be:
+- socket
+- error
+- peer-host
+- peer-port
+- socket-host
+- socket-post
+
+The `Callable` is expected to process the given information in the
+appropriate way, e.g. by creating an `IO::Socket::Async` object if
+no error was encountered.
+
+### async-unix-listen
+```
+nqp::syscall('async-unix-connect',queue,code,path,backlog,class);
+```
+The listening equivalent of `async-unix-connect`.  It takes an
+additional integer value `backlog` to indicate the size of the
+backlog queue of the listening socket.
+
+The `Callable` is expected to set up a tap for any incoming
+connection.
+
 ### boot-code
 ```
 nqp::dispatch('boot-code', $vmhandle, …);
@@ -86,12 +127,67 @@ nqp::syscall("can-unbox-to-str",42.Str);  # 4
 Takes the argument (a non-native object) and returns non-zero if it can be
 unboxed to a native integer, and 0 otherwise.
 
+### capture-arg-prim-spec
+```
+my $primspec := nqp::syscall("capture-arg-prim-spec",$capture,$index);
+```
+Takes the first argument (made with nqp::savecapture) and returns the
+primspec value indicated by the second argument.  Valid values are:
+- 0 a non-native value
+- 1 native integer (int)
+- 2 native floating point (num)
+- 3 native string (str)
+- 10 native unsigned integer (uint)
+
+### capture-arg-value
+```
+nqp::syscall("capture-arg-value",$capture,$index);
+```
+Takes the first argument (made with nqp::savecapture) and returns the
+value of the positional argument of the capture indicated by the
+second argument.
+
 ### capture-is-literal-arg
 ```
 nqp::syscall("capture-is-literal-arg",$capture);
 ```
 Takes the argument (made with nqp::savecapture) and returns non-zero if it
 consists of a single literal argument, and 0 otherwise.
+
+### capture-named-args
+```
+my $nameds := nqp::syscall("capture-named-args",$capture);
+```
+Takes the argument (made with nqp::savecapture) and returns an `nqp::hash`
+with the named arguments of the capture.
+
+### capture-names-list
+```
+my $names := nqp::syscall("capture-names-list",$capture);
+```
+Takes the argument (made with nqp::savecapture) and returns an `nqp::list`
+with the names of the named arguments of the capture.
+
+### capture-num-args
+```
+my $count := nqp::syscall("capture-num-args",$capture);
+```
+Takes the argument (made with nqp::savecapture) and returns an integer
+with the number of positional arguments of the capture.
+
+### capture-pos-args
+```
+my $args := nqp::syscall("capture-pos-args",$capture);
+```
+Takes the argument (made with nqp::savecapture) and returns an `nqp::list`
+with the positional arguments of the capture.
+
+### code-bytecode-size
+```
+nqp::syscall("code-bytecode-size",$mvmcode);
+```
+Takes the argument (a low-level MoarVM code object) and returns the size
+of the bytecode of that code object in bytes.
 
 ### code-is-stub
 ```
@@ -242,8 +338,8 @@ literal value.  0 if not.
 
 ### dispatcher-next-resumption
 ```
-nqp::syscall("dispatcher-is-arg-literal");
-nqp::syscall("dispatcher-is-arg-literal", $capture);
+nqp::syscall("dispatcher-next-resumption");
+nqp::syscall("dispatcher-next-resumption", $capture);
 ```
 Returns 1 if there is a next resumption for the current dispatcher, optionally
 for the given $capture.  0 if not.
@@ -290,8 +386,8 @@ given $success kind of dispatch, otherwise with the $failure kind of dispatch.
 ```
 nqp::syscall("dispatcher-resume-on-bind-failure", int $kind);
 ```
-Mark the current dispatch program to resume after a successful bind with the
-given kind of dispatch (an nqp::const::DISP_xxx value).
+Mark the current dispatch program to resume after a unsuccessful bind with
+the given kind of dispatch (an nqp::const::DISP_xxx value).
 
 ### dispatcher-set-resume-init-args
 ```
@@ -371,12 +467,45 @@ nqp::track("unbox-str", $tracker);
 Returns a tracker object for the unboxed string for the given tracker of a
 a boxed string.
 
+### file-stat
+```
+my $stat  := nqp::syscall("file-stat",$path,0);  # stat
+my $lstat := nqp::syscall("file-stat",$path,1);  # lstat
+```
+Takes a native string value containing an absolute path, and an integer
+value and returns a `BOOTStat` object that can be used an an argument
+to a "stat-flags" syscall.
+
+The integer value indicates whether symbolic links should be followed
+(0) or whether information about any symbolic link itself should be
+returned (1).
+
 ### has-type-check-cache
 ```
 nqp::syscall("has-type-check-cache", $object);
 ```
 Takes the argument (a HLL object) and returns non-zero if the class of the
 object has a cache for type checking, and 0 if not.
+
+### handle-open-mode
+```
+my $open = nqp::syscall("handle-open-mode",$PIO);
+```
+Takes a native descriptor value, and returns an integer value with one
+of the following meanings, defined by the `nqp::const::OPEN_MODE_xx`
+constants:
+- nqp::const::OPEN_MODE_RO
+- nqp::const::OPEN_MODE_WO
+- nqp::const::OPEN_MODE_RW
+
+### is-debugserver-running
+```
+nqp::syscall("is-debugserver-running");
+```
+Returns an integer value with the following meaning:
+- 0 debugserver has *not* been activated
+- 1 debugserver port is listening, but no connection made
+- 2 debugserver has been activated
 
 ### lang-call
 ```
@@ -405,6 +534,64 @@ nqp::syscall("set-cur-hll-config-key", $key, $value);
 ```
 Takes two arguments: a string key and a value, and sets that in the
 configuration information of the current HLL language.  Returns VMNull.
+
+### stat-flags
+```
+say "exists" if nqp::syscall("stat-flags",$stat,nqp::const::STAT_EXISTS);
+```
+Takes a `BOOTStat` object (returned by `nqp::syscall("file-stat",...)`)
+and returns various types of information about it dependinding on the
+second (integer) argument, which is usually specified with one of the
+`nqp::const::STAT_xxx` constants:
+- nqp::const::STAT_EXISTS
+- nqp::const::STAT_FILESIZE
+- nqp::const::STAT_ISDIR
+- nqp::const::STAT_ISREG
+- nqp::const::STAT_ISDEV
+- nqp::const::STAT_ISLNK
+- nqp::const::STAT_GID
+- nqp::const::STAT_UID
+- nqp::const::STAT_PLATFORM_DEV
+- nqp::const::STAT_PLATFORM_INODE
+- nqp::const::STAT_PLATFORM_MODE
+- nqp::const::STAT_PLATFORM_NLINKS
+- nqp::const::STAT_PLATFORM_DEV
+- nqp::const::STAT_PLATFORM_BLOCKSIZE
+- nqp::const::STAT_PLATFORM_BLOCKS
+
+### stat-is-executable
+```
+say "executable" if nqp::syscall("stat-is-executable",$stat);
+```
+Takes a `BOOTStat` object (returned by `nqp::syscall("file-stat",...)`)
+and returns 1 if the path is executable, else 0.
+
+### stat-is-readable
+```
+say "readable" if nqp::syscall("stat-is-readable",$stat);
+```
+Takes a `BOOTStat` object (returned by `nqp::syscall("file-stat",...)`)
+and returns 1 if the path is readable, else 0.
+
+### stat-is-writable
+```
+say "writable" if nqp::syscall("stat-is-writable",$stat);
+```
+Takes a `BOOTStat` object (returned by `nqp::syscall("file-stat",...)`)
+and returns 1 if the path is writable, else 0.
+
+### stat-time-nanos
+```
+say nqp::syscall("stat-time-nanos",$stat,nqp::const::STAT_xxxTIME);
+```
+Takes a `BOOTStat` object (returned by `nqp::syscall("file-stat",...)`)
+and returns an integer value in nano seconds, depending on the integer
+value of the second argument, usually expressed as one of the constants:
+- nqp::const::STAT_CREATETIME
+- nqp::const::STAT_ACCESSTIME
+- nqp::const::STAT_MODIFYTIME
+- nqp::const::STAT_CHANGETIME
+- nqp::const::STAT_BACKUPTIME
 
 ### type-check-mode-flags
 ```

@@ -626,10 +626,6 @@ stages:
         echo "making spectest checkout"
         make --trace m-testable
 
-        echo "making spectest.data smaller"
-        cp t/spec/spectest.data t/spec/spectest.data.backup
-        head -n 150 t/spec/spectest.data.backup > t/spec/spectest.data
-
         export PERL_TEST_HARNESS_DUMP_TAP=test_results
         make --trace  TEST_JOBS=3 m-spectest
       workingDirectory: '$(Pipeline.Workspace)/rakudo'

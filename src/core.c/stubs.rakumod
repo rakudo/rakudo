@@ -48,6 +48,17 @@ sub DYNAMIC(str $name, @deprecation?) is raw {  # is implementation-detail
           value,
           nqp::stmts(
             (my str $pkgname = nqp::replace($name,1,1,'')),
+#?if jvm
+            nqp::if(
+              nqp::isnull(GLOBAL) || nqp::isnull(my \res := nqp::atkey(GLOBAL.WHO,$pkgname)),
+              nqp::ifnull(
+                nqp::atkey(PROCESS.WHO,$pkgname),
+                Rakudo::Internals.INITIALIZE-DYNAMIC($name, @deprecation)
+              ),
+              res
+            )
+#?endif
+#?if !jvm
             nqp::ifnull(
               nqp::atkey(GLOBAL.WHO,$pkgname),
               nqp::ifnull(
@@ -55,6 +66,7 @@ sub DYNAMIC(str $name, @deprecation?) is raw {  # is implementation-detail
                 Rakudo::Internals.INITIALIZE-DYNAMIC($name, @deprecation)
               )
             )
+#?endif
           )
         )
       )

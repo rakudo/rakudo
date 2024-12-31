@@ -283,44 +283,28 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
 }
 
 proto sub chmod($, |) is revision-gated("6.c") {*}
-multi sub chmod(Int() $mode, Str $path) is revision-gated("6.c") {
-    $path.IO.chmod($mode);
-    $path
-}
-multi sub chmod(Int() $mode, IO::Path $path) is revision-gated("6.c") {
-    $path.IO.chmod($mode);
-    $path
-}
-# In 6.e, we adjust the routine arguments to align with how chown is called
-# So we set up 6.e variants of the old signature that include deprecation messages
-# We also provide the new signature and make it available to 6.e+
-multi sub chmod($mode, $path) is revision-gated("6.e") {
-    DEPRECATED('chmod(IO() $path, Int() :$mode)', :what("old-fashioned chmod signature"));
-    $path.IO.chmod($mode);
-    $path
-}
-multi sub chmod(Str $path, Int() :$mode!) is revision-gated("6.e") {
-    $path.IO.chmod($mode);
-    $path
-}
-multi sub chmod(IO::Path $path, Int() :$mode!) is revision-gated("6.e") {
-    $path.IO.chmod($mode);
-    $path
-}
-multi sub chmod($mode, *@filenames) is revision-gated("6.c") {
+multi sub chmod(Str $path, Int() :$mode!) is revision-gated("6.e") { $path.IO.chmod($mode) }
+multi sub chmod(IO::Path $path, Int() :$mode!) is revision-gated("6.e") { $path.chmod($mode) }
+multi sub chmod(Int() $mode, *@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
 }
-multi sub chmod($mode, *@filenames) is revision-gated("6.e") {
-    DEPRECATED('@paths.grep(*.IO.chmod)', :what("multi-path operation"));
+multi sub chmod(Int() $mode, *@filenames) is revision-gated("6.e") {
+    if @filenames == 1 {
+        my $replacement-type = @filenames[0] ~~ Str ?? 'Str' !! 'IO::Path';
+        DEPRECATED(q:b[chmod(\qq{$replacement-type} $path, Int() :$mode!)], :what("deprecated chmod signature"));
+    } else {
+        DEPRECATED('@paths.grep(*.IO.chmod)', :what("multi-path operation"))
+    }
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
 }
 
 proto sub chown($, |) is revision-gated("6.c") {*}
-multi sub chown(IO() $path, :$uid, :$gid) { $path.IO.chown(:$uid, :$gid) }
+multi sub chown(Str $path, :$uid, :$gid) { $path.IO.chown(:$uid, :$gid) }
+multi sub chown(IO::Path $path, :$uid, :$gid) { $path.IO.chown(:$uid, :$gid) }
 multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.c") {
     @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
@@ -329,10 +313,10 @@ multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.e") {
     @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
 
-
 proto sub unlink(|) is revision-gated("6.c") {*}
 multi sub unlink() { "unlink()".no-zero-arg }
-multi sub unlink(IO() $path) { $path.IO.unlink }
+multi sub unlink(Str $path) is revision-gated("6.e") { $path.IO.unlink }
+multi sub unlink(IO::Path $path) is revision-gated("6.e") { $path.IO.unlink }
 multi sub unlink(*@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
@@ -347,7 +331,8 @@ multi sub unlink(*@filenames) is revision-gated("6.e") {
 
 proto sub rmdir(|) is revision-gated("6.c") {*}
 multi sub rmdir() { "rmdir()".no-zero-arg }
-multi sub rmdir(IO() $path) { $path.IO.rmdir }
+multi sub rmdir(Str $path) is revision-gated("6.e") { $path.IO.rmdir }
+multi sub rmdir(IO::Path $path) is revision-gated("6.e") { $path.rmdir }
 multi sub rmdir(*@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }

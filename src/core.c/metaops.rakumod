@@ -489,8 +489,9 @@ sub METAOP_REDUCE_XOR(\op, $triangle?) is implementation-detail {
     NYI('xor reduce').throw;
 }
 
-sub METAOP_HYPER(\op, *%opt) is implementation-detail {
-    -> Mu \a, Mu \b { HYPER(op, a, b, |%opt) }
+sub METAOP_HYPER(\op, :$dwim-left is raw, :$dwim-right is raw) is implementation-detail {
+    my $hype := Hyper.new(op, :$dwim-left, :$dwim-right);
+    -> Mu \a, Mu \b { $hype.infix(a, b) }
 }
 
 proto sub METAOP_HYPER_POSTFIX(|) is implementation-detail {*}
@@ -522,8 +523,12 @@ sub METAOP_HYPER_CALL(\list, |args) is implementation-detail {
     list.deepmap(-> &code { code(|args) })
 }
 
-sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) is implementation-detail {
-    Hyper.new(operator, :$dwim-left, :$dwim-right).infix(|c)
+multi sub HYPER(\operator, \left, \right, :$dwim-left is raw, :$dwim-right is raw) is implementation-detail {
+    Hyper.new(operator, :$dwim-left, :$dwim-right).infix(left, right)
+}
+
+multi sub HYPER(\operator, \only, :$dwim-left is raw, :$dwim-right is raw) is implementation-detail {
+    Hyper.new(operator, :$dwim-left, :$dwim-right).infix(only)
 }
 
 # vim: expandtab shiftwidth=4

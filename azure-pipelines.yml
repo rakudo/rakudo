@@ -213,8 +213,6 @@ stages:
                 NQP_REV=$(cd nqp; git describe --always)
                 echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
                 echo nqp repository has $NQP_REV checked out
-                echo "##vso[build.addbuildtag]moar-rev-"$MOAR_REV
-                echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
               displayName: "Get moar & nqp revision"
               workingDirectory: '$(Pipeline.Workspace)/'
 
@@ -223,7 +221,6 @@ stages:
                 NQP_REV=$(cd nqp; git describe --always)
                 echo "##vso[task.setvariable variable=nqp_git_rev]"$NQP_REV
                 echo nqp repository has $NQP_REV checked out
-                echo "##vso[build.addbuildtag]nqp-rev-"$NQP_REV
               displayName: "Get nqp revision (jvm)"
               workingDirectory: '$(Pipeline.Workspace)/'
 
@@ -261,7 +258,6 @@ stages:
               - script: |
                   perl Configure.pl --prefix=$(Pipeline.Workspace)/install $(MOAR_OPTIONS)
                   make install -j3 && \
-                  echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-compiled" && \
                   cp -r ../install ../install-moar
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -270,7 +266,7 @@ stages:
               - pwsh: |
                   ${{ variables.PWSH_DEV }}
                   perl Configure.pl --prefix=$(Pipeline.Workspace)\install $(MOAR_OPTIONS)
-                  nmake install && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-compiled" && cp -r ../install ../install-moar
+                  nmake install && cp -r ../install ../install-moar
                 failOnStderr: false
                 workingDirectory: '$(Pipeline.Workspace)/MoarVM'
                 condition: and(succeeded(), ne( variables['MOARVM_CACHE_RESTORED'], 'true' ), ne( variables['NQP_CACHE_RESTORED'], 'true' ) )
@@ -281,7 +277,6 @@ stages:
             - script: |
                 perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)/install $(NQP_OPTIONS)
                 make install -j3 && \
-                echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ coalesce(variant, 'normal') }}-${{ backend }}-compiled" && \
                 cp -r ../install ../install-nqp-and-moar
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true') )
@@ -290,7 +285,7 @@ stages:
             - pwsh: |
                 ${{ variables.PWSH_DEV }}
                 perl Configure.pl --no-silent-build --prefix=$(Pipeline.Workspace)\install $(NQP_OPTIONS)
-                nmake install && echo "##vso[build.addbuildtag]nqp-${{ os }}-${{ coalesce(variant, 'normal') }}-${{ backend }}-compiled" && cp -r ../install ../install-nqp-and-moar
+                nmake install && cp -r ../install ../install-nqp-and-moar
               failOnStderr: false
               workingDirectory: '$(Pipeline.Workspace)/nqp'
               condition: and(succeeded(), ne( variables['NQP_CACHE_RESTORED'], 'true'))
@@ -498,14 +493,14 @@ stages:
             - script: |
                 pwd
                 ls -l .
-                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku --ext .t --ext .rakutest -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku --ext .t --ext .rakutest -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, '' ) }}
               displayName: Test Rakudo
             - script: |
                 pwd
                 ls -l .
-                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit -j3 -e ../install-moved/bin/raku --ext .t --ext .rakutest -vlr t && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-tests-clean"
+                env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit -j3 -e ../install-moved/bin/raku --ext .t --ext .rakutest -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               enabled: ${{ eq( variant, 'relocatable' ) }}
               displayName: Test Rakudo (relocated)
@@ -516,7 +511,7 @@ stages:
                 pwd
                 ls -l .
                 export PERL_TEST_HARNESS_DUMP_TAP=test_results
-                make PERL_TEST_HARNESS_DUMP_TAP=test_results TEST_JOBS=3 m-spectest && echo "##vso[build.addbuildtag]moar-${{ os }}-${{ coalesce(variant, 'normal') }}-spectests-clean"
+                make PERL_TEST_HARNESS_DUMP_TAP=test_results TEST_JOBS=3 m-spectest
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
               displayName: Run spectest
 

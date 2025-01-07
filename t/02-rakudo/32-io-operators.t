@@ -41,48 +41,33 @@ subtest "chmod across the revisions", {
 
 };
 
+subtest "chown across the revisions", {
+    is-run 'use v6.c;' ~ Q:c| print chown('{$non-existent}', :uid(111), :gid(222)) ~~ [] |,
+            :out("True"), q|[v6.c] chown with nonexistent file produces empty array|;
 
-if $*DISTRO.is-win {
-    subtest "chown across the revisions", {
-        is-run 'use v6.c;' ~ Q:c| print chown('{$non-existent}') ~~ [] |,
-                :out("True"), q|[v6.c] chown with nonexistent file produces empty array|;
+    is-run 'use v6.d;' ~ Q:c| print chown('{$non-existent}', :uid(111), :gid(222)) ~~ [] |,
+            :out("True"), q|[v6.d] chown with nonexistent file produces empty array|;
 
-        is-run 'use v6.d;' ~ Q:c| print chown('{$non-existent}') ~~ [] |,
-                :out("True"), q|[v6.d] chown with nonexistent file produces empty array|;
+    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111), :gid(222)) ~~ [] |,
+            :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111), :gid(222)))' .* /),
+            q|[v6.e] chown with multiple nonexistent files (UID + GID) produces empty array and deprecation |;
 
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}') ~~ [] |,
-                :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111), :gid(222)))' .* /),
-                q|[v6.e] chown with multiple nonexistent files produces empty array and deprecation |;
+    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111)) ~~ [] |,
+            :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111)))' .* /),
+            q|[v6.e] chown with multiple nonexistent files (UID) produces empty array and deprecation |;
 
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}') ~~ Failure; print $res |,
-                :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .* "to 111/222" .* /),
-                q|[v6.e] chown with nonexistent file (Str) produces Failure |;
+    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :gid(222)) ~~ [] |,
+            :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:gid(222)))' .* /),
+            q|[v6.e] chown with multiple nonexistent files (GID) produces empty array and deprecation |;
 
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}'.IO) ~~ Failure; print $res |,
-                :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .*  "to 111/222" .* /),
-                q|[v6.e] chown with nonexistent file (IO) produces Failure |;
-    };
-} else {
-    subtest "chown across the revisions", {
-        is-run 'use v6.c;' ~ Q:c| print chown('{$non-existent}', :uid(111), :gid(222)) ~~ [] |,
-                :out("True"), q|[v6.c] chown with nonexistent file produces empty array|;
+    is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}', :uid(111), :gid(222))) ~~ Failure; print $res |,
+            :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .* "to 111/222" .* /),
+            q|[v6.e] chown with nonexistent file (Str) produces Failure |;
 
-        is-run 'use v6.d;' ~ Q:c| print chown('{$non-existent}', :uid(111), :gid(222)) ~~ [] |,
-                :out("True"), q|[v6.d] chown with nonexistent file produces empty array|;
-
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111), :gid(222)) ~~ [] |,
-                :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111), :gid(222)))' .* /),
-                q|[v6.e] chown with multiple nonexistent files produces empty array and deprecation |;
-
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}', :uid(111), :gid(222))) ~~ Failure; print $res |,
-                :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .* "to 111/222" .* /),
-                q|[v6.e] chown with nonexistent file (Str) produces Failure |;
-
-        is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}'.IO, :uid(111), :gid(222))) ~~ Failure; print $res |,
-                :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .*  "to 111/222" .* /),
-                q|[v6.e] chown with nonexistent file (IO) produces Failure |;
-    };
-}
+    is-run 'use v6.e.PREVIEW;' ~ Q:c| print (my $res = chown('{$non-existent}'.IO, :uid(111), :gid(222))) ~~ Failure; print $res |,
+            :exitcode(1), :out("True"), :err(/ .* "Failed to change owner of" .*  "to 111/222" .* /),
+            q|[v6.e] chown with nonexistent file (IO) produces Failure |;
+};
 
 
 subtest "unlink across the revisions", {

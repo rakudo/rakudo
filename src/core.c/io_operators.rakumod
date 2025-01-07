@@ -314,7 +314,10 @@ multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.c") {
     @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
 multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.e") {
-    DEPRECATED(Q:s[@paths.grep(*.IO.chown(:uid($uid), :gid($gid)))], :what("multi-path operation"));
+    my $deprecated-message = Q:c[@paths.grep(*.IO.chown({$uid.defined ?? ':uid(' ~ $uid ~ ')' !! ''}]
+                                ~ Q:c[{$uid.defined && $gid.defined ?? ', ' !! ''}]
+                                ~ Q:c[{$gid.defined ?? ':gid(' ~ $gid ~ ')' !! ''}))];
+    DEPRECATED($deprecated-message, :what("multi-path operation"));
     @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
 multi sub chown(Str $path, :$uid, :$gid) is revision-gated("6.e") { $path.IO.chown(:$uid, :$gid) }

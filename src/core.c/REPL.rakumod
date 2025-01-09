@@ -408,7 +408,32 @@ do {
             )
         }
 
-        method interactive_prompt($index) { "[$index] > " }
+        # Subset of strftime formatting
+        sub expand-time($format is copy) {
+            my $now = DateTime.now;
+            $format .= subst('%T', '%H:%M:%S', :g);
+            $format .= subst('%R', '%H:%M', :g);
+            $format .= subst('%H', (sprintf "%02d", $now.hour), :g);
+            $format .= subst('%I', (sprintf "%02d", $now.hour > 12 ?? $now.hour-12 !! $now.hour), :g);
+            $format .= subst('%M', (sprintf "%02d", $now.minute), :g);
+            $format .= subst('%S', (sprintf "%02d", $now.second), :g);
+        }
+
+        sub expand-prompt($prompt is copy, $index) {
+            $prompt .= subst('\i', $index, :g); # $index
+            $prompt ~~ s/ '\t' [ '{' $<format>=[.*?] '}' ]? / { expand-time($<format> // '%T') } /; # time format
+            $prompt .= subst('\a', chr(7), :g); # bell
+            $prompt .= subst('\e', chr(27), :g); # escape
+            $prompt .= subst('\v', $*RAKU.compiler.version, :g); # compiler version
+            $prompt .= subst('\l', $*RAKU.version, :g); # language version
+            $prompt .= subst('\n', "\n", :g); # newline
+            $prompt .= subst('\V', $*RAKU.compiler.gist, :g); # compiler version (verbose)
+            $prompt .= subst('\L', $*RAKU.gist, :g); # language version (verbose)
+        }
+
+        method interactive_prompt($index) {
+            expand-prompt(%*ENV<RAKUDO_REPL_PROMPT> // '[\i] > ', $index);
+        }
 
         method repl-loop(:$no-exit, *%adverbs) {
             my int $stopped;     # did we press CTRL-c just now?
@@ -468,7 +493,7 @@ do {
                     |%adverbs);
 
                 if self.input-incomplete($output) {
-                    $prompt = '* ';
+                    $prompt = expand-prompt(%*ENV<RAKUDO_REPL_PROMPT2> // '* ', $previous-evals.elems);
                     next;
                 }
 

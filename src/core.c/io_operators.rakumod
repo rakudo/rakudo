@@ -282,33 +282,78 @@ multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     }
 }
 
-proto sub chmod($, |) {*}
-multi sub chmod($mode, *@filenames) {
+# NOTE: chmod / chown / unlink / rmdir - these multis currently use two candidates (Str and IO) where
+#       theoretically only one is necessary (IO()). This is because the current revision gating implementation
+#       is not applying to dispatch of "non-trivial" multis -- of which coercers combined with untyped slurpies are
+#       are an example.
+
+proto sub chmod($, |) is revision-gated("6.c") {*}
+multi sub chmod($mode, *@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
 }
+multi sub chmod($mode, *@filenames) is revision-gated("6.e") {
+    if @filenames == 1 {
+        # Technically this should probably error when the type is neither, but for the sake of brevity
+        # we can leave that to a failure against the non-deprecated candidate
+        my $type = @filenames[0] ~~ Str ?? "Str" !! "IO";
+        DEPRECATED(Q:q|chmod(\qq{$type} $path, Int() :$mode)|, :what("deprecated routine signature"));
+    } else {
+        DEPRECATED('@paths.grep(*.IO.chmod)', :what("multi-path operation"));
+    }
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
+    @ok;
+}
+multi sub chmod(Str $path, Int() :$mode!) is revision-gated("6.e") { $path.IO.chmod($mode) }
+multi sub chmod(IO $path, Int() :$mode!) is revision-gated("6.e") { $path.chmod($mode) }
 
-proto sub chown($, |) {*}
-multi sub chown(*@filenames, :$uid, :$gid) {
+proto sub chown($, |) is revision-gated("6.c") {*}
+multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.c") {
     @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
+multi sub chown(*@filenames, :$uid, :$gid) is revision-gated("6.e") {
+    my $deprecated-message = Q:c[@paths.grep(*.IO.chown({$uid.defined ?? ':uid(' ~ $uid ~ ')' !! ''}]
+                                ~ Q:c[{$uid.defined && $gid.defined ?? ', ' !! ''}]
+                                ~ Q:c[{$gid.defined ?? ':gid(' ~ $gid ~ ')' !! ''}))];
+    DEPRECATED($deprecated-message, :what("multi-path operation"));
+    @filenames.grep: *.IO.chown(:$uid, :$gid)
+}
+multi sub chown(Str $path, :$uid, :$gid) is revision-gated("6.e") { $path.IO.chown(:$uid, :$gid) }
+multi sub chown(IO $path, :$uid, :$gid) is revision-gated("6.e") { $path.chown(:$uid, :$gid) }
 
-proto sub unlink(|) {*}
+proto sub unlink(|) is revision-gated("6.c") {*}
 multi sub unlink() { "unlink()".no-zero-arg }
-multi sub unlink(*@filenames) {
+multi sub unlink(*@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
     @ok;
 }
+multi sub unlink(*@filenames) is revision-gated("6.e") {
+    DEPRECATED('@paths.grep(*.IO.unlink)', :what("multi-path operation"));
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
+    @ok;
+}
+multi sub unlink(Str $path) is revision-gated("6.e") { $path.IO.unlink }
+multi sub unlink(IO $path) is revision-gated("6.e") { $path.unlink }
 
-proto sub rmdir(|) {*}
+proto sub rmdir(|) is revision-gated("6.c") {*}
 multi sub rmdir() { "rmdir()".no-zero-arg }
-multi sub rmdir(*@filenames) {
+multi sub rmdir(*@filenames) is revision-gated("6.c") {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
     @ok;
 }
+multi sub rmdir(*@filenames) is revision-gated("6.e") {
+    DEPRECATED('@paths.grep(*.IO.rmdir)', :what("multi-path operation"));
+    my @ok;
+    for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }
+    @ok;
+}
+multi sub rmdir(Str $path) is revision-gated("6.e") { $path.IO.rmdir }
+multi sub rmdir(IO $path) is revision-gated("6.e") { $path.rmdir }
 
 proto sub mkdir($, $?, *%) {*}
 multi sub mkdir(IO() $path, Int() $mode = 0o777) { $path.mkdir($mode) }

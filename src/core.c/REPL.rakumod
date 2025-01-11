@@ -421,7 +421,7 @@ do {
 
         sub expand-prompt($prompt is copy, $index) {
             $prompt .= subst('\i', $index, :g); # $index
-            $prompt ~~ s/ '\t' [ '{' $<format>=[.*?] '}' ]? / { expand-time($<format> // '%T') } /; # time format
+            $prompt ~~ s:g/ '\t' [ '{' $<format>=[.*?] '}' ]? / { expand-time($<format> // '%T') } /; # time format
             $prompt .= subst('\a', chr(7), :g); # bell
             $prompt .= subst('\e', chr(27), :g); # escape
             $prompt .= subst('\v', $*RAKU.compiler.version, :g); # compiler version

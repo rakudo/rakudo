@@ -419,8 +419,47 @@ do {
             $format .= subst('%S', (sprintf "%02d", $now.second), :g);
         }
 
+        # Subset of ANSI color codes
+        sub expand-color($format is copy) {
+            my @colors;
+            for $format.split(';') -> $color {
+                @colors.push: do given $color {
+                    when 'reset'         {  '0' }
+                    when 'normal'        {  '0' }
+                    when 'bold'          {  '1' }
+                    when 'dim'           {  '2' }
+                    when 'italic'        {  '3' }
+                    when 'underline'     {  '4' }
+                    when 'blink'         {  '5' }
+                    when 'inverse'       {  '7' }
+                    when 'hidden'        {  '8' }
+                    when 'strikethrough' {  '9' }
+                    when 'black'         { '30' }
+                    when 'red'           { '31' }
+                    when 'green'         { '32' }
+                    when 'yellow'        { '33' }
+                    when 'blue'          { '34' }
+                    when 'magenta'       { '35' }
+                    when 'cyan'          { '36' }
+                    when 'white'         { '37' }
+                    when 'default'       { '39' }
+                    when 'bg:black'      { '40' }
+                    when 'bg:red'        { '41' }
+                    when 'bg:green'      { '42' }
+                    when 'bg:yellow'     { '43' }
+                    when 'bg:blue'       { '44' }
+                    when 'bg:magenta'    { '45' }
+                    when 'bg:cyan'       { '46' }
+                    when 'bg:white'      { '47' }
+                    when 'bg:default'    { '49' }
+                }
+            }
+            @colors.map(chr(27) ~ '[' ~ * ~ 'm').join('');
+        }
+
         sub expand-prompt($prompt is copy, $index) {
             $prompt .= subst('\i', $index, :g); # $index
+            $prompt ~~ s:g/ '\c' [ '{' $<format>=[.*?] '}' ]? / { expand-color($<format> // 'reset') } /; # color format
             $prompt ~~ s:g/ '\t' [ '{' $<format>=[.*?] '}' ]? / { expand-time($<format> // '%T') } /; # time format
             $prompt .= subst('\a', chr(7), :g); # bell
             $prompt .= subst('\e', chr(27), :g); # escape

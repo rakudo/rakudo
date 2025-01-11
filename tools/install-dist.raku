@@ -101,9 +101,9 @@ sub meh(Str:D $message --> Nil) {
 
 =begin pod
 
-This script is for installing Raku modules. B<install-dist.p6> does the same module registration like the 'zef' tool.
+This script is for installing Raku modules. B<install-dist.raku> does the same module registration like the 'zef' tool.
 
-B<install-dist.p6> makes it easy to install a module system wide.
+B<install-dist.raku> makes it easy to install a module system wide.
 
 =head1 OPTIONS
 

@@ -102,26 +102,12 @@ my class Range is Cool does Iterable does Positional {
           $excludes-min, $excludes-max, 0);
     }
     multi method new(\min, \max, :$excludes-min, :$excludes-max!) {
-        nqp::create(self)!SET-SELF(
-          # temporary workaround for #5760
-          nqp::istype(min,array) ?? nqp::elems(nqp::decont(min)) !! min,
-          nqp::istype(max,array) ?? nqp::elems(nqp::decont(max)) !! max,
-          $excludes-min,$excludes-max,0);
+        nqp::create(self)!SET-SELF(min, max,$excludes-min,$excludes-max,0);
     }
     multi method new(\min, \max, :$excludes-min!, :$excludes-max) {
-        nqp::create(self)!SET-SELF(
-          # temporary workaround for #5760
-          nqp::istype(min,array) ?? nqp::elems(nqp::decont(min)) !! min,
-          nqp::istype(max,array) ?? nqp::elems(nqp::decont(max)) !! max,
-          $excludes-min,$excludes-max,0);
+        nqp::create(self)!SET-SELF(min,max,$excludes-min,$excludes-max,0);
     }
-    multi method new(\min, \max) {
-        nqp::create(self)!SET-SELF(
-          # temporary workaround for #5760
-          nqp::istype(min,array) ?? nqp::elems(nqp::decont(min)) !! min,
-          nqp::istype(max,array) ?? nqp::elems(nqp::decont(max)) !! max,
-          0,0,0);
-    }
+    multi method new(\min, \max) { nqp::create(self)!SET-SELF(min,max,0,0,0) }
 
     method excludes-min() { nqp::hllbool($!excludes-min) }
     method excludes-max() { nqp::hllbool($!excludes-max) }

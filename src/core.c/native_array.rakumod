@@ -720,7 +720,7 @@ my class array is Cool does Iterable does Positional {
 
             nqp::join($delim.Str,self)
         }
-        method raku(strarray:D: --> Str:D) {
+        multi method raku(strarray:D: --> Str:D) is default {
             my $parts := nqp::list_s;
             my int $i  = -1;
 

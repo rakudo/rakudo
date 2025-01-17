@@ -1,6 +1,3 @@
-my class Exception { ... }
-
-my class Backtrace { ... }
 my class CompUnit::RepositoryRegistry is repr('Uninstantiable') { ... }
 
 my class Backtrace::Frame {

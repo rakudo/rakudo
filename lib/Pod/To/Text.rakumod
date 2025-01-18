@@ -97,7 +97,9 @@ sub declarator2text($pod) {
             'attribute ' ~ $_.gist
         }
         when .HOW ~~ Metamodel::EnumHOW {
-            "enum $_.raku() { signature2text $_.enums.pairs } \n"
+            "enum $_.raku() " ~
+                signature2text($_.enums.pairs.sort: { .value }) ~
+                " \n"
         }
         when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.raku

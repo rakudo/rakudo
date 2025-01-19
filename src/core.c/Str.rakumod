@@ -1874,20 +1874,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method push-all(\target --> IterationEnd) {
             my int $left;
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
+            my str $str   = $!str;
+            my Mu  $what := $!what;
 
-            while ($left = $!chars - $!pos) > 0 {
+            while ($left = $chars - $pos) > 0 {
                 my int $findpos = nqp::findcclass(
-                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+                  nqp::const::CCLASS_NEWLINE, $str, $pos, $left);
                 target.push(nqp::box_s(
-                  nqp::substr($!str, $!pos, $findpos - $!pos),
-                  $!what
+                  nqp::substr($str, $pos, $findpos - $pos),
+                  $what
                 ));
-                $!pos = $findpos +
+                $pos = $findpos +
 #?if moar
                   1
 #?endif
 #?if !moar
-                  (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
+                  (nqp::iseq_s(nqp::substr($str, $findpos, 2), "\r\n") ?? 2 !! 1)
 #?endif
                   ;
             }
@@ -1897,10 +1901,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $seen;
             my int $pos   = $!pos;
             my int $chars = $!chars;
+            my str $str   = $!str;
 
             while ($left = $chars - $pos) > 0 {
                 $pos = nqp::findcclass(
-                  nqp::const::CCLASS_NEWLINE, $!str, $pos, $left) + 1;
+                  nqp::const::CCLASS_NEWLINE, $str, $pos, $left) + 1;
                 $seen = $seen + 1;
             }
             nqp::p6box_i($seen)
@@ -2908,17 +2913,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method push-all(\target --> IterationEnd) {
             my int $left;
             my int $nextpos;
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
+            my str $str   = $!str;
+            my Mu  $what := $!what;
 
-            while ($left = $!chars - $!pos) > 0 {
+            while ($left = $chars - $pos) > 0 {
                 $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
 
                 target.push(nqp::box_s(
-                  nqp::substr($!str, $!pos, $nextpos - $!pos),
-                  $!what
+                  nqp::substr($str, $pos, $nextpos - $pos),
+                  $what
                 ));
-                $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                  $!str, $nextpos, $!chars - $nextpos);
+                $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
+                  $str, $nextpos, $chars - $nextpos);
             }
         }
         method count-only(--> Int:D) {
@@ -2927,12 +2936,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $seen;
             my int $pos   = $!pos;
             my int $chars = $!chars;
+            my str $str   = $!str;
 
             while ($left = $chars - $pos) > 0 {
                 $nextpos = nqp::findcclass(
-                  nqp::const::CCLASS_WHITESPACE, $!str, $pos, $left);
-                $pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
-                  $!str, $nextpos, $chars - $nextpos);
+                  nqp::const::CCLASS_WHITESPACE, $str, $pos, $left);
+                $pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE,
+                  $str, $nextpos, $chars - $nextpos);
                 $seen = $seen + 1;
             }
             $seen

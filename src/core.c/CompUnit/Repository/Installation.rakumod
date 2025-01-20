@@ -8,6 +8,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has Int $!version;
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
+    has %!config;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
     my constant @script-postfixes = '', '-m', '-j', '-js';
@@ -18,13 +19,13 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     CompUnit::RepositoryRegistry.run-script("#name#");
 }';
 
-
-    method TWEAK() {
+    method TWEAK(:$wrapper-mode) {
         $!lock       := Lock.new;
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
         $!precomp-store := $!precomp-stores := nqp::null;
+        self!config(:$wrapper-mode) with $wrapper-mode;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -118,6 +119,38 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
+    method !config(:$wrapper-mode) {
+        unless %!config {
+            my $file = self!config-file;
+            if $file.e {
+                %!config = Rakudo::Internals::JSON.from-json($file.slurp);
+            }
+            elsif self!prefix-writeable {
+                $file.spurt(Rakudo::Internals::JSON.to-json(
+                    %(
+                        wrapper-mode => $wrapper-mode // 'path',
+                    )
+                ));
+                %!config = Rakudo::Internals::JSON.from-json($file.slurp);
+            }
+            else {
+                %!config =
+                    wrapper-mode => $wrapper-mode // 'path',
+                ;
+            }
+        }
+        %!config
+    }
+
+    method change-wrapper-mode($mode) {
+        %!config<wrapper-mode> = $mode;
+        if self!prefix-writeable {
+            self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
+        }
+        self!regenerate-bin-wrappers;
+    }
+
+    method !config-file   { $.prefix.add('config.json') }
     method !sources-dir   { with $.prefix.add('sources')   { .mkdir unless .e; $_ } }
     method !resources-dir { with $.prefix.add('resources') { .mkdir unless .e; $_ } }
     method !dist-dir      { with $.prefix.add('dist')      { .mkdir unless .e; $_ } }
@@ -262,35 +295,17 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         # bin/ scripts
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
-            my $name         = $name-path.subst(/^bin\//, '');
             my $id           = self!file-id(~$file, $dist-id);
             # wrappers are put in bin/; originals in resources/
             my $destination  = $resources-dir.add($id);
-            my $withoutext   = $name-path.subst(/\.raku$/, '');
-            for @script-postfixes -> $be {
-                $.prefix.add("$withoutext$be.raku").IO.spurt:
-                    $raku-wrapper-code.subst('#name#', $name, :g);
-                my $blob = generate-runner-blob(
-                  :program("<plain>rakudo$be.exe"),
-                  :args((
-                  '<abs-slash>' ~ $name.subst(/\.raku$/, '') ~ "$be.raku",
-                  '<cmd-args>',
-                  ))
-                );
-                if $is-win {
-                    $.prefix.add("$withoutext$be.exe").IO.spurt: $blob;
-                }
-                else {
-                    $.prefix.add("$withoutext$be").IO.spurt: $blob;
-                    $.prefix.add("$withoutext$be").IO.chmod: 0o755;
-                }
-            }
             self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
+
+            self.generate-bin-wrapper($name-path);
         }
 
         # resources/
@@ -355,6 +370,65 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
             PROCESS::<$REPO> := $head;
         }
     } ) }
+
+    method !regenerate-bin-wrappers() {
+        $!lock.protect( {
+
+        my $lock = $.prefix.add('repo.lock').open(:create, :w);
+        $lock.lock;
+        LEAVE .unlock, .close with $lock;
+
+        my $version = self!repository-version;
+        self.upgrade-repository unless $version == 2;
+
+        for self.installed() -> $distribution {
+            my $dist  = CompUnit::Repository::Distribution.new($distribution);
+            my @files = $dist.meta<files>.grep(*.defined).map: -> $link {
+                $link ~~ Str ?? $link !! $link.keys[0]
+            }
+            for @files -> $name-path {
+                next unless $name-path.starts-with('bin/');
+                self.generate-bin-wrapper($name-path);
+            }
+        }
+    } ) }
+
+    method generate-bin-wrapper($name-path) {
+        my $name         = $name-path.subst(/^bin\//, '');
+        my $withoutext   = $name-path.subst(/\.raku$/, '');
+        for @script-postfixes -> $be {
+            $.prefix.add("$withoutext$be.raku").spurt:
+                $raku-wrapper-code.subst('#name#', $name, :g);
+            my $prog-conf = do given self!config<wrapper-mode> {
+                when 'absolute' {
+                    my $abs-path = nqp::gethllsym('default', 'SysConfig')
+                                   .rakudo-home.IO
+                                   .add("bin").add("rakudo$be.exe");
+                    "<plat-sep>$abs-path"
+                }
+                when 'relative' {
+                    "<abs-slash>../../../../bin/rakudo$be.exe"
+                }
+                default { # 'path'
+                    "<plain>rakudo$be.exe"
+                }
+            };
+            my $blob = generate-runner-blob(
+              :program($prog-conf),
+              :args((
+              '<abs-slash>' ~ $name.subst(/\.raku$/, '') ~ "$be.raku",
+              '<cmd-args>',
+              ))
+            );
+            if Rakudo::Internals.IS-WIN {
+                $.prefix.add("$withoutext$be.exe").spurt: $blob;
+            }
+            else {
+                $.prefix.add("$withoutext$be").spurt: $blob;
+                $.prefix.add("$withoutext$be").chmod: 0o755;
+            }
+        }
+    }
 
     my sub unlink-if-exists(IO::Path:D $io) { $io.unlink if $io.e }
 

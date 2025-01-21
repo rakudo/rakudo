@@ -900,13 +900,13 @@ See http://design.raku.org/S22.html#provides for more information.\n";
         @lines.push: @call-parts.join(" ");
 
         
-        my $text = get-resource('posix-runner-tmpl').slurp;
+        my $text = get-template('posix-runner-tmpl').slurp;
         $text ~= @lines.join("\n");
         $text
     }
 
-    sub get-resource($name) {
-        nqp::gethllsym('default', 'SysConfig').rakudo-home.IO.add("resources").add($name)
+    sub get-template($name) {
+        nqp::gethllsym('default', 'SysConfig').rakudo-home.IO.add("templates").add($name)
     }
 
     sub create-config-blob(
@@ -1033,7 +1033,7 @@ See http://design.raku.org/S22.html#provides for more information.\n";
                       --> Blob
     ) {
         if Rakudo::Internals.IS-WIN {
-            my Buf $blob = get-resource("win-runner.exe-tmpl").slurp(:bin);
+            my Buf $blob = get-template("win-runner.exe-tmpl").slurp(:bin);
             $blob.append: create-config-blob(:$program, :$arg0, :$cwd, :@args, :%env-add, :@env-remove);
             $blob
         }

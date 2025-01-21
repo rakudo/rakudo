@@ -245,7 +245,7 @@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	@if(platform==windows $(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/resources)@)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/templates)@
 
 @backend_prefix@-install-pre:: @bpm(RUNNER)@ @backend_prefix@-install-dirs
 

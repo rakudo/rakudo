@@ -9,6 +9,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
     has %!config;
+    has %!config-seed;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
     my constant @script-postfixes = '', '-m', '-j', '-js';
@@ -25,7 +26,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
         $!precomp-store := $!precomp-stores := nqp::null;
-        self!config(:$wrapper-mode) with $wrapper-mode;
+        self!seed-config(:$wrapper-mode);
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -119,24 +120,25 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
-    method !config(:$wrapper-mode) {
+    method !seed-config(:$wrapper-mode) {
+        %!config-seed =
+            wrapper-mode => $wrapper-mode // 'path',
+        ;
+    }
+
+    method !write-config() {
+        self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
+    }
+
+    method !config() {
         unless %!config {
             my $file = self!config-file;
             if $file.e {
                 %!config = Rakudo::Internals::JSON.from-json($file.slurp);
             }
-            elsif self!prefix-writeable {
-                $file.spurt(Rakudo::Internals::JSON.to-json(
-                    %(
-                        wrapper-mode => $wrapper-mode // 'path',
-                    )
-                ));
-                %!config = Rakudo::Internals::JSON.from-json($file.slurp);
-            }
             else {
-                %!config =
-                    wrapper-mode => $wrapper-mode // 'path',
-                ;
+                %!config = %!config-seed;
+                self!write-config if self!prefix-writeable;
             }
         }
         %!config
@@ -144,9 +146,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     method change-wrapper-mode($mode) {
         %!config<wrapper-mode> = $mode;
-        if self!prefix-writeable {
-            self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
-        }
+        self!prefix-writeable or die "No writeable path found, $.prefix not writeable";
+        self!write-config;
         self!regenerate-bin-wrappers;
     }
 

@@ -7,8 +7,8 @@ LAUNCHER = @default_prefix@-runner-default
 all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER) @if(platform==windows win-runner.exe-tmpl)@
 
 install: @for_backends(@backend_prefix@-install )@ $(LAUNCHER)-install @if(platform==windows win-runner.exe-tmpl)@
-	@if(platform==windows $(NOECHO)$(CP)   win-runner.exe-tmpl @nfpq($(DESTDIR)$(RAKUDO_HOME)/resources)@)@
-	@if(platform!=windows $(NOECHO)$(CP)   @nfp(src/runner/posix-runner-tmpl)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/resources)@)@
+	@if(platform==windows $(NOECHO)$(CP)   win-runner.exe-tmpl @nfpq($(DESTDIR)$(RAKUDO_HOME)/templates)@)@
+	@if(platform!=windows $(NOECHO)$(CP)   @nfp(src/runner/posix-runner-tmpl)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/templates)@)@
 	@echo(+++ Rakudo installed successfully!)@
 
 clean: @for_backends(@backend_prefix@-clean )@

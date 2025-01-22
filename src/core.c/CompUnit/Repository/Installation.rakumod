@@ -138,14 +138,34 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
             }
             else {
                 %!config = %!config-seed;
+                self!set-wrapper-config(%!config<wrapper-mode>);
                 self!write-config if self!prefix-writeable;
             }
         }
         %!config
     }
 
-    method change-wrapper-mode($mode) {
+    method !set-wrapper-config($mode) {
         %!config<wrapper-mode> = $mode;
+        %!config<wrapper-rakudo-dir> = do given $mode {
+            when 'absolute' {
+                nqp::gethllsym('default', 'SysConfig')
+                   .rakudo-home.IO
+                   .add("bin")
+            }
+            when 'relative' {
+                my $abs-path = nqp::gethllsym('default', 'SysConfig')
+                   .rakudo-home.IO.add("bin");
+                $abs-path.relative(self!bin-dir)
+            }
+            default { # 'path'
+                ''
+            }
+        }
+    }
+
+    method change-wrapper-mode($mode) {
+        self!set-wrapper-config($mode);
         self!prefix-writeable or die "No writeable path found, $.prefix not writeable";
         self!write-config;
         self!regenerate-bin-wrappers;
@@ -397,21 +417,21 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     method generate-bin-wrapper($name-path) {
         my $name         = $name-path.subst(/^bin\//, '');
         my $withoutext   = $name-path.subst(/\.raku$/, '');
+        my $ext = Rakudo::Internals.IS-WIN ?? '.exe' !! '';
         for @script-postfixes -> $be {
             $.prefix.add("$withoutext$be.raku").spurt:
                 $raku-wrapper-code.subst('#name#', $name, :g);
             my $prog-conf = do given self!config<wrapper-mode> {
                 when 'absolute' {
-                    my $abs-path = nqp::gethllsym('default', 'SysConfig')
-                                   .rakudo-home.IO
-                                   .add("bin").add("rakudo$be.exe");
-                    "<plat-sep>$abs-path"
+                    "<plat-sep>"
+                    ~ self!config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 when 'relative' {
-                    "<abs-slash>../../../../bin/rakudo$be.exe"
+                    "<abs-slash>"
+                    ~ self!config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 default { # 'path'
-                    "<plain>rakudo$be.exe"
+                    "<plain>rakudo$be$ext"
                 }
             };
             my $blob = generate-runner-blob(
@@ -421,11 +441,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
               '<cmd-args>',
               ))
             );
-            if Rakudo::Internals.IS-WIN {
-                $.prefix.add("$withoutext$be.exe").spurt: $blob;
-            }
-            else {
-                $.prefix.add("$withoutext$be").spurt: $blob;
+            $.prefix.add("$withoutext$be$ext").spurt: $blob;
+            unless Rakudo::Internals.IS-WIN {
                 $.prefix.add("$withoutext$be").chmod: 0o755;
             }
         }

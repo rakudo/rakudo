@@ -250,9 +250,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
       Bool          :$precompile = True,
     ) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
-        my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
-            $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
-        }
+        my %files = $dist.files;
 
         $!lock.protect( {
         my @*MODULES;
@@ -394,10 +392,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
         for self.installed() -> $distribution {
             my $dist  = CompUnit::Repository::Distribution.new($distribution);
-            my @files = $dist.meta<files>.grep(*.defined).map: -> $link {
-                $link ~~ Str ?? $link !! $link.keys[0]
-            }
-            for @files -> $name-path {
+            for $dist.files.keys -> $name-path {
                 next unless $name-path.starts-with('bin/');
                 self.generate-bin-wrapper($name-path);
             }

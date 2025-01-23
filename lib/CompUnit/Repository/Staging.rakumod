@@ -70,10 +70,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         # not match the parents configuration.
         for self.installed() -> $distribution {
             my $dist  = CompUnit::Repository::Distribution.new($distribution);
-            my @files = $dist.meta<files>.grep(*.defined).map: -> $link {
-                $link ~~ Str ?? $link !! $link.keys[0]
-            }
-            for @files -> $name-path {
+            for $dist.files.keys -> $name-path {
                 next unless $name-path.starts-with('bin/');
                 $!parent.generate-bin-wrapper($name-path);
             }

@@ -133,6 +133,11 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
     }
 
+    method copy-config-from(CompUnit::Repository::Installation $other) is implementation-detail {
+        %!config = $other!config;
+        self!write-config;
+    }
+
     method !config() {
         unless %!config {
             my $file = self!config-file;

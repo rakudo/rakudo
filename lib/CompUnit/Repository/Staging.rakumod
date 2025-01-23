@@ -4,6 +4,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
 
     submethod TWEAK(--> Nil) {
         $!parent = CompUnit::RepositoryRegistry.repository-for-name($!name);
+        self.copy-config-from($!parent);
         CompUnit::RepositoryRegistry.register-name($!name, self);
     }
 
@@ -63,17 +64,6 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             my $destination := $to.add($path.substr($relpath));
             $destination.parent.mkdir;
             $path.IO.copy: $destination;
-        }
-
-        # Regenerate the bin wrappers, since those depend on the repository
-        # configuration. So the wrappers generated in this staging repo might
-        # not match the parents configuration.
-        for self.installed() -> $distribution {
-            my $dist  = CompUnit::Repository::Distribution.new($distribution);
-            for $dist.files.keys -> $name-path {
-                next unless $name-path.starts-with('bin/');
-                $!parent.generate-bin-wrapper($name-path);
-            }
         }
     }
 

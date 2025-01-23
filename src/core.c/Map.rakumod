@@ -547,7 +547,7 @@ ERROR
     }
 
     method hash() { self }
-    method clone(Map:D:) { self }
+    multi method clone(Map:D:) { self }
 
     multi method roll(Map:D:) {
         nqp::if(

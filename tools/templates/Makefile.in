@@ -4,7 +4,7 @@
 
 LAUNCHER = @default_prefix@-runner-default
 
-all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER) @if(platform==windows win-runner.exe-tmpl)@
+all:@for_backends( @backend_prefix@-all)@ $(LAUNCHER)
 
 install: @for_backends(@backend_prefix@-install )@ $(LAUNCHER)-install @if(platform==windows win-runner.exe-tmpl)@
 	@if(platform==windows $(NOECHO)$(CP)   win-runner.exe-tmpl @nfpq($(DESTDIR)$(RAKUDO_HOME)/templates)@)@

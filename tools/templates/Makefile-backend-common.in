@@ -128,7 +128,9 @@
 
 # --- Utility targets ---
 
-@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(RAKUDO_DEBUG)@ @bpm(ALL_TARGETS)@
+@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(RAKUDO_DEBUG)@ @bpm(ALL_TARGETS)@ @if(platform==windows win-runner.exe-tmpl)@
+	$(NOECHO)$(MKPATH) @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@
+@if(platform==windows 	$(NOECHO)$(CP) win-runner.exe-tmpl @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@@if(platform!=windows 	$(NOECHO)$(CP) @nfp(src/runner/posix-runner-tmpl)@ @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@
 
 @backend_prefix@-test: @backend_prefix@-coretest
 

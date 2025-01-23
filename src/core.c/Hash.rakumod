@@ -21,7 +21,7 @@ my class Hash { # declared in BOOTSTRAP
     method clone(Hash:D:) is raw {
         nqp::p6bindattrinvres(
           nqp::p6bindattrinvres(
-            nqp::create(self),Map,'$!storage',
+            nqp::clone(self),Map,'$!storage',
             nqp::clone(nqp::getattr(self,Map,'$!storage'))),
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }

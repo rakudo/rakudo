@@ -1060,9 +1060,10 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method clone (|) {*}
-    multi method clone(Mu:U: *%twiddles) {
-        %twiddles and die 'Cannot set attribute values when cloning a type object';
-        self
+    multi method clone(Mu:U:) {
+        %_
+          ?? die('Cannot set attribute values when cloning a type object')
+          !! self
     }
     multi method clone(Mu:D: *%twiddles) {
         my $cloned := nqp::clone(self);

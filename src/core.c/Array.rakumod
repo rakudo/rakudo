@@ -51,7 +51,7 @@ my class Array { # declared in BOOTSTRAP
     multi method clone(Array:D: --> Array:D) {
         my \iter := self.iterator;
         my \result := nqp::p6bindattrinvres(
-          nqp::create(self),Array,'$!descriptor',nqp::clone($!descriptor)
+          nqp::clone(self),Array,'$!descriptor',nqp::clone($!descriptor)
         );
 
         nqp::if(

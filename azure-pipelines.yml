@@ -446,7 +446,7 @@ stages:
           - ${{ if eq(os, 'Mac') }}:
             - bash: |
                 curl -L https://cpanmin.us | sudo perl - App::cpanminus --verbose --no-interactive
-                sudo /usr/local/Cellar/perl/5.40.0/bin/cpanm --notest TAP::Formatter::JUnit
+                sudo /usr/local/Cellar/perl/5.*/bin/cpanm --notest TAP::Formatter::JUnit
               displayName: install cpanm, TAP::Formatter::JUnit
           - ${{ if eq(os, 'Win') }}:
             - pwsh: |

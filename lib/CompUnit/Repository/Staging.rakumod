@@ -64,6 +64,20 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             $destination.parent.mkdir;
             $path.IO.copy: $destination;
         }
+
+        # Regenerate the bin wrappers, since those depend on the repository
+        # configuration. So the wrappers generated in this staging repo might
+        # not match the parents configuration.
+        for self.installed() -> $distribution {
+            my $dist  = CompUnit::Repository::Distribution.new($distribution);
+            my @files = $dist.meta<files>.grep(*.defined).map: -> $link {
+                $link ~~ Str ?? $link !! $link.keys[0]
+            }
+            for @files -> $name-path {
+                next unless $name-path.starts-with('bin/');
+                $!parent.generate-bin-wrapper($name-path);
+            }
+        }
     }
 
     sub self-destruct(IO::Path:D $io --> Nil) {

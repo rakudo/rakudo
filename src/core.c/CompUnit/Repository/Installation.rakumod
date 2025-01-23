@@ -316,7 +316,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
             $destination.spurt($content);
             $handle.close;
 
-            self!generate-bin-wrapper($name-path);
+            self.generate-bin-wrapper($name-path);
         }
 
         # resources/
@@ -399,12 +399,12 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
             }
             for @files -> $name-path {
                 next unless $name-path.starts-with('bin/');
-                self!generate-bin-wrapper($name-path);
+                self.generate-bin-wrapper($name-path);
             }
         }
     } ) }
 
-    method !generate-bin-wrapper($name-path) {
+    method generate-bin-wrapper($name-path) is implementation-detail {
         my $name         = $name-path.subst(/^bin\//, '');
         my $withoutext   = $name-path.subst(/\.raku$/, '');
         my $ext = Rakudo::Internals.IS-WIN ?? '.exe' !! '';

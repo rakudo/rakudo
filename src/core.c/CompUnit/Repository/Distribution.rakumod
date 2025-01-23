@@ -30,6 +30,12 @@ class CompUnit::Repository::Distribution does Distribution {
     method id(--> Str:D) { nqp::sha1(self.Str) }
     method meta(CompUnit::Repository::Distribution:D:) { %!meta.item }
 
+    method files(CompUnit::Repository::Distribution:D:) is implementation-detail {
+        self.meta<files>.grep(*.defined).map: -> $link {
+            $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
+        }
+    }
+
     # Alternate instantiator called from Actions.nqp during compilation
     # of $?DISTRIBUTION
     method from-precomp(CompUnit::Repository::Distribution:U:

@@ -175,14 +175,10 @@ class CompUnit::RepositoryRegistry {
             $home-spec = 'inst#' ~ $home;
         }
 
-        my $reloc = nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<static-rakudo-home> eq '';
-        my $wrapper-mode = $reloc ?? 'relative' !! 'absolute';
-
         unless $precomp-specs {
             $next-repo := self!register-custom-lib-repository(
               'core', $core,
               CompUnit::Repository::Installation.new(
-                :$wrapper-mode,
                 :prefix("$prefix/core"),
                 :$next-repo
               )
@@ -191,7 +187,6 @@ class CompUnit::RepositoryRegistry {
             $next-repo := self!register-custom-lib-repository(
               'vendor', $vendor,
               CompUnit::Repository::Installation.new(
-                :$wrapper-mode,
                 :prefix("$prefix/vendor"),
                 :$next-repo
               )
@@ -200,7 +195,6 @@ class CompUnit::RepositoryRegistry {
             $next-repo := self!register-custom-lib-repository(
               'site', $site,
               CompUnit::Repository::Installation.new(
-                :$wrapper-mode,
                 :prefix("$prefix/site"),
                 :$next-repo
               )
@@ -209,7 +203,6 @@ class CompUnit::RepositoryRegistry {
             $next-repo := self!register-custom-lib-repository(
               'home', $home-spec,
               CompUnit::Repository::Installation.new(
-                :wrapper-mode('path'),
                 :prefix($home),
                 :$next-repo
               )

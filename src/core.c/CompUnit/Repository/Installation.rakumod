@@ -9,7 +9,6 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
     has %!config;
-    has %!config-seed;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
     my constant @script-postfixes = '', '-m', '-j', '-js';
@@ -20,13 +19,13 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     CompUnit::RepositoryRegistry.run-script("#name#");
 }';
 
-    method TWEAK(:$wrapper-mode) {
+    method TWEAK(:$wrapper-mode, :$wrapper-rakudo-dir) {
         $!lock       := Lock.new;
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
         $!precomp-store := $!precomp-stores := nqp::null;
-        self!seed-config(:$wrapper-mode);
+        self!seed-config(:$wrapper-mode, :$wrapper-rakudo-dir);
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -120,10 +119,14 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
-    method !seed-config(:$wrapper-mode) {
-        %!config-seed =
-            wrapper-mode => $wrapper-mode // 'path',
-        ;
+    method !seed-config(:$wrapper-mode, :$wrapper-rakudo-dir) {
+        with $wrapper-mode {
+            my $file = self!config-file;
+            unless $file.e {
+                self!set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir // '');
+                self!write-config if self!prefix-writeable;
+            }
+        }
     }
 
     method !write-config() {
@@ -137,35 +140,22 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
                 %!config = Rakudo::Internals::JSON.from-json($file.slurp);
             }
             else {
-                %!config = %!config-seed;
-                self!set-wrapper-config(%!config<wrapper-mode>);
-                self!write-config if self!prefix-writeable;
+                %!config =
+                    wrapper-mode => 'path',
+                    wrapper-rakudo-dir => '',
+                ;
             }
         }
         %!config
     }
 
-    method !set-wrapper-config($mode) {
-        %!config<wrapper-mode> = $mode;
-        %!config<wrapper-rakudo-dir> = do given $mode {
-            when 'absolute' {
-                nqp::gethllsym('default', 'SysConfig')
-                   .rakudo-home.IO
-                   .add("bin")
-            }
-            when 'relative' {
-                my $abs-path = nqp::gethllsym('default', 'SysConfig')
-                   .rakudo-home.IO.add("bin");
-                $abs-path.relative(self!bin-dir)
-            }
-            default { # 'path'
-                ''
-            }
-        }
+    method !set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir) {
+        %!config<wrapper-mode> = $wrapper-mode;
+        %!config<wrapper-rakudo-dir> = $wrapper-rakudo-dir;
     }
 
-    method change-wrapper-mode($mode) is implementation-detail {
-        self!set-wrapper-config($mode);
+    method change-wrapper-mode($wrapper-mode, $wrapper-rakudo-dir = '') is implementation-detail {
+        self!set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir);
         self!prefix-writeable or die "No writeable path found, $.prefix not writeable";
         self!write-config;
         self!regenerate-bin-wrappers;

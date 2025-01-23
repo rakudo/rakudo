@@ -261,7 +261,7 @@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.raku)@@ @bpm(RUNNER)@
 	@echo(+++ Preparing installation)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@  @nfpq($(PREFIX)/bin)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
 	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(install-core-dist.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 
 @backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post

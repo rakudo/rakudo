@@ -4,12 +4,12 @@
 
 $(SPECTEST_DATA):
 	@echo(+++ Preparing the roast)@
-	$(NOECHO)$(MONITOR) --what='+++ Roast checkout' git clone @roast_pull_url@ @nfp(t/spec)@
-	$(NOECHO)-cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
+	$(NOECHO)$(MONITOR) --what=@shquot(+++ Roast checkout)@ git clone @roast_pull_url@ @nfp(t/spec)@
+	$(NOECHO)cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
 
 spectest_update: $(SPECTEST_DATA) all
 	@echo(+++ Updating the roast)@
-	$(NOECHO)-cd @nfp(t/spec)@ && $(MONITOR) --what='+++ Roast update' git pull --ff-only
+	$(NOECHO)cd @nfp(t/spec)@ && $(MONITOR) --what=@shquot(+++ Roast update)@ git pull --ff-only
 
 @nfp(t/localtest.data)@:
 	$(TEST_F) $@

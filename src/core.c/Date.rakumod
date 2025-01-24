@@ -26,11 +26,11 @@ my class Date does Dateish {
     }
 
     # Just set the attributes on an instance
-    method !SET-SELF(int $year, int $month, int $day, &formatter --> Date:D) {
+    method !SET-SELF(int $year, int $month, int $day, \formatter --> Date:D) {
         nqp::bindattr_i(self,Date,'$!year',$year);
         nqp::bindattr_i(self,Date,'$!month',$month);
         nqp::bindattr_i(self,Date,'$!day',$day);
-        nqp::bindattr(self,Date,'&!formatter',&formatter);
+        nqp::bindattr(self,Date,'&!formatter',formatter);
         self
     }
 
@@ -43,13 +43,6 @@ my class Date does Dateish {
           || nqp::isgt_i($day, self!DAYS-IN-MONTH($year, $month)) {
             self!wrong-oor($year, $month, $day)
         }
-#        elsif nqp::eqaddr(self.WHAT,Date) {
-#            nqp::bindattr_i(self,Date,'$!year',$year);
-#            nqp::bindattr_i(self,Date,'$!month',$month);
-#            nqp::bindattr_i(self,Date,'$!day',$day);
-#            nqp::bindattr(self,Date,'&!formatter',$_) with %nameds<formatter>;
-#            self
-#        }
         else {
             %nameds<day>   := $day;
             %nameds<month> := $month;
@@ -182,12 +175,19 @@ my class Date does Dateish {
 
     method today(--> Date:D) {
         my $lt := nqp::decodelocaltime(time);
-        nqp::create(self)!SET-SELF(
-          nqp::atpos_i($lt,5),  # year
-          nqp::atpos_i($lt,4),  # month
-          nqp::atpos_i($lt,3),  # day
-          %_<formatter> // Callable
-        )
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF(
+               nqp::atpos_i($lt,5),  # year
+               nqp::atpos_i($lt,4),  # month
+               nqp::atpos_i($lt,3),  # day
+               %_<formatter> // (my &)
+             )
+          !! nqp::create(self)!populate(
+               nqp::atpos_i($lt,5),  # year
+               nqp::atpos_i($lt,4),  # month
+               nqp::atpos_i($lt,3),  # day
+               %_
+             )
     }
 
     method first-date-in-month(Date:D: --> Date:D) {
@@ -345,14 +345,27 @@ my class Date does Dateish {
 
     method clone(Date:D: --> Date:D) {
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::elems($h)
-          ?? nqp::clone(self)!populate(
-               nqp::ifnull(nqp::atkey($h,'year'), $!year),
-               nqp::ifnull(nqp::atkey($h,'month'),$!month),
-               nqp::ifnull(nqp::atkey($h,'day'),  $!day),
-               %_
-             )
-          !! nqp::clone(self)
+        if nqp::elems($h) {
+            if nqp::atkey($h,'day') -> $day is copy {
+                unless nqp::istype($day,Int) {
+                    my int $year  = nqp::ifnull(nqp::atkey($h,'year'), $!year);
+                    my int $month = nqp::ifnull(nqp::atkey($h,'month'),$!month);
+                    $day = self!day-not-Int($year, $month, $day);
+                    return nqp::clone(self)!populate(
+                      $year, $month, $day, %_
+                    );
+                }
+            }
+            nqp::clone(self)!populate(
+              nqp::ifnull(nqp::atkey($h,'year'), $!year),
+              nqp::ifnull(nqp::atkey($h,'month'),$!month),
+              nqp::ifnull(nqp::atkey($h,'day'),  $!day),
+              %_
+            )
+        }
+        else {
+            nqp::clone(self)
+        }
     }
 
     # Clone an object with any twiddles without doing any checks

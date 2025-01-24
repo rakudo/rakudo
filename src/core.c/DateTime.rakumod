@@ -203,7 +203,7 @@ my class DateTime does Dateish {
           !! self.bless(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra
-             )!SET-DAYCOUNT;
+             );
 
         $second >= 60 ?? $dt!check-leap-second !! $dt
     }
@@ -306,7 +306,7 @@ my class DateTime does Dateish {
           !! self.bless(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
-             )!SET-DAYCOUNT;
+             )
     }
 
     method !non-iso($datetime) {

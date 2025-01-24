@@ -44,9 +44,6 @@ my role Dateish {
         sprintf 0 <= $!year <= 9999 ?? '%04d' !! '%+05d', $!year;
     }
 
-    # noop for subclasses
-    method !SET-DAYCOUNT() { self }
-
     # shortcut for out of range throwing
     method !oor($what, $got, $range) {
         X::Temporal::OutOfRange.new(:$what, :$got, :$range).throw

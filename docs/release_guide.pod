@@ -183,7 +183,8 @@ get an inspiration of how it is done.
 
 =item *
 
-When it’s time to cut the release, checkout a new release branch.
+When it’s time to cut the release, checkout a new release branch,
+named, for example: "release-2025.01".
 
 =item *
 

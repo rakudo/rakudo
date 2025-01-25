@@ -345,7 +345,7 @@ version beforehand.
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-archive
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-extract
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-build
-  (check version aka raku --version)
+  (check version aka ./temp/rakudo-test/$rel-branch-name/install/bin/raku --version)
   TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-test
 
 =item *

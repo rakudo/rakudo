@@ -142,11 +142,17 @@ cherry-picked important fixes).
 
 =item 3.
 
-Update Rakudo’s leap-second tables:
+Update Rakudo’s leap-second tables; Review the list at
+L<https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds>
+and compare against F<src/core.c/Rakudo/Internals.rakumod>
 
-  raku tools/add-leap-second.raku
+  raku tools/add-leap-second.raku <the-date> [<the-source>]
 
-If a new leap second has been announced, F<src/core.c/Rakudo/Internals.rakumod>
+This version of the script requires the release manager to B<manually> check
+to see if a new leap second has been announced, and then call this script
+if needed.
+
+If updated, F<src/core.c/Rakudo/Internals.rakumod>
 will be modified, so commit the new version. B<Note:> be sure to double
 check the modifications are correct before committing.
 
@@ -154,9 +160,6 @@ check the modifications are correct before committing.
 
 But probably there won’t be any new leap seconds, in which case the file
 will be unchanged.
-
-B<Note>: this program requires the perl modules L<Time::y2038>,
-L<LWP::Simple> and L<File::Slurp> to be installed.
 
 =item 4.
 

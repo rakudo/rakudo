@@ -144,9 +144,9 @@ cherry-picked important fixes).
 
 Update Rakudo’s leap-second tables:
 
-  perl tools/update-tai-utc.pl
+  raku tools/add-leap-second.raku
 
-If a new leap second has been announced, F<src/core.c/Rakudo/Internals.pm6>
+If a new leap second has been announced, F<src/core.c/Rakudo/Internals.rakumod>
 will be modified, so commit the new version. B<Note:> be sure to double
 check the modifications are correct before committing.
 

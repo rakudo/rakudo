@@ -13,8 +13,8 @@ my class Backtrace::Frame {
     multi method new(Backtrace::Frame: $file, $line, $code, $subname) {
         nqp::create(self)!SET-SELF($file, $line, $code, $subname)
     }
-    multi method new(Backtrace::Frame: |c) {
-        self.bless(|c)
+    multi method new(Backtrace::Frame:) {
+        self.POPULATE(%_)
     }
 
     method subtype(Backtrace::Frame:D:) {

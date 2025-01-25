@@ -3480,7 +3480,6 @@ class Perl6::World is HLL::World {
 
         # Parameters we always need
         has $!pself;
-        has $!pauto;
         has $!pinit;
         has $!p_;
 
@@ -3513,7 +3512,6 @@ class Perl6::World is HLL::World {
             $!X-Attribute-Required   := $X-Attribute-Required;
 
             $!pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
-            $!pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
             $!pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
             $!p_    := QAST::Var.new(:decl<param>, :scope<local>, :name('_'),
               :slurpy, :named);
@@ -3650,11 +3648,11 @@ class Perl6::World is HLL::World {
                 my $stmts := QAST::Stmts.new(:node(nqp::decont($/)));
 
                 my $declarations :=
-                  QAST::Stmts.new($!pself, $!pauto, $!pinit, $!dinit);
+                  QAST::Stmts.new($!pself, $!pinit, $!dinit);
 
                 # The block of the method
                 my $block := QAST::Block.new(
-                  :name<BUILDALL>, :blocktype<declaration_static>,
+                  :name<POPULATE>, :blocktype<declaration_static>,
                   $declarations
                 );
 
@@ -4147,8 +4145,8 @@ class Perl6::World is HLL::World {
 
 # submethod :: (Any:D:) { self }
                 my $block := QAST::Block.new(
-                  :name<BUILDALL>, :blocktype<declaration_static>,
-                  QAST::Stmts.new($!pself, $!pauto, $!pinit),
+                  :name<POPULATE>, :blocktype<declaration_static>,
+                  QAST::Stmts.new($!pself, $!pinit),
                   $!self
                 );
 

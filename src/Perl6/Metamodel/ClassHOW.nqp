@@ -299,8 +299,8 @@ class Perl6::Metamodel::ClassHOW
 
                     # We have a generated BUILDALL submethod, so install!
                     if nqp::isconcrete($method) {
-                        $method.set_name('BUILDALL');
-                        self.add_method($target, 'BUILDALL', $method);
+                        $method.set_name('POPULATE');
+                        self.add_method($target, 'POPULATE', $method);
                     }
                 }
             }

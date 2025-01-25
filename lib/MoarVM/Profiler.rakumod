@@ -46,7 +46,7 @@ role OnHash[@keys] {
     }
 
     # don't want to use named parameters for something this simple
-    method new(%hash) { self.bless(:%hash) }
+    method new(%hash) { self.POPULATE(%hash) }
 
     # make sure we have an object, and not just a hash for a given key
     method !mogrify-to-object(\the-class, \key, \link --> Nil) {
@@ -359,7 +359,7 @@ class Type does OnHash[<
 
     method new( ($id,%hash) ) {
         %hash.BIND-KEY("id",$id);
-        self.bless(:%hash)
+        self.POPULATE(%hash)
     }
     method TWEAK(--> Nil) {
         # link to originating profile

@@ -1,3 +1,40 @@
+New in 2025.01:
+
++ Improvements:
+    + Add lower-bounding for the revision-gated trait [7c7ad5bd][0e9a2d73]
+    + Pod::To::Text: Sort enum pairs by value [c7004109]
+    + Improve throughput and reliability of CI::PrecompilationRepository [b6242f4b][4919b647]
+    + Get PRs working for everyone [b6ea5783]
+    + Make native arrays Cool (e.g. allow native arrays to be
+      endpoints for Ranges [17fe51b8][8f38af87]
+    + Add proper support for regexes to multi-needle .split [77c4c64e][bea1f099]
+    + Final step of re-imaginining .trans [d7feae2f][e5a715ab][bcd7beaf][f055c31e]
+    + Update documentation of recently added syscalls [3265ff3b]
+    + Optimize Str.(words|lines) [603b07ac]
+
++ Additions:
+    + Add VM.ownup to produce backtraces of all threads and exit [7ef44ef5][70d66b98]
+    + Provide adverbial forms of map [24b4001e][720cd014]
+
++ Fixes:
+    + Fix obsolete reference to CompUnit::PrecompilationStore::File [b2dd1185]
+    + Make sure strarray.raku doesn't die [c0c2e01f]
+    + Move precomp docker host ubuntu 24.04 -> 20.04 [eba9332d]
+    + Use .raku suffix in doc of install-dist instead of .p6 [a66b2e16]
+
++ Internal:
+    + Run full spectest in CI (#5747) [ebecbeaf]
+    + Remove unnecessary stubs [3559bb9b]
+    + Move test file that dies on JVM to t/09-moar [4aa8d331]
+    + [JVM] Add extra check for GLOBAL being null (#5710) [e7f9223c]
+    + [JVM] Reduce backend-specific code in find_best_dispatchee (#5714) [8991173f]
+    + Remove playful "just yet" in error messages [87f0e37f]
+    + Remove now unnecessary R:I:ALL_TYPE method [26fbd4c3]
+    + Only call ensure-sc if there is a descriptor [70c268ba]
+
++ RakuAST Development:
+    + Make  A, P, and Δ = Capital Greek Delta) produce AST like markup X [f57a989a]
+
 New in 2024.12:
 
 + Improvements:

@@ -99,12 +99,7 @@ my class Supplier {
         method sane(--> False)  { }
     }
 
-    has $!taplist;
-
-    method new() {
-        self.bless(taplist => TapList.new)
-    }
-    submethod BUILD(:$!taplist! --> Nil) { }
+    has $!taplist is built(:bind) = TapList.new;
 
     method emit(Supplier:D: Mu \value --> Nil) {
         $!taplist.emit(value);

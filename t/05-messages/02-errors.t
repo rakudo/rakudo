@@ -23,7 +23,7 @@ throws-like {
 }, X::TypeCheck::Binding::Parameter, message => /'type check failed'/;
 
 # https://github.com/Raku/old-issue-tracker/issues/6602
-is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
+is-deeply class { has $.bar }.^methods».name.sort, <POPULATE bar>,
     'auto-generated methods present in .^methods';
 
 # https://github.com/Raku/old-issue-tracker/issues/3799

@@ -47,7 +47,7 @@ my class Date does Dateish {
             %nameds<day>   := $day;
             %nameds<month> := $month;
             %nameds<year>  := $year;
-            self.BUILDALL(Empty, %nameds)
+            self.POPULATE(%nameds)
         }
     }
 

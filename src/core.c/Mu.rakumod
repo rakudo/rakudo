@@ -140,8 +140,8 @@ my class Mu { # declared in BOOTSTRAP
         my Mu $obj := self;
         my $bless := nqp::tryfindmethod(self,'bless');
         nqp::eqaddr($bless, nqp::findmethod(Mu,'bless'))
-                ?? nqp::create(self).BUILDALL(Empty, %attrinit)
-                !! $bless(self,|%attrinit)
+          ?? nqp::create(self).POPULATE(%attrinit)
+          !! $bless(self,|%attrinit)
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -155,10 +155,21 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method bless(*%attrinit) {
-        nqp::create(self).BUILDALL(Empty, %attrinit);
+        nqp::create(self).POPULATE(%attrinit);
     }
 
-    method BUILDALL(Mu:D: @autovivs, %attrinit) {
+    # This is the interface of old to object instantiation from an era
+    # when there was it was considered to have some automatic handling
+    # of positional arguments to .new.  This idea has long been abandoned
+    # since then, but the Positional interface was still part of every
+    # object instantiation.  The POPULATE method removes that Positional
+    # argument.  This method is now just a shim around POPULATE to allow
+    # modules that use the old interface (such as Inline::Perl5) to
+    # continue to work unchanged.
+    method BUILDALL(Mu:D: @auto, %attrinit) {
+        self.POPULATE(%attrinit)
+    }
+    method POPULATE(Mu:D: %attrinit) {
         my $init := nqp::getattr(%attrinit,Map,'$!storage');
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which

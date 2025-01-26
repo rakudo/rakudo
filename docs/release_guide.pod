@@ -356,9 +356,8 @@ scp -P 222 nqp/nqp-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/
 scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
 
 But the Akefile has targets to do uploading, so it is possible to modify
-the script to automate this part. Uploading requires having rights to upload files,
-the best idea is to ping rba or coleman or andinus or any other "raku infra"
-person on one of Raku IRC channels and ask how to proceed.
+the script to automate this part. Uploading requires ssh access to a file server.
+If you require access, open an issue on the [infra repository](https://github.com/raku/infra).
 
 =item *
 

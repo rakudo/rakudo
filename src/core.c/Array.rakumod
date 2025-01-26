@@ -49,30 +49,37 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method clone(Array:D: --> Array:D) {
-        my \iter := self.iterator;
-        my \result := nqp::p6bindattrinvres(
-          nqp::clone(self),Array,'$!descriptor',nqp::clone($!descriptor)
-        );
+        my $descriptor := nqp::clone($!descriptor);
+        my $clone      := nqp::clone(self);
+        nqp::bindattr($clone,Array,'$!descriptor',$descriptor);
 
-        nqp::if(
-          nqp::eqaddr(
-            IterationEnd,
-            iter.push-until-lazy:
-              my \target := ArrayReificationTarget.new(
-                (my \buffer := nqp::create(IterationBuffer)),
-                nqp::clone($!descriptor))),
-          nqp::p6bindattrinvres(result, List, '$!reified', buffer),
-          nqp::stmts(
-            nqp::bindattr(result, List, '$!reified', buffer),
-            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
-              List::Reifier,'$!current-iter', iter),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reified', buffer),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reification-target', target),
-            nqp::p6bindattrinvres(result, List, '$!todo', todo)
-          )
-        )
+        my $reified  := nqp::getattr(self,List,'$!reified');
+        my $creified := nqp::create(IterationBuffer);
+        my $target   := ArrayReificationTarget.new($creified, $descriptor);
+
+        my $iterator := self.iterator;
+        unless nqp::eqaddr($iterator.push-until-lazy($target),IterationEnd) {
+            my $todo := nqp::create(List::Reifier);
+            nqp::bindattr($todo,List::Reifier,'$!current-iter',$iterator);
+            nqp::bindattr($todo,List::Reifier,'$!reified',$creified);
+            nqp::bindattr($todo,List::Reifier,'$!reification-target',$target);
+            nqp::bindattr($clone,List,'$!todo',$todo);
+        }
+
+        # Recover any deleted elements
+        if nqp::isconcrete($reified) && nqp::elems($reified) -> int $elems {
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::if(
+                nqp::isnull(nqp::atpos($reified,$i)),
+                nqp::bindpos($creified,$i,nqp::null)
+              )
+            );
+        }
+
+
+        nqp::p6bindattrinvres($clone,List,'$!reified',$creified)
     }
 
     my class Todo does Iterator {

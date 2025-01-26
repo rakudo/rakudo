@@ -3,7 +3,7 @@ my role Dateish {
     has int $.month;
     has int $.day;
     has int $.daycount;
-    has     &.formatter;
+    has     &.formatter is built(:bind);
 
     method IO(Dateish:D: --> IO::Path:D) {  # because Dateish is not Cool
         IO::Path.new(~self)

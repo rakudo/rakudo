@@ -1,7 +1,7 @@
 my class DateTime does Dateish {
     has int $.hour;
     has int $.minute;
-    has     $.second;
+    has     $.second is built(:bind);
     has int $.timezone;  # UTC
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
@@ -161,7 +161,7 @@ my class DateTime does Dateish {
         self
     }
 
-    method !new-from-positional(DateTime:
+    method !populate(DateTime:
       Int() $year,
       Int() $month,
             $day is copy,  # can also be a Callable / Whatever
@@ -198,12 +198,13 @@ my class DateTime does Dateish {
         (^61).in-range($second,'Second'); # some weird semantics need this
 
         my $dt := nqp::eqaddr(self.WHAT,DateTime)
-          ?? nqp::create(self)!SET-SELF(
-               $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
-          !! self.bless(
+          ?? self!SET-SELF(
+               $year,$month,$day,$hour,$minute,$second,$timezone,&formatter
+             )
+          !! self.POPULATE( %(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%extra
-             );
+             ));
 
         $second >= 60 ?? $dt!check-leap-second !! $dt
     }
@@ -232,7 +233,7 @@ my class DateTime does Dateish {
     multi method new(DateTime:
       $y,$mo,$d,$h,$mi,$s,:$timezone = 0,:&formatter,*%_
     --> DateTime:D) {
-        self!new-from-positional($y,$mo,$d,$h,$mi,$s,$timezone,&formatter,%_)
+        nqp::create(self)!populate($y,$mo,$d,$h,$mi,$s,$timezone,&formatter,%_)
     }
     multi method new(DateTime:
       :$year!,
@@ -245,8 +246,9 @@ my class DateTime does Dateish {
       :&formatter,
       *%_
     --> DateTime:D) {
-        self!new-from-positional(
-          $year,$month,$day,$hour,$minute,$second,$timezone,&formatter,%_)
+        nqp::create(self)!populate(
+          $year,$month,$day,$hour,$minute,$second,$timezone,&formatter,%_
+        )
     }
     multi method new(DateTime:
       Date:D :$date!, *%_
@@ -303,10 +305,10 @@ my class DateTime does Dateish {
             !! nqp::create(self)!SET-SELF(
                  $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
              )
-          !! self.bless(
+          !! nqp::create(self).POPULATE( %(
                :$year,:$month,:$day,
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
-             )
+             ))
     }
 
     method !non-iso($datetime) {
@@ -404,9 +406,10 @@ my class DateTime does Dateish {
                         self!non-iso($datetime);
                     }
 
-                    self!new-from-positional:
+                    nqp::create(self)!populate(
                       $year, $month, $day, $hour, $minute, $second, $timezone,
                       &formatter, %_
+                    )
                 }
                 else {  # alas, some issue with time
                     self!non-iso($datetime);
@@ -430,7 +433,7 @@ my class DateTime does Dateish {
                         $YEAR, $MONTH, $DAY, 0, 0, 0,
                         $given-timezone // 0, &formatter
                      )
-                  !! self.bless(
+                  !! nqp::create(self).POPULATE( %(
                        year      => $YEAR,
                        month     => $MONTH,
                        day       => $DAY,
@@ -440,7 +443,7 @@ my class DateTime does Dateish {
                        timezone  => $given-timezone // 0,
                        formatter => &formatter,
                        |%_
-                     )
+                     ))
             }
         }
         else {
@@ -455,40 +458,49 @@ my class DateTime does Dateish {
         )
     }
 
-    method clone(DateTime:D: *%_ --> DateTime:D) {
-        my \h := nqp::getattr(%_,Map,'$!storage');
-        self!new-from-positional(
-          nqp::ifnull(nqp::atkey(h,'year'),     $!year),
-          nqp::ifnull(nqp::atkey(h,'month'),    $!month),
-          nqp::ifnull(nqp::atkey(h,'day'),      $!day),
-          nqp::ifnull(nqp::atkey(h,'hour'),     $!hour),
-          nqp::ifnull(nqp::atkey(h,'minute'),   $!minute),
-          nqp::ifnull(nqp::atkey(h,'second'),   $!second),
-          nqp::ifnull(nqp::atkey(h,'timezone'), $!timezone),
-          nqp::ifnull(nqp::atkey(h,'formatter'),&!formatter),
-          %_,
-        )
+    method clone(DateTime:D: --> DateTime:D) {
+        my $clone := nqp::clone(self);
+        nqp::bindattr_i($clone,DateTime,'$!daycount',0);
+
+        my $h := nqp::getattr(%_,Map,'$!storage');
+        nqp::elems($h)
+          ?? $clone!populate(
+               nqp::ifnull(nqp::atkey($h,'year'),     $!year),
+               nqp::ifnull(nqp::atkey($h,'month'),    $!month),
+               nqp::ifnull(nqp::atkey($h,'day'),      $!day),
+               nqp::ifnull(nqp::atkey($h,'hour'),     $!hour),
+               nqp::ifnull(nqp::atkey($h,'minute'),   $!minute),
+               nqp::ifnull(nqp::atkey($h,'second'),   $!second),
+               nqp::ifnull(nqp::atkey($h,'timezone'), $!timezone),
+               nqp::ifnull(nqp::atkey($h,'formatter'),&!formatter),
+               %_,
+             )
+          !! $clone
     }
 
     # A premature optimization.
-    method !clone-without-validating(DateTime:D: *%_ --> DateTime:D) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,DateTime),
-          nqp::stmts(
-            (my \h := nqp::getattr(%_,Map,'$!storage')),
-            nqp::create(self)!SET-SELF(
-              nqp::ifnull(nqp::atkey(h,'year'),    $!year),
-              nqp::ifnull(nqp::atkey(h,'month'),   $!month),
-              nqp::ifnull(nqp::atkey(h,'day'),     $!day),
-              nqp::ifnull(nqp::atkey(h,'hour'),    $!hour),
-              nqp::ifnull(nqp::atkey(h,'minute'),  $!minute),
-              nqp::ifnull(nqp::atkey(h,'second'),  $!second),
-              nqp::ifnull(nqp::atkey(h,'timezone'),$!timezone),
-              &!formatter,
-            )
-          ),
-          self.clone(|%_)
-        )
+    method !clone-without-validating(DateTime:D: --> DateTime:D) {
+        if nqp::eqaddr(self.WHAT,DateTime) {
+            my $clone := nqp::clone(self);
+            nqp::bindattr_i($clone,DateTime,'$!daycount',0);
+
+            my $h := nqp::getattr(%_,Map,'$!storage');
+            nqp::elems($h)
+              ?? $clone!SET-SELF(
+                   nqp::ifnull(nqp::atkey($h,'year'),    $!year),
+                   nqp::ifnull(nqp::atkey($h,'month'),   $!month),
+                   nqp::ifnull(nqp::atkey($h,'day'),     $!day),
+                   nqp::ifnull(nqp::atkey($h,'hour'),    $!hour),
+                   nqp::ifnull(nqp::atkey($h,'minute'),  $!minute),
+                   nqp::ifnull(nqp::atkey($h,'second'),  $!second),
+                   nqp::ifnull(nqp::atkey($h,'timezone'),$!timezone),
+                   &!formatter,
+                 )
+              !! $clone
+        }
+        else {
+            self.clone(|%_)
+        }
     }
 
     multi method Numeric(DateTime:D: --> Instant:D) {

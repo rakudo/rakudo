@@ -26,11 +26,11 @@ my class Date does Dateish {
     }
 
     # Just set the attributes on an instance
-    method !SET-SELF(int $year, int $month, int $day, \formatter --> Date:D) {
+    method !SET-SELF(int $year, int $month, int $day, &formatter --> Date:D) {
         nqp::bindattr_i(self,Date,'$!year',$year);
         nqp::bindattr_i(self,Date,'$!month',$month);
         nqp::bindattr_i(self,Date,'$!day',$day);
-        nqp::bindattr(self,Date,'&!formatter',formatter);
+        nqp::bindattr(self,Date,'&!formatter',&formatter<>);
         self
     }
 
@@ -180,7 +180,7 @@ my class Date does Dateish {
                nqp::atpos_i($lt,5),  # year
                nqp::atpos_i($lt,4),  # month
                nqp::atpos_i($lt,3),  # day
-               %_<formatter> // (my &)
+               %_<formatter> // Callable
              )
           !! nqp::create(self)!populate(
                nqp::atpos_i($lt,5),  # year

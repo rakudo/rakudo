@@ -17,10 +17,16 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2025-01-25   Rakudo #179 (Coke)
   2025-02-22   Rakudo #180 (Coke|jdv)
 
 (More planned dates can be generated with F<tools/release-dates.raku>).
+
+=head2 Prerequisites (for release managers)
+
+Currently the release is only runnable on a linux box. (Most steps
+B<do> work on OS X except notably creating the C<.tar.gz> release files)
+
+C<Ake> uses C<gpg2> to sign releases (available in the C<gnugpg2> system package).
 
 =head2 Steps to create a release (for release managers)
 
@@ -235,7 +241,8 @@ Add the ChangeLog material from the wiki to the top of C<docs/ChangeLog>.
 
 Create the release commit (remember to look at previous for the special format)
 and push the release branch up.  This has to be done before the ake commands run
-as they update the remote.
+as they update the remote. Be sure to include the deliberately ignored commits here
+for the releaseable bot.
 
 =item 6.
 
@@ -349,15 +356,17 @@ If everything looks correct, tag and sign the release:
 
 =item *
 
-There is a C<human-upload> target to push all the commits to NQP and Rakudo repos, it
-also includes uploading tarballs, but this is usually done manually:
+Next, push the commits to NQP and Rakudo:
 
-scp -P 222 nqp/nqp-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
-scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake human-upload
 
-But the Akefile has targets to do uploading, so it is possible to modify
-the script to automate this part. Uploading requires ssh access to a file server.
-If you require access, open an issue on the [infra repository](https://github.com/raku/infra).
+This step also tries to upload tarballs, but this fails. You can run this step manually:
+
+    scp -P 222 nqp/nqp-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
+    scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
+
+Uploading requires ssh access to a file server.  If you require access, open an issue on the
+[infra repository](https://github.com/raku/infra).
 
 =item *
 
@@ -369,7 +378,8 @@ wouldn't be in your local).
 Use the L<Github release|https://github.com/rakudo/rakudo/blob/main/tools/releasable/github-release.p6> script to create
 NQP and Rakudo Github release, refer to MoarVM release guide for the details about artifacts attachment.
 
-Note that the artifacts upload is broken so you have to do it manually.
+The script will look like it failed entirely, but this is due to the artifacts upload; verify that the release
+was created, and then do the attachment of artifacts manually.
 
 Copy the announce into the github release description field.
 

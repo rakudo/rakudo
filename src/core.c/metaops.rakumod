@@ -348,7 +348,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
 multi sub METAOP_REDUCE_RIGHT(\op) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
-      sub (+values) {
+      -> +values {
           # get a reified list
           (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
           my $reified := nqp::getattr($list,List,'$!reified');
@@ -383,7 +383,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             )
         )
       },
-      sub (+values) {
+      -> +values {
           # get a reified list
           (my $list := nqp::istype(values,List) ?? values !! values.List).elems;
           my $reified := nqp::getattr($list,List,'$!reified');

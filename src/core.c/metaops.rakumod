@@ -251,99 +251,94 @@ multi sub METAOP_REDUCE_LEFT(\op) {
 
 proto sub METAOP_REDUCE_RIGHT(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
-    nqp::if(
-      op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
-      sub (+values) {
-          Seq.new(nqp::if(
-            nqp::isge_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              $count
-            ),   # reifies
-            class :: does Iterator {
-                has $!op;
-                has $!reified;
-                has $!result;
-                has int $!count;
-                has int $!i;
-                method !SET-SELF(\op,\list,\count,\index) {
-                    $!op := op;
-                    $!reified := nqp::getattr(list,List,'$!reified');
-                    $!result := nqp::null;
-                    $!count = count;
-                    $!i = index;
-                    self
-                }
-                method new(\op,\list,\count,\index) {
-                    nqp::create(self)!SET-SELF(op,list,count,index)
-                }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::isnull($!result),
-                      ($!result := nqp::atpos($!reified,--$!i)),
-                      nqp::stmts(
-                        (my $args := nqp::list($!result)),
-                        nqp::until(
-                          nqp::iseq_i(nqp::elems($args),$!count)
-                            || nqp::islt_i(--$!i,0),
-                          nqp::unshift($args,nqp::atpos($!reified,$!i))
-                        ),
-                        nqp::if(
-                          nqp::isgt_i(nqp::elems($args),1),
-                          ($!result := op.(|nqp::hllize($args))),
-                          IterationEnd
-                        )
-                      )
-                    )
-                }
-            }.new(op,$v,$count,$i),
-            Rakudo::Iterator.OneValue(
-              $i
-                ?? op.(|nqp::getattr($v,List,'$!reified'))
-                !! op.()
+
+    class RightTriangleN does Iterator {
+        has $!op;
+        has $!reified;
+        has $!result;
+        has int $!count;
+        has int $!i;
+
+        method SET-SELF($op, $count, $i, \list) {
+            $!op      := $op;
+            $!count    = $count;
+            $!i        = $i;
+            $!reified := nqp::getattr(list,List,'$!reified');
+            $!result  := nqp::null;
+            self
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isnull($!result),
+              ($!result := nqp::atpos($!reified,--$!i)),
+              nqp::stmts(
+                (my $args := nqp::list($!result)),
+                nqp::until(
+                  nqp::iseq_i(nqp::elems($args),$!count)
+                    || nqp::islt_i(--$!i,0),
+                  nqp::unshift($args,nqp::atpos($!reified,$!i))
+                ),
+                nqp::if(
+                  nqp::isgt_i(nqp::elems($args),1),
+                  ($!result := $!op.(|nqp::hllize($args))),
+                  IterationEnd
+                )
+              )
             )
-          ))
-      },
-      sub (+values) {
-          Seq.new(nqp::if(
-            nqp::isgt_i((my int $i = (my $v :=
-                nqp::if(nqp::istype(values,List),values,values.List)
-              ).elems),                                       # reifies
-              1
-            ),
-            class :: does Iterator {
-                has $!op;
-                has $!reified;
-                has $!result;
-                has int $!i;
-                method !SET-SELF(\op,\list,\count) {
-                    $!op := op;
-                    $!reified := nqp::getattr(list,List,'$!reified');
-                    $!result := nqp::null;
-                    $!i = count;
-                    self
-                }
-                method new(\op,\li,\co) { nqp::create(self)!SET-SELF(op,li,co) }
-                method pull-one() is raw {
-                    nqp::if(
-                      nqp::isnull($!result),
-                      ($!result := nqp::atpos($!reified,--$!i)),
-                      nqp::if(
-                        nqp::isge_i(--$!i,0),
-                        ($!result := $!op.(nqp::atpos($!reified,$!i),$!result)),
-                        IterationEnd
-                      )
-                    )
-                }
-            }.new(op,$v,$i),
-            Rakudo::Iterator.OneValue(
-              $i
-                ?? op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0))
-                !! op.()
-            )
-          ))
-      }
-    )
+        }
+    }
+
+    my class RightTriangle2 does Iterator {
+        has $!op;
+        has $!reified;
+        has $!result;
+        has int $!i;
+
+        method SET-SELF($op, $i, \list) {
+            $!op      := $op;
+            $!i        = $i;
+            $!reified := nqp::getattr(list,List,'$!reified');
+            $!result  := nqp::null;
+            self
+        }
+
+        method pull-one() is raw {
+            nqp::isnull($!result)
+              ?? ($!result := nqp::atpos($!reified,--$!i))
+              !! nqp::isge_i(--$!i,0)
+                ?? ($!result := $!op.(nqp::atpos($!reified,$!i),$!result))
+                !! IterationEnd
+        }
+
+        method push-all($target --> IterationEnd) {
+            my $op      := $!op;
+            my $reified := $!reified;
+            my int $i    = $!i;
+
+            $target.push(my $result := nqp::atpos($reified,--$i));
+            nqp::while(
+              nqp::isge_i(--$i,0),
+              $target.push($result := $op.(nqp::atpos($reified,$i),$result))
+            );
+        }
+    }
+
+    op.count < Inf && nqp::isgt_i((my int $count = op.count),2)
+      ?? -> +values {
+             my $list := nqp::istype(values,List) ?? values !! values.List;
+             Seq.new:
+               nqp::isge_i((my int $i = $list.elems),$count)   # reifies
+                 ?? nqp::create(RightTriangleN).SET-SELF(op,$count,$i,$list)
+                 !! Rakudo::Iterator.OneValue($i ?? op.(|$list) !! op.())
+         }
+      !! -> +values {
+             my $list := nqp::istype(values,List) ?? values !! values.List;
+             Seq.new:
+               nqp::isgt_i((my int $i = $list.elems),1)   # reifies
+                 ?? nqp::create(RightTriangle2).SET-SELF(op, $i, $list)
+                 !! Rakudo::Iterator.OneValue($i ?? op.($list.head) !! op.())
+         }
 }
 multi sub METAOP_REDUCE_RIGHT(\op) {
     nqp::if(

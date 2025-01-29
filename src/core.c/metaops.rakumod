@@ -267,52 +267,68 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 }
 
 multi sub METAOP_REDUCE_LEFT(\op) {
-    if op.count > 2 and op.count < Inf {
-        my $count = op.count;
-        sub (+values) is raw {
-            my \iter = values.iterator;
-            my \first = iter.pull-one;
-            return op.() if nqp::eqaddr(first,IterationEnd);
 
-            my @args.push: first;
-            my $result := first;
-            until nqp::eqaddr((my \value = iter.pull-one),IterationEnd) {
-                @args.push: value;
-                if @args.elems == $count {
-                    my \val = op.(|@args);
-                    @args = ();
-                    @args.push: val;  # use of push allows op to return a Slip
-                    $result := val;
-                }
-            }
-            $result;
-        }
-    }
-    else {
-        sub (+values) is raw {
-            my $iter := values.iterator;
-            nqp::if(
-              nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),
-              op.(),                         # identity
-              nqp::if(
-                nqp::eqaddr((my $value := $iter.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::isle_i(op.arity,1),
-                  op.($result),              # can call with 1 param
-                  $result                    # what we got
-                ),
-                nqp::stmts(
-                  ($result := op.($result,$value)),
-                  nqp::until(
-                    nqp::eqaddr(($value := $iter.pull-one),IterationEnd),
-                    ($result := op.($result,$value))
-                  ),
-                  $result                    # final result
-                )
-              )
-            )
-        }
-    }
+    2 < op.count < Inf
+      ?? sub (+values) is raw {  # cannot be a block because of "is raw"
+             my int $count = op.count;
+             my $iterator := values.iterator;
+             my $args := nqp::create(IterationBuffer);
+             my $value;
+
+             # Initial fill of the args
+             nqp::until(
+               nqp::iseq_i(nqp::elems($args),$count)
+                || nqp::eqaddr(($value := $iterator.pull-one),IterationEnd),
+               nqp::push($args,$value)
+             );
+             my $result := op.(|$args.List);
+
+             # Could be we need to do more
+             if nqp::iseq_i(nqp::elems($args),$count) {
+                 nqp::setelems($args,0);
+                 nqp::push($args,$result);
+
+                 nqp::until(
+                   nqp::eqaddr(($value := $iterator.pull-one),IterationEnd),
+                   nqp::stmts(
+                     nqp::push($args,$value),
+                     nqp::if(
+                       nqp::iseq_i(nqp::elems($args),$count),
+                       nqp::stmts(
+                         ($result := op.(|$args.List)),
+                         nqp::setelems($args,0),
+                         nqp::push($args,$result)
+                       )
+                     )
+                   )
+                 );
+             }
+
+             $result
+         }
+      !! sub (+values) is raw {  # cannot be a block because of "is raw"
+             my $iterator := values.iterator;
+             nqp::if(
+               nqp::eqaddr((my $result := $iterator.pull-one),IterationEnd),
+               op.(),                         # identity
+               nqp::if(
+                 nqp::eqaddr((my $value := $iterator.pull-one),IterationEnd),
+                 nqp::if(
+                   nqp::isle_i(op.arity,1),
+                   op.($result),              # can call with 1 param
+                   $result                    # what we got
+                 ),
+                 nqp::stmts(
+                   ($result := op.($result,$value)),
+                   nqp::until(
+                     nqp::eqaddr(($value := $iterator.pull-one),IterationEnd),
+                     ($result := op.($result,$value))
+                   ),
+                   $result                    # final result
+                 )
+               )
+             )
+         }
 }
 
 proto sub METAOP_REDUCE_RIGHT(|) is implementation-detail {*}

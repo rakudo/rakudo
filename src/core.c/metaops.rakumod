@@ -160,6 +160,71 @@ sub METAOP_ZIP(\op, &reduce) is implementation-detail {
 proto sub METAOP_REDUCE_LEFT(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 
+    my class TriangleLeftN does Iterator {
+        has     $!operator;
+        has int $!count;
+        has     $!iterator;
+        has     $!result;
+        has     $!args;
+
+        method SET-SELF($operator, \values) {
+            my $iterator := values.iterator;
+            my $result   := $iterator.pull-one;
+
+            if nqp::eqaddr($result,IterationEnd) {
+                Rakudo::Iterator.Empty
+            }
+            else {
+                $!operator := $operator;
+                $!count     = $operator.count;
+                $!iterator := $iterator;
+                $!result   := $result;
+                nqp::push(($!args := nqp::create(IterationBuffer)),$result);
+                self
+            }
+        }
+
+        method pull-one() {
+            my $result   := $!result;  # save return value
+            my $args     := $!args;    # lexicals are faster
+            my int $count = $!count;
+
+            # Make sure we have enough args
+            nqp::until(
+              nqp::isge_i(nqp::elems($args),$count)
+                || nqp::eqaddr((my $value := $!iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype($value,Slip),
+                $value.iterator.push-all($args),
+                nqp::push($args,$value)
+              )
+            );
+
+            # Exactly enough args
+            if nqp::isge_i(nqp::elems($args),$count) {
+                $!result := $!operator(|$args.List);
+                nqp::setelems($args,0);
+                nqp::push($args,$!result);
+            }
+
+            # Too many args, use only the ones we need, keep rest
+            elsif nqp::isgt_i(nqp::elems($args),$count) {
+                $!result := $!operator(|nqp::slice($args,0,$count-1).List);
+                nqp::splice($args,nqp::list,0,$count);
+                nqp::unshift($args,$!result);
+            }
+
+            # Not enough, done
+            else {
+                $!result := IterationEnd;
+            }
+
+            $result
+        }
+
+        method is-lazy() { $!iterator.is-lazy }
+    }
+
     my class TriangleLeft2 does Iterator {
         has $!operator;
         has $!iterator;
@@ -181,7 +246,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         }
 
         method pull-one() {
-            my $result := $!result;
+            my $result := $!result;  # save return value
             my $value  := $!iterator.pull-one;
 
             $!result := nqp::eqaddr($value,IterationEnd)
@@ -194,32 +259,10 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
         method is-lazy() { $!iterator.is-lazy }
     }
 
-    if op.count < Inf && nqp::isgt_i((my int $count = op.count),2) {
-        sub (+values) {
-            my \source = values.iterator;
-
-            my \first = source.pull-one;
-            return () if nqp::eqaddr(first,IterationEnd);
-
-            my @args.push: first;
-            GATHER({
-                take first;
-                until nqp::eqaddr((my \current = source.pull-one),IterationEnd) {
-                    @args.push: current;
-                    if @args.elems == $count {
-                        my \val = op.(|@args);
-                        take val;
-                        @args = ();
-                        @args.push: val;  # use of push allows op to return a Slip
-                    }
-                }
-            }).lazy-if(source.is-lazy);
-        }
-    }
-    else {
-        sub (+values) {
-            Seq.new: nqp::create(TriangleLeft2).SET-SELF(op, values)
-        }
+    -> +values {
+        Seq.new: nqp::create(
+          2 < op.count < Inf ?? TriangleLeftN !! TriangleLeft2
+        ).SET-SELF(op, values)
     }
 }
 

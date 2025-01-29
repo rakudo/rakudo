@@ -191,13 +191,9 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
 
             # Make sure we have enough args
             nqp::until(
-              nqp::isge_i(nqp::elems($args),$count)
+              nqp::iseq_i(nqp::elems($args),$count)
                 || nqp::eqaddr((my $value := $!iterator.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype($value,Slip),
-                $value.iterator.push-all($args),
-                nqp::push($args,$value)
-              )
+              nqp::push($args,$value)
             );
 
             # Exactly enough args
@@ -207,14 +203,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
                 nqp::push($args,$!result);
             }
 
-            # Too many args, use only the ones we need, keep rest
-            elsif nqp::isgt_i(nqp::elems($args),$count) {
-                $!result := $!operator(|nqp::slice($args,0,$count-1).List);
-                nqp::splice($args,nqp::list,0,$count);
-                nqp::unshift($args,$!result);
-            }
-
-            # Not enough, done
+            # Not enough, done next iteration
             else {
                 $!result := IterationEnd;
             }

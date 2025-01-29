@@ -159,8 +159,42 @@ sub METAOP_ZIP(\op, &reduce) is implementation-detail {
 
 proto sub METAOP_REDUCE_LEFT(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
-    if op.count > 2 and op.count < Inf {
-        my $count = op.count;
+
+    my class TriangleLeft2 does Iterator {
+        has $!operator;
+        has $!iterator;
+        has $!result;
+
+        method SET-SELF($operator, \values) {
+            my $iterator := values.iterator;
+            my $result   := $iterator.pull-one;
+
+            if nqp::eqaddr($result,IterationEnd) {
+                Rakudo::Iterator.Empty
+            }
+            else {
+                $!operator := $operator;
+                $!iterator := $iterator;
+                $!result   := $result;
+                self
+            }
+        }
+
+        method pull-one() {
+            my $result := $!result;
+            my $value  := $!iterator.pull-one;
+
+            $!result := nqp::eqaddr($value,IterationEnd)
+              ?? IterationEnd
+              !! $!operator($!result, $value);
+
+            $result
+        }
+
+        method is-lazy() { $!iterator.is-lazy }
+    }
+
+    if op.count < Inf && nqp::isgt_i((my int $count = op.count),2) {
         sub (+values) {
             my \source = values.iterator;
 
@@ -184,18 +218,7 @@ multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
     }
     else {
         sub (+values) {
-            my \source = values.iterator;
-
-            my \first = source.pull-one;
-            return () if nqp::eqaddr(first,IterationEnd);
-
-            my $result := first;
-            GATHER({
-                take first;
-                until nqp::eqaddr((my \value = source.pull-one),IterationEnd) {
-                    take ($result := op.($result, value));
-                }
-            }).lazy-if(source.is-lazy);
+            Seq.new: nqp::create(TriangleLeft2).SET-SELF(op, values)
         }
     }
 }

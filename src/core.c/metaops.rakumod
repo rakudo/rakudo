@@ -551,8 +551,17 @@ multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {
-    sub (+values) {
-        op.(|values.map({nqp::decont($_)}));
+    -> +values {
+
+        # Create decontainerized list
+        my $iterator := values.iterator;
+        my $buffer   := nqp::create(IterationBuffer);
+        nqp::until(
+          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+          nqp::push($buffer,nqp::decont($pulled))
+        );
+
+        op.(|$buffer.List);
     }
 }
 

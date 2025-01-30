@@ -476,18 +476,62 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
 
 proto sub METAOP_REDUCE_LIST(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LIST(\op, \triangle) {
-    sub (+values) {
-        GATHER({
-            my @list;
-            for values -> \v {
-                @list.push(v);
-                take op.(|@list);
+
+    my class TriangleList does Iterator {
+        has $!operator;
+        has $!iterator;
+        has $!result;
+        has $!args;
+
+        method SET-SELF($operator, \values) {
+            my $iterator := values.iterator;
+            my $value    := $iterator.pull-one;
+            if nqp::eqaddr($value,IterationEnd) {
+                Rakudo::Iterator.Empty
             }
-        }).lazy-if(values.is-lazy);
+            else {
+                $!operator := $operator;
+                $!iterator := $iterator;
+                nqp::push(
+                  ($!args   := nqp::create(IterationBuffer)),
+                  ($!result := $operator($value))
+                );
+                self
+            }
+        }
+
+        method pull-one() {
+            my $result := $!result;
+
+            my $value := $!iterator.pull-one;
+            $!result := nqp::if(
+              nqp::eqaddr($value,IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                nqp::push($!args,$value),
+                nqp::if(
+                  nqp::eqaddr(
+                    ($value := $!operator(|$!args.List)),
+                    Empty
+                  ),
+                  IterationEnd,
+                  $value
+                )
+              )
+            );
+
+            $result
+        }
+
+        method is-lazy() { $!iterator.is-lazy }
+    }
+
+    -> +values {
+        Seq.new: nqp::create(TriangleList).SET-SELF(op, values)
     }
 }
-multi sub METAOP_REDUCE_LIST(\op) {
-    sub (+values) { op.(|values) }
+multi sub METAOP_REDUCE_LIST(&op) {
+    -> +values { op(|values) }
 }
 
 proto sub METAOP_REDUCE_LISTINFIX(|) is implementation-detail {*}

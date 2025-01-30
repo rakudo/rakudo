@@ -536,18 +536,36 @@ multi sub METAOP_REDUCE_LIST(&op) {
 
 proto sub METAOP_REDUCE_LISTINFIX(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
-    sub (|values) {
-        my \p = values[0];
-        return () unless p.elems;
 
-        my int $i;
-        GATHER({
-            my @list;
-            while $i < p.elems {
-                @list.push(p[$i++]);
-                take op.(|@list.map({nqp::decont($_)}));
-            }
-        }).lazy-if(p.is-lazy);
+    my class TriangleListInfix does Iterator {
+        has $!operator;
+        has $!iterator;
+        has $!buffer;
+
+        method SET-SELF($operator, $values) {
+            $!operator := $operator;
+            $!iterator := $values.iterator;
+            $!buffer   := nqp::create(IterationBuffer);
+            self
+        }
+
+        method pull-one() {
+            nqp::if(
+              nqp::eqaddr((my $value := $!iterator.pull-one),IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                nqp::push($!buffer,nqp::decont($value)),
+                $!operator(|$!buffer.List)
+              )
+            )
+        }
+
+        method is-lazy() { $!iterator.is-lazy }
+    }
+
+    -> $values {
+        Seq.new:
+          nqp::create(TriangleListInfix).SET-SELF(op, $values)
     }
 }
 multi sub METAOP_REDUCE_LISTINFIX(\op) {

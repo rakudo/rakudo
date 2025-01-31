@@ -123,7 +123,36 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         $flattened
     }
 
-    method IterationBuffer() {
+    multi method clone(::?CLASS:D:) {
+        my $iter := nqp::iterator(
+          my $storage := nqp::clone(nqp::getattr(self,Map,'$!storage'))
+        );
+
+        # Only re-containerize the values that are containers
+        nqp::while(
+          $iter,
+          nqp::if(
+            nqp::iscont(my $value := nqp::getattr(
+              (my $pair := nqp::iterval(nqp::shift($iter))),Pair,'$!value'
+            ));
+            nqp::bindkey(
+              $storage,nqp::iterkey_s($iter),
+              nqp::p6bindattrinvres(
+                nqp::clone($pair),Pair,'$!value',nqp::clone_nd($value)
+              )
+            )
+          )
+        );
+
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::clone(self),Map,'$!storage',$storage),
+          Hash,
+          '$!descriptor',
+          nqp::clone(nqp::getattr(self,Hash,'$!descriptor'))
+        )
+    }
+
+    method IterationBuffer(::?CLASS:D:) {
         my \storage := nqp::getattr(self, Map, '$!storage');
         my \buffer  := nqp::create(IterationBuffer);
         nqp::if(

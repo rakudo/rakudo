@@ -302,11 +302,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
                op.(),                         # identity
                nqp::if(
                  nqp::eqaddr((my $value := $iterator.pull-one),IterationEnd),
-                 nqp::if(
-                   nqp::isle_i(op.arity,1),
-                   op.($result),              # can call with 1 param
-                   $result                    # what we got
-                 ),
+                 op.($result),                # call with 1 param
                  nqp::stmts(
                    ($result := op.($result,$value)),
                    nqp::until(

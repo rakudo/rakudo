@@ -623,7 +623,16 @@ sub METAOP_REDUCE_XOR(\op, $triangle?) is implementation-detail {
 }
 
 sub METAOP_HYPER(\op, *%opt) is implementation-detail {
-    -> Mu \a, Mu \b { HYPER(op, a, b, |%opt) }
+    -> | {
+        my int $elems = nqp::elems(my Mu $args := nqp::p6argvmarray);
+        $elems == 2
+          ?? HYPER(op, nqp::atpos($args,0), nqp::atpos($args,1), |%opt)
+          !! $elems == 1
+            ?? op.(nqp::atpos($args,0))
+            !! $elems
+              ?? die("Got $elems to hyper, expected 0,1,2")
+              !! op.()
+    }
 }
 
 proto sub METAOP_HYPER_POSTFIX(|) is implementation-detail {*}

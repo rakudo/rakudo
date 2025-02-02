@@ -94,6 +94,7 @@ src/core.c/Map.rakumod
 src/core.c/Hash/Typed.rakumod
 src/core.c/Hash/Object.rakumod
 src/core.c/Hash.rakumod
+src/core.c/Hash/Ordered.rakumod
 src/core.c/Stash.rakumod
 src/core.c/TypeEnv.rakumod
 src/core.c/Label.rakumod

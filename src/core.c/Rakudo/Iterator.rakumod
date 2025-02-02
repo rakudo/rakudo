@@ -106,27 +106,29 @@ class Rakudo::Iterator {
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
 
         method pull-one() is raw {
+            my $iter := $!iter;
             nqp::if(
               $!on,
               nqp::stmts(
                 ($!on = 0),
-                nqp::getattr(nqp::iterval($!iter),Pair,'$!value')
+                nqp::getattr(nqp::iterval($iter),Pair,'$!value')
               ),
               nqp::if(
-                $!iter,
+                $iter,
                 nqp::stmts(
                   ($!on = 1),
-                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),Pair,'$!key')
+                  nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!key')
                 ),
                 IterationEnd
               )
             )
         }
         method push-all(\target --> IterationEnd) {
+            my $iter := $!iter;
             nqp::while(
-              $!iter,
+              $iter,
               nqp::stmts(  # doesn't sink
-                (my $pair := nqp::decont(nqp::iterval(nqp::shift($!iter)))),
+                (my $pair := nqp::decont(nqp::iterval(nqp::shift($iter)))),
                 target.push(nqp::getattr($pair,Pair,'$!key')),
                 target.push(nqp::getattr($pair,Pair,'$!value'))
               )
@@ -2571,9 +2573,10 @@ class Rakudo::Iterator {
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
+            my $iter := $!iter;
             nqp::while(
-              $!iter,
-              target.push(nqp::iterkey_s(nqp::shift($!iter)))
+              $iter,
+              target.push(nqp::iterkey_s(nqp::shift($iter)))
             )
         }
     }
@@ -2596,9 +2599,10 @@ class Rakudo::Iterator {
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
+            my $iter := $!iter;
             nqp::while(  # doesn't sink
-              $!iter,
-              target.push(nqp::iterval(nqp::shift($!iter)))
+              $iter,
+              target.push(nqp::iterval(nqp::shift($iter)))
             )
         }
     }

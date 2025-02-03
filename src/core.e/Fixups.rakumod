@@ -124,6 +124,16 @@ augment class Int {
     proto method pick(|) {*}
     multi method pick() { nqp::rand_I(self,Int) }
     multi method pick($count) { (^self).pick($count) }
+
+    # Return Failure on unassigned codepoints
+    multi method uniname(Int:D: --> Str:D) is default {
+        nqp::islt_I(self,0)       # (bigint) negative number?
+          ?? '<illegal>'
+          !! nqp::isbig_I(self)
+               || nqp::iseq_s(nqp::getuniname(self),'<unassigned>')
+            ?? Failure.new("Unassigned codepoint: 0x" ~ self.base(16))
+            !! nqp::getuniname(self)
+    }
 }
 
 #-------------------------------------------------------------------------------

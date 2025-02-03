@@ -86,8 +86,8 @@ augment class Cool {
 
 #-------------------------------------------------------------------------------
 augment class Date {
-    multi method DateTime(
-      Date:D: :$timezone = $*TZ --> DateTime:D
+    multi method DateTime(Date:D:
+      :$timezone = $*TZ
     ) is revision-gated("6.e") {
         DateTime.new(:$!year, :$!month, :$!day, :$timezone)
     }

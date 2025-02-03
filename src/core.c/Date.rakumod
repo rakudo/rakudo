@@ -405,11 +405,10 @@ my class Date does Dateish {
         $dt.day == $!day && $dt.month == $!month && $dt.year == $!year
     }
 
-    proto method DateTime()  {*}
-    multi method DateTime(Date:D: --> DateTime:D) {
-        DateTime.new(:$!year, :$!month, :$!day)
-    }
-    multi method DateTime(Date:U: --> DateTime:U) { DateTime }
+    proto method DateTime() is revision-gated("6.c") {*}
+    multi method DateTime(Date:U:) { DateTime                                }
+    multi method DateTime(Date:D:) { DateTime.new(:$!year, :$!month, :$!day) }
+
     method Date() {
         nqp::eqaddr(self.WHAT,Date)
           ?? self

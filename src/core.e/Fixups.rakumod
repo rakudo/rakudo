@@ -88,8 +88,17 @@ augment class Cool {
 augment class Date {
     multi method DateTime(
       Date:D: :$timezone = $*TZ --> DateTime:D
-    ) is revision-gated("6.e")  {
+    ) is revision-gated("6.e") {
         DateTime.new(:$!year, :$!month, :$!day, :$timezone)
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class Instant {
+    multi method DateTime(Instant:D:
+      :$timezone = $*TZ
+    ) is revision-gated("6.e") {
+        DateTime.new(self, :$timezone)
     }
 }
 

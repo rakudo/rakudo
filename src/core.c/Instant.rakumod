@@ -56,7 +56,11 @@ my class Instant is Cool does Real {
     method narrow(Instant:D:          ) { self.tai.narrow                                      }
 
     method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
-    method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }
+
+    proto method DateTime(|) is revision-gated("6.c") {*}
+    multi method DateTime(Instant:U:) { DateTime           }
+    multi method DateTime(Instant:D:) { DateTime.new(self) }
+
     method Instant() { self }
 
 #    TODO: should be the new .gist, probably

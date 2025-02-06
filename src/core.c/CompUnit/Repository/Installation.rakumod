@@ -133,12 +133,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
     }
 
-    method copy-config-from(CompUnit::Repository::Installation $other) is implementation-detail {
-        %!config = $other!config;
-        self!write-config;
-    }
-
-    method !config() {
+    method config() is implementation-detail {
         unless %!config {
             my $file = self!config-file;
             if $file.e {
@@ -411,14 +406,14 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         for @script-postfixes -> $be {
             $.prefix.add("$withoutext$be.raku").spurt:
                 $raku-wrapper-code.subst('#name#', $name, :g);
-            my $prog-conf = do given self!config<wrapper-mode> {
+            my $prog-conf = do given self.config<wrapper-mode> {
                 when 'absolute' {
                     "<plat-sep>"
-                    ~ self!config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
+                    ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 when 'relative' {
                     "<abs-slash>"
-                    ~ self!config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
+                    ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 default { # 'path'
                     "<plain>rakudo$be$ext"

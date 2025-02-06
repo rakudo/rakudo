@@ -4,8 +4,11 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
 
     submethod TWEAK(--> Nil) {
         $!parent = CompUnit::RepositoryRegistry.repository-for-name($!name);
-        self.copy-config-from($!parent);
         CompUnit::RepositoryRegistry.register-name($!name, self);
+    }
+
+    method config() is implementation-detail {
+        $!parent.config
     }
 
     method short-id(--> Str:D) { 'staging' }

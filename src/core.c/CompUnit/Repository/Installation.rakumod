@@ -927,6 +927,9 @@ See http://design.raku.org/S22.html#provides for more information.\n";
 
         sub write-str(Str() $str) {
             my $bytes = $str.encode($encoding);
+            if $bytes.elems + 1 >= 2**16 {
+                die("Creating executable wrapper failed. String exceeds maximum size.");
+            }
             $cbuf.write-uint16: $pos, ($bytes.elems / $char-size + 1).Int;
             $pos += 2;
             $cbuf.append: $bytes;

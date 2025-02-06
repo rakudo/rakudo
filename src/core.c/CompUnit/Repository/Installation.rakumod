@@ -19,7 +19,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     CompUnit::RepositoryRegistry.run-script("#name#");
 }';
 
-    method TWEAK(:$wrapper-mode, :$wrapper-rakudo-dir) {
+    method TWEAK(Str :$wrapper-mode, Str :$wrapper-rakudo-dir) {
         $!lock       := Lock.new;
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;

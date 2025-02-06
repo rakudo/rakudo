@@ -859,15 +859,13 @@ See http://design.raku.org/S22.html#provides for more information.\n";
                 }
             }
             else {
-                note "Don't understand this arg: $path";
-                exit 1;
+                die("Creating executable wrapper failed. Unknown arg: $path");
             }
         }
 
         # Write program
         unless $program ~~ / ^ "<" ( "plain" || "plat-sep" || "abs" ) ">" / {
-            note "Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".";
-            exit 1;
+            die("Creating executable wrapper failed. Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".");
         }
         @call-parts.push: process-path($program);
 
@@ -881,8 +879,7 @@ See http://design.raku.org/S22.html#provides for more information.\n";
         # Write CWD
         if $cwd {
             unless $cwd ~~ / ^ "<" ( "plain" || "abs" ) ">" / {
-                note "CWD is invalid. Must start with \"<plain>\" or \"<abs>\".";
-                exit 1;
+                die("Creating executable wrapper failed. CWD is invalid. Must start with \"<plain>\" or \"<abs>\".");
             }
             @lines.push: 'cd ' ~ process-path($cwd);
         }
@@ -953,8 +950,7 @@ See http://design.raku.org/S22.html#provides for more information.\n";
                 }
             }
             else {
-                note "Don't understand this arg: $path";
-                exit 1;
+                die("Creating executable wrapper failed. Unknown arg: $path");
             }
         }
 
@@ -965,8 +961,7 @@ See http://design.raku.org/S22.html#provides for more information.\n";
 
         # Write program
         unless $program ~~ / ^ "<" ( "plain" || "plat-sep" || "abs" ) ">" / {
-            note "Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".";
-            exit 1;
+            die("Creating executable wrapper failed. Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".");
         }
         write-path($program);
 
@@ -991,8 +986,7 @@ See http://design.raku.org/S22.html#provides for more information.\n";
         # Write CWD
         if $cwd {
             unless $cwd ~~ / ^ "<" ( "plain" || "abs" ) ">" / {
-                note "CWD is invalid. Must start with \"<plain>\" or \"<abs>\".";
-                exit 1;
+                die("Creating executable wrapper failed. CWD is invalid. Must start with \"<plain>\" or \"<abs>\".");
             }
             write-path($cwd);
         }

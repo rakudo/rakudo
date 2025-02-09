@@ -147,10 +147,13 @@ while @lines {
         }
 
         multi method head(#type#array:D:) {
-            nqp::atpos_#postfix#(self,0)
+            nqp::atposref_#postfix#(self,0)
         }
         multi method tail(#type#array:D:) {
-            nqp::atpos_#postfix#(self,nqp::sub_i(nqp::elems(self),1))
+            nqp::atposref_#postfix#(self,nqp::sub_i(nqp::elems(self),1))
+        }
+        multi method first(#type#array:D:) {
+            nqp::atposref_#postfix#(self,0)
         }
         multi method first(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
@@ -548,7 +551,7 @@ while @lines {
                 ),
                 Range.new($min,$max)
               ),
-              Range.new(Inf,-Inf)
+              Range.Inf-Inf
             )
         }
         method iterator(#type#array:D: --> PredictiveIterator:D) {

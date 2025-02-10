@@ -64,7 +64,10 @@ class RakuAST::LexicalScope
                     }
                 }
                 else {
-                    @code-todo.push($node);
+                    # Thunks need to deal with nested thunks, so they carry the responsibility
+                    unless nqp::istype($node, RakuAST::Expression) && $node.outer-most-thunk {
+                        @code-todo.push($node);
+                    }
                 }
             }
         }

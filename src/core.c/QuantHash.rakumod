@@ -1,7 +1,6 @@
 my role QuantHash does Associative {
 
     method keyof() { Mu }
-    method item() is raw { my $ = self }
 
     method SET-SELF(QuantHash:D: \elems) is implementation-detail {
         nqp::bindattr(self,::?CLASS,'$!elems',elems)

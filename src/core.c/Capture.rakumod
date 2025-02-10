@@ -4,7 +4,6 @@ my class Capture { # declared in BOOTSTRAP
     #     has %!hash;   # named parameters
 
     method from-args(|c) { c }
-    method item() is raw { my $ = self }
 
     submethod BUILD(:@list, :%hash --> Nil) {
         my Int:D $elems = @list.elems; # force reification of all

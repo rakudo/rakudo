@@ -827,7 +827,7 @@ my class Mu { # declared in BOOTSTRAP
     method item(Mu \item:) is raw {
         nqp::iscont(item)
           ?? item
-          !! (my $ = item)
+          !! nqp::p6bindattrinvres(nqp::create(Scalar),Scalar,'$!value',self)
     }
 
     proto method say(|) {*}

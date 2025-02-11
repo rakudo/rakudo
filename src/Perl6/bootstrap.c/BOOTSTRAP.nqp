@@ -2085,7 +2085,12 @@ BEGIN {
         # The value can also be a string that will be shown in the error
         # message if this named argument is *not* specified.  Make sure it
         # is added to the serialization context.
-        $*W.add_object_if_no_sc($value);  # XXX RakuAST
+        if ($*W) {
+            $*W.add_object_if_no_sc($value);
+        }
+        elsif ($*CU) {
+            $*CU.context.ensure-sc($value);
+        }
         nqp::bindattr($self, Attribute, '$!required', $value);
         nqp::hllboolfor(1, "Raku")
     }));

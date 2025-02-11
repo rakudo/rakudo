@@ -538,8 +538,10 @@ class RakuAST::ExpressionThunk
 
         # Otherwise, we evaluate to the expression.
         else {
-            $block.push(self.IMPL-THUNK-TWEAK-EXPRESSION($context,
-                $expression.IMPL-EXPR-QAST($context)));
+            my $qast := self.IMPL-THUNK-TWEAK-EXPRESSION($context,
+                $expression.IMPL-EXPR-QAST($context));
+            $qast := QAST::Op.new( :op('p6sink'), $qast ) if $expression.needs-sink-call && $expression.sunk;
+            $block.push($qast);
         }
 
         $block

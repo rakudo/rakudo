@@ -1099,7 +1099,6 @@ class RakuAST::VarDeclaration::Simple
         #     )
         #   )
         # )
-        my $object-hash := $!shape && self.sigil eq '%';
         my $type        := self.IMPL-CONTAINER-TYPE($of);
 
         # If it's has scoped, we'll need to build an attribute.
@@ -1124,12 +1123,6 @@ class RakuAST::VarDeclaration::Simple
         # An "our" that is already installed
         elsif $scope eq 'our' && $!package.WHO.EXISTS-KEY(self.name) {
             $!package.WHO.AT-KEY(self.name)
-        }
-
-        # An object hash, type is ok already
-        elsif $object-hash {
-            $!package.WHO.BIND-KEY(self.name, $type) if $scope eq 'our';
-            $type
         }
 
         # Otherwise, it's lexically scoped, so the meta-object is just the
@@ -1170,7 +1163,7 @@ class RakuAST::VarDeclaration::Simple
                     :scope('lexical'), :decl('contvar'), :name(self.name),
                     :value($container)
                 );
-                if $!shape || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+                if ($sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
                     my $value := self.IMPL-CONTAINER-TYPE($of);
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(

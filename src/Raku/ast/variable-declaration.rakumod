@@ -515,6 +515,20 @@ class RakuAST::VarDeclaration::Constant
     }
 }
 
+class RakuAST::Expression::QAST
+  is RakuAST::Expression
+{
+    has QAST::Node $!qast;
+    method new(QAST::Node $qast) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Expression::QAST, '$!qast', $qast);
+        $obj
+    }
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!qast;
+    }
+}
+
 # A basic variable declaration of the form `my SomeType $foo = 42` or
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
@@ -1218,6 +1232,7 @@ class RakuAST::VarDeclaration::Simple
         my str $scope := self.scope;
         my $lookups := self.get-implicit-lookups;
         my str $name := self.name;
+        my $qast;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
@@ -1244,7 +1259,7 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     $init := QAST::SVal.new( :value('') );
                 }
-                QAST::Op.new( :op('bind'), $var-access, $init )
+                $qast := QAST::Op.new( :op('bind'), $var-access, $init )
             }
 
             # Reference type value with an initializer
@@ -1285,7 +1300,7 @@ class RakuAST::VarDeclaration::Simple
                     }
                 }
                 if $scope eq 'state' {
-                    QAST::Op.new(
+                    $qast := QAST::Op.new(
                       :op('if'),
                       QAST::Op.new( :op('p6stateinit') ),
                       $perform-init-qast,
@@ -1293,21 +1308,30 @@ class RakuAST::VarDeclaration::Simple
                     )
                 }
                 else {
-                    $perform-init-qast
+                    $qast := $perform-init-qast
                 }
             }
 
             # Just a declaration; compile into an access to the variable.
             else {
-                $var-access
+                $qast := $var-access
             }
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            $lookups.AT-POS(1).IMPL-TO-QAST($context)
+            $qast := $lookups.AT-POS(1).IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");
+        }
+
+        my $thunks := self.outer-most-thunk;
+        if $thunks {
+            $thunks.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression(RakuAST::Expression::QAST.new($qast)));
+            $thunks.IMPL-THUNK-VALUE-QAST($context)
+        }
+        else {
+            $qast
         }
     }
 

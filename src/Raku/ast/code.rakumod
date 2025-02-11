@@ -2102,7 +2102,7 @@ class RakuAST::Sub
 
             @seen-accepts.push($_)
                 if !($has-post-constraints || $other-has-post-constraints)
-                        && ($other-signature.ACCEPTS($signature) && $signature.ACCEPTS($other-signature));
+                        && (try $other-signature.ACCEPTS($signature) && try $signature.ACCEPTS($other-signature));
 
             if @seen-accepts > 0 {
                 my %args;

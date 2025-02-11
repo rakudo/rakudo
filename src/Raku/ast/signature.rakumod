@@ -711,7 +711,7 @@ class RakuAST::Parameter
         if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) { # Not really a type at all
             nqp::push(@post_constraints, $!type.meta-object);
         }
-        if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
+        if nqp::defined($!type) && nqp::istype($!type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
             nqp::push(@post_constraints, $!type.meta-object);
         }
         if nqp::elems(@post_constraints) {

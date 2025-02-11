@@ -2788,9 +2788,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«>»      { <sym> }
     token infix:sym«=:=»    { <sym> }
     token infix:sym<===>    { <sym> }
+    token infix:sym<⩶>      { <sym> }
     token infix:sym<~~>     { <sym> }
     token infix:sym<!~~>    { <sym> }
     token infix:sym«∈»      { <sym> }
+    token infix:sym«∊»      { <sym> }
     token infix:sym«∉»      { <sym> }
     token infix:sym«∋»      { <sym> }
     token infix:sym«∌»      { <sym> }
@@ -2800,6 +2802,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«(>)»    { <sym> }
     token infix:sym«⊃»      { <sym> }
     token infix:sym«⊅»      { <sym> }
+    token infix:sym«(==)»   { <sym> }
+    token infix:sym«≡»      { <sym> }
+    token infix:sym«≢»      { <sym> }
     token infix:sym«(<=)»   { <sym> }
     token infix:sym«⊆»      { <sym> }
     token infix:sym«⊈»      { <sym> }

@@ -531,7 +531,7 @@ class RakuAST::ExpressionThunk
 
         # If there's an inner thunk the body evaluates to that.
         if $!next {
-            $!next.IMPL-THUNK-CODE-QAST($context, $block[0], $expression);
+            $!next.IMPL-THUNK-CODE-QAST($context, $block[nqp::elems($block) - 1], $expression);
             my $value := $!next.IMPL-THUNK-VALUE-QAST($context);
             $block.push($value) if $value;
         }

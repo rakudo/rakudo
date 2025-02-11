@@ -1029,6 +1029,8 @@ class RakuAST::MetaInfix::Assign
         $obj
     }
 
+    method operator() { '=' }
+
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }

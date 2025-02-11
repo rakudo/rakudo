@@ -1594,7 +1594,8 @@ class RakuAST::VarDeclaration::Anonymous
   is RakuAST::VarDeclaration::Simple
 {
     method new(str :$sigil!, str :$twigil, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
-               str :$scope, Bool :$is-parameter) {
+               List :$traits, RakuAST::SemiList :$shape, str :$scope, Bool :$is-parameter,
+               RakuAST::Expression :$where) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname',
             self.IMPL-GENERATE-NAME());
@@ -1602,10 +1603,17 @@ class RakuAST::VarDeclaration::Anonymous
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
+          $shape // RakuAST::SemiList);
+        $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
           $is-parameter ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
+          $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
+          $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
         $obj

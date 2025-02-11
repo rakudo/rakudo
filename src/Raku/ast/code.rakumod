@@ -2285,6 +2285,9 @@ class RakuAST::Method
         nqp::bindattr($obj, RakuAST::Method, '$!meta', $meta ?? True !! False);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
+        # Doesn't look like we can find out whether we actually need &?ROUTINE
+        # in time, so better be safe than sorry.
+        nqp::bindattr($obj, RakuAST::Routine, '$!need-routine-variable', True);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Method, '$!body',
           $body // RakuAST::Blockoid.new);
@@ -2310,7 +2313,8 @@ class RakuAST::Method
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $list := nqp::findmethod(RakuAST::Routine, 'PRODUCE-IMPLICIT-DECLARATIONS')(self);
         self.IMPL-UNWRAP-LIST($list).push:
-            RakuAST::VarDeclaration::Implicit::Self.new(),
+            RakuAST::VarDeclaration::Implicit::Self.new();
+        $list
     }
 
     method get-boundary-sink-propagator() {

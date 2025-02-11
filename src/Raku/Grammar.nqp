@@ -4062,11 +4062,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
                 $*BLOCK.to-parse-time($*R, $*CU.context);
             }
-            $*R.create-scope-implicits();
         }
         [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
+        { $*R.create-scope-implicits(); }
         { $*IN-DECL := ''; }
         [
           || <onlystar>

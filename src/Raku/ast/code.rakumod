@@ -504,6 +504,13 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
+        if nqp::istype($expression, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
+                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
+                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                }
+            }
+        }
         # Add blocks embedded in the thunked expression children of the thunk
         # block, so they can access the thunk argument.
         my @code-todo := [$expression];
@@ -520,6 +527,13 @@ class RakuAST::ExpressionThunk
                 }
                 if nqp::istype($node, RakuAST::Expression) {
                     $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
+                }
+                if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                    for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
+                        if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
+                            nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                        }
+                    }
                 }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);

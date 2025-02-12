@@ -130,23 +130,53 @@ class RakuAST::StatementModifier::Without
   is RakuAST::StatementModifier::Condition
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        my $tested := QAST::Node.unique('without_tested');
-        QAST::Op.new(
-            :op('unless'),
+        if nqp::istype($statement-qast, QAST::Block && $statement-qast.code_object.count) {
+            my $code-obj := $statement-qast.code_object;
+            $context.ensure-sc($code-obj);
+            my $clone := QAST::Op.new(
+                :op('callmethod'), :name('clone'),
+                QAST::WVal.new( :value($code-obj) )
+            );
+            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
+
+            my $tested := QAST::Node.unique('without_tested');
             QAST::Op.new(
-                :op('callmethod'), :name('defined'),
+                :op('unless'),
                 QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
-                    self.expression.IMPL-TO-QAST($context),
+                    :op('callmethod'), :name('defined'),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
+                        self.expression.IMPL-TO-QAST($context),
+                    ),
                 ),
-            ),
-            self.IMPL-TEMPORARIZE-TOPIC(
-                QAST::Var.new( :name($tested), :scope('local') ),
-                $statement-qast
-            ),
-            self.IMPL-EMPTY($context)
-        )
+                QAST::Op.new(
+                    :op('call'),
+                    $closure,
+                    QAST::Var.new( :name($tested), :scope('local') ),
+                ),
+                self.IMPL-EMPTY($context)
+            )
+        }
+        else {
+            my $tested := QAST::Node.unique('without_tested');
+            QAST::Op.new(
+                :op('unless'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('defined'),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
+                        self.expression.IMPL-TO-QAST($context),
+                    ),
+                ),
+                self.IMPL-TEMPORARIZE-TOPIC(
+                    QAST::Var.new( :name($tested), :scope('local') ),
+                    $statement-qast
+                ),
+                self.IMPL-EMPTY($context)
+            )
+        }
     }
 }
 

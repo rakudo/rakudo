@@ -530,6 +530,11 @@ class RakuAST::Node {
         }
         $qast
     }
+
+    # If has-compile-time-value is True, the node must also have a compile-time-value method.
+    method has-compile-time-value() {
+        False
+    }
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.
@@ -538,5 +543,13 @@ class RakuAST::CompileTimeValue
 {
     method compile-time-value() {
         nqp::die('compile-time-value not implemented for ' ~ self.HOW.name(self))
+    }
+
+    method has-compile-time-value() {
+        True
+    }
+
+    method maybe-compile-time-value() {
+        self.compile-time-value
     }
 }

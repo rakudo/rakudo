@@ -804,6 +804,14 @@ class RakuAST::Lookup
     method undeclared-symbol-details() {
         Nil
     }
+
+    method has-compile-time-value() {
+        self.is-resolved && self.resolution.has-compile-time-value
+    }
+
+    method maybe-compile-time-value() {
+        self.resolution.compile-time-value
+    }
 }
 
 # Details about an undeclared symbol.

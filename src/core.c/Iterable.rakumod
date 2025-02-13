@@ -1,7 +1,7 @@
 # Iterable is done by anything that we should be able to get an iterator
 # from. Things that are Iterable will flatten in flattening contexts, so a
-# default implementation of .flat is provided by this role. As itemization is
-# what defeats flattening, this role also provides a default .item method.
+# default implementation of .flat is provided by this role.
+#
 # Additionally, as .lazy and .eager are about iterator behavior, they are
 # provided by this role. Overriding those is not likely to be needed, and
 # discouraged to maintain predictable semantics. Finally, both .hyper() and

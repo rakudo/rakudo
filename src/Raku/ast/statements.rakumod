@@ -1097,7 +1097,26 @@ class RakuAST::Statement::Loop
             $wrapper
         }
         elsif ($!condition || $!increment) {
-            nqp::die("Non-trivial lazy loops NYI");
+            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            my $while := !self.negate;
+            if (!$!increment && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
+                my $loop-qast := QAST::Stmts.new(
+                    QAST::Op.new(:op('callmethod'), :name('from-loop'),
+                        $Seq,
+                        $!body.IMPL-TO-QAST($context),
+                    )
+                );
+                my @labels := self.IMPL-UNWRAP-LIST(self.labels);
+                if @labels {
+                    my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
+                    $label-qast.named('label');
+                    $loop-qast.push($label-qast);
+                }
+                $loop-qast
+            }
+            else {
+                nqp::die("Non-trivial lazy loops NYI");
+            }
         }
         else {
             my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);

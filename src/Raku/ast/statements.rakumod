@@ -1046,6 +1046,7 @@ class RakuAST::Statement::Loop
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
         my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+        my @labels := self.IMPL-UNWRAP-LIST(self.labels);
         if self.IMPL-DISCARD-RESULT {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
@@ -1071,7 +1072,6 @@ class RakuAST::Statement::Loop
             }
 
             # Add a label if there is one.
-            my @labels := self.IMPL-UNWRAP-LIST(self.labels);
             if @labels {
                 my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                 $label-qast.named('label');
@@ -1106,7 +1106,6 @@ class RakuAST::Statement::Loop
                         $!body.IMPL-TO-QAST($context),
                     )
                 );
-                my @labels := self.IMPL-UNWRAP-LIST(self.labels);
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
@@ -1130,6 +1129,11 @@ class RakuAST::Statement::Loop
                 $!body.IMPL-TO-QAST($context),
                 QAST::WVal.new(:value($cond)),
             );
+            if @labels {
+                my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
+                $label-qast.named('label');
+                $qast.push($label-qast);
+            }
             if @next-phasers {
                 my $run-phasers := -> { $_() for @next-phasers };
                 $context.ensure-sc($run-phasers);

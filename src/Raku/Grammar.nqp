@@ -1974,6 +1974,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             nqp::deletekey($termish, 'prefixish');
             nqp::deletekey($termish, 'postfixish');
             nqp::push(@termstack, nqp::atkey($termish, 'term'));
+            my $*TERMISH := $termish;
 
             last if $noinfix;
 
@@ -3168,6 +3169,37 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         « __DATA__ »
         <.obs: '__DATA__ as start of data',
           'the =finish pod marker and $=finish to read'>
+    }
+
+    token infix:sym<lambda> {
+        <?before '{' | <.pointy-block-starter> > <!{ $*IN-META }> {
+            my $needparens := 0;
+            my $pos := $/.from;
+            my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
+            if $*TERMISH {
+                my $term := $*TERMISH.ast;
+                if nqp::istype($term, self.actions.r('Call', 'Name')) {
+                    $term.to-begin-time($*R, $*CU.context);
+                    $term.PERFORM-CHECK($*R, $*CU.context);
+                    if nqp::istype($term, self.actions.r('Lookup')) && !$term.is-resolved && $term.needs-resolution {
+                        my $word := $term.name.canonicalize;
+                        for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without', 'supply', 'whenever', 'react' {
+                            if $_ eq $word {
+                                $needparens++ if $_ eq 'loop';
+                                self.typed-sorry-at($*TERMISH<term><identifier>.to, 'X::Syntax::KeywordAsFunction', :$word, :$needparens);
+                                self.panic("Unexpected block in infix position (two terms in a row)");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        [
+        || <!{ $*IN_REDUCE }> {
+            $/.panic("Unexpected block in infix position (missing statement control word before the expression?)");
+        }
+        || <!>
+        ]
     }
 
     token term:sym<identifier> {

@@ -386,6 +386,15 @@ do {
                     .throw;
                 }
 
+                when X::AdHoc {
+                    if .message eq 'Premature heredoc consumption'
+                      || .message.starts-with('Ending delimiter ') {
+                        return $!need-more-input
+                          if $!multi-line-enabled;
+                    }
+                    .throw
+                }
+
                 when X::ControlFlow::Return {
                     return $!control-not-allowed;
                 }

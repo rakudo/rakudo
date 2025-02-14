@@ -657,7 +657,7 @@ role Raku::Common {
                     if $expected_term {
                         %opts<reason> := "Bogus term";
                     }
-                    elsif $*IN_META {
+                    elsif $*IN-META {
                         %opts<reason> := "Bogus infix";
                     }
                     elsif $cursor.MARKED('baresigil') {

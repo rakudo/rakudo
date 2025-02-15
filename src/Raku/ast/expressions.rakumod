@@ -434,11 +434,25 @@ class RakuAST::Infix
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
             my $result-local := QAST::Node.unique('!sm-result');
             my $rhs := $right.IMPL-EXPR-QAST($context);
+
+            my $boolify := 0;
+            my $sm-call := QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new( :name($result-local), :scope('local'), :decl('var') ),
+                QAST::Op.new(
+                    :op<dispatch>,
+                    QAST::SVal.new( :value<raku-smartmatch> ),
+                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $rhs,
+                    QAST::IVal.new( :value( $negate ?? -1 !! $boolify ) )
+                )
+            );
+            $sm-call[1].annotate('smartmatch_accepts', 1);
+            $sm-call[1].annotate('smartmatch_negated', $negate);
+
             return self.IMPL-TEMPORARIZE-TOPIC(
                 $left.IMPL-TO-QAST($context),
-                $negate
-                    ?? QAST::Op.new( :op<callmethod>, :name<not>, $rhs)
-                    !! QAST::Op.new( :op<unless>, $rhs, QAST::WVal.new( :value(False) )));
+                $sm-call);
         }
 
         my $accepts-call;

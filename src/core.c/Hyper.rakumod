@@ -122,19 +122,21 @@ class Hyper {
               nqp::push(values, self.infix(value,right))
             );
 
-            my \result := nqp::eqaddr(left.WHAT,List)
-              || nqp::eqaddr(left.WHAT,Slip)
-              ?? nqp::p6bindattrinvres(
-                   nqp::create(left.WHAT),List,'$!reified',values
-                 )
-              !! nqp::can(left,"STORE")
-                ?? left.WHAT.new(nqp::p6bindattrinvres(
-                     nqp::create(List),List,'$!reified',values
-                   ))
-                !! nqp::p6bindattrinvres(
-                     nqp::create(List),List,'$!reified',values
-                   );
-            nqp::iscont(left) ?? result.item !! result
+            my $result;
+            if nqp::eqaddr(left.WHAT,List) {
+                $result := values.List
+            }
+            elsif nqp::eqaddr(left.WHAT,Slip) {
+                $result := values.Slip
+            }
+            else {
+                $result := values.List;
+                $result := $_
+                  with nqp::can(left,"STORE")
+                    && try left.WHAT.new($result);
+            }
+
+            nqp::iscont(left) ?? $result.item !! $result
         }
     }
 

@@ -14,6 +14,10 @@ my class Kernel { ... }
 my role Iterable {
     method iterator() { ... }
 
+    method item() {
+        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
+    }
+
     method flat(Iterable: $levels = Whatever, :$hammer = False) is nodal {
         nqp::isconcrete(self)
           ?? Seq.new(Rakudo::Iterator.Flat: self.iterator, $levels, $hammer)

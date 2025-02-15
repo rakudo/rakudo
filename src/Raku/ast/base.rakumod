@@ -189,6 +189,40 @@ class RakuAST::Node {
         Nil
     }
 
+    method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new;
+        my @code-todo := [self];
+        while @code-todo {
+            my $visit := @code-todo.shift;
+            $visit.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::Code) {
+                    if nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
+                            $visit.IMPL-IMMEDIATELY-USES($node) {
+                    }
+                    else {
+                        my $code := $node.IMPL-QAST-DECL-CODE($context);
+                        $stmts.push($code);
+                    }
+                }
+                if nqp::istype($node, RakuAST::Expression) {
+                    $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
+                }
+
+                if nqp::istype($node, RakuAST::LexicalScope) {
+                    if nqp::istype($node, RakuAST::TraitTarget) {
+                        $node.visit-traits(-> $trait { @code-todo.push($trait) });
+                    }
+                }
+                elsif nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
+                }
+                else {
+                    @code-todo.push($node);
+                }
+            }
+        }
+        $stmts
+    }
+
     # Recursively walks the tree finding nodes of the specified type that are
     # beneath this one. A node that matches the stopper type will be returned
     # if it satisfies the specified type, but its children shall not be
@@ -551,5 +585,11 @@ class RakuAST::CompileTimeValue
 
     method maybe-compile-time-value() {
         self.compile-time-value
+    }
+}
+
+class RakuAST::MayCreateBlock {
+    method creates-block {
+        False
     }
 }

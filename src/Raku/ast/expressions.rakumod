@@ -4,7 +4,7 @@ class RakuAST::CaptureSource
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
-  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::MayCreateBlock
   is RakuAST::Sinkable
 {
     method needs-sink-call() { True }
@@ -16,6 +16,10 @@ class RakuAST::Expression
     # are visited ahead of parents. Adding to a linked list at the start is
     # cheapest.
     has Mu $!thunks;
+
+    method creates-block() {
+        $!thunks ?? True !! False
+    }
 
     method wrap-with-thunk(RakuAST::ExpressionThunk $thunk) {
         $thunk.set-next($!thunks) if $!thunks;
@@ -110,10 +114,6 @@ class RakuAST::Expression
             $cur-thunk := $cur-thunk.next;
         }
         nqp::die("UNCURRY didn't find a CurryThunk");
-    }
-
-    method IMPL-IMMEDIATELY-USES(RakuAST::Code $node) {
-        $!thunks ?? True !! False
     }
 
     method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {

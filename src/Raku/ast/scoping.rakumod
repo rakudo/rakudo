@@ -1,6 +1,7 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope
   is RakuAST::CheckTime
+  is RakuAST::MayCreateBlock
   is RakuAST::Node
 {
     # Caching of lexical declarations in this scope due to AST nodes.
@@ -25,6 +26,10 @@ class RakuAST::LexicalScope
         nqp::bindattr(self, RakuAST::LexicalScope, '$!fatal', $on);
     }
 
+    method creates-block() {
+        True
+    }
+
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
@@ -46,15 +51,6 @@ class RakuAST::LexicalScope
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
-                if nqp::istype($node, RakuAST::Code) {
-                    unless nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
-                            $visit.IMPL-IMMEDIATELY-USES($node) {
-                        $stmts.push($node.IMPL-QAST-DECL-CODE($context));
-                    }
-                }
-                if nqp::istype($node, RakuAST::Expression) {
-                    $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
-                }
                 if nqp::istype($node, RakuAST::FakeSignature) {
                     $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
                 }
@@ -64,13 +60,15 @@ class RakuAST::LexicalScope
                     }
                 }
                 else {
-                    # Thunks need to deal with nested thunks, so they carry the responsibility
-                    unless nqp::istype($node, RakuAST::Expression) && $node.outer-most-thunk {
+                    unless nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
                         @code-todo.push($node);
                     }
                 }
             }
         }
+
+        my $nested-blocks := self.IMPL-QAST-NESTED-BLOCK-DECLS($context);
+        $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
 
         # If there's handler block declarations, add those.
         if $!catch-handlers {

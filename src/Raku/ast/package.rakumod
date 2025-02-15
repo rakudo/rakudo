@@ -72,6 +72,8 @@ class RakuAST::Package
 
     method parameterization() { Mu }
 
+    method creates-block() { False }
+
     # While a package may be declared `my`, its installation semantics are
     # more complex, and thus handled as a BEGIN-time effect. (For example,
     # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)

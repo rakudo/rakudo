@@ -511,23 +511,10 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
-        # Add blocks embedded in the thunked expression children of the thunk
-        # block, so they can access the thunk argument.
         my @code-todo := [$expression];
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
-                if nqp::istype($node, RakuAST::Code) {
-                    if $visit =:= $expression
-                        || !(nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
-                            $visit.IMPL-IMMEDIATELY-USES($node))
-                    {
-                        $stmts.push($node.IMPL-QAST-DECL-CODE($context));
-                    }
-                }
-                if nqp::istype($node, RakuAST::Expression) {
-                    $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
-                }
                 if nqp::istype($node, RakuAST::ImplicitDeclarations) {
                     for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                         if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
@@ -540,6 +527,10 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
+
+        my $nested-blocks := $expression.IMPL-QAST-NESTED-BLOCK-DECLS($context);
+        $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
+
         $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);
 
@@ -2475,6 +2466,7 @@ class RakuAST::RegexThunk
   is RakuAST::Meta
   is RakuAST::BeginTime
 {
+
     method PRODUCE-META-OBJECT() {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
@@ -2493,6 +2485,7 @@ class RakuAST::RegexThunk
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
         my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
+        my $thunk := self.IMPL-THUNKED-REGEX-QAST($context); # must be before nested blocks
         QAST::Block.new(
             :blocktype('declaration_static'),
             QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
@@ -2517,7 +2510,7 @@ class RakuAST::RegexThunk
                     )
                 )
             ),
-            self.IMPL-THUNKED-REGEX-QAST($context)
+            $thunk
         )
     }
 

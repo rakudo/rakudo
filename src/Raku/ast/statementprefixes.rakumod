@@ -209,10 +209,15 @@ class RakuAST::StatementPrefix::Try
 # object.
 class RakuAST::StatementPrefix::Thunky
   is RakuAST::StatementPrefix
+  is RakuAST::MayCreateBlock
   is RakuAST::Meta
   is RakuAST::Code
   is RakuAST::BeginTime
 {
+    method creates-block() {
+        nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
         Nil
@@ -239,11 +244,26 @@ class RakuAST::StatementPrefix::Thunky
             self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
         }
         else {
+            my $stmts := QAST::Stmts.new();
             my $block := QAST::Block.new(
                 :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                    self.blorst.IMPL-TO-QAST($context)
-                ));
+                $stmts);
+            if nqp::istype(self, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
+                    if $decl.is-simple-lexical-declaration {
+                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                    }
+                }
+            }
+            if nqp::istype($expression, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
+                    if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
+                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                    }
+                }
+            }
+            $stmts.push(self.IMPL-QAST-NESTED-BLOCK-DECLS($context));
+            $stmts.push(self.blorst.IMPL-TO-QAST($context));
             $block.arity(0);
             $block
         }
@@ -269,6 +289,25 @@ class RakuAST::StatementPrefix::Thunky
         }
         else {
             self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))
+        }
+    }
+
+    # Since we thunk statements, we must not use their QAST directly anymore and instead
+    # generate a call to the block we created.
+    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+            QAST::Op.new( :op('call'), self.blorst.IMPL-TO-QAST($context) )
+        }
+        else {
+            my $block := self.meta-object;
+            $context.ensure-sc($block);
+            my $clone := QAST::Op.new(
+                :op('callmethod'), :name('clone'),
+                QAST::WVal.new( :value($block) )
+            );
+            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
+            QAST::Op.new( :op('call'), $closure)
         }
     }
 }
@@ -324,6 +363,7 @@ class RakuAST::StatementPrefix::Blorst
               QAST::Stmts.new(
                 RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
                 RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
+                self.IMPL-QAST-NESTED-BLOCK-DECLS($context),
                 self.blorst.IMPL-TO-QAST($context)
               ));
             $block.arity(0);

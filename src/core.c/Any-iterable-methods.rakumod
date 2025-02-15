@@ -1361,22 +1361,24 @@ Consider using a block if any of these are necessary for your mapping code."
           !! fail("Expected '" ~ $type.^name ~ "' but got '" ~ self.^name ~ "'")
     }
     multi method are(Any:D: Mu:U $type --> Bool:D) {
-        my int $i;
-        my $iterator := self.iterator;
+        unless nqp::eqaddr(nqp::decont($type),Mu) {
+            my int $i;
+            my $iterator := self.iterator;
 
-        nqp::until(
-          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-          nqp::unless(
-            nqp::istype($pulled.WHAT,$type),
-            fail("Expected '"
-              ~ $type.^name
-              ~ "' but got '"
-              ~ $pulled.^name
-              ~ "' in element $i"
-            ),
-            ++$i
-          )
-        );
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+              nqp::unless(
+                nqp::istype($pulled.WHAT,$type),
+                fail("Expected '"
+                  ~ $type.^name
+                  ~ "' but got '"
+                  ~ $pulled.^name
+                  ~ "' in element $i"
+                ),
+                ++$i
+              )
+            );
+        }
 
         True
     }

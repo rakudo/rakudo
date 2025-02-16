@@ -952,7 +952,7 @@ class RakuAST::Parameter
         }
         elsif !($!slurpy =:= RakuAST::Parameter::Slurpy) {
             $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast-var,
-                $!target.sigil, @prepend);
+                $!target.sigil, $flags, @prepend);
             $was-slurpy := 1;
         }
 
@@ -1691,7 +1691,7 @@ class RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
         # Not slurply, so nothing to do
         $param-qast
     }
@@ -1721,9 +1721,12 @@ class RakuAST::Parameter::Slurpy::Flattened
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+        my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
+        my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
+
         if $sigil eq '@' {
-            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-flat');
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, $is-rw || $is-raw ?? List !! Array, 'from-slurpy-flat');
         }
         elsif $sigil eq '%' {
             $param-qast.slurpy(1);
@@ -1758,7 +1761,7 @@ class RakuAST::Parameter::Slurpy::Unflattened
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
         if $sigil eq '@' {
             self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy');
         }
@@ -1779,7 +1782,7 @@ class RakuAST::Parameter::Slurpy::SingleArgument
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
         if $sigil eq '@' || $sigil eq '' {
             self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-onearg');
         }
@@ -1798,7 +1801,7 @@ class RakuAST::Parameter::Slurpy::Capture
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
         # Sneak in a slurpy hash parameter too.
         $param-qast.slurpy(1);
         my $hash-param-name := $temp-qast.name ~ '_hash';

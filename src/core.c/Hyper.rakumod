@@ -132,8 +132,7 @@ class Hyper {
             else {
                 $result := values.List;
                 $result := $_
-                  with nqp::can(left,"STORE")
-                    && try left.WHAT.new($result);
+                  with try left.WHAT.new($result);
             }
 
             nqp::iscont(left) ?? $result.item !! $result

@@ -1495,10 +1495,20 @@ Consider using a block if any of these are necessary for your mapping code."
           ),
           :nohandler
         );
-        nqp::p6bindattrinvres(
-          nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
-          List,'$!reified',buffer
-        )
+
+        if nqp::eqaddr(self.WHAT,List) {
+            buffer.List
+        }
+        elsif nqp::eqaddr(self.WHAT,Slip) {
+            buffer.Slip
+        }
+        else {
+            my $result := buffer.List;
+            if nqp::can(self,'STORE') {
+                $result := $_ with try self.new($result);
+            }
+            $result
+        }
     }
 
     proto method duckmap(|) is nodal {*}

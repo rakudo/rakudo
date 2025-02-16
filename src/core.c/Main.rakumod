@@ -406,14 +406,6 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
           !! die "MAIN must be a 'sub' to allow it to be called as a CLI handler"
     }
 
-    # turn scalar values of nameds into 1 element arrays, return new capture
-    sub scalars-into-arrays($capture) {
-        my %hash = $capture.hash.map: {
-            nqp::istype(.value,Positional) ?? $_ !! Pair.new(.key,[.value])
-        }
-        Capture.new( :list($capture.list), :%hash)
-    }
-
     # set up other new style dynamic variables
     my &*ARGS-TO-CAPTURE := &default-args-to-capture;
     my &*GENERATE-USAGE  := &default-generate-usage;
@@ -435,12 +427,37 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
     # Get a list of candidates that match according to the dispatcher
     my @candidates = find-candidates($capture);
+
+    # Alas, no initial match, let's start modifying the capture a bit
     unless @candidates {
-        my $alternate = scalars-into-arrays($capture);
-        if find-candidates($alternate) -> @alternates {
-            $capture   := $alternate;
-            @candidates = @alternates;
+        my %original := $capture.hash;
+        my $original := nqp::getattr(%original,Map,'$!storage');
+
+        # Get the names of all parameters that are not yet Positional
+        my str @keys = %original.keys.map: {
+            $_ unless nqp::istype(nqp::atkey($original,$_),Positional)
         }
+
+        # Try all combinations of non-Positional keys (except the first)
+        for @keys.combinations.skip -> @todo {
+
+            # Create a clone and change this combination of non-Positionals
+            # into Positionals, and then very naughtly transmogrify the
+            # original Capture with it
+            my $new := nqp::clone($original);
+            nqp::bindkey($new,$_,(nqp::atkey($new,$_),)) for @todo;
+            nqp::bindattr($capture,Capture,'%!hash',$new);
+
+            # If this combination is successful, we're done here
+            if find-candidates($capture) -> @alternates {
+                @candidates := @alternates;
+                last;
+            }
+        }
+
+        # Restore capture to original state if there was no match
+        nqp::bindattr($capture,Capture,'%!hash',$original)
+          unless @candidates;
     }
 
     # If there are still some candidates left, try to dispatch to MAIN

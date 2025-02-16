@@ -135,7 +135,7 @@ class RakuAST::StatementModifier::Without
             $context.ensure-sc($code-obj);
             my $clone := QAST::Op.new(
                 :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($code-obj) )
+                QAST::WVal.new( :value($code-obj) ).annotate_self('past_block', $statement-qast).annotate_self('code_object', $code-obj)
             );
             my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
 

@@ -304,7 +304,7 @@ class RakuAST::StatementPrefix::Thunky
             $context.ensure-sc($block);
             my $clone := QAST::Op.new(
                 :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($block) )
+                QAST::WVal.new( :value($block) ).annotate_self('past_block', self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))).annotate_self('code_object', $block)
             );
             my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
             QAST::Op.new( :op('call'), $closure)

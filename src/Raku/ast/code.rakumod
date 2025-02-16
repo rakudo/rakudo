@@ -96,9 +96,10 @@ class RakuAST::Code
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
         my $code-obj := self.meta-object;
         $context.ensure-sc($code-obj);
+        self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
         my $clone := QAST::Op.new(
             :op('callmethod'), :name('clone'),
-            QAST::WVal.new( :value($code-obj) )
+            QAST::WVal.new( :value($code-obj) ).annotate_self('past_block', $!qast-block).annotate_self('code_object', $code-obj)
         );
         self.IMPL-TWEAK-REGEX-CLONE($context, $clone) if $regex;
         QAST::Op.new( :op('p6capturelex'), $clone )

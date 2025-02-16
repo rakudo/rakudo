@@ -376,6 +376,7 @@ class RakuAST::Regex::Nested
 class RakuAST::Regex::CapturingGroup
   is RakuAST::Regex::Atom
   is RakuAST::RegexThunk
+  is RakuAST::ImplicitDeclarations
 {
     has RakuAST::Regex $.regex;
 
@@ -389,13 +390,10 @@ class RakuAST::Regex::CapturingGroup
         $obj
     }
 
-    method IMPL-UNIQUE-NAME() {
-        my str $unique-name := $!unique-name;
-        unless $unique-name {
-            nqp::bindattr_s(self, RakuAST::Regex::CapturingGroup, '$!unique-name',
-                ($unique-name := QAST::Node.unique('!__REGEX_CAPTURE_')));
-        }
-        $unique-name
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::RegexCapture.new,
+        ])
     }
 
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -409,26 +407,21 @@ class RakuAST::Regex::CapturingGroup
         # in the lexpad; we'll look it up when we need it. This means we can
         # avoid closure-cloning it per time we enter it, for example if it is
         # quantified.
-        my str $name := self.IMPL-UNIQUE-NAME;
         my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         QAST::Stmts.new(
             $block,
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                self.IMPL-CLOSURE-QAST($context)
-            )
+            self.get-implicit-declarations().AT-POS(0).IMPL-BIND-QAST($context,
+                self.IMPL-CLOSURE-QAST($context) ),
         )
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my str $name := self.IMPL-UNIQUE-NAME;
         my $body-qast := $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods));
         nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
         QAST::Regex.new(
             :rxtype('subrule'), :subtype('capture'),
-            QAST::NodeList.new(QAST::Var.new( :$name, :scope('lexical') )),
+            QAST::NodeList.new(self.get-implicit-declarations().AT-POS(0).IMPL-LOOKUP-QAST($context)),
             $body-qast
         )
     }

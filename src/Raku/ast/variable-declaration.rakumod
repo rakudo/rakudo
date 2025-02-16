@@ -2049,6 +2049,33 @@ class RakuAST::VarDeclaration::Implicit::Cursor
     }
 }
 
+# We install regex captures in the lexpad and look it up when we need it.
+# This means we can avoid closure-cloning it per time we enter it, for example
+# if it is quantified.
+class RakuAST::VarDeclaration::Implicit::RegexCapture
+  is RakuAST::VarDeclaration::Implicit
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', QAST::Node.unique('!__REGEX_CAPTURE_'));
+        $obj;
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(
+            :scope('lexical'), :decl('var'), :name(self.name),
+        )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        QAST::Op.new(
+          :op('bind'),
+          QAST::Var.new( :name(self.name), :scope('lexical') ),
+          $source-qast
+        )
+    }
+}
+
 # The implicit `&?ROUTINE` term declaration for the routine.
 class RakuAST::VarDeclaration::Implicit::Routine
   is RakuAST::VarDeclaration::Implicit

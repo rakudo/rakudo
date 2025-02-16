@@ -2834,6 +2834,8 @@ class RakuAST::Substitution
         $!replacement.wrap-with-thunk: RakuAST::SubstitutionReplacementThunk.new:
             :infix($!infix);
         $!replacement.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
+
+        self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
     }
 
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -2843,9 +2845,7 @@ class RakuAST::Substitution
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
-        self.IMPL-LINK-META-OBJECT($context, $block);
-        $block
+        self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

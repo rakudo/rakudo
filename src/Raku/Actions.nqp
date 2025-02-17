@@ -1067,8 +1067,27 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         elsif $ast {
             if nqp::istype($ast, Nodify('Postfixish')) {
-                self.attach: $/, Nodify('ApplyPostfix').new:
-                  postfix => $ast, operand => $operand;
+                if $<dotty> && $<dotty><sym> eq '.=' {
+                    my $infix := Nodify('DottyInfix', 'CallAssign').new;
+                    self.SET-NODE-ORIGIN($<dotty><sym>, $infix);
+                    $ast.set-dispatcher(''); # Already handled by DottyInfix::CallAssign
+                    my $node := Nodify('ApplyDottyInfix').new:
+                        :$infix,
+                        :left($operand),
+                        :right($ast);
+                    my $cu := $*CU; # Might be too early to even have a CompUnit
+                    $node.set-origin(
+                        Nodify('Origin').new(
+                            :from($/[0].from),
+                            :to($/.to),
+                            :source($*ORIGIN-SOURCE)));
+                    $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
+                    make $node;
+                }
+                else {
+                    self.attach: $/, Nodify('ApplyPostfix').new:
+                        postfix => $ast, operand => $operand;
+                }
             }
             # Report the sorry if there is no more specific sorry already
             elsif !$*R.has-sorries {

@@ -195,17 +195,28 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
         if nqp::iseq_s($adverbs,":exists") || nqp::iseq_s($adverbs,":!exists") {
             my $wantnot := nqp::iseq_s($adverbs,":!exists").Bool;
 
-            my sub EXISTS-POS-recursively(\SELF, \idx --> Nil) {
+            my sub EXISTS-POS-recursively(\SELF, \idx) {
+                my int $done;
+
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list  = 1;
                     my $iterator := idx.iterator;
-                    nqp::until(
-                      nqp::eqaddr(
-                        (my \pulled := $iterator.pull-one),
-                        IterationEnd
-                      ),
-                      EXISTS-POS-recursively(SELF, pulled)
-                    );
+                    my sub recurse(--> Nil) {
+                        nqp::until(
+                          nqp::eqaddr(
+                            (my \pulled := $iterator.pull-one),
+                            IterationEnd
+                          ) || EXISTS-POS-recursively(SELF, pulled),
+                          nqp::null
+                        );
+                    }
+                    if $iterator.is-lazy {
+                        my $*LAZY := True;
+                        recurse;
+                    }
+                    else {
+                        recurse;
+                    }
                 }
                 elsif nqp::islt_i($dim,$topdim) {
                     ++$dim;  # going higher
@@ -225,9 +236,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         ) for idx.(SELF.elems);
                     }
                     else  {
-                        EXISTS-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
-                        );
+                        my $base := SELF.AT-POS(idx.Int);
+                        $base.defined || !$*LAZY
+                          ?? EXISTS-POS-recursively(
+                               $base, nqp::atpos($indices,$dim)
+                             )
+                          !! ($done = 1);
                     }
                     --$dim;  # done at this level
                 }
@@ -248,23 +262,36 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                 else {
                     nqp::push(target, $wantnot ?^ SELF.EXISTS-POS(idx.Int));
                 }
+
+                $done
             }
 
             EXISTS-POS-recursively(initial-SELF,nqp::atpos($indices,0));
         }
 
         elsif nqp::iseq_s($adverbs,":delete") {
-            my sub DELETE-POS-recursively(\SELF, \idx --> Nil) {
+            my sub DELETE-POS-recursively(\SELF, \idx) {
+                my int $done;
+
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list  = 1;
                     my $iterator := idx.iterator;
-                    nqp::until(
-                      nqp::eqaddr(
-                        (my \pulled := $iterator.pull-one),
-                        IterationEnd
-                      ),
-                      DELETE-POS-recursively(SELF, pulled)
-                    );
+                    my sub recurse(--> Nil) {
+                        nqp::until(
+                          nqp::eqaddr(
+                            (my \pulled := $iterator.pull-one),
+                            IterationEnd
+                          ) || DELETE-POS-recursively(SELF, pulled),
+                          nqp::null
+                        );
+                    }
+                    if $iterator.is-lazy {
+                        my $*LAZY := True;
+                        recurse;
+                    }
+                    else {
+                        recurse;
+                    }
                 }
                 elsif nqp::islt_i($dim,$topdim) {
                     ++$dim;  # going higher
@@ -284,9 +311,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         ) for idx.(SELF.elems);
                     }
                     else  {
-                        DELETE-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
-                        );
+                        my $base := SELF.AT-POS(idx.Int);
+                        $base.defined || !$*LAZY
+                          ?? DELETE-POS-recursively(
+                               $base, nqp::atpos($indices,$dim)
+                             )
+                          !! ($done = 1);
                     }
                     --$dim;  # done at this level
                 }
@@ -321,6 +351,8 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         !! Nil
                     );
                 }
+
+                $done
             }
 
             DELETE-POS-recursively(initial-SELF,nqp::atpos($indices,0));
@@ -452,17 +484,28 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                  :nogo(nqp::split(':',nqp::substr($adverbs,1)))
                ).Failure;
 
-            my sub PROCESS-POS-recursively(\SELF, \idx --> Nil) {
+            my sub PROCESS-POS-recursively(\SELF, \idx) {
+                my int $done;
+
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list  = 1;
                     my $iterator := idx.iterator;
-                    nqp::until(
-                      nqp::eqaddr(
-                        (my \pulled := $iterator.pull-one),
-                        IterationEnd
-                      ),
-                      PROCESS-POS-recursively(SELF, pulled)
-                    );
+                    my sub recurse(--> Nil) {
+                        nqp::until(
+                          nqp::eqaddr(
+                            (my \pulled := $iterator.pull-one),
+                            IterationEnd
+                          ) || PROCESS-POS-recursively(SELF, pulled),
+                          nqp::null
+                        );
+                    }
+                    if $iterator.is-lazy {
+                        my $*LAZY := True;
+                        recurse;
+                    }
+                    else {
+                        recurse;
+                    }
                 }
                 elsif nqp::islt_i($dim,$topdim) {
                     ++$dim;  # going higher
@@ -496,9 +539,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     }
                     else  {
                         nqp::push($keys,idx.Int);
-                        PROCESS-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
-                        );
+                        my $base := SELF.AT-POS(idx.Int);
+                        $base.defined || !$*LAZY
+                          ?? PROCESS-POS-recursively(
+                               $base, nqp::atpos($indices,$dim)
+                             )
+                          !! ($done = 1);
                         nqp::pop($keys);
                     }
                     --$dim;  # done at this level
@@ -519,6 +565,8 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                 else {
                     process(SELF, idx.Int);
                 }
+
+                $done
             }
 
             PROCESS-POS-recursively(initial-SELF, nqp::atpos($indices,0));
@@ -527,17 +575,27 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
 
     # no adverbs whatsoever
     else {
-        my sub AT-POS-recursively(\SELF, \idx --> Nil) {
+        my sub AT-POS-recursively(\SELF, \idx) {
+            my int $done;
             if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                 $return-list = 1;
                 my $iterator := idx.iterator;
-                nqp::until(
-                  nqp::eqaddr(
-                    (my \pulled := $iterator.pull-one),
-                    IterationEnd
-                  ),
-                  AT-POS-recursively(SELF, pulled)
-                );
+                my sub recurse(--> Nil) {
+                    nqp::until(
+                      nqp::eqaddr(
+                        (my \pulled := $iterator.pull-one),
+                        IterationEnd
+                      ) || AT-POS-recursively(SELF, pulled),
+                      nqp::null
+                    );
+                }
+                if $iterator.is-lazy {
+                    my $*LAZY := True;
+                    recurse;
+                }
+                else {
+                    recurse;
+                }
             }
             elsif nqp::islt_i($dim,$topdim) {
                 ++$dim;  # going higher
@@ -557,12 +615,14 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     ) for idx.(SELF.elems);
                 }
                 else  {
-                    AT-POS-recursively(
-                      SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
-                    );
+                    my $base := SELF.AT-POS(idx.Int);
+                    $base.defined || !$*LAZY
+                      ?? AT-POS-recursively($base, nqp::atpos($indices,$dim))
+                      !! ($done = 1);
                 }
                 --$dim;  # done at this level
             }
+
             # $next-dim == $topdim, reached leaves
             elsif nqp::istype(idx,Whatever) {
                 $return-list  = 1;
@@ -579,6 +639,8 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
             else {
                 nqp::push(target,SELF.AT-POS(idx.Int));
             }
+
+            $done
         }
 
         AT-POS-recursively(initial-SELF, nqp::atpos($indices,0));

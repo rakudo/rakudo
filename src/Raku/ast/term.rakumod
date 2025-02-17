@@ -20,6 +20,14 @@ class RakuAST::Term::Name
         nqp::bindattr(self, RakuAST::Term::Name, '$!package', $package);
     }
 
+    method has-compile-time-value() {
+        self.is-resolved && self.resolution.has-compile-time-value
+    }
+
+    method maybe-compile-time-value() {
+        self.resolution.compile-time-value
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {

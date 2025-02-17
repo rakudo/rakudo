@@ -2062,6 +2062,10 @@ class RakuAST::ApplyDottyInfix
 
     method properties() { $!infix.properties }
 
+    method needs-sink-call() {
+        nqp::istype($!infix, RakuAST::DottyInfix::CallAssign) ?? False !! True
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-DOTTY-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),

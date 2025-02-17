@@ -156,6 +156,12 @@ class RakuAST::Node {
     # Drive CHECK-time activities on this node and its children. Assumes that BEGIN time and
     # parse time has already completely happened.
     method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
+        unless $resolve-only {
+            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
+                self.calculate-sink();
+            }
+        }
+
         # Visit children and do their CHECK time.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
@@ -168,9 +174,6 @@ class RakuAST::Node {
         # Unless in resolve-only mode, do other check-time activities.
         # TODO eliminate resolve-only, since that's just check time.
         unless $resolve-only {
-            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
-                self.calculate-sink();
-            }
             if nqp::istype(self, RakuAST::CheckTime) {
                 self.clear-check-time-problems();
                 self.PERFORM-CHECK($resolver, $context);

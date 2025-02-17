@@ -991,6 +991,7 @@ class RakuAST::Statement::Without
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop
   is RakuAST::Statement
+  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
   is RakuAST::Sinkable
   is RakuAST::SinkPropagator
@@ -1041,6 +1042,25 @@ class RakuAST::Statement::Loop
 
     method IMPL-DISCARD-RESULT() {
         self.is-block-statement || self.sunk
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.IMPL-DISCARD-RESULT {
+            my $while := !self.negate;
+            unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
+                if ($!condition) {
+                    my $thunk := RakuAST::ExpressionThunk.new;
+                    $!condition.wrap-with-thunk($thunk);
+                    $thunk.ensure-begin-performed($resolver, $context);
+                }
+
+                if ($!increment) {
+                    my $thunk := RakuAST::ExpressionThunk.new;
+                    $!increment.wrap-with-thunk($thunk);
+                    $thunk.ensure-begin-performed($resolver, $context);
+                }
+            }
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1114,7 +1134,27 @@ class RakuAST::Statement::Loop
                 $loop-qast
             }
             else {
-                nqp::die("Non-trivial lazy loops NYI");
+                my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+                my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
+                    $Seq,
+                    $!body.IMPL-TO-QAST($context),
+                    $!condition.IMPL-TO-QAST($context),
+                );
+                $qast.push: $!increment.IMPL-TO-QAST($context) if $!increment;
+                if @labels {
+                    my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
+                    $label-qast.named('label');
+                    $qast.push($label-qast);
+                }
+                #TODO next-phasers
+                if @last-phasers {
+                    $qast := QAST::Stmts.new(:resultchild(0), $qast);
+                    for @last-phasers {
+                        $context.ensure-sc($_);
+                        $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                    }
+                }
+                $qast
             }
         }
         else {

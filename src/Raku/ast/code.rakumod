@@ -1182,7 +1182,7 @@ class RakuAST::Block
             }
             elsif $!implicit-topic-mode == -1 {
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
-                    parameter => False;
+                    parameter => False, loop => True;
             }
             elsif $!implicit-topic-mode == 2 {
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:

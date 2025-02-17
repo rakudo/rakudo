@@ -1897,8 +1897,9 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
     has Bool $.parameter;
     has Bool $.required;
     has Bool $.exception;
+    has Bool $.loop;
 
-    method new(Bool :$parameter, Bool :$required, Bool :$exception) {
+    method new(Bool :$parameter, Bool :$required, Bool :$exception, Bool :$loop) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
@@ -1908,7 +1909,13 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
             $required // False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!exception',
             $exception // False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!loop',
+            $loop // False);
         $obj
+    }
+
+    method IMPL-NOT-IF-DUPLICATE() {
+        $!loop
     }
 
     method set-parameter(Bool $parameter) {

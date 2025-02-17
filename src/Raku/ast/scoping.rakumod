@@ -97,6 +97,7 @@ class RakuAST::LexicalScope
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
             my @variables;
+            my @not-if-duplicate;
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
                     nqp::push(@declarations, $node);
@@ -109,8 +110,13 @@ class RakuAST::LexicalScope
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-simple-lexical-declaration {
-                                nqp::push(@declarations, $decl);
-                                nqp::push(@variables, $decl);
+                                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic) && $decl.IMPL-NOT-IF-DUPLICATE {
+                                    nqp::push(@not-if-duplicate, $decl);
+                                }
+                                else {
+                                    nqp::push(@declarations, $decl);
+                                    nqp::push(@variables, $decl);
+                                }
                             }
                         }
                     }
@@ -118,6 +124,22 @@ class RakuAST::LexicalScope
                 }
                 else {
                     0 # it's an inner scope, don't visit its children
+                }
+            }
+            for @not-if-duplicate -> $decl {
+                my $found := 0;
+                for @declarations {
+                    if $_.lexical-name eq '$_' && !($_ =:= $decl) {
+                        $found := 1;
+                        last;
+                    }
+                }
+                unless $found {
+                    # Implicits are declared right at the start of a lexical scope anyway,
+                    # so it should be safe to unshift them. We need them to be declared before
+                    # they are first used.
+                    nqp::unshift(@declarations, $decl);
+                    nqp::unshift(@variables, $decl);
                 }
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);

@@ -3771,6 +3771,7 @@ BEGIN {
         $i := 0;
         while $i < $m {
             my $node_i := nqp::atpos(@graph, $i);
+            my $node_i_possible := $node_i.possible;
 
             my int $j;
             while $j < $m {
@@ -3778,7 +3779,7 @@ BEGIN {
                     my $node_j := nqp::atpos(@graph, $j);
 
                     $node_i.push_outer_edge($node_j)
-                      if is_narrower($node_i.possible, $node_j.possible);
+                      if is_narrower($node_i_possible, $node_j.possible);
                 }
                 ++$j;
             }

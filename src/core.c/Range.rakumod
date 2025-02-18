@@ -689,11 +689,15 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? self.elems
           !! nqp::istype($!min,Numeric) && nqp::istype($!max,Numeric)
-            ?? do {
-                my $diff  = 0 max $!max - $!min - $!excludes-min;
-                my $floor = $diff.floor;
-                $floor + 1 - ($floor == $diff ?? $!excludes-max !! 0)
-            }
+            ?? $!min > $!max
+              ?? 0
+              !! $!min == -Inf || $!max == Inf
+                ?? Inf
+                !! do {
+                       my $diff  = 0 max $!max - $!min - $!excludes-min;
+                       my $floor = $diff.floor;
+                       $floor + 1 - ($floor == $diff ?? $!excludes-max !! 0)
+                   }
             !! self.flat.elems
     }
 

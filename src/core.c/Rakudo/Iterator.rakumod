@@ -1495,6 +1495,8 @@ class Rakudo::Iterator {
                 )
             }
         }
+
+        method is-lazy(--> True) { }
     }
     method CStyleLoop(&body, &cond, &afterwards, $label) {
         CStyleLoop.new(&body, &cond, &afterwards, $label)
@@ -4079,6 +4081,8 @@ class Rakudo::Iterator {
                 )
             }
         }
+
+        method is-lazy(--> True) { }
     }
     method RepeatLoop(&body, &cond, $label) {
         RepeatLoop.new(&body, &cond, $label)
@@ -5185,6 +5189,8 @@ class Rakudo::Iterator {
                 )
             }
         }
+
+        method is-lazy(--> True) { }
 
     }
     method WhileLoop(&body, &cond, $label) {

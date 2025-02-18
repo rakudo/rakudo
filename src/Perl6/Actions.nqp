@@ -170,8 +170,14 @@ sub wanted($ast,$by) {
             # make sure from-loop knows about existing label
             my $world := $*W;
             my $label := QAST::WVal.new( :value($world.find_single_symbol_in_setting('Any')), :named('label') );
+            my @exprs;
             for @($ast) {
-                $label := $_ if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $world.find_single_symbol_in_setting('Label'));
+                if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $world.find_single_symbol_in_setting('Label')) {
+                    label := $_;
+                }
+                else {
+                    nqp::push(@exprs, $_);
+                }
             }
 
             my $past := QAST::Op.new: :node($body.node),
@@ -189,15 +195,15 @@ sub wanted($ast,$by) {
             }
 
             # conditional (if not always true (or if repeat))
-            if $repeat || !$cond.has_compile_time_value || !$cond.compile_time_value == $while {
+            if $repeat || !$cond.has_compile_time_value || $cond.compile_time_value != $while {
                 $cond := QAST::Op.new( :op<callmethod>, :name<not>, $cond ) unless $while;
                 $block := Perl6::Actions::make_thunk_ref($cond, nqp::can($cond,'node') ?? $cond.node !! $body.node);
                 $past.push( block_closure($block) );
             }
 
             # 3rd part of loop, if any
-            if nqp::elems(@($ast)) > 2 {
-                $block := Perl6::Actions::make_thunk_ref($ast[2], $ast[2].node);
+            if nqp::elems(@exprs) > 2 {
+                $block := Perl6::Actions::make_thunk_ref(@exprs[2], @exprs[2].node);
                 $block.annotate('outer',$*WANTEDOUTERBLOCK) if $*WANTEDOUTERBLOCK;
                 $past.push( UNWANTED(block_closure($block),$byby) )
             }
@@ -2143,7 +2149,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method statement_control:sym<loop>($/) {
-        my $cond := $<e2> ?? WANTED($<e2>.ast, 'statement_control/e2') !! QAST::IVal.new( :value(1) );
+        my $cond;
+        if $<e2> {
+            $cond := WANTED($<e2>.ast, 'statement_control/e2');
+        }
+        else {
+            my $true := QAST::IVal.new( :value(1) );
+            $true.set_compile_time_value(1);
+            $cond := $true;
+        }
         my $loop := QAST::Op.new( $cond, :op('while'), :node($/) );
         $loop.push($<block>.ast);
         if $<e3> {

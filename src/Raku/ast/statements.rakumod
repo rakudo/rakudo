@@ -1066,7 +1066,8 @@ class RakuAST::Statement::Loop
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        unless self.IMPL-DISCARD-RESULT {
+        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
+        if !self.IMPL-DISCARD-RESULT || nqp::elems(@undo-phasers) {
             my $while := !self.negate;
             unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
                 if ($!condition) {
@@ -1096,8 +1097,9 @@ class RakuAST::Statement::Loop
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
         my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
+        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
         my @labels := self.IMPL-UNWRAP-LIST(self.labels);
-        if self.IMPL-DISCARD-RESULT {
+        if self.IMPL-DISCARD-RESULT && !nqp::elems(@undo-phasers) {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
                 ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
@@ -1184,6 +1186,9 @@ class RakuAST::Statement::Loop
                         $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
                     }
                 }
+                if self.IMPL-DISCARD-RESULT { # In case we're here because of UNDO phasers
+                    $qast := QAST::Op.new(:op('p6sink'), $qast);
+                }
                 if $!setup {
                     QAST::Stmt.new(
                         $!setup.IMPL-TO-QAST($context),
@@ -1244,7 +1249,8 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        self.sunk && $node =:= $!body
+        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
+        self.sunk && !nqp::elems(@undo-phasers) && $node =:= $!body
     }
 }
 

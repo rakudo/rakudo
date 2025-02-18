@@ -1435,7 +1435,24 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method deepmap(|) is nodal {*}
     multi method deepmap(Associative:D: &op) {
-        self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
+        self.new.STORE: self.map({
+            my $value := .value;
+
+            # Need recursing semantics
+            if nqp::istype($value,Iterable) {
+                $value := $value.deepmap(&op);
+                my int $elems = $value.elems;
+                Pair.new(.key, $elems == 1 && nqp::istype($value,Positional)
+                  ?? $value.head
+                  !! $value
+                ) if $elems;
+            }
+
+            # No deep semantics needed
+            else {
+                Pair.new(.key, op($value))
+            }
+        }), :INITIALIZE
     }
     multi method deepmap(&op) {
         if nqp::istype(&op,Block)

@@ -2622,10 +2622,12 @@ class Perl6::Optimizer {
 
         my $visit_children_mode := 'default'; # Can also be 'sm_chain', or 'sm_when'
 
+        my str $opname := $op.name;
+        my int $level := $!level;
         my $sm_ast;
         if $optype eq 'locallifetime' {
             note("ENCOUNTERED locallifetime, is smartmatch? ", ($op.ann('smartmatch') ?? "YES" !! "NO")) if $!debug;
-            if $!level >= 2
+            if $level >= 2
                 && $op.ann('smartmatch')
                 && nqp::defined($sm_ast := $!smartmatch_opt.optimize_topicalized($op))
             {
@@ -2634,13 +2636,14 @@ class Perl6::Optimizer {
             return self.visit_children($op,:first);
         }
 
-        if $!level >= 2
+        if $level >= 2
             && ($optype eq 'chain' || $optype eq 'chainstatic')
-            && ($op.name eq '&infix:<~~>' || $op.name eq '&infix:<!~~>')
+            && ($opname eq '&infix:<~~>' || $opname eq '&infix:<!~~>')
         {
             $visit_children_mode := 'sm_chain';
         }
 
+        my $symbols := $!symbols;
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && nqp::elems($op) == 2 {
@@ -2658,7 +2661,7 @@ class Perl6::Optimizer {
 
             if nqp::istype($theop, QAST::Op)
             && nqp::existskey(%range_bounds, $theop.name)
-            && $!symbols.is_from_core($theop.name)
+            && $symbols.is_from_core($theop.name)
             && $op[1].has_ann('code_object') {
                 self.optimize_for_range($op, $op[1], $theop, :$reverse);
                 self.visit_op_children($op);
@@ -2668,7 +2671,7 @@ class Perl6::Optimizer {
 
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
-        if $optype eq 'callmethod' && $op.name eq 'sink'
+        if $optype eq 'callmethod' && $opname eq 'sink'
         && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
         && $op[0].name eq 'map' && nqp::elems($op[0]) == 2
         && $op[0][1].has_ann('code_object')
@@ -2678,13 +2681,13 @@ class Perl6::Optimizer {
             || nqp::istype($op[0][0], QAST::Stmts)
             && nqp::istype(($c1 := $op[0][0][0]), QAST::Op)
             && nqp::existskey(%range_bounds, $c1.name)
-        ) && $!symbols.is_from_core($c1.name)
+        ) && $symbols.is_from_core($c1.name)
         {
             self.optimize_for_range($op, $op[0][1], $c1);
             self.visit_op_children($op);
             return $op;
         }
-        elsif $optype eq 'callmethod' && $op.name eq 'new' && $!void_context {
+        elsif $optype eq 'callmethod' && $opname eq 'new' && $!void_context {
             if $op.node {
                 my str $op_txt := nqp::escape($op.node.Str);
                 my $warning := qq[Useless use of "$op_txt" in sink context];
@@ -2706,26 +2709,26 @@ class Perl6::Optimizer {
             && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
             if nqp::istype($op[1], QAST::Want) {
                 # grab the var's symbol from our blocks
-                my $varsym := $!symbols.find_lexical_symbol($op[0].name);
+                my $varsym := $symbols.find_lexical_symbol($op[0].name);
                 my $type := $varsym<type>;
 
                 my $want_type := $op[1][1];
                 my $varname := $op[0].name;
 
                 if $want_type eq 'Ii' {
-                    if $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                    if $type =:= (my $numtype := $symbols.find_in_setting("Num"))
                       || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                 :$varname, :vartype($numtype), :value($op[1][2].value), :suggestiontype<Real>,
                                 :valuetype<Int>,
                                 :native(!($type =:= $numtype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                    } elsif $type =:= $symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                 :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
                                 :valuetype<Int>
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                    } elsif $type =:= $symbols.find_in_setting("Complex") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                 :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
                                 :valuetype<Int>
@@ -2734,19 +2737,19 @@ class Perl6::Optimizer {
                 } elsif $want_type eq 'Nn' {
                     my $value := $op[1][2];
                     if $value.HOW.name($value) eq 'QAST::NVal' {
-                        if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                        if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
                           || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                     :$varname, :vartype($inttype), :value($value.value), :suggestiontype<Real>,
                                     :valuetype<Num>,
                                     :native(!($type =:= $inttype))
                                 );
-                        } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                        } elsif $type =:= $symbols.find_in_setting("Rat") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                     :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
                                     :valuetype<Num>
                                 );
-                        } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                        } elsif $type =:= $symbols.find_in_setting("Complex") {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                     :$varname, :vartype($type), :value($value.value), :suggestiontype<Numeric>,
                                     :valuetype<Num>
@@ -2756,28 +2759,28 @@ class Perl6::Optimizer {
                 }
             }
             elsif nqp::istype($op[1], QAST::WVal) {
-                my $varsym := $!symbols.find_lexical_symbol($op[0].name);
+                my $varsym := $symbols.find_lexical_symbol($op[0].name);
                 my $type := $varsym<type>;
 
                 my $value := $op[1].value;
                 my $val_type := $value.HOW.name($value);
                 my $varname := $op[0].name;
                 if $val_type eq 'Rat' || $val_type eq 'RatStr' {
-                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                    if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
                           || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($inttype), :value($value), :suggestiontype<Real>,
                                 :valuetype<Rat>,
                                 :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                    } elsif $type =:= (my $numtype := $symbols.find_in_setting("Num"))
                         || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($numtype), :value($value), :suggestiontype<Real>,
                                 :valuetype<Rat>,
                                 :native(!($type =:= $numtype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Complex") {
+                    } elsif $type =:= $symbols.find_in_setting("Complex") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Rat>
@@ -2785,21 +2788,21 @@ class Perl6::Optimizer {
                     }
                 }
                 elsif $val_type eq 'Complex' || $val_type eq 'ComplexStr' {
-                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                    if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
                       || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($inttype), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>,
                                 :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                    } elsif $type =:= (my $numtype := $symbols.find_in_setting("Num"))
                         || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($numtype), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>,
                                 :native(!($type =:= $numtype))
                             );
-                    } elsif $type =:= $!symbols.find_in_setting("Rat") {
+                    } elsif $type =:= $symbols.find_in_setting("Rat") {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>
@@ -2819,12 +2822,12 @@ class Perl6::Optimizer {
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
         }
 
-        if $!level >= 2 && $optype eq 'if' && $op.ann('when_block') {
+        if $level >= 2 && $optype eq 'if' && $op.ann('when_block') {
             $visit_children_mode := 'sm_when';
         }
 
         # We may be able to unfold a junction at compile time.
-        if $!level >= 2 {
+        if $level >= 2 {
             my $jo_result := $!junc_opt.optimize($op);
             if $jo_result {
                 return $jo_result;
@@ -2862,7 +2865,7 @@ class Perl6::Optimizer {
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             $!block_var_stack.do('register_call');
-            if nqp::existskey(%poison_calls, $op.name) {
+            if nqp::existskey(%poison_calls, $opname) {
                 $!block_var_stack.poison-var-lowering();
             }
         }
@@ -2957,16 +2960,16 @@ class Perl6::Optimizer {
 
         # Make array variable initialization cheaper
         elsif
-            $!level > 0
+            $level > 0
             && $optype eq 'callmethod'
-            && $op.name eq 'STORE'
+            && $opname eq 'STORE'
             && nqp::elems($op.list()) == 3
             && nqp::istype($op[0], QAST::Var)
             && nqp::substr($op[0].name, 0, 1) eq '@'
             && nqp::istype($op[1], QAST::Op)
             && ($op[1].op eq 'call' || $op[1].op eq 'callstatic')
             && $op[1].name eq '&infix:<,>'
-            && $!symbols.is_from_core($op[1].name)
+            && $symbols.is_from_core($op[1].name)
             && nqp::istype($op[2], QAST::WVal)
             && nqp::istype($op[2], QAST::SpecialArg)
         {
@@ -2975,11 +2978,11 @@ class Perl6::Optimizer {
 
         # Turn `@a[1, 3]` into `@a.AT-POS(1), @a.AT-POS(3)`
         elsif
-            $!level > 0
+            $level > 0
             && ($optype eq 'call' || $optype eq 'callstatic')
 
             # workaround because op_eq_core needs to be "primed"
-            && ((try $!symbols.find_lexical($op.name)) || 1)
+            && ((try $symbols.find_lexical($opname)) || 1)
 
             && self.op_eq_core($op, '&postcircumfix:<[ ]>')
 
@@ -2989,7 +2992,7 @@ class Perl6::Optimizer {
             && nqp::istype($op[0], QAST::Var)
             && nqp::substr($op[0].name, 0, 1) eq '@'
             && nqp::istype($op[1], QAST::WVal)
-            && nqp::istype($op[1].value, $!symbols.find_in_setting("List"))
+            && nqp::istype($op[1].value, $symbols.find_in_setting("List"))
         {
             return self.optimize_array_slice($op);
         }
@@ -2997,44 +3000,44 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
-            my $opt_result := $op.name eq ''
+            my $opt_result := $opname eq ''
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
             if $opt_result {
                  $!chain_depth := 0
-                    if $op.op eq 'chain' && $!chain_depth == 1;
+                    if $optype eq 'chain' && $!chain_depth == 1;
                  return $opt_result;
             }
         }
         # Some .dispatch:<....> calls can be simplified
-        elsif $!level >= 2 && $optype eq 'callmethod'
-        && nqp::eqat($op.name, 'dispatch:<', 0) {
-            if $op.name eq 'dispatch:<!>' {
+        elsif $level >= 2 && $optype eq 'callmethod'
+        && nqp::eqat($opname, 'dispatch:<', 0) {
+            if $opname eq 'dispatch:<!>' {
                 # If it's a private method call, we can sometimes resolve
                 # it at compile time. If so, we can reduce it to a
                 # sub call in some cases.
                 self.optimize_private_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<.=>' {
+            elsif $opname eq 'dispatch:<.=>' {
                 # .= calls can be unpacked entirely
                 return self.optimize_dot_equals_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<::>' {
+            elsif $opname eq 'dispatch:<::>' {
                 return self.optimize_qual_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<.?>' {
+            elsif $opname eq 'dispatch:<.?>' {
                 return self.optimize_maybe_method_call: $op;
             }
         }
 
-        if $op.op eq 'chain' {
+        if $optype eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
 
             # See if we can staticalize this op
             my $obj;
             my $found;
             try {
-                $obj   := $!symbols.find_lexical($op.name);
+                $obj   := $symbols.find_lexical($opname);
                 $found := 1;
             }
             if $found {
@@ -3042,7 +3045,7 @@ class Perl6::Optimizer {
                     $op.op: 'chainstatic'
                 }
                 else {
-                    my $scopes := $!symbols.scopes_in: $op.name;
+                    my $scopes := $symbols.scopes_in: $opname;
                     $op.op: 'chainstatic'
                       if $scopes <= 1 && nqp::can($obj, 'soft') && ! $obj.soft;
                 }
@@ -4191,6 +4194,7 @@ class Perl6::Optimizer {
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default,
                           :$handle, :$block_structure) {
         note("method visit_children $!void_context\n" ~ $node.dump(4)) if $!debug;
+        my $symbols := $!symbols;
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := nqp::elems($node);
@@ -4252,7 +4256,7 @@ class Perl6::Optimizer {
                 }
                 elsif nqp::istype($visit, QAST::Regex) {
                     $!block_var_stack.poison-var-lowering();
-                    QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
+                    QRegex::Optimizer.new().optimize($visit, $symbols.top_block, |%!adverbs);
                 }
                 elsif nqp::istype($visit, QAST::WVal) {
                     if $!void_context {
@@ -4266,9 +4270,9 @@ class Perl6::Optimizer {
                             unless $value eq 'Nil'
                             || $visit.ann('sink-quietly') {
                                 my $thing :=    nqp::istype($visit.value,
-                                  $!symbols.find_in_setting: 'Int')
+                                  $symbols.find_in_setting: 'Int')
                                 ?? 'integer' !! nqp::istype($visit.value,
-                                  $!symbols.find_in_setting: 'Rational')
+                                  $symbols.find_in_setting: 'Rational')
                                 ?? 'rational' !! 'value';
                                 my $warning := qq[Useless use of constant $thing $value in sink context$suggest];
                                 note($warning) if $!debug;
@@ -4276,13 +4280,13 @@ class Perl6::Optimizer {
                             }
                         }
                     }
-                    if $visit.value =:= $!symbols.PseudoStash {
+                    if $visit.value =:= $symbols.PseudoStash {
                         $!block_var_stack.poison-var-lowering();
                     }
-                    elsif nqp::istype($visit.value, $!symbols.Regex) {
+                    elsif nqp::istype($visit.value, $symbols.Regex) {
                         $!block_var_stack.do('poison_topic_lowering');
                     }
-                    elsif nqp::istype($visit.value, $!symbols.AST) {
+                    elsif nqp::istype($visit.value, $symbols.AST) {
                         $!block_var_stack.do('poison_lowering');
                     }
                 }

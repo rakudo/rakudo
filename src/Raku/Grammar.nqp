@@ -6265,7 +6265,8 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <var=.LANG('MAIN', 'variable')>
         { self.check-variable($<var>) }
         [
-            <?before '.'? <.[ \[ \{ \< ]>>
+        || $<binding> = ( \s* '=' \s* <quantified_atom> )
+        || <?before '.'? <.[ \[ \{ \< ]>>
             <.worry: "Apparent subscript will be treated as regex">
         ]?
         <.SIGOK>

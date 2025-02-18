@@ -1179,7 +1179,15 @@ class RakuAST::Statement::Loop
                         $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
                     }
                 }
-                $qast
+                if $!setup {
+                    QAST::Stmt.new(
+                        $!setup.IMPL-TO-QAST($context),
+                        $qast
+                    );
+                }
+                else {
+                    $qast
+                }
             }
         }
         else {

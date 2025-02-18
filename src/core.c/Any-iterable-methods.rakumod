@@ -1441,17 +1441,18 @@ Consider using a block if any of these are necessary for your mapping code."
             # Need recursing semantics
             if nqp::istype($value,Iterable) {
                 $value := $value.deepmap(&op);
-                my int $elems = $value.elems;
-                Pair.new(.key, $elems == 1 && nqp::istype($value,Positional)
-                  ?? $value.head
-                  !! $value
-                ) if $elems;
+                if $value.elems -> int $elems {
+                    $value := $value.head
+                      if $elems == 1 && nqp::istype($value,Positional);
+                }
             }
 
             # No deep semantics needed
             else {
-                Pair.new(.key, op($value))
+                $value := op($value);
             }
+
+            Pair.new(.key, $value) unless nqp::eqaddr($value,Empty);
         }), :INITIALIZE
     }
     multi method deepmap(&op) {

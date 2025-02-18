@@ -1049,6 +1049,15 @@ class RakuAST::Statement::Loop
             my $while := !self.negate;
             unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
                 if ($!condition) {
+                    if self.negate {
+                        nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
+                            :postfix(
+                                RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
+                            ),
+                            :operand($!condition),
+                        ));
+                        $!condition.ensure-begin-performed($resolver, $context);
+                    }
                     my $thunk := RakuAST::ExpressionThunk.new;
                     $!condition.wrap-with-thunk($thunk);
                     $thunk.ensure-begin-performed($resolver, $context);

@@ -813,6 +813,7 @@ my @allowed =
         Q{$_},
         Q{$¢},
         Q{&comb},
+        Q{&infix:<~>},
         Q{&last},
         Q{&next},
         Q{&postcircumfix:<[; ]>},

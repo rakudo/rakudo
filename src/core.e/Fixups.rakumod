@@ -444,4 +444,20 @@ augment class Supply {
     }
 }
 
+#-------------------------------------------------------------------------------
+
+# Revision-gated can not be made to work: adding it to the proto in the
+# core epilogue makes building the setting infiniloop
+multi sub infix:<~>(Blob:D $a, Blob:D $b) is default {
+    my $res := nqp::create($a);
+    my $adc := nqp::decont($a);
+    my $bdc := nqp::decont($b);
+    my int $alen = nqp::elems($adc);
+    my int $blen = nqp::elems($bdc);
+
+    nqp::setelems($res, $alen + $blen);
+    nqp::splice($res, $adc, 0, $alen);
+    nqp::splice($res, $bdc, $alen, $blen);
+}
+
 # vim: expandtab shiftwidth=4

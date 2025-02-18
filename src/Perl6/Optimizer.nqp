@@ -2622,10 +2622,12 @@ class Perl6::Optimizer {
 
         my $visit_children_mode := 'default'; # Can also be 'sm_chain', or 'sm_when'
 
+        my str $opname := $op.name;
+        my int $level := $!level;
         my $sm_ast;
         if $optype eq 'locallifetime' {
             note("ENCOUNTERED locallifetime, is smartmatch? ", ($op.ann('smartmatch') ?? "YES" !! "NO")) if $!debug;
-            if $!level >= 2
+            if $level >= 2
                 && $op.ann('smartmatch')
                 && nqp::defined($sm_ast := $!smartmatch_opt.optimize_topicalized($op))
             {
@@ -2634,9 +2636,9 @@ class Perl6::Optimizer {
             return self.visit_children($op,:first);
         }
 
-        if $!level >= 2
+        if $level >= 2
             && ($optype eq 'chain' || $optype eq 'chainstatic')
-            && ($op.name eq '&infix:<~~>' || $op.name eq '&infix:<!~~>')
+            && ($opname eq '&infix:<~~>' || $opname eq '&infix:<!~~>')
         {
             $visit_children_mode := 'sm_chain';
         }
@@ -2668,7 +2670,7 @@ class Perl6::Optimizer {
 
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
-        if $optype eq 'callmethod' && $op.name eq 'sink'
+        if $optype eq 'callmethod' && $opname eq 'sink'
         && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
         && $op[0].name eq 'map' && nqp::elems($op[0]) == 2
         && $op[0][1].has_ann('code_object')
@@ -2684,7 +2686,7 @@ class Perl6::Optimizer {
             self.visit_op_children($op);
             return $op;
         }
-        elsif $optype eq 'callmethod' && $op.name eq 'new' && $!void_context {
+        elsif $optype eq 'callmethod' && $opname eq 'new' && $!void_context {
             if $op.node {
                 my str $op_txt := nqp::escape($op.node.Str);
                 my $warning := qq[Useless use of "$op_txt" in sink context];
@@ -2819,12 +2821,12 @@ class Perl6::Optimizer {
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
         }
 
-        if $!level >= 2 && $optype eq 'if' && $op.ann('when_block') {
+        if $level >= 2 && $optype eq 'if' && $op.ann('when_block') {
             $visit_children_mode := 'sm_when';
         }
 
         # We may be able to unfold a junction at compile time.
-        if $!level >= 2 {
+        if $level >= 2 {
             my $jo_result := $!junc_opt.optimize($op);
             if $jo_result {
                 return $jo_result;
@@ -2862,7 +2864,7 @@ class Perl6::Optimizer {
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
             $!block_var_stack.do('register_call');
-            if nqp::existskey(%poison_calls, $op.name) {
+            if nqp::existskey(%poison_calls, $opname) {
                 $!block_var_stack.poison-var-lowering();
             }
         }
@@ -2957,9 +2959,9 @@ class Perl6::Optimizer {
 
         # Make array variable initialization cheaper
         elsif
-            $!level > 0
+            $level > 0
             && $optype eq 'callmethod'
-            && $op.name eq 'STORE'
+            && $opname eq 'STORE'
             && nqp::elems($op.list()) == 3
             && nqp::istype($op[0], QAST::Var)
             && nqp::substr($op[0].name, 0, 1) eq '@'
@@ -2975,11 +2977,11 @@ class Perl6::Optimizer {
 
         # Turn `@a[1, 3]` into `@a.AT-POS(1), @a.AT-POS(3)`
         elsif
-            $!level > 0
+            $level > 0
             && ($optype eq 'call' || $optype eq 'callstatic')
 
             # workaround because op_eq_core needs to be "primed"
-            && ((try $!symbols.find_lexical($op.name)) || 1)
+            && ((try $!symbols.find_lexical($opname)) || 1)
 
             && self.op_eq_core($op, '&postcircumfix:<[ ]>')
 
@@ -2997,44 +2999,44 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
-            my $opt_result := $op.name eq ''
+            my $opt_result := $opname eq ''
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
             if $opt_result {
                  $!chain_depth := 0
-                    if $op.op eq 'chain' && $!chain_depth == 1;
+                    if $optype eq 'chain' && $!chain_depth == 1;
                  return $opt_result;
             }
         }
         # Some .dispatch:<....> calls can be simplified
-        elsif $!level >= 2 && $optype eq 'callmethod'
-        && nqp::eqat($op.name, 'dispatch:<', 0) {
-            if $op.name eq 'dispatch:<!>' {
+        elsif $level >= 2 && $optype eq 'callmethod'
+        && nqp::eqat($opname, 'dispatch:<', 0) {
+            if $opname eq 'dispatch:<!>' {
                 # If it's a private method call, we can sometimes resolve
                 # it at compile time. If so, we can reduce it to a
                 # sub call in some cases.
                 self.optimize_private_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<.=>' {
+            elsif $opname eq 'dispatch:<.=>' {
                 # .= calls can be unpacked entirely
                 return self.optimize_dot_equals_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<::>' {
+            elsif $opname eq 'dispatch:<::>' {
                 return self.optimize_qual_method_call: $op;
             }
-            elsif $op.name eq 'dispatch:<.?>' {
+            elsif $opname eq 'dispatch:<.?>' {
                 return self.optimize_maybe_method_call: $op;
             }
         }
 
-        if $op.op eq 'chain' {
+        if $optype eq 'chain' {
             $!chain_depth := $!chain_depth - 1;
 
             # See if we can staticalize this op
             my $obj;
             my $found;
             try {
-                $obj   := $!symbols.find_lexical($op.name);
+                $obj   := $!symbols.find_lexical($opname);
                 $found := 1;
             }
             if $found {
@@ -3042,7 +3044,7 @@ class Perl6::Optimizer {
                     $op.op: 'chainstatic'
                 }
                 else {
-                    my $scopes := $!symbols.scopes_in: $op.name;
+                    my $scopes := $!symbols.scopes_in: $opname;
                     $op.op: 'chainstatic'
                       if $scopes <= 1 && nqp::can($obj, 'soft') && ! $obj.soft;
                 }

@@ -187,39 +187,62 @@ class RakuAST::StatementModifier::Loop
     method expression-thunk() { Nil }
 }
 
-# The while statement modifier.
-class RakuAST::StatementModifier::While
+class RakuAST::StatementModifier::WhileUntil
   is RakuAST::StatementModifier::Loop
+  is RakuAST::ImplicitLookups
 {
+    # Is the condition negated?
+    method negate() { False }
+
+    method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
+        ])
+    }
+
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         if $sink {
             QAST::Op.new(
-                :op('while'),
+                :op(self.negate ?? 'until' !! 'while'),
                 self.expression.IMPL-TO-QAST($context),
                 $statement-qast
             )
         }
         else {
-            nqp::die('non-sink statement modifier while NYI');
+            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            QAST::Op.new(:op<callmethod>, :name('from-loop'),
+                $Seq,
+                $statement-qast,
+                self.expression.IMPL-TO-QAST($context),
+            )
         }
     }
 }
 
+# The while statement modifier.
+class RakuAST::StatementModifier::While
+  is RakuAST::StatementModifier::WhileUntil
+{
+}
+
 # The until statement modifier.
 class RakuAST::StatementModifier::Until
-  is RakuAST::StatementModifier::Loop
+  is RakuAST::StatementModifier::WhileUntil
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
-        if $sink {
-            QAST::Op.new(
-                :op('until'),
-                self.expression.IMPL-TO-QAST($context),
-                $statement-qast
-            )
-        }
-        else {
-            nqp::die('non-sink statement modifier until NYI');
-        }
+    method negate() { True }
+
+    method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::StatementModifier, '$!expression', RakuAST::ApplyPostfix.new(
+            :postfix(
+                RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
+            ),
+            :operand(self.expression),
+        ));
+        self.expression.ensure-begin-performed($resolver, $context);
     }
 }
 

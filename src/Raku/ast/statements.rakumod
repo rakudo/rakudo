@@ -570,6 +570,7 @@ class RakuAST::Statement::Expression
   is RakuAST::Sinkable
   is RakuAST::BlockStatementSensitive
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
@@ -666,6 +667,21 @@ class RakuAST::Statement::Expression
                     $!expression.wrap-with-thunk($thunk);
                     $thunk.ensure-begin-performed($resolver, $context);
                 }
+                $!expression.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+            }
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if ($!loop-modifier && nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil) && !self.IMPL-DISCARD-RESULT) {
+            $!loop-modifier.IMPL-NEGATE-IF-NEEDED($resolver, $context);
+            my $condition-thunk := RakuAST::ExpressionThunk.new;
+            $!loop-modifier.expression.wrap-with-thunk($condition-thunk);
+            $condition-thunk.ensure-begin-performed($resolver, $context);
+
+            if !nqp::istype($!expression, RakuAST::Block) {
+                my $thunk := RakuAST::ExpressionThunk.new;
                 $!expression.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
             }

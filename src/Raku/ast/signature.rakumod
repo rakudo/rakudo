@@ -1550,11 +1550,7 @@ class RakuAST::ParameterTarget::Var
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
 
     method visit-children(Code $visitor) {
-        # We don't want to visit the declaration if it is a topic variable,
-        # as that will result in multiple declarations because blocks already
-        # automatically declare a `$_`. And if the signature is not on a block
-        # it will still find a lexical `$_` somewhere in scope.
-        $visitor($!declaration) unless $!name eq '$_';
+        $visitor($!declaration);
     }
 }
 

@@ -1152,18 +1152,18 @@ class RakuAST::Statement::Loop
             my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
             my $while := !self.negate;
             if (!$!increment && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
-                my $loop-qast := QAST::Stmts.new(
-                    QAST::Op.new(:op('callmethod'), :name('from-loop'),
-                        $Seq,
-                        $!body.IMPL-TO-QAST($context),
-                    )
+                my $qast := QAST::Stmts.new;
+                my $loop-qast := QAST::Op.new(:op('callmethod'), :name('from-loop'),
+                    $Seq,
+                    $!body.IMPL-TO-QAST($context),
                 );
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
                     $loop-qast.push($label-qast);
                 }
-                $loop-qast
+                $qast.push: $loop-qast;
+                $qast
             }
             else {
                 my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);

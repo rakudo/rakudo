@@ -1133,7 +1133,7 @@ class RakuAST::Regex::Assertion::Named
         if $longname.is-identifier {
             my $name := $longname.canonicalize;
             if $name eq 'sym' {
-                nqp::die('special <sym> name not yet compiled');
+                nqp::die('Can only use <sym> token in a proto regex');
             }
             else {
                 my $lookups := self.get-implicit-lookups;

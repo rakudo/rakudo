@@ -4095,7 +4095,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('Regex','Assertion','Alias').new(
                :name(~$longname), :assertion($<assertion>.ast)
              )
-          !! !$name.is-multi-part && $name.canonicalize eq 'sym'
+          !! !$name.is-multi-part && $name.canonicalize eq 'sym' && %*RX<name>
             ?? Nodify('Regex','Literal').new(
                 %*RX<name>.first-colonpair('sym').simple-compile-time-quote-value
             )

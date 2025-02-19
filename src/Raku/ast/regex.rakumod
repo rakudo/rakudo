@@ -1175,7 +1175,7 @@ class RakuAST::Regex::Assertion::Named
                     QAST::SVal.new( :value($sub-name.canonicalize) ) ;
             if $!capturing {
                 $qast.subtype('capture');
-                $qast.name($sub-name.canonicalize);
+                $qast.name($!name.canonicalize);
             }
             $qast
         }

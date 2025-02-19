@@ -1691,7 +1691,7 @@ class RakuAST::ModuleLoading {
           'CompUnit', 'DependencySpecification'
         );
         my $opts := nqp::hash();
-        for $module-name.colonpairs {
+        for $module-name.IMPL-UNWRAP-LIST($module-name.colonpairs) {
             $opts{$_.key} := $_.simple-compile-time-quote-value;
         }
         my $spec := $dependency-specification.new(

@@ -82,8 +82,8 @@ class RakuAST::Var::Lexical
 
     method IMPL-IS-META-OP() {
         ($!sigil eq '&' || $!sigil eq '')
-            && nqp::elems($!desigilname.colonpairs) == 1
-            && nqp::istype($!desigilname.colonpairs[0], RakuAST::QuotedString)
+            && $!desigilname.colonpairs.elems == 1
+            && nqp::istype($!desigilname.colonpairs.AT-POS(0), RakuAST::QuotedString)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

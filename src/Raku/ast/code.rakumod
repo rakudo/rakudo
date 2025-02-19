@@ -1701,7 +1701,7 @@ class RakuAST::Routine
         # RakuAST::Sub.  But it will do for now.
         if $!name {
             my @parts;
-            for $!name.colonpairs {
+            for $!name.IMPL-UNWRAP-LIST($!name.colonpairs) {
                 @parts.push($_.canonicalize);
             }
             my str $op := nqp::join(' ',@parts);

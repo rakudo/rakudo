@@ -224,7 +224,7 @@ class RakuAST::Package
             %options<name> := $!name.canonicalize if $!name;
             %options<repr> := $!repr if $!repr;
             if $!name {
-                for $!name.colonpairs {
+                for $!name.IMPL-UNWRAP-LIST($!name.colonpairs) {
                     %options{$_.key} := $_.simple-compile-time-quote-value;
                 }
             }

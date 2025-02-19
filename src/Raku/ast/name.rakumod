@@ -36,6 +36,10 @@ class RakuAST::Name
         nqp::bindattr(self, RakuAST::Name, '$!colonpairs', @pairs);
     }
 
+    method colonpairs() {
+        self.IMPL-WRAP-LIST($!colonpairs)
+    }
+
     method parts() {
         self.IMPL-WRAP-LIST($!parts)
     }

@@ -1108,9 +1108,20 @@ class RakuAST::Regex::Assertion::Named
     method PRODUCE-IMPLICIT-LOOKUPS() {
         # A call like <foo> will look for <&foo> and only then do <.foo>
         # (but in both cases it captures).
-        self.IMPL-WRAP-LIST: $!capturing && $!name.is-identifier
-            ?? [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
-            !! []
+        if $!capturing && $!name.is-identifier {
+            self.IMPL-WRAP-LIST: [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
+        }
+        else {
+            if $!name.is-identifier {
+                self.IMPL-WRAP-LIST: []
+            }
+            else {
+                my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
+                my @package-parts := nqp::slice(@parts, 0, nqp::elems(@parts) - 2);
+                my $package-name := RakuAST::Name.new(|@package-parts);
+                self.IMPL-WRAP-LIST: [RakuAST::Type::Simple.new($package-name)]
+            }
+        }
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
@@ -1148,7 +1159,25 @@ class RakuAST::Regex::Assertion::Named
             }
         }
         else {
-            nqp::die('non-identifier rule calls not yet compiled');
+            my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
+            my @pairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);
+            my $sub := @parts[nqp::elems(@parts) - 1];
+            my $sub-name := RakuAST::Name.new($sub);
+            $sub-name.set-colonpairs(@pairs);
+
+            my $lookups := self.get-implicit-lookups;
+            my $package := $lookups.AT-POS(0).meta-object;
+            $context.ensure-sc($package);
+            my $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
+                QAST::NodeList.new:
+                    QAST::SVal.new( :value('OTHERGRAMMAR') ),
+                    QAST::WVal.new( :value($package) ),
+                    QAST::SVal.new( :value($sub-name.canonicalize) ) ;
+            if $!capturing {
+                $qast.subtype('capture');
+                $qast.name($sub-name.canonicalize);
+            }
+            $qast
         }
     }
 

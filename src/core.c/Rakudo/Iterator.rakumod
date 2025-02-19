@@ -4156,144 +4156,137 @@ class Rakudo::Iterator {
               !! Rakudo::Iterator.Batch(iterator,cycle,partial)
         }
         method pull-one() is raw {
-          nqp::if(
-            $!is-exhausted,
-            IterationEnd,
-            nqp::stmts(
-              nqp::if(
-                nqp::istype((my $todo := $!cycle.pull-one),Pair),
-                nqp::stmts(
-                  (my $size := $todo.key),
-                  nqp::if(
-                    nqp::istype($size,Whatever),
-                    nqp::stmts(                    # eat everything
-                      (my int $elems = -1),
-                      ($!complete = 0)
-                    ),
-                    nqp::if(
-                      $size < 1,                   # must be HLL comparison
-                      X::OutOfRange.new(
-                        what    => "Rotorizing sublist length is",
-                        got     => $size,
-                        range   => "1..^Inf",
-                      ).throw,
-                      nqp::if(
-                        $size == Inf || (
-                          nqp::istype($size,Int)
-                            && nqp::isbig_I(nqp::decont($size))
-                        ),
-                        nqp::stmts(                # eat everything
-                          ($elems = -1),
-                          ($!complete = 0)
-                        ),
-                        nqp::if(
-                          nqp::isle_i(
+            if $!is-exhausted {
+                IterationEnd
+            }
+            else {
+                my int $elems;
+                my int $gap;
+                my int $eat-everything;
+
+                my $todo := $!cycle.pull-one;
+                if nqp::istype($todo,Pair) {
+                    my $size := $todo.key;
+                    if nqp::istype($size,Whatever) {
+                        $eat-everything = 1;
+                    }
+                    elsif $size < 0 {               # must be HLL comparison
+                        X::OutOfRange.new(
+                          what    => "Rotorizing sublist length is",
+                          got     => $size,
+                          range   => "0..^Inf",
+                        ).throw;
+                    }
+                    elsif $size == Inf
+                      || (nqp::istype($size,Int)
+                           && nqp::isbig_I(nqp::decont($size))
+                         ) {
+                        $eat-everything = 1;
+                    }
+                    elsif nqp::isle_i(
                             nqp::add_i(
                               ($elems = $size.Int),
-                              (my int $gap = $todo.value.Int)
+                              ($gap   = $todo.value.Int)
                             ),
                             -1
-                          ),
-                          X::OutOfRange.new(       # gap out of range
-                            what    => "Rotorizing gap is",
-                            got     => $gap,
-                            range   => "-$elems..^Inf",
-                            comment => "\nEnsure a negative gap is not larger than the length of the sublist",
-                          ).throw
-                        )
-                      )
-                    )
-                  )
-                ),
-                nqp::if(                           # just a size
-                  nqp::istype($todo,Whatever),
-                  nqp::stmts(                      # eat everything
-                    ($elems = -1),
-                    ($!complete = 0)
-                  ),
-                  nqp::if(
-                    $todo < 1,                     # must be HLL comparison
-                    X::OutOfRange.new(             # size out of range
+                    ) {
+                        X::OutOfRange.new(
+                          what    => "Rotorizing gap is",
+                          got     => $gap,
+                          range   => "-$elems..^Inf",
+                          comment => "\nEnsure a negative gap is not larger than the length of the sublist",
+                        ).throw;
+                    }
+                }
+
+                elsif nqp::istype($todo,Whatever) {
+                    $eat-everything = 1;
+                }
+                elsif $todo < 0 {                  # must be HLL comparison
+                    X::OutOfRange.new(
                       what    => "Rotorizing sublist length is",
                       got     => $todo,
-                      range   => "1..^Inf",
+                      range   => "0..^Inf",
                       comment => "\nDid you mean to specify a Pair with => $todo?"
-                    ).throw,
-                    nqp::if(
-                      (nqp::istype($todo,Int)
-                        && nqp::isbig_I(nqp::decont($todo)))
-                        || $todo == Inf,
-                      nqp::stmts(                  # eat everything
-                        ($elems = -1),
-                        ($!complete = 0)
-                      ),
-                      ($elems = $todo.Int)
-                    )
-                  )
-                )
-              ),
-              nqp::until(                          # fill the buffer
-                (nqp::isge_i(nqp::elems($!buffer),$elems)
-                  && nqp::isne_i($elems,-1))       # eat everything
-                  || nqp::eqaddr(
-                       (my $pulled := $!iterator.pull-one),
-                       IterationEnd
-                     ),
-                nqp::push($!buffer,$pulled)
-              ),
-              nqp::if(
-                  nqp::iseq_i($elems,-1),
-                  ($elems = nqp::elems($!buffer))
-              ),
-              nqp::if(
-                nqp::not_i(nqp::elems($!buffer))
-                  || (nqp::eqaddr($pulled,IterationEnd)
-                       && ($!is-exhausted = 1)
-                       && $!complete
-                       && nqp::islt_i(nqp::elems($!buffer),$elems)
-                     ),
-                IterationEnd,                      # done
-                nqp::if(
-                  nqp::islt_i($gap,0),
-                  nqp::stmts(                      # keep some for next
-                    (my $result := nqp::clone($!buffer).List),
-                    nqp::if(
-                      nqp::islt_i(nqp::elems($!buffer),$elems),
-                      nqp::setelems($!buffer,0),   # was :partial, now done
-                      nqp::splice($!buffer,$empty,0,nqp::add_i($elems,$gap))
-                    ),
-                    $result
-                  ),
-                  nqp::stmts(
-                    nqp::if(
-                      nqp::isgt_i($gap,0),
-                      $!iterator.skip-at-least($gap) # need to skip a few
-                    ),
-                    nqp::if(
-                      nqp::isle_i(nqp::elems($!buffer),$elems),
-                      nqp::stmts(                    # whole buffer ok
-                        ($result := $!buffer.List),
-                        ($!buffer := nqp::create(IterationBuffer))
-                      ),
-                      nqp::stmts(                    # partial buffer ok
-                        ($result := nqp::p6bindattrinvres(
-                          nqp::create(List),List,'$!reified',
-                          nqp::splice(
-                            nqp::clone($!buffer),
-                            $empty,
-                            $elems,
-                            nqp::sub_i(nqp::elems($!buffer),$elems)
-                          )
-                        )),
-                        nqp::splice($!buffer,$empty,0,$elems)
-                      )
-                    ),
-                    $result
-                  )
-                )
-              )
-            )
-          )
+                    ).throw;
+                }
+                elsif $todo == Inf
+                  || (nqp::istype($todo,Int)
+                       && nqp::isbig_I(nqp::decont($todo))
+                     ) {
+                    $eat-everything = 1;
+                }
+                else {
+                    $elems = $todo.Int;
+                }
+
+                my $buffer   := $!buffer;  # locals are faster
+                my $iterator := $!iterator;
+
+                if $eat-everything {
+                    $iterator.push-all($buffer);
+                    $!is-exhausted = 1;
+                    nqp::elems($buffer) ?? $buffer.List !! IterationEnd
+                }
+                elsif $elems {
+
+                    # make sure we have enough elements
+                    nqp::until(
+                      nqp::isge_i(nqp::elems($buffer),$elems)
+                        || nqp::eqaddr(
+                             (my $pulled := $iterator.pull-one),
+                             IterationEnd
+                           ),
+                      nqp::push($buffer,$pulled)
+                    );
+
+                    if nqp::not_i(nqp::elems($buffer))
+                      || (nqp::eqaddr($pulled,IterationEnd)
+                            && ($!is-exhausted = 1)
+                            && $!complete
+                            && nqp::islt_i(nqp::elems($buffer),$elems)
+                         ) {
+                        IterationEnd
+                    }
+                    elsif $gap < 0 {                   # keep some for next
+                        my $result := nqp::clone($buffer).List;
+                        nqp::islt_i(nqp::elems($buffer),$elems)
+                          ?? nqp::setelems($buffer,0)  # was :partial, now done
+                          !! nqp::splice(
+                               $buffer,$empty,0,nqp::add_i($elems,$gap)
+                             );
+                        $result
+                    }
+                    else {
+                        $iterator.skip-at-least($gap) if $gap;
+
+                        # whole buffer ok
+                        if nqp::isle_i(nqp::elems($buffer),$elems) {
+                            my $result  := $buffer.List;
+                            $!buffer := nqp::create(IterationBuffer);
+                            $result
+                        }
+
+                        # partial buffer ok
+                        else {
+                            my $result := nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',
+                              nqp::splice(
+                                nqp::clone($buffer),
+                                $empty,
+                                $elems,
+                                nqp::sub_i(nqp::elems($buffer),$elems)
+                              )
+                            );
+                            nqp::splice($buffer,$empty,0,$elems);
+                            $result
+                        }
+                    }
+                }
+                else {   # elems == 0
+                    ()
+                }
+            }
         }
         method is-lazy() { $!iterator.is-lazy }
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }

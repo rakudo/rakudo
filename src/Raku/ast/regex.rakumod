@@ -1869,14 +1869,17 @@ class RakuAST::Regex::QuantifiedAtom
         my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
         my $quantified := $!quantifier.IMPL-QAST-QUANTIFY($context, $atom, %mods);
         if $!separator {
-            $quantified.push($!separator.IMPL-REGEX-QAST($context, %mods));
+            my $separator-qast := $!separator.IMPL-REGEX-QAST($context, %mods);
+            $quantified.push($separator-qast);
             if $!trailing-separator {
                 QAST::Regex.new(
                     :rxtype<concat>,
                     $quantified,
                     QAST::Regex.new(
                         :rxtype<quant>, :min(0), :max(1),
-                        $!separator.IMPL-REGEX-QAST($context, %mods)
+                        #NOTE this has to be the same QAST object as pushed into quantified, so
+                        # it'll get the same capture group assigned.
+                        $separator-qast,
                     )
                 )
             }

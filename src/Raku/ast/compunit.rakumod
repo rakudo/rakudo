@@ -278,7 +278,7 @@ class RakuAST::CompUnit
         self.add-cu-phaser($!init-phasers, $phaser);
     }
 
-    method add-check-phaser(Code $phaser) {
+    method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
         self.add-cu-phaser($!check-phasers, $phaser);
     }
 
@@ -332,7 +332,27 @@ class RakuAST::CompUnit
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
 
         while $!check-phasers {
-            nqp::pop($!check-phasers)();
+            my $check-phaser := nqp::pop($!check-phasers);
+            {
+                if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check) {
+                    $check-phaser.run($resolver, $context);
+                }
+                else {
+                    $check-phaser();
+                }
+                CATCH {
+                    my $exception := $_;
+                    my $BeginTime := self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value;
+                    my $coercer := self.get-implicit-lookups.AT-POS(3).resolution.compile-time-value;
+                    $exception := $coercer($_);
+                    my $wrapped := $BeginTime.new(:$exception, :use-case('evaluating a CHECK'));
+                    if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check) && (my $origin := $check-phaser.origin) {
+                        my $origin-match := $origin.as-match;
+                        $wrapped.SET_FILE_LINE($origin-match.file, $origin-match.line);
+                    }
+                    $wrapped.throw;
+                }
+            }
         }
     }
 
@@ -342,6 +362,10 @@ class RakuAST::CompUnit
                 'CompUnit', 'RepositoryRegistry',
             )),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
+                'X', 'Comp', 'BeginTime'
+            )),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&COMP_EXCEPTION')),
         ])
     }
 

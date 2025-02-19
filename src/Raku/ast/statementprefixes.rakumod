@@ -551,11 +551,13 @@ class RakuAST::StatementPrefix::Phaser::Check
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
-        $resolver.find-attach-target('compunit').add-check-phaser(-> {
-            nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer());
-        });
+        $resolver.find-attach-target('compunit').add-check-phaser(self);
         Nil
+    }
+
+    method run(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer())
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

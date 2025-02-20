@@ -16,6 +16,8 @@ class RakuAST::Regex
         # Store its captures and NFA.
         $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
         # TODO top-level NFA if applicable (e.g. if named rule)
+        QRegex::P6Regex::Actions.store_regex_caps($code-object, NQPMu, QRegex::P6Regex::Actions.capnames($regex-qast, 0));
+        QRegex::P6Regex::Actions.store_regex_nfa($code-object, NQPMu, QRegex::NFA.new.addnode($regex-qast));
         QRegex::P6Regex::Actions.alt_nfas($code-object, $regex-qast, $context.sc-handle);
 
         # Wrap in scan/pass as appropriate.

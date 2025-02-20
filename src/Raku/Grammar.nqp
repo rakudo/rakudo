@@ -6293,13 +6293,16 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token metachar:sym<mod> {
         ':'
-        $<negated>  = '!'?
-        $<modifier> = \w+
+        [
+        || <?before '!'> $<n>=('!')**1  $<modifier> = \w+ »
+        || <?before \d>  $<n>=(\d+)**1  $<modifier> = \w+ »
+        || $<modifier> = \w+
+        ]
 
         :my $*NEGATED;
         :my $*MODIFIER;
         {
-            $*NEGATED  := ?~$<negated>;
+            $*NEGATED := $<negated>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
             $*MODIFIER := self.slangs<MAIN>.adverb-rx2str(~$<modifier>);
         }
     }

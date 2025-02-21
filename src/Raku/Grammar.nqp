@@ -6302,7 +6302,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*NEGATED;
         :my $*MODIFIER;
         {
-            $*NEGATED := $<negated>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
+            $*NEGATED := $<n>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
             $*MODIFIER := self.slangs<MAIN>.adverb-rx2str(~$<modifier>);
         }
     }

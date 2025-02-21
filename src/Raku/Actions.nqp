@@ -4091,6 +4091,31 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         my $longname := $<longname>;
         my $name     := $longname.ast;
 
+        if $name.is-indirect-lookup {
+            if $<assertion> {
+                if $name.parts.elems > 1 {
+                    $/.typed-panic('X::Syntax::Regex::Alias::LongName');
+                }
+                else {
+                    # If ever implemented, take care with RESTRICTED
+                    $/.typed-panic('X::Syntax::Reserved', :reserved('dynamic alias name in regex'));
+                }
+            }
+            if $name.parts.elems > 1 {
+                # If ever implemented, take care with RESTRICTED
+                $/.typed-panic('X::NYI', :feature('long dynamic name in regex assertion'));
+            }
+            if $*RESTRICTED {
+                $/.typed-panic('X::SecurityPolicy::Eval', :payload($*RESTRICTED));
+            }
+        }
+
+        if $<assertion> {
+            if $name.parts.elems > 1 {
+                $/.typed-panic('X::Syntax::Regex::Alias::LongName');
+            }
+        }
+
         self.attach: $/, $<assertion>
           ?? Nodify('Regex','Assertion','Alias').new(
                :name(~$longname), :assertion($<assertion>.ast)

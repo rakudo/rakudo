@@ -189,26 +189,43 @@ class RakuAST::Regex::Sequence
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $concat := QAST::Regex.new(:rxtype<concat>);
         my str $collect-literals := '';
+        my @terms;
         for $!terms {
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 $collect-literals := $collect-literals ~ $_.text;
             }
             else {
                 if $collect-literals ne '' {
-                    $concat.push(self.IMPL-LIT($collect-literals, %mods));
+                    @terms.push(self.IMPL-LIT($collect-literals, %mods));
                     $collect-literals := '';
                 }
                 my $qast := $_.IMPL-REGEX-QAST($context, %mods);
                 if $qast {
                     $qast.backtrack('r') if %mods<r> && !$qast.backtrack;
-                    $concat.push($qast);
+                    @terms.push($qast);
                 }
             }
         }
         if $collect-literals ne '' {
-            $concat.push(self.IMPL-LIT($collect-literals, %mods));
+            @terms.push(self.IMPL-LIT($collect-literals, %mods));
+        }
+
+        # One more round of literal collection after we generated QAST as
+        # not only RakuAST::Regex::Literal nodes can create literals
+        my $concat := QAST::Regex.new(:rxtype<concat>);
+        my $last-term;
+        for @terms {
+            if nqp::istype($_, QAST::Regex) && $_.rxtype eq 'literal' && !nqp::istype($_[0], QAST::Node)
+                && $last-term && nqp::istype($last-term, QAST::Regex) && $last-term.rxtype eq 'literal' && !nqp::istype($last-term[0], QAST::Node)
+                && $_.subtype eq $last-term.subtype
+            {
+                $last-term[0] := $last-term[0] ~ $_[0];
+            }
+            else {
+                $last-term := $_;
+                $concat.push($_);
+            }
         }
         $concat
     }

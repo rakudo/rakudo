@@ -2203,6 +2203,7 @@ class RakuAST::Methodish
             $placeholder-signature.set-is-on-named-method(True) if self.name;
             $placeholder-signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
+            $placeholder-signature.set-invocant-type-check(self.IMPL-INVOCANT-TYPE-CHECK);
             $placeholder-signature.attach($resolver);
             $placeholder-signature.PERFORM-PARSE($resolver, $context);
             self.add-generated-lexical-declaration($_) for $placeholder-signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
@@ -2226,6 +2227,7 @@ class RakuAST::Methodish
             $signature.set-is-on-named-method(True) if self.name;
             $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $signature.set-is-on-role-method(True) if $package-is-role;
+            $signature.set-invocant-type-check(self.IMPL-INVOCANT-TYPE-CHECK);
             $signature.PERFORM-PARSE($resolver, $context);
             self.add-generated-lexical-declaration($_) for $signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $signature.to-begin-time($resolver, $context);
@@ -2261,6 +2263,10 @@ class RakuAST::Methodish
 
         # Apply any traits.
         self.apply-traits($resolver, $context, self)
+    }
+
+    method IMPL-INVOCANT-TYPE-CHECK() {
+        True
     }
 }
 
@@ -2409,6 +2415,10 @@ class RakuAST::RegexDeclaration
     }
 
     method IMPL-META-OBJECT-TYPE() { Regex }
+
+    method IMPL-INVOCANT-TYPE-CHECK() {
+        self.scope ne 'my'
+    }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @declarations := [

@@ -14,6 +14,7 @@ class RakuAST::Signature
     has int $!is-on-meta-method;
     has int $!is-on-role-method;
     has int $!is-on-role-body;
+    has int $!invocant-type-check;
     has RakuAST::Package $!method-package;
     has RakuAST::Parameter $.implicit-invocant;
     has RakuAST::Parameter $!implicit-slurpy-hash;
@@ -29,6 +30,7 @@ class RakuAST::Signature
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
         $obj
     }
 
@@ -86,6 +88,10 @@ class RakuAST::Signature
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-role-body', $is-on-role-body ?? 1 !! 0);
     }
 
+    method set-invocant-type-check(Bool $invocant-type-check) {
+        nqp::bindattr_i(self, RakuAST::Signature, '$!invocant-type-check', $invocant-type-check ?? 1 !! 0);
+    }
+
     method provides-return-value() {
         if $!returns {
             my $value := self.IMPL-RETURN-VALUE();
@@ -123,7 +129,7 @@ class RakuAST::Signature
                     $type := self.get-implicit-lookups.AT-POS(0);
                 }
                 elsif $!is-on-named-method {
-                    if nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
+                    if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
                         my $Class := self.get-implicit-lookups.AT-POS(1);
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));

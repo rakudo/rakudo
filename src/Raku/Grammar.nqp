@@ -6396,6 +6396,15 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         || <?before '!'> $<n>=('!')**1  $<modifier> = \w+ »
         || <?before \d>  $<n>=(\d+)**1  $<modifier> = \w+ »
         || $<modifier> = \w+
+            [
+            '('
+                [
+                | $<n>=[\d+]
+                | <?[']> <quote_EXPR: ':q'>
+                | <?["]> <quote_EXPR: ':qq'>
+                ]
+                ')'
+            ]**0..1
         ]
 
         :my $*NEGATED;

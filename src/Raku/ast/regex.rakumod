@@ -1026,7 +1026,11 @@ class RakuAST::Regex::Interpolation
         # Look for fast paths.
         if nqp::istype($!var, RakuAST::Lookup) && $!var.is-resolved {
             my $resolution := $!var.resolution;
-            # TODO contant case
+            if nqp::istype($resolution, RakuAST::VarDeclaration::Constant) {
+                return self.IMPL-APPLY-LITERAL-MODS:
+                    QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($resolution.compile-time-value) ),
+                    %mods
+            }
             if !%mods<m> && nqp::istype($resolution, RakuAST::VarDeclaration::Simple) &&
                     $resolution.sigil eq '$' {
                 my $type := $resolution.type;

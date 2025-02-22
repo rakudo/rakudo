@@ -1179,10 +1179,10 @@ class RakuAST::Regex::Assertion::Named
                     && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
                     && nqp::istype($resolution.compile-time-value, Regex)
                 {
+                    my $var-qast := $lookups.AT-POS(0).IMPL-TO-QAST($context);
+                    $var-qast.annotate('coderef', $resolution.compile-time-value);
                     $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
-                        QAST::NodeList.new:
-                            QAST::SVal.new( :value('CALL_SUBRULE') ),
-                            $lookups.AT-POS(0).IMPL-TO-QAST($context);
+                        QAST::NodeList.new: $var-qast;
                 }
                 else {
                     $qast := QAST::Regex.new: :rxtype<subrule>,

@@ -427,7 +427,7 @@ class RakuAST::Infix
                                  int $negate ) {
         # Handle cases of s/// or m// separately. For a non-negating smartmatch this case could've been reduced to
         # plain topic localization except that we must ensure a False returned when there is no match.
-        if nqp::istype($right, RakuAST::RegexThunk)
+        if (nqp::istype($right, RakuAST::RegexThunk) || nqp::istype($right, RakuAST::Transliteration))
             && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
         {
             my $match-type :=
@@ -2944,4 +2944,68 @@ class RakuAST::Ternary
     }
 
     method properties() { OperatorProperties.infix('?? !!') }
+}
+
+class RakuAST::Transliteration
+  is RakuAST::Expression
+  is RakuAST::ImplicitLookups
+{
+    has Bool $.destructive;
+    has RakuAST::Expression $.left;
+    has RakuAST::Expression $.right;
+
+    method new(Bool :$destructive!, RakuAST::Expression :$left!, RakuAST::Expression :$right!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Transliteration, '$!destructive', $destructive ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Transliteration, '$!left', $left);
+        nqp::bindattr($obj, RakuAST::Transliteration, '$!right', $right);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('StrDistance')),
+        ])
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $Pair := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+        my $trans := QAST::Op.new:
+            QAST::Var.new(:name<$_>, :scope<lexical>),
+            :op<callmethod>, :name<trans>,
+                QAST::Op.new:
+                    :op<callmethod>, :name<new>, :returns($Pair),
+                    QAST::WVal.new( :value($Pair) ),
+                    $!left.IMPL-TO-QAST($context),  # key
+                    $!right.IMPL-TO-QAST($context); # value
+        if $!destructive {
+            my $StrDistance := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+            my $original := QAST::Node.unique: 'original_value_to_trans';
+
+            QAST::Stmt.new(
+                QAST::Op.new( # save original $_ into our temp var
+                    QAST::Var.new(:name($original), :scope<lexical>, :decl<var>),
+                    :op<bind>, QAST::Op.new: :op<decont>,
+                    QAST::Var.new(:name<$_>, :scope<lexical>)
+                ),
+                QAST::Op.new( # call .trans() and assign result to $_
+                    QAST::Var.new(:name<$_>, :scope<lexical>),
+                    :op<call>, :name('&infix:<=>'),
+                    $trans,
+                ),
+                QAST::Op.new: # our return value: the StrDistance object
+                    :returns($StrDistance),
+                    QAST::Var.new(
+                      :name<StrDistance>, :scope<lexical> ),
+                    :op<callmethod>, :name<new>,
+                        QAST::Var.new(
+                          :named<before>, :name($original), :scope<lexical>),
+                        QAST::Var.new:
+                          :named<after>,  :name<$_>, :scope<lexical>).annotate_self('regex_match_code', 1)
+        }
+        else {
+            $trans
+        }
+    }
 }

@@ -4639,6 +4639,36 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
+    # nibbler for tr///
+    token tribble ($l, $lang2, $base, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        :my $*CCSTATE := '';
+        <babble($l, $base, @lang2tweaks)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
+        { $*CCSTATE := ''; }
+        [ <?{ $start ne $stop }>
+            $start <right=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
+        ||
+            { $lang := self.quote-lang($lang2, $stop, $stop, $base, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
+        ]
+    }
+
+    token quote:sym<tr> {
+        $<sym>=['tr' | 'TR']
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        {} <.qok($/)>
+        # <rx-adverbs('tr-adverb')>
+        <rx-adverbs>
+        <tribble(self.slang_grammar('Quote'), self.slang_grammar('Quote'), 'qq', [['cc', 1]])>
+        <.old-rx-modifiers>?
+    }
+
     token sibble($l, $lang2, $base?) {
         <babble($l)>
 
@@ -6106,6 +6136,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         self.truly($v, ':regex');
         self.Regex
     }
+    method tweak_cc($v) {
+        self.truly($v, ':cc');
+        self.apply_tweak(Raku::QGrammar::cc);
+    }
     method tweak_to($v) {
         self.truly($v, ':to');
         # the cursor_init is to ensure it's been initialized the same way
@@ -6198,6 +6232,71 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
               if $from != $to || !@NIBBLES;
             @*NIBBLES := @NIBBLES;
         }
+    }
+
+    role cc {
+        token starter { \' }
+        token stopper { \' }
+
+        method ccstate ($s) {
+            if $*CCSTATE eq '..' {
+                $*CCSTATE := '';
+            }
+            else {
+                $*CCSTATE := $s;
+            }
+            self;
+        }
+
+        # (must not allow anything to match . in nibbler or we'll lose track of state)
+        token escape:ws { \s+ [ <?[#]> <.ws> ]? }
+        token escape:sym<#> { '#' <.panic: "Please backslash # for literal char or put whitespace in front for comment"> }
+        token escape:sym<\\> { <sym> <item=.backslash> <.ccstate('\\' ~ $<item>)> }
+        token escape:sym<..> { <sym>
+            [
+            || <?{ ($*CCSTATE eq '') || ($*CCSTATE eq '..') }> <.sorry("Range missing start character on the left")>
+            || <?before \s* <!stopper> <!before '..'> \S >
+            || <.sorry("Range missing stop character on the right")>
+            ]
+            { $*CCSTATE := '..'; }
+        }
+
+        token escape:sym<-> {
+            '-' <?{ $*CCSTATE ne '' }> \s* <!stopper> \S
+            <.obs('- as character range','.. (or \\- if you mean a literal hyphen)')>
+        }
+        token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
+
+        token backslash:delim { <text=.starter> | <text=.stopper> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<a> { :i <sym> }
+        token backslash:sym<b> { :i <sym> }
+        token backslash:sym<c> { :i <sym> <charspec> }
+        token backslash:sym<d> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<e> { :i <sym> }
+        token backslash:sym<f> { :i <sym> }
+        token backslash:sym<h> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<N> { <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
+        token backslash:sym<n> { :i <sym> }
+        token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
+        token backslash:sym<r> { :i <sym> }
+        token backslash:sym<s> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<t> { :i <sym> }
+        token backslash:sym<v> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<w> { :i <sym> { $*CCSTATE := '' } }
+        token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
+        token backslash:sym<0> { <sym> }
+
+        # keep random backslashes like qq does
+        token backslash:misc { {}
+            [
+            | $<text>=(\W)
+            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
+            ]
+        }
+        multi method tweak_q($v) { self.panic("Too late for :q") }
+        multi method tweak_qq($v) { self.panic("Too late for :qq") }
+        multi method tweak_cc($v) { self.panic("Too late for :cc") }
     }
 }
 

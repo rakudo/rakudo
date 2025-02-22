@@ -2882,6 +2882,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, setup-substitution($/, :immutable, :samespace)
     }
 
+    method quote:sym<tr>($/) {
+        self.attach: $/, Nodify('Transliteration').new:
+            :left($<tribble><left>.ast),
+            :right($<tribble><right>.ast),
+            :destructive($<sym> eq 'tr'),
+    }
+
     # We make a list of the quotepairs to attach them to the regex
     # construct; validation of what is valid takes place in the AST.
     # However, a limited number of them are required for parsing the
@@ -3745,6 +3752,11 @@ Please use $worry.";
     sub qwatom($node) { Nodify('QuoteWordsAtom').new($node.ast) }
     method escape:sym<'>($/)         { self.attach: $/, qwatom($<quote>)     }
     method escape:sym<colonpair>($/) { self.attach: $/, qwatom($<colonpair>) }
+    #
+    # The next three are currently only used for tr///.
+    method escape:ch ($/)     { make ~$/; }
+    method escape:sym<..>($/) { make ~$/; }
+    method escape:ws ($/)     { make ~$/; }
 }
 
 #-------------------------------------------------------------------------------

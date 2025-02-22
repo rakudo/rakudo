@@ -952,6 +952,7 @@ class RakuAST::Regex::Statement
 # A block of code embedded in a regex, executed only for its side-effects.
 class RakuAST::Regex::Block
   is RakuAST::Regex::Atom
+  is RakuAST::CheckTime
 {
     has RakuAST::Block $.block;
 
@@ -962,6 +963,17 @@ class RakuAST::Regex::Block
     }
 
     method quantifiable() { False }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!block.body.statement-list.visit-children(-> $statement {
+            if nqp::istype($statement, RakuAST::Statement::Expression) {
+                if nqp::istype($statement.expression, RakuAST::Var::Attribute) {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Attribute::Regex', :symbol($statement.expression.name);
+                }
+            }
+        });
+    }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $block-call := self.IMPL-REGEX-BLOCK-CALL($context, $!block);
@@ -978,6 +990,7 @@ class RakuAST::Regex::Block
 # thus it can be constructed with any expression.
 class RakuAST::Regex::Interpolation
   is RakuAST::Regex::Atom
+  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Expression $.var;
@@ -995,6 +1008,13 @@ class RakuAST::Regex::Interpolation
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
         ])
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype($!var, RakuAST::Var::Attribute) {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Attribute::Regex', :symbol($!var.name);
+        }
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
@@ -1394,6 +1414,7 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedVar
   is RakuAST::Regex::Assertion
+  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Expression $.var;
@@ -1411,6 +1432,13 @@ class RakuAST::Regex::Assertion::InterpolatedVar
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
         ])
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype($!var, RakuAST::Var::Attribute) {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Attribute::Regex', :symbol($!var.name);
+        }
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {

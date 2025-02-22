@@ -1063,6 +1063,8 @@ class RakuAST::Regex::Interpolation
 class RakuAST::Regex::Assertion
   is RakuAST::Regex::Atom
 {
+    has int $!allow-eval;
+
     method IMPL-INTERPOLATE-ASSERTION(RakuAST::IMPL::QASTContext $context, %mods,
             Mu $expression-qast, Bool $sequential, Mu $PseudoStash) {
         QAST::Regex.new:
@@ -1071,7 +1073,7 @@ class RakuAST::Regex::Assertion
                 QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
                 $expression-qast,
                 QAST::IVal.new( :value((%mods<i> ?? 1 !! 0) + (%mods<m> ?? 2 !! 0)) ),
-                QAST::IVal.new( :value(0) ), # XXX 1 if MONKEY-SEE-NO-EVAL
+                QAST::IVal.new( :value($!allow-eval) ),
                 QAST::IVal.new( :value($sequential ?? 1 !! 0) ),
                 QAST::IVal.new( :value(1) ),
                 QAST::Op.new(
@@ -1387,11 +1389,12 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
     has RakuAST::Block $.block;
     has Bool $.sequential;
 
-    method new(RakuAST::Block :$block!, Bool :$sequential) {
+    method new(RakuAST::Block :$block!, Bool :$sequential, Bool :$allow-eval) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedBlock, '$!block', $block);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedBlock, '$!sequential',
             $sequential ?? True !! False);
+        nqp::bindattr_i($obj, RakuAST::Regex::Assertion, '$!allow-eval', $allow-eval ?? 1 !! 0);
         $obj
     }
 
@@ -1426,11 +1429,12 @@ class RakuAST::Regex::Assertion::InterpolatedVar
     has RakuAST::Expression $.var;
     has Bool $.sequential;
 
-    method new(RakuAST::Expression :$var!, Bool :$sequential) {
+    method new(RakuAST::Expression :$var!, Bool :$sequential, Bool :$allow-eval) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedVar, '$!var', $var);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedVar, '$!sequential',
             $sequential ?? True !! False);
+        nqp::bindattr_i($obj, RakuAST::Regex::Assertion, '$!allow-eval', $allow-eval ?? 1 !! 0);
         $obj
     }
 

@@ -4139,7 +4139,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method assertion:sym<{ }>($/) {
         self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
-          :block($<codeblock>.ast), :sequential(?$*SEQ);
+          :block($<codeblock>.ast), :sequential(?$*SEQ),
+          :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
     }
 
     method assertion:sym<?{ }>($/) {
@@ -4161,7 +4162,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         }
         else {
             self.attach: $/, Nodify('Regex','Assertion','InterpolatedVar').new:
-              :var($<var>.ast), :sequential(?$*SEQ);
+              :var($<var>.ast), :sequential(?$*SEQ),
+              :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
         }
     }
 
@@ -4325,7 +4327,8 @@ class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
 
     method p5metachar:sym<(??{ })>($/) {
         self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
-          :block($<codeblock>.ast), :sequential(?$*SEQ);
+          :block($<codeblock>.ast), :sequential(?$*SEQ),
+          :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
     }
 
     method p5metachar:sym<var>($/) {

@@ -65,6 +65,18 @@ sub wrap-in-for-loop($ast) {
                 body => Nodify('Blockoid').new($ast))));
 }
 
+sub monkey-see-no-eval($/) {
+    my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
+    nqp::defined($msne)
+        ?? $msne   # prevails if defined, can be either 1 or 0
+        !! $*COMPILING_CORE_SETTING
+            || try {
+                $*R.resolve-name-constant(
+                    Nodify('Name').from-identifier('&MONKEY-SEE-NO-EVAL'), :sigil('&')
+                ).compile-time-value()();
+            };
+}
+
 #-------------------------------------------------------------------------------
 # Role for all Action classes associated with Raku grammar slangs
 
@@ -4140,7 +4152,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method assertion:sym<{ }>($/) {
         self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
           :block($<codeblock>.ast), :sequential(?$*SEQ),
-          :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
+          :allow-eval(monkey-see-no-eval($/));
     }
 
     method assertion:sym<?{ }>($/) {
@@ -4163,7 +4175,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         else {
             self.attach: $/, Nodify('Regex','Assertion','InterpolatedVar').new:
               :var($<var>.ast), :sequential(?$*SEQ),
-              :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
+              :allow-eval(monkey-see-no-eval($/));
         }
     }
 
@@ -4328,7 +4340,7 @@ class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
     method p5metachar:sym<(??{ })>($/) {
         self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
           :block($<codeblock>.ast), :sequential(?$*SEQ),
-          :allow-eval($*LANG.pragma('MONKEY-SEE-NO-EVAL'));
+          :allow-eval(monkey-see-no-eval($/));
     }
 
     method p5metachar:sym<var>($/) {

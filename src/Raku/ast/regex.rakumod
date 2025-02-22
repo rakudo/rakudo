@@ -2048,6 +2048,7 @@ class RakuAST::Regex::Quantifier::OneOrMore
 
 # The literal range (** 1..5) quantifier.
 class RakuAST::Regex::Quantifier::Range
+  is RakuAST::CheckTime
   is RakuAST::Regex::Quantifier
 {
     has Int $.min;
@@ -2069,6 +2070,13 @@ class RakuAST::Regex::Quantifier::Range
         nqp::bindattr($obj, RakuAST::Regex::Quantifier::Range, '$!excludes-max',
             $excludes-max ?? True !! False);
         $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::defined($!max) && ($!max - ($!excludes-max ?? 1 !! 0)) < ($!min // 0 + ($!excludes-min ?? 1 !! 0)) {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Syntax::Regex::QuantifierValue', :empty-range;
+        }
     }
 
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {

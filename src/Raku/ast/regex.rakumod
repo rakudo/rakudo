@@ -2083,7 +2083,7 @@ class RakuAST::Regex::Quantifier::Range
         my int $min := $!min // 0;
         $min++ if $!excludes-min;
         my int $max := -1;
-        if $!max {
+        if nqp::defined($!max) {
             $max := $!max;
             $max-- if $!excludes-max;
         }

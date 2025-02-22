@@ -4057,13 +4057,13 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method backslash:sym<o>($/) {
         my str $characters := HLL::Actions.ints_to_string($<octint> || $<octints><octint>);
         self.attach: $/, Nodify('Regex', 'CharClass', 'Specified').new:
-            :negated($<sym> le 'Z'), :$characters
+            :negated($<sym> le 'Z'), :$characters, :codepoint($<octint> ?? $<octint>.ast !! $<octints><octint>[0].ast)
     }
 
     method backslash:sym<x>($/) {
         my str $characters := HLL::Actions.ints_to_string($<hexint> || $<hexints><hexint>);
         self.attach: $/, Nodify('Regex', 'CharClass', 'Specified').new:
-            :negated($<sym> le 'Z'), :$characters
+            :negated($<sym> le 'Z'), :$characters, :codepoint($<hexint> ?? $<hexint>.ast !! $<hexints><hexint>[0].ast)
     }
 
     method backslash:sym<c>($/) {
@@ -4256,9 +4256,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             ?? $end
             !! $/.panic("Illegal range endpoint: " ~ $/)
           !! ~$/;
-        %*RX<m>
+        ($<cclass_backslash> ?? $<cclass_backslash>.ast.codepoint !! NQPMu) // (%*RX<m>
           ?? nqp::ordbaseat($chr, 0)
-          !! non-synthetic-ord($/, $chr)
+          !! non-synthetic-ord($/, $chr))
     }
 
     sub non-synthetic-ord($/, $chr) {

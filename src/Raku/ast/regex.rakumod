@@ -623,6 +623,8 @@ class RakuAST::Regex::CharClass::Negatable
 class RakuAST::Regex::CharClassEnumerationElement
   is RakuAST::Node
 {
+    method codepoint() { Nil }
+
     method IMPL-CCLASS-ENUM-CHARS(%mods) { '' }
 
     method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
@@ -826,13 +828,16 @@ class RakuAST::Regex::CharClass::Specified
   is RakuAST::Regex::CharClassEnumerationElement
 {
     has str $.characters;
+    has Int $.codepoint;
 
-    method new(Bool :$negated, str :$characters!) {
+    method new(Bool :$negated, str :$characters!, Int :$codepoint) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::CharClass::Negatable, '$!negated',
             $negated ?? True !! False);
         nqp::bindattr_s($obj, RakuAST::Regex::CharClass::Specified, '$!characters',
             $characters);
+        nqp::bindattr($obj, RakuAST::Regex::CharClass::Specified, '$!codepoint',
+            $codepoint);
         $obj
     }
 

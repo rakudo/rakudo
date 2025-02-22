@@ -1142,7 +1142,7 @@ class RakuAST::Regex::Assertion::Named
             self.IMPL-WRAP-LIST: [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
         }
         else {
-            if $!name.is-identifier {
+            if $!name.is-identifier || $!name.is-indirect-lookup && !$!name.is-multi-part {
                 self.IMPL-WRAP-LIST: []
             }
             else {
@@ -1187,6 +1187,12 @@ class RakuAST::Regex::Assertion::Named
                 }
                 $qast
             }
+        }
+        elsif $longname.is-indirect-lookup && !$longname.is-multi-part {
+            QAST::Regex.new: :rxtype<subrule>, :subtype<method>,
+                QAST::NodeList.new:
+                    QAST::SVal.new( :value('INDMETHOD') ),
+                    $longname.parts.AT-POS(0).IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
         }
         else {
             my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);

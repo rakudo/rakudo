@@ -1315,11 +1315,48 @@ class RakuAST::Regex::Assertion::Named::RegexArg
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast',
-            $!regex-arg.IMPL-REGEX-QAST($context, %mods));
+        my $body-qast := $!regex-arg.IMPL-REGEX-QAST($context, %mods);
+        $body-qast := self.IMPL-FLIP-QAST($body-qast) if self.name.canonicalize eq 'after';
+        nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast', $body-qast);
         my $qast := self.IMPL-REGEX-QAST-CALL($context);
         my str $name := self.IMPL-UNIQUE-NAME;
         $qast[0].push(QAST::Var.new( :$name, :scope('lexical') ));
+        $qast
+    }
+
+    method IMPL-FLIP-QAST($qast) {
+        return $qast unless nqp::istype($qast, QAST::Regex);
+        if $qast.rxtype eq 'literal' {
+            $qast[0] := nqp::flip($qast[0]);
+        }
+        elsif $qast.rxtype eq 'concat' {
+            my @tmp;
+            while nqp::elems(@($qast)) { @tmp.push(@($qast).shift) }
+            while @tmp { @($qast).push(self.IMPL-FLIP-QAST(@tmp.pop)) }
+        }
+        elsif $qast.rxtype eq 'anchor' {
+            if $qast.subtype eq 'rwb' {
+                $qast.subtype("lwb");
+            }
+            elsif $qast.subtype eq 'lwb' {
+                $qast.subtype("rwb");
+            }
+            elsif $qast.subtype eq 'bol' {
+                $qast.subtype("eol");
+            }
+            elsif $qast.subtype eq 'eol' {
+                $qast.subtype("bol");
+            }
+            elsif $qast.subtype eq 'bos' {
+                $qast.subtype("eos");
+            }
+            elsif $qast.subtype eq 'eos' {
+                $qast.subtype("bos");
+            }
+        }
+        else {
+            for @($qast) { self.IMPL-FLIP-QAST($_) }
+        }
         $qast
     }
 

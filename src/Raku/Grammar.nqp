@@ -4669,6 +4669,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.old-rx-modifiers>?
     }
 
+    token quote:sym<y> {
+        <sym>
+        <?before \h*\W>
+        {} <.qok($/)>
+        <.obs('y///','tr///')>
+    }
+
     token sibble($l, $lang2, $base?) {
         <babble($l)>
 

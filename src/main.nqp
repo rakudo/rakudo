@@ -46,10 +46,6 @@ my @clo := $comp.commandline_options();
 @clo.push('beautify');
 #?endif
 
-# Make Perl6 grammar / actions visible to HLL
-nqp::bindhllsym('Perl6', 'Grammar', Perl6::Grammar);
-nqp::bindhllsym('Perl6', 'Actions', Perl6::Actions);
-
 # Make Raku grammar / actions visible to HLL
 nqp::bindhllsym('Raku', 'Grammar', Raku::Grammar);
 nqp::bindhllsym('Raku', 'Actions', Raku::Actions);

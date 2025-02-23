@@ -327,8 +327,8 @@ do {
             }
 
             $!compiler := compiler;
-            $!grammar := nqp::gethllsym('Perl6','Grammar');
-            $!actions := nqp::gethllsym('Perl6','Actions');
+            $!grammar  := nqp::null;
+            $!actions  := nqp::null;
             $!multi-line-enabled = $multi-line-enabled;
             PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {
                 note "Uncaught exception on thread $*THREAD.id():\n" ~
@@ -418,9 +418,11 @@ do {
             }
 
             my $*GRAMMAR;
+            %adverbs<grammar> := $!grammar unless nqp::isnull($!grammar);
+            %adverbs<actions> := $!actions unless nqp::isnull($!actions);
             my $result := self.compiler.eval(
               $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
-              :$!grammar, :$!actions, |%adverbs
+              |%adverbs
             );
 
             # Grammar was changed, make sure we use changed one from now on

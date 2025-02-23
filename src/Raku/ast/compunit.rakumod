@@ -397,8 +397,9 @@ class RakuAST::CompUnit
             ));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
-            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
+
+        add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name => '$?LANGUAGE-REVISION', value => $!language-revision.Int

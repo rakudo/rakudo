@@ -2884,6 +2884,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method quote:sym<tr>($/) {
         self.attach: $/, Nodify('Transliteration').new:
+            :adverbs($<rx-adverbs>.ast),
             :left($<tribble><left>.ast),
             :right($<tribble><right>.ast),
             :destructive($<sym> eq 'tr'),

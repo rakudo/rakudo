@@ -531,6 +531,13 @@ class RakuAST::Regex::Anchor::EndOfLine
     method IMPL-QAST-SUBTYPE() { 'eol' }
 }
 
+#| The Perl word boundary (\b) anchor.
+class RakuAST::Regex::Anchor::WordBoundary
+  is RakuAST::Regex::Anchor
+{
+    method IMPL-QAST-SUBTYPE() { 'wb' }
+}
+
 #| The left word boundary (<<) anchor.
 class RakuAST::Regex::Anchor::LeftWordBoundary
   is RakuAST::Regex::Anchor

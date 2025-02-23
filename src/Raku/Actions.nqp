@@ -4345,6 +4345,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 }
 
 class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
+    method nibbler($/) {
+        self.attach: $/, $<alternation>.ast;
+    }
+
     method p5metachar:sym<(?{ })>($/) {
         self.attach: $/, Nodify('Regex', 'Block').new($<codeblock>.ast);
     }
@@ -4370,5 +4374,195 @@ class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
 
     method arglist($/) {
         make $<arglist>.ast;
+    }
+
+    # helper method to handle regex sequences
+    method handle-regex-seq($/, str $key, str $class) {
+        my $ast;
+        my @parts := nqp::atkey($/,$key);
+
+        if nqp::elems(@parts) == 1 {
+            $ast := @parts[0].ast;
+        }
+        else {
+            my @branches;
+            for @parts {
+                @branches.push($_.ast);
+            }
+            $ast := Nodify('Regex',$class).new(|@branches);
+        }
+
+        self.attach: $/, $ast
+    }
+
+    method alternation($/) {
+        self.handle-regex-seq($/, 'sequence', 'SequentialAlternation')
+    }
+
+    method sequence($/) {
+        if $<quantified_atom> {
+            self.handle-regex-seq($/, 'quantified_atom', 'Sequence')
+        }
+        else {
+            self.attach: $/, Nodify('Regex','Assertion','Pass').new
+        }
+    }
+
+    method quantified_atom($/) {
+        my $atom       := $<atom>.ast;
+        my $quantifier := $<quantifier>;
+
+        self.attach: $/, $quantifier
+          ?? Nodify('Regex','QuantifiedAtom').new(
+               :$atom, :quantifier($quantifier[0].ast)
+             )
+          !! %*RX<r>
+            ?? Nodify('Regex','BacktrackModifiedAtom').new(
+                 :$atom, :backtrack(%*RX<r>)
+               )
+            !! $atom
+    }
+
+    method atom($/) {
+        self.attach: $/, (my $metachar := $<metachar>)
+          ?? $metachar.ast // Nodify('Regex') # We'll error out later if no real AST
+          !! Nodify('Regex','Literal').new(~$/);
+    }
+
+    method quantmod($/) {
+        self.attach: $/, Nodify('Regex', 'Backtrack', ~$/ eq '?' ?? 'Frugal' !! 'Greedy');
+    }
+
+    method p5quantifier:sym<*>($/) {
+        self.attach: $/, Nodify('Regex', 'Quantifier', 'ZeroOrMore').new(backtrack => $<quantmod>.ast);
+    }
+
+    method p5quantifier:sym<+>($/) {
+        self.attach: $/, Nodify('Regex', 'Quantifier', 'OneOrMore').new(backtrack => $<quantmod>.ast);
+    }
+
+    method p5quantifier:sym<?>($/) {
+        self.attach: $/, Nodify('Regex', 'Quantifier', 'ZeroOrOne').new(backtrack => $<quantmod>.ast);
+    }
+
+    method p5quantifier:sym<{ }>($/) {
+        my $ast;
+
+        my $backtrack:= $<quantmod>.ast;
+
+        my $LITERALS := $*LITERALS;
+        my $min := $LITERALS.build-int(~$<start>, 10);
+
+        my $max := $<end> && ~$<end>[0] ne ''
+            ?? $LITERALS.build-int(~$<end>[0], 10)
+            !! $<comma> ?? nqp::hllizefor(-1, 'Raku') !! $min;
+
+        $ast := Nodify('Regex','Quantifier','Range').new(
+          excludes-min => 0,
+          min          => $min,
+          max          => $max,
+          excludes-max => 0,
+          backtrack    => $backtrack
+        );
+
+        self.attach: $/, $ast
+    }
+
+    method p5backslash:sym<A>($/) {
+        self.attach: $/, Nodify('Regex', 'Anchor', 'BeginningOfString').new;
+    }
+
+    method p5backslash:sym<b>($/) {
+        self.attach: $/, Nodify('Regex', 'Anchor', 'WordBoundary').new;
+    }
+
+    method p5backslash:sym<h>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'HorizontalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method p5backslash:sym<r>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'CarriageReturn').new();
+    }
+
+    method p5backslash:sym<R>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'Newline').new();
+    }
+
+    method p5backslash:sym<s>($/) {
+        my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
+        self.attach: $/, Nodify('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
+    }
+
+    method p5backslash:sym<t>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'Tab').new(negated => $<sym> le 'Z');
+    }
+
+    method p5backslash:sym<v>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'VerticalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method p5backslash:sym<x>($/) {
+        my str $characters := HLL::Actions.ints_to_string($<hexint>);
+        self.attach: $/, Nodify('Regex', 'CharClass', 'Specified').new:
+            :negated($<sym> le 'Z'), :$characters, :codepoint($<hexint>.ast)
+    }
+
+    method p5backslash:sym<z>($/) {
+        self.attach: $/, Nodify('Regex', 'Anchor', 'EndOfString').new;
+    }
+
+    method p5backslash:sym<Z>($/) {
+        nqp::die('\Z NYI');
+    }
+
+    method p5backslash:sym<misc>($/) {
+        if $<litchar> {
+            self.attach: $/, Nodify('Regex','Literal').new(~$/)
+        }
+        else {
+            Nodify('Regex','BackReference','Positional').new(+$<number>)
+        }
+    }
+
+    method p5metachar:sym<bs>($/) {
+        make $<backslash>.ast;
+    }
+
+    method p5metachar:sym<.>($/) {
+        self.attach: $/, Nodify('Regex', 'CharClass', 'Any').new;
+    }
+
+    method p5metachar:sym<^>($/) {
+        self.attach: $/, Nodify('Regex', 'Anchor', $*RX<m> ?? 'BeginningOfLine' !! 'BeginningOfString').new;
+    }
+
+    method p5metachar:sym<$>($/) {
+        self.attach: $/, Nodify('Regex', 'Anchor', $*RX<m> ?? 'EndOfLine' !! 'EndOfString').new;
+    }
+
+    method p5metachar:sym<(? )>($/) { # like P6's $<name>=[ ... ]
+        my $qast;
+        if $<nibbler> {
+            $qast := Nodify('Regex','NamedCapture').new(
+                name  => ~$<name>,
+                regex => $<nibbler>.ast
+            );
+        }
+        else {
+            $qast := $<assertion>.ast;
+        }
+        make $qast;
+    }
+
+    method p5metachar:sym<(?: )>($/) {
+        make $<nibbler>.ast;
+    }
+
+    method p5metachar:sym<( )>($/) {
+        self.attach: $/, Nodify('Regex', 'CapturingGroup').new($<nibbler>.ast);
+    }
+
+    method p5metachar:sym<[ ]>($/) {
+        nqp::die("Character class NYI");
     }
 }

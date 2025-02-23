@@ -4758,14 +4758,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | $<neg>='!'
             [ <identifier> || <.malformed: "False pair; expected identifier"> ]
             [
-              <[ \[ \( \< \{ ]>
+              <[ \[ \( \< ]>
               { $/.typed-panic('X::Syntax::NegatedPair',key => ~$<identifier>) }
             ]?
             { $*KEY := $<identifier> }
 
           | $<num>=[\d+]
             <identifier>
-            [ <?before <.[ \[ \( \< \{ ]>>
+            [ <?before <.[ \[ \( \< ]>>
               {}
               <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)>
               <.circumfix>

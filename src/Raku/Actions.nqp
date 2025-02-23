@@ -196,6 +196,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $is-EVAL           := nqp::isconcrete(%OPTIONS<outer_ctx>);
         my $setting-name      := %OPTIONS<setting>;
 
+        if $is-EVAL {
+            $RESOLVER := $RESOLVER.clone;
+            $*R := $RESOLVER;
+        }
+
         # Helper sub to configure the resolver with selected language revision
         my sub resolver-from-revision() {
             $setting-name := 'CORE.' ~ $HLL-COMPILER.lvs.p6rev($language-revision);

@@ -4781,6 +4781,9 @@ if $*COMPILING_CORE_SETTING {
 
         $*W.install_lexical_symbol($*W.cur_lexpad(), '%?LANG', $*W.p6ize_recursive(%*LANG, :dynamic));
 
+        # If an outer $*GRAMMAR is specified, then set it here
+        try $*GRAMMAR := self;
+
         $*LANG := self;
         $*LEAF := self;
         #$*W.install_lexical_symbol($*W.cur_lexpad(), '$?LANG', self);

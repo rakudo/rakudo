@@ -206,6 +206,10 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
+        # The grammar / actions to use
+        has $!grammar;
+        has $!actions;
+
         sub do-mixin($self, Str $module-name, $behavior, :@extra-modules,
                      Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
@@ -323,6 +327,8 @@ do {
             }
 
             $!compiler := compiler;
+            $!grammar := nqp::gethllsym('Perl6','Grammar');
+            $!actions := nqp::gethllsym('Perl6','Actions');
             $!multi-line-enabled = $multi-line-enabled;
             PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {
                 note "Uncaught exception on thread $*THREAD.id():\n" ~
@@ -411,10 +417,19 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval(
+            my $*GRAMMAR;
+            my $result := self.compiler.eval(
               $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
-              |%adverbs
-            )
+              :$!grammar, :$!actions, |%adverbs
+            );
+
+            # Grammar was changed, make sure we use changed one from now on
+            if $*GRAMMAR -> $grammar {
+                $!grammar := $grammar;
+                $!actions := $grammar.actions;
+            }
+
+            $result
         }
 
         method interactive_prompt($index) { "[$index] > " }

@@ -1,3 +1,4 @@
+
 my class Rat { ... }
 my class X::Cannot::Capture { ... }
 

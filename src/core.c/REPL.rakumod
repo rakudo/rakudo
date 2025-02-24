@@ -393,8 +393,11 @@ do {
                 }
 
                 when X::AdHoc {
-                    if .message eq 'Premature heredoc consumption'
-                      || .message.starts-with('Ending delimiter ') {
+                    my str $message = .message;
+                    if $message eq 'Premature heredoc consumption'
+                      || $message.starts-with('Ending delimiter ')
+                      || $message.starts-with("Couldn't find terminator")
+                      || $message.contains("is immediately followed by a combining codepoint") {
                         return $!need-more-input
                           if $!multi-line-enabled;
                     }

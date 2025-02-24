@@ -1726,6 +1726,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<statement-prefix>.ast
     }
 
+    method term:sym<sigterm>($/) {
+        self.attach: $/, $<sigterm>.ast;
+    }
+
     method term:sym<*>($/) {
         self.attach: $/, Nodify('Term', 'Whatever').new
     }
@@ -3133,6 +3137,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $post-constraint<signature> {
                 $parameter.set-sub-signature($post-constraint<signature>.ast);
             }
+        }
+        if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
+            $parameter.set-sub-signature($sig<fakesignature>.ast);
         }
         # Leave the exact time of Parameter's BEGIN to the signature
         make $parameter;

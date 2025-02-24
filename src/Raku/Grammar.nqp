@@ -4838,6 +4838,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Signatures
 
+    token sigterm {
+        :dba('signature')
+        ':(' ~ ')' <fakesignature>
+    }
+
     token fakesignature {
         :my $*BLOCK;
         <.enter-block-scope('PointyBlock')>
@@ -4974,8 +4979,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               <sigil>
               <twigil>?
               [
-#               || <?{ $<sigil>.Str eq '&' }>
-#                  [<?identifier> {} <name=.sublongname> | <sigterm>]
+                || <?{ $<sigil>.Str eq '&' }>
+                   [<?identifier> {} <name=.sublongname> | <sigterm>]
 
                 || <name=.identifier>
 
@@ -5155,6 +5160,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('new name to be defined')
         <name>
         <colonpair>*
+    }
+
+    token subshortname {
+        <desigilname>
+    }
+
+    token sublongname {
+        <subshortname> <sigterm>?
     }
 
     token defterm {

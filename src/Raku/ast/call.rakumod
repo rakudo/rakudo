@@ -5,6 +5,7 @@ class RakuAST::ArgList
 {
     has List $!args;
     has RakuAST::Expression $.invocant;
+    has Bool $!on-return;
 
     method new(*@args) {
         my $obj := nqp::create(self);
@@ -39,6 +40,10 @@ class RakuAST::ArgList
     method set-arg-at-pos(int $pos, RakuAST::Expression $arg) {
         nqp::bindpos($!args,$pos,$arg);
         Nil
+    }
+
+    method set-on-return(Bool $on-return) {
+        nqp::bindattr(self, RakuAST::ArgList, '$!on-return', $on-return);
     }
 
     method push($arg) {
@@ -105,7 +110,7 @@ class RakuAST::ArgList
                     :flat(1), :named(1)
                 ));
             }
-            elsif nqp::istype($arg, RakuAST::NamedArg) {
+            elsif nqp::istype($arg, RakuAST::NamedArg) && !$!on-return {
                 my $name := $arg.named-arg-name;
                 if %named-counts{$name} == 1 {
                     # It's the final appearance of this name, so emit it as the
@@ -263,6 +268,10 @@ class RakuAST::Call::Name
                     self.set-resolution($resolved);
                 }
             }
+        }
+
+        if $!name.canonicalize eq 'return' {
+            self.args.set-on-return(True);
         }
     }
 

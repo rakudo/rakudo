@@ -255,6 +255,14 @@ class RakuAST::StatementList
         self.IMPL-WRAP-LIST($!statements)
     }
 
+    method IMPL-NON-EMPTY-CODE-STATEMENTS() {
+        my @stmts;
+        for self.code-statements {
+            nqp::push(@stmts, $_) unless nqp::istype($_, RakuAST::Statement::Empty);
+        }
+        @stmts
+    }
+
     # Return whether there are any whenevers
     method any-whenevers() {
         for $!statements {
@@ -319,7 +327,7 @@ class RakuAST::StatementList
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
-        my @statements := self.code-statements;
+        my @statements := self.IMPL-NON-EMPTY-CODE-STATEMENTS;
         my $Nil := self.get-implicit-lookups.AT-POS(1);
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
@@ -376,7 +384,7 @@ class RakuAST::StatementList
     method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
         # Sink all statements, with the possible exception of the last one (only if
         # we are not sunk).
-        my @statements := self.code-statements;
+        my @statements := self.IMPL-NON-EMPTY-CODE-STATEMENTS;
         my int $i;
         my int $n := nqp::elems(@statements);
         my int $wanted-statement := $is-sunk ?? -1 !! $n - 1;

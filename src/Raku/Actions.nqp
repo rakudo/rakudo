@@ -3317,14 +3317,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
-                $/.typed-sorry('X::Redeclaration',
-                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
-                    if $*R.declare-lexical-in-outer($*BLOCK);
+                my $existing := $*R.declare-lexical-in-outer($*BLOCK);
+                if $existing {
+                    if nqp::istype($existing, RakuAST::Routine) && $existing.is-stub {
+                        $*BLOCK.set-replace-stub(1);
+                    }
+                    else {
+                        $/.typed-sorry('X::Redeclaration',
+                            :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
+                    }
+                }
             }
             elsif $*DEFAULT-SCOPE ne 'has' {
-                $/.typed-sorry('X::Redeclaration',
-                    :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
-                    if $*R.declare-lexical($*BLOCK);
+                my $existing := $*R.declare-lexical($*BLOCK);
+                if $existing {
+                    if nqp::istype($existing, RakuAST::Routine) && $existing.is-stub {
+                        $*BLOCK.set-replace-stub(1);
+                    }
+                    else {
+                        $/.typed-sorry('X::Redeclaration',
+                            :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
+                    }
+                }
             }
         }
     }

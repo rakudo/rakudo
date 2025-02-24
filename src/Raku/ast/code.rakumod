@@ -1615,6 +1615,7 @@ class RakuAST::Routine
     has str $!multiness;
     has RakuAST::Package $!package;
     has Bool $.need-routine-variable;
+    has Bool $!replace-stub;
 
     method multiness() {
         my $multiness := $!multiness;
@@ -1629,6 +1630,10 @@ class RakuAST::Routine
     method replace-signature(RakuAST::Signature $new-signature) {
         nqp::bindattr(self, RakuAST::Routine, '$!signature', $new-signature);
         Nil
+    }
+
+    method set-replace-stub(Bool $replace-stub) {
+        nqp::bindattr(self, RakuAST::Routine, '$!replace-stub', $replace-stub ?? True !! False);
     }
 
     method declaration-kind() { 'routine' }
@@ -1650,6 +1655,11 @@ class RakuAST::Routine
     method build-bind-exception(RakuAST::Resolver $resolver) {
         $resolver.build-exception: 'X::Bind::Rebind',
             :target(self.lexical-name)
+    }
+
+    method is-stub() {
+        my $statement-list := self.body.statement-list;
+        $statement-list.IMPL-IS-SINGLE-EXPRESSION && nqp::istype($statement-list.statements.AT-POS(0).expression, RakuAST::Stub)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1946,11 +1956,20 @@ class RakuAST::Routine
         # If we're a named lexical thing, install us in the block.
         my $name := self.lexical-name;
         if $name && self.multiness ne 'multi' {
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                self.IMPL-CLOSURE-QAST($context)
-            )
+            if $!replace-stub {
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :scope<lexical>, :$name ),
+                    self.IMPL-CLOSURE-QAST($context)
+                )
+            }
+            else {
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
+                    self.IMPL-CLOSURE-QAST($context)
+                )
+            }
         }
         else {
             QAST::Op.new( :op('null') )

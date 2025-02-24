@@ -346,7 +346,7 @@ class RakuAST::Code
         ));
         $wrapper[0].push(QAST::Var.new(
             :name('$/'), :scope('lexical'),
-            :decl('contvar'), :value(Mu)
+            :decl('contvar'), :value(Nil)
         ));
         my $package := $!resolver.current-package;
         $context.ensure-sc($package);

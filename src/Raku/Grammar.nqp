@@ -3911,6 +3911,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
             $sigil := $<sigil> ?? $<sigil>.Str !! "";
             $*VARIABLE-NAME := $<sigil> ~ $<twigil> ~ $<desigilname>;
+            $/.add-variable($*VARIABLE-NAME);
         }
         [
           <.unspace>?

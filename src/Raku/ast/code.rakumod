@@ -1774,6 +1774,10 @@ class RakuAST::Routine
                 $proto := $proto.compile-time-value;
             }
             else {
+                unless self.scope eq '' || self.scope eq 'my' {
+                    $resolver.build-exception('X::Declaration::Scope::Multi', scope => self.scope, declaration => 'multi').throw;
+                }
+
                 my $scope := $resolver.current-scope;
 
                 if $proto := $resolver.resolve-lexical-constant($name) {

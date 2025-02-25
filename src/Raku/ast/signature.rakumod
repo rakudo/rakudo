@@ -240,7 +240,7 @@ class RakuAST::Signature
         QAST::WVal.new(:value($signature))
     }
 
-    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
+    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi) {
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
         if $needs-full-binder {
@@ -267,6 +267,9 @@ class RakuAST::Signature
             if $!implicit-slurpy-hash {
                 $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
             }
+        }
+        if $multi {
+            $bindings.push(QAST::Op.new( :op('bindcomplete') ));
         }
         $bindings
     }

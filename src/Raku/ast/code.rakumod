@@ -1879,7 +1879,7 @@ class RakuAST::Routine
                     self.IMPL-QAST-DECLS($context)
                 ), :key);
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
+        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi')));
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);

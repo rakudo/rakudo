@@ -183,9 +183,9 @@ class RakuAST::ArgList
         [@pos, %named]
     }
 
-    method IMPL-HAS-ONLY-COMPILE-TIME-VALUES() {
+    method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic) {
         for $!args -> $arg {
-            return False unless nqp::istype($arg, RakuAST::CompileTimeValue);
+            return False if !nqp::istype($arg, RakuAST::CompileTimeValue) || (!$allow-generic && $arg.compile-time-value.HOW.archetypes.generic);
         }
         True
     }

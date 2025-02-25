@@ -380,7 +380,7 @@ class RakuAST::Type::Parameterized
         if !$!args.args {
             self.base-type.compile-time-value
         }
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:allow-generic) {
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];
@@ -420,7 +420,9 @@ class RakuAST::Type::Parameterized
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if !$!args.args {
-            QAST::WVal.new( :value(self.base-type.compile-time-value) )
+            my $value := self.base-type.compile-time-value;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
         }
         elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
             my $value := self.meta-object;
@@ -429,6 +431,7 @@ class RakuAST::Type::Parameterized
         }
         else {
             my $ptype := self.base-type.compile-time-value;
+            $context.ensure-sc($ptype);
             my $ptref := QAST::WVal.new( :value($ptype) );
             my $qast := QAST::Op.new(:op<callmethod>, :name<parameterize>, QAST::Op.new(:op<how>, $ptref), $ptref);
             $!args.IMPL-ADD-QAST-ARGS($context, $qast);

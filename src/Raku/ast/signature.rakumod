@@ -1110,14 +1110,12 @@ class RakuAST::Parameter
                 )));
             }
             if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) {
-                my $value := $!type.meta-object;
-                $context.ensure-sc($value);
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op<istrue>,
                     QAST::Op.new(
                         :op<callmethod>,
                         :name<ACCEPTS>,
-                        QAST::WVal.new( :$value ),
+                        $!type.IMPL-EXPR-QAST($context),
                         $get-decont-var(),
                     )
                 )));
@@ -1373,15 +1371,13 @@ class RakuAST::Parameter
         # TODO: Investigate breakage -- No such method 'ACCEPTS' for invocant of type '::?CLASS:D'
         #        if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
         if nqp::defined($!type) && nqp::istype($!type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
-            my $type-object := $!type.meta-object;
-            $context.ensure-sc($type-object);
             $param-qast.push(
                 QAST::ParamTypeCheck.new(
                     QAST::Op.new(
                         :op<istrue>,
                         QAST::Op.new(
                             :op('callmethod'), :name('ACCEPTS'),
-                            QAST::WVal.new( :value($type-object) ),
+                            $!type.IMPL-EXPR-QAST($context),
                             $temp-qast-var
                         )
                     )

@@ -1235,6 +1235,28 @@ class RakuAST::VarDeclaration::Simple
                 # Natively typed value. Need to initialize it to a default
                 # in the absence of an initializer.
                 my $init;
+                my $assign-op := 'bind';
+                $var-access.scope('lexicalref');
+                if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
+                    $assign-op := 'assign_i';
+                    $var-access.returns(int);
+                    $init := QAST::IVal.new( :value(0) );
+                }
+                elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
+                    $assign-op := 'assign_u';
+                    $var-access.returns(uint);
+                    $init := QAST::IVal.new( :value(0) );
+                }
+                elsif $prim-spec == 2 {
+                    $assign-op := 'assign_n';
+                    $var-access.returns(num);
+                    $init := QAST::NVal.new( :value(0e0) );
+                }
+                else {
+                    $assign-op := 'assign_s';
+                    $var-access.returns(str);
+                    $init := QAST::SVal.new( :value('') );
+                }
                 if $!initializer {
                     if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                         $init := $!initializer.expression.IMPL-TO-QAST($context);
@@ -1243,16 +1265,7 @@ class RakuAST::VarDeclaration::Simple
                         nqp::die('Can only compile an assign initializer on a native');
                     }
                 }
-                elsif $prim-spec == 1 || ($prim-spec >= 4 && $prim-spec <= 10) {
-                    $init := QAST::IVal.new( :value(0) );
-                }
-                elsif $prim-spec == 2 {
-                    $init := QAST::NVal.new( :value(0e0) );
-                }
-                else {
-                    $init := QAST::SVal.new( :value('') );
-                }
-                $qast := QAST::Op.new( :op('bind'), $var-access, $init )
+                $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
             }
 
             # Reference type value with an initializer

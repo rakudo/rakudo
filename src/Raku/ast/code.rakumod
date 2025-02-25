@@ -1767,7 +1767,7 @@ class RakuAST::Routine
             $!signature.to-begin-time($resolver, $context);
         }
 
-        if self.multiness eq 'multi' {
+        if self.multiness eq 'multi' && self.name {
             my $name := '&' ~ self.name.canonicalize;
             my $proto := $resolver.resolve-lexical($name, :current-scope-only);
             if $proto {
@@ -1827,6 +1827,11 @@ class RakuAST::Routine
         self.add-trait-sorries;
 
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        if $!multiness && !$!name {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Anon::Multi', multiness => $!multiness;
+        }
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -2084,11 +2089,11 @@ class RakuAST::Sub
     }
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-trait-sorries;
+        nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
 
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
-
-        return Nil unless self.multiness eq 'multi';
+        # Anonymous multis will already have been reported and would lead to compiler
+        # error in the next check.
+        return Nil if self.multiness ne 'multi' || !self.name;
 
         self.IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES($resolver);
     }

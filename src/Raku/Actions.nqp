@@ -2660,25 +2660,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method decint($/) {
-        make $*LITERALS.intern-int: ~$/, 10, -> {
+        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 10, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method hexint($/) {
-        make $*LITERALS.intern-int: ~$/, 16, -> {
+        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 16, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method octint($/) {
-        make $*LITERALS.intern-int: ~$/, 8, -> {
+        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 8, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method binint($/) {
-        make $*LITERALS.intern-int: ~$/, 2, -> {
+        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 2, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
@@ -2694,7 +2694,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method decimal-number($/) {
         if $<escale> { # wants a Num
-            self.attach: $/, Nodify('NumLiteral').new($*LITERALS.intern-num(~$/));
+            self.attach: $/, Nodify('NumLiteral').new($*LITERALS.intern-num(($*NEGATE_VALUE ?? '-' !! '') ~ $/));
         }
         else { # wants a Rat
             self.attach: $/, Nodify('RatLiteral').new($*LITERALS.intern-decimal(

@@ -1228,6 +1228,7 @@ class RakuAST::Parameter
                         $param-qast.default(QAST::IVal.new( :value(0) ));
                     }
                     else {
+                        $context.ensure-sc($nominal-type);
                         $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
                     }
                 }

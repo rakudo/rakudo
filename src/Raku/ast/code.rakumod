@@ -1702,7 +1702,7 @@ class RakuAST::Routine
         if $!package {
             nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value);
             ($!package.stubbed-meta-object.WHO){self.lexical-name} := $routine
-                if self.lexical-name && self.scope eq 'our';
+                if self.lexical-name && self.scope eq 'our' && self.multiness ne 'multi';
         }
 
         # Make sure that any OperatorProperties are set on the meta-object
@@ -1942,7 +1942,7 @@ class RakuAST::Routine
         }
 
         my $name := self.lexical-name;
-        if $name && (self.scope eq 'our' || self.scope eq 'unit') {
+        if $name && (self.scope eq 'our' || self.scope eq 'unit') && self.multiness ne 'multi' {
             my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new(), :key);
             $stmts.push($block);
             $stmts.push(QAST::Op.new(

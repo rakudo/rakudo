@@ -2891,7 +2891,7 @@ class RakuAST::Substitution
         my $lookups    := self.get-implicit-lookups;
         my $topic      := $lookups.AT-POS(0);
         my $slash      := $lookups.AT-POS(1);
-        my $Positional := $lookups.AT-POS(2);
+        my $Positional := $lookups.AT-POS(2).compile-time-value;
 
         my $topic-str-var := QAST::Node.unique('subst_topic_str');
         my $result := self.IMPL-SET-NODE(
@@ -2954,6 +2954,7 @@ class RakuAST::Substitution
             }
         }
         my $match-result-var := QAST::Node.unique('subst_match');
+        my $list-result      := QAST::Node.unique('subst_list_result');
         $result.push: QAST::Op.new:
             :op('bind'),
             QAST::Var.new( :decl('var'), :scope('local'), :name($match-result-var) ),
@@ -3018,6 +3019,44 @@ class RakuAST::Substitution
                 ?? QAST::Var.new( :scope('local'), :name($topic-str-var) )
                 # For the s/// form, evaluate to the match variable
                 !! $match-lookup;
+
+        $result.push:
+            # If we have a list of matches, then put them into $/,
+            # otherwise, $/ already has the Match object we want it to have
+            QAST::Op.new( :op('if'),
+                QAST::Op.new( :op('istype'),
+                    QAST::Var.new( :name($match-result-var), :scope('local') ),
+                    QAST::WVal.new( :value($Positional) )
+                ),
+                QAST::Op.new( :op('p6store'),
+                    QAST::Var.new( :name('$/'), :scope('lexical') ),
+                    QAST::Stmts.new(
+                        QAST::Op.new( :op('bind'),
+                            QAST::Var.new( :name($list-result), :scope('local'), :decl('var') ),
+                            QAST::Op.new( :op('create'),
+                                QAST::WVal.new( :value(List) )
+                            )
+                        ),
+                        QAST::Op.new( :op('bindattr'),
+                            QAST::Var.new( :name($list-result), :scope('local') ),
+                            QAST::WVal.new( :value(List) ),
+                            QAST::SVal.new( :value('$!reified') ),
+                            QAST::Op.new( :op('getattr'),
+                                QAST::Var.new( :name($match-result-var), :scope('local') ),
+                                QAST::WVal.new( :value(List) ),
+                                QAST::SVal.new( :value('$!reified') )
+                            )
+                        ),
+                        QAST::Var.new( :name($list-result), :scope('local') )
+                    )
+                ),
+            );
+        if $!immutable {
+            $result.resultchild(nqp::elems($result.list) - 2);
+        }
+        else {
+            $result.push: QAST::Var.new( :name('$/'), :scope('lexical') );
+        }
 
         $result
     }

@@ -4851,7 +4851,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.leave-block-scope>
     }
 
-    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION, :$*ON-ROUTINE) {
+    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1, :$*ON-VARDECLARATION, :$*ON-ROUTINE, :$*ARRAY = 0) {
         :my $*MULTI-INVOCANT := 1;
         :my @*SEPS := nqp::list();
         <.ws>
@@ -4972,7 +4972,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token param-var {
         :dba('formal parameter')
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ARRAY)>
 
           | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
 

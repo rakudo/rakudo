@@ -14,12 +14,13 @@ class RakuAST::Signature
     has int $!is-on-meta-method;
     has int $!is-on-role-method;
     has int $!is-on-role-body;
+    has int $.is-array;
     has int $!invocant-type-check;
     has RakuAST::Package $!method-package;
     has RakuAST::Parameter $.implicit-invocant;
     has RakuAST::Parameter $!implicit-slurpy-hash;
 
-    method new(List :$parameters, RakuAST::Node :$returns) {
+    method new(List :$parameters, RakuAST::Node :$returns, Bool :$is-array) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
           self.IMPL-UNWRAP-LIST($parameters)
@@ -31,6 +32,7 @@ class RakuAST::Signature
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', $is-array);
         $obj
     }
 
@@ -365,6 +367,10 @@ class RakuAST::FakeSignature
         $obj
     }
 
+    method is-array() {
+        False
+    }
+
     method PRODUCE-META-OBJECT() {
         $!block.meta-object; # To bind block to signature
         $!signature.meta-object
@@ -486,7 +492,7 @@ class RakuAST::Parameter
     }
 
     method set-default-type(RakuAST::Type $type) {
-        my str $sigil := $!target.sigil;
+        my str $sigil := self.IMPL-SIGIL;
         unless $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             nqp::bindattr(self, RakuAST::Parameter, '$!type', $type)
                 unless $!type;
@@ -647,9 +653,15 @@ class RakuAST::Parameter
         self.visit-traits($visitor);
     }
 
+    method IMPL-SIGIL() {
+        my str $sigil := $!target.sigil;
+        $sigil := '@' if $!sub-signature && $!sub-signature.is-array;
+        $sigil;
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups;
-        my str $sigil := $!target.sigil;
+        my str $sigil := self.IMPL-SIGIL;
         my str $sigil-type;
         if $sigil eq '@' { nqp::push(@lookups, 'Positional'); nqp::push(@lookups, 'PositionalBindFailover') }
         elsif $sigil eq '%' { nqp::push(@lookups, 'Associative') }
@@ -739,7 +751,7 @@ class RakuAST::Parameter
 
     method IMPL-FLAGS() {
 
-        my $sigil := $!target.sigil;
+        my str $sigil := self.IMPL-SIGIL;
         my int $flags;
         $flags := $flags +| nqp::const::SIG_ELEM_INVOCANT if $!invocant;
         $flags := $flags +| nqp::const::SIG_ELEM_MULTI_INVOCANT;
@@ -795,7 +807,7 @@ class RakuAST::Parameter
     }
 
     method IMPL-NOMINAL-TYPE() {
-        my str $sigil := $!target.sigil;
+        my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;

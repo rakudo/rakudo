@@ -2868,6 +2868,12 @@ class RakuAST::Substitution
         self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
     }
 
+    method IMPL-ADVERBS-TO-COMPILATION-MODS() {
+        my %mods := nqp::findmethod(RakuAST::QuotedMatchConstruct, 'IMPL-ADVERBS-TO-COMPILATION-MODS')(self);
+        %mods<s> := 1 if $!samespace;
+        %mods
+    }
+
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
         $!pattern.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object,
             self.IMPL-ADVERBS-TO-COMPILATION-MODS())
@@ -2910,6 +2916,11 @@ class RakuAST::Substitution
         my int $sigspace := $samespace;
         my int $samecase;
         my int $samemark;
+        if $!samespace {
+            my $arg := QAST::IVal.new(:value(1));
+            $arg.named('samespace');
+            $match-qast.push($arg);
+        }
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
             if self.IMPL-IS-POSITION-ADVERB($norm) {
@@ -2918,7 +2929,7 @@ class RakuAST::Substitution
                     :named($norm), :op<if>,
                     $match-lookup,
                     QAST::Op.new( :op<callmethod>, :name<to>, $match-lookup ),
-                    QAST::IVal.new( :value(0) )
+                    QAST::IVal.new( :value(0) ) unless $norm eq 'ss' && $!samespace;
             }
             else {
                 # Pass the value of the pair.

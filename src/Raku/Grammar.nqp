@@ -4972,9 +4972,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token param-var {
         :dba('formal parameter')
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ARRAY)>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ARRAY)>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
 
           | $<declname>=[
               <sigil>

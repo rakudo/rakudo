@@ -3081,6 +3081,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $parameter.set-default-rw if $*DEFAULT-RW > 1;
         }
 
+        if nqp::defined($*MULTI-INVOCANT) {
+            $parameter.set-multi-invocant($*MULTI-INVOCANT);
+        }
+
         my $capture := Nodify('Type', 'Capture');
         my $raku-type := Nodify('Type');
         my $raku-quotedstring := Nodify('QuotedString');

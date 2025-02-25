@@ -411,6 +411,7 @@ class RakuAST::Parameter
     has RakuAST::ParameterTarget   $.target;
     has Mu                         $!names;
     has Bool                       $.invocant;
+    has Bool                       $.multi-invocant; # Is this param relevant for multi dispatch?
     has Bool                       $.optional;
     has Bool                       $.default-rw;
     has Bool                       $.default-raw;
@@ -427,6 +428,7 @@ class RakuAST::Parameter
       RakuAST::ParameterTarget :$target,
                           List :$names,
                           Bool :$invocant,
+                          Bool :$multi-invocant,
                           Bool :$optional,
                           Bool :$default-rw,
                           Bool :$default-raw,
@@ -452,6 +454,8 @@ class RakuAST::Parameter
           self.IMPL-NAMES($names));
         nqp::bindattr($obj, RakuAST::Parameter, '$!invocant',
           $invocant ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!multi-invocant',
+          ($multi-invocant // True) ?? True !! False);
         nqp::bindattr($obj, RakuAST::Parameter, '$!optional',
           nqp::defined($optional)
             ?? ($optional ?? True !! False)
@@ -505,6 +509,11 @@ class RakuAST::Parameter
 
     method set-invocant(Bool $invocant) {
         nqp::bindattr(self, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
+        Nil
+    }
+
+    method set-multi-invocant(Bool $multi-invocant) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!multi-invocant', $multi-invocant ?? True !! False);
         Nil
     }
 
@@ -757,7 +766,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         my int $flags;
         $flags := $flags +| nqp::const::SIG_ELEM_INVOCANT if $!invocant;
-        $flags := $flags +| nqp::const::SIG_ELEM_MULTI_INVOCANT;
+        $flags := $flags +| nqp::const::SIG_ELEM_MULTI_INVOCANT if $!multi-invocant;
         $flags := $flags +| nqp::const::SIG_ELEM_IS_OPTIONAL if self.is-optional;
         if $sigil eq '@' {
             $flags := $flags +| nqp::const::SIG_ELEM_ARRAY_SIGIL;

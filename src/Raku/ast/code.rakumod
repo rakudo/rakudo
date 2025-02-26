@@ -1761,7 +1761,7 @@ class RakuAST::Routine
                 RakuAST::Type::Setting.new(
                     RakuAST::Name.from-identifier('Any'),
                 ).to-begin-time($resolver, $context)
-            );
+            ) unless nqp::istype(self, RakuAST::RoleBody);
             $!signature.PERFORM-PARSE($resolver, $context);
             self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);

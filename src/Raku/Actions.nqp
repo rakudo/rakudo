@@ -805,7 +805,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast.ensure-begin-performed($*R, $*CU.context);
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
                 $/.add-categorical(
-                  $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+                  $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
             }
         }
 
@@ -833,7 +833,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $ast.to-begin-time($*R, $*CU.context);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
             $/.add-categorical(
-              $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+              $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
         }
 
         self.attach: $/, $ast;

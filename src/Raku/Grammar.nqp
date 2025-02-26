@@ -4181,7 +4181,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         if $categorical && nqp::can(self, $cat) {
             my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
             my $canname := $cat ~ ':sym' ~ $canop;
-            self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0]);
+            self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0], :current-scope);
         }
     }
 
@@ -5194,7 +5194,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
                     my $canname := $category ~ ':sym' ~ $canop;
                     my $termname := $category ~ ':' ~ $canop;
-                    $/.add-categorical($category, $opname, $canname, $termname, :defterm);
+                    $/.add-categorical($category, $opname, $canname, $termname, :defterm, :current-scope);
                 }
             }
         | <?>
@@ -5282,7 +5282,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
     method add-categorical(
-      $category, $opname, $canname, $subname, $declarand?, :$defterm
+      $category, $opname, $canname, $subname, $declarand?, :$defterm, :$current-scope
     ) {
         my $actions            := self.actions;
         my $OperatorProperties := $actions.OperatorProperties;
@@ -5521,7 +5521,7 @@ Rakudo significantly on *every* run."
         my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
         nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
 
-        $*R.outer-scope.merge-generated-lexical-declaration(
+        ($current-scope ?? $*R.current-scope !! $*R.outer-scope).merge-generated-lexical-declaration(
             :resolver($*R),
             :force,
             self.actions.r('VarDeclaration', 'Implicit', 'Constant').new(

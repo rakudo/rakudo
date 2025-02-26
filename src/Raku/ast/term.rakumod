@@ -75,6 +75,14 @@ class RakuAST::Term::Name
         }
     }
 
+    method IMPL-CAN-INTERPRET() {
+        self.has-compile-time-value
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.maybe-compile-time-value
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
     }

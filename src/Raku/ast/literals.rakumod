@@ -318,7 +318,7 @@ class RakuAST::QuotedString
 
     # Tries to get a literal value for the quoted string. If that is not
     # possible, returns Nil.
-    method literal-value() {
+    method literal-value(:$accept-block) {
         my @parts;
         for $!segments {
             if nqp::istype($_, RakuAST::StrLiteral) {
@@ -344,6 +344,9 @@ class RakuAST::QuotedString
                 && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant)
             {
                 self.IMPL-PROCESS-PART(@parts, $_.resolution.compile-time-value.Str) || return Nil;
+            }
+            elsif $accept-block && nqp::istype($_, RakuAST::Block) && $_.body.IMPL-CAN-INTERPRET {
+                nqp::push(@parts, ~$_.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new));
             }
             else {
                 return Nil;

@@ -2535,7 +2535,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {
-        $<sym>
+        <sym>
         [
           | ['[' | '{' | '(' ]
             <.obs: '->(), ->{} or ->[] as postfix dereferencer',

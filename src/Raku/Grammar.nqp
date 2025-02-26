@@ -5466,10 +5466,11 @@ Rakudo significantly on *every* run."
         if $category eq 'postcircumfix' {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname), :node($/),
-                        $<statement>.ast
+                    my $ast := self.r('Call','Name').new(
+                        :name(self.r('Name').from-identifier($subname)),
+                        :args(self.r('ArgList').new($<statement>.ast))
                     );
+                    self.attach: $/, $ast;
                 }
             };
             $actions-mixin := PostcircumfixAction.HOW.curry(
@@ -5479,14 +5480,15 @@ Rakudo significantly on *every* run."
         elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname), :node($/),
-                        $<semilist>.ast
+                    my $ast := self.r('Call','Name').new(
+                        :name(self.r('Name').from-identifier($subname)),
+                        :args(self.r('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
                     );
+                    self.attach: $/, $ast;
                 }
             };
             $actions-mixin := CircumfixAction.HOW.curry(
-              CircumfixAction, $canname, $subname
+                CircumfixAction, $canname, $subname
             );
         }
         elsif $category eq 'term' {

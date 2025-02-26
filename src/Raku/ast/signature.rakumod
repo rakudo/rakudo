@@ -1527,10 +1527,6 @@ class RakuAST::ParameterTarget::Var
         $!declaration.set-rw;
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        $!declaration.attach($resolver);
-    }
-
     method PRODUCE-META-OBJECT() {
         $!declaration.meta-object
     }

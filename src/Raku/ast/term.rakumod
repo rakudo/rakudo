@@ -15,11 +15,6 @@ class RakuAST::Term::Name
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        my $package := $resolver.find-attach-target('package');
-        nqp::bindattr(self, RakuAST::Term::Name, '$!package', $package);
-    }
-
     method has-compile-time-value() {
         self.is-resolved && self.resolution.has-compile-time-value
     }

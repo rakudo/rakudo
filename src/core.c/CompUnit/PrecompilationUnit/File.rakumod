@@ -35,7 +35,10 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
                 $!source-checksum = $!handle.get;
                 my $dependency   := $!handle.get;
                 my $dependencies := nqp::create(IterationBuffer);
-                while $dependency {
+                # last entry is either an empty line, or has padding to make
+                # the file start at a multiple-of-8 byte.
+                # Anything that is not padding is necessarily longer than that.
+                while $dependency.chars > 8 {
                     nqp::push(
                       $dependencies,
                       CompUnit::PrecompilationDependency::File.deserialize($dependency)
@@ -95,6 +98,10 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         $handle.print($!checksum ~ "\n");
         $handle.print($!source-checksum ~ "\n");
         $handle.print($_.serialize ~ "\n") for @!dependencies;
+        my $pos_mod_8 = ($handle.tell + 1) % 8;
+        if $pos_mod_8 {
+            $handle.print("_" x (8 - $pos_mod_8));
+        }
         $handle.print("\n");
         $handle.write($!bytecode);
         $handle.close;

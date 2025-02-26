@@ -1311,7 +1311,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         <!!{ $/.set_actions($actions); 1 }>
         <!before <.[\])}]> | $ >
-        #<!stopper>
+        <!stopper>
         <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
 
         [

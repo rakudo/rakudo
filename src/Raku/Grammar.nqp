@@ -5504,7 +5504,7 @@ Rakudo significantly on *every* run."
             };
             $actions-mixin := $defterm
               ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
-              !! TermAction.HOW.curry(TermAction, $canname, $subname);
+              !! TermAction.HOW.curry(TermAction, $canname, $opname);
         }
 
         # Set up next statement to have new actions.

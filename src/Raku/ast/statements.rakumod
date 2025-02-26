@@ -457,6 +457,14 @@ class RakuAST::SemiList
         Nil
     }
 
+    # Tries to get a literal value for a quoted string. If that is not
+    # possible, returns Nil.
+    method literal-value() {
+        if self.IMPL-IS-SINGLE-EXPRESSION && self.IMPL-CAN-INTERPRET {
+            return self.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+        }
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),

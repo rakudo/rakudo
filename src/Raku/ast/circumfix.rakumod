@@ -89,8 +89,8 @@ class RakuAST::Circumfix::ArrayComposer
 
     method canonicalize() {
         my @statements := self.semilist.code-statements;
-        if nqp::elems(@statements) == 1 {
-            self.IMPL-QUOTE-VALUE(@statements[0].expression.literal-value)
+        if nqp::elems(@statements) == 1 && @statements[0].expression.IMPL-CAN-INTERPRET {
+            self.IMPL-QUOTE-VALUE(@statements[0].expression.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new))
         }
         else {
             my @parts;

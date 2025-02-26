@@ -308,7 +308,7 @@ class RakuAST::Resolver {
                   !! '';
 
                 # Add any sigil for last iteration
-                $name := $sigil ~ $name unless @parts;
+                $name := $sigil ~ $name ~ $constant.colonpair-suffix unless @parts;
 
                 # Lookup in the current symbol's stash
                 my $next := nqp::atkey(self.IMPL-STASH-HASH($symbol),$name);

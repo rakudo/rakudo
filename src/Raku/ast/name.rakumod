@@ -86,7 +86,11 @@ class RakuAST::Name
     method base-name() {
         my @parts := nqp::clone($!parts);
         @parts.pop if self.is-package-lookup;
-        RakuAST::Name.new(|@parts)
+        my $name := RakuAST::Name.new(|@parts);
+        for $!colonpairs {
+            $name.add-colonpair($_);
+        }
+        $name
     }
 
     method is-indirect-lookup() {
@@ -143,6 +147,19 @@ class RakuAST::Name
         }
     }
 
+    method colonpair-suffix() {
+        my $name := '';
+        for $!colonpairs {
+            if nqp::istype($_, RakuAST::ColonPairish) {
+                $name := $name ~ ':' ~ $_.canonicalize;
+            }
+            else {
+                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
+            }
+        }
+        $name
+    }
+
     method canonicalize(:$colonpairs) {
         my $canon-parts := nqp::list_s();
         for $!parts {
@@ -168,14 +185,7 @@ class RakuAST::Name
         }
         my $name := nqp::join('::', $canon-parts);
         unless nqp::isconcrete($colonpairs) && !$colonpairs {
-            for $!colonpairs {
-                if nqp::istype($_, RakuAST::ColonPairish) {
-                    $name := $name ~ ':' ~ $_.canonicalize;
-                }
-                else {
-                    nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
-                }
-            }
+            $name := $name ~ self.colonpair-suffix;
         }
         $name
     }

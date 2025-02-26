@@ -4096,6 +4096,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $*BLOCK.to-parse-time($*R, $*CU.context);
             }
         }
+        {
+            # Declare self early for attribute parameters
+            $*R.declare-lexical($/.actions.r('VarDeclaration', 'Implicit', 'Self').new)
+        }
         [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }

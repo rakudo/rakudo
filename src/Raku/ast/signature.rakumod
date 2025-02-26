@@ -1415,6 +1415,7 @@ class RakuAST::ParameterTarget::Var
     has str $.name;
     has RakuAST::Type $.type;
     has RakuAST::Package $!attribute-package;
+    has RakuAST::Var::Attribute $.attribute;
     has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
     has Bool $!is-bindable;
@@ -1426,35 +1427,38 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
-        nqp::bindattr(
-            $obj,
-            RakuAST::ParameterTarget::Var,
-            '$!declaration',
-            nqp::chars($name) == 1
-              ?? RakuAST::VarDeclaration::Anonymous.new(
-                   :scope($obj.scope),
-                   :sigil($name),
-                   :type(Mu),
-                   :is-parameter,
-                 )
-              !! RakuAST::VarDeclaration::Simple.new(
-                  :scope($obj.scope),
-                  :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
-                  :$sigil,
-                  :$twigil,
-                  :type(Mu),
-                  :$forced-dynamic,
-                  :is-parameter,
-                )
-        );
+        if $twigil eq '!' {
+            nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!attribute', RakuAST::Var::Attribute.new($name))
+        }
+        else {
+            nqp::bindattr(
+                $obj,
+                RakuAST::ParameterTarget::Var,
+                '$!declaration',
+                nqp::chars($name) == 1
+                  ?? RakuAST::VarDeclaration::Anonymous.new(
+                       :scope($obj.scope),
+                       :sigil($name),
+                       :type(Mu),
+                       :is-parameter,
+                     )
+                  !! RakuAST::VarDeclaration::Simple.new(
+                      :scope($obj.scope),
+                      :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
+                      :$sigil,
+                      :$twigil,
+                      :type(Mu),
+                      :$forced-dynamic,
+                      :is-parameter,
+                    )
+            );
+        }
         $obj
     }
 
     # Can be resolved if the parameter is not anonymous
     method can-be-resolved() {
-        nqp::not_i(
-          nqp::istype($!declaration,RakuAST::VarDeclaration::Anonymous)
-        )
+        !(nqp::defined($!declaration) && nqp::istype($!declaration,RakuAST::VarDeclaration::Anonymous))
     }
 
     method lexical-name() {
@@ -1466,7 +1470,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method scope() {
-        $!scope // self.default-scope
+        $!scope || self.default-scope
     }
 
     method replace-scope($scope) {
@@ -1478,7 +1482,7 @@ class RakuAST::ParameterTarget::Var
 
     # Generate a lookup of this parameter, already resolved to this declaration.
     method generate-lookup() {
-        $!declaration.generate-lookup
+        $!attribute // $!declaration.generate-lookup
     }
 
     method sigil() {
@@ -1524,31 +1528,42 @@ class RakuAST::ParameterTarget::Var
     }
 
     method set-rw() {
-        $!declaration.set-rw;
+        $!declaration.set-rw if $!declaration;
     }
 
     method PRODUCE-META-OBJECT() {
+        unless $!declaration {
+            nqp::die('Cannot produce meta object for attribute parameter target');
+        }
         $!declaration.meta-object
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        $!declaration.IMPL-QAST-DECL($context)
+        $!declaration ?? $!declaration.IMPL-QAST-DECL($context) !! QAST::Stmt.new()
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
-        $!declaration.IMPL-BIND-QAST($context, $source-qast)
+        ($!attribute // $!declaration).IMPL-BIND-QAST($context, $source-qast)
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        unless $!declaration {
+            nqp::die('Cannot produce lookup QAST for attribute parameter target');
+        }
         $!declaration.IMPL-LOOKUP-QAST($context)
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $var := $!declaration;
-        for self.IMPL-UNWRAP-LIST(self.traits) {
-            $var.add-trait($_);
+        if $var {
+            for self.IMPL-UNWRAP-LIST(self.traits) {
+                $var.add-trait($_);
+            }
+            $var.to-begin-time($resolver, $context);
         }
-        $var.to-begin-time($resolver, $context);
+        else {
+            $!attribute.to-begin-time($resolver, $context);
+        }
     }
 
     method PERFORM-CHECK(
@@ -1568,12 +1583,13 @@ class RakuAST::ParameterTarget::Var
        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
-    method default-scope() { 'my' }
+    method default-scope() { self.twigil eq '!' ?? 'has' !! 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
 
     method visit-children(Code $visitor) {
-        $visitor($!declaration);
+        $visitor($!attribute) if $!attribute;
+        $visitor($!declaration) if $!declaration;
     }
 }
 

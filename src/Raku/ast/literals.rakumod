@@ -446,7 +446,7 @@ class RakuAST::QuotedString
                     $inter-qast := QAST::Op.new( :op('call'), $inter-qast );
                 }
                 @segment-asts.push(QAST::Op.new(
-                    :op('callmethod'), :name('Str'),
+                    :op('callmethod'), :name('Stringy'),
                     $inter-qast
                 ));
             }

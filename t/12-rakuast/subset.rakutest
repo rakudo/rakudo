@@ -233,7 +233,7 @@ subtest 'Subset with a where literal' => {
 }
 
 subtest 'Subset with a where regex' => {
-    # my subset Foo where / 42/
+    # my subset Foo where /42/
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
@@ -242,7 +242,7 @@ subtest 'Subset with a where regex' => {
       )
     );
 
-    is-deeply $deparsed, 'my subset Foo where / 42/', 'deparse';
+    is-deeply $deparsed, 'my subset Foo where /42/', 'deparse';
 
     for
       'AST', EVAL($ast),

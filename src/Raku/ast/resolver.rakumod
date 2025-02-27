@@ -956,6 +956,12 @@ class RakuAST::Resolver::Compile
     # declaration, so that we can resolve it without requiring it to be
     # linked into the tree.
     method declare-lexical(RakuAST::Declaration $decl) {
+        CATCH {
+            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
+                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
+            }
+            nqp::rethrow($_);
+        }
         $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl)
     }
 
@@ -963,6 +969,12 @@ class RakuAST::Resolver::Compile
     # Used when the compiler produces the declaration, but already entered into
     # that declaration's inner scope.
     method declare-lexical-in-outer(RakuAST::Declaration $decl) {
+        CATCH {
+            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
+                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
+            }
+            nqp::rethrow($_);
+        }
         $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl)
     }
 

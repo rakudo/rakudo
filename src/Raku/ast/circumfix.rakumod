@@ -72,6 +72,21 @@ class RakuAST::Circumfix::Parentheses
     }
 }
 
+class RakuAST::Exception::TooComplex {
+    has Str $.name;
+    method new() {
+        nqp::create(self)
+    }
+    method set-name($name) {
+        nqp::bindattr(self, RakuAST::Exception::TooComplex, '$!name', $name);
+    }
+    method throw() {
+        my $ex := nqp::newexception();
+        nqp::setpayload($ex, self);
+        nqp::throw($ex);
+    }
+}
+
 # Array composer circumfix.
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
@@ -97,6 +112,7 @@ class RakuAST::Circumfix::ArrayComposer
             for @statements {
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
                     unless nqp::istype($_, RakuAST::Statement::Expression);
+                RakuAST::Exception::TooComplex.new.throw unless nqp::can($_.expression, 'literal-value');
                 nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
             }
             '[' ~ nqp::join('; ', @parts) ~ ']'

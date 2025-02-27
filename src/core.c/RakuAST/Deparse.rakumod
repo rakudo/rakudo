@@ -67,7 +67,7 @@ class RakuAST::Deparse {
     method block-open( --> "\{\n") { }
     method block-close(--> "\}\n") { }
 
-    method regex-open(                  --> '/ ')  { }
+    method regex-open(                  --> '/')  { }
     method regex-close(                 --> '/')   { }
     method regex-alternation(           --> '| ')  { }
     method regex-sequential-alternation(--> '|| ') { }

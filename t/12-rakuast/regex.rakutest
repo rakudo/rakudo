@@ -32,9 +32,9 @@ sub match-nok($haystack) is test-assertion {
 }
 
 subtest 'Simple literal regex' => {
-    # / foo/
+    # /foo/
     ast RakuAST::Regex::Literal.new('foo');
-    is-deeply $deparsed, '/ foo/', 'deparse';
+    is-deeply $deparsed, '/foo/', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $regex := EVAL($it);
@@ -45,222 +45,222 @@ subtest 'Simple literal regex' => {
 }
 
 subtest 'Sequential alternation takes first match even if second is longer' => {
-    # / b|| bc/
+    # /b|| bc/
     ast RakuAST::Regex::SequentialAlternation.new(
       RakuAST::Regex::Literal.new('b'),
       RakuAST::Regex::Literal.new('bc')
     );
-    is-deeply $deparsed, '/ b|| bc/', 'deparse';
+    is-deeply $deparsed, '/b|| bc/', 'deparse';
 
     match-ok "abcd", "b";
 }
 
 subtest 'Sequential alternation takes second match if first fails' => {
-    # / x|| bc/
+    # /x|| bc/
     ast RakuAST::Regex::SequentialAlternation.new(
       RakuAST::Regex::Literal.new('x'),
       RakuAST::Regex::Literal.new('bc')
     );
-    is-deeply $deparsed, '/ x|| bc/', 'deparse';
+    is-deeply $deparsed, '/x|| bc/', 'deparse';
 
     match-ok "abcd", "bc";
 }
 
 subtest 'Sequential alternation fails if no alternative matches' => {
-    # / x|| y/
+    # /x|| y/
     ast RakuAST::Regex::SequentialAlternation.new(
       RakuAST::Regex::Literal.new('x'),
       RakuAST::Regex::Literal.new('y')
     );
-    is-deeply $deparsed, '/ x|| y/', 'deparse';
+    is-deeply $deparsed, '/x|| y/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'LTM alternation takes longest match even if it is not first' => {
-    # / b| bc/
+    # /b| bc/
     ast RakuAST::Regex::Alternation.new(
       RakuAST::Regex::Literal.new('b'),
       RakuAST::Regex::Literal.new('bc')
     );
-    is-deeply $deparsed, '/ b| bc/', 'deparse';
+    is-deeply $deparsed, '/b| bc/', 'deparse';
 
     match-ok "abcd", "bc";
 }
 
 subtest 'Alternation takes second match if first fails' => {
-    # / x| bc/
+    # /x| bc/
     ast RakuAST::Regex::Alternation.new(
       RakuAST::Regex::Literal.new('x'),
       RakuAST::Regex::Literal.new('bc')
     );
-    is-deeply $deparsed, '/ x| bc/', 'deparse';
+    is-deeply $deparsed, '/x| bc/', 'deparse';
 
     match-ok "abcd", "bc";
 }
 
 subtest 'Alternation fails if no alternative matches' => {
-    # / x| y/
+    # /x| y/
     ast RakuAST::Regex::Alternation.new(
       RakuAST::Regex::Literal.new('x'),
       RakuAST::Regex::Literal.new('y')
     );
-    is-deeply $deparsed, '/ x| y/', 'deparse';
+    is-deeply $deparsed, '/x| y/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'Conjunction matches when both items match' => {
-    # / .& c/
+    # /.& c/
     ast RakuAST::Regex::Conjunction.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('c')
     );
-    is-deeply $deparsed, '/ .& c/', 'deparse';
+    is-deeply $deparsed, '/.& c/', 'deparse';
 
     match-ok "abcd", "c";
 }
 
 subtest 'Conjunction fails when one item does not match' => {
-    # / .& x/
+    # /.& x/
     ast RakuAST::Regex::Conjunction.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('x')
     );
-    is-deeply $deparsed, '/ .& x/', 'deparse';
+    is-deeply $deparsed, '/.& x/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'Conjunction fails when items match different lengths' => {
-    # / .& cd/
+    # /.& cd/
     ast RakuAST::Regex::Conjunction.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('cd')
     );
-    is-deeply $deparsed, '/ .& cd/', 'deparse';
+    is-deeply $deparsed, '/.& cd/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'Sequence needs one thing to match after the other (pass case)' => {
-    # / .d/
+    # /.d/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('d')
     );
-    is-deeply $deparsed, '/ .d/', 'deparse';
+    is-deeply $deparsed, '/.d/', 'deparse';
 
     match-ok "abcd", "cd";
 }
 
 subtest 'Sequence needs one thing to match after the other (failure case)' => {
-    # / .a/
+    # /.a/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('a')
     );
-    is-deeply $deparsed, '/ .a/', 'deparse';
+    is-deeply $deparsed, '/.a/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'Beginning of string anchor works (pass case)' => {
-    # / ^ ./
+    # /^ ./
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfString.new,
       RakuAST::Regex::CharClass::Any.new
     );
-    is-deeply $deparsed, '/ ^ ./', 'deparse';
+    is-deeply $deparsed, '/^ ./', 'deparse';
 
     match-ok "abcd", "a";
 }
 
 subtest 'Beginning of string anchor works (failure case)' => {
-    # / ^ b/
+    # /^ b/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfString.new,
       RakuAST::Regex::Literal.new('b')
     );
-    is-deeply $deparsed, '/ ^ b/', 'deparse';
+    is-deeply $deparsed, '/^ b/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'Beginning of line anchor works (pass case)' => {
-    # / ^^ ./
+    # /^^ ./
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfLine.new,
       RakuAST::Regex::CharClass::Any.new
     );
-    is-deeply $deparsed, '/ ^^ ./', 'deparse';
+    is-deeply $deparsed, '/^^ ./', 'deparse';
 
     match-ok "abcd", "a";
 }
 
 subtest 'Beginning of line anchor works (failure case)' => {
-    # / ^^ b/
+    # /^^ b/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfLine.new,
       RakuAST::Regex::Literal.new('b')
     );
-    is-deeply $deparsed, '/ ^^ b/', 'deparse';
+    is-deeply $deparsed, '/^^ b/', 'deparse';
 
     match-nok "abcd";
 }
 
 subtest 'End of string anchor works (pass case)' => {
-    # / .$ /
+    # /.$ /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Anchor::EndOfString.new
     );
-    is-deeply $deparsed, '/ .$ /', 'deparse';
+    is-deeply $deparsed, '/.$ /', 'deparse';
 
     match-ok "abcde", "e";
 }
 
 subtest 'End of string anchor works (failure case)' => {
-    # / b$ /
+    # /b$ /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new('b'),
       RakuAST::Regex::Anchor::EndOfString.new
     );
-    is-deeply $deparsed, '/ b$ /', 'deparse';
+    is-deeply $deparsed, '/b$ /', 'deparse';
 
     match-nok "abcde";
 }
 
 subtest 'End of line anchor works (pass case)' => {
-    # / .$$ /
+    # /.$$ /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Anchor::EndOfLine.new
     );
-    is-deeply $deparsed, '/ .$$ /', 'deparse';
+    is-deeply $deparsed, '/.$$ /', 'deparse';
 
     match-ok "abcde", "e";
 }
 
 subtest 'End of line anchor works (failure case)' => {
-    # / b$$ /
+    # /b$$ /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new('b'),
       RakuAST::Regex::Anchor::EndOfLine.new
     );
-    is-deeply $deparsed, '/ b$$ /', 'deparse';
+    is-deeply $deparsed, '/b$$ /', 'deparse';
 
     match-nok "abcde";
 }
 
 subtest 'Right word boundary works' => {
-    # / .e>> /
+    # /.e>> /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('e'),
       RakuAST::Regex::Anchor::RightWordBoundary.new
     );
-    is-deeply $deparsed, '/ .e>> /', 'deparse';
+    is-deeply $deparsed, '/.e>> /', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $regex := EVAL($it);
@@ -270,13 +270,13 @@ subtest 'Right word boundary works' => {
 }
 
 subtest 'Left word boundary works' => {
-    # / << .t/
+    # /<< .t/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::LeftWordBoundary.new,
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::Literal.new('t')
     );
-    is-deeply $deparsed, '/ << .t/', 'deparse';
+    is-deeply $deparsed, '/<< .t/', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $regex := EVAL($it);
@@ -286,90 +286,90 @@ subtest 'Left word boundary works' => {
 }
 
 subtest 'Quantified + built-in character class matches' => {
-    # / \d+/
+    # /\d+/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
     );
-    is-deeply $deparsed, '/ \d+/', 'deparse';
+    is-deeply $deparsed, '/\d+/', 'deparse';
 
     match-ok "99cents", "99";
 }
 
 subtest 'Quantified * built-in character class matches' => {
-    # / \d*/
+    # /\d*/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::ZeroOrMore.new
     );
-    is-deeply $deparsed, '/ \d*/', 'deparse';
+    is-deeply $deparsed, '/\d*/', 'deparse';
 
     match-ok "99cents", "99";
 }
 
 subtest 'Quantified ? built-in character class matches' => {
-    # / \d?/
+    # /\d?/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::ZeroOrOne.new
     );
-    is-deeply $deparsed, '/ \d?/', 'deparse';
+    is-deeply $deparsed, '/\d?/', 'deparse';
 
     match-ok "99cents", "9";
 }
 
 subtest 'Quantified ** built-in character class matches' => {
-    # / \d** 1^..^5/
+    # /\d** 1^..^5/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::Range.new(
         min => 1, max => 5, :excludes-min, :excludes-max
       )
     );
-    is-deeply $deparsed, '/ \d** 1^..^5/', 'deparse';
+    is-deeply $deparsed, '/\d** 1^..^5/', 'deparse';
 
     match-ok "99cents", "99";
 }
 
 subtest 'Quantified negated built-in character class matches' => {
-    # / \D+/
+    # /\D+/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new(:negated),
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
     );
-    is-deeply $deparsed, '/ \D+/', 'deparse';
+    is-deeply $deparsed, '/\D+/', 'deparse';
 
     match-ok "99cents", "cents";
 }
 
 subtest 'Quantified built-in character class matches (frugal mode)' => {
-    # / \d+?/
+    # /\d+?/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
         backtrack => RakuAST::Regex::Backtrack::Frugal
       )
     );
-    is-deeply $deparsed, '/ \d+?/', 'deparse';
+    is-deeply $deparsed, '/\d+?/', 'deparse';
 
     match-ok "99cents", "9";
 }
 
 subtest 'Quantified negated built-in character class matches (frugal mode)' => {
-    # / \D+?/
+    # /\D+?/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new(:negated),
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
         backtrack => RakuAST::Regex::Backtrack::Frugal
       )
     );
-    is-deeply $deparsed, '/ \D+?/', 'deparse';
+    is-deeply $deparsed, '/\D+?/', 'deparse';
 
     match-ok "99cents", 'c';
 }
 
 subtest 'Greedy quantifier will backtrack' => {
-    # / ^ \d+!9/
+    # /^ \d+!9/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfString.new,
       RakuAST::Regex::QuantifiedAtom.new(
@@ -380,13 +380,13 @@ subtest 'Greedy quantifier will backtrack' => {
       ),
       RakuAST::Regex::Literal.new('9')
     );
-    is-deeply $deparsed, '/ ^ \d+!9/', 'deparse';
+    is-deeply $deparsed, '/^ \d+!9/', 'deparse';
 
     match-ok "99cents", '99';
 }
 
 subtest 'Ratchet quantifier will not backtrack' => {
-    # / ^ \d+:9/
+    # /^ \d+:9/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfString.new,
       RakuAST::Regex::QuantifiedAtom.new(
@@ -397,50 +397,50 @@ subtest 'Ratchet quantifier will not backtrack' => {
       ),
       RakuAST::Regex::Literal.new('9')
     );
-    is-deeply $deparsed, '/ ^ \d+:9/', 'deparse';
+    is-deeply $deparsed, '/^ \d+:9/', 'deparse';
 
     match-nok "99cents";
 }
 
 subtest 'Separator works (non-trailing case)' => {
-    # / \d+% ","/
+    # /\d+% ","/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ \d+% ","/|, 'deparse';
+    is-deeply $deparsed, q|/\d+% ","/|, 'deparse';
 
     match-ok "values: 1,2,3,4,stuff", '1,2,3,4';
 }
 
 subtest 'Separator works (trailing case)' => {
-    # / \d+%% ","/
+    # /\d+%% ","/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(','),
       trailing-separator => True
     );
-    is-deeply $deparsed, q|/ \d+%% ","/|, 'deparse';
+    is-deeply $deparsed, q|/\d+%% ","/|, 'deparse';
 
     match-ok "values: 1,2,3,4,stuff", '1,2,3,4,';
 }
 
 subtest 'Separator must be between every quantified item' => {
-    # / \d+% ","/
+    # /\d+% ","/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ \d+% ","/|, 'deparse';
+    is-deeply $deparsed, q|/\d+% ","/|, 'deparse';
 
     match-ok "values: 1,2,33,4,stuff", '1,2,3';
 }
 
 subtest 'Regex groups compile correctly' => {
-    # / [\d+]+% ","/
+    # /[\d+]+% ","/
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::Group.new(
         RakuAST::Regex::QuantifiedAtom.new(
@@ -451,7 +451,7 @@ subtest 'Regex groups compile correctly' => {
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ [\d+]+% ","/|, 'deparse';
+    is-deeply $deparsed, q|/[\d+]+% ","/|, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $regex := EVAL($it);
@@ -465,7 +465,7 @@ subtest 'Regex groups compile correctly' => {
 }
 
 subtest 'Regex with two positional capturing groups matches correctly' => {
-    # / (\w)\d(\w)/
+    # /(\w)\d(\w)/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CapturingGroup.new(
         RakuAST::Regex::CharClass::Word.new
@@ -475,7 +475,7 @@ subtest 'Regex with two positional capturing groups matches correctly' => {
         RakuAST::Regex::CharClass::Word.new
       )
     );
-    is-deeply $deparsed, '/ (\w)\d(\w)/', 'deparse';
+    is-deeply $deparsed, '/(\w)\d(\w)/', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $regex := EVAL($it);
@@ -493,7 +493,7 @@ subtest 'Regex with two positional capturing groups matches correctly' => {
 }
 
 subtest 'Match from and match to markers works' => {
-    # / b<( \d)> c/
+    # /b<( \d)> c/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new('b'),
       RakuAST::Regex::MatchFrom.new,
@@ -501,19 +501,19 @@ subtest 'Match from and match to markers works' => {
       RakuAST::Regex::MatchTo.new,
       RakuAST::Regex::Literal.new('c')
     );
-    is-deeply $deparsed, '/ b<( \d)> c/', 'deparse';
+    is-deeply $deparsed, '/b<( \d)> c/', 'deparse';
 
     match-ok "a1b2c", '2';
 }
 
 subtest 'Match involving a quoted string literal works' => {
-    # / lie/
+    # /lie/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
        :segments[RakuAST::StrLiteral.new('lie')]
       )
     );
-    is-deeply $deparsed, '/ lie/', 'deparse';
+    is-deeply $deparsed, '/lie/', 'deparse';
 
     match-ok "believe", 'lie';
 }
@@ -521,7 +521,7 @@ subtest 'Match involving a quoted string literal works' => {
 subtest 'Match involving a quoted string with interpolation works' => {
     my $end = 've';
 
-    # / "e$end"/
+    # /"e$end"/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
         :segments[
@@ -530,40 +530,40 @@ subtest 'Match involving a quoted string with interpolation works' => {
         ]
       )
     );
-    is-deeply $deparsed, '/ "e$end"/', 'deparse';
+    is-deeply $deparsed, '/"e$end"/', 'deparse';
 
     is "believe" ~~ EVAL($ast), 'eve', 'EVAL over RakuAST';
     is "believe" ~~ EVAL($deparsed), 'eve', 'EVAL over deparsed AST';
 }
 
 subtest 'Match involving quote words works' => {
-    # / <{ qqw/link inky linky/ }>/
+    # /<{ qqw/link inky linky/ }>/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('link inky linky')],
         :processors['words']
       )
     );
-    is-deeply $deparsed, '/ <{ qqw/link inky linky/ }>/', 'deparse';
+    is-deeply $deparsed, '/<{ qqw/link inky linky/ }>/', 'deparse';
 
     match-ok "slinky sprint", 'linky';
 }
 
 subtest 'Match with positional backreference' => {
-    # / (o)$0/
+    # /(o)$0/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CapturingGroup.new(
         RakuAST::Regex::Literal.new("o"),
       ),
       RakuAST::Regex::BackReference::Positional.new(0)
     );
-    is-deeply $deparsed, '/ (o)$0/', 'deparse';
+    is-deeply $deparsed, '/(o)$0/', 'deparse';
 
     match-ok "foo", 'oo';
 }
 
 subtest 'Match with named backreference' => {
-    # / $<bar>=o$<bar>/
+    # /$<bar>=o$<bar>/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::NamedCapture.new(
         name  => 'bar',
@@ -571,25 +571,25 @@ subtest 'Match with named backreference' => {
       ),
       RakuAST::Regex::BackReference::Named.new("bar")
     );
-    is-deeply $deparsed, '/ $<bar>=o$<bar>/', 'deparse';
+    is-deeply $deparsed, '/$<bar>=o$<bar>/', 'deparse';
 
     match-ok "foo", 'oo';
 }
 
 subtest 'Match with interpolated variable' => {
-    # / $expected/
+    # /$expected/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Interpolation.new(
         var => RakuAST::Var::Lexical.new('$expected')
       ),
     );
-    is-deeply $deparsed, '/ $expected/', 'deparse';
+    is-deeply $deparsed, '/$expected/', 'deparse';
 
     match-ok "foo", 'oo';
 }
 
 subtest 'Match with block' => {
-    # / o{ is($/, "foo", "block") }o/
+    # /o{ is($/, "foo", "block") }o/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::Block.new(
@@ -613,14 +613,14 @@ subtest 'Match with block' => {
       RakuAST::Regex::Literal.new("o")
     );
     is-deeply $deparsed,
-      qq:!c:!s|/ o{\n    is($/, "o", "block")\n}o/|,
+      qq:!c:!s|/o{\n    is($/, "o", "block")\n}o/|,
       'deparse';
 
     match-ok "foo", 'oo', 3;
 }
 
 subtest 'Match with variable definition' => {
-    # / o:my $foo; o/
+    # /o:my $foo; o/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::Statement.new(
@@ -634,103 +634,103 @@ subtest 'Match with variable definition' => {
       ),
       RakuAST::Regex::Literal.new("o")
     );
-    is-deeply $deparsed, '/ o:my $foo; o/', 'deparse';
+    is-deeply $deparsed, '/o:my $foo; o/', 'deparse';
 
     match-ok "Foo", 'oo';
 }
 
 subtest 'Match with ignoring case' => {
-    # / :i oo/
+    # /:i oo/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreCase.new,
       RakuAST::Regex::Literal.new("oo"),
     );
-    is-deeply $deparsed, '/ :i oo/', 'deparse';
+    is-deeply $deparsed, '/:i oo/', 'deparse';
 
     match-ok "FOO", 'OO';
 }
 
 subtest 'Match with *not* ignoring case' => {
-    # / :!i OO/
+    # /:!i OO/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreCase.new(:negated),
       RakuAST::Regex::Literal.new("OO"),
     );
-    is-deeply $deparsed, '/ :!i OO/', 'deparse';
+    is-deeply $deparsed, '/:!i OO/', 'deparse';
 
     match-ok "FOO", 'OO';
 }
 
 subtest 'No match with *not* ignoring case' => {
-    # / :!i oo/
+    # /:!i oo/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreCase.new(:negated),
       RakuAST::Regex::Literal.new("oo"),
     );
-    is-deeply $deparsed, '/ :!i oo/', 'deparse';
+    is-deeply $deparsed, '/:!i oo/', 'deparse';
 
     match-nok "FOO";
 }
 
 subtest 'Match with ignoring mark' => {
-    # / :m oo/
+    # /:m oo/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreMark.new,
       RakuAST::Regex::Literal.new("oo"),
     );
-    is-deeply $deparsed, '/ :m oo/', 'deparse';
+    is-deeply $deparsed, '/:m oo/', 'deparse';
 
     match-ok "Fõõ", 'õõ';
 }
 
 subtest 'Match with *not* ignoring mark' => {
-    # / :!m ôô/
+    # /:!m ôô/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreMark.new(:negated),
       RakuAST::Regex::Literal.new("ôô"),
     );
-    is-deeply $deparsed, '/ :!m ôô/', 'deparse';
+    is-deeply $deparsed, '/:!m ôô/', 'deparse';
 
     match-ok "Fôô", 'ôô';
 }
 
 subtest 'No match with *not* ignoring mark' => {
-    # / :!m oo/
+    # /:!m oo/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::InternalModifier::IgnoreMark.new(:negated),
       RakuAST::Regex::Literal.new("oo")
     );
-    is-deeply $deparsed, '/ :!m oo/', 'deparse';
+    is-deeply $deparsed, '/:!m oo/', 'deparse';
 
     match-nok "Föö";
 }
 
 subtest 'Match with ratchet' => {
-    # / o:r o/
+    # /o:r o/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::InternalModifier::Ratchet.new,
       RakuAST::Regex::Literal.new("o")
     );
-    is-deeply $deparsed, '/ o:r o/', 'deparse';
+    is-deeply $deparsed, '/o:r o/', 'deparse';
 
     match-ok "Foo", 'oo';
 }
 
 subtest 'Match without ratchet' => {
-    # / o:!r o/
+    # /o:!r o/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::InternalModifier::Ratchet.new(:negated),
       RakuAST::Regex::Literal.new("o")
     );
-    is-deeply $deparsed, '/ o:!r o/', 'deparse';
+    is-deeply $deparsed, '/o:!r o/', 'deparse';
 
     match-ok "Foo", 'oo';
 }
 
 subtest 'Match with sigspace' => {
-    # / o:s o /
+    # /o:s o /
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::InternalModifier::Sigspace.new,
@@ -738,13 +738,13 @@ subtest 'Match with sigspace' => {
         RakuAST::Regex::Literal.new("o")
       )
     );
-    is-deeply $deparsed, '/ o:s o /', 'deparse';
+    is-deeply $deparsed, '/o:s o /', 'deparse';
 
     match-ok "Foo", 'oo';
 }
 
 subtest 'Match without sigspace' => {
-    # / o :!s o/
+    # /o :!s o/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::WithWhitespace.new(
         RakuAST::Regex::Literal.new("o")
@@ -752,7 +752,7 @@ subtest 'Match without sigspace' => {
       RakuAST::Regex::InternalModifier::Sigspace.new(:negated),
       RakuAST::Regex::Literal.new("o")
     );
-    is-deeply $deparsed, '/ o :!s o/', 'deparse';
+    is-deeply $deparsed, '/o :!s o/', 'deparse';
 
     match-ok "Foo", 'oo';
 }

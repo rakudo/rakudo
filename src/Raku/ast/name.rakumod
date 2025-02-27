@@ -149,12 +149,22 @@ class RakuAST::Name
 
     method colonpair-suffix() {
         my $name := '';
-        for $!colonpairs {
-            if nqp::istype($_, RakuAST::ColonPairish) {
-                $name := $name ~ ':' ~ $_.canonicalize;
+        for $!colonpairs -> $cp {
+            if nqp::istype($cp, RakuAST::ColonPairish) {
+                $name := $name ~ ':' ~ $cp.canonicalize;
+                CATCH {
+                    if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
+                        my $content := '';
+                        $cp.visit-children(-> $child {
+                            $content := $content ~ $child.DEPARSE;
+                        });
+                        nqp::getpayload($_).set-name($content);
+                    }
+                    nqp::rethrow($_);
+                }
             }
             else {
-                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
+                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $cp.HOW.name($cp));
             }
         }
         $name

@@ -374,6 +374,10 @@ class RakuAST::FakeSignature
         False
     }
 
+    method can-be-bound-to() {
+        True
+    }
+
     method PRODUCE-META-OBJECT() {
         $!block.meta-object; # To bind block to signature
         $!signature.meta-object
@@ -386,6 +390,17 @@ class RakuAST::FakeSignature
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.meta-object;
         $!signature.IMPL-TO-QAST($context)
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        QAST::Op.new(
+            :op('p6bindcaptosig'),
+            self.IMPL-TO-QAST($context),
+            QAST::Op.new(
+                :op('callmethod'), :name('Capture'),
+                $source-qast
+            )
+        )
     }
 
     method visit-children(Code $visitor) {

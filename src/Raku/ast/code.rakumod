@@ -1808,6 +1808,7 @@ class RakuAST::Routine
                     $proto-ast.ensure-begin-performed($resolver, $context);
                     $proto := $proto-ast.meta-object;
 
+                    $resolver.declare-lexical($proto-ast);
                     $scope.add-generated-lexical-declaration(
                         RakuAST::VarDeclaration::Implicit::Block.new(:block($proto-ast))
                     );

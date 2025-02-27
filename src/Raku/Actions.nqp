@@ -4134,6 +4134,20 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
           !! Nodify('Regex', 'Assertion', 'Fail').new
     }
 
+    method assertion:sym<|>($/) {
+        my $ast;
+        my $name := ~$<identifier>;
+        if $name eq 'c' {
+            # codepoint boundaries always match in
+            # our current Unicode abstraction level
+            $ast := Nodify('Regex','Assertion','Pass').new;
+        }
+        elsif $name eq 'w' {
+            $ast := Nodify('Regex','Assertion','Named').new(:name(Nodify('Name').from-identifier('wb')));
+        }
+        make $ast;
+    }
+
     method assertion:sym<method>($/) {
         my $ast := $<assertion>.ast;
         if nqp::can($ast,'set-capturing') {
@@ -4504,7 +4518,7 @@ class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method p5backslash:sym<b>($/) {
-        self.attach: $/, Nodify('Regex', 'Anchor', 'WordBoundary').new;
+        self.attach: $/, Nodify('Regex','Assertion','Named').new(:name(Nodify('Name').from-identifier('wb')));
     }
 
     method p5backslash:sym<h>($/) {

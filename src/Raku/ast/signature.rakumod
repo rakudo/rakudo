@@ -322,6 +322,30 @@ class RakuAST::Signature
         $visitor($!returns) if $!returns;
     }
 
+    method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
+        my $i := 0;
+        my $found := 0;
+        if $!implicit-invocant {
+            if $!implicit-invocant =:= $param {
+                $found := 1;
+            }
+            else {
+                $i := $i + 1;
+            }
+        }
+        if !$found {
+            for $!parameters {
+                if $_ =:= $param {
+                    $found := 1;
+                    last;
+                }
+                $i := $i + 1;
+            }
+        }
+        nqp::die("Param " ~ self.dump ~ " not found on " ~ self.dump) unless $found;
+        $i
+    }
+
     has Mu $!ins_params;
     method IMPL-SIGNATURE-PARAMS(Mu $var) {
         unless $!ins_params {
@@ -1159,7 +1183,7 @@ class RakuAST::Parameter
         # Make sure we have (possibly instantiated) parameter object ready when we need it
         if $is-generic || $!signature-constraint {
             my $inst-param-name := QAST::Node.unique('__lowered_param_obj_');
-            my $i := 0; #FIXME TODO XXX Need a way to know which parameter this is in the signature!
+            my $i := $!owner.signature.IMPL-PARAM-POSITION(self);
             $param-qast.push( # Fetch instantiated Parameter object
                 QAST::Op.new(
                     :op('bind'),

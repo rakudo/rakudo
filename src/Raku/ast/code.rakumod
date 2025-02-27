@@ -54,6 +54,10 @@ class RakuAST::OnlyStar
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+        nqp::findmethod(RakuAST::Expression, 'IMPL-TO-QAST')(self, $context)
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('dispatch'),
             QAST::SVal.new( :value('boot-resume') ),

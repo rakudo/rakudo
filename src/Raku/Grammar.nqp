@@ -785,7 +785,10 @@ role Raku::Common {
 
     # Return the name of the meta op if any
     method meta-op-name($desigilname) {
-        my $op := $desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0].literal-value;
+        my $colonpair := $desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0];
+        my $op := nqp::istype($colonpair, self.actions.r('QuotedString'))
+            ?? $colonpair.literal-value
+            !! $colonpair.semilist.code-statements[0].expression.literal-value;
         if $op ne '!=' && $op ne '≠' {
             my $lang := self.'!cursor_init'($op, :p(0));
             $lang.clone_braid_from(self);
@@ -3283,12 +3286,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              <args(1)>
              {
                 my $desigilname := $<longname>.ast;
-                if nqp::elems($desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)) == 1
-                    && nqp::istype($desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0], self.actions.r('QuotedString'))
-                {
-                    my $meta-op-name := self.meta-op-name($desigilname);
-                    if nqp::isconcrete($meta-op-name) {
-                        $*META-OP := $meta-op-name;
+                if nqp::elems($desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)) == 1 {
+                    my $colonpair := $desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0];
+                    if nqp::istype($colonpair, self.actions.r('QuotedString'))
+                        || nqp::istype($colonpair, self.actions.r('Circumfix', 'ArrayComposer'))
+                            && $colonpair.semilist.IMPL-IS-SINGLE-EXPRESSION
+                            && nqp::istype($colonpair.semilist.code-statements[0].expression, self.actions.r('QuotedString'))
+                    {
+                        my $meta-op-name := self.meta-op-name($desigilname);
+                        if nqp::isconcrete($meta-op-name) {
+                            $*META-OP := $meta-op-name;
+                        }
                     }
                 }
                 my $name := ~$<longname>;

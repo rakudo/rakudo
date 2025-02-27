@@ -3143,7 +3143,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
-            $parameter.set-sub-signature($sig<fakesignature>.ast);
+            $parameter.set-signature-constraint($sig<fakesignature>.ast);
         }
         # Leave the exact time of Parameter's BEGIN to the signature
         make $parameter;
@@ -3152,7 +3152,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method param-var($/) {
         # Work out what kind of thing we're binding into, if any.
         my %args;
-        my str $name := ~$<declname>;
+        my str $name := $<sigil> ~ $<twigil> ~ ($<name><subshortname> // $<name>);
         if $name {
             my $dynprag := $*LANG.pragma('dynamic-scope');
             my $forced-dynamic := $dynprag

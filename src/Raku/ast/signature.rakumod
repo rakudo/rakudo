@@ -437,6 +437,7 @@ class RakuAST::Parameter
     has RakuAST::Package           $!package;
     has RakuAST::Signature         $.sub-signature;
     has List                       $!type-captures;
+    has RakuAST::Signature         $.signature-constraint;
     has Mu                         $.value;
 
     method new(  RakuAST::Type :$type,
@@ -453,6 +454,7 @@ class RakuAST::Parameter
            RakuAST::Expression :$where,
             RakuAST::Signature :$sub-signature,
                           List :$type-captures,
+            RakuAST::Signature :$signature-constraint,
                             Mu :$value,
       RakuAST::Doc::Declarator :$WHY
     ) {
@@ -498,6 +500,8 @@ class RakuAST::Parameter
           nqp::defined($type-captures)
             ?? self.IMPL-TYPE-CAPTURES($type-captures)
             !! []);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!signature-constraint',
+          $signature-constraint // RakuAST::Signature);
         nqp::bindattr($obj, RakuAST::Parameter, '$!value', $value)
           if nqp::defined($value);
         $obj.set-WHY($WHY);
@@ -602,6 +606,11 @@ class RakuAST::Parameter
             self.IMPL-TYPE-CAPTURES($type-captures));
     }
 
+    method set-signature-constraint(RakuAST::Expression $signature-constraint) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!signature-constraint', $signature-constraint);
+        Nil
+    }
+
     method add-type-capture(RakuAST::Type::Capture $type-capture) {
         nqp::push($!type-captures, $type-capture);
         Nil
@@ -677,6 +686,7 @@ class RakuAST::Parameter
         $visitor($!where)         if $!where;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
+        $visitor($!signature-constraint) if $!signature-constraint;
         self.visit-traits($visitor);
     }
 
@@ -764,6 +774,9 @@ class RakuAST::Parameter
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
+        }
+        if $!signature-constraint {
+            nqp::bindattr($parameter, Parameter, '$!signature_constraint', $!signature-constraint.meta-object);
         }
         if $!type-captures {
             my @type-captures := nqp::list_s;

@@ -3200,10 +3200,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Name comes from the parameter variable.
+        elsif $<param-var><name> {
+            my $param-var := $<param-var>;
+            $ast     := $param-var.ast;
+            my $name := $param-var<name>;
+            $ast.add-name(~($name<subshortname> // $name));
+        }
         else {
             my $param-var := $<param-var>;
             $ast     := $param-var.ast;
-            $ast.add-name(~($param-var<name> // ''));
+            $ast.add-name('');
         }
         make $ast;
     }

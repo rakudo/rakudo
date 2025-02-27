@@ -1285,6 +1285,18 @@ class RakuAST::Block
         $block
     }
 
+    method IMPL-CHECK-DOUBLE-CLOSURE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if self.find-nodes(
+            RakuAST::Expression,
+            :condition(-> $node { $node.IMPL-CURRIED }),
+            :stopper(RakuAST::LexicalScope))
+        {
+            return $resolver.build-exception: 'X::Syntax::Malformed',
+                :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *');
+        }
+        Nil
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
         self.IMPL-MAYBE-FATALIZE-QAST(

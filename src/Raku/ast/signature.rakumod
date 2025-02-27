@@ -927,6 +927,11 @@ class RakuAST::Parameter
             $!owner.set-custom-args;
         }
 
+        if $!where && nqp::istype($!where, RakuAST::Block) {
+            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
+            self.add-sorry: $sorry if $sorry;
+        }
+
         my $param-obj := self.meta-object;
         my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
         my $ptype-archetypes := $param-type.HOW.archetypes($param-type);

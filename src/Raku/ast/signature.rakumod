@@ -733,7 +733,7 @@ class RakuAST::Parameter
         }
         my @post_constraints;
         if $!where {
-            nqp::push(@post_constraints, $!where.IMPL-CURRIED || $!where.meta-object);
+            nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
         }
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);

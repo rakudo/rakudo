@@ -199,7 +199,7 @@ class RakuAST::QuotedString
     }
 
     method canonicalize() {
-        self.IMPL-QUOTE-VALUE(self.literal-value // '')
+        self.IMPL-QUOTE-VALUE(self.literal-value(:force) // '')
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -318,7 +318,7 @@ class RakuAST::QuotedString
 
     # Tries to get a literal value for the quoted string. If that is not
     # possible, returns Nil.
-    method literal-value(:$accept-block) {
+    method literal-value(:$force) {
         my @parts;
         for $!segments {
             if nqp::istype($_, RakuAST::StrLiteral) {
@@ -341,11 +341,11 @@ class RakuAST::QuotedString
             }
             elsif nqp::istype($_, RakuAST::Var::Lexical)
                 && $_.is-resolved
-                && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant)
+                && ($force || nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant))
             {
                 self.IMPL-PROCESS-PART(@parts, $_.resolution.compile-time-value.Str) || return Nil;
             }
-            elsif $accept-block && nqp::istype($_, RakuAST::Block) && $_.body.IMPL-CAN-INTERPRET {
+            elsif $force && nqp::istype($_, RakuAST::Block) && $_.body.IMPL-CAN-INTERPRET {
                 nqp::push(@parts, ~$_.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new));
             }
             else {

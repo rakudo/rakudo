@@ -4036,7 +4036,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my $opname := '';
                 if $cf<circumfix> -> $ccf {
                     $opname := (my $nibble := $ccf<nibble>)
-                      ?? $nibble.ast.literal-value(:accept-block) // ~$nibble
+                      ?? $nibble.ast.literal-value(:force) // ~$nibble
                       !! $ccf<semilist>.ast.literal-value // ~$ccf<semilist>;
                 }
                 my $canname := $category

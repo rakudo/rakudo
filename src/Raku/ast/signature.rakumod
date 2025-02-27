@@ -1157,7 +1157,7 @@ class RakuAST::Parameter
 
         my $inst-param;
         # Make sure we have (possibly instantiated) parameter object ready when we need it
-        if $is-generic || $!sub-signature {
+        if $is-generic || $!signature-constraint {
             my $inst-param-name := QAST::Node.unique('__lowered_param_obj_');
             my $i := 0; #FIXME TODO XXX Need a way to know which parameter this is in the signature!
             $param-qast.push( # Fetch instantiated Parameter object
@@ -1386,6 +1386,70 @@ class RakuAST::Parameter
         }
         for $!type-captures {
             $param-qast.push($_.IMPL-BIND-QAST($context, $temp-qast-var));
+        }
+
+        if $!signature-constraint {
+            my $var-qast := QAST::Var.new( :name($name), :scope('local') );
+            my $var-decont := $get-decont-var();
+            my $sigc-name := QAST::Node.unique('__lowered_sig_constraint_');
+            my $sigc-var := QAST::Var.new( :name($sigc-name), :scope<local>);
+            my $sigc-qast;
+            # Produce different code for generic/non-generic signatures because in the latter case instantiation
+            # code would be a waste of memory and performance.
+            if $!signature-constraint.meta-object.is_generic {
+                $sigc-qast := QAST::Op.new(
+                                :op<if>,
+                                QAST::Op.new(
+                                    :op<callmethod>,
+                                    :name<is_generic>,
+                                    QAST::Op.new(
+                                        :op<bind>,
+                                        QAST::Var.new( :name($sigc-name), :scope<local>, :decl<var>),
+                                        QAST::Op.new(
+                                            :op<getattr>,
+                                            $inst-param,
+                                            QAST::WVal.new(:value(Parameter)),
+                                            QAST::SVal.new(:value('$!signature_constraint'))))),
+                                QAST::Op.new(
+                                    :op<callmethod>,
+                                    :name<instantiate_generic>,
+                                    $sigc-var,
+                                    QAST::Op.new(
+                                        :op<ctxlexpad>,
+                                        QAST::Op.new(:op<ctx>))),
+                                $sigc-var );
+            }
+            else {
+                $sigc-qast := QAST::Op.new(
+                                :op<getattr>,
+                                $inst-param,
+                                QAST::WVal.new(:value(Parameter)),
+                                QAST::SVal.new(:value('$!signature_constraint')));
+            }
+            $param-qast.push(QAST::ParamTypeCheck.new(
+                QAST::Op.new(
+                    # If argument is a type object and is the same as parameter default then skip signature
+                    # matching. So far, this is the best way I know to determine if corresponding argument was
+                    # passed or not without inspecting the capture which is too slow.
+                    :op<unless>,
+                    QAST::Op.new(
+                        :op<if>,
+                        QAST::Op.new(
+                            :op<not_i>,
+                            QAST::Op.new( :op<isconcrete>, $var-decont )),
+                        QAST::Op.new(:op<eqaddr>, $var-decont, QAST::WVal.new(:value(self.IMPL-NOMINAL-TYPE)))),
+                    # If argument is concrete or is not parameter's default type then try signature matching
+                    QAST::Op.new(
+                        :op<if>,
+                        QAST::Op.new(:op<can>, $var-qast, QAST::SVal.new(:value<signature>)),
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name<ACCEPTS>,
+                            $sigc-qast,
+                            QAST::Op.new(
+                                :op<callmethod>,
+                                :name<signature>,
+                                $var-qast ))))));
         }
 
         if $!where {

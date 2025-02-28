@@ -802,6 +802,13 @@ class RakuAST::Parameter
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
+        if $!default {
+            if nqp::istype($!default, RakuAST::CompileTimeValue) {
+                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.compile-time-value);
+            }
+            else {
+            }
+        }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
         }
@@ -870,6 +877,11 @@ class RakuAST::Parameter
             }
             elsif $primspec == nqp::const::BIND_VAL_UINT {
                 $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
+            }
+        }
+        if $!default {
+            if nqp::istype($!default, RakuAST::CompileTimeValue) {
+                $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
             }
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);

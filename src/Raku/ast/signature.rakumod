@@ -730,8 +730,9 @@ class RakuAST::Parameter
         my @lookups;
         my str $sigil := self.IMPL-SIGIL;
         my str $sigil-type;
-        if $sigil eq '@' { nqp::push(@lookups, 'Positional'); nqp::push(@lookups, 'PositionalBindFailover') }
-        elsif $sigil eq '%' { nqp::push(@lookups, 'Associative') }
+        nqp::push(@lookups, 'Positional');
+        nqp::push(@lookups, 'PositionalBindFailover');
+        if $sigil eq '%' { nqp::push(@lookups, 'Associative') }
         elsif $sigil eq '&' { nqp::push(@lookups, 'Callable') }
 
         my @types;
@@ -900,7 +901,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+              self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 2).resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
                         $!type.meta-object)
@@ -1119,8 +1120,9 @@ class RakuAST::Parameter
             }
             elsif !($param-type =:= Mu) {
                 if !$ptype-archetypes.generic {
-                    if $!target.sigil eq '@' {
-                        my $PositionalBindFailover := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+                    my $implicit-lookups := self.get-implicit-lookups;
+                    if $param-type =:= $implicit-lookups.AT-POS(0).resolution.compile-time-value {
+                        my $PositionalBindFailover := $implicit-lookups.AT-POS(1).resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
                             :op('if'),
                             QAST::Op.new(
@@ -1306,7 +1308,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 2).resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))

@@ -35,6 +35,14 @@ class RakuAST::Resolver {
         $clone
     }
 
+    method IMPL-CLONE-ATTACH-TARGETS() {
+        my %attach-targets;
+        for $!attach-targets {
+            %attach-targets{$_.key} := nqp::clone($_.value);
+        }
+        %attach-targets
+    }
+
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
         for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
@@ -826,11 +834,11 @@ class RakuAST::Resolver::Compile
     has Mu $!worries;
 
     # Create a resolver from given arguments
-    method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes) {
+    method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', $attach-targets // nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
 
@@ -851,7 +859,8 @@ class RakuAST::Resolver::Compile
             :$setting,
             :outer($resolver ?? $setting !! $context),
             :$global,
-            :scopes($resolver ?? nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes') !! Mu)
+            :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
+            :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),
         )
     }
 

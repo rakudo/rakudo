@@ -342,16 +342,32 @@ class RakuAST::Call::Name
                                 @types[$i].HOW.name(@types[$i]));
                         }
 
+                        my $protoguilt := @ct_result_multi && $ct_result == -1 ?? True !! False;
+                        my $signature := self.IMPL-WRAP-LIST(
+                            nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && !$protoguilt
+                                ?? self.IMPL-MULTI-SIG-LIST($routine)
+                                !! [try $routine.signature.gist]
+                        );
+
                         self.add-sorry(
                             $resolver.build-exception: 'X::TypeCheck::Argument',
                                 :objname($!name.canonicalize),
+                                :$signature,
                                 :arguments(@arg_names),
-                                :protoguilt(@ct_result_multi && $ct_result == -1 ?? True !! False),
+                                :$protoguilt,
                         );
                     }
                 }
             }
         }
+    }
+
+    method IMPL-MULTI-SIG-LIST($dispatcher) {
+        my @sigs := [];
+        for $dispatcher.dispatchees {
+            @sigs.push("\n    " ~ $_.signature.gist);
+        }
+        @sigs
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

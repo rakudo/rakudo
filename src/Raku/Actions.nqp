@@ -3183,6 +3183,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             %args<sub-signature> := $<signature>.ast;
         }
 
+        if $<arrayshape> {
+            %args<array-shape> := $<arrayshape><semilist><statement>[0].ast;
+        }
+
         # Build the parameter.
         make self.set-declarand($/, Nodify('Parameter').new(|%args));
     }

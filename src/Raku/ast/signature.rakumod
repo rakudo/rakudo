@@ -481,6 +481,7 @@ class RakuAST::Parameter
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
+    has RakuAST::Expression        $.array-shape;
     has RakuAST::Node              $!owner;
     has RakuAST::Package           $!package;
     has RakuAST::Signature         $.sub-signature;
@@ -500,6 +501,7 @@ class RakuAST::Parameter
                           List :$traits,
            RakuAST::Expression :$default,
            RakuAST::Expression :$where,
+           RakuAST::Expression :$array-shape,
             RakuAST::Signature :$sub-signature,
                           List :$type-captures,
             RakuAST::Signature :$signature-constraint,
@@ -542,6 +544,8 @@ class RakuAST::Parameter
           $default // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!where',
           $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!array-shape',
+          $array-shape // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature',
           $sub-signature // RakuAST::Signature);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures',
@@ -643,6 +647,11 @@ class RakuAST::Parameter
         Nil
     }
 
+    method set-array-shape(RakuAST::Expression $array-shape) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $array-shape);
+        Nil
+    }
+
     method set-value(Mu $value) {
         nqp::bindattr(self, RakuAST::Parameter, '$!value', $value);
         Nil
@@ -736,6 +745,7 @@ class RakuAST::Parameter
         $visitor($!target)        if $!target;
         $visitor($!default)       if $!default;
         $visitor($!where)         if $!where;
+        $visitor($!array-shape)   if $!array-shape;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
         $visitor($!signature-constraint) if $!signature-constraint;
@@ -812,6 +822,9 @@ class RakuAST::Parameter
         my @post_constraints;
         if $!where {
             nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
+        }
+        if $!array-shape {
+            nqp::push(@post_constraints, $!array-shape.meta-object);
         }
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
@@ -974,6 +987,39 @@ class RakuAST::Parameter
             $block.IMPL-BEGIN($resolver, $context);
             $block.IMPL-CHECK($resolver, $context, False);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
+        }
+
+        if $!array-shape {
+            my $block := RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::ApplyPostfix.new(
+                                    operand => RakuAST::ApplyPostfix.new(operand => $!array-shape, postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('list'))),
+                                    postfix => RakuAST::Call::Method.new(
+                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
+                                        args => RakuAST::ArgList.new(
+                                            RakuAST::ApplyPostfix.new(
+                                                operand => RakuAST::Var::Lexical.new('$_'),
+                                                postfix => RakuAST::Call::Method.new(
+                                                    name => RakuAST::Name.from-identifier('shape'),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                                postfix => RakuAST::Call::Method.new(
+                                    name => RakuAST::Name.from-identifier('Bool'),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+            $block.IMPL-BEGIN($resolver, $context);
+            $block.IMPL-CHECK($resolver, $context, False);
+            nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
         self.apply-traits($resolver, $context, self);
@@ -1534,6 +1580,21 @@ class RakuAST::Parameter
                         QAST::Op.new(
                             :op('callmethod'), :name('ACCEPTS'),
                             $!where.IMPL-TO-QAST($context),
+                            $temp-qast-var
+                        )
+                    )
+                )
+            );
+        }
+
+        if $!array-shape {
+            $param-qast.push(
+                QAST::ParamTypeCheck.new(
+                    QAST::Op.new(
+                        :op<istrue>,
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ACCEPTS'),
+                            $!array-shape.IMPL-TO-QAST($context),
                             $temp-qast-var
                         )
                     )

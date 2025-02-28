@@ -3009,7 +3009,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*R.declare-lexical($type-capture);
         }
         else {
-            self.attach: $/, self.type-for-name($/, $base-name);
+            my $type := self.type-for-name($/, $base-name);
+            if $<typename> { # Foo of Bar
+                $type := Nodify('Type', 'Parameterized').new(:base-type($type), :args(Nodify('ArgList').new($<typename>.ast)));
+            }
+            self.attach: $/, $type;
         }
     }
 

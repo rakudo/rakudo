@@ -220,11 +220,13 @@ class RakuAST::Call {
 class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
+    has RakuAST::Code $!block;
     has Mu $!package;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -249,6 +251,11 @@ class RakuAST::Call::Name
 
     method undeclared-symbol-details() {
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Call::Name, '$!block',
+            $resolver.find-attach-target('block'));
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -277,6 +284,18 @@ class RakuAST::Call::Name
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my int $ARG_IS_LITERAL := 32;
+
+        my $block := $!block;
+        if $!name.canonicalize eq 'return'
+            && $block && $block.signature && (my $ret := $block.signature.returns)
+            && $ret.has-compile-time-value
+            && (nqp::isconcrete($ret.maybe-compile-time-value) || nqp::istype($ret.maybe-compile-time-value, Nil))
+            && self.args && self.args.has-args {
+            self.add-sorry(
+                $resolver.build-exception: 'X::Comp::AdHoc',
+                    payload => "No return arguments allowed when return value {$block.signature.returns.DEPARSE} is already specified in the signature",
+            );
+        }
 
         unless self.is-resolved {
             self.PERFORM-BEGIN($resolver, $context);

@@ -392,6 +392,17 @@ class RakuAST::Call::Name
             }
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
+
+        # Add return value from signature if this is a return without args
+        my $block := $!block;
+        if $!name.canonicalize eq 'return'
+            && $block && $block.signature && (my $ret := $block.signature.returns)
+            && $ret.has-compile-time-value
+            && (nqp::isconcrete($ret.maybe-compile-time-value) || nqp::istype($ret.maybe-compile-time-value, Nil))
+        {
+            $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
+        }
+
         $call
     }
 

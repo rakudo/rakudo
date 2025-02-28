@@ -2016,7 +2016,7 @@ class RakuAST::Parameter::Slurpy::Capture
   is RakuAST::Parameter::Slurpy
 {
     method IMPL-FLAGS(str $sigil) {
-        nqp::const::SIG_ELEM_IS_CAPTURE
+        nqp::const::SIG_ELEM_IS_CAPTURE + nqp::const::SIG_ELEM_IS_RAW
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,

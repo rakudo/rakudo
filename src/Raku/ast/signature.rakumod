@@ -1508,9 +1508,12 @@ class RakuAST::Parameter
             $param-qast.push(
                 QAST::ParamTypeCheck.new(
                     QAST::Op.new(
-                        :op('call'),
-                        $!where.IMPL-TO-QAST($context),
-                        $temp-qast-var
+                        :op<istrue>,
+                        QAST::Op.new(
+                            :op('callmethod'), :name('ACCEPTS'),
+                            $!where.IMPL-TO-QAST($context),
+                            $temp-qast-var
+                        )
                     )
                 )
             );

@@ -943,7 +943,7 @@ class RakuAST::VarDeclaration::Simple
             self.apply-traits($resolver, $context, $target);
 
             my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
-            if $of.HOW.archetypes.generic {
+            if self.scope eq 'has' && $of.HOW.archetypes.generic {
                 $!generics-package.IMPL-ADD-GENERIC-LEXICAL(self);
             }
         }

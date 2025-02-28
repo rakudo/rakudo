@@ -851,6 +851,14 @@ class RakuAST::Parameter
         if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
             $flags := $flags +| nqp::const::SIG_ELEM_IS_RAW;
         }
+        if $!target && nqp::istype($!target, RakuAST::ParameterTarget::Var) {
+            if $!target.twigil eq '.' {
+                $flags := $flags + nqp::const::SIG_ELEM_BIND_PUBLIC_ATTR;
+            }
+            elsif $!target.twigil eq '!' {
+                $flags := $flags + nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR;
+            }
+        }
         if nqp::istype($!type, RakuAST::Type::Definedness) {
             $flags := $flags +| ($!type.definite
               ?? nqp::const::SIG_ELEM_DEFINED_ONLY

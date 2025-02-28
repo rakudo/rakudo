@@ -4,6 +4,7 @@ class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
   is RakuAST::ParseTime
   is RakuAST::Term
 {
@@ -63,6 +64,23 @@ class RakuAST::Signature
             }
         }
         $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my %seen;
+        if $!parameters {
+            for $!parameters {
+                if $_.named {
+                    my $names := $_.IMPL-UNWRAP-LIST($_.names);
+                    for $names -> $name{
+                        if nqp::existskey(%seen, $name) {
+                            self.add-sorry: $resolver.build-exception: 'X::Signature::NameClash', name => $name;
+                        }
+                        %seen{$name} := 1;
+                    }
+                }
+            }
+        }
     }
 
     method set-returns(RakuAST::Node $returns) {
@@ -609,6 +627,10 @@ class RakuAST::Parameter
 
     method names() {
         self.IMPL-WRAP-LIST($!names)
+    }
+
+    method named() {
+        $!names ?? True !! False
     }
 
     method set-default(RakuAST::Expression $default) {

@@ -232,8 +232,8 @@ class RakuAST::Signature
         if nqp::istype($!returns, RakuAST::Type) {
             $!returns.meta-object
         }
-        elsif nqp::istype($!returns, RakuAST::CompileTimeValue) {
-            $!returns.compile-time-value
+        elsif $!returns.has-compile-time-value {
+            $!returns.maybe-compile-time-value
         }
         else {
             nqp::die('--> return constraint must be a type or a constant value');

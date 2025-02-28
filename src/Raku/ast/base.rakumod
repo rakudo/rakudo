@@ -568,7 +568,7 @@ class RakuAST::Node {
         $qast
     }
 
-    # If has-compile-time-value is True, the node must also have a compile-time-value method.
+    # If has-compile-time-value is True, the node must also have a maybe-compile-time-value method.
     method has-compile-time-value() {
         False
     }

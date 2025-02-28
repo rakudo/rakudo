@@ -572,6 +572,14 @@ class RakuAST::QuotedString
         nqp::isconcrete(self.literal-value) ?? True !! False
     }
 
+    method has-compile-time-value() {
+        nqp::isconcrete(self.literal-value) ?? True !! False
+    }
+
+    method maybe-compile-time-value() {
+        self.literal-value
+    }
+
     method IMPL-CAN-INTERPRET() {
         nqp::isconcrete(self.literal-value) ?? True !! False
     }

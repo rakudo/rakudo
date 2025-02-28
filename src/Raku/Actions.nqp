@@ -3044,7 +3044,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $<value> {
             $returns := $<value>.ast;
-            unless nqp::istype($returns,Nodify('CompileTimeValue')) {
+            unless $returns.has-compile-time-value {
                 $<value>.panic:
                   'Return value after --> may only be a type or a constant';
             }

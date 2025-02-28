@@ -65,6 +65,12 @@ class RakuAST::Signature
         $!implicit-slurpy-hash.to-begin-time($resolver, $context) if $!implicit-slurpy-hash;
     }
 
+    method set-returns(RakuAST::Node $returns) {
+        my $old-returns := $!returns;
+        nqp::bindattr(self, RakuAST::Signature, '$!returns', $returns);
+        $old-returns
+    }
+
     method set-is-on-method(Bool $is-on-method) {
         # Stash away the fact whether we should generate implicit parameters
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', $is-on-method ?? 1 !! 0);

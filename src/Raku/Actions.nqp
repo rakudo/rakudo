@@ -2340,7 +2340,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method routine-def($/) {
         my $routine := $*BLOCK;
-        my $return-type := $*OFTYPE.ast if $*OFTYPE;
         $routine.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
@@ -3143,7 +3142,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
-            $parameter.set-signature-constraint($sig<fakesignature>.ast);
+            my $signature := $sig<fakesignature>.ast;
+            if $parameter.type && $signature.signature.set-returns($parameter.type) {
+                $/.typed-panic('X::Redeclaration',
+                    what    => 'return type for',
+                    symbol  => ~$<param-var><declname>,
+                    postfix => "(previous return type was "
+                                ~ $parameter.type.name.canonicalize
+                                ~ ')');
+            }
+            $parameter.set-signature-constraint($signature);
         }
         # Leave the exact time of Parameter's BEGIN to the signature
         make $parameter;

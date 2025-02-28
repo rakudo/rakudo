@@ -72,12 +72,19 @@ class RakuAST::Signature
             for $!parameters {
                 if $_.named {
                     my $names := $_.IMPL-UNWRAP-LIST($_.names);
-                    for $names -> $name{
+                    for $names -> $name {
                         if nqp::existskey(%seen, $name) {
                             self.add-sorry: $resolver.build-exception: 'X::Signature::NameClash', name => $name;
                         }
                         %seen{$name} := 1;
                     }
+                }
+                for $_.IMPL-UNWRAP-LIST($_.type-captures) -> $capture {
+                    my $name := $capture.lexical-name;
+                    if nqp::existskey(%seen, $name) {
+                        self.add-sorry: $resolver.build-exception: 'X::Redeclaration', symbol => $name;
+                    }
+                    %seen{$name} := 1;
                 }
             }
         }

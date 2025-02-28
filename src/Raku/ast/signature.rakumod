@@ -771,6 +771,7 @@ class RakuAST::Parameter
         my str $sigil-type;
         nqp::push(@lookups, 'Positional');
         nqp::push(@lookups, 'PositionalBindFailover');
+        nqp::push(@lookups, 'Iterable');
         if $sigil eq '%' { nqp::push(@lookups, 'Associative') }
         elsif $sigil eq '&' { nqp::push(@lookups, 'Callable') }
 
@@ -943,7 +944,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 2).resolution.compile-time-value;
+              self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 3).resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
                         $!type.meta-object)
@@ -1383,7 +1384,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 2).resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 3).resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))
@@ -1464,7 +1465,20 @@ class RakuAST::Parameter
             else {
                 my $value := $get-decont-var() // $temp-qast-var;
 
-                if $flags +& nqp::const::SIG_ELEM_IS_COPY {
+                my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
+                unless $wrap {
+                    my $Iterable := self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value;
+                    if !$is-coercive {
+                        $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
+                    }
+                    else {
+                        my $coercion_type := $param-type.HOW.wrappee($param-type, :coercion);
+                        my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
+                        $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
+                    }
+                }
+
+                if $wrap {
                     my $sigil := $!target.sigil;
                     if (my $is-array := $sigil eq '@') || $sigil eq '%' {
                         my $copy-var := $name ~ '_copy';

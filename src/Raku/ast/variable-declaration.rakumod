@@ -1268,59 +1268,69 @@ class RakuAST::VarDeclaration::Simple
                 $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
             }
 
-            # Reference type value with an initializer
-            elsif $!initializer {
-                my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
-                my $perform-init-qast;
-                if $!initializer.is-binding {
-                    my $source := $sigil eq '@' || $sigil eq '%'
-                      ?? QAST::Op.new( :op('decont'), $init-qast)
-                      !! $init-qast;
-                    my $type := self.bind-constraint;
-                    $context.ensure-sc($type);
-                    if !nqp::eqaddr($type, Mu) {
-                        $source := QAST::Op.new(
-                            :op('p6bindassert'),
-                            $source, QAST::WVal.new( :value($type) ))
-                    }
-                    $perform-init-qast := QAST::Op.new(
-                      :op('bind'), $var-access, $source
-                    );
+            else {
+                my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
+                if $bind-constraint.HOW.archetypes($bind-constraint).generic {
+                    $var-access := QAST::Op.new(
+                        :op('callmethod'), :name('instantiate_generic'),
+                        QAST::Op.new( :op('p6var'), $var-access ),
+                        QAST::Op.new( :op('curlexpad') ));
                 }
-                else {
-                    # Assignment. Case-analyze by sigil.
-                    if $sigil eq '@' || $sigil eq '%' {
-                        # Call STORE method, passing :INITIALIZE to indicate
-                        # it's the initialization for immutable types.
+
+                # Reference type value with an initializer
+                if $!initializer {
+                    my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
+                    my $perform-init-qast;
+                    if $!initializer.is-binding {
+                        my $source := $sigil eq '@' || $sigil eq '%'
+                          ?? QAST::Op.new( :op('decont'), $init-qast)
+                          !! $init-qast;
+                        my $type := self.bind-constraint;
+                        $context.ensure-sc($type);
+                        if !nqp::eqaddr($type, Mu) {
+                            $source := QAST::Op.new(
+                                :op('p6bindassert'),
+                                $source, QAST::WVal.new( :value($type) ))
+                        }
                         $perform-init-qast := QAST::Op.new(
-                          :op('callmethod'), :name('STORE'),
-                          $var-access,
-                          $init-qast,
-                          QAST::WVal.new( :named('INITIALIZE'), :value(True) )
+                          :op('bind'), $var-access, $source
                         );
                     }
                     else {
-                        # Scalar assignment.
-                        $perform-init-qast := QAST::Op.new(
-                          :op('p6assign'), $var-access, $init-qast );
+                        # Assignment. Case-analyze by sigil.
+                        if $sigil eq '@' || $sigil eq '%' {
+                            # Call STORE method, passing :INITIALIZE to indicate
+                            # it's the initialization for immutable types.
+                            $perform-init-qast := QAST::Op.new(
+                              :op('callmethod'), :name('STORE'),
+                              $var-access,
+                              $init-qast,
+                              QAST::WVal.new( :named('INITIALIZE'), :value(True) )
+                            );
+                        }
+                        else {
+                            # Scalar assignment.
+                            $perform-init-qast := QAST::Op.new(
+                              :op('p6assign'), $var-access, $init-qast );
+                        }
+                    }
+                    if $scope eq 'state' {
+                        $qast := QAST::Op.new(
+                          :op('if'),
+                          QAST::Op.new( :op('p6stateinit') ),
+                          $perform-init-qast,
+                          $var-access
+                        )
+                    }
+                    else {
+                        $qast := $perform-init-qast;
                     }
                 }
-                if $scope eq 'state' {
-                    $qast := QAST::Op.new(
-                      :op('if'),
-                      QAST::Op.new( :op('p6stateinit') ),
-                      $perform-init-qast,
-                      $var-access
-                    )
-                }
-                else {
-                    $qast := $perform-init-qast
-                }
-            }
 
-            # Just a declaration; compile into an access to the variable.
-            else {
-                $qast := $var-access
+                # Just a declaration; compile into an access to the variable.
+                else {
+                    $qast := $var-access
+                }
             }
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {

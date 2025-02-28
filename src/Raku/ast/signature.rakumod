@@ -1536,6 +1536,7 @@ class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
   is RakuAST::TraitTarget
   is RakuAST::Meta
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::CheckTime
 {
@@ -1680,6 +1681,11 @@ class RakuAST::ParameterTarget::Var
         $!declaration.IMPL-LOOKUP-QAST($context)
     }
 
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!attribute-package',
+            $resolver.find-attach-target('package'));
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $var := $!declaration;
         if $var {
@@ -1700,6 +1706,40 @@ class RakuAST::ParameterTarget::Var
         self.add-trait-sorries;
 
         # Check for illegal post declaration is actually performed by RakuAST::Scope
+
+        my $twigil := self.twigil;
+
+        if $twigil eq '!' {
+            my $package := $!attribute-package.meta-object;
+            unless $package.HOW.has_attribute($package, $!name) {
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Attribute::Undeclared',
+                    symbol       => $!name,
+                    package-kind => $!attribute-package.declarator,
+                    package-name => $!attribute-package.name.canonicalize,
+                    what         => 'attribute';
+            }
+        }
+        elsif $twigil eq ':' {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Parameter::Placeholder',
+                type      => "named",
+                parameter => self.DEPARSE,
+                right     => ':' ~ $!name;
+        }
+        elsif $twigil eq '^' {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Parameter::Placeholder',
+                type      => "positional",
+                parameter => self.DEPARSE,
+                right     => $!name;
+        }
+        elsif $twigil && $twigil ne '.' && $twigil ne '*' {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Parameter::Twigil',
+                parameter => self.DEPARSE,
+                twigil    => $twigil;
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

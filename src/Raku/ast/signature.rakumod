@@ -814,10 +814,11 @@ class RakuAST::Parameter
             my $name := $!target.introspection-name;
             for self.IMPL-UNWRAP-LIST(self.traits) {
                 if $!default-rw
-                    || nqp::istype($_, RakuAST::Trait::Is) && (
-                        $_.name.canonicalize eq 'copy'
-                        || $_.name.canonicalize eq 'rw'
-                    )
+                    || nqp::istype($_, RakuAST::Trait::Is)
+                        && (
+                            $_.name.canonicalize eq 'copy' && (!$!type || !nqp::objprimspec($!type.meta-object))
+                            || $_.name.canonicalize eq 'rw'
+                        )
                 {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);

@@ -1425,12 +1425,12 @@ class RakuAST::Parameter
             $context.ensure-sc($value);
             my $type := $!type.name.canonicalize;
             $param-qast.push: QAST::ParamTypeCheck.new:
-                $type eq 'Int'
+                $!type.is-known-to-be-exactly(Int)
                     ?? QAST::Op.new(:op<if>,
                         QAST::Op.new(:op<isconcrete>, $temp-qast-var),
                         QAST::Op.new(:op<iseq_I>, $wval,
                           QAST::Op.new: :op<decont>, $temp-qast-var))
-                    !! $type eq 'Num'
+                    !! $!type.is-known-to-be-exactly(Num)
                       ?? QAST::Op.new(:op<if>,
                           QAST::Op.new(:op<isconcrete>, $temp-qast-var),
                           QAST::Op.new(:op<unless>,
@@ -1438,9 +1438,17 @@ class RakuAST::Parameter
                             QAST::Op.new(:op<if>, # or both are NaNs
                               QAST::Op.new(:op<isne_n>, $wval, $wval),
                               QAST::Op.new(:op<isne_n>, $temp-qast-var, $temp-qast-var))))
-                      !! QAST::Op.new(:op<if>,
-                          QAST::Op.new(:op<isconcrete>, $temp-qast-var),
-                          QAST::Op.new(:op<iseq_s>, $wval, $temp-qast-var));
+                      !! $!type.is-known-to-be-exactly(Str)
+                        ?? QAST::Op.new(:op<if>,
+                            QAST::Op.new(:op<isconcrete>, $temp-qast-var),
+                            QAST::Op.new(:op<iseq_s>, $wval, $temp-qast-var))
+                        !! QAST::Op.new: :op<istrue>, QAST::Op.new: :op<callmethod>,
+                            :name<ACCEPTS>,
+                            nqp::istype($value, Code)
+                              ?? QAST::Op.new(:op<p6capturelex>,
+                                QAST::Op.new: :op<callmethod>, :name<clone>, QAST::WVal.new(:value($value)))
+                              !! QAST::WVal.new(:value($value)),
+                            $temp-qast-var
         }
 
         my $container_descriptor := $param-obj.container_descriptor;

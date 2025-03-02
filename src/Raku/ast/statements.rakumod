@@ -1940,6 +1940,7 @@ class RakuAST::Statement::Import
 # A require statement.
 class RakuAST::Statement::Require
   is RakuAST::Statement
+  is RakuAST::Sinkable
   is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
 {
@@ -2112,6 +2113,11 @@ class RakuAST::Statement::Require
 
         my $qast := QAST::Stmts.new;
         $qast.push($require-qast);
+        unless self.sunk {
+            $qast.push: $!module-name
+                ?? $!module-name.IMPL-QAST-INDIRECT-LOOKUP($context)
+                !! $!file.IMPL-TO-QAST($context);
+        }
         $qast
     }
 

@@ -236,14 +236,10 @@ class RakuAST::Name
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST(
-            self.is-simple && !self.is-pseudo-package
-                ?? []
-                !! [
-                    RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
-                    RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-                ]
-        )
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+        ])
     }
 
     method IMPL-LOOKUP-PARTS() {

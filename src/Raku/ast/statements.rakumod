@@ -2128,6 +2128,5 @@ class RakuAST::Statement::Require
         $visitor($!file) if $!file;
         $visitor($!argument) if $!argument;
         $visitor($!module) if $!module;
-        $visitor($!existing-lookup) if $!existing-lookup;
     }
 }

@@ -2629,7 +2629,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Ⅼ
             if !$de || $de == 1 {
                 $attachee := Nodify('IntLiteral').new(
-                  $*LITERALS.intern-int($nu)
+                  $*LITERALS.intern-int(($*NEGATE_VALUE ?? '-' !! '') ~ $nu)
                 );
             }
 
@@ -2638,7 +2638,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $LITERALS := $*LITERALS;
                 $attachee := Nodify('RatLiteral').new(
                   $LITERALS.intern-rat(
-                    $LITERALS.intern-int($nu),
+                    $LITERALS.intern-int(($*NEGATE_VALUE ?? '-' !! '') ~ $nu),
                     $LITERALS.intern-int($de)
                   )
                 );
@@ -2648,10 +2648,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # ∞ or other floating point value
         else {
             $attachee := Nodify('NumLiteral').new(
-              $*LITERALS.intern-num($<uinf>
+              $*LITERALS.intern-num(($*NEGATE_VALUE ?? '-' !! '') ~ ($<uinf>
                 ?? "Inf"  # ∞
                 !! ~$/    # other floating point value
-              )
+            ))
             );
         }
 
@@ -2696,9 +2696,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, Nodify('NumLiteral').new($*LITERALS.intern-num(($*NEGATE_VALUE ?? '-' !! '') ~ $/));
         }
         else { # wants a Rat
-            self.attach: $/, Nodify('RatLiteral').new($*LITERALS.intern-decimal(
-                $<int> ?? $<int>.ast !! NQPMu,
-                ~$<frac>));
+            my $rat;
+            if ($*NEGATE_VALUE) {
+                # Can't build the negated value directly, because a negative numerator throws
+                # off the normalization calculation. So first build the positive rat, e.g.
+                # 1/2 for .5 and then negate it.
+                $rat := $*LITERALS.intern-decimal(
+                    $<int> ?? -$<int>.ast !! NQPMu, # $<int>.ast would already be negated
+                    ~$<frac>);
+                $rat := $*LITERALS.intern-rat(nqp::neg_I($rat.numerator, $*LITERALS.int-type), $rat.denominator);
+            }
+            else {
+                $rat := $*LITERALS.intern-decimal(
+                    $<int> ?? $<int>.ast !! NQPMu,
+                    ~$<frac>);
+            }
+            self.attach: $/, Nodify('RatLiteral').new($rat);
         }
     }
 

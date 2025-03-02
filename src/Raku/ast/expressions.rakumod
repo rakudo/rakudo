@@ -1097,8 +1097,6 @@ class RakuAST::MetaInfix::Assign
         self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
     }
 
-    method IMPL-CURRIES() { 0 }
-
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         if self.IMPL-IS-TEST {
             QAST::Op.new(

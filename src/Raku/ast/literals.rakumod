@@ -17,9 +17,15 @@ class RakuAST::Literal
         $obj
     }
 
+    # Attempt to convert given value to a RakuAST::xxxLiteral object,
+    # or return Mu if failed
     method from-value(Mu $value) {
-        my $typename := $value.HOW.name($value);
-        my $obj := nqp::create(RakuAST.WHO{$typename ~ 'Literal'});
+        my $typename  := $value.HOW.name($value);
+        my $classname := $typename ~ 'Literal';
+        my $obj := nqp::create(nqp::existskey(RakuAST.WHO,$classname)
+          ?? RakuAST.WHO{$classname}
+          !! RakuAST::Literal
+        );
         nqp::bindattr($obj, RakuAST::Literal, '$!value',    $value);
         nqp::bindattr($obj, RakuAST::Literal, '$!typename', $typename);
         $obj
@@ -63,7 +69,7 @@ class RakuAST::Literal
         $type
     }
 
-    # default for non int/str/num literals
+    # default for non int/str/num/bool literals
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
@@ -123,14 +129,6 @@ class RakuAST::ComplexLiteral
 { }
 
 class RakuAST::VersionLiteral
-  is RakuAST::Literal
-{ }
-
-class RakuAST::ListLiteral
-  is RakuAST::Literal
-{ }
-
-class RakuAST::MapLiteral
   is RakuAST::Literal
 { }
 

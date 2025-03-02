@@ -1616,6 +1616,7 @@ class RakuAST::Routine
   is RakuAST::Code
   is RakuAST::StubbyMeta
   is RakuAST::Declaration
+  is RakuAST::Declaration::Mergeable
   is RakuAST::ImplicitDeclarations
   is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
@@ -1796,11 +1797,11 @@ class RakuAST::Routine
 
                 my $scope := $resolver.current-scope;
 
-                if $proto := $resolver.resolve-lexical-constant($name) {
+                if ($proto := $resolver.resolve-lexical-constant($name)) || ($proto := $resolver.resolve-lexical-constant-in-outer($name)) {
                     $proto := $proto.compile-time-value.derive_dispatcher;
-                }
-                elsif $proto := $resolver.resolve-lexical-constant-in-outer($name) {
-                    $proto := $proto.compile-time-value.derive_dispatcher;
+                    $scope.add-generated-lexical-declaration(
+                        RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))
+                    );
                 }
                 else {
                     my $proto-ast := RakuAST::Sub.new(
@@ -1825,14 +1826,12 @@ class RakuAST::Routine
                         RakuAST::VarDeclaration::Implicit::Block.new(:block($proto-ast))
                     );
                 }
-                $scope.add-generated-lexical-declaration(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))
-                );
             }
             $proto.add_dispatchee(self.meta-object);
         }
         elsif self.multiness eq 'proto' {
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
+            $resolver.current-scope.add-generated-lexical-declaration(self);
         }
 
         self.IMPL-STUB-PHASERS($resolver, $context);
@@ -1842,6 +1841,11 @@ class RakuAST::Routine
 
         # Apply any traits.
         self.apply-traits($resolver, $context, self)
+    }
+
+    method set-value(Mu $value) {
+        nqp::bindattr(self, RakuAST::StubbyMeta, '$!cached-stubbed-meta-object', $value);
+        nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', $value);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2022,7 +2026,7 @@ class RakuAST::Routine
     }
 
     method is-simple-lexical-declaration() {
-        self.is-lexical && self.multiness ne 'multi'
+        self.is-lexical && self.multiness ne 'multi' && self.multiness ne 'proto'
     }
 
     method generate-lookup() {

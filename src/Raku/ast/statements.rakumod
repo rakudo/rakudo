@@ -2011,6 +2011,27 @@ class RakuAST::Statement::Require
         Nil
     }
 
+    method IMPL-SHORT-NAME(RakuAST::IMPL::QASTContext $context) {
+        if $!module-name.is-indirect-lookup {
+            if $!module-name.is-multi-part {
+                my $qast := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+                for $!module-name.IMPL-UNWRAP-LIST($!module-name.parts) {
+                    $qast.push: $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
+                }
+                QAST::Op.new(:op<callmethod>, :name<join>,
+                    $qast,
+                    QAST::SVal.new(:value<::>)
+                )
+            }
+            else {
+                $!module-name.parts.AT-POS(0).expr.IMPL-TO-QAST($context)
+            }
+        }
+        else {
+            QAST::SVal.new(:value($!module-name.canonicalize))
+        }
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $lookups := self.get-implicit-lookups;
         my $depspec  := $lookups.AT-POS(0).compile-time-value;
@@ -2022,7 +2043,7 @@ class RakuAST::Statement::Require
             $file := $file-cp.IMPL-VALUE-QAST($context);
         }
         if $!module-name && !nqp::defined($file) {
-            my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
+            my $short-name := self.IMPL-SHORT-NAME($context);
             $short-name.named('short-name');
             my $spec := QAST::Op.new(
                 :op('callmethod'), :name('new'),
@@ -2092,7 +2113,7 @@ class RakuAST::Statement::Require
         $require-qast.push($existing-path);
         $require-qast.push($top-existing);
         $require-qast.push($lexical-stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
-        if $!module-name {
+        if $!module-name && $!module {
             my $scalar := $!module.compile-time-value;
             $context.ensure-sc($scalar);
             $require-qast.push(QAST::WVal.new(:value($scalar)));

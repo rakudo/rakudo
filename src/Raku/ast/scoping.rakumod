@@ -937,7 +937,7 @@ class RakuAST::PackageInstaller {
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
-                if $scope eq 'our' && nqp::elems(@parts) == 1 && $resolved[2] eq 'lexical' {
+                if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical' {
                     # Upgrade lexically imported top level package to global
                     ($resolver.get-global.WHO){$first} := $resolver.resolve-lexical($first).compile-time-value;
                 }

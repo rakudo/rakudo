@@ -189,6 +189,7 @@ class RakuAST::ContainerCreator {
             elsif $sigil eq '%' {
                 $container-base-type := Hash;
                 $bind-constraint := self.IMPL-SIGIL-TYPE;
+                $of := Any if self.shape && $of =:= Mu;
                 if $key-type =:= NQPMu {
                     if self.type {
                         $container-type := Hash.HOW.parameterize(Hash, $of);
@@ -206,7 +207,7 @@ class RakuAST::ContainerCreator {
                     }
                     else {
                         $container-type := Hash.HOW.parameterize(
-                            Hash, $!explicit-container-base-type, $key-type);
+                            Hash, $of, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
                             $bind-constraint, $!explicit-container-base-type, $key-type);
                     }

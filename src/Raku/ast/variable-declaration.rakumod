@@ -1163,18 +1163,13 @@ class RakuAST::VarDeclaration::Simple
                     :scope('lexical'), :decl('contvar'), :name(self.name),
                     :value($container)
                 );
-                if ($sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+                if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
                     my $value := self.IMPL-CONTAINER-TYPE($of);
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
                         QAST::WVal.new( :$value )
                     ) );
-                    if $!shape {
-                        my $shape_ast := $!shape.IMPL-TO-QAST($context);
-                        $shape_ast.named('shape');
-                        $qast[1].push($shape_ast);
-                    }
                 }
                 $qast
             }
@@ -1275,6 +1270,18 @@ class RakuAST::VarDeclaration::Simple
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $var-access ),
                         QAST::Op.new( :op('curlexpad') ));
+                }
+
+                if $sigil eq '@' && $!shape {
+                    my $value := self.IMPL-CONTAINER-TYPE($of);
+                    $context.ensure-sc($value);
+                    $var-access := QAST::Op.new( :op('bind'), $var-access, QAST::Op.new(
+                        :op('callmethod'), :name('new'),
+                        QAST::WVal.new( :$value )
+                    ) );
+                    my $shape_ast := $!shape.IMPL-TO-QAST($context);
+                    $shape_ast.named('shape');
+                    $var-access[1].push($shape_ast);
                 }
 
                 # Reference type value with an initializer

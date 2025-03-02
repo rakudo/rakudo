@@ -2002,7 +2002,9 @@ class RakuAST::Statement::Require
                 RakuAST::Package.new(:scope<my>, :name($!module-name), :is-require-stub),
             );
             $!module.to-begin-time($resolver, $context);
-            $resolver.leave-scope;
+            if nqp::istype($resolver, RakuAST::Resolver::Compile) {
+                $resolver.leave-scope;
+            }
             $!module.set-is-stub(True);
         }
 

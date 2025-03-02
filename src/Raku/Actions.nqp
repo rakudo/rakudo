@@ -359,7 +359,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*EXPORT := $export-package;
 
         # Create a compilation unit.
-        my $comp-unit-name := $*ORIGIN-SOURCE.original-file ~ $/.target;
+        my $comp-unit-name := nqp::sha1($*ORIGIN-SOURCE.original-file ~ $/.target);
 
         # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
         if $is-EVAL {

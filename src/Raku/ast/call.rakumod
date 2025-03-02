@@ -227,6 +227,7 @@ class RakuAST::Call::Name
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $!block;
+    has Mu $!lexical; # For top-level package if we can only partially resolve
     has Mu $!package;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -274,6 +275,13 @@ class RakuAST::Call::Name
                     my $v := $resolved.compile-time-value;
                     self.set-resolution($resolved);
                 }
+            }
+        }
+
+        if !$resolved && $!name.is-multi-part {
+            my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
+            if $resolved {
+                nqp::bindattr(self, RakuAST::Call::Name, '$!lexical', $resolved);
             }
         }
 
@@ -380,12 +388,8 @@ class RakuAST::Call::Name
                 return RakuAST::Nqp.new($op, self.args).IMPL-TO-QAST($context);
             }
             elsif $!name.is-package-lookup {
-                return self.is-resolved
-                    ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
-                        $context,
-                        $!package,
-                        :lexical(self.resolution)
-                    )
+                return self.is-resolved && !$!name.is-global-lookup
+                    ?? QAST::Op.new(:op<who>, self.resolution.IMPL-LOOKUP-QAST($context))
                     !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                         $context,
                         $!package
@@ -398,12 +402,20 @@ class RakuAST::Call::Name
                 $call.push(
                     self.is-resolved
                         ?? self.resolution.IMPL-LOOKUP-QAST($context)
-                        !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
-                            $context,
-                            $!package,
-                            :sigil<&>,
-                            :global-fallback,
-                        )
+                        !! $!lexical
+                            ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                                $context,
+                                $!package,
+                                :lexical($!lexical),
+                                :sigil<&>,
+                                :global-fallback,
+                            )
+                            !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                                $context,
+                                $!package,
+                                :sigil<&>,
+                                :global-fallback,
+                            )
                 );
             }
         }

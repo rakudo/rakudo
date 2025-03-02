@@ -215,6 +215,10 @@ class RakuAST::Name
         $qualified
     }
 
+    method is-global-lookup() {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL'
+    }
+
     method contains-pseudo-package-illegal-for-declaration() {
         return 'GLOBAL' if self.is-identifier && $!parts[0].name eq 'GLOBAL';
         for $!parts {
@@ -291,14 +295,15 @@ class RakuAST::Name
         my $result := QAST::WVal.new(:value($start-package));
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first;
-        if nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL' {
+        if self.is-global-lookup {
             $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
             $first := 1;
         }
         elsif $lexical {
+            nqp::die('Mismatch between lexical and package name')
+                unless $lexical.lexical-name eq $!parts[0].name;
             $first := 1;
             $result := $lexical.IMPL-LOOKUP-QAST($context);
-            return QAST::Op.new(:op<who>, $result);
         }
         if self.is-pseudo-package {
             $result := self.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);

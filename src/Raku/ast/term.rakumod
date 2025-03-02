@@ -56,12 +56,8 @@ class RakuAST::Term::Name
             $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
         }
         elsif $!name.is-package-lookup {
-            return self.is-resolved
-                ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
-                    $context,
-                    $!package,
-                    :lexical(self.resolution)
-                )
+            return self.is-resolved && !$!name.is-global-lookup
+                ?? QAST::Op.new(:op<who>, self.resolution.IMPL-LOOKUP-QAST($context))
                 !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                     $context,
                     $!package

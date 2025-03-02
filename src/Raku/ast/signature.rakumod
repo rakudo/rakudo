@@ -1088,6 +1088,18 @@ class RakuAST::Parameter
             self.add-sorry: $sorry if $sorry;
         }
 
+        # True/False parse as type
+        if $!type && $!type.is-known-to-be(Bool) && nqp::isconcrete($!type.meta-object) {
+            my $val := $!value.gist;
+            self.add-worry(
+                $resolver.build-exception: 'X::AdHoc', payload =>
+                    "Literal values in signatures are smartmatched against and "
+                    ~ "smartmatch with `$val` will always "
+                    ~ ($val eq 'True' ?? 'succeed' !! 'fail')
+                    ~ ". Use the `where` clause instead."
+            );
+        }
+
         my $param-obj := self.meta-object;
         my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
         my $ptype-archetypes := $param-type.HOW.archetypes($param-type);

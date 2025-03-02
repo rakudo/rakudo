@@ -619,6 +619,9 @@ class RakuAST::Declaration::Mergeable {
             # "Latest wins" semantics for functions
             self.set-value($source);
         }
+        elsif nqp::can($other, 'lexical-name') && $other.lexical-name eq '%?REQUIRE-SYMBOLS' {
+            # Nothing to do - the existing symbol suffices
+        }
         else {
             $resolver.panic(
                 $resolver.build-exception(

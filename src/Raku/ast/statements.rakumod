@@ -1944,14 +1944,16 @@ class RakuAST::Statement::Require
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.file;
     has RakuAST::Expression $.argument;
     has List $!arglist;
     has RakuAST::Package $!module;
     has RakuAST::Node $!existing-lookup;
 
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$file, RakuAST::Expression :$argument) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!file', $file // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Statement::Require, '$!argument',
             $argument // RakuAST::Expression);
         $obj
@@ -2010,23 +2012,45 @@ class RakuAST::Statement::Require
         my $lookups := self.get-implicit-lookups;
         my $depspec  := $lookups.AT-POS(0).compile-time-value;
         my $registry := $lookups.AT-POS(1).compile-time-value;
-        my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
-        $short-name.named('short-name');
 
-        my $spec := QAST::Op.new(
-            :op('callmethod'), :name('new'),
-            QAST::WVal.new(:value($depspec)),
-            $short-name,
-        );
-        my $compunit_qast := QAST::Op.new(
-            :op('callmethod'), :name('need'),
-            QAST::Op.new(
-                :op('callmethod'), :name('head'),
-                QAST::WVal.new(:value($registry)),
-            ),
-            $spec,
-        );
-        my $require-qast := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit_qast);
+        my $compunit-qast;
+        my $file;
+        if $!module-name && (my $file-cp := $!module-name.first-colonpair('file')) {
+            $file := $file-cp.IMPL-VALUE-QAST($context);
+        }
+        if $!module-name && !nqp::defined($file) {
+            my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
+            $short-name.named('short-name');
+            my $spec := QAST::Op.new(
+                :op('callmethod'), :name('new'),
+                QAST::WVal.new(:value($depspec)),
+                $short-name,
+            );
+            $compunit-qast := QAST::Op.new(
+                :op('callmethod'), :name('need'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('head'),
+                    QAST::WVal.new(:value($registry)),
+                ),
+                $spec,
+            );
+        }
+        else {
+            my $file-qast := ($file // $!file.IMPL-TO-QAST($context));
+            $compunit-qast := QAST::Op.new(
+                :op('callmethod'), :name('load'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('head'),
+                    QAST::WVal.new(:value($registry)),
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('IO'),
+                    $file-qast,
+                ),
+            );
+        }
+
+        my $require-qast := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit-qast);
         # A list of the components of the pre-existing outer symbols name (if any)
         my $existing-path := QAST::Var.new( :name('Any'), :scope('lexical') );
         # The top level package object of the  pre-existing outer package (if any)
@@ -2065,17 +2089,21 @@ class RakuAST::Statement::Require
         $require-qast.push($existing-path);
         $require-qast.push($top-existing);
         $require-qast.push($lexical-stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
-        my $scalar := $!module.compile-time-value;
-        $context.ensure-sc($scalar);
-        $require-qast.push(QAST::WVal.new(:value($scalar)));
-        my $name-parts := QAST::Op.new(:op<call>, :name('&infix:<,>'));
         if $!module-name {
+            my $scalar := $!module.compile-time-value;
+            $context.ensure-sc($scalar);
+            $require-qast.push(QAST::WVal.new(:value($scalar)));
+            my $name-parts := QAST::Op.new(:op<call>, :name('&infix:<,>'));
             for self.IMPL-UNWRAP-LIST($!module-name.parts) {
                 $name-parts.push: QAST::SVal.new(:value($_.name));
             }
+            $context.ensure-sc($name-parts);
+            $require-qast.push($name-parts);
         }
-        $context.ensure-sc($name-parts);
-        $require-qast.push($name-parts);
+        else {
+            $require-qast.push(QAST::WVal.new(:value(Any)));
+            $require-qast.push(QAST::WVal.new(:value(Any)));
+        }
         if $!argument {
             for $!arglist {
                 $require-qast.push(QAST::SVal.new(:value($_.Str)));
@@ -2088,6 +2116,10 @@ class RakuAST::Statement::Require
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!module-name);
+        $visitor($!module-name) if $!module-name;
+        $visitor($!file) if $!file;
+        $visitor($!argument) if $!argument;
+        $visitor($!module) if $!module;
+        $visitor($!existing-lookup) if $!existing-lookup;
     }
 }

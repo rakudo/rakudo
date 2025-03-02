@@ -841,7 +841,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement-control:sym<require>($/) {
         my $ast := Nodify('Statement', 'Require').new(
-            module-name => $<module-name>.ast,
+            module-name => $<module-name> ?? $<module-name>.ast !! Nodify('Name'),
+            file => $<file> ?? $<file>.ast !! Nodify('Expression'),
             argument => $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression'),
         );
         self.attach: $/, $ast;

@@ -5736,9 +5736,11 @@ class Perl6::World is HLL::World {
             } elsif nqp::islist($target) {
                 my @result;
                 @result.push("(");
-                for $target -> $val {
-                    @result.push(",") if +@result != 1;
-                    @result.push(safely_stringify($val));
+                try {
+                    for $target -> $val {
+                        @result.push(",") if +@result != 1;
+                        @result.push(safely_stringify($val));
+                    }
                 }
                 @result.push(")");
                 return join('', @result);

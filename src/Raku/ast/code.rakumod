@@ -93,6 +93,10 @@ class RakuAST::Code
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        []
+    }
+
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
     }
@@ -358,6 +362,15 @@ class RakuAST::Code
             :name('$?PACKAGE'), :scope('lexical'),
             :decl('static'), :value($package)
         ));
+
+        for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
+            my $value := $_.compile-time-value;
+            $context.ensure-sc($value);
+            $wrapper[0].push(QAST::Var.new(
+                :name($_.lexical-name), :scope('lexical'),
+                :decl('static'), :$value)
+            );
+        }
 
         self.IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK($resolver, $context, $wrapper);
 

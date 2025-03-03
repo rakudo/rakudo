@@ -526,6 +526,15 @@ class RakuAST::StatementPrefix::Phaser::Begin
         Nil
     }
 
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            []
+        }
+        else {
+            self.IMPL-UNWRAP-LIST($resolver.current-scope.generated-lexical-declarations);
+        }
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);

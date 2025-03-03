@@ -1357,6 +1357,12 @@ CODE
             @parts.push(':');
         }
 
+        if $ast.sub-signature -> $signature {
+            @parts.push(' (');
+            @parts.push(self.deparse($signature));
+            @parts.push(')');
+        }
+
         @parts = self.hsyn('param', @parts.join);
         if $ast.default -> $default {
             @parts.push(self.syn-infix-ws($.assign) ~ self.deparse($default));

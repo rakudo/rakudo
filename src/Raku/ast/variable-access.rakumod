@@ -454,6 +454,41 @@ class RakuAST::Var::Compiler::Routine
     }
 }
 
+class RakuAST::Var::Compiler::Resources
+  is RakuAST::Var::Compiler
+  is RakuAST::Var::Lexical
+  is RakuAST::ImplicitLookups
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', '%');
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!twigil', '?');
+        nqp::bindattr($obj, RakuAST::Var::Lexical, '$!desigilname', RakuAST::Name.from-identifier('RESOURCES'));
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('Distribution', 'Resources')),
+        ])
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $resources := nqp::getlexdyn('$*RESOURCES');
+        unless $resources {
+            my $Resources := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+            $resources := $Resources.from-precomp();
+        }
+        if $resources {
+            $context.ensure-sc($resources);
+            QAST::WVal.new( :value($resources) );
+        }
+        else {
+            QAST::WVal.new( :value(Nil) );
+        }
+    }
+}
+
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
@@ -682,7 +717,7 @@ class RakuAST::Var::Slang
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
-            :op<callmethod>, :name<new>, :returns(self.get-implicit-lookups.AT-POS(1)),
+            :op<callmethod>, :name<new>, :returns(self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value),
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
         $context.ensure-sc($g);

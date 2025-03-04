@@ -358,7 +358,6 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
-  is RakuAST::Declaration
 {
     has RakuAST::ArgList $.args;
 

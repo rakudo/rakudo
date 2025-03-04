@@ -178,7 +178,7 @@ class RakuAST::Package
     }
 
     # Need to install the package somewhere
-    method install-in-scope($resolver,$scope,$name,$full-name) {
+    method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         self.IMPL-INSTALL-PACKAGE(
           $resolver, $scope, $name, $resolver.current-package, :meta-object(Mu)
         ) if $scope eq 'my' || $scope eq 'our';
@@ -462,16 +462,16 @@ class RakuAST::Role
         }
     }
 
-    method install-in-scope($resolver,$scope,$name,$full-name) {
+    method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         # Find an appropriate existing role group
-        my $group-name := $full-name.canonicalize(:colonpairs(0));
-        my $group      := $resolver.resolve-lexical-constant($group-name);
+        my $group      := $resolver.resolve-lexical-constant($name.canonicalize);
         if $group {
             $group := $group.compile-time-value;
         }
 
         # No existing one found - create a role group
         else {
+            my $group-name := $full-name.canonicalize(:colonpairs(0));
             $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
             );

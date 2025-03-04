@@ -489,6 +489,40 @@ class RakuAST::Var::Compiler::Resources
     }
 }
 
+class RakuAST::Var::Compiler::Distribution
+  is RakuAST::Var::Compiler
+  is RakuAST::Var::Lexical
+  is RakuAST::ImplicitLookups
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', '$');
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!twigil', '?');
+        nqp::bindattr($obj, RakuAST::Var::Lexical, '$!desigilname', RakuAST::Name.from-identifier('DISTRIBUTION'));
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Repository', 'Distribution')),
+        ])
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $distribution := nqp::getlexdyn('$*DISTRIBUTION');
+        unless $distribution {
+            my $Distribution := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+            $distribution := $Distribution.from-precomp();
+        }
+        if $distribution {
+            $context.ensure-sc($distribution);
+            QAST::WVal.new( :value($distribution) );
+        }
+        else {
+            QAST::WVal.new( :value(Nil) );
+        }
+    }
+}
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup

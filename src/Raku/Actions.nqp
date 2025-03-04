@@ -1992,7 +1992,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     ?? Nodify('Var','Compiler','Routine').new
                     !! $name eq '%?RESOURCES'
                       ?? Nodify('Var', 'Compiler', 'Resources').new
-                      !! Nodify('Var','Compiler','Lookup').new($name);
+                      !! $name eq '$?DISTRIBUTION'
+                        ?? Nodify('Var', 'Compiler', 'Distribution').new
+                        !! Nodify('Var','Compiler','Lookup').new($name);
         }
         elsif $twigil eq '^' {
             $ast := Nodify('VarDeclaration','Placeholder','Positional').new(

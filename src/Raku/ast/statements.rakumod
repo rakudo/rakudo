@@ -1728,7 +1728,7 @@ class RakuAST::ModuleLoading {
         $comp-unit
     }
 
-    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
+    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist, Str :$module) {
         my $EXPORT := $handle.export-package;
         if nqp::isconcrete($EXPORT) {
             $EXPORT := $EXPORT.FLATTENABLE_HASH();
@@ -1741,8 +1741,7 @@ class RakuAST::ModuleLoading {
                     if nqp::istype($tag, $Pair) {
                         my str $tag-name := nqp::unbox_s($tag.key);
                         unless nqp::existskey($EXPORT, $tag-name) {
-                            # TODO X::Import::NoSuchTag
-                            nqp::die('No such tag')
+                            $resolver.build-exception('X::Import::NoSuchTag', source-package => $module, :tag($tag-name)).throw;
                         }
                         nqp::push(@to-import, $tag-name);
                     }
@@ -1838,7 +1837,7 @@ class RakuAST::Statement::Use
             !! Nil;
 
         my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $!module-name);
-        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
+        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist, :module($!module-name.canonicalize));
     }
 
     method visit-children(Code $visitor) {
@@ -1927,7 +1926,7 @@ class RakuAST::Statement::Import
         my $module := self.resolution.compile-time-value;
         my $CompUnitHandle := self.get-implicit-lookups().AT-POS(0).compile-time-value;
         my $handle := $CompUnitHandle.from-unit($module.WHO);
-        self.IMPL-IMPORT($resolver, $handle, $arglist);
+        self.IMPL-IMPORT($resolver, $handle, $arglist, :module($!module-name.canonicalize));
     }
 
     method visit-children(Code $visitor) {

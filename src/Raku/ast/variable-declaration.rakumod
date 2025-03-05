@@ -772,20 +772,24 @@ class RakuAST::VarDeclaration::Simple
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
                     $attribute-package);
-                if self.is-attribute {
-                    if $!attribute-package.can-have-attributes {
-                        $!attribute-package.ATTACH-ATTRIBUTE(self);
-                    }
-                    else {
-                        $resolver.add-worry:  # XXX should be self.add-worry
-                            $resolver.build-exception: 'X::Attribute::Package',
-                                name         => self.name,
-                                package-kind => $!attribute-package.declarator;
-                    }
+                if self.is-attribute && !$!attribute-package.can-have-attributes {
+                    $resolver.add-worry:  # XXX should be self.add-worry
+                        $resolver.build-exception: 'X::Attribute::Package',
+                            name         => self.name,
+                            package-kind => $!attribute-package.declarator;
                 }
             }
             else {
                 # TODO check-time error
+                my $package := nqp::getlexdyn('$?PACKAGE');
+                # In class Foo { EVAL q[has $.foo] } we won't find a package attach target
+                # because compile time is long over, yet there will be a $?PACKAGE. Throwing
+                # a NoPackage here would be confusing. It would be better to throw an error
+                # explaining that the package is already composed. Alas there's a spec test
+                # that requires this to be silently ignored, so that's what we do for now.
+                if self.is-attribute && !nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer) {
+                    $resolver.build-exception('X::Attribute::NoPackage', name => self.name).throw;
+                }
             }
         }
         elsif self.scope eq 'our' || $!desigilname.is-multi-part {
@@ -882,7 +886,7 @@ class RakuAST::VarDeclaration::Simple
                                 operand => $!type.IMPL-VALUE-TYPE,
                                 postfix => $initializer.postfixish
                             )
-                            !! $initializer.expression
+                            !! RakuAST::Call::Name.new(:name(RakuAST::Name.from-identifier('return')), :args(RakuAST::ArgList.new($initializer.expression)))
                         )
                     )
                 );
@@ -907,6 +911,8 @@ class RakuAST::VarDeclaration::Simple
                 nqp::push_i(@dimensions, $elems);
                 nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
             }
+
+            $!attribute-package.ATTACH-ATTRIBUTE(self) if $!attribute-package;
         }
         else {
             # For other variables the meta-object is just the container, but we
@@ -926,7 +932,7 @@ class RakuAST::VarDeclaration::Simple
             if self.twigil eq '.' {
                 my $variable-access := RakuAST::Var::Lexical.new(self.name);
                 $variable-access.set-resolution(self);
-                my $accessor := RakuAST::Method.new(
+                my $accessor := RakuAST::Method::ClassAccessor.new(
                     :scope<has>,
                     :name(RakuAST::Name.from-identifier(self.desigilname.canonicalize)),
                     :body(RakuAST::Blockoid.new(
@@ -1047,6 +1053,15 @@ class RakuAST::VarDeclaration::Simple
                 }
             }
         }
+
+        if self.twigil eq '.' && !self.is-attribute && !$!attribute-package {
+            my $package := nqp::getlexdyn('$?PACKAGE');
+            $resolver.add-worry:
+                $resolver.build-exception('X::AdHoc', payload => "Useless generation of accessor method in " ~
+                (nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer)
+                    ?? $package.HOW.name($package)
+                    !! "mainline"));
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1104,6 +1119,8 @@ class RakuAST::VarDeclaration::Simple
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
+            return Nil unless $!attribute-package; # See explanation in PERFORM-BEGIN
+
             my $meta-object := $!attribute-package.attribute-type.new(
               name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
               type => $type,

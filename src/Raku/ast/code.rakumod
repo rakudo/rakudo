@@ -1644,6 +1644,7 @@ class RakuAST::Routine
     has RakuAST::Signature $.signature;
     has str $!multiness;
     has RakuAST::Package $!package;
+    has RakuAST::Code $!outer;
     has Bool $.need-routine-variable;
     has Bool $!replace-stub;
 
@@ -1675,6 +1676,8 @@ class RakuAST::Routine
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
+        my $block := $resolver.find-attach-target('block', :skip-first);
+        nqp::bindattr(self, RakuAST::Routine, '$!outer', $block);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
@@ -2007,11 +2010,19 @@ class RakuAST::Routine
                 )
             }
             else {
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                    self.IMPL-CLOSURE-QAST($context)
-                )
+                if $!outer { # Ensure each block invocation gets its own closure clone of this routine
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
+                        self.IMPL-CLOSURE-QAST($context)
+                    )
+                }
+                else { # No need to replace the lexical with the closure clone if declared in the comp unit directly
+                    QAST::Stmts.new(
+                        QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) ),
+                        self.IMPL-CLOSURE-QAST($context),
+                    )
+                }
             }
         }
         else {
@@ -2421,6 +2432,14 @@ class RakuAST::Submethod
   is RakuAST::Method
 {
     method IMPL-META-OBJECT-TYPE() { Submethod }
+}
+
+class RakuAST::Method::ClassAccessor
+  is RakuAST::Method
+{
+    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, QAST::Node $qast) {
+        $qast
+    }
 }
 
 # Base class for regex declaration, such as `token foo { bar }`. This

@@ -358,7 +358,6 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
-  is RakuAST::Declaration
 {
     has RakuAST::ArgList $.args;
 
@@ -855,6 +854,8 @@ class RakuAST::Type::Subset
 
         self.meta-object; # Finish meta-object setup so compile time type-checks will be correct
         if $block && $block.IMPL-CURRIED {
+            $block.IMPL-CHECK($resolver, $context, False);
+            $resolver.panic(Any) if $resolver.all-sorries.elems;
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
             $block.IMPL-CURRIED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
         }

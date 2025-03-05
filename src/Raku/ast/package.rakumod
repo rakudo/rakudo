@@ -178,7 +178,7 @@ class RakuAST::Package
     }
 
     # Need to install the package somewhere
-    method install-in-scope($resolver,$scope,$name,$full-name) {
+    method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         self.IMPL-INSTALL-PACKAGE(
           $resolver, $scope, $name, $resolver.current-package, :meta-object(Mu)
         ) if $scope eq 'my' || $scope eq 'our';
@@ -356,6 +356,8 @@ class RakuAST::Package::Attachable
     # TODO also list-y declarations
     method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
         nqp::push($!attached-attributes, $attribute);
+        my $type := self.stubbed-meta-object;
+        $type.HOW.add_attribute($type, $attribute.meta-object);
         Nil
     }
 
@@ -389,7 +391,6 @@ class RakuAST::Package::Attachable
             nqp::deletekey($!attached-attribute-usages, $_.name);
 
             # TODO: create method BUILDALL here
-            $how.add_attribute($type, $_.meta-object);
         }
     }
 }
@@ -462,16 +463,16 @@ class RakuAST::Role
         }
     }
 
-    method install-in-scope($resolver,$scope,$name,$full-name) {
+    method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         # Find an appropriate existing role group
-        my $group-name := $full-name.canonicalize(:colonpairs(0));
-        my $group      := $resolver.resolve-lexical-constant($group-name);
+        my $group      := $resolver.resolve-lexical-constant($name.canonicalize);
         if $group {
             $group := $group.compile-time-value;
         }
 
         # No existing one found - create a role group
         else {
+            my $group-name := $full-name.canonicalize(:colonpairs(0));
             $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
             );

@@ -56,7 +56,9 @@ class RakuAST::BeginTime
             return $resolved(|@pos, |%named);
         }
         else {
-            nqp::die('BEGIN time calls only supported for simple constructs so far')
+            my $call := RakuAST::ApplyPostfix(:postfix(RakuAST::Call::Term.new($args)), :operand($callee));
+            $call.to-begin-time($resolver, $context);
+            return self.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context);
         }
     }
 }

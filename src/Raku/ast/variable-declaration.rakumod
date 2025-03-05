@@ -792,7 +792,7 @@ class RakuAST::VarDeclaration::Simple
                 # a NoPackage here would be confusing. It would be better to throw an error
                 # explaining that the package is already composed. Alas there's a spec test
                 # that requires this to be silently ignored, so that's what we do for now.
-                unless nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer) {
+                if self.is-attribute && !nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer) {
                     $resolver.build-exception('X::Attribute::NoPackage', name => self.name).throw;
                 }
             }
@@ -1055,6 +1055,15 @@ class RakuAST::VarDeclaration::Simple
                     );
                 }
             }
+        }
+
+        if self.twigil eq '.' && !self.is-attribute && !$!attribute-package {
+            my $package := nqp::getlexdyn('$?PACKAGE');
+            $resolver.add-worry:
+                $resolver.build-exception('X::AdHoc', payload => "Useless generation of accessor method in " ~
+                (nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer)
+                    ?? $package.HOW.name($package)
+                    !! "mainline"));
         }
     }
 

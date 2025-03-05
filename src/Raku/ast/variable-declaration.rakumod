@@ -772,16 +772,11 @@ class RakuAST::VarDeclaration::Simple
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
                     $attribute-package);
-                if self.is-attribute {
-                    if $!attribute-package.can-have-attributes {
-                        $!attribute-package.ATTACH-ATTRIBUTE(self);
-                    }
-                    else {
-                        $resolver.add-worry:  # XXX should be self.add-worry
-                            $resolver.build-exception: 'X::Attribute::Package',
-                                name         => self.name,
-                                package-kind => $!attribute-package.declarator;
-                    }
+                if self.is-attribute && !$!attribute-package.can-have-attributes {
+                    $resolver.add-worry:  # XXX should be self.add-worry
+                        $resolver.build-exception: 'X::Attribute::Package',
+                            name         => self.name,
+                            package-kind => $!attribute-package.declarator;
                 }
             }
             else {
@@ -916,6 +911,8 @@ class RakuAST::VarDeclaration::Simple
                 nqp::push_i(@dimensions, $elems);
                 nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
             }
+
+            $!attribute-package.ATTACH-ATTRIBUTE(self) if $!attribute-package;
         }
         else {
             # For other variables the meta-object is just the container, but we

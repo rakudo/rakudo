@@ -356,6 +356,8 @@ class RakuAST::Package::Attachable
     # TODO also list-y declarations
     method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
         nqp::push($!attached-attributes, $attribute);
+        my $type := self.stubbed-meta-object;
+        $type.HOW.add_attribute($type, $attribute.meta-object);
         Nil
     }
 
@@ -389,7 +391,6 @@ class RakuAST::Package::Attachable
             nqp::deletekey($!attached-attribute-usages, $_.name);
 
             # TODO: create method BUILDALL here
-            $how.add_attribute($type, $_.meta-object);
         }
     }
 }

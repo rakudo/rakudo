@@ -228,6 +228,7 @@ class RakuAST::Var::Attribute
   is RakuAST::Var
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has str $.name;
     has RakuAST::Package $!package;
@@ -257,6 +258,12 @@ class RakuAST::Var::Attribute
         }
         else {
             # TODO check-time error
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.get-implicit-lookups.AT-POS(0).is-resolved {
+            self.add-sorry($resolver.build-exception('X::Syntax::NoSelf', :variable(self.name)));
         }
     }
 

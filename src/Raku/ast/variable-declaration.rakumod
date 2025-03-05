@@ -891,7 +891,7 @@ class RakuAST::VarDeclaration::Simple
                                 operand => $!type.IMPL-VALUE-TYPE,
                                 postfix => $initializer.postfixish
                             )
-                            !! $initializer.expression
+                            !! RakuAST::Call::Name.new(:name(RakuAST::Name.from-identifier('return')), :args(RakuAST::ArgList.new($initializer.expression)))
                         )
                     )
                 );

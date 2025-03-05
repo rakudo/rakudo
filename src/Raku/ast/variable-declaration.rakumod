@@ -926,7 +926,7 @@ class RakuAST::VarDeclaration::Simple
             if self.twigil eq '.' {
                 my $variable-access := RakuAST::Var::Lexical.new(self.name);
                 $variable-access.set-resolution(self);
-                my $accessor := RakuAST::Method.new(
+                my $accessor := RakuAST::Method::ClassAccessor.new(
                     :scope<has>,
                     :name(RakuAST::Name.from-identifier(self.desigilname.canonicalize)),
                     :body(RakuAST::Blockoid.new(

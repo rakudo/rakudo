@@ -2434,6 +2434,14 @@ class RakuAST::Submethod
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 
+class RakuAST::Method::ClassAccessor
+  is RakuAST::Method
+{
+    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, QAST::Node $qast) {
+        $qast
+    }
+}
+
 # Base class for regex declaration, such as `token foo { bar }`. This
 # implies its own lexical scope.
 class RakuAST::RegexDeclaration

@@ -22,13 +22,13 @@ for @protos -> \p {
     my $mu-proto-capture-at = Inf;
     for p.signature.params.grep({.positional or .capture}).kv -> \idx, \param {
         $mu-proto-capture-at = idx if param.capture;
-        next unless param.type =:= Mu;
+        next unless param.type =:= Mu | Mu:U;
         @mu-pos-proto[idx] = "at pos {idx}";
     }
     my @mu-pos-cand;
     for p.candidates -> \candidate {
         for candidate.signature.params.grep({.positional}).kv -> \idx, \param {
-            next if param.type !=:= Mu or idx ≥ $mu-proto-capture-at;
+            next if !(param.type =:= Mu | Mu:U) or idx ≥ $mu-proto-capture-at;
             @mu-pos-cand[idx] = "at pos {idx}";
         }
     }

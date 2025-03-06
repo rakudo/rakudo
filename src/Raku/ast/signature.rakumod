@@ -1821,7 +1821,16 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
-        ($!attribute // $!declaration).IMPL-BIND-QAST($context, $source-qast)
+        if $!attribute {
+            QAST::Op.new(
+                :op('p6store'),
+                $!attribute.IMPL-EXPR-QAST($context),
+                $source-qast
+            )
+        }
+        else {
+            $!declaration.IMPL-BIND-QAST($context, $source-qast)
+        }
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -343,7 +343,7 @@ class RakuAST::Var::Attribute::Public
           # self.foo.item
           RakuAST::ApplyPostfix.new(
             operand => RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Term::Self.new,
+              operand => RakuAST::Term::Self.new(:variable($obj)),
               postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier(nqp::substr($name,2))
               )

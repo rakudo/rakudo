@@ -109,8 +109,12 @@ class RakuAST::Term::Self
   is RakuAST::ParseTime
   is RakuAST::CheckTime
 {
-    method new() {
-        nqp::create(self)
+    has RakuAST::Var::Attribute::Public $!variable;
+
+    method new(RakuAST::Var::Attribute::Public :$variable) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Term::Self, '$!variable', $variable // RakuAST::Var::Attribute::Public);
+        $obj
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -122,7 +126,11 @@ class RakuAST::Term::Self
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
-            self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
+            self.add-sorry(
+                $!variable
+                    ?? $resolver.build-exception('X::Syntax::NoSelf', :variable($!variable.name))
+                    !! $resolver.build-exception('X::Syntax::Self::WithoutObject')
+            )
         }
     }
 

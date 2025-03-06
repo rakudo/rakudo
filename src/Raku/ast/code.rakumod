@@ -2460,6 +2460,12 @@ class RakuAST::Method::AttributeAccessor
         $obj
     }
 
+    method PRODUCE-META-OBJECT() {
+        my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);
+        $meta.set_rw if $!rw;
+        $meta
+    }
+
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
         # Is it a native attribute? (primpspec != 0)
         my $native := nqp::objprimspec($!type);

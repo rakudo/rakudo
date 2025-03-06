@@ -3189,7 +3189,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 ?? $dynprag($name)
                 !! 0;
             my $decl := Nodify('ParameterTarget', 'Var').new(
-              :$name, :$forced-dynamic
+              :$name, :$forced-dynamic, :var-declaration($*ON-VARDECLARATION),
             );
             $/.typed-panic('X::Redeclaration', :symbol($name))
               if $decl.can-be-resolved

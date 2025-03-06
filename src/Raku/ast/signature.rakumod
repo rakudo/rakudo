@@ -1698,14 +1698,14 @@ class RakuAST::ParameterTarget::Var
     has str $!scope;
     has Bool $!is-bindable;
 
-    method new(str :$name!, Bool :$forced-dynamic) {
+    method new(str :$name!, Bool :$forced-dynamic, Bool :$var-declaration) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
-        if $twigil eq '!' {
+        if $twigil eq '!' && !$var-declaration {
             nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!attribute', RakuAST::Var::Attribute.new($name))
         }
         else {

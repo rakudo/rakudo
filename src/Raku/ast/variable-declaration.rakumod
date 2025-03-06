@@ -1376,6 +1376,10 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
+    method IMPL-ATTRIBUTE-NAME() {
+        $!sigil ~ '!' ~ $!desigilname.canonicalize
+    }
+
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
         my str $scope := self.scope;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
@@ -1393,7 +1397,16 @@ class RakuAST::VarDeclaration::Simple
             QAST::Var.new( :name(self.name), :$scope )
         }
         elsif self.is-attribute {
-            nqp::die('Cannot compile lookup of attributes yet')
+            my $package := $!attribute-package.meta-object;
+            my $name := self.IMPL-ATTRIBUTE-NAME;
+            my $attr-type := $package.HOW.get_attribute_for_usage($package, $name).type;
+            $context.ensure-sc($package);
+            QAST::Var.new(
+                :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
+                :name($name), :returns($attr-type),
+                QAST::Var.new(:scope('lexical'), :name('self')),
+                QAST::WVal.new( :value($package) ),
+            )
         }
         else {
             nqp::die("Cannot compile lookup of scope $scope")

@@ -62,6 +62,12 @@ class RakuAST::Var::Lexical
                 self.set-resolution($resolved);
             }
         }
+        if self.is-resolved && nqp::istype(self.resolution, RakuAST::VarDeclaration::AttributeAlias) {
+            my $self := RakuAST::Term::Self.new.to-begin-time($resolver, $context);
+            unless $self.is-resolved {
+                self.add-sorry($resolver.build-exception('X::Syntax::NoSelf', :variable(self.name)));
+            }
+        }
     }
 
     method undeclared-symbol-details() {

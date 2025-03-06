@@ -28,6 +28,8 @@ class RakuAST::Package
     has Bool $.is-stub;
     has Bool $.is-require-stub;
 
+    has RakuAST::CompilerServices $.compiler-services;
+
     method new(          str :$scope,
                RakuAST::Name :$name,
           RakuAST::Signature :$parameterization,
@@ -113,6 +115,8 @@ class RakuAST::Package
                 }
             }
         }
+
+        nqp::bindattr(self, RakuAST::Package, '$!compiler-services', RakuAST::CompilerServices.new(self, $resolver, $context));
     }
 
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
@@ -242,7 +246,7 @@ class RakuAST::Package
 
     method PRODUCE-META-OBJECT() {
         my $type := self.stubbed-meta-object;
-        $type.HOW.compose($type);
+        $type.HOW.compose($type, :compiler_services($!compiler-services));
         $type
     }
 
@@ -265,6 +269,7 @@ class RakuAST::Package
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
+        $!compiler-services.IMPL-ADD-QAST($body[0]);
         my $result := QAST::Stmts.new(
             $body,
             QAST::WVal.new( :value($type-object) )
@@ -502,7 +507,7 @@ class RakuAST::Role
 
         # The role needs to be composed before we add the possibility
         # to the group
-        $how.compose($type);
+        $how.compose($type, :compiler_services(self.compiler-services));
 
         my $group :=
           nqp::getattr(self, RakuAST::Package::Attachable, '$!role-group');
@@ -593,7 +598,7 @@ class RakuAST::Class
         my $how  := $type.HOW;
 
         self.PRODUCE-META-ATTACHABLES($type, $how);
-        $how.compose($type);
+        $how.compose($type, :compiler_services(self.compiler-services));
         $type
     }
 }
@@ -648,4 +653,43 @@ class RakuAST::Native
 {
     method declarator()  { "native"             }
     method default-how() { Metamodel::NativeHOW }
+}
+
+# For generating accessors
+class RakuAST::CompilerServices
+{
+    has RakuAST::Package $!package;
+    has RakuAST::Resolver $!resolver;
+    has RakuAST::IMPL::QASTContext $!context;
+    has QAST::Stmts $!qast;
+
+    method new(RakuAST::Package $package, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::CompilerServices, '$!package', $package);
+        nqp::bindattr($obj, RakuAST::CompilerServices, '$!resolver', $resolver);
+        nqp::bindattr($obj, RakuAST::CompilerServices, '$!context', $context);
+        nqp::bindattr($obj, RakuAST::CompilerServices, '$!qast', QAST::Stmts.new);
+        $obj
+    }
+
+    method generate_accessor(str $meth_name, $package_type, str $attr_name, Mu $type, int $rw) {
+        my $accessor := RakuAST::Method::AttributeAccessor.new(
+            :name(RakuAST::Name.from-identifier($meth_name)),
+            :attr-name($attr_name),
+            :type($type),
+            :package-type($package_type),
+            :rw($rw),
+        );
+        $!resolver.push-scope($!package);
+        $!resolver.push-scope($accessor);
+        $accessor.to-begin-time($!resolver, $!context); # TODO maybe also check?
+        $!resolver.pop-scope();
+        $!resolver.pop-scope();
+        $!qast.push: $accessor.IMPL-QAST-BLOCK($!context);
+        $accessor.meta-object
+    }
+
+    method IMPL-ADD-QAST(QAST::Node $target) {
+        $target.push: $!qast if nqp::elems($!qast.list);
+    }
 }

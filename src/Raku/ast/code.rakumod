@@ -2434,6 +2434,56 @@ class RakuAST::Submethod
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 
+class RakuAST::Method::AttributeAccessor
+  is RakuAST::Method
+{
+    has str $!attr-name;
+    has Mu $!type;
+    has Mu $!package-type;
+    has Bool $!rw;
+
+    method new(RakuAST::Name :$name, str :$attr-name, Mu :$type, Mu :$package-type, Bool :$rw) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
+        nqp::bindattr($obj, RakuAST::Method, '$!private', False);
+        nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
+        nqp::bindattr($obj, RakuAST::Routine, '$!need-routine-variable', False);
+        nqp::bindattr($obj, RakuAST::Method, '$!body', RakuAST::Blockoid.new);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', RakuAST::Signature.new);
+        nqp::die('Accessor needs a name') unless $name;
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Method::AttributeAccessor, '$!attr-name', $attr-name);
+        nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!type', $type);
+        nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!package-type', $package-type);
+        nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!rw', $rw // 0);
+        $obj
+    }
+
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        # Is it a native attribute? (primpspec != 0)
+        my $native := nqp::objprimspec($!type);
+        $context.ensure-sc($!package-type);
+
+        # Set up the actual statements, starting with "self"
+        # nqp::attribute(self, $package_type, $attr_name)
+        my $accessor := QAST::Var.new(
+            :scope($native && $!rw ?? 'attributeref' !! 'attribute'),
+            :name($!attr-name),
+            :returns($!type),
+            QAST::Var.new( :scope<lexical>, :name('self') ),
+            QAST::WVal.new( :value($!package-type) ),
+        );
+
+        # Opaque and read-only accessors need a decont
+        unless $native || $!rw {
+            $accessor := QAST::Op.new( :op<decont>, $accessor );
+        }
+
+        $accessor
+    }
+}
+
 class RakuAST::Method::ClassAccessor
   is RakuAST::Method
 {

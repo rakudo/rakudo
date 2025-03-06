@@ -1802,7 +1802,7 @@ class RakuAST::ParameterTarget::Var
 
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
-        $!declaration.set-bindable($bindable);
+        $!declaration.set-bindable($bindable) if $!declaration;
     }
 
     method set-rw() {

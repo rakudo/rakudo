@@ -1031,7 +1031,7 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
-        if self.sigil eq '$' && !self.initializer && !$!is-parameter {
+        if self.sigil eq '$' && !self.initializer && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
             my $descriptor := self.container-descriptor;
             my $ddefault := $descriptor.default;
             my $bind-constraint := self.bind-constraint;

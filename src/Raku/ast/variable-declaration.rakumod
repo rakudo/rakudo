@@ -1115,7 +1115,7 @@ class RakuAST::VarDeclaration::Simple
         #     )
         #   )
         # )
-        my $type        := self.IMPL-CONTAINER-TYPE($of);
+        my $type        := self.IMPL-BIND-CONSTRAINT($of);
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {

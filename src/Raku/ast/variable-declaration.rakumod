@@ -787,7 +787,7 @@ class RakuAST::VarDeclaration::Simple
                 # a NoPackage here would be confusing. It would be better to throw an error
                 # explaining that the package is already composed. Alas there's a spec test
                 # that requires this to be silently ignored, so that's what we do for now.
-                if self.is-attribute && !nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer) {
+                if self.is-attribute && !nqp::can($package.HOW, 'add_attribute') {
                     $resolver.build-exception('X::Attribute::NoPackage', name => self.name).throw;
                 }
             }
@@ -912,7 +912,7 @@ class RakuAST::VarDeclaration::Simple
                 nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
             }
 
-            $!attribute-package.ATTACH-ATTRIBUTE(self) if $!attribute-package;
+            $!attribute-package.ATTACH-ATTRIBUTE(self) if $!attribute-package && $!attribute-package.can-have-attributes;
         }
         else {
             # For other variables the meta-object is just the container, but we
@@ -1119,7 +1119,7 @@ class RakuAST::VarDeclaration::Simple
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
-            return Nil unless $!attribute-package; # See explanation in PERFORM-BEGIN
+            return Nil unless $!attribute-package && $!attribute-package.can-have-attributes; # See explanation in PERFORM-BEGIN
 
             my $meta-object := $!attribute-package.attribute-type.new(
               name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
@@ -1130,7 +1130,7 @@ class RakuAST::VarDeclaration::Simple
               # For classes package would be just $!attribute-package.compile-time-value
               # but for roles we have to use the $?CLASS generic to defer instantiation
               # to consuming class' compose times.
-              package               => self.get-implicit-lookups.AT-POS(3).resolution.compile-time-value,
+              package               => self.get-implicit-lookups.AT-POS(3).resolution.maybe-compile-time-value,
               container_initializer => $!container-initializer,
             );
             nqp::bindattr_i($meta-object,$meta-object.WHAT,'$!inlined',1)

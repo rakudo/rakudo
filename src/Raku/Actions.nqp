@@ -173,6 +173,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $resolver-type.from-setting(
                :setting-name(%OPTIONS<setting> // 'CORE.d')
              );
+        my $package := nqp::getlexdyn('$?PACKAGE');
+        if nqp::istype($package.HOW, Perl6::Metamodel::Stashing) && $package.HOW.name($package) ne 'GLOBAL' {
+            $RESOLVER.push-attach-target(
+                Nodify('Declaration', 'External', 'Package').new(
+                    lexical-name => '$?PACKAGE',
+                    compile-time-value => $package,
+                )
+            );
+        }
 
         # Set up the literals builder, so we can produce and intern literal
         # values.

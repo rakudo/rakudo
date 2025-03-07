@@ -536,7 +536,7 @@ class RakuAST::Resolver {
         my $type-res := self.resolve-name-constant-in-setting($name);
         my $XComp-res := self.resolve-name-constant-in-setting:
             RakuAST::Name.from-identifier-parts('X', 'Comp');
-        if $type-res && $XComp-res {
+        if $type-res && $XComp-res && $XComp-res.HOW.is_composed {
             # Successfully resolved. Maka sure it is an X::Comp.
             my $type := $type-res.compile-time-value;
             my $XComp := $XComp-res.compile-time-value;

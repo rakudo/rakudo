@@ -4075,7 +4075,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my $opname := '';
                 if $cf<circumfix> -> $ccf {
                     $opname := (my $nibble := $ccf<nibble>)
-                      ?? $nibble.ast.literal-value(:force) // ~$nibble
+                      ?? $nibble.ast.literal-value(:force, :stringify) // ~$nibble
                       !! $ccf<semilist>.ast.literal-value // ~$ccf<semilist>;
                 }
                 my $canname := $category
@@ -5229,7 +5229,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     my $opname := '';
                     if $cf<circumfix> -> $ccf {
                         $opname := (my $nibble := $ccf<nibble>)
-                          ?? $nibble.ast.literal-value // ~$nibble
+                          ?? $nibble.ast.literal-value(:stringify) // ~$nibble
                           !! $ccf<semilist>;
                     }
                     my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);

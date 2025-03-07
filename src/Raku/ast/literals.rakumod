@@ -343,7 +343,7 @@ class RakuAST::QuotedString
 
     # Tries to get a literal value for the quoted string. If that is not
     # possible, returns Nil.
-    method literal-value(:$force) {
+    method literal-value(:$force, :$stringify) {
         my @parts;
         for $!segments {
             if nqp::istype($_, RakuAST::StrLiteral) {
@@ -387,11 +387,11 @@ class RakuAST::QuotedString
                 $return-list := 0;
             }
         }
-        return $return-list
+        return $return-list && !$stringify
             ?? nqp::hllizefor(@parts, 'Raku')
             !! nqp::elems(@parts) == 1
                 ?? @parts[0] # need to preserve val() result
-                !! nqp::box_s(nqp::join('', @parts), Str);
+                !! nqp::box_s(nqp::join($stringify ?? ' ' !! '', @parts), Str);
     }
 
     # Checks if this is an empty words list, as seen in a form like %h<>.

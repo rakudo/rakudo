@@ -1239,7 +1239,7 @@ class RakuAST::Block
     }
 
     method IMPL-FATALIZE() {
-        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1564,7 +1564,7 @@ class RakuAST::PointyBlock
     }
 
     method IMPL-FATALIZE() {
-        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PRODUCE-META-OBJECT() {
@@ -1714,7 +1714,7 @@ class RakuAST::Routine
     }
 
     method IMPL-FATALIZE() {
-        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -2425,7 +2425,7 @@ class RakuAST::Method
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
         # If our first expression is a stub object (!!!, ..., ???),
         # set the yada bit on the Method itself
-        if (my $first-statement := $!body.statement-list.statements.AT-POS(0))
+        if (my $first-statement := self.IMPL-UNWRAP-LIST($!body.statement-list.statements)[0])
             && nqp::istype($first-statement, RakuAST::Statement::Expression)
             && nqp::istype($first-statement.expression, RakuAST::Stub)
         {
@@ -3222,7 +3222,7 @@ class RakuAST::Transliteration
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $Pair := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
         my $trans := QAST::Op.new:
             QAST::Var.new(:name<$_>, :scope<lexical>),
             :op<callmethod>, :name<trans>,
@@ -3237,7 +3237,7 @@ class RakuAST::Transliteration
             $trans.push($arg);
         }
         if $!destructive {
-            my $StrDistance := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+            my $StrDistance := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
             my $original := QAST::Node.unique: 'original_value_to_trans';
 
             QAST::Stmt.new(
@@ -3337,7 +3337,7 @@ class RakuAST::CurryThunk
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
-        self.get-implicit-lookups.AT-POS(0).compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -3355,7 +3355,7 @@ class RakuAST::CurryThunk
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
-        nqp::bindattr($code, self.get-implicit-lookups.AT-POS(0).compile-time-value, '$!original-expression', $!original-expression)
+        nqp::bindattr($code, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value, '$!original-expression', $!original-expression)
     }
 }
 

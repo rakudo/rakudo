@@ -21,7 +21,7 @@ class RakuAST::Circumfix::Parentheses
     # IMPL-SINGLE-CURRIED-EXPRESSION is the appropriate check.
     method IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION() {
         nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
-            && (my $statement-expression := $!semilist.statements.AT-POS(0))
+            && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
             && nqp::istype($statement-expression, RakuAST::Statement::Expression)
             && (my $expression := $statement-expression.expression)
             && nqp::istype($expression, RakuAST::WhateverApplicable)
@@ -32,7 +32,7 @@ class RakuAST::Circumfix::Parentheses
 
     method IMPL-SINGULAR-CURRIED-EXPRESSION() {
         nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
-            && (my $statement-expression := $!semilist.statements.AT-POS(0))
+            && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
             && nqp::istype($statement-expression, RakuAST::Statement::Expression)
             && (my $expression := $statement-expression.expression)
             && nqp::istype($expression, RakuAST::WhateverApplicable)

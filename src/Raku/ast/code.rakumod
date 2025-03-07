@@ -1890,7 +1890,7 @@ class RakuAST::Routine
             }
             for self.IMPL-UNWRAP-LIST($!signature.parameters) {
                 if ($_.target) {
-                    my $name := $_.target.name;
+                    my $name := $_.target.lexical-name;
                     $slash := 0            if $name eq '$/';
                     $exclamation-mark := 0 if $name eq '$!';
                     $underscore := 0       if $name eq '$_';

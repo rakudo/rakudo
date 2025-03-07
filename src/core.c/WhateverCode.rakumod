@@ -2,6 +2,7 @@ my class WhateverCode is Code {
     has Str $!original-expression;
 
     # helper method for array slicing
+    proto method POSITIONS(|) {*}
     multi method POSITIONS(WhateverCode:D: Failure:D \failure) { failure }
     multi method POSITIONS(WhateverCode:D $self: \list) {
         nqp::isconcrete(list)

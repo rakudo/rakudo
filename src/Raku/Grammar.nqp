@@ -1150,6 +1150,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # from there, otherwise from EVAL invocations.
         my %*OPTIONS := %*COMPILING<%?OPTIONS>;
 
+        # Package declarator to meta-package mapping. Starts pretty much empty;
+        # we get the mappings either imported or supplied by the setting. One
+        # issue is that we may have no setting to provide them, e.g. when we
+        # compile the setting, but it still wants some kinda package. We just
+        # fudge in knowhow for that.
+        self.set_how('knowhow', nqp::knowhow());
+        self.set_how('package', nqp::knowhow());
+
         # This contains the current index to determine the order in which
         # legacy $=pod is being filled by ::Doc::Block and ::Doc::Declarator
         # blocks.  Whenever a new object of these is made, the value of
@@ -1243,6 +1251,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              $*R.enter-scope($*CU);
              $*R.create-scope-implicits();
              self.actions.load-M-modules($/);
+             self.actions.load-bootstrap($/);
         }
 
         # Perform the actual parsing of the code, using origin tracking
@@ -5107,7 +5116,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
                 my $ast := $<EXPR>.ast;
                 if nqp::istype($ast,$actions.r('ApplyListInfix')) {
-                    for $ast.operands.FLATTENABLE_LIST {
+                    my $operands := $ast.operands;
+                    for nqp::getattr($operands, $operands.WHAT, '$!reified') {
                         handle-any-named($_);
                     }
                 }

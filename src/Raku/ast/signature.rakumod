@@ -159,11 +159,11 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $type;
                 if $!is-on-meta-method {
-                    $type := self.get-implicit-lookups.AT-POS(0);
+                    $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
-                        my $Class := self.get-implicit-lookups.AT-POS(1);
+                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
                             $type.set-resolution($Class.resolution);
@@ -947,7 +947,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 3).resolution.compile-time-value;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
                         $!type.meta-object)
@@ -1490,7 +1490,7 @@ class RakuAST::Parameter
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {
-                    my $Iterable := self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value;
+                    my $Iterable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value;
                     if !$is-coercive {
                         $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
                     }
@@ -1908,7 +1908,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-SIGIL-TYPE() {
-       self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+       self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method default-scope() { self.twigil eq '!' ?? 'has' !! 'my' }

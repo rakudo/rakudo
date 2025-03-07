@@ -1619,7 +1619,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infix-postfix-meta-operator:sym<=>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Assign');
+        make Nodify('MetaInfix', 'Assign');
     }
 
     method infix-circumfix-meta-operator:sym<« »>($/) {
@@ -4003,7 +4003,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
               ?? 'Greedy'
               !! '';
 
-        self.attach: $/, $class
+        make $class
           ?? Nodify('Regex','Backtrack',$class)
           !! Nodify('Regex','Backtrack')
     }

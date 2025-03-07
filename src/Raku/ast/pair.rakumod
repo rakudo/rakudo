@@ -57,6 +57,15 @@ class RakuAST::FatArrow
 # The base of all colonpair like constructs that can be added to a name.
 class RakuAST::ColonPairish {
     method IMPL-QUOTE-VALUE($v) {
+        if nqp::istype($v, List) {
+            # In bootstrap List may not be able to stringify yet
+            my $list := RakuAST::Node.IMPL-UNWRAP-LIST($v);
+            $v := '';
+            for $list {
+                $v := $v ~ ' ' if $v;
+                $v := $v ~ $_
+            }
+        }
         if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
             '«' ~ $v ~ '»'
         }

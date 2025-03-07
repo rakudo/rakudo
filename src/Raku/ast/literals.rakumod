@@ -22,7 +22,8 @@ class RakuAST::Literal
     method from-value(Mu $value) {
         my $typename  := $value.HOW.name($value);
         my $classname := $typename ~ 'Literal';
-        my $obj := nqp::create(nqp::existskey(RakuAST.WHO,$classname)
+        my $obj := nqp::create(nqp::isconcrete($value)
+          && nqp::existskey(RakuAST.WHO,$classname)
           ?? RakuAST.WHO{$classname}
           !! RakuAST::Literal
         );

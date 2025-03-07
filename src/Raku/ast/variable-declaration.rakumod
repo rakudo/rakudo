@@ -441,10 +441,11 @@ class RakuAST::VarDeclaration::Constant
               $resolver.current-package
             );
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
-            if $!package.WHO.EXISTS-KEY($name) {
+            my $stash := $resolver.IMPL-STASH-HASH($!package);
+            if nqp::existskey($stash, $name) {
                 nqp::die("already have an 'our constant $name' in the package");
             }
-            $!package.WHO.BIND-KEY($name, $!value);
+            nqp::bindkey($stash, $name, $!value);
         }
 
         self.apply-traits(
@@ -2488,6 +2489,10 @@ class RakuAST::VarDeclaration::Placeholder::Named
 class RakuAST::VarDeclaration::Placeholder::Slurpy
   is RakuAST::VarDeclaration::Placeholder
 {
+    method new() {
+        nqp::create(self)
+    }
+
     method generate-parameter() {
         RakuAST::Parameter.new:
           target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),

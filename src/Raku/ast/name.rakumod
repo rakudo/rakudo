@@ -469,7 +469,7 @@ class RakuAST::Name::Part::Expression
     }
 
     method has-compile-time-name() {
-        nqp::defined($!expr.literalize)
+        nqp::defined(try $!expr.literalize)
     }
 
     method name() {

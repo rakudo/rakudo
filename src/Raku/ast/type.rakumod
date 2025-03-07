@@ -96,7 +96,7 @@ class RakuAST::Type::Simple
         if $resolved {
             self.set-resolution($resolved);
             my $value := $resolved.compile-time-value;
-            if !$value.HOW.archetypes.generic && $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            if nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
                 if $resolved {
                     nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);

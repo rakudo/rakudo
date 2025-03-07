@@ -257,7 +257,11 @@ class RakuAST::Package
             %options<repr> := $!repr if $!repr;
             if $!name {
                 for $!name.IMPL-UNWRAP-LIST($!name.colonpairs) {
-                    %options{$_.key} := $_.simple-compile-time-quote-value;
+                    my $value := $_.simple-compile-time-quote-value;
+                    if $_.key eq 'ver' {
+                        $value := Version.new($value);
+                    }
+                    %options{$_.key} := $value;
                 }
             }
             my $meta-object := $!how.new_type(|%options);

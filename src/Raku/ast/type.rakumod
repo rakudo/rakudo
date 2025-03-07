@@ -622,6 +622,9 @@ class RakuAST::Type::Enum
                 }
             }
         }
+        else {
+            $base-type := Int;
+        }
 
         # Make $!base-type available, then we can produce the meta-object and add and apply traits
         nqp::bindattr(self, RakuAST::Type::Enum, '$!base-type', $base-type);

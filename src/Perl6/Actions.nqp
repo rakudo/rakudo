@@ -9631,6 +9631,17 @@ Did you mean a call like '"
                 # Type-check, unless it's Mu, in which case skip it.
                 if $is_generic && !$is_coercive {
                     my $genericname := $param_type.HOW.name(%info<attr_package>);
+
+                    # XXX: Parametric types that are generic are currently not
+                    # supported, so bail out.
+                    # This covers cases such as
+                    # - (::T $a, T @b)
+                    # - (::T $a, Positional[T] $b)
+                    # - cases like above when T comes from an enclosing role
+                    if nqp::can($ptype_archetypes, "parametric") && $ptype_archetypes.parametric {
+                        return 0;
+                    }
+
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
                         QAST::Var.new( :name(get_decont_name()), :scope('local') ),

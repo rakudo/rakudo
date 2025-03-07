@@ -214,6 +214,10 @@ class RakuAST::Call {
         $!args.push($pair);
         Nil
     }
+
+    method replace-args(RakuAST::ArgList $args) {
+        nqp::bindattr(self, RakuAST::Call, '$!args', $args);
+    }
 }
 
 # A call to a named sub.

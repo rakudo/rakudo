@@ -362,6 +362,10 @@ class RakuAST::Var::Attribute::Public
         $visitor($!expression);
     }
 
+    method replace-args(RakuAST::Args $args) {
+        $!expression.operand.postfix.replace-args($args);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-TO-QAST($context)
     }

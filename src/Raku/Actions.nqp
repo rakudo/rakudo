@@ -1111,6 +1111,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
                     make $node;
                 }
+                elsif nqp::istype($operand, Nodify('Var', 'Attribute', 'Public')) && nqp::istype($ast, Nodify('Call', 'Term')) {
+                    # A call like $.foo(1), just need to shuffle the args into the existing call
+                    $operand.replace-args($ast.args);
+                    self.attach: $/, $operand;
+                }
                 else {
                     self.attach: $/, Nodify('ApplyPostfix').new:
                         postfix => $ast, operand => $operand;

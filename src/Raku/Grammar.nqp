@@ -804,8 +804,8 @@ role Raku::Common {
                   ?? 'postfixish'
                   !! $category;
 
-            my $cursor := $lang."$method"();
-            if $cursor.pos == nqp::chars($op) {
+            my $cursor := try $lang."$method"(); # Catch any panics thrown by parser
+            if $cursor && $cursor.pos == nqp::chars($op) {
                 my $match := $cursor.MATCH;
                 if   $match<infix-prefix-meta-operator>
                   || $match<infix-circumfix-meta-operator>

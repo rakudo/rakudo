@@ -146,7 +146,7 @@ class RakuAST::Package
             my $type-object := self.stubbed-meta-object;
             my $current     := $resolver.current-package;
             my $full-name   := nqp::eqaddr($current,$resolver.get-global)
-              ?? $name
+              ?? $name.is-global-lookup ?? $name.without-first-part !! $name
               !! $name.qualified-with(
                    RakuAST::Name.from-identifier-parts(
                      |nqp::split('::', $current.HOW.name($current))
@@ -155,7 +155,7 @@ class RakuAST::Package
             $type-object.HOW.set_name(
                 $type-object,
                 $full-name.canonicalize(:colonpairs(0))
-            ) if !nqp::eqaddr($current, $resolver.get-global);
+            );
 
             # Update the Stash's name, too.
             nqp::bindattr_s($type-object.WHO, Stash, '$!longname',

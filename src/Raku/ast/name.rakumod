@@ -136,6 +136,16 @@ class RakuAST::Name
         $type
     }
 
+    method without-first-part() {
+        my @parts := nqp::clone($!parts);
+        @parts.shift;
+        my $type := RakuAST::Name.new(|@parts);
+        for $!colonpairs {
+            $type.add-colonpair($_)
+        }
+        $type
+    }
+
     method visit-children(Code $visitor) {
         if nqp::isconcrete(self) {
             for $!parts {
@@ -206,13 +216,18 @@ class RakuAST::Name
     }
 
     method qualified-with(RakuAST::Name $target) {
-        my $qualified := nqp::clone(self);
-        my @parts := nqp::clone(nqp::getattr($target, RakuAST::Name, '$!parts'));
-        for $!parts {
-            nqp::push(@parts, $_);
+        if self.is-global-lookup {
+            self.without-first-part
         }
-        nqp::bindattr($qualified, RakuAST::Name, '$!parts', @parts);
-        $qualified
+        else {
+            my $qualified := nqp::clone(self);
+            my @parts := nqp::clone(nqp::getattr($target, RakuAST::Name, '$!parts'));
+            for $!parts {
+                nqp::push(@parts, $_);
+            }
+            nqp::bindattr($qualified, RakuAST::Name, '$!parts', @parts);
+            $qualified
+        }
     }
 
     method is-global-lookup() {

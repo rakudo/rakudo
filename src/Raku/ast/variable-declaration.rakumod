@@ -877,24 +877,34 @@ class RakuAST::VarDeclaration::Simple
 
             if $!initializer {
                 my $initializer := $!initializer;
-                my $method := $!initializer-method;
-                $method.body.statement-list.add-statement(
-                    RakuAST::Statement::Expression.new(
-                        :expression(
-                            nqp::istype($initializer, RakuAST::Initializer::CallAssign)
-                            ?? RakuAST::ApplyPostfix.new(
-                                operand => $!type.IMPL-VALUE-TYPE,
-                                postfix => $initializer.postfixish
+                if nqp::istype($initializer, RakuAST::Initializer::Assign) && $initializer.expression.has-compile-time-value && !nqp::istype($initializer.expression, RakuAST::Code) {
+                    self.add-trait(
+                        RakuAST::Trait::WillBuild.new($initializer.expression).to-begin-time($resolver, $context)
+                    );
+                }
+                else {
+                    my $method := $!initializer-method;
+                    $method.body.statement-list.add-statement(
+                        RakuAST::Statement::Expression.new(
+                            :expression(
+                                nqp::istype($initializer, RakuAST::Initializer::CallAssign)
+                                ?? RakuAST::ApplyPostfix.new(
+                                    operand => $!type.IMPL-VALUE-TYPE,
+                                    postfix => $initializer.postfixish
+                                )
+                                !! RakuAST::Call::Name.new(
+                                    :name(RakuAST::Name.from-identifier('return')),
+                                    :args(RakuAST::ArgList.new($initializer.expression))
+                                )
                             )
-                            !! RakuAST::Call::Name.new(:name(RakuAST::Name.from-identifier('return')), :args(RakuAST::ArgList.new($initializer.expression)))
                         )
-                    )
-                );
-                $method.to-begin-time($resolver, $context);
-                $!attribute-package.add-generated-lexical-declaration($method);
-                self.add-trait(
-                    RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
-                );
+                    );
+                    $method.to-begin-time($resolver, $context);
+                    $!attribute-package.add-generated-lexical-declaration($method);
+                    self.add-trait(
+                        RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
+                    );
+                }
             }
             else {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', RakuAST::Method);

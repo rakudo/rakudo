@@ -74,10 +74,14 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', Array.new);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', nqp::create(Array));
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!resolver', $resolver);
+
+        if $*COMPILING_CORE_SETTING {
+            Perl6::Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
+        }
 
         # If CompUnit's language revision is not set explicitly then guess it
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
@@ -775,4 +779,16 @@ class RakuAST::LiteralBuilder {
         }
         $!cached-complex.new($real, $imaginary)
     }
+}
+
+class RakuAST::BOOTException {
+  has Str $.message;
+  method new(Str $message) {
+      my $obj := nqp::create(self);
+      nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
+      $obj
+  }
+  method throw() {
+      nqp::die($!message);
+  }
 }

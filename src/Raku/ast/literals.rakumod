@@ -267,13 +267,36 @@ class RakuAST::QuotedString
         }
     }
 
+    method IMPL-WORDS-AUTODEREF(str $str) {
+        my $result := nqp::list();
+        my int $pos := 0;
+        my int $eos := nqp::chars($str);
+        my int $ws;
+        my $nbsp := nqp::hash(
+            "\x00A0", True,
+            "\x2007", True,
+            "\x202F", True,
+            "\xFEFF", True,
+        );
+        while ($pos := nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $str, $pos, $eos)) < $eos {
+            # Search for another white space character as long as we hit non-breakable spaces.
+            $ws := $pos;
+            $ws++ while nqp::existskey($nbsp,
+                nqp::substr($str, $ws := nqp::findcclass(nqp::const::CCLASS_WHITESPACE,
+                    $str, $ws, $eos), 1));
+            nqp::push($result, nqp::substr($str, $pos, $ws - $pos));
+            $pos := $ws;
+        }
+        $result
+    }
+
     method IMPL-PROCESS-PART($result, $part) {
         return Nil if $part =:= Nil;
         for $!processors {
             if $_ eq 'words' {
                 return Nil unless nqp::istype($part, Str);
                 my @parts;
-                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                for self.IMPL-WORDS-AUTODEREF($part) {
                     nqp::push(@parts, $_);
                 }
                 $part := @parts;
@@ -282,13 +305,18 @@ class RakuAST::QuotedString
                 return Nil unless nqp::istype($part, Str);
                 #TODO actually implement special handling of « »
                 my @parts;
-                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                for self.IMPL-WORDS-AUTODEREF($part) {
                     nqp::push(@parts, $_);
                 }
                 $part := @parts;
             }
             elsif $_ eq 'val' {
-                my $val := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                my $val := $val-lookup.is-resolved
+                    ?? $val-lookup.resolution.compile-time-value
+                    !! $*COMPILING_CORE_SETTING
+                        ?? -> $val { $val }
+                        !! nqp::die('&val not yet resolved!');
                 $part := $val(nqp::hllizefor($part, 'Raku'));
             }
             elsif $_ eq 'heredoc' {
@@ -305,7 +333,7 @@ class RakuAST::QuotedString
             }
         }
         elsif nqp::istype($part, List) {
-            for $part.FLATTENABLE_LIST {
+            for self.IMPL-UNWRAP-LIST($part) {
                 nqp::push($result, $_);
             }
         }
@@ -399,7 +427,7 @@ class RakuAST::QuotedString
 
             # format string
             if $!processors && $!processors[0] eq 'format' {
-                my $Format := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
 
 # The below code "should" work, but doesn't because references to internal
 # subs (such as "str-right-justified") appear to be QASTed correctly, but
@@ -532,7 +560,7 @@ class RakuAST::QuotedString
             }
             elsif $_ eq 'val' {
                 my $name :=
-                  self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
                 $qast := QAST::Op.new(:op('call'), :$name, $qast);
             }
             elsif $_ eq 'exec' {
@@ -546,7 +574,7 @@ class RakuAST::QuotedString
                 );
             }
             elsif $_ eq 'format' {
-                my $Format := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
                 $qast := QAST::Op.new(
                   :op('callmethod'), :name('new'),
                   QAST::WVal.new( :value($Format)),

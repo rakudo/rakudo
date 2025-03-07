@@ -346,7 +346,17 @@ class RakuAST::Resolver {
             );
         }
 
-        $partial ?? ($symbol, List.new, 'lexical') !! $resolved
+        $partial
+            ?? (
+                $symbol,
+                nqp::stmts(
+                    (my $list := nqp::create(List)),
+                    nqp::bindattr($list, List, '$!reified', nqp::create(IterationBuffer)),
+                    $list
+                ),
+                'lexical'
+            )
+            !! $resolved
     }
 
     # Resolve a RakuAST::Name to a constant.
@@ -358,7 +368,7 @@ class RakuAST::Resolver {
     method IMPL-STASH-HASH(Mu $pkg) {
         nqp::ishash(my $hash := $pkg.WHO)
           ?? $hash
-          !! $hash.FLATTENABLE_HASH()
+          !! nqp::getattr($hash, Map, '$!storage')
     }
 
     # Resolves a lexical in the chain of outer contexts.
@@ -454,7 +464,9 @@ class RakuAST::Resolver {
             nqp::die("Could not find setting revision $setting-rev trying to look up $name");
         }
         else {
-            self.resolve-lexical-constant-in-context($!setting, $name)
+            $!setting
+                ?? self.resolve-lexical-constant-in-context($!setting, $name)
+                !! self.resolve-lexical-constant($name) # Compiling CORE.setting
         }
     }
 
@@ -560,7 +572,13 @@ class RakuAST::Resolver {
         else {
             # Could not find exception type, so build a fake (typically happens
             # during CORE.setting compilation).
-            nqp::die('nyi missing exception type fallback')
+            my $message := $type-name;
+            $message := "$message(";
+            for %opts {
+                $message := $message ~ $_.key ~ " => " ~ $_.value ~ ", ";
+            }
+            $message := "$message)";
+            RakuAST::BOOTException.new($message);
         }
     }
 
@@ -590,8 +608,8 @@ class RakuAST::Resolver {
     method produce-compilation-exception(Any :$panic) {
         my $sorries := self.all-sorries;
         my $worries := self.all-worries;
-        my int $num-sorries := $sorries.elems;
-        my int $num-worries := $worries.elems;
+        my int $num-sorries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
+        my int $num-worries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($worries));
 
         if $panic && $num-sorries == 0 && $num-worries == 0 {
             # There's just the panic, so return it without an enclosing group.
@@ -898,7 +916,7 @@ class RakuAST::Resolver::Compile
     # version.
     method from-setting(Str :$setting-name!) {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting := $loader.load_setting($setting-name);
+        my $setting := $setting-name eq 'NULL.c' ?? nqp::null !! $loader.load_setting($setting-name);
         # We can't actually have the global yet, since the resolver is
         # needed in order to look up the package meta-object used to
         # create it. Thus it's set later.

@@ -575,6 +575,10 @@ class RakuAST::ExpressionThunk
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
 
+    method new() {
+        nqp::create(self)
+    }
+
     method set-next(RakuAST::ExpressionThunk $next) {
         nqp::bindattr(self, RakuAST::ExpressionThunk, '$!next', $next);
         Nil
@@ -930,11 +934,17 @@ class RakuAST::ScopePhaser {
     }
 
     method needs-result() {
-        nqp::istype(self, RakuAST::Meta) && (
-            self.meta-object.has-phaser('UNDO')
-            || self.meta-object.has-phaser('KEEP')
-            || self.meta-object.has-phaser('POST')
-        )
+        if nqp::istype(self, RakuAST::Meta) {
+            my $phasers := nqp::getattr(self.meta-object, Block, '$!phasers');
+            nqp::ishash($phasers) && (
+                nqp::existskey($phasers, 'UNDO')
+                || nqp::existskey($phasers, 'KEEP')
+                || nqp::existskey($phasers, 'POST')
+            ) ?? True !! False
+        }
+        else {
+            False
+        }
     }
 
     method set-has-let() {
@@ -992,12 +1002,13 @@ class RakuAST::ScopePhaser {
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
+        my $phasers := $block ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
 
-        if $!has-exit-handler || self.needs-result || $block && ($block.has-phaser('LEAVE') || $block.has-phaser('POST')) {
+        if $!has-exit-handler || self.needs-result || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
             $qast.has_exit_handler(1);
         }
 
-        if $!PRE || $block && $block.has-phaser('PRE') {
+        if $!PRE || $phasers && nqp::ishash($phasers) && nqp::existskey($phasers, 'PRE') {
             my $pre-setup := QAST::Stmts.new;
             my %seen;
             if $!PRE {
@@ -1023,7 +1034,7 @@ class RakuAST::ScopePhaser {
             $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
         }
 
-        if $!FIRST || $block && $block.has-phaser('FIRST') {
+        if $!FIRST || $phasers && nqp::ishash($phasers) && nqp::existskey($phasers, 'FIRST') {
             my $first-setup := QAST::Stmts.new;
             my $calls := QAST::Stmts.new(
                 QAST::Op.new(:op<call>, :name<&infix:<=>>,
@@ -1066,7 +1077,7 @@ class RakuAST::ScopePhaser {
             $qast[0].push: $first-setup;
         }
 
-        if $!ENTER || $block && $block.has-phaser('ENTER') {
+        if $!ENTER || $phasers && nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
             my $enter-setup := QAST::Stmts.new;
             my %seen;
             if $!ENTER {
@@ -1104,11 +1115,11 @@ class RakuAST::ScopePhaser {
         }
 
         if $!LAST || $!NEXT || $!QUIT || $!CLOSE
-            || $block && (
-                   $block.has-phaser('LAST')
-                || $block.has-phaser('NEXT')
-                || $block.has-phaser('QUIT')
-                || $block.has-phaser('CLOSE')
+            || $phasers && nqp::ishash($phasers) && (
+                   nqp::existskey($phasers, 'LAST')
+                || nqp::existskey($phasers, 'NEXT')
+                || nqp::existskey($phasers, 'QUIT')
+                || nqp::existskey($phasers, 'CLOSE')
             )
         {
             $qast[0].push(
@@ -1124,12 +1135,12 @@ class RakuAST::ScopePhaser {
         }
 
         if $!LEAVE || $!KEEP || $!UNDO || $!POST
-            || $block && (
-                   $block.has-phaser('LEAVE')
-                || $block.has-phaser('KEEP')
-                || $block.has-phaser('UNDO')
-                || $block.has-phaser('POST')
-            )
+            || $phasers && (nqp::istype($phasers, Code) || nqp::ishash($phasers) && (
+                   nqp::existskey($phasers, 'LEAVE')
+                || nqp::existskey($phasers, 'KEEP')
+                || nqp::existskey($phasers, 'UNDO')
+                || nqp::existskey($phasers, 'POST')
+            ))
         {
             $qast.annotate('WANTMEPLEASE',1);
         }

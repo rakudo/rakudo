@@ -105,6 +105,7 @@ my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub UIntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub BOOTLanguageRevision metaclass Perl6::Metamodel::ClassHOW { ... };
 
 #?if js
 my stub Int64LexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
@@ -5404,6 +5405,27 @@ BEGIN {
     ));
 
     Stash.HOW.compose_repr(Stash);
+
+#- BOOTLanguageRevision -------------------------------------------------------------------------
+# class BOOTLanguageRevision is Any {
+
+    BOOTLanguageRevision.HOW.add_parent(Int, Any);
+
+    BOOTLanguageRevision.HOW.add_attribute(BOOTLanguageRevision, BOOTSTRAPATTR.new(
+      :name<$!language-revision>, :type(int), :box_target(1), :package(BOOTLanguageRevision))
+    );
+
+    BOOTLanguageRevision.HOW.set_boolification_mode(BOOTLanguageRevision, 6);
+    BOOTLanguageRevision.HOW.publish_boolification_spec(BOOTLanguageRevision);
+
+    BOOTLanguageRevision.HOW.add_method(BOOTLanguageRevision, 'Int',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::box_i(nqp::getattr_i($self, BOOTLanguageRevision, '$!language-revision'), Int);
+    }));
+
+    BOOTLanguageRevision.HOW.compose_repr(BOOTLanguageRevision);
 
 #- (epilogue) ------------------------------------------------------------------
 

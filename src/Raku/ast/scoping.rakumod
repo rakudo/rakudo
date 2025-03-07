@@ -582,6 +582,7 @@ class RakuAST::Declaration::Mergeable {
         if $other.is-stub {
             # Source is a stub. We can safely merge the symbols
             # from source into the target that's importing them.
+            $other.defuse-stub if nqp::istype($other, RakuAST::Package);
             $loader.merge_globals($target.WHO, $source.WHO);
         }
         elsif self.is-stub {
@@ -732,6 +733,9 @@ class RakuAST::Declaration::LexicalPackage
     }
 
     method set-value(Mu $compile-time-value is raw) {
+        if !$!package.is-stub && !nqp::istype($compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
+            $!package.defuse-stub;
+        }
         nqp::bindattr(self, RakuAST::Declaration::LexicalPackage,
             '$!compile-time-value', $compile-time-value);
     }

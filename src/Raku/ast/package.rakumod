@@ -26,6 +26,7 @@ class RakuAST::Package
 
     has Mu   $!block-semantics-applied;
     has Bool $.is-stub;
+    has Bool $!stub-defused;
     has Bool $.is-require-stub;
 
     has RakuAST::CompilerServices $.compiler-services;
@@ -58,6 +59,7 @@ class RakuAST::Package
         $obj.set-WHY($WHY);
 
         nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
+        nqp::bindattr($obj, RakuAST::Package, '$!stub-defused', False);
 
         $obj
     }
@@ -96,6 +98,10 @@ class RakuAST::Package
         nqp::bindattr(self, RakuAST::Package, '$!is-stub', $is-stub ?? True !! False);
     }
 
+    method defuse-stub() {
+        nqp::bindattr(self, RakuAST::Package, '$!stub-defused', True);
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!augmented {
             my $resolved := $resolver.resolve-name(self.name);
@@ -108,10 +114,12 @@ class RakuAST::Package
             if $resolved {
                 my $meta := $resolved.compile-time-value;
                 my $how  := $meta.HOW;
-                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW'
-                  && nqp::can($how, 'is_composed')
-                  && !$how.is_composed($meta) {
-                    self.set-resolution($resolved);
+                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW' {
+                    self.defuse-stub;
+                    $resolved.package.defuse-stub if nqp::istype($resolved, RakuAST::Declaration::LexicalPackage);
+                    if nqp::can($how, 'is_composed') && !$how.is_composed($meta) {
+                        self.set-resolution($resolved);
+                    }
                 }
             }
         }
@@ -190,6 +198,12 @@ class RakuAST::Package
         }
 
         self.add-trait-sorries;
+
+        if $!is-stub && !$!stub-defused && !$!is-require-stub && !self.stubbed-meta-object.HOW.is_composed(self.stubbed-meta-object) { # Should be replaced by now
+            self.add-sorry:
+                $resolver.build-exception: 'X::Package::Stubbed',
+                    packages => self.IMPL-WRAP-LIST([$!name.canonicalize]);
+        }
 
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
     }

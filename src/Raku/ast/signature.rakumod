@@ -1270,9 +1270,9 @@ class RakuAST::Parameter
             }
             elsif !($param-type =:= Mu) {
                 if !$ptype-archetypes.generic {
-                    my $implicit-lookups := self.get-implicit-lookups;
-                    if $param-type =:= $implicit-lookups.AT-POS(0).resolution.compile-time-value {
-                        my $PositionalBindFailover := $implicit-lookups.AT-POS(1).resolution.compile-time-value;
+                    my $implicit-lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    if $param-type =:= $implicit-lookups[0].resolution.compile-time-value {
+                        my $PositionalBindFailover := $implicit-lookups[1].resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
                             :op('if'),
                             QAST::Op.new(

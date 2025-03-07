@@ -192,6 +192,525 @@ multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
     $*KERNEL.hostname
 }
 
+#-------------------------------------------------------------------------------
+
+augment class Code {
+
+    # Shortcut to literalizing a value
+    my sub literalize(Mu $value) {
+        RakuAST::Literal.from-value($value)
+    }
+
+    # Shortcut to creating an "is" trait
+    my sub trait-is(str $name) {
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier($name)
+        )
+    }
+
+    # Create a simple type, possibly consisting of more than one part
+    my sub make-simple-type(str $name) {
+        my str @parts = $name.split('::');
+        RakuAST::Type::Simple.new(
+          @parts.elems == 1
+            ?? RakuAST::Name.from-identifier(@parts.head)
+            !! RakuAST::Name.from-identifier-parts(|@parts)
+        )
+    }
+
+    # Create a RakuAST version of a given type, with any
+    # parameterizations and coercions
+    my sub TypeAST(Mu $type) {
+
+        # Looks like a coercion type
+        if $type.HOW.^name.contains('::Metamodel::CoercionHOW') {
+            RakuAST::Type::Coercion.new(
+              base-type  => TypeAST($type.^target_type),
+              constraint => TypeAST($type.^constraint_type)
+            )
+        }
+
+        # Looks like a parameterized type
+        elsif nqp::can($type.HOW,"roles") && $type.^roles -> @roles {
+            my $role := @roles.head;
+            if $role.HOW.^name.contains('::Metamodel::ParametricRoleGroupHOW') {
+                make-simple-type($type.^name)
+            }
+            else {
+                my @args is List = @roles.head.^role_arguments.map(&TypeAST);
+                RakuAST::Type::Parameterized.new(
+                  base-type => TypeAST($type.^mro[1]),
+                  args      => RakuAST::ArgList.new(|@args)
+                )
+            }
+        }
+
+        # A simple type will suffice if there is no coercion or
+        # parameterization
+        else {
+            make-simple-type($type.^name)
+        }
+    }
+
+    # Create a RakuAST version of a Signature object
+    my sub SignatureAST(Signature:D $signature) {
+        my %args;
+        %args<parameters> := $signature.params.map(&ParameterAST).List;
+
+        my $returns := $signature.returns;
+        if nqp::isconcrete($returns) {
+            %args<returns> = literalize($returns);
+        }
+        elsif nqp::not_i(nqp::eqaddr($returns,Mu)) {
+            %args<returns> = make-simple-type($returns);
+        }
+
+        RakuAST::Signature.new(|%args)
+    }
+
+    # Create a RakuAST version of a Parameter object
+    my sub ParameterAST(Parameter:D $parameter, *%_) {
+        my $slurpytypes := BEGIN nqp::hash(
+          '*',   RakuAST::Parameter::Slurpy::Flattened,
+          '**',  RakuAST::Parameter::Slurpy::Unflattened,
+          '+',   RakuAST::Parameter::Slurpy::SingleArgument
+        );
+
+        my str $sigil = $parameter.sigil;
+        my %args;
+
+        my sub add-is-trait-if-set(str $name) {
+            %args<traits>.push(trait-is($name))
+              if !$parameter.capture && $parameter."$name"();
+        }
+
+        # Strip off any Positional[] and Associative[] for arrays
+        # and hashes, because otherwise we would get them stacked
+        # on top of each other.  But don't set the type if the
+        # role was the only constraint, as that will be handled
+        # later by the sigil
+        my sub set-role-type(Mu \type, Mu \role) {
+            unless nqp::eqaddr(type,role) {
+                %args<type> = TypeAST(
+                  type.HOW.^name.contains('::Metamodel::CurriedRoleHOW')
+                    && nqp::eqaddr(type.^curried_role,role)
+                    ?? type.^role_arguments.head
+                    !! type
+                );
+            }
+        }
+
+        if $parameter.type_captures -> @captures {
+            %args<type-captures> = RakuAST::Type::Capture.new(
+                make-simple-type(@captures.head.^name)
+            );
+        }
+        else {
+            my $type := %_<type>:exists ?? %_<type> !! $parameter.type;
+
+            $sigil eq '@'
+              ?? set-role-type($type, Positional)
+              !! $sigil eq '%'
+                ?? set-role-type($type, Associative)
+                !! (%args<type> = TypeAST($type));
+        }
+
+        # Some kind of capture as target
+        if $sigil eq '|' {
+            %args<target> = RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier(%_<name> // $parameter.name)
+            );
+            %args<slurpy> = RakuAST::Parameter::Slurpy::Capture;
+        }
+
+        # An ordinary target
+        else {
+            %args<target> = RakuAST::ParameterTarget::Var.new(
+              name => %_<name> // ($parameter.name || $sigil)
+            );
+        }
+
+        %args<slurpy> = nqp::atkey($slurpytypes,$parameter.prefix)
+          if $parameter.slurpy;
+
+        if $parameter.named_names -> @names {
+            %args<names>    = @names;
+            %args<optional> = False unless $parameter.optional;
+        }
+        else {
+            %args<optional> = True if $parameter.optional;
+        }
+
+        add-is-trait-if-set($_) for <raw rw copy>;
+
+        # If a default value was explicitely specified, we're handling
+        # a name argument, which by definition has to become optional
+        # if it has a default
+        if %_<default>:exists {
+            %args<default> = literalize(%_<default>);
+            %args<optional>:delete;
+        }
+
+        # Check if the parameter has a default value, and make sure the
+        # RakuAST version of it has that as well
+        else {
+            my $default := nqp::getattr($parameter,Parameter,'$!default_value');
+            %args<default> = literalize($default)
+              unless nqp::isnull($default);
+        }
+
+        if $parameter.constraint_list -> @constraints {
+            my $head := @constraints.head;
+            if @constraints.elems == 1
+              && nqp::not_i(nqp::istype($head,Code)) {
+                %args<value> = $head;  # literalize($head)) ??
+                %args<target>:delete;
+            }
+            else {
+                %args<where> = literalize($head);
+            }
+        }
+
+        %args<sub-signature> = SignatureAST($_)
+          with $parameter.sub_signature;
+
+        RakuAST::Parameter.new(|%args)
+    }
+
+#-------------------------------------------------------------------------------
+    method assuming(Code:D: **@positionals is raw, *%nameds) {
+        my int $nr-positionals = @positionals.elems;
+
+        # Parameters of new signature
+        my @new;
+
+        # Arguments to be passed to original code
+        my $args := RakuAST::ArgList.new;
+
+        # Current index into positionals
+        my int $index;
+
+        # Curry the positional at the given index
+        my sub curry-positional($i --> Nil) {
+            $args.push(
+              nqp::iscont(my $value := @positionals[$i])
+                || nqp::istype($value,Positional)
+                || nqp::istype($value,Associative)
+                ?? RakuAST::ApplyPostfix.new(
+                     operand => RakuAST::Var::Lexical.new("\@positionals"),
+                     postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                       index => RakuAST::SemiList.new(
+                         RakuAST::Statement::Expression.new(
+                           expression => RakuAST::IntLiteral.new($i)
+                         )
+                       )
+                     )
+                   )
+                !! RakuAST::Literal.from-value($value)
+            );
+        }
+
+        # Add all positional values as arguments
+        my sub curry-all-positionals(--> Nil) {
+            curry-positional($_) for $index ..^ $nr-positionals;
+            $index = $nr-positionals;
+        }
+
+        # Add a flattened capture to the args with the given name
+        my sub add-capture-to-args(str $name --> Nil) {
+            $args.push(
+              RakuAST::ApplyPrefix.new(
+                prefix  => RakuAST::Prefix.new("|"),
+                operand => RakuAST::Term::Name.new(
+                  RakuAST::Name.from-identifier($name)
+                )
+              )
+            );
+        }
+
+        # Add all named values as arguments
+        my sub curry-all-nameds(--> Nil) {
+            $args.push(
+              RakuAST::ColonPair::Value.new(
+                key   => .key,
+                value => literalize(.value)
+              )
+            ) for %nameds;
+            %nameds = ();
+        }
+
+        # Add capture by this name at the end, as both parameter and
+        # argument.  Needed in case of sub-signatures
+        my str $capture-name;
+
+        # Type captures by name and what they should be if assumed
+        my $type-captures-seen := nqp::hash;
+        my $seen-capture-param;
+
+        # Set up an array with the parameters of the assumee, so that
+        # we can add parameters later in case of sub-signatures
+        my @old = self.signature.params;
+
+        my int $i;
+        while @old && @old.shift -> $parameter {
+            ++$i;
+
+            # Nameless parameters that need to be passed on, need to
+            # have a name to allow them to be passed on.  So generate
+            # one depending on the index of the parameter, and give it
+            # a name that cannot be generated from source code to
+            # prevent collisions
+            my str $name  = $parameter.name || "$parameter.sigil()param.$i";
+
+            # Add current parameter to new signature
+            my sub add-parameter-to-signature(*%_ --> Nil) {
+                @new.push(ParameterAST(
+                  $parameter,
+                  :type(nqp::ifnull(
+                    nqp::atkey($type-captures-seen,$parameter.type.^name),
+                    $parameter.type
+                  )),
+                  :$name,
+                  |%_
+                ));
+            }
+
+            # Add current parameter to args (when passing through somehow)
+            my sub add-parameter-to-args(--> Nil) {
+                my $head := $parameter.constraint_list.head;
+                $args.push(
+                  nqp::isconcrete($head)
+                    && nqp::not_i(nqp::istype($head,Code))
+                    ?? RakuAST::Literal.from-value($head)
+                    !! RakuAST::Var::Lexical.new($name)
+                );
+            }
+
+            # Add all possible forms of type capture
+            my sub add-type-captures(Mu $target, @types) {
+                for @types {
+                    nqp::bindkey(
+                      $type-captures-seen,$_,$target
+                    );
+                    nqp::bindkey(
+                      $type-captures-seen,"Positional[$_]",$target
+                    );
+                    nqp::bindkey(
+                      $type-captures-seen,"Associative[$_]",$target
+                    );
+                }
+            }
+
+            # Throw if the given value would not bind to the current parameter
+            my sub typecheck-value(Mu $value --> Nil) {
+                my $type    := $parameter.type;
+                my $HOWname := $type.HOW.^name;
+
+                # alas, typecheck failed
+                sub failed-check() {
+                    X::TypeCheck::Binding::Parameter.new(
+                      :$parameter,
+                      :what($value.^name),
+                      :symbol($parameter.name),
+                      :got($value),
+                      :expected($type)
+                    ).throw;
+                }
+
+                if $HOWname.contains('::Metamodel::NativeHOW') {
+                    my $typemap := BEGIN nqp::hash(
+                      'int8',  Int, 'int16',  Int, 'int32',  Int, 'int64',  Int,
+                      'uint8', Int, 'uint16', Int, 'uint32', Int, 'uint64', Int,
+                      'num32', Num, 'num64',  Num,
+                      'int',   Int, 'num',    Num, 'str',    Str, 'uint',   Int
+                    );
+                    failed-check unless nqp::istype(
+                      $value,
+                      nqp::atkey($typemap,$type.^name)
+                    );
+                }
+                elsif $HOWname.contains('::GenericHOW' | '::CurriedRoleHOW') {
+                    # cannot check at this time
+                }
+                elsif nqp::not_i(nqp::istype($value,$type)) {
+                    failed-check;
+                }
+            }
+
+            # Advertises itself as a named argument
+            if $parameter.named  {
+
+                # A slurpy hash, usually *%_ implicitely defined in methods
+                if $parameter.slurpy {
+                    curry-all-nameds;
+                    add-parameter-to-signature;
+                }
+
+                # A single named argument
+                else {
+                    my @names  := $parameter.named_names;
+                    my str $key = @names.head;
+
+                    # Appears to be assumed, set up optional named with
+                    # changed default (the value specified), because it
+                    # will *still* be possible to override an assumed
+                    # named argument by specifying it in the call to the
+                    # produced code
+                    with @names.first({ %nameds{$_}:exists }, :k) -> $i {
+                        my str $name = @names[$i];
+                        my $default := %nameds{$name};
+                        typecheck-value($default);
+                        add-parameter-to-signature(:$default);
+                        %nameds{$name}:delete;
+                    }
+
+                    # Not to be assumed, so just pass on
+                    else {
+                        add-parameter-to-signature;
+                    }
+
+                    # Set up as :$foo in the call
+                    $args.push(
+                      RakuAST::ColonPair::Variable.new(
+                        key   => $key,
+                        value => RakuAST::Var::Lexical.new($name)
+                      )
+                    );
+                }
+            }
+
+            # A capture parameter will eat all positional and named
+            # values to be assumed
+            elsif $parameter.capture {
+
+                # Only add the first capture seen: multiple captures
+                # with different subsignatures are apparently a thing
+                # but we only need to look at the first one in that
+                # case
+                unless $seen-capture-param {
+
+                    # If there is a sub-signature, its positional
+                    # parameters effectively becomes the signature
+                    # to be working with from now on, and the
+                    # current parameter (a capture) should *not*
+                    # be added to the new signature at this point
+                    if $parameter.sub_signature -> $sub-signature {
+                        @old = $sub-signature.params.grep(!*.named);
+                        $capture-name = $name
+                          if $sub-signature.params.first(*.named);
+                    }
+
+                    # No sub-signature, so do the normal processing
+                    else {
+
+                        # Artificial names are created with their sigil.
+                        # However it appears this shouldn't be done for
+                        # captures.  This probably exposes some internal
+                        # RakuAST inconsistency to be solved at a later
+                        # time
+                        $name = $name.substr(1) if $name.starts-with('|param');
+
+                        curry-all-positionals;
+                        curry-all-nameds;
+                        add-capture-to-args($name);
+                        add-parameter-to-signature;
+                    }
+                    $seen-capture-param = True;
+                }
+            }
+
+            # A slurpy (positional) will eat all positional values
+            elsif $parameter.slurpy {
+                curry-all-positionals;
+                $args.push(RakuAST::ApplyPrefix.new(
+                  prefix  => RakuAST::Prefix.new("|"),
+                  operand => RakuAST::Var::Lexical.new($name)
+                ));
+                add-parameter-to-signature;
+            }
+
+            # No values left, so we need to pass this parameter through
+            elsif $index == $nr-positionals {
+                add-parameter-to-args;
+                add-parameter-to-signature;
+            }
+
+            # Need to not assume anything for this parameter, so let
+            # it pass through
+            elsif nqp::istype(@positionals[$index],Whatever) {
+                ++$index;  # don't look at this one again
+                add-parameter-to-args;
+                add-parameter-to-signature;
+            }
+
+            # About to assume a parameter, but this parameter has a
+            # capture type (::T).  Make sure we remember the type by
+            # name, and what it should become for any parameter that
+            # has the same type as this capture type
+            elsif $parameter.type_captures -> @types {
+                add-type-captures(@positionals[$index].WHAT, @types);
+                curry-positional($index++);
+            }
+
+            # Need to assume this parameter, but check value first
+            else {
+                typecheck-value(@positionals[$index]);
+                curry-positional($index++);
+            }
+        }
+
+        # Found a capture with a sub-signature, so we need to add a clean
+        # capture to the signature and pass it on in the arguments
+        if $capture-name {
+            @new.push(RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Term.new(
+                RakuAST::Name.from-identifier($capture-name)
+              ),
+              slurpy => RakuAST::Parameter::Slurpy::Capture
+            ));
+            curry-all-nameds;
+            add-capture-to-args($capture-name);
+        }
+
+        # More values specified than can be accepted
+        if $index < $nr-positionals {
+            die "Too many positionals";
+        }
+
+        # Any left named values
+        elsif %nameds.keys -> @nogo {
+            die "Unexpected @nogo[]";
+        }
+
+        # Create the Callable wrapper and return it
+        my %args =
+          signature => RakuAST::Signature.new(
+            parameters => @new.List,
+          ),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Term::Self.new,
+                  postfix => RakuAST::Call::Term.new(:$args),
+                )
+              )
+            )
+          )
+        ;
+        if nqp::istype(self,Routine) {
+            %args<multiness> = "proto" if self.is_dispatcher;
+            %args<traits>.push(trait-is("rw")) if self.rw;
+            %args<name> =
+              RakuAST::Name.from-identifier("assumed." ~ self.name);
+            RakuAST::Sub.new(|%args).EVAL
+        }
+        else {
+            RakuAST::PointyBlock.new(|%args).EVAL
+        }
+    }
+}
+
 augment class Cool {
 
     # Methods that are DEPRECATED are moved here and augmented into the classes

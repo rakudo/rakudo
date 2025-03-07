@@ -76,6 +76,8 @@ class RakuAST::Type::Simple
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
+    has Mu $!package;
+    has RakuAST::Node $!lexical;
 
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
@@ -89,9 +91,17 @@ class RakuAST::Type::Simple
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Type::Simple, '$!package', $resolver.current-package);
         my $resolved := $resolver.resolve-name-constant(self.name);
         if $resolved {
             self.set-resolution($resolved);
+        }
+        my $value := $resolved.compile-time-value;
+        if !$value.HOW.archetypes.generic && $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
+            if $resolved {
+                nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+            }
         }
     }
 
@@ -103,6 +113,10 @@ class RakuAST::Type::Simple
         my $value := self.resolution.compile-time-value;
         if $value.HOW.archetypes.generic {
             QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+        }
+        elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            # Package stub could be replaced later, thus we need to look it up at runtime.
+            $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
         }
         else {
             $context.ensure-sc($value);

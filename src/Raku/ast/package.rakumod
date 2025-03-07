@@ -203,6 +203,7 @@ class RakuAST::Package
 
     # Declare the lexicals for this type of package
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.meta-object-as-lexicals($resolver, 'PACKAGE');
         self.meta-object-as-lexicals($resolver, 'CLASS')
           unless self.declarator eq 'package';
     }
@@ -472,6 +473,7 @@ class RakuAST::Role
     method parameterization() { self.body.signature }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.meta-object-as-lexicals($resolver, 'PACKAGE');
         self.meta-object-as-lexicals($resolver, 'ROLE');
 
         for '$?CLASS', '::?CLASS' {
@@ -640,6 +642,7 @@ class RakuAST::Module
     method default-how() { Metamodel::KnowHOW }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.meta-object-as-lexicals($resolver, 'PACKAGE');
         self.meta-object-as-lexicals($resolver, 'MODULE');
     }
 

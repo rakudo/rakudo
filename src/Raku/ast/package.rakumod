@@ -176,6 +176,19 @@ class RakuAST::Package
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $name := $!name;
+        if $name && !$name.is-empty && $!name.has-colonpairs {
+            my $colonpairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);
+            for $colonpairs {
+                my $key := $_.key;
+                if $key ne 'ver' && $key ne 'api' && $key ne 'auth' {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Syntax::Type::Adverb',
+                            adverb => $key
+                }
+            }
+        }
+
         self.add-trait-sorries;
 
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);

@@ -1998,7 +1998,7 @@ class RakuAST::Statement::Require
                 self,
                 RakuAST::Statement::Require,
                 '$!module',
-                RakuAST::Package.new(:scope<my>, :name($!module-name), :is-require-stub),
+                RakuAST::Package.new(:scope<my>, :name($!module-name.without-colonpair('file')), :is-require-stub),
             );
             $!module.to-begin-time($resolver, $context);
             if nqp::istype($resolver, RakuAST::Resolver::Compile) {

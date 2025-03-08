@@ -850,8 +850,8 @@ class RakuAST::Parameter
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
         if $!default {
-            if nqp::istype($!default, RakuAST::CompileTimeValue) {
-                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.compile-time-value);
+            if $!default.has-compile-time-value {
+                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
             }
             else {
             }
@@ -935,7 +935,7 @@ class RakuAST::Parameter
             }
         }
         if $!default {
-            if nqp::istype($!default, RakuAST::CompileTimeValue) {
+            if $!default.has-compile-time-value {
                 $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
             }
         }
@@ -1075,7 +1075,7 @@ class RakuAST::Parameter
             }
 
             # If it doesn't have a compile-time value, we'll need to thunk it.
-            unless nqp::istype($!default, RakuAST::CompileTimeValue) {
+            unless $!default.has-compile-time-value {
                 $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
                 $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
             }
@@ -1385,7 +1385,7 @@ class RakuAST::Parameter
 
         # If it's optional, do any default handling.
         if self.is-optional {
-            if nqp::istype($!default, RakuAST::CompileTimeValue) {
+            if $!default.has-compile-time-value {
                 # Literal default value, so just insert it.
                 $param-qast.default($!default.IMPL-TO-QAST($context));
             }

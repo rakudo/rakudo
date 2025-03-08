@@ -230,6 +230,14 @@ augment class Code {
             )
         }
 
+        # Looks like a type smiley
+        elsif $type.HOW.^name.contains('::Metamodel::DefiniteHOW') {
+            RakuAST::Type::Definedness.new(
+              base-type => TypeAST($type.^base_type),
+              definite  => $type.^definite.so
+            )
+        }
+
         # Looks like a parameterized type
         elsif nqp::can($type.HOW,"roles") && $type.^roles -> @roles {
             my $role := @roles.head;
@@ -262,7 +270,7 @@ augment class Code {
             %args<returns> = literalize($returns);
         }
         elsif nqp::not_i(nqp::eqaddr($returns,Mu)) {
-            %args<returns> = make-simple-type($returns.^name);
+            %args<returns> = TypeAST($returns);
         }
 
         RakuAST::Signature.new(|%args)

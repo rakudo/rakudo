@@ -262,7 +262,7 @@ augment class Code {
             %args<returns> = literalize($returns);
         }
         elsif nqp::not_i(nqp::eqaddr($returns,Mu)) {
-            %args<returns> = make-simple-type($returns);
+            %args<returns> = make-simple-type($returns.^name);
         }
 
         RakuAST::Signature.new(|%args)

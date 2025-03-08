@@ -116,8 +116,10 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
     method default-columns() { < wallclock util% max-rss > }
 
     method preamble($first, $last, $total, @snaps --> Str:D) {
+        my sub _($value) { $value.polymod(1000 xx *).reverse.join("_") || 0 }
+
         qq:to/HEADER/.chomp;
-Initial/Final Size: { $first<max-rss> } / { $last<max-rss> } Kbytes
+Initial/Final Size: &_($first<max-rss>) / &_($last<max-rss>) Kbytes
 Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
 Total CPU Usage: { ($total<cpu> / 1000000).fmt('%9.2f') } seconds
 HEADER

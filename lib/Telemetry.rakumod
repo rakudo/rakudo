@@ -131,7 +131,6 @@ HEADER
           nqp::fromnum_I(Rakudo::Internals.INITTIME * 1000000,Int);
         my int $cores = Kernel.cpu-cores;
         my $utilize   = 100 / $cores;
-        my int $b2kb = VM.osname eq 'darwin' ?? 10 !! 0;
 
         # Constants indexing into the data array
         my constant UTIME_SEC  =  0;
@@ -161,15 +160,7 @@ HEADER
           max-rss ix-rss id-rss is-rss minf   majf   nswp inb
           outb    msnd   mrcv   nsig   volcsw invcsw wallclock
         >>.kv.map: -> int $index, $name {
-            if $name {
-                $name => $name.ends-with('rss') && $b2kb
-                  ?? -> Mu \data {
-                           nqp::bitshiftr_i(nqp::atpos_i(data,$index),$b2kb)
-                        }
-                  !! -> Mu \data {
-                           nqp::atpos_i(data,$index)
-                        }
-            }
+            $name => -> Mu \data { nqp::atpos_i(data,$index) } if $name;
         }
 
         # Allow for low-level dispatch hash access for speed

@@ -1081,7 +1081,19 @@ class RakuAST::Parameter
             }
         }
 
-        if $!sub-signature || nqp::elems($!names) > 2 {
+        my $param-obj := self.meta-object;
+        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
+        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
+        my int $is-generic  := $ptype-archetypes.generic;
+        my int $is-coercive := $ptype-archetypes.coercive;
+
+        # Cases where we need the full binder
+        if $!sub-signature
+          || nqp::elems($!names) > 2
+          || ($is-generic
+               && !$is-coercive
+               && nqp::can($ptype-archetypes, "parametric")
+               && $ptype-archetypes.parametric) {
             $!owner.set-custom-args;
         }
 
@@ -1102,11 +1114,6 @@ class RakuAST::Parameter
             );
         }
 
-        my $param-obj := self.meta-object;
-        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
-        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
-        my int $is-generic  := $ptype-archetypes.generic;
-        my int $is-coercive := $ptype-archetypes.coercive;
         my int $was-slurpy := !($!slurpy =:= RakuAST::Parameter::Slurpy);
 
         if $is-generic && $is-coercive && !$was-slurpy && !($param-type =:= Mu) && !self.invocant {

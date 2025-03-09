@@ -354,6 +354,11 @@ class RakuAST::Infix
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
             }
         }
+        elsif $op eq '=' {
+            my $left-qast := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
+            my $right-qast := $right.IMPL-TO-QAST($context);
+            self.IMPL-ASSIGN-OP($left-qast, $right-qast);
+        }
         elsif nqp::existskey(OP-SMARTMATCH, $op)
             && (
                 !nqp::istype($right, RakuAST::Var)
@@ -406,6 +411,91 @@ class RakuAST::Infix
                $left-qast,
                $right-qast
              )
+    }
+
+    method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
+        my $initialize := 0;
+        # The _i64 and _u64 are only used on backends that emulate int64/uint64
+        my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
+        my $past;
+        my $var_sigil;
+        if nqp::istype($lhs_ast, QAST::Var) {
+            $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
+            if $var_sigil eq '%' {
+                if nqp::can($rhs_ast,'name') {
+                    my $name := $rhs_ast.name;
+                    if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
+                        self.add-worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
+                    }
+                }
+            }
+        }
+
+        # get the sigil out of the my %h is Set = case
+        elsif nqp::istype($lhs_ast,QAST::Op) && $lhs_ast.op eq 'bind'
+          && nqp::istype($lhs_ast[0], QAST::Var) {
+            $var_sigil := nqp::substr($lhs_ast[0].name, 0, 1);
+        }
+
+        if nqp::istype($lhs_ast, QAST::Var)
+                && (my $spec := nqp::objprimspec($lhs_ast.returns)) {
+            # Native assignment is only possible to a reference; complain now
+            # rather than at runtime since we'll inevitably fail.
+            my $scope := $lhs_ast.scope;
+            if $scope ne 'lexicalref' && $scope ne 'attributeref' {
+                nqp::die("RO assignment");
+                $lhs_ast.node.typed_sorry('X::Assignment::RO::Comp',
+                    variable => $lhs_ast.name);
+            }
+            $past := QAST::Op.new(
+                :op(@native_assign_ops[$spec]), :returns($lhs_ast.returns),
+                $lhs_ast, $rhs_ast);
+        }
+        elsif $var_sigil eq '@' || $var_sigil eq '%' {
+            # While the scalar container store op would end up calling .STORE,
+            # it may do it in a nested runloop, which gets pricey. This is a
+            # simple heuristic check to try and avoid that by calling .STORE.
+            $past := QAST::Op.new(
+                :op('callmethod'), :name('STORE'),
+                $lhs_ast, $rhs_ast);
+
+            # let STORE know if this is the first time
+            if $initialize {
+                $past.push(QAST::WVal.new(
+                  :named('INITIALIZE'),
+                  :value(True),
+                ));
+            }
+            $past.nosink(1);
+        }
+        elsif $var_sigil eq '$' {
+            # If it's a $ scalar, we can assume it's some kind of scalar
+            # container with a container spec, so can go directly for a
+            # Scalar assign op (via. a level of indirection so that any
+            # platform that wants to optimize this somewhat can).
+            $past := QAST::Op.new( :op('p6assign'), $lhs_ast, $rhs_ast );
+        }
+        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
+              ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
+               $lhs_ast_name eq '&postcircumfix:<{ }>' ||
+               $lhs_ast_name eq '&postcircumfix:<[; ]>') &&
+                +@($lhs_ast) == 2 { # no adverbs
+            $lhs_ast.push($rhs_ast);
+            $past := $lhs_ast;
+            $past.nosink(1);
+        }
+        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
+                nqp::istype($lhs_ast[0],QAST::Op) && $lhs_ast[0].op eq 'call' &&
+                ($lhs_ast[0].name eq '&postcircumfix:<[ ]>' || $lhs_ast[0].name eq '&postcircumfix:<{ }>') &&
+                +@($lhs_ast[0]) == 2 { # no adverbs
+            $lhs_ast[0].push($rhs_ast);
+            $past := $lhs_ast;
+            $past.nosink(1);
+        }
+        else {
+            $past := QAST::Op.new(:op('p6store'), $lhs_ast, $rhs_ast);
+        }
+        $past
     }
 
     method IMPL-INFIX-FOR-META-QAST(

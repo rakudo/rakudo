@@ -191,7 +191,12 @@ class RakuAST::Package
                 my $key := $_.key;
                 if $key ne 'ver' && $key ne 'api' && $key ne 'auth' {
                     self.add-sorry:
-                        $resolver.build-exception: 'X::Syntax::Type::Adverb',
+                        $resolver.build-exception: 'X::Syntax::' ~ ($!augmented ?? 'Augment' !! 'Type') ~ '::Adverb',
+                            adverb => $key
+                }
+                elsif $!augmented && $key eq 'auth' {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Syntax::Augment::Adverb',
                             adverb => $key
                 }
             }

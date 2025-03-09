@@ -68,8 +68,18 @@ class RakuAST::Signature
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %seen;
+        my $has-slurpy-pos := 0;
         if $!parameters {
             for $!parameters {
+                my $sigil := $_.IMPL-SIGIL;
+                if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $sigil eq '@'
+                    || $_.slurpy =:= RakuAST::Parameter::Slurpy::Capture {
+                    if $has-slurpy-pos {
+                        $_.owner.set-custom-args;
+                        last;
+                    }
+                    $has-slurpy-pos := 1;
+                }
                 if $_.named {
                     my $names := $_.IMPL-UNWRAP-LIST($_.names);
                     for $names -> $name {
@@ -491,7 +501,7 @@ class RakuAST::Parameter
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
     has RakuAST::Expression        $.array-shape;
-    has RakuAST::Node              $!owner;
+    has RakuAST::Node              $.owner;
     has RakuAST::Package           $!package;
     has RakuAST::Signature         $.sub-signature;
     has List                       $!type-captures;

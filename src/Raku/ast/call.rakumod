@@ -597,14 +597,13 @@ class RakuAST::Call::Method
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my $name := $!name.canonicalize;
         my @lookups := [];
-        if $name {
-            my @parts := nqp::split('::', $name);
-            if nqp::elems(@parts) > 1 {
-                @parts.pop;
-                @lookups.push: # joining @parts with '::' gives use the qualifying type of the name
-                    RakuAST::Type::Simple.new: RakuAST::Name.from-identifier: nqp::join('::', @parts);
+        if $!name {
+            my @parts := nqp::clone($!name.IMPL-UNWRAP-LIST($!name.parts));
+            @parts.pop;
+            if @parts {
+                @lookups.push:
+                    RakuAST::Type::Simple.new: RakuAST::Name.new: |@parts;
             }
         }
         self.IMPL-WRAP-LIST(@lookups)

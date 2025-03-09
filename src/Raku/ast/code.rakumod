@@ -644,7 +644,7 @@ class RakuAST::PlaceholderParameterOwner
                 '$!attached-placeholder-parameters', []);
         }
         my $name := $placeholder.lexical-name;
-        if self.IMPL-HAS-PARAMETER($name) {
+        if self.IMPL-HAS-PARAMETER($name) || nqp::istype(self, RakuAST::Methodish) && $name eq '%_' {
             # matches an explicitly declared parameter
             $placeholder.IMPL-ALREADY-DECLARED(True);
         }

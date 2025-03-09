@@ -1171,12 +1171,32 @@ class RakuAST::VarDeclaration::Simple
         if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped
             my str $sigil := self.sigil;
-            if $sigil eq '$' && nqp::objprimspec($of) {
+            if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
                 # Natively typed; just declare it.
-                QAST::Var.new(
+                my $qast := QAST::Var.new(
                     :scope($!is-rw ?? 'lexicalref' !! 'lexical'), :decl('var'), :name(self.name),
                     :returns($of)
-                )
+                );
+                if $!is-parameter || $!initializer {
+                    $qast
+                }
+                else {
+                    my $init;
+                    my $assign-op := 'bind';
+                    if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
+                        $init := QAST::IVal.new( :value(0) );
+                    }
+                    elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
+                        $init := QAST::IVal.new( :value(0) );
+                    }
+                    elsif $prim-spec == 2 {
+                        $init := QAST::NVal.new( :value(0e0) );
+                    }
+                    else {
+                        $init := QAST::SVal.new( :value('') );
+                    }
+                    QAST::Op.new( :op($assign-op), $qast, $init )
+                }
             }
             elsif $!initializer && $!initializer.is-binding {
                 # Will be bound on first use, so just a declaration.
@@ -1287,8 +1307,11 @@ class RakuAST::VarDeclaration::Simple
                     else {
                         nqp::die('Can only compile an assign initializer on a native');
                     }
+                    $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
                 }
-                $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
+                else {
+                    $qast := $var-access
+                }
             }
 
             else {

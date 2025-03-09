@@ -224,10 +224,10 @@ augment class Code {
     # Create a RakuAST version of a given type, with any
     # parameterizations and coercions
     my sub TypeAST(Mu $type) {
-        my str $HOWname = $type.HOW.^name;
+        my $HOW := $type.HOW;
 
         # Looks like a coercion type
-        if $HOWname.contains('::Metamodel::CoercionHOW') {
+        if nqp::istype($HOW,Metamodel::CoercionHOW) {
             RakuAST::Type::Coercion.new(
               base-type  => TypeAST($type.^target_type),
               constraint => TypeAST($type.^constraint_type)
@@ -235,7 +235,7 @@ augment class Code {
         }
 
         # Looks like a type smiley
-        elsif $HOWname.contains('::Metamodel::DefiniteHOW') {
+        elsif nqp::istype($HOW,Metamodel::DefiniteHOW) {
             RakuAST::Type::Definedness.new(
               base-type => TypeAST($type.^base_type),
               definite  => $type.^definite.so
@@ -243,9 +243,9 @@ augment class Code {
         }
 
         # Looks like a parameterized type
-        elsif nqp::can($type.HOW,"roles") && $type.^roles -> @roles {
+        elsif nqp::can($HOW,"roles") && $type.^roles -> @roles {
             my $role := @roles.head;
-            if $role.HOW.^name.contains('::Metamodel::ParametricRoleGroupHOW') {
+            if nqp::istype($role.HOW,Metamodel::ParametricRoleGroupHOW) {
                 make-simple-type($type.^name)
             }
             else {
@@ -304,7 +304,7 @@ augment class Code {
         my sub set-role-type(Mu \type, Mu \role) {
             unless nqp::eqaddr(type,role) {
                 %args<type> = TypeAST(
-                  type.HOW.^name.contains('::Metamodel::CurriedRoleHOW')
+                  nqp::istype(type.HOW,Metamodel::CurriedRoleHOW)
                     && nqp::eqaddr(type.^curried_role,role)
                     ?? type.^role_arguments.head
                     !! type
@@ -515,8 +515,8 @@ augment class Code {
 
             # Throw if the given value would not bind to the current parameter
             my sub typecheck-value(Mu $value --> Nil) {
-                my $type    := $parameter.type;
-                my $HOWname := $type.HOW.^name;
+                my $type := $parameter.type;
+                my $HOW  := $type.HOW;
 
                 # alas, typecheck failed
                 sub failed-check() {
@@ -529,7 +529,7 @@ augment class Code {
                     ).throw;
                 }
 
-                if $HOWname.contains('::Metamodel::NativeHOW') {
+                if nqp::istype($HOW,Metamodel::NativeHOW) {
                     my $typemap := BEGIN nqp::hash(
                       'int8',  Int, 'int16',  Int, 'int32',  Int, 'int64',  Int,
                       'uint8', Int, 'uint16', Int, 'uint32', Int, 'uint64', Int,
@@ -541,7 +541,8 @@ augment class Code {
                       nqp::atkey($typemap,$type.^name)
                     );
                 }
-                elsif $HOWname.contains('::GenericHOW' | '::CurriedRoleHOW') {
+                elsif nqp::istype($HOW,Metamodel::GenericHOW)
+                  || nqp::istype($HOW,Metamodel::CurriedRoleHOW) {
                     # cannot check at this time
                 }
                 elsif nqp::not_i(nqp::istype($value,$type)) {

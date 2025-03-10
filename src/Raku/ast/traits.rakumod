@@ -44,6 +44,12 @@ class RakuAST::TraitTarget {
     # Apply all traits (and already applied will not be applied again).
     method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         if $!traits {
+            my constant is-traits-to-warn-on-duplicate := nqp::hash(
+                'tighter',  1,  'looser', 1,  'equiv', 1,  'rw',   1,  'default', 1,
+                'readonly', 1,  'raw',    1,  'assoc', 1,  'pure', 1,  'export',  1,
+                'item', 1
+            );
+            my %seen;
             for $!traits {
                 $_.apply($resolver, $context, $target, |%named) unless $_.applied;
                 CATCH {
@@ -52,6 +58,10 @@ class RakuAST::TraitTarget {
                     $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
                         unless nqp::isconcrete($ex);
                     nqp::push($!sorries, $ex);
+                }
+                my $name := (try $_.name.canonicalize) // '';
+                if is-traits-to-warn-on-duplicate{$name} && %seen{$name}++ {
+                    $resolver.add-worry: $resolver.build-exception: 'X::AdHoc', :payload("Duplicate '" ~ $_.IMPL-TRAIT-NAME() ~ " $name' trait");
                 }
             }
         }

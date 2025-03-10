@@ -308,7 +308,7 @@ class RakuAST::StatementList
                 $catch-seen++;
             }
             if nqp::istype($_, RakuAST::Statement::Control) {
-                if $catch-seen {
+                if $control-seen {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Phaser::Multiple', block => 'CONTROL';
                 }

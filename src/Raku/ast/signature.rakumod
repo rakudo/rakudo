@@ -69,7 +69,31 @@ class RakuAST::Signature
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %seen;
         if $!parameters {
+            my int $prev-kind := 0;
             for $!parameters {
+                my int $kind := $_.named ?? 1 !!
+                            $_.is-optional ?? 2 !!
+                            $_.is-declared-required || $_.slurpy =:= RakuAST::Parameter::Slurpy ?? 3 !! 4;
+
+                if $kind =:= 3 {               # required
+                    if $prev-kind =:= 2 {      # optional
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.name;
+                    } elsif $prev-kind =:= 4 { # variadic
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
+                    } elsif $prev-kind =:= 1 { # named
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
+                    }
+
+                } elsif $kind := 2 {           # optional
+                    if $prev-kind =:= 4 {      # variadic
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
+                    } elsif $prev-kind =:= 1 { # named
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
+                    }
+                }
+
+                $prev-kind := $kind;
+
                 if $_.named {
                     my $names := $_.IMPL-UNWRAP-LIST($_.names);
                     for $names -> $name {

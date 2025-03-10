@@ -2410,10 +2410,11 @@ class RakuAST::VarDeclaration::Placeholder
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $owner := $resolver.find-attach-target('block');
+        my $method := $resolver.find-attach-target('method');
         if $owner {
             $owner.add-placeholder-parameter(self);
             $owner.add-generated-lexical-declaration(self)
-                unless $!already-declared;
+                unless $!already-declared || self.lexical-name eq '%_' && $method;
         }
     }
 
@@ -2422,13 +2423,14 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::IMPL::QASTContext $context
     ) {
         my $signature := $resolver.find-attach-target('block').signature;
+        my $method := $resolver.find-attach-target('method');
         if $signature && $signature.parameters-initialized {
             # @_ and %_ are only real placeholders if they were not
             # already defined in the signature, so we need to check
             # there before pulling the plug
             my $name := self.lexical-name;
             if $name eq '@_' || $name eq '%_' {
-                return True if $signature.IMPL-HAS-PARAMETER($name);
+                return True if $signature.IMPL-HAS-PARAMETER($name) || $name eq '%_' && $method;
             }
             self.add-sorry:
               $resolver.build-exception: 'X::Signature::Placeholder',

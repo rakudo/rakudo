@@ -2386,6 +2386,10 @@ class RakuAST::Method
         nqp::bindattr(self, RakuAST::Method, '$!private', $private ?? True !! False);
     }
 
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['method', 'routine', 'block'])
+    }
+
     method IMPL-META-OBJECT-TYPE() { Method }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {

@@ -464,7 +464,7 @@ class RakuAST::VarDeclaration::Constant
         }
 
         my $type := self.get-implicit-lookups.AT-POS(0);
-        if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
+        if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) && !nqp::objprimspec($type.meta-object) {
             unless nqp::istype($!value, $type.meta-object) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
                 self.add-sorry:

@@ -667,19 +667,6 @@ class RakuAST::PlaceholderParameterOwner
         Nil
     }
 
-    method clear-placeholder-attachments() {
-        if nqp::islist($!attached-placeholder-parameters) {
-            for $!attached-placeholder-parameters {
-                # reset declared state on parameters,
-                # will be re-set when they are attached again
-                $_.IMPL-ALREADY-DECLARED(False);
-            }
-            nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
-                '$!attached-placeholder-parameters', nqp::null());
-        }
-        Nil
-    }
-
     method has-placeholder-parameters() {
         my $params := $!attached-placeholder-parameters;
         nqp::islist($params) && nqp::elems($params) ?? True !! False
@@ -1589,6 +1576,7 @@ class RakuAST::PointyBlock
             self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
         }
+        self.placeholder-signature.to-begin-time($resolver, $context);
 
         self.IMPL-STUB-PHASERS($resolver, $context);
 

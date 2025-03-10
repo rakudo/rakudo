@@ -364,8 +364,8 @@ class RakuAST::Code
         ));
 
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
-            if $_.has-compile-time-value {
-                my $value := $_.maybe-compile-time-value;
+            if nqp::istype($_, RakuAST::CompileTimeValue) {
+                my $value := $_.compile-time-value;
                 $context.ensure-sc($value);
                 $wrapper[0].push(QAST::Var.new(
                     :name($_.lexical-name), :scope('lexical'),

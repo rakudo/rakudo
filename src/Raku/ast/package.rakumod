@@ -204,7 +204,10 @@ class RakuAST::Package
 
         self.add-trait-sorries;
 
-        if $!is-stub && !$!stub-defused && !$!is-require-stub && !self.stubbed-meta-object.HOW.is_composed(self.stubbed-meta-object) { # Should be replaced by now
+        if $!is-stub && !$!stub-defused && !$!is-require-stub
+            && !self.stubbed-meta-object.HOW.is_composed(self.stubbed-meta-object)
+            && !nqp::istype(self, RakuAST::Role) # No idea why roles are excempt
+        { # Should be replaced by now
             self.add-sorry:
                 $resolver.build-exception: 'X::Package::Stubbed',
                     packages => self.IMPL-WRAP-LIST([$!name.canonicalize]);

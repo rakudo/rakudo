@@ -1067,6 +1067,14 @@ class RakuAST::Parameter
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
+        if $!default {
+            # If it doesn't have a compile-time value, we'll need to thunk it.
+            unless $!default.has-compile-time-value {
+                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
+            }
+        }
+
         self.apply-traits($resolver, $context, self);
 
         $!target.to-begin-time($resolver, $context) if $!target;
@@ -1106,12 +1114,6 @@ class RakuAST::Parameter
                 self.add-sorry:
                   $resolver.build-exception: 'X::Parameter::Default',
                     how => 'required', parameter => $!target.name;
-            }
-
-            # If it doesn't have a compile-time value, we'll need to thunk it.
-            unless $!default.has-compile-time-value {
-                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
-                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
             }
         }
 

@@ -142,12 +142,15 @@ class RakuAST::Code
         $context.sub-id-to-code-object(){$cuid} := $code-obj;
 
         my $precomp;
+        my $compiler-thunk := {
+            my $*IMPL-COMPILE-DYNAMICALLY := 1;
+            my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+            $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
+        };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
             my $code-obj := nqp::getcodeobj(nqp::curcode());
             unless $precomp {
-                my $*IMPL-COMPILE-DYNAMICALLY := 1;
-                my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
-                $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
+                $compiler-thunk();
             }
             unless nqp::isnull($code-obj) {
                 return $code-obj(|@pos, |%named);
@@ -168,6 +171,7 @@ class RakuAST::Code
             nqp::bindattr(self, RakuAST::Code, '$!resolver', RakuAST::Resolver) if $context.is-precompilation-mode;
         });
 
+        @compstuff[1] := $compiler-thunk; # Used by multi-dispatcher to force compilation
         @compstuff[2] := sub ($orig, $clone) {
             my $do := nqp::getattr($clone, Code, '$!do');
             nqp::markcodestub($do);

@@ -149,27 +149,6 @@ cherry-picked important fixes).
 
 =item 3.
 
-Update Rakudo’s leap-second tables; Review the list at
-L<https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds>
-and compare against F<src/core.c/Rakudo/Internals.rakumod>
-
-  raku tools/add-leap-second.raku <the-date> [<the-source>]
-
-This version of the script requires the release manager to B<manually> check
-to see if a new leap second has been announced, and then call this script
-if needed.
-
-If updated, F<src/core.c/Rakudo/Internals.rakumod>
-will be modified, so commit the new version. B<Note:> be sure to double
-check the modifications are correct before committing.
-
-  git commit src
-
-But probably there won’t be any new leap seconds, in which case the file
-will be unchanged.
-
-=item 4.
-
 As the actual release date nears, use the `releasable6`
 IRC bot to prepare a ChangeLog. The bot resides in
 the C<#raku-dev> channel, call it as C<releasable6, status>
@@ -186,7 +165,7 @@ were not logged and there is no need to notify about them.
 As for the format, refer to previous release commits to
 get an inspiration of how it is done.
 
-=item 5.
+=item 4.
 
 =item *
 
@@ -244,14 +223,14 @@ and push the release branch up.  This has to be done before the ake commands run
 as they update the remote. Be sure to include the deliberately ignored commits here
 for the releaseable bot.
 
-=item 6.
+=item 5.
 
 Ensure that a monthly MoarVM release has been completed.
 It is usually done by the Rakudo release manager, so good luck.
 Make sure that MoarVM builds on Windows and CI for MoarVM
 is green. It is also a good idea to look for JVM issues at this point.
 
-=item 7.
+=item 6.
 
 While it is possible to make a release by hands, nowadays most steps
 are handled using the C<Akefile> script.
@@ -289,7 +268,7 @@ This means that:
 Be very careful and ensure all variables are spelled properly as it
 affects what branches will be used to push commits to
 
-=item 8.
+=item 7.
 
 Execute Akefile stages one by one, with appropriate env variable values:
 
@@ -385,7 +364,7 @@ Copy the announce into the github release description field.
 
 See previous releases for any details.
 
-=item 9.
+=item 8.
 
 Build binary packages by following the steps in C<docs/release_guide_binary.md>.
 
@@ -393,7 +372,7 @@ NOTE:  I, jdv, have never done this step.  Instead, I just tell patrickb and
 El_Che on IRC that the source release is done and they build various downstream
 release artifacts.
 
-=item 10.
+=item 9.
 
 Don’t send out any announcements until the files are actually available
 per step 8 above.
@@ -411,11 +390,11 @@ Run this to get rakudo.org to pickup the changes:
 
 ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
 
-=item 11.
+=item 10.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 12.
+=item 11.
 
 You’re done! Celebrate with the appropriate amount of fun.
 

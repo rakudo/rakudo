@@ -64,7 +64,7 @@ class RakuAST::Signature
                 $_.to-begin-time($resolver, $context);
 
                 my $sigil := $_.IMPL-SIGIL;
-                if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $sigil eq '@'
+                if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $sigil ne '%'
                     || $_.slurpy =:= RakuAST::Parameter::Slurpy::Capture {
                     if $has-slurpy-pos {
                         $_.owner.set-custom-args;

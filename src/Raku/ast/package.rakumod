@@ -110,7 +110,9 @@ class RakuAST::Package
             }
         }
         elsif $!name {
-            my $resolved := $resolver.resolve-name-constant($!name);
+            my $resolved := self.scope eq 'my'
+                ?? $resolver.resolve-lexical($!name.canonicalize, :current-scope-only)
+                !! $resolver.resolve-name-constant($!name);
             if $resolved {
                 my $meta := $resolved.compile-time-value;
                 my $how  := $meta.HOW;

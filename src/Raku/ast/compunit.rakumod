@@ -32,6 +32,7 @@ class RakuAST::CompUnit
     has int $.precompilation-mode;
     has Mu $!export-package;
     has Mu $.herestub-queue;
+    has int $!explicit-ctxsave;
     has RakuAST::IMPL::QASTContext $.context;
     has RakuAST::Resolver $!resolver;
 
@@ -74,6 +75,7 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!explicit-ctxsave', 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', nqp::create(Array));
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
@@ -247,6 +249,10 @@ class RakuAST::CompUnit
 
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['compunit'])
+    }
+
+    method set-explicit-ctxsave() {
+        nqp::bindattr_i(self, RakuAST::CompUnit, '$!explicit-ctxsave', 1);
     }
 
     # Set the pod content at the indicated position
@@ -594,6 +600,45 @@ class RakuAST::CompUnit
     }
 
     method IMPL-QAST-CTXSAVE(RakuAST::IMPL::QASTContext $context) {
+        if $!explicit-ctxsave {
+            QAST::Op.new(:op('null'))
+        }
+        else {
+            RakuAST::CtxSave.IMPL-TO-QAST($context)
+        }
+    }
+
+    method IMPL-ADD-ENTER-PHASERS-TO-QAST(QAST::Node $qast, QAST::Node $enter-setup) {
+        $qast[2][2].push($enter-setup); # Add them after INIT phasers
+    }
+
+    method generated-global() {
+        nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!mainline);
+        $visitor($!statement-list);
+        $visitor($!pod)     if $!pod;
+        $visitor($!data)    if $!data;
+        $visitor($!finish)  if $!finish;
+        $visitor($!rakudoc) if $!rakudoc;
+    }
+}
+
+class RakuAST::CtxSave
+  is RakuAST::ParseTime
+{
+    method new() {
+        nqp::create(self)
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $resolver.find-attach-target('compunit').set-explicit-ctxsave;
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),
@@ -617,24 +662,6 @@ class RakuAST::CompUnit
                         :op('callmethod'), :name('ctxsave'),
                         QAST::Var.new( :name('ctxsave'), :scope('local')
                     )))))
-    }
-
-    method IMPL-ADD-ENTER-PHASERS-TO-QAST(QAST::Node $qast, QAST::Node $enter-setup) {
-        $qast[2][2].push($enter-setup); # Add them after INIT phasers
-    }
-
-    method generated-global() {
-        nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
-        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!mainline);
-        $visitor($!statement-list);
-        $visitor($!pod)     if $!pod;
-        $visitor($!data)    if $!data;
-        $visitor($!finish)  if $!finish;
-        $visitor($!rakudoc) if $!rakudoc;
     }
 }
 

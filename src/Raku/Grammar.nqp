@@ -1141,6 +1141,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
         my $*BORG := {};             # who gets blamed for a missing block
+        my $*HAS_YOU_ARE_HERE := 0;  # whether {YOU_ARE_HERE} has shown up
 
         # -1 indicates we're outside of any "supply" or "react" block
         my $*WHENEVER-COUNT := -1;
@@ -1449,7 +1450,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*ORIGIN-NESTINGS := [];
         { $*BORG := {} }                            # initialize new context
         [
-          | '{YOU_ARE_HERE}' <you_are_here>        # TODO core setting
+          | '{YOU_ARE_HERE}' <you_are_here>
           | :dba('block')
             '{'                                     # actual block start
             <statementlist=.key-origin('statementlist')>

@@ -618,9 +618,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Action method for handling the inside of (pointy) blocks
     method blockoid($/) {
-        self.attach: $/,
-          Nodify('Blockoid').new($<statementlist>.ast),
-          :as-key-origin;
+        if $<statementlist> {
+            self.attach: $/,
+              Nodify('Blockoid').new($<statementlist>.ast),
+              :as-key-origin;
+        }
+        else {
+            if $*HAS_YOU_ARE_HERE {
+                $/.panic('{YOU_ARE_HERE} may only appear once in a setting');
+            }
+            $*HAS_YOU_ARE_HERE := 1;
+            make $<you_are_here>.ast;
+        }
     }
 
     # Action method for handling "unit" scoped packages
@@ -677,6 +686,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $it.set-WHY($*DECLARAND.cut-WHY);
         $*DECLARAND          := $it;
         $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+    }
+
+    method you_are_here($/) {
+        self.attach: $/, Nodify('CtxSave').new;
     }
 
     # Action method when entering a scope (package, sub, phaser etc.)
@@ -1695,7 +1708,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method circumfix:sym<{ }>($/) {
-        self.attach($/, $<pointy-block>.ast.block-or-hash(:object-hash($*OBJECT-HASH || 0)))
+        $<pointy-block><blockoid><you_are_here>
+            ?? make $<pointy-block><blockoid><you_are_here>.ast
+            !! self.attach($/, $<pointy-block>.ast.block-or-hash(:object-hash($*OBJECT-HASH || 0)))
     }
 
     method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }

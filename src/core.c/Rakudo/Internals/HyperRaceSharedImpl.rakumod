@@ -1,6 +1,6 @@
 # Implementations shared between HyperSeq and RaceSeq.
 class Rakudo::Internals::HyperRaceSharedImpl {
-    my class Grep does Rakudo::Internals::HyperProcessor {
+    my class Grepper does Rakudo::Internals::HyperProcessor {
         has $!matcher is built;
 
         method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
@@ -44,11 +44,11 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         else {
             hyper.bless:
                 configuration => hyper.configuration,
-                work-stage-head => Grep.new(:$source, :matcher(matcher))
+                work-stage-head => Grepper.new(:$source, :matcher(matcher))
         }
     }
 
-    my class Map does Rakudo::Internals::HyperProcessor {
+    my class Mapper does Rakudo::Internals::HyperProcessor {
         has &!mapper is built;
 
         method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
@@ -81,16 +81,16 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         else {
             hyper.bless:
                 configuration => hyper.configuration,
-                work-stage-head => Map.new(:$source, :&mapper)
+                work-stage-head => Mapper.new(:$source, :&mapper)
         }
     }
     multi method invert(\hyper, $source) {
         hyper.bless:
           configuration => hyper.configuration,
-          work-stage-head => Map.new(:$source,:mapper(-> Pair:D $p {$p.antipair}))
+          work-stage-head => Mapper.new(:$source,:mapper(-> Pair:D $p {$p.antipair}))
     }
 
-    my class Sink does Rakudo::Internals::HyperJoiner {
+    my class Sinker does Rakudo::Internals::HyperJoiner {
         has Promise $.complete .= new;
 
         has int $!last-target = -1;
@@ -117,7 +117,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
                     ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
                 }
             }
-            my $sink = Sink.new(:$source);
+            my $sink = Sinker.new(:$source);
             Rakudo::Internals::HyperPipeline.start($sink, hyper.configuration);
             $*AWAITER.await($sink.complete);
         }

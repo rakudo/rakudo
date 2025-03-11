@@ -854,6 +854,7 @@ class RakuAST::Call::PrivateMethod
   is RakuAST::Lookup
   is RakuAST::ImplicitLookups
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -876,7 +877,29 @@ class RakuAST::Call::PrivateMethod
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::PrivateMethod, '$!package', $resolver.current-package);
+        if $!name.is-multi-part {
+            my @parts := nqp::clone($!name.IMPL-UNWRAP-LIST($!name.parts));
+            my $name := nqp::pop(@parts);
+            my $package-name := RakuAST::Name.new(|@parts);
+            my $resolution := $resolver.resolve-name-constant($package-name);
+            if $resolution {
+                self.set-resolution($resolution);
+            }
+        }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!name.is-multi-part && self.is-resolved {
+            my $methpkg := self.resolution.compile-time-value;
+            unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $!package) {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Method::Private::Permission',
+                        :method(         $!name.last-part.name),
+                        :source-package( $methpkg.HOW.name($methpkg)),
+                        :calling-package( $!package.HOW.name($!package));
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -886,6 +909,7 @@ class RakuAST::Call::PrivateMethod
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my $call;
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
             my $package := $!package;
@@ -901,7 +925,7 @@ class RakuAST::Call::PrivateMethod
                     nqp::die("Private method $name not found on " ~ $package.HOW.name($package));
                 }
             }
-            my $call := QAST::Op.new(
+            $call := QAST::Op.new(
                 :op('callmethod'),
                 :name('dispatch:<!>'),
                 $invocant-qast,
@@ -910,12 +934,18 @@ class RakuAST::Call::PrivateMethod
                   ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
             );
-            self.args.IMPL-ADD-QAST-ARGS($context, $call);
-            $call
         }
         else {
-            nqp::die('Qualified private method calls NYI');
+            $call := QAST::Op.new(
+                :op('callmethod'),
+                :name('dispatch:<!>'),
+                $invocant-qast,
+                RakuAST::StrLiteral.new($!name.last-part.name).IMPL-EXPR-QAST($context),
+                self.resolution.IMPL-TO-QAST($context),
+            );
         }
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
     }
 }
 

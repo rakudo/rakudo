@@ -44,6 +44,10 @@ class RakuAST::Name
         self.IMPL-WRAP-LIST($!parts)
     }
 
+    method last-part() {
+        $!parts[nqp::elems($!parts) - 1]
+    }
+
     method is-multi-part() {
         nqp::elems($!parts) > 1
     }

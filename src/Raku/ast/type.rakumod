@@ -97,7 +97,7 @@ class RakuAST::Type::Simple
             self.set-resolution($resolved);
             my $value := $resolved.compile-time-value;
             if nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-                my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
+                my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $resolved {
                     nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
                 }
@@ -401,8 +401,8 @@ class RakuAST::Type::Parameterized
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
         else {
-            my $args := $!args.args;
-            if nqp::istype($args.AT-POS(0), RakuAST::QuotedString) {
+            my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
+            if nqp::istype($args[0], RakuAST::QuotedString) {
                 my int $is-only-quoted-string;
                 my int $arg-count;
                 for self.IMPL-UNWRAP-LIST($args) {
@@ -559,11 +559,11 @@ class RakuAST::Type::Enum
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
-        my $lookups := self.get-implicit-lookups;
-        my $Pair    := $lookups.AT-POS(0).resolution.compile-time-value;
-        my $List    := $lookups.AT-POS(1).resolution.compile-time-value;
-        my $Stringy := $lookups.AT-POS(2).resolution.compile-time-value;
-        my $Numeric := $lookups.AT-POS(3).resolution.compile-time-value;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $Pair    := $lookups[0].resolution.compile-time-value;
+        my $List    := $lookups[1].resolution.compile-time-value;
+        my $Stringy := $lookups[2].resolution.compile-time-value;
+        my $Numeric := $lookups[3].resolution.compile-time-value;
 
         my $base-type;
         my $has-base-type := False;

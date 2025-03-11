@@ -1458,7 +1458,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.get-implicit-lookups.AT-POS($sigil eq '@' ?? 0 !! 3).resolution.compile-time-value;
+                    my $role := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))

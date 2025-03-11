@@ -1267,7 +1267,7 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my $lookups := self.get-implicit-lookups;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my str $name := self.name;
         my $qast;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
@@ -1394,7 +1394,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            $qast := $lookups.AT-POS(1).IMPL-TO-QAST($context)
+            $qast := $lookups[1].IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");

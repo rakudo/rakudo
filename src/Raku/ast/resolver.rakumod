@@ -183,9 +183,9 @@ class RakuAST::Resolver {
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil) {
-        self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil)
-          // self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil)
+    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, :$current-scope-only) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :$current-scope-only)
+          // ($current-scope-only ?? Nil !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
@@ -264,6 +264,7 @@ class RakuAST::Resolver {
       RakuAST::Name  $constant,
                Bool :$setting,
                Bool :$partial,
+               Bool :$current-scope-only,
                 str :$sigil
     ) {
         my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
@@ -301,7 +302,7 @@ class RakuAST::Resolver {
                )
             !! $setting
               ?? self.resolve-lexical-constant-in-setting($name, :$setting-rev)
-              !! self.resolve-lexical-constant($name);
+              !! self.resolve-lexical-constant($name, :$current-scope-only);
         $resolved
           ?? (my $symbol := $resolved.compile-time-value)
           !! (return Nil);
@@ -789,11 +790,28 @@ class RakuAST::Resolver::EVAL
 
     # Resolves a lexical to its declaration. The declaration must have a
     # compile-time value.
-    method resolve-lexical-constant(Str $name) {
+    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
 
         # No need to look further
         if $name eq 'GLOBAL' {
             self.global-package;
+        }
+
+        # If it's in the current scope only, just look at the top one, if any
+        elsif $current-scope-only {
+            my @scopes := $!scopes;
+            my $found := nqp::elems(@scopes)
+                ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
+                !! Nil;
+            if nqp::isconcrete($found) {
+                if nqp::istype($found,RakuAST::CompileTimeValue) {
+                    return $found;
+                }
+                else {
+                    nqp::die("Symbol '$name' does not have a compile-time value");
+                }
+            }
+            Nil
         }
 
         # Walk active scopes, most nested first.
@@ -1015,9 +1033,27 @@ class RakuAST::Resolver::Compile
 
     # Resolves a lexical to its declaration. The declaration must have a
     # compile-time value.
-    method resolve-lexical-constant(Str $name) {
+    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
         if $name eq 'GLOBAL' {
             return self.global-package;
+        }
+
+        # If it's in the current scope only, just look at the top one, if any
+        if $current-scope-only {
+            my @scopes := $!scopes;
+            my int $i := nqp::elems(@scopes);
+            if ($i > 0) {
+                my $found := @scopes[$i - 1].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    if nqp::istype($found, RakuAST::CompileTimeValue) {
+                        return $found;
+                    }
+                    else {
+                        nqp::die("Symbol '$name' does not have a compile-time value");
+                    }
+                }
+            }
+            return Nil;
         }
 
         # Walk active scopes, most nested first.

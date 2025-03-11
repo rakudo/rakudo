@@ -888,13 +888,26 @@ class RakuAST::Call::PrivateMethod
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+            my $package := $!package;
+            if nqp::can($package.HOW, 'archetypes') && !$package.HOW.archetypes.generic && !$package.HOW.archetypes.parametric && nqp::can($package.HOW, 'find_private_method') {
+                my $meth := $package.HOW.find_private_method($package, $name);
+                if nqp::defined($meth) && $meth {
+                    $context.ensure-sc($meth);
+                    my $call := QAST::Op.new(:op('call'), QAST::WVal.new( :value($meth) ), $invocant-qast);
+                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
+                    return $call;
+                }
+                else {
+                    nqp::die("Private method $name not found on " ~ $package.HOW.name($package));
+                }
+            }
             my $call := QAST::Op.new(
                 :op('callmethod'),
                 :name('dispatch:<!>'),
                 $invocant-qast,
                 RakuAST::StrLiteral.new($name).IMPL-EXPR-QAST($context),
                 $!package.HOW.archetypes.parametric
-                  ?? self.get-implicit-lookups.AT-POS(0).IMPL-EXPR-QAST($context)
+                  ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
             );
             self.args.IMPL-ADD-QAST-ARGS($context, $call);

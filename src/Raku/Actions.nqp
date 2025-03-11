@@ -744,6 +744,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    # Dummy control statement to set a trusts trait on a target
+    method statement-control:sym<trusts>($/) {
+        if $*TRUSTS-TARGET -> $target {
+            $target.add-trait(Nodify('Trait', 'Trusts').new(:type($<typename>.ast)).to-begin-time($*R, $*CU.context));
+            $target.apply-traits($*R, $*CU.context, $target);
+            self.attach: $/, Nodify('Statement','Empty').new;
+        }
+        else {
+            $/.panic("Could not find target for 'trusts'");
+        }
+    }
+
     # Basic if / with handling with all of the elsifs / orelses
     method statement-control:sym<if>($/) {
 

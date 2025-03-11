@@ -1689,6 +1689,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    # Not really control statements, more grammar tweaks
+    rule statement-control:sym<trusts> {
+        <sym><.kok> [ <typename> || <.typo-typename(1)> ]
+    }
+
 #-------------------------------------------------------------------------------
 # Pragma and module loading related statements
 
@@ -3738,6 +3743,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.stub-package($<longname>)>
         { $/.set_package($*PACKAGE) }
         :my $*ALSO-TARGET := $*PACKAGE;
+        :my $*TRUSTS-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [

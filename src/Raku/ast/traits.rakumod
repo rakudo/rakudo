@@ -317,3 +317,25 @@ class RakuAST::Trait::Handles
         $visitor($!term);
     }
 }
+
+class RakuAST::Trait::Trusts
+  is RakuAST::Trait
+{
+    has RakuAST::Type $.type;
+
+    method new(RakuAST::Type :$type!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Trait::Trusts, '$!type', $type);
+        $obj
+    }
+
+    method IMPL-TRAIT-NAME() { 'trusts' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        RakuAST::ArgList.new($target, $!type)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!type) if $!type;
+    }
+}

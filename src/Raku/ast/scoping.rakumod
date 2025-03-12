@@ -262,26 +262,32 @@ class RakuAST::LexicalScope
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %lookup;
-        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations) {
+        for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
             my $lexical-name := $_.lexical-name;
-            if $lexical-name {
+            if $lexical-name && !($_ =:= self) {
                 if nqp::existskey(%lookup, $lexical-name) {
-                    self.add-sorry:
+                    self.add-worry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name), :what($_.declaration-kind);
+                        :symbol($lexical-name), :what($_.declaration-kind)
+                    # It will be two worries for var declaration, so skip one, not sure about others.
+                    unless nqp::istype($_, RakuAST::VarDeclaration);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
                 }
             }
         }
-        for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
+
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations) {
             my $lexical-name := $_.lexical-name;
-            if $lexical-name && ! $_ =:= self {
+            if $lexical-name {
                 if nqp::existskey(%lookup, $lexical-name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name), :what($_.declaration-kind);
+                        :symbol($lexical-name),
+                        :what($_.declaration-kind),
+                        :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '')
+                    unless %lookup{$lexical-name} =:= $_;
                 }
                 else {
                     %lookup{$lexical-name} := $_;

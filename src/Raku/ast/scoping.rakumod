@@ -765,6 +765,10 @@ class RakuAST::Declaration::LexicalPackage
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, *%opts) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
 }
 
 # A constant value that has been resolved. Has a compile time value, and the

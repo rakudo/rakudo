@@ -522,7 +522,7 @@ class RakuAST::Role
     method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         # Find an appropriate existing role group
         my $group      := $resolver.resolve-lexical-constant($name.canonicalize);
-        if $group {
+        if $group && !nqp::istype($group.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
             $group := $group.compile-time-value;
         }
 

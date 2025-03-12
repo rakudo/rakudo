@@ -1173,7 +1173,7 @@ class RakuAST::Parameter
         }
 
         my $sigil := $!target.sigil;
-        if self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
+        if nqp::can(self.meta-object, 'is-item') && self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',
                                             name        => $!target.name,

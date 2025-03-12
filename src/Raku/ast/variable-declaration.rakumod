@@ -179,7 +179,17 @@ class RakuAST::ContainerCreator {
                 $bind-constraint := self.IMPL-SIGIL-TYPE;
                 $container-base-type := nqp::objprimspec($of) ?? array !! Array;
                 if self.type {
-                    $container-type := $container-base-type.HOW.parameterize($container-base-type, $of);
+                    {
+                        $container-type := $container-base-type.HOW.parameterize($container-base-type, $of);
+                        CATCH {
+                            if $*COMPILING_CORE_SETTING == 1 {
+                                $container-type := $container-base-type
+                            }
+                            else {
+                                nqp::die($_);
+                            }
+                        }
+                    }
                     $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
                 }
                 else {

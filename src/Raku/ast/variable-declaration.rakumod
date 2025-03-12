@@ -991,14 +991,14 @@ class RakuAST::VarDeclaration::Simple
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
         if (self.initializer) {
-            my @found := self.find-nodes-exclusive(
+            my @found := self.IMPL-UNWRAP-LIST(self.find-nodes-exclusive(
                 RakuAST::Var::Lexical,
                 :condition(-> $node {
                     $node.is-resolved && $node.resolution =:= self
                 }),
                 :stopper(-> $node {
                     nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine)
-                }));
+                })));
             if @found {
                 self.add-sorry(
                     $resolver.build-exception: 'X::Syntax::Variable::Initializer', :name(self.name)

@@ -257,7 +257,7 @@ multi sub infix:<eqv>(Signature:D $a, Signature:D $b) {
     True
 }
 
-Perl6::Metamodel::Configuration.set_multi_sig_comparator(
+Metamodel::Configuration.set_multi_sig_comparator(
     -> \a, \b { a.signature eqv b.signature }
 );
 

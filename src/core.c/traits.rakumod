@@ -254,13 +254,6 @@ multi sub trait_mod:<is>(Parameter:D $param, :$trailing_docs!) {
     Rakudo::Internals.SET_TRAILING_DOCS($param, $trailing_docs);
 }
 
-# Declare these, as setting mainline doesn't get them automatically (as the
-# Mu/Any/Scalar are not loaded).
-my $!;
-my $/;
-my $_;
-
-
 
 multi sub trait_mod:<is>(Routine:D $r, :$export!, :$SYMBOL = '&' ~ $r.name) {
     my $to_export := $r.multi ?? $r.dispatcher !! $r;

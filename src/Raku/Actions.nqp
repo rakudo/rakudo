@@ -172,6 +172,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $comp := nqp::getcomp('Raku');
             my $default_revision := $comp.language_revision;
             my $setting_revision := $comp.lvs.internal-from-p6: nqp::substr($setting-name, 5, 1);
+            $*COMPILING_CORE_SETTING := $setting_revision;
             # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
             # default only core.e will be compiled with 6.e compiler.
             nqp::getcomp('Raku').set_language_revision(
@@ -234,7 +235,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $setting-name && !$is-EVAL {
             # TODO This branch is for when we start compiling the CORE.
             if nqp::eqat($setting-name, 'NULL.', 0) {
-                $*COMPILING_CORE_SETTING := 1;
                 if $setting-name ne 'NULL.c' {
                     my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
                     $*R.set-setting(:setting-name($loader.previous_setting_name($setting-name)));

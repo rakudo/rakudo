@@ -1221,6 +1221,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token comp-unit($outer-cu) {
         <.bom>?  # ignore any ByteOrderMark
 
+        :my $*COMPILING_CORE_SETTING := 0;
+
         :my $*CU;              # current RakuAST::CompUnit object
         :my $*ORIGIN-SOURCE;   # current RakuAST::Origin::Source object
         :my @*ORIGIN-NESTINGS := [];  # handling nested origins
@@ -1241,7 +1243,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*DECLARAND-WORRIES := {};   # $/ of worries when clearing DECLARAND
 
         :my $*EXPORT;
-        :my $*COMPILING_CORE_SETTING := 0;
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
         <.lang-setup($outer-cu)>  # set the above variables
@@ -3121,7 +3122,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?after ',' \h* <.[ . … ]>+>
           <.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)")>
         ]?
-        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }>
+        [ <?{ $*GOAL eq 'endargs' && $*COMPILING_CORE_SETTING != 1 }>
           <?after <.:L + [\]]> \h* <[ . … ]>+>
           <.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)")>
         ]?

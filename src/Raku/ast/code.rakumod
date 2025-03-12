@@ -1700,7 +1700,7 @@ class RakuAST::PointyBlock
                   )
                 );
                 CATCH {
-                    unless $*COMPILING_CORE_SETTING {
+                    if $*COMPILING_CORE_SETTING != 1 {
                         nqp::die($_);
                     }
                 }
@@ -1871,7 +1871,7 @@ class RakuAST::Routine
                   )
                 );
                 CATCH {
-                    unless $*COMPILING_CORE_SETTING {
+                    if $*COMPILING_CORE_SETTING != 1 {
                         nqp::die($_);
                     }
                 }

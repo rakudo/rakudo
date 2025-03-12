@@ -41,9 +41,12 @@ augment class RakuAST::Node {
         if infix-op(self.infix.operator) -> &op {
             my $left  := self.left.literalize;
             my $right := self.right.literalize;
-            nqp::istype($left,Nil) || nqp::istype($right,Nil)
-              ?? alas
-              !! op($left,$right)
+            if nqp::istype($left,Nil) || nqp::istype($right,Nil) {
+                alas
+            }
+            else {
+                op($left, $right);
+            }
         }
         else {
             alas;

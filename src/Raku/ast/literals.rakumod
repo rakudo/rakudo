@@ -314,9 +314,7 @@ class RakuAST::QuotedString
                 my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                 my $val := $val-lookup.is-resolved
                     ?? $val-lookup.resolution.compile-time-value
-                    !! $*COMPILING_CORE_SETTING
-                        ?? -> $val { $val }
-                        !! nqp::die('&val not yet resolved!');
+                    !! -> $val { $val };
                 $part := $val(nqp::hllizefor($part, 'Raku'));
             }
             elsif $_ eq 'heredoc' {

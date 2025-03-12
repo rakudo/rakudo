@@ -81,7 +81,7 @@ class RakuAST::CompUnit
 
         # If CompUnit's language revision is not set explicitly then guess it
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
-          $language-revision
+          $language-revision := $language-revision
             ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
@@ -108,7 +108,7 @@ class RakuAST::CompUnit
             nqp::pushcompsc($sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting));
+              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!data',

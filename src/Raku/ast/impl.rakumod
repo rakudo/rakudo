@@ -25,8 +25,9 @@ class RakuAST::IMPL::QASTContext {
     has List $.cleanup-tasks;
 
     has int $.is-nested;
+    has Mu $.language-revision; # Same type as in CORE-SETTING-REV
 
-    method new(Mu :$sc!, int :$precompilation-mode, :$setting) {
+    method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', $precompilation-mode);
@@ -38,6 +39,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
         $obj
     }
 
@@ -54,8 +56,10 @@ class RakuAST::IMPL::QASTContext {
     }
 
     # The langauge version we're compiling.
-    # TODO implement this properly
-    method lang-version() { 'd' }
+    # TODO use revision internally
+    method lang-version() {
+        nqp::chr(98 + $!language-revision.Int)
+    }
 
     method is-moar() {
 #?if moar

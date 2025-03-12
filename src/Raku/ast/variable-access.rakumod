@@ -654,7 +654,7 @@ class RakuAST::Var::PositionalCapture
         $context.ensure-sc($index);
         QAST::Op.new(
             :op('call'),
-            :name($lookups[0].resolution.lexical-name),
+            :name($lookups[0].is-resolved ?? $lookups[0].resolution.lexical-name !! '&postcircumfix:<[ ]>'),
             $lookups[1].IMPL-TO-QAST($context),
             QAST::WVal.new( :value($index) )
         )

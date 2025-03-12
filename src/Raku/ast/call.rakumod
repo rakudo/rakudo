@@ -404,7 +404,19 @@ class RakuAST::Call::Name
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new( :op('call') );
         if $!name.is-identifier {
-            $call.name(self.resolution.lexical-name);
+            if !self.is-resolved && $!name.canonicalize eq 'die' {
+                $call.op('die');
+            }
+            else {
+                my $name;
+                if self.is-resolved || !$*COMPILING_CORE_SETTING {
+                    $name := self.resolution.lexical-name;
+                }
+                else {
+                    $name := '&' ~ $!name.canonicalize;
+                }
+                $call.name($name);
+            }
         }
         else {
             if my $op := $!name.IMPL-IS-NQP-OP {
@@ -813,6 +825,15 @@ class RakuAST::Call::Method
             self.add-sorry:
               $resolver.build-exception: 'X::Syntax::Argument::MOPMacro',
                 macro => $!name.canonicalize;
+        }
+
+        if $!name && $!name.is-multi-part {
+            my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+            unless $Qualified.is-resolved {
+                # Give it a second chance to resolve.
+                #FIXME Calling IMPL-BEGIN seems like the wrong tool though.
+                $Qualified.IMPL-BEGIN($resolver, $context);
+            }
         }
     }
 }

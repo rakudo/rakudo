@@ -73,6 +73,7 @@ class RakuAST::Type
 class RakuAST::Type::Simple
   is RakuAST::Type
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
@@ -103,6 +104,13 @@ class RakuAST::Type::Simple
                     nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
                 }
             }
+        }
+    }
+
+    # Second chance to resolve for compiling the setting.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            self.PERFORM-PARSE($resolver, $context);
         }
     }
 

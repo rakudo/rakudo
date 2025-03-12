@@ -242,6 +242,7 @@ class RakuAST::Infix
   is RakuAST::OperatorProperties
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.operator;
 
@@ -271,6 +272,17 @@ class RakuAST::Infix
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-infix($!operator);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
     }
 
     method reducer-name() { self.properties.reducer-name }
@@ -427,6 +439,14 @@ class RakuAST::Infix
           '//',  'defor'
         );
 
+        my $name;
+        if self.is-resolved || !$*COMPILING_CORE_SETTING {
+            $name := self.resolution.lexical-name;
+        }
+        else {
+            $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+        }
+
         (my str $op := QAST-OP{$!operator})
           # Directly mapping
           ?? QAST::Op.new(:$op, $left-qast, $right-qast)
@@ -434,7 +454,7 @@ class RakuAST::Infix
           # compiling it as chaining if required.
           !! QAST::Op.new(
                :op(self.properties.chain ?? 'chain' !! 'call'),
-               :name(self.resolution.lexical-name),
+               :$name,
                $left-qast,
                $right-qast
              )
@@ -619,7 +639,14 @@ class RakuAST::Infix
             $op
         }
         else {
-            my $name := self.resolution.lexical-name;
+            my $name;
+            if self.is-resolved || !$*COMPILING_CORE_SETTING {
+                $name := try self.resolution.lexical-name;
+                $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator) unless nqp::defined($name);
+            }
+            else {
+                $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+            }
             my $op := QAST::Op.new( :op('call'), :$name );
             for $operands {
                 $op.push($_);
@@ -666,18 +693,26 @@ class RakuAST::Infix
     }
 
     method IMPL-CAN-INTERPRET() {
-        nqp::istype(self.resolution,RakuAST::CompileTimeValue)
+        self.is-resolved && nqp::istype(self.resolution,RakuAST::CompileTimeValue)
           && !self.properties.short-circuit
           && !self.properties.chain
+        || $!operator eq ',' && $*COMPILING_CORE_SETTING
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
-        my $op := self.resolution.compile-time-value;
         my @operands;
         for self.IMPL-UNWRAP-LIST($operands) {
             nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
         }
-        $op(|@operands)
+        if self.is-resolved {
+            my $op := self.resolution.compile-time-value;
+            $op(|@operands)
+        }
+        elsif $!operator eq ',' && $*COMPILING_CORE_SETTING {
+            my $list := nqp::create(List);
+            nqp::bindattr($list, List, '$!reified', @operands);
+            $list
+        }
     }
 
     method dump-markers() {
@@ -2278,6 +2313,7 @@ class RakuAST::Prefix
   is RakuAST::OperatorProperties
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.operator;
 
@@ -2300,8 +2336,25 @@ class RakuAST::Prefix
         Nil
     }
 
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-prefix($!operator);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
+    }
+
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := self.resolution.lexical-name;
+        my $name;
+        if self.is-resolved || !$*COMPILING_CORE_SETTING {
+            $name := self.resolution.lexical-name;
+        }
+        else {
+            $name := '&prefix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+        }
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
@@ -2492,6 +2545,7 @@ class RakuAST::Postfix
   is RakuAST::Postfixish
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.operator;
 
@@ -2512,6 +2566,16 @@ class RakuAST::Postfix
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-postfix($!operator);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
     }
 
     method IMPL-POSTFIX-QAST(
@@ -2675,6 +2739,17 @@ class RakuAST::Postcircumfix::ArrayIndex
     method IMPL-CURRIES() { 3 }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # 2nd chance to resolve to avoid bootstrapping issue in the setting
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical(
+                nqp::elems($!index.code-statements) > 1
+                    ?? '&postcircumfix:<[; ]>'
+                    !! '&postcircumfix:<[ ]>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+
         my $statements := $!index.code-statements;
 
         if nqp::elems($statements) == 1
@@ -2728,7 +2803,15 @@ class RakuAST::Postcircumfix::ArrayIndex
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := self.resolution.lexical-name;
+        my $name;
+        if self.is-resolved || !$*COMPILING_CORE_SETTING {
+            $name := self.resolution.lexical-name;
+        }
+        else {
+            $name := nqp::elems($!index.code-statements) > 1
+                ?? '&postcircumfix:<[; ]>'
+                !! '&postcircumfix:<[ ]>';
+        }
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
@@ -2763,6 +2846,7 @@ class RakuAST::Postcircumfix::HashIndex
   is RakuAST::Postcircumfix
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has RakuAST::SemiList $.index;
 
@@ -2778,14 +2862,27 @@ class RakuAST::Postcircumfix::HashIndex
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $resolved := $resolver.resolve-lexical(
-            nqp::elems($!index.code-statements) > 1
-                ?? '&postcircumfix:<{; }>'
-                !! '&postcircumfix:<{ }>');
+        my $resolved := $resolver.resolve-lexical(self.IMPL-LEXICAL-NAME);
         if $resolved {
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical(self.IMPL-LEXICAL-NAME);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
+    }
+
+    method IMPL-LEXICAL-NAME() {
+        nqp::elems($!index.code-statements) > 1
+            ?? '&postcircumfix:<{; }>'
+            !! '&postcircumfix:<{ }>';
     }
 
     method visit-children(Code $visitor) {
@@ -2800,7 +2897,7 @@ class RakuAST::Postcircumfix::HashIndex
     method IMPL-CURRIES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := self.resolution.lexical-name;
+        my $name := self.is-resolved ?? self.resolution.lexical-name !! self.IMPL-LEXICAL-NAME;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
@@ -2835,6 +2932,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
   is RakuAST::Postcircumfix
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has RakuAST::QuotedString $.index;
     has RakuAST::Expression $.assignee;
@@ -2869,6 +2967,16 @@ class RakuAST::Postcircumfix::LiteralHashIndex
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical('&postcircumfix:<{ }>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
     }
 
     method visit-children(Code $visitor) {

@@ -92,6 +92,7 @@ class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
   is RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
@@ -127,6 +128,18 @@ class RakuAST::Circumfix::ArrayComposer
         Nil
     }
 
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
+    }
+
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new(
@@ -160,6 +173,7 @@ class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Expression $.expression;
     has int $.object-hash;
@@ -185,6 +199,17 @@ class RakuAST::Circumfix::HashComposer
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical($!object-hash ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

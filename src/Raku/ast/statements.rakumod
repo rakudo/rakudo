@@ -478,8 +478,8 @@ class RakuAST::SemiList
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
-            my $name :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+            my $comma := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+            my $name := $comma.is-resolved ?? $comma.resolution.lexical-name !! '&infix:<,>';
             my $list := QAST::Op.new(:op('call'), :$name);
             for @statements {
                 $list.push($_.IMPL-TO-QAST($context));

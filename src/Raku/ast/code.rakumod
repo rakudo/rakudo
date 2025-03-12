@@ -1681,7 +1681,8 @@ class RakuAST::PointyBlock
             self.add-generated-lexical-declaration($_) for $!signature.IMPL-ENSURE-IMPLICITS($resolver, $context);
             $!signature.to-begin-time($resolver, $context);
         }
-        self.placeholder-signature.to-begin-time($resolver, $context);
+        my $placeholder-signature := self.placeholder-signature;
+        $placeholder-signature.to-begin-time($resolver, $context) if $placeholder-signature;
 
         self.IMPL-STUB-PHASERS($resolver, $context);
 

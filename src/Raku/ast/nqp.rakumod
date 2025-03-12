@@ -84,6 +84,15 @@ class RakuAST::Nqp
             }
             ++$i;
         }
+
+        if $!op eq 'handle' {
+            $i := 1;
+            while $i < $n {
+                $call[$i] := $call[$i].value; # Unpack strings from their SVal
+                $i := $i + 2;
+            }
+        }
+
         $call
     }
 }

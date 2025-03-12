@@ -1,22 +1,22 @@
 BEGIN {
     # Re-parent meta-objects so they appear to be under Any.
-    Perl6::Metamodel::ClassHOW.HOW.reparent(Perl6::Metamodel::ClassHOW, Any);
-    Perl6::Metamodel::ConcreteRoleHOW.HOW.reparent(Perl6::Metamodel::ConcreteRoleHOW, Any);
-    Perl6::Metamodel::CurriedRoleHOW.HOW.reparent(Perl6::Metamodel::CurriedRoleHOW, Any);
-    Perl6::Metamodel::EnumHOW.HOW.reparent(Perl6::Metamodel::EnumHOW, Any);
-    Perl6::Metamodel::GenericHOW.HOW.reparent(Perl6::Metamodel::GenericHOW, Any);
-    Perl6::Metamodel::ModuleHOW.HOW.reparent(Perl6::Metamodel::ModuleHOW, Any);
-    Perl6::Metamodel::NativeHOW.HOW.reparent(Perl6::Metamodel::NativeHOW, Any);
-    Perl6::Metamodel::PackageHOW.HOW.reparent(Perl6::Metamodel::PackageHOW, Any);
-    Perl6::Metamodel::ParametricRoleGroupHOW.HOW.reparent(Perl6::Metamodel::ParametricRoleGroupHOW, Any);
-    Perl6::Metamodel::ParametricRoleHOW.HOW.reparent(Perl6::Metamodel::ParametricRoleHOW, Any);
-    Perl6::Metamodel::SubsetHOW.HOW.reparent(Perl6::Metamodel::SubsetHOW, Any);
-    Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
+    Metamodel::ClassHOW.HOW.reparent(Metamodel::ClassHOW, Any);
+    Metamodel::ConcreteRoleHOW.HOW.reparent(Metamodel::ConcreteRoleHOW, Any);
+    Metamodel::CurriedRoleHOW.HOW.reparent(Metamodel::CurriedRoleHOW, Any);
+    Metamodel::EnumHOW.HOW.reparent(Metamodel::EnumHOW, Any);
+    Metamodel::GenericHOW.HOW.reparent(Metamodel::GenericHOW, Any);
+    Metamodel::ModuleHOW.HOW.reparent(Metamodel::ModuleHOW, Any);
+    Metamodel::NativeHOW.HOW.reparent(Metamodel::NativeHOW, Any);
+    Metamodel::PackageHOW.HOW.reparent(Metamodel::PackageHOW, Any);
+    Metamodel::ParametricRoleGroupHOW.HOW.reparent(Metamodel::ParametricRoleGroupHOW, Any);
+    Metamodel::ParametricRoleHOW.HOW.reparent(Metamodel::ParametricRoleHOW, Any);
+    Metamodel::SubsetHOW.HOW.reparent(Metamodel::SubsetHOW, Any);
+    Metamodel::GrammarHOW.HOW.compose(Metamodel::GrammarHOW);
 #?if !moar
-    Perl6::Metamodel::BaseDispatcher.HOW.reparent(Perl6::Metamodel::BaseDispatcher, Any);
-    Perl6::Metamodel::MethodDispatcher.HOW.compose(Perl6::Metamodel::MethodDispatcher);
-    Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
-    Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
+    Metamodel::BaseDispatcher.HOW.reparent(Metamodel::BaseDispatcher, Any);
+    Metamodel::MethodDispatcher.HOW.compose(Metamodel::MethodDispatcher);
+    Metamodel::MultiDispatcher.HOW.compose(Metamodel::MultiDispatcher);
+    Metamodel::WrapDispatcher.HOW.compose(Metamodel::WrapDispatcher);
 #?endif
 }
 

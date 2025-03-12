@@ -1,19 +1,19 @@
 class CompUnit::PrecompilationId {
     has Str $.id is built(False) handles <Str IO substr>;
 
-    method new(str $id --> CompUnit::PrecompilationId:D) {
+    method new(Str $id --> CompUnit::PrecompilationId:D) {
         nqp::atpos(nqp::radix_I(16,$id,0,0,Int),2) == 40
           ?? nqp::p6bindattrinvres(nqp::create(self),
                CompUnit::PrecompilationId,'$!id',$id)
           !! die "Invalid precompilation id: '$id'"
     }
 
-    method new-from-string(str $id --> CompUnit::PrecompilationId:D) {
+    method new-from-string(Str $id --> CompUnit::PrecompilationId:D) {
         nqp::p6bindattrinvres(nqp::create(self),
           CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
     }
 
-    method new-without-check(str $id --> CompUnit::PrecompilationId:D) {
+    method new-without-check(Str $id --> CompUnit::PrecompilationId:D) {
         nqp::p6bindattrinvres(nqp::create(self),
           CompUnit::PrecompilationId,'$!id',$id)
     }

@@ -9,7 +9,7 @@ augment class Rakudo::Internals {
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
 
-    my sub setup-handle(str $what) {
+    my sub setup-handle(Str $what) {
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what',$what

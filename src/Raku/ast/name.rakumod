@@ -321,7 +321,8 @@ class RakuAST::Name
         my $final := @parts[nqp::elems(@parts) - 1];
         my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         my $result;
-        if $*IMPL-COMPILE-DYNAMICALLY && $!parts[0].name eq 'CORE' {
+        #TODO Look at Perl6::World::symbol_lookup. Has a separate implementation for compiling the setting
+        if $*IMPL-COMPILE-DYNAMICALLY && !$*COMPILING_CORE_SETTING && $!parts[0].name eq 'CORE' {
             my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
             my $package := Perl6::Metamodel::ModuleHOW.new_type(:name('CORE'));
             my $found-ctx := $context.setting;

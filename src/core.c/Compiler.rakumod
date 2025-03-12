@@ -3,7 +3,7 @@ class Compiler does Systemic {
     my constant $config =
       nqp::gethllsym('default','SysConfig').rakudo-build-config;
     my constant $compilation-id = nqp::box_s(
-      nqp::sha1($*W.handle.Str ~ nqp::atkey($config,'source-digest')),Str
+      nqp::sha1((nqp::getlexdyn('$*CU') ?? $*CU.comp-unit-name !! $*W.handle.Str) ~ nqp::atkey($config,'source-digest')),Str
     );
     my constant $backend = $compiler.backend;
     my constant $name    = $backend.name;

@@ -591,6 +591,9 @@ class RakuAST::Statement::Expression
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
     has RakuAST::StatementModifier::Loop $.loop-modifier;
+    has RakuAST::ExpressionThunk $.loop-thunk;
+    has RakuAST::ExpressionThunk $.condition-thunk;
+    has RakuAST::ExpressionThunk $.expression-thunk;
 
     method new(RakuAST::Expression :$expression!, List :$labels,
                RakuAST::StatementModifier::Condition :$condition-modifier,
@@ -651,6 +654,30 @@ class RakuAST::Statement::Expression
         $qast
     }
 
+    # StatementModifier::WhileUntil needs us to thunk loop-condition, condition-modifier and expression
+    # but crucially it only needs this if we're not a block statement and we're not sunk. The problem is
+    # that at BEGIN time we don't know that yet. But BEGIN time is the latest that we can thunk those
+    # expressions. We may not even get a CHECK time if this statement is executed at BEGIN time. Thus
+    # we thunk just in case and if it turns out we're sunk, we have to undo that thunking again.
+    method IMPL-UNTHUNK() {
+        if $!loop-modifier && nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil) && nqp::defined($!loop-thunk) {
+            $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk)
+                unless $!loop-modifier.IMPL-UNNEGATE-IF-NEEDED;
+            nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', RakuAST::ExpressionThunk);
+            if $!condition-modifier {
+                nqp::die('cond thunk not defined?') unless nqp::defined($!condition-thunk);
+                $!expression.IMPL-REMOVE-THUNK($!condition-thunk);
+                nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', RakuAST::ExpressionThunk);
+            }
+
+            if !nqp::istype($!expression, RakuAST::Block) {
+                nqp::die('expr thunk not defined') unless nqp::defined($!expression-thunk);
+                $!expression.IMPL-REMOVE-THUNK($!expression-thunk);
+                nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', RakuAST::ExpressionThunk);
+            }
+        }
+    }
+
     method IMPL-DISCARD-RESULT() {
         (
             self.is-block-statement
@@ -661,12 +688,14 @@ class RakuAST::Statement::Expression
     }
 
     method propagate-sink(Bool $is-sunk) {
+        self.IMPL-UNTHUNK() if $is-sunk;
         $!expression.apply-sink($is-sunk);
         $!condition-modifier.apply-sink(False) if $!condition-modifier;
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }
 
     method mark-block-statement() {
+        self.IMPL-UNTHUNK();
         nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
         if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
             $!expression.mark-block-statement();
@@ -686,27 +715,32 @@ class RakuAST::Statement::Expression
                 $!expression.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
             }
+
+            # See IMPL-UNTHUNK for important information
+            if (nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil)) {
+                $!loop-modifier.IMPL-NEGATE-IF-NEEDED($resolver, $context);
+                my $loop-thunk := RakuAST::ExpressionThunk.new;
+                $!loop-modifier.expression.wrap-with-thunk($loop-thunk);
+                $loop-thunk.ensure-begin-performed($resolver, $context);
+                nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', $loop-thunk);
+
+                if !nqp::istype($!expression, RakuAST::Block) {
+                    if $!condition-modifier {
+                        my $thunk := $!condition-modifier.expression-thunk;
+                        $!expression.wrap-with-thunk($thunk);
+                        $thunk.ensure-begin-performed($resolver, $context);
+                        nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', $thunk);
+                    }
+                    my $thunk := RakuAST::ExpressionThunk.new;
+                    $!expression.wrap-with-thunk($thunk);
+                    $thunk.ensure-begin-performed($resolver, $context);
+                    nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', $thunk);
+                }
+            }
         }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if ($!loop-modifier && nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil) && !self.IMPL-DISCARD-RESULT) {
-            $!loop-modifier.IMPL-NEGATE-IF-NEEDED($resolver, $context);
-            my $loop-thunk := RakuAST::ExpressionThunk.new;
-            $!loop-modifier.expression.wrap-with-thunk($loop-thunk);
-            $loop-thunk.ensure-begin-performed($resolver, $context);
-
-            if !nqp::istype($!expression, RakuAST::Block) {
-                if $!condition-modifier {
-                    my $thunk := $!condition-modifier.expression-thunk;
-                    $!expression.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                }
-                my $thunk := RakuAST::ExpressionThunk.new;
-                $!expression.wrap-with-thunk($thunk);
-                $thunk.ensure-begin-performed($resolver, $context);
-            }
-        }
     }
 
     method visit-children(Code $visitor) {

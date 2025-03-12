@@ -197,6 +197,10 @@ class RakuAST::StatementModifier::WhileUntil
     method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
     }
 
+    method IMPL-UNNEGATE-IF-NEEDED() {
+        Nil
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
@@ -243,6 +247,11 @@ class RakuAST::StatementModifier::Until
             :operand(self.expression),
         ));
         self.expression.ensure-begin-performed($resolver, $context);
+    }
+
+    method IMPL-UNNEGATE-IF-NEEDED() {
+        nqp::bindattr(self, RakuAST::StatementModifier, '$!expression', self.expression.operand);
+        True
     }
 }
 

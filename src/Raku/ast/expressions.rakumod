@@ -116,6 +116,25 @@ class RakuAST::Expression
         nqp::die("UNCURRY didn't find a CurryThunk");
     }
 
+    method IMPL-REMOVE-THUNK(RakuAST::ExpressionThunk $thunk) {
+        my $prev-thunk;
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            if $cur-thunk =:= $thunk {
+                if $prev-thunk {
+                    $prev-thunk.set-next($cur-thunk.next);
+                }
+                else {
+                    nqp::bindattr(self, RakuAST::Expression, '$!thunks', $cur-thunk.next);
+                }
+                return;
+            }
+            $prev-thunk := $cur-thunk;
+            $cur-thunk := $cur-thunk.next;
+        }
+        nqp::die("IMPL-REMOVE-THUNK didn't find the thunk to remove");
+    }
+
     method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
         $qast
     }

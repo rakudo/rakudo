@@ -58,7 +58,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
     my $what := $var.VAR.WHAT;
 
     my $descriptor;
-    {
+    do {
         CATCH {
             my $native = $v.native($what);
             $native

@@ -29,7 +29,14 @@ my class Backtrace::Frame {
     multi method Str(Backtrace::Frame:D:) {
         my $s = self.subtype;
         $s ~= ' ' if $s.chars;
-        my $text = "  in {$s}$.subname at {$.file} line $.line\n";
+        my $file = self.file;
+        if Backtrace.RAKUDO_NOPATH_STACKFRAME {
+            my @parts = $file.words;
+            if @parts[0].contains(/ <[A..Z0..9]> ** 40 $/) {
+                $file = @parts[1].substr(1, *-1)
+            }
+        }
+        my $text = "  in {$s}$.subname at $file line $.line\n";
 
         if Backtrace.RAKUDO_VERBOSE_STACKFRAME -> $extra {
             my $io = $!file.IO;
@@ -44,7 +51,7 @@ my class Backtrace::Frame {
                 $text ~= "\n";
             }
         }
-        $text;
+        $text
     }
 
     method is-hidden(Backtrace::Frame:D:) {
@@ -84,6 +91,15 @@ my class Backtrace {
           $RAKUDO_VERBOSE_STACKFRAME,
           $RAKUDO_VERBOSE_STACKFRAME :=
             (%*ENV<RAKUDO_VERBOSE_STACKFRAME> // 0).Int
+        )
+    }
+
+    my $RAKUDO_NOPATH_STACKFRAME := nqp::null;
+    method RAKUDO_NOPATH_STACKFRAME() is implementation-detail {
+        nqp::ifnull(
+          $RAKUDO_NOPATH_STACKFRAME,
+          $RAKUDO_NOPATH_STACKFRAME :=
+            (%*ENV<RAKUDO_NOPATH_STACKFRAME> // 0).Bool
         )
     }
 

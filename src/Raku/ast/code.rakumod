@@ -2005,10 +2005,13 @@ class RakuAST::Routine
             }
             else {
                 if $!outer { # Ensure each block invocation gets its own closure clone of this routine
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                        self.IMPL-CLOSURE-QAST($context)
+                    QAST::Stmts.new(
+                        QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :scope<lexical>, :$name ),
+                            self.IMPL-CLOSURE-QAST($context)
+                        )
                     )
                 }
                 else { # No need to replace the lexical with the closure clone if declared in the comp unit directly

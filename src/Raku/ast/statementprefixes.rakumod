@@ -454,7 +454,7 @@ class RakuAST::StatementPrefix::Wheneverable
         }
         else {
             $name := $name ~ '-ONE-WHENEVER'
-              if $blorst.body.statement-list.single-last-whenever;
+              if nqp::istype($blorst, RakuAST::Block) && $blorst.body.statement-list.single-last-whenever;
         }
 
         QAST::Op.new(
@@ -518,6 +518,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
+
+        self.blorst.propagate-sink(False) if nqp::istype(self.blorst, RakuAST::Block);
 
         nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
         my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);

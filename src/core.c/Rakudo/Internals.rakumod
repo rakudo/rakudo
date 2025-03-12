@@ -1664,17 +1664,6 @@ my class Rakudo::Internals {
     }
 
     my $METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops
-    method METAOP_ASSIGN(\op) {
-        my \op-is := nqp::ifnull(
-          nqp::atkey(                                # is it a core op?
-            nqp::ifnull($METAOP_ASSIGN,INSTALL-CORE-METAOPS()),
-            nqp::objectid(op)
-          ),
-          -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
-        );
-        op-is.set_name(op.name ~ ' + {assigning}');  # checked for in Hyper.new
-        op-is
-    }
 
     # Method for lazily installing fast versions of METAOP_ASSIGN ops for
     # core infix ops.  Since the compilation of &[op] happens at build time
@@ -1694,6 +1683,19 @@ my class Rakudo::Internals {
             nqp::bindkey($metaop_assign, nqp::objectid(op), metaop);
         }
         $METAOP_ASSIGN := $metaop_assign;
+    }
+
+    method METAOP_ASSIGN(\op) {
+        my \op-is := nqp::ifnull(
+          nqp::atkey(                                # is it a core op?
+              #nqp::ifnull($METAOP_ASSIGN,INSTALL-CORE-METAOPS()),
+            nqp::hash(),
+            nqp::objectid(op)
+          ),
+          -> Mu \a, Mu \b { a = op.( ( a.DEFINITE ?? a !! op.() ), b) }
+        );
+        op-is.set_name(op.name ~ ' + {assigning}');  # checked for in Hyper.new
+        op-is
     }
 
     # Return a nqp list iterator from an IterationSet

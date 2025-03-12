@@ -615,6 +615,14 @@ class RakuAST::Infix
                 $i++;
             }
         }
+        elsif self.short-circuit { # Only final part of short-circuiting operators can be sunk
+            my $i := 0;
+            while $i < nqp::elems($operands) - 1 {
+                $operands[$i].apply-sink(False);
+                $i++;
+            }
+            $operands[$i].apply-sink($is-sunk);
+        }
         else {
             for $operands {
                 $_.apply-sink($is-sunk);

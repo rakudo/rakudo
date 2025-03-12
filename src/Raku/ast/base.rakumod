@@ -347,7 +347,14 @@ class RakuAST::Node {
             my $reified := nqp::getattr($list, List, '$!reified');
             nqp::isconcrete($reified)
                 ?? $reified
-                !! $list.FLATTENABLE_LIST
+                !! nqp::if(
+                    nqp::isconcrete(nqp::getattr($list, List, '$!todo')),
+                    nqp::stmts(
+                        nqp::getattr($list, List, '$!todo').reify-all,
+                        nqp::getattr($list, List, '$!reified')
+                    ),
+                    nqp::bindattr($list, List, '$!reified', nqp::create(IterationBuffer))
+                )
         }
         else {
             nqp::list($list)

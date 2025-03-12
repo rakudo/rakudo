@@ -474,7 +474,12 @@ class RakuAST::SemiList
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @statements := self.code-statements;
         my int $n := nqp::elems(@statements);
-        if $n == 1 {
+        if $n == 0 && $*COMPILING_CORE_SETTING == 1 {
+            my $list := nqp::create(List);
+            $context.ensure-sc($list);
+            QAST::WVal.new(:value($list));
+        }
+        elsif $n == 1 {
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
@@ -1183,9 +1188,10 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @next-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('NEXT'));
-        my @last-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('LAST'));
-        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
+        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
+        my @next-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'NEXT') ?? $phasers<NEXT> !! [];
+        my @last-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'LAST') ?? $phasers<LAST> !! [];
+        my @undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO') ?? $phasers<UNDO> !! [];
         my @labels := self.IMPL-UNWRAP-LIST(self.labels);
         if self.IMPL-DISCARD-RESULT && !nqp::elems(@undo-phasers) {
             # Select correct node type for the loop and produce it.

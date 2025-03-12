@@ -339,7 +339,7 @@ class RakuAST::Call::Name
             my $routine := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
                 ?? self.resolution.compile-time-value
                 !! self.resolution.maybe-compile-time-value;
-            if nqp::isconcrete($routine) && nqp::istype($routine, Code) {
+            if nqp::isconcrete($routine) && nqp::istype($routine, Code) && nqp::can($routine, 'signature') {
                 my $sig := $routine.signature;
                 my @types;
                 my @flags;

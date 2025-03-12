@@ -2324,7 +2324,8 @@ class RakuAST::Sub
         my $meta := self.meta-object;
 
         # If we ourselves can default, there is no need to check further
-        return Nil if $meta.can("default");
+        return Nil if nqp::can($meta, 'default');
+        return Nil if $*COMPILING_CORE_SETTING == 1; # No chance in early bootstrap
 
         my int $has-post-constraints;
         for self.IMPL-UNWRAP-LIST($signature.params) {

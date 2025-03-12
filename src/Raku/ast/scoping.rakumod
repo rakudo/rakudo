@@ -595,7 +595,9 @@ class RakuAST::Declaration::Mergeable {
             # The tricky case: here the interesting package is the
             # one in the module. So we merge the other way around
             # and install that as the result.
-            $loader.merge_globals($source.WHO, $target.WHO);
+            $*COMPILING_CORE_SETTING == 1
+                ?? $loader.merge_globals(nqp::getattr($source.WHO, Map, '$!storage'), nqp::getattr($target.WHO, Map, '$!storage'))
+                !! $loader.merge_globals($source.WHO, $target.WHO);
             self.set-value($source);
         }
         elsif nqp::can(self, 'lexical-name') && nqp::eqat(self.lexical-name, '&', 0) {

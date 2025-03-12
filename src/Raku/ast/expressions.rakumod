@@ -152,7 +152,7 @@ class RakuAST::OperatorProperties
         if nqp::can(self, 'is-resolved') && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) && nqp::can($resolution.compile-time-value, 'op_props') {
-                $properties := $resolution.compile-time-value.op_props;
+                $properties := try $resolution.compile-time-value.op_props;
             }
             elsif nqp::istype($resolution, RakuAST::Declaration::External) {
                 my $value := $resolution.maybe-compile-time-value;

@@ -1208,7 +1208,7 @@ class RakuAST::Parameter
             self.add-sorry: $resolver.build-exception: 'X::Parameter::TypedSlurpy', kind => 'named' if $sigil eq '%';
         }
 
-        if self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
+        if nqp::can(self.meta-object, 'is-item') && self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',
                                             name        => $!target.name,

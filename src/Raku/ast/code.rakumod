@@ -322,11 +322,17 @@ class RakuAST::Code
                     my $op := $visit.op;
                     if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain') && $visit.name {
                         my $routine := $!resolver.resolve-lexical-constant($visit.name);
-                        my $value := $routine.compile-time-value;
-                        if ! $declared-in-cu($visit.name) {
-                            $context.ensure-sc($value);
-                            $visit.name(nqp::null);
-                            $visit.unshift(QAST::WVal.new(:$value));
+                        if $routine {
+                            my $value := $routine.compile-time-value;
+                            if ! $declared-in-cu($visit.name) {
+                                $context.ensure-sc($value);
+                                $visit.name(nqp::null);
+                                $visit.unshift(QAST::WVal.new(:$value));
+                            }
+                        }
+                        else {
+                            #TODO replace this with a dispatcher or the like that we can
+                            #update once we compile the post declared routine.
                         }
                     }
                     $visit-children($visit)

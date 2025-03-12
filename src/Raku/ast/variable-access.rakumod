@@ -366,6 +366,22 @@ class RakuAST::Var::Attribute::Public
         $!expression.operand.postfix.replace-args($args);
     }
 
+    method creates-block() {
+        $!expression.creates-block;
+    }
+
+    method wrap-with-thunk(RakuAST::ExpressionThunk $thunk) {
+        $!expression.wrap-with-thunk($thunk);
+    }
+
+    method visit-thunks(Code $visitor) {
+        $!expression.visit-thunks($visitor);
+    }
+
+    method outer-most-thunk() {
+        $!expression.outer-most-thunk;
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-TO-QAST($context)
     }

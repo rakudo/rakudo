@@ -2429,6 +2429,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # These are here to prevent us generating the candidates when parsing CORE.setting.
     token postcircumfix:sym<[; ]> { <!> }
     token postcircumfix:sym<{; }> { <!> }
+    token circumfix:sym<:{ }> { <!> }
 
 #-------------------------------------------------------------------------------
 
@@ -2794,6 +2795,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«=~=»    { <sym> }
     token infix:sym«≅»      { <sym> }
     token infix:sym«==»     { <sym> }
+    token infix:sym«⩵»      { <sym> }
     token infix:sym«≠»      { <sym> }
     token infix:sym«<=»     { <sym> }
     token infix:sym«≤»      { <sym> }
@@ -2810,6 +2812,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«∊»      { <sym> }
     token infix:sym«∉»      { <sym> }
     token infix:sym«∋»      { <sym> }
+    token infix:sym«∍»      { <sym> }
     token infix:sym«∌»      { <sym> }
     token infix:sym«(<)»    { <sym> }
     token infix:sym«⊂»      { <sym> }

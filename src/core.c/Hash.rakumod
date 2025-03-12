@@ -512,10 +512,7 @@ proto sub circumfix:<{ }>(|) {*}
 multi sub circumfix:<{ }>() is default { my % }
 multi sub circumfix:<{ }>(*@elems) { my % = @elems }
 
-# XXX parse dies with 'don't change grammar in the setting, please!'
-# with ordinary sub declaration
-#sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
-BEGIN my &circumfix:<:{ }> = sub (*@e) { Hash.^parameterize(Mu,Any).new(@e) }
+sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
 
 proto sub hash(|) {*}
 #?if !jvm

@@ -4075,6 +4075,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     # These are here to prevent us generating the candidates when parsing CORE.setting.
     token postcircumfix:sym<[; ]> { <!> }
     token postcircumfix:sym<{; }> { <!> }
+    token circumfix:sym<:{ }> { <!> }
 
     token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
 

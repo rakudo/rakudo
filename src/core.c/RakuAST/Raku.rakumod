@@ -96,7 +96,7 @@ augment class RakuAST::Node {
             Pair.new($name, Rakufy-as.new(:$raku))
         }
 
-        my $special := BEGIN nqp::hash(
+        my $special := nqp::hash(
           'abbreviated', -> {
               :abbreviated if self.abbreviated && !self.directive
           },

@@ -176,14 +176,14 @@ my class Seq is Cool does Iterable does Sequence {
     }
     multi method from-loop(&body, &cond, :$repeat!, :$label) {
         Seq.new: $repeat
-          ?? Rakudo::Iterator.RepeatLoop(&body, &cond, $label)
-          !! Rakudo::Iterator.WhileLoop(&body, &cond, $label)
+          ?? Rakudo::Iterator.RepeatLoop(&body, &cond // -> { 1 }, $label)
+          !! Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label)
     }
     multi method from-loop(&body, &cond, :$label) {
-        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond, $label)
+        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label)
     }
     multi method from-loop(&body, &cond, &afterwards, :$label) {
-        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards, $label)
+        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond // -> { 1 }, &afterwards, $label)
     }
 
     multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {

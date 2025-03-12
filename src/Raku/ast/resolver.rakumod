@@ -286,6 +286,12 @@ class RakuAST::Resolver {
         my str $setting-rev;
         if ($name eq 'CORE') {
             $root := nqp::shift(@parts);
+            if nqp::istype($root, RakuAST::Name::Part::Empty) {
+                return Nil;
+            }
+            elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
+                return Nil;
+            }
             $name := $root.name;
             $setting := True;
             if (nqp::chars($name) == 3 && nqp::index($name, 'v6') == 0) {

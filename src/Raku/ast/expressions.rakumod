@@ -607,8 +607,8 @@ class RakuAST::Infix
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        if $!operator eq ':=' {
-            $operands[0].apply-sink($is-sunk); # Only target of bind can be sunk
+        if $!operator eq ':=' || $!operator eq '⚛=' {
+            $operands[0].apply-sink($is-sunk); # Only target of bind/atomic assignment can be sunk
             my $i := 1;
             while $i < nqp::elems($operands) {
                 $operands[$i].apply-sink(False);

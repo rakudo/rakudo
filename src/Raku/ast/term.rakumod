@@ -126,11 +126,17 @@ class RakuAST::Term::Self
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
-            self.add-sorry(
-                $!variable
-                    ?? $resolver.build-exception('X::Syntax::NoSelf', :variable($!variable.name))
-                    !! $resolver.build-exception('X::Syntax::Self::WithoutObject')
-            )
+            my $resolved := $resolver.resolve-lexical('self');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+            else {
+                self.add-sorry(
+                    $!variable
+                        ?? $resolver.build-exception('X::Syntax::NoSelf', :variable($!variable.name))
+                        !! $resolver.build-exception('X::Syntax::Self::WithoutObject')
+                )
+            }
         }
     }
 

@@ -413,7 +413,7 @@ multi sub infix:<notandthen>(+a) {
 }
 
 proto sub infix:<orelse>(|) {*}
-multi sub infix:<orelse>(+$) {
+multi sub infix:<orelse>(+@) {
     # We need to be able to process `Empty` in our args, which we can get
     # when we're chained with, say, `andthen`. Since Empty disappears in normal
     # arg handling, we use nqp::p6argvmarray op to fetch the args, and then

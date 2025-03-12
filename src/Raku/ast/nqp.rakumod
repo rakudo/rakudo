@@ -95,6 +95,16 @@ class RakuAST::Nqp
 
         $call
     }
+
+    method IMPL-CAN-INTERPRET() {
+        my @args := nqp::getattr(self.args, RakuAST::ArgList, '$!args');
+        $!op eq 'p6box_i' && @args[0].IMPL-CAN-INTERPRET;
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $context) {
+        my @args := nqp::getattr(self.args, RakuAST::ArgList, '$!args');
+        nqp::box_i(@args[0].IMPL-INTERPRET($context), Int);
+    }
 }
 
 class RakuAST::Nqp::Const

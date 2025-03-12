@@ -119,22 +119,31 @@ class RakuAST::Type::Simple
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.resolution.compile-time-value;
-        if $value.HOW.archetypes.generic {
+        if !self.is-resolved && $*COMPILING_CORE_SETTING {
+            return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+        }
+        if !self.is-resolved {
+            # Try again at runtime
             QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
         }
-        elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-            # Package stub could be replaced later, thus we need to look it up at runtime.
-            $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
-        }
-        elsif $!name.canonicalize eq 'GLOBAL' {
-            # We must always look up GLOBAL at runtime. Otherwise we'd e.g. use the setting's
-            # GLOBAL in EVAL.
-            QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
-        }
         else {
-            $context.ensure-sc($value);
-            QAST::WVal.new( :$value )
+            my $value := self.resolution.compile-time-value;
+            if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
+                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+            }
+            elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+                # Package stub could be replaced later, thus we need to look it up at runtime.
+                $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+            }
+            elsif $!name.canonicalize eq 'GLOBAL' {
+                # We must always look up GLOBAL at runtime. Otherwise we'd e.g. use the setting's
+                # GLOBAL in EVAL.
+                QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+            }
+            else {
+                $context.ensure-sc($value);
+                QAST::WVal.new( :$value )
+            }
         }
     }
 

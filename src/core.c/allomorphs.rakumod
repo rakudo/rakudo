@@ -313,9 +313,11 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                                               $str, 0, $eos);
     my int $end = nqp::sub_i($eos, 1);
 
-    $end = nqp::sub_i($end, 1)
-        while nqp::isge_i($end, $pos)
-           && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end);
+    nqp::while(
+        (nqp::isge_i($end, $pos)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $end)),
+        ($end = nqp::sub_i($end, 1))
+    );
 
     # Fail all the way out when parse failures occur. Return the original
     # string, or a failure if we're Str.Numeric

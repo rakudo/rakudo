@@ -815,7 +815,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         );
 
         # Second pass, perform the assignments.
-        nqp::shift(cv) = nqp::shift(cv) while nqp::elems(cv);
+        nqp::while(nqp::elems(cv), (nqp::shift(cv) = nqp::shift(cv)));
 
         self
     }

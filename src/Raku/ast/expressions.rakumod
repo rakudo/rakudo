@@ -606,6 +606,22 @@ class RakuAST::Infix
         QAST::Var.new( :scope('lexical'), :$name )
     }
 
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        if $!operator eq ':=' {
+            $operands[0].apply-sink($is-sunk); # Only target of bind can be sunk
+            my $i := 1;
+            while $i < nqp::elems($operands) {
+                $operands[$i].apply-sink(False);
+                $i++;
+            }
+        }
+        else {
+            for $operands {
+                $_.apply-sink($is-sunk);
+            }
+        }
+    }
+
     method IMPL-CAN-INTERPRET() {
         nqp::istype(self.resolution,RakuAST::CompileTimeValue)
           && !self.properties.short-circuit

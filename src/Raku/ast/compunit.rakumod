@@ -442,7 +442,7 @@ class RakuAST::CompUnit
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
         my @pre-deserialize;
         nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
-            if $!setting-name;
+            if $!setting-name && $!setting-name ne 'NULL.c';
 
         unless $!is-eval {
             my $global_install := QAST::Op.new(

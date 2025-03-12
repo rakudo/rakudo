@@ -490,7 +490,7 @@ class RakuAST::VarDeclaration::Constant
         if self.scope eq 'our' {
             $context.ensure-sc($!package);
             QAST::Op.new(
-                :op('callmethod'), :name('BIND-KEY'),
+                :op('bindkey'),
                 QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
                 QAST::SVal.new(:value($!name)),
                 $constant

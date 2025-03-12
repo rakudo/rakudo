@@ -221,9 +221,13 @@ class RakuAST::Signature
                         last;
                     }
                 }
-                my $package := $!method-package.stubbed-meta-object;
-                my $how := $package.HOW;
-                if !$slurpy-hash-seen && (!nqp::can($how, 'hidden') || !$how.hidden($package)) {
+                my $hidden := 0;
+                if $!method-package {
+                    my $package := $!method-package.stubbed-meta-object;
+                    my $how := $package.HOW;
+                    $hidden := (nqp::can($how, 'hidden') && $how.hidden($package));
+                }
+                if !$slurpy-hash-seen && !$hidden {
                     nqp::bindattr(self, RakuAST::Signature, '$!implicit-slurpy-hash',
                         RakuAST::Parameter.new(
                           :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),

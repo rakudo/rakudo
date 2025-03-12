@@ -282,7 +282,7 @@ class Rakudo::Supply {
 
             # We only expcet one whenever; detect getting a second and complain.
             my $*WHENEVER-SUPPLY-TO-ADD := Nil;
-            my &*WHENEVER-BLOCK-TO-ADD := Nil;
+            my &*WHENEVER-BLOCK-TO-ADD := Block;
             sub add-whenever(\the-supply, \the-whenever-block) {
                 if $*WHENEVER-SUPPLY-TO-ADD =:= Nil {
                     $*WHENEVER-SUPPLY-TO-ADD := the-supply;

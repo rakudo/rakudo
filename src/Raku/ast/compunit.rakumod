@@ -384,6 +384,7 @@ class RakuAST::CompUnit
               how  => $!global-package-how,
               name => RakuAST::Name.from-identifier('GLOBAL')
             );
+            $global.meta-object; # Ensure GLOBAL is composed right away
 
             add($global);
             add(RakuAST::VarDeclaration::Implicit::Constant.new(

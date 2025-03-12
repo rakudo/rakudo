@@ -1314,12 +1314,10 @@ class RakuAST::Statement::Loop
             # In theory we could use the from-loop candidate without condition
             # for plain loop but that would create a lazy loop and for unknown
             # reason the old implementation didn't go that route.
-            my $cond := -> { 1 };
-            $context.ensure-sc($cond);
             my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
                 $Seq,
                 $!body.IMPL-TO-QAST($context),
-                QAST::WVal.new(:value($cond)),
+                QAST::WVal.new(:value(Code)),
             );
             if @labels {
                 my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);

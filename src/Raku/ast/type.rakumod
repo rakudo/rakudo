@@ -597,57 +597,103 @@ class RakuAST::Type::Enum
         }
         my %values := nqp::hash;
         my $cur-val := nqp::box_i(-1, Int); # Boxed to support .succ
-        my $evaluated := self.IMPL-BEGIN-TIME-EVALUATE($!term, $resolver, $context);
-        my $is-settings-list := nqp::istype($evaluated, $List);
-        if nqp::istype($evaluated, $Pair) {
-            if !$has-base-type {
-                # No need for type checking when we are going to get the base-type from the value
-                %values{$evaluated.key} := $evaluated.value;
-                $base-type := $evaluated.value.WHAT;
-            } else {
-                unless nqp::istype($evaluated.value, $!base-type) {
-                    nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $evaluated.value.WHAT.raku ~ "'");
-                }
-                %values{$evaluated.key} := $evaluated.value;
-            }
-        } elsif nqp::istype($evaluated, Str) {
-            # TODO: What do we actually want to do when base-type is defined but they only provide a single Str?
-            #       Base just ignores and uses Int
-            # A single string enum will always have 0, but we use $cur-val to keep it boxed
-            %values{$evaluated} := $cur-val.succ;
-            $base-type := Int;
-        } elsif nqp::istype($evaluated, List) || $is-settings-list {
-            my @items := self.IMPL-UNWRAP-LIST($evaluated);
-            if nqp::elems(@items) == 0 {
-                # For empty enums, just default to Int
-                $base-type := Int;
-            } else {
-                for @items {
-                    if nqp::istype($_, $Pair) {
-                        $cur-val := $_.value;
-                        if !$has-base-type {
-                            $base-type := $cur-val.WHAT;
-                            $has-base-type := True;
-                        } else {
-                            # Should be a panic or a throw, right?
-                            unless nqp::istype($cur-val, $!base-type) {
-                                nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $cur-val.WHAT.raku ~ "'");
-                            }
+        if $*COMPILING_CORE_SETTING
+            && $!term.semilist.IMPL-IS-SINGLE-EXPRESSION
+            && nqp::istype((my $expression := $!term.IMPL-UNWRAP-LIST($!term.semilist.statements)[0].expression), RakuAST::ApplyListInfix)
+            && $expression.infix.operator eq ','
+        {
+            # must handle bootstrapping enums here
+            my $operands := $expression.IMPL-UNWRAP-LIST($expression.operands);
+            for $operands {
+                if nqp::istype($_, RakuAST::ColonPair::Value) {
+                    nqp::die('Can only declare simple enums in setting ' ~ $_.dump) unless $_.IMPL-CAN-INTERPRET;
+                    my $value := $_.value.IMPL-INTERPRET($context);
+                    if $has-base-type {
+                        unless nqp::istype($value, $base-type) {
+                            nqp::die("Type error in enum. Got '" ~ $value.HOW.name($value) ~ "'"
+                                    ~ " Expected: '" ~ $base-type.HOW.name($base-type) ~ "'"
+                            );
                         }
-                        %values{$_.key} := $cur-val;
-                    } elsif nqp::istype($_, Str) {
-                        if !$has-base-type {
-                            # TODO: Again, uncertain what to do when user provides a base type but then only hands a list of Str
-                            $base-type := Int;
-                            $has-base-type := True;
-                        }
-                        %values{$_} := ($cur-val := $cur-val.succ);
                     }
+                    else {
+                        $base-type := $value.WHAT;
+                        $has-base-type := 1;
+                    }
+                    %values{$_.key} := $value;
+                }
+                elsif nqp::istype($_, RakuAST::FatArrow) {
+                    my $value := self.IMPL-BEGIN-TIME-EVALUATE($_.value, $resolver, $context);
+                    if $has-base-type {
+                        unless nqp::istype($value, $base-type) {
+                            nqp::die("Type error in enum. Got '" ~ $value.HOW.name($value) ~ "'"
+                                    ~ " Expected: '" ~ $base-type.HOW.name($base-type) ~ "'"
+                            );
+                        }
+                    }
+                    else {
+                        $base-type := $value.WHAT;
+                        $has-base-type := 1;
+                    }
+                    %values{$_.key} := $value;
+                }
+                else {
+                    nqp::die('NYI ' ~ $_.HOW.name($_));
                 }
             }
         }
         else {
-            $base-type := Int;
+            my $evaluated := self.IMPL-BEGIN-TIME-EVALUATE($!term, $resolver, $context);
+            my $is-settings-list := nqp::istype($evaluated, $List);
+            if nqp::istype($evaluated, $Pair) {
+                if !$has-base-type {
+                    # No need for type checking when we are going to get the base-type from the value
+                    %values{$evaluated.key} := $evaluated.value;
+                    $base-type := $evaluated.value.WHAT;
+                } else {
+                    unless nqp::istype($evaluated.value, $!base-type) {
+                        nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $evaluated.value.WHAT.raku ~ "'");
+                    }
+                    %values{$evaluated.key} := $evaluated.value;
+                }
+            } elsif nqp::istype($evaluated, Str) {
+                # TODO: What do we actually want to do when base-type is defined but they only provide a single Str?
+                #       Base just ignores and uses Int
+                # A single string enum will always have 0, but we use $cur-val to keep it boxed
+                %values{$evaluated} := $cur-val.succ;
+                $base-type := Int;
+            } elsif nqp::istype($evaluated, List) || $is-settings-list {
+                my @items := self.IMPL-UNWRAP-LIST($evaluated);
+                if nqp::elems(@items) == 0 {
+                    # For empty enums, just default to Int
+                    $base-type := Int;
+                } else {
+                    for @items {
+                        if nqp::istype($_, $Pair) {
+                            $cur-val := $_.value;
+                            if !$has-base-type {
+                                $base-type := $cur-val.WHAT;
+                                $has-base-type := True;
+                            } else {
+                                # Should be a panic or a throw, right?
+                                unless nqp::istype($cur-val, $!base-type) {
+                                    nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $cur-val.WHAT.raku ~ "'");
+                                }
+                            }
+                            %values{$_.key} := $cur-val;
+                        } elsif nqp::istype($_, Str) {
+                            if !$has-base-type {
+                                # TODO: Again, uncertain what to do when user provides a base type but then only hands a list of Str
+                                $base-type := Int;
+                                $has-base-type := True;
+                            }
+                            %values{$_} := ($cur-val := $cur-val.succ);
+                        }
+                    }
+                }
+            }
+            else {
+                $base-type := Int;
+            }
         }
 
         # Make $!base-type available, then we can produce the meta-object and add and apply traits

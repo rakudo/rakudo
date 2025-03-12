@@ -2590,6 +2590,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?before \d+ <?before \. <.?alpha> >
         <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
+    token prefix:sym<//>  {
+        <?{ self.language-revision >= 3 }>
+        <sym>
+    }
 
 #-------------------------------------------------------------------------------
 # Alpha prefixes that can be easily sub-classed for non-English versions of

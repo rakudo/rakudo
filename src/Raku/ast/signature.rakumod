@@ -1115,6 +1115,18 @@ class RakuAST::Parameter
                   $resolver.build-exception: 'X::Parameter::Default',
                     how => 'required', parameter => $!target.name;
             }
+
+            if nqp::isconcrete($!type) && $!default.has-compile-time-value {
+                my $value := $!default.maybe-compile-time-value;
+                my $type := $!type.meta-object;
+
+                if !nqp::istype($value, $type) {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Parameter::Default::TypeCheck',
+                            got => $value,
+                            expected => $type
+                }
+            }
         }
 
         my $param-obj := self.meta-object;

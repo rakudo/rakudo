@@ -1473,4 +1473,16 @@ augment class RakuAST::Doc::Declarator {
     }
 }
 
+augment class RakuAST::Postfix::Power {
+
+    # Helper method to interprete a match object with an expression
+    # in supercript codepoints using val() semantics
+    method from-superscripts(Mu $/) {
+        self.new:
+          val(
+            nqp::hllize($/).Str.trans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁱ" => "0123456789-+i")
+          ).Numeric
+    }
+}
+
 # vim: expandtab shiftwidth=4

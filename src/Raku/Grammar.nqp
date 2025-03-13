@@ -2522,7 +2522,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token sub-integer   { <[₀₁₂₃₄₅₆₇₈₉]>+ }
 
     token power {
-        <super-sign>? <super-integer>
+        <.super-sign>? <.super-integer> [
+          ⁱ? | <.super-sign> <.super-integer> ⁱ
+        ]
     }
     token vulgar {
           <[ ½ ↉ ⅓ ⅔ ¼ ¾ ⅕ ⅖ ⅗ ⅘ ⅙ ⅚ ⅐ ⅛ ⅜ ⅝ ⅞ ⅑ ⅒ ]>

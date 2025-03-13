@@ -1386,9 +1386,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method postfix:sym<ⁿ>($/) {
-        self.attach: $/, Nodify('Postfix', 'Power').new(
-          super-int-to-Int(~$<power><super-integer>, ~$<power><super-sign>)
-        );
+        self.attach: $/, Nodify('Postfix', 'Power').from-superscripts($<power>)
     }
 
     method postfix:sym<+>($/) {

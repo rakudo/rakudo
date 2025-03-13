@@ -335,6 +335,10 @@ my class X::Method::NotFound is Exception {
             }
         }
 
+        if $.method eq '!cursor_start' {
+            @!tips.push: "Did you try to call a token / rule / regex directly?"
+        }
+
         if $indirect-method && !$.private && $private_suggested {
             @!tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }

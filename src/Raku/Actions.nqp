@@ -2101,7 +2101,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
             $ast.body.IMPL-BEGIN($*R, $*CU.context); # Have body Sub declare its implicits before we cache them
             $ast.to-begin-time($*R, $*CU.context);
-            $ast.IMPL-COMPOSE;
+            $ast.IMPL-COMPOSE($*CU.context);
         }
 
         self.attach: $/, $ast;

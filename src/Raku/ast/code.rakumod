@@ -447,6 +447,73 @@ class RakuAST::Code
         $result
     }
 
+
+    # Some things get cloned many times with an outer lexical scope that
+    # we never enter. This makes sure we capture them as needed.
+
+    # When code runs at BEGIN time, such as role bodies and BEGIN
+    # blocks, we need to ensure we get lexical outers fixed up
+    # properly when deserializing after pre-comp. To do this we
+    # make a list of closures, which each point to the outer
+    # context. These survive serialization and thus point at what
+    # has to be fixed up.
+    method IMPL-BEGIN-TIME-LEXICAL-FIXUP(RakuAST::IMPL::QASTContext $context, Mu $block, RakuAST::LexicalFixup $lexical-fixup) {
+        my $has_nested_blocks := 0;
+        my $todo := nqp::list($block);
+        while $todo {
+            my $stmts := nqp::shift($todo);
+            for @($stmts) {
+                if nqp::istype($_, QAST::Block) {
+                    $has_nested_blocks := 1;
+                    last;
+                }
+                if nqp::istype($_, QAST::Stmts) {
+                    nqp::push($todo, $_);
+                }
+            }
+        }
+        return 0 unless $has_nested_blocks;
+
+        my $resolver := $!resolver;
+        my $throwaway_block_ast := RakuAST::Block.new(:!implicit-topic);
+        $throwaway_block_ast.set-implicit-topic(0);
+        $throwaway_block_ast.to-begin-time($resolver, $context);
+        my $throwaway_block_past := $throwaway_block_ast.IMPL-QAST-BLOCK($context, :blocktype<declaration>);
+        $throwaway_block_past.name('!LEXICAL_FIXUP');
+        $throwaway_block_past.annotate('outer', $block);
+        $block[1].push($throwaway_block_past);
+        my $throwaway_block := $throwaway_block_ast.meta-object;
+        $context.ensure-sc($throwaway_block);
+
+        # Create a list and put it in the SC.
+        my $fixup_list := FixupList.new($context.sc-handle());
+        $context.ensure-sc($fixup_list);
+
+        # Set up capturing code.
+        my $c_block_ast := RakuAST::Block.new(:!implicit-topic);
+        $c_block_ast.to-begin-time($resolver, $context);
+        my $c_block := $c_block_ast.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+        $c_block.name('!LEXICAL_FIXUP_CSCOPE');
+        $context.ensure-sc($c_block);
+
+        # Return a QAST node that we can push the dummy closure.
+        my $fixup := QAST::Op.new(
+            :op('callmethod'), :name('add_unresolved'),
+            QAST::WVal.new( :value($fixup_list) )
+        );
+
+        $fixup.push(QAST::Op.new(
+                :op('p6capturelex'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('clone'),
+                    QAST::WVal.new( :value($throwaway_block) )
+                )));
+        $block[1].push($fixup);
+
+        $lexical-fixup.set-block($c_block_ast, $fixup_list);
+        Nil
+    }
+
     method IMPL-APPEND-SIGNATURE-RETURN(RakuAST::IMPL::QASTContext $context, Mu $qast-stmts) {
         my $signature := self.signature;
         if $signature && $signature.provides-return-value {
@@ -458,6 +525,44 @@ class RakuAST::Code
     method needs-sink-call() { False }
 
     method signature() { Nil }
+}
+
+class RakuAST::LexicalFixup
+  is RakuAST::Declaration
+{
+    has RakuAST::Block $!block;
+    has FixupList $!fixup-list;
+
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::LexicalFixup, '$!block', RakuAST::Block);
+        nqp::bindattr($obj, RakuAST::LexicalFixup, '$!fixup-list', LexicalFixup);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method set-block(RakuAST::Block $block, FixupList $fixup-list) {
+        nqp::bindattr(self, RakuAST::LexicalFixup, '$!block', $block);
+        nqp::bindattr(self, RakuAST::LexicalFixup, '$!fixup-list', $fixup-list);
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        if $!block {
+            QAST::Stmts.new(
+                $!block.IMPL-QAST-DECL-CODE($context),
+                QAST::Op.new(
+                    :op('callmethod'), :name('resolve'),
+                    QAST::WVal.new( :value($!fixup-list) ),
+                    QAST::Op.new( :op('takeclosure'), $!block.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>)),
+                )
+            )
+        }
+        else {
+            QAST::Stmt.new;
+        }
+    }
+
+    method lexical-name() { '' }
 }
 
 # The base of all expression thunks, which produce a code object of some kind
@@ -2200,6 +2305,8 @@ class RakuAST::Sub
 class RakuAST::RoleBody
   is RakuAST::Sub
 {
+    has RakuAST::LexicalFixup $.fixup;
+
     method new(          str :$scope,
                          str :$multiness,
                RakuAST::Name :$name,
@@ -2218,8 +2325,13 @@ class RakuAST::RoleBody
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Sub, '$!body',
           $body // RakuAST::Blockoid.new);
+        nqp::bindattr($obj, RakuAST::RoleBody, '$!fixup', RakuAST::LexicalFixup);
         $obj.set-WHY($WHY);
         $obj
+    }
+
+    method set-fixup(RakuAST::LexicalFixup $fixup) {
+        nqp::bindattr(self, RakuAST::RoleBody, '$!fixup', $fixup);
     }
 
     method replace-signature(RakuAST::Signature $new-signature) {
@@ -2236,6 +2348,13 @@ class RakuAST::RoleBody
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Everything already done at parse time
         Nil
+    }
+
+    method IMPL-FINISH-ROLE-BODY(RakuAST::IMPL::QASTContext $context) {
+        unless self.is-stub {
+            my $body-qast := self.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
+            self.IMPL-BEGIN-TIME-LEXICAL-FIXUP($context, $body-qast, $!fixup);
+        }
     }
 }
 
@@ -3398,5 +3517,62 @@ class RakuAST::BlockThunk
         nqp::bindattr($sig, Signature, '$!code', $code);
         self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
         $code
+    }
+}
+
+class FixupList {
+    has Mu $!list;
+    has Mu $!resolved;
+    has Mu $!resolver;
+
+    method new(Str $sc-handle) {
+        my $obj := nqp::create(FixupList);
+        nqp::bindattr($obj, FixupList, '$!list', nqp::list());
+        nqp::bindattr($obj, FixupList, '$!resolved', Mu);
+        nqp::bindattr($obj, FixupList, '$!resolver', $sc-handle);
+        $obj
+    }
+
+    method add_unresolved($code) {
+        nqp::scwbdisable();
+        nqp::push($!list, $code);
+        nqp::scwbenable();
+        if nqp::isconcrete($!resolved) {
+            my $CU := $*CU;
+            if nqp::can($CU, 'context') && nqp::can($CU.context, "sc-handle") && $CU.context.sc-handle ne $!resolver {
+                $CU.context.ensure-sc($code);
+                $CU.context.add-deserialize-task(-> { QAST::Op.new(
+                    :op('callmethod'), :name('update'),
+                    QAST::WVal.new( :value(self) ),
+                    QAST::WVal.new( :value($code) )
+                ) });
+            }
+            else {
+                my $do := nqp::getattr($code, Code, '$!do');
+                nqp::p6captureouters2([$do], $!resolved);
+            }
+        }
+    }
+    method resolve($resolved) {
+        nqp::scwbdisable();
+        nqp::bindattr(self, FixupList, '$!resolved', $resolved);
+        nqp::scwbenable();
+        my $do-list := nqp::list();
+        my int $i := 0;
+        my int $n := nqp::elems($!list);
+        while $i < $n {
+            nqp::bindpos($do-list, $i, nqp::getattr(nqp::atpos($!list, $i), Code, '$!do'));
+            $i++;
+        }
+        nqp::p6captureouters2($do-list, $resolved);
+    }
+    method update($code) {
+        if !nqp::isnull($!resolved) && !nqp::istype($!resolved, Mu) {
+            my $do := nqp::getattr($code, Code, '$!do');
+            nqp::p6captureouters2([$do],
+                nqp::getcomp('Raku').backend.name eq 'moar'
+                    ?? nqp::getstaticcode($!resolved)
+                    !! $!resolved);
+        }
     }
 }

@@ -172,6 +172,8 @@ class RakuAST::Package
             self.install-in-scope($resolver, $scope, $name, $full-name);
         }
 
+        self.install-extra-declarations($resolver);
+
         # TODO split off the above into a pre-begin handler, so the enter-scope
         # and declarations can go back into RakuAST::Actions
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
@@ -214,6 +216,10 @@ class RakuAST::Package
         }
 
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+    }
+
+    method install-extra-declarations(RakuAST::Resolver $resolver) {
+        Nil
     }
 
     # Need to install the package somewhere
@@ -321,7 +327,7 @@ class RakuAST::Package
         self.compile-time-value
     }
 
-    method IMPL-COMPOSE() {
+    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         self.meta-object; # Ensure it's composed
     }
 
@@ -447,6 +453,7 @@ class RakuAST::Role
   is RakuAST::Package::Attachable
 {
     has Array $.instantiation-lexicals;
+    has RakuAST::LexicalFixup $!fixup;
 
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
@@ -464,6 +471,9 @@ class RakuAST::Role
             $signature := RakuAST::Signature.new unless $signature;
             $role-body := RakuAST::RoleBody.new(:$signature);
         }
+
+        nqp::bindattr(self, RakuAST::Role, '$!fixup', RakuAST::LexicalFixup.new) unless $!fixup;
+        $role-body.set-fixup($!fixup);
 
         my $body := $role-body.body;
 
@@ -533,6 +543,10 @@ class RakuAST::Role
         nqp::bindattr(self,RakuAST::Package::Attachable,'$!role-group',$group);
     }
 
+    method install-extra-declarations(RakuAST::Resolver $resolver) {
+        $resolver.current-scope.add-generated-lexical-declaration(self.body.fixup) if self.body.fixup;
+    }
+
     method additional-body-lexicals() {
         self.meta-object-as-body-lexicals('ROLE');
     }
@@ -562,6 +576,11 @@ class RakuAST::Role
             nqp::bindattr(self, RakuAST::Role, '$!instantiation-lexicals', []);
         }
         nqp::push($!instantiation-lexicals, $lexical);
+    }
+
+    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
+        self.meta-object;
+        self.body.IMPL-FINISH-ROLE-BODY($context);
     }
 }
 
@@ -626,7 +645,7 @@ class RakuAST::Class
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
 
-    method IMPL-COMPOSE() {
+    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         # create BUILDALL method if there's something to create,
         # otherwise put in a generic fallback BUILDALL that doesn't
         # do anything
@@ -653,7 +672,7 @@ class RakuAST::Grammar
     method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }
 
-    method IMPL-COMPOSE() {
+    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         self.meta-object; # Ensure it's composed
     }
 }

@@ -1,4 +1,4 @@
-my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real { ... }
+my role Rational[::NuT = Int, ::DeT = Mu] does Real { ... }
 my class X::Numeric::DivideByZero { ... }
 
 my role Numeric {

@@ -4086,13 +4086,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                        what  => "sub",
                        where => "on a $*MULTINESS sub";
                  }
-                 unless $*R.outer-scope =:= $*UNIT {
+                 unless $*R.outer-scope.WHAT =:= self.actions.r('CompUnit') {
                      $/.typed-panic: "X::UnitScope::Invalid",
                        what  => "sub",
                        where => "in a subscope";
                  }
                  $*START-OF-COMPUNIT := 0;
              }
+             <statementlist>     # whole rest of file, presumably
 
           || <onlystar>
 

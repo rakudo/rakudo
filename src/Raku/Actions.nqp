@@ -2371,7 +2371,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $routine := $*BLOCK;
         $routine.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
-          !! $<blockoid>.ast
+          !! $<blockoid>
+            ?? $<blockoid>.ast
+            !! Nodify("Blockoid").new($<statementlist>.ast)  # unit sub MAIN
         );
         # Entering scope again would throw off proto installation
         self.attach: $/, $routine;

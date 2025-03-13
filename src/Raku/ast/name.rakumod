@@ -311,7 +311,7 @@ class RakuAST::Name
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, Bool :$global-fallback) {
-        my $result := QAST::WVal.new(:value($start-package));
+        my $result;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first;
         if self.is-global-lookup {
@@ -323,6 +323,9 @@ class RakuAST::Name
                 unless $lexical.lexical-name eq $!parts[0].name;
             $first := 1;
             $result := $lexical.IMPL-LOOKUP-QAST($context);
+        }
+        else {
+            $result := QAST::WVal.new(:value($start-package));
         }
         if self.is-pseudo-package {
             $result := self.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);

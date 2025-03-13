@@ -119,12 +119,24 @@ class RakuAST::Type::Simple
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        if !self.is-resolved && $*COMPILING_CORE_SETTING {
-            return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
-        }
         if !self.is-resolved {
             # Try again at runtime
-            QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+            if $!name.is-multi-part {
+                if $!lexical {
+                    return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                }
+                else {
+                    # No other choice than to do a runtime lookup in GLOBAL
+                    my $name := RakuAST::Name.new(
+                        RakuAST::Name::Part::Simple.new('GLOBAL'),
+                        |$!name.IMPL-UNWRAP-LIST($!name.parts)
+                    );
+                    return $name.IMPL-QAST-PACKAGE-LOOKUP($context, Mu, :global-fallback);
+                }
+            }
+            else {
+                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+            }
         }
         else {
             my $value := self.resolution.compile-time-value;

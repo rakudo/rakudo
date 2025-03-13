@@ -1,6 +1,6 @@
 # stub of this role is also present in Numeric.rakumod; be sure to update
 # definition there as well, if changing this one
-my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
+my role Rational[::NuT = Int, ::DeT = Mu] does Real {
     has NuT $.numerator;
     has DeT $.denominator;
 

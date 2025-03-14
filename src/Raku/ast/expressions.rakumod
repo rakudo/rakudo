@@ -229,6 +229,10 @@ class RakuAST::Infixish
             $_.apply-sink($is-sunk);
         }
     }
+
+    method can-be-sunk() {
+        True
+    }
 }
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
@@ -284,6 +288,10 @@ class RakuAST::Infix
             'orelse', True
         );
         SC{$!operator} // False
+    }
+
+    method can-be-sunk() {
+        $!operator ne ':='
     }
 
     method IMPL-OPERATOR() {
@@ -627,7 +635,15 @@ class RakuAST::Infix
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
         if $!operator eq ':=' || $!operator eq '⚛=' {
-            $operands[0].apply-sink($is-sunk); # Only target of bind/atomic assignment can be sunk
+            # We don't sink anything when binding. In fact binding is a way to specifically avoid sinking.
+            my $i := 0;
+            while $i < nqp::elems($operands) {
+                $operands[$i].apply-sink(False);
+                $i++;
+            }
+        }
+        elsif $!operator eq '⚛=' {
+            $operands[0].apply-sink($is-sunk); # Only target of atomic assignment can be sunk
             my $i := 1;
             while $i < nqp::elems($operands) {
                 $operands[$i].apply-sink(False);
@@ -2004,6 +2020,10 @@ class RakuAST::ApplyInfix
     method propagate-sink(Bool $is-sunk) {
         my $operands := $!args.IMPL-UNWRAP-LIST($!args.args);
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
+    }
+
+    method needs-sink-call() {
+        $!infix.can-be-sunk
     }
 
     method IMPL-CAN-INTERPRET() {

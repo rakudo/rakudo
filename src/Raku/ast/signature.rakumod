@@ -657,7 +657,6 @@ class RakuAST::Parameter
 
     method set-default-rw() {
         nqp::bindattr(self, RakuAST::Parameter, '$!default-rw', True);
-        $!target.set-rw;
         Nil
     }
 
@@ -851,21 +850,28 @@ class RakuAST::Parameter
         my $type := self.IMPL-NOMINAL-TYPE();
         nqp::bindattr($parameter, Parameter, '$!type', $type.WHAT); # "Type" could be a concrete value
         if $!target {
+            $!target.set-ro(True);
             my $name := $!target.introspection-name;
+            my $rw := $!default-rw;
             for self.IMPL-UNWRAP-LIST(self.traits) {
-                if $!default-rw
-                    || nqp::istype($_, RakuAST::Trait::Is)
-                        && (
-                            $_.name.canonicalize eq 'copy' && (!$!type || !nqp::objprimspec($!type.meta-object))
-                            || $_.name.canonicalize eq 'rw'
-                        )
+                if nqp::istype($_, RakuAST::Trait::Is)
+                    && (
+                        $_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw'
+                    )
                 {
+                    $rw := $_.name.canonicalize;
+                    last;
+                }
+            }
+
+            if $rw {
+                if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
-                    $!target.set-rw;
-                    last;
                 }
+                $!target.set-rw if $rw eq 'rw';
+                $!target.set-ro(False);
             }
         }
         my @post_constraints;
@@ -1742,6 +1748,7 @@ class RakuAST::ParameterTarget
   is RakuAST::Node
 {
     method set-rw() { }
+    method set-ro(Bool $ro) { }
     method sigil() { '' }
     method name() { '' }
     method set-bindable(Bool $is-bindable) {
@@ -1875,6 +1882,10 @@ class RakuAST::ParameterTarget::Var
 
     method set-rw() {
         $!declaration.set-rw if $!declaration;
+    }
+
+    method set-ro($ro) {
+        $!declaration.set-ro($ro) if $!declaration;
     }
 
     method PRODUCE-META-OBJECT() {

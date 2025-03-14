@@ -560,6 +560,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
     has Bool                 $!is-rw;
+    has Bool                 $!is-ro;
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
     has RakuAST::Code        $!block;
@@ -608,6 +609,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
           $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-ro', False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
 
         if $WHY {
@@ -638,6 +640,10 @@ class RakuAST::VarDeclaration::Simple
 
     method set-rw() {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
+    }
+
+    method set-ro(Bool $ro) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-ro', $ro);
     }
 
     method set-bindable(Bool $bindable) {
@@ -1421,7 +1427,7 @@ class RakuAST::VarDeclaration::Simple
                 # Potentially l-value native lookups need a lexicalref.
                 if self.sigil eq '$' && self.scope ne 'our' {
                     my $of := self.IMPL-OF-TYPE;
-                    if nqp::objprimspec($of) {
+                    if nqp::objprimspec($of) && (!$!is-parameter || !$!is-ro) {
                         $scope := 'lexicalref';
                     }
                     return QAST::Var.new( :name(self.name), :$scope, :returns($of) );
@@ -1588,6 +1594,7 @@ class RakuAST::VarDeclaration::Signature
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
             $param.set-bindable(False) if $binding;
+            $param.set-default-rw unless $binding;
             for $traits {
                 $param.target.replace-scope($scope);
                 $param.target.add-trait(nqp::clone($_)) if $param.target;

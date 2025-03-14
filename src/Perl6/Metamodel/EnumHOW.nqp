@@ -96,8 +96,17 @@ class Perl6::Metamodel::EnumHOW
             my %seulav          := nqp::clone(%!seulav);
             my @enum_value_list := nqp::clone(@!enum_value_list);
 
-            nqp::bindkey(%values, nqp::decont_s($pair.key), $pair.value);
-            nqp::bindkey(%seulav, nqp::stringify($pair.value), $pair);
+            my $value := $pair.value;
+            nqp::bindkey(%values, nqp::decont_s($pair.key), $value);
+
+            # NQP equivalent of quietly
+            nqp::handle(
+              ($value := nqp::stringify($pair.value)),
+              'WARN',
+              nqp::resume(nqp::exception)
+            );
+
+            nqp::bindkey(%seulav, $value, $pair);
             nqp::push(@enum_value_list, $pair);
 
             %!values          := %values;

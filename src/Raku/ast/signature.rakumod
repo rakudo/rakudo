@@ -1128,10 +1128,14 @@ class RakuAST::Parameter
                 }
 
                 if !nqp::istype($value, $type) {
-                    self.add-sorry:
-                        $resolver.build-exception: 'X::Parameter::Default::TypeCheck',
-                            got => $value,
-                            expected => $type
+                    my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
+                    my $exp_comp := nqp::can($type.HOW, "is_composed") && $type.HOW.is_composed($type);
+                    if $got_comp && $exp_comp {
+                        self.add-sorry:
+                            $resolver.build-exception: 'X::Parameter::Default::TypeCheck',
+                                got => $value,
+                                expected => $type
+                    }
                 }
             }
         }

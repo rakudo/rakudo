@@ -1060,6 +1060,10 @@ class RakuAST::Assignment
             $i++;
         }
     }
+
+    method can-be-sunk() {
+        False
+    }
 }
 
 # A bracketed infix.

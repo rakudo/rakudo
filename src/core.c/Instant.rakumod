@@ -4,8 +4,8 @@ my class Duration {... }
 
 my class Instant is Cool does Real {
     has Int $.tai is default(0);
-      # A linear count of nanoseconds since 1970-01-01T00:00:00Z, plus
-      # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
+      # A count of nanoseconds since 1970-01-01T00:00:00Z with leap seconds
+      # and Rakudo::Internals.initial-offset. Thus, $.tai matches UTC from 1970
       # to the present.
 
     method new(*@) { X::Cannot::New.new(class => self).throw }
@@ -127,14 +127,14 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
 
 sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
 
-# 37 is $initial-offset from Rakudo::Internals + # of years
-# that have had leap seconds so far. Will need to be incremented
-# when new leap seconds occur.
 sub term:<now>(--> Instant:D) {
-    # FIXME: During a leap second, the returned value is one
-    # second greater than it should be.
-    my int constant \tai-offset-nanos = 37 * 1000000000;
-    Instant.from-posix-nanos(nqp::add_i(nqp::time,tai-offset-nanos))
+    # A posix time in the second preceeding a positive leap second,
+    # represents two seconds in UTC time.  This ambiguity is currently
+    # resolved by returning the leap second.
+
+    my int $offset-nanos = Rakudo::Internals.current-offset-nanos;
+    Instant.from-posix-nanos(
+        nqp::add_i(nqp::time, Rakudo::Internals.current-offset-nanos))
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {

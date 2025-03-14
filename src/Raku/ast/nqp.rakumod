@@ -50,6 +50,8 @@ class RakuAST::Nqp
         $obj
     }
 
+    method needs-sink-call() { False }
+
     method set-args($args) {
         my $arglist := nqp::create(RakuAST::ArgList);
         nqp::bindattr($arglist, RakuAST::ArgList, '$!args', $args);
@@ -96,6 +98,8 @@ class RakuAST::Nqp::Const
         nqp::bindattr($obj, RakuAST::Nqp::Const, '$!name', $name);
         $obj
     }
+
+    method needs-sink-call() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(:op<const>, :name($!name));

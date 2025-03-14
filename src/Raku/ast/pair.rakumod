@@ -139,16 +139,30 @@ class RakuAST::ColonPairs
 {
     has Mu $.colonpairs;
 
-    method new($a, $b) {
-        my $obj := nqp::create(self);
-        if nqp::istype($a, RakuAST::ColonPairs) {
-            nqp::bindattr($obj, RakuAST::ColonPairs, '$!colonpairs', $a.colonpairs);
+    method new(*@pairs) {
+        my $obj   := nqp::create(self);
+        my $first := @pairs.shift;
+
+        if nqp::istype($first,RakuAST::ColonPairs) {
+            my $colonpairs := $first.colonpairs;
+            while @pairs {
+                nqp::push($colonpairs,nqp::shift(@pairs));
+            }
+            nqp::bindattr($obj,RakuAST::ColonPairs,'$!colonpairs',$colonpairs);
         }
         else {
-            nqp::bindattr($obj, RakuAST::ColonPairs, '$!colonpairs', [$a]);
+            nqp::unshift(@pairs,$first);
+            nqp::bindattr($obj,RakuAST::ColonPairs,'$!colonpairs',@pairs);
         }
-        nqp::push($obj.colonpairs, $b);
         $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := QAST::Op.new(:op<call>, :name<&infix:<,>>);
+        for self.colonpairs {
+            $qast.push($_.IMPL-EXPR-QAST($context))
+        }
+        $qast
     }
 }
 

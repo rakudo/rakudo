@@ -763,6 +763,10 @@ CODE
           ~ $.parens-close
     }
 
+    multi method deparse(RakuAST::ColonPairs:D $ast, Str $xsyn = "" --> Str:D) {
+        self.colonpairs($ast, $xsyn)
+    }
+
     multi method deparse(
       RakuAST::ColonPair::False:D $ast, Str:D $xsyn = ""
     --> Str:D) {

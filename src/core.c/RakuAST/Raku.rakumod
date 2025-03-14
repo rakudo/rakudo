@@ -395,6 +395,10 @@ augment class RakuAST::Node {
 
 #- ColonPair -------------------------------------------------------------------
 
+    multi method raku(RakuAST::ColonPairs:D: --> Str:D) {
+        self!positionals(self.colonpairs)
+    }
+
     multi method raku(RakuAST::ColonPair::False:D: --> Str:D) {
         self!literal(self.key)
     }

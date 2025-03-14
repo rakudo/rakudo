@@ -986,6 +986,11 @@ class RakuAST::VarDeclaration::Simple
         ) if self.twigil eq '*' && self.desigilname.is-multi-part;
 
         self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::Twigil',
+            :twigil(self.twigil), :scope(self.scope), :name(self.name)
+        ) if self.twigil eq '!' && (self.scope eq 'my' || self.scope eq 'our' || self.scope eq 'state');
+
+        self.add-sorry(
           $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
         ) if $!conflicting-type;

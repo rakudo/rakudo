@@ -1123,6 +1123,9 @@ class RakuAST::Parameter
             if nqp::isconcrete($!type) && $!default.has-compile-time-value {
                 my $value := $!default.maybe-compile-time-value;
                 my $type := $!type.meta-object;
+                if nqp::objprimspec($type) {
+                    $type := $type.HOW.mro($type)[1];
+                }
 
                 if !nqp::istype($value, $type) {
                     self.add-sorry:

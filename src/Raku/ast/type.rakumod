@@ -530,6 +530,7 @@ class RakuAST::Type::Enum
 
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
+    method is-stub() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(:op('call'), :name('&ENUM_VALUES'), $!term.IMPL-EXPR-QAST($context));

@@ -917,7 +917,7 @@ class RakuAST::PackageInstaller {
         my $final;
         my $lexical;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
-        my $pure-package-installation := nqp::istype(self, RakuAST::Package);
+        my $pure-package-installation := !nqp::istype(self, RakuAST::Type::Subset);
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
         $resolver.add-sorry: $resolver.build-exception:

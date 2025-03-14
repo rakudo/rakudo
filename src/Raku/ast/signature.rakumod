@@ -2185,8 +2185,10 @@ class RakuAST::Parameter::Slurpy::Unflattened
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+        my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
+        my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
         if $sigil eq '@' {
-            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy');
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, $is-rw || $is-raw ?? List !! Array, 'from-slurpy');
         }
         else {
             nqp::die("Parameter ** quantifier not applicable to sigil '$sigil'");
@@ -2206,8 +2208,10 @@ class RakuAST::Parameter::Slurpy::SingleArgument
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+        my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
+        my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
         if $sigil eq '@' || $sigil eq '' {
-            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-onearg');
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, $is-rw || $is-raw ?? List !! Array, 'from-slurpy-onearg');
         }
         else {
             nqp::die("Parameter + quantifier not applicable to sigil '$sigil'");

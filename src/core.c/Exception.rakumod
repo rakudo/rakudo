@@ -2964,21 +2964,21 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
     has $.value;
     has $.valuetype      = $!value.^name;
     has $.suggestiontype = ($!vartype,$!valuetype).are.^name;
-    has $.native         = nqp::objprimspec($!valuetype);
+    has $.native         = nqp::objprimspec($!vartype);
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
         my $conversionmethod := $vartype.tc;
-        $vartype := $vartype.lc if $.native;
+        my $objtype := $vartype.lc if $.native;
         my $vt := $!value.^name;
         my $value := nqp::istype($.value,Allomorph)
           ?? $!value.Str
           !! $!value.raku;
         my $val = "Cannot assign a literal of type $.valuetype ($value) to
-        a { "native" if $.native } variable of type $vartype. You can declare
-        the variable to be of type $.suggestiontype, or try to coerce the
-        value with $value.$conversionmethod or $conversionmethod\($value\)";
-        try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
+        $.varname variable of type $vartype. You can declare the variable
+        to be of type $.suggestiontype, or try to coerce the value with
+        $value.$conversionmethod or $conversionmethod\($value\)";
+        try $val ~= ", or just write the value as " ~ $!value."$objtype"().raku;
         if nqp::istype($!vartype.HOW, Metamodel::Explaining) {
             my $complainee = $!vartype.HOW.complainee;
             $val ~= '; ' ~ ($complainee ~~ Callable || $complainee.^can('CALL-ME')

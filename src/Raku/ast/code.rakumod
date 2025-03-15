@@ -2444,6 +2444,7 @@ class RakuAST::Methodish
 
         if self.multiness eq 'proto' {
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
+            $resolver.outer-scope.add-generated-lexical-declaration(self) if self.scope ne 'has';
         }
         self.IMPL-STUB-PHASERS($resolver, $context);
 

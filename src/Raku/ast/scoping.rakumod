@@ -826,9 +826,18 @@ class RakuAST::Lookup
     }
 
     method resolution() {
-        nqp::isconcrete($!resolution)
-            ?? $!resolution
-            !! nqp::die('This element has not been resolved. Type: ' ~ self.HOW.name(self))
+        if nqp::isconcrete($!resolution) {
+            $!resolution
+        }
+        else {
+            my $prefix := nqp::istype(self,RakuAST::Type::Simple)
+              ?? "'" ~ self.name.canonicalize ~ "'"
+              !! "This element";
+
+            nqp::die(
+              $prefix ~ ' has not been resolved. Type: ' ~ self.HOW.name(self)
+            );
+        }
     }
 
     method set-resolution(RakuAST::Declaration $resolution) {

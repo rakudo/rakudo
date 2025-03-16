@@ -1062,7 +1062,7 @@ class RakuAST::Statement::Without
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop
   is RakuAST::Statement
-  is RakuAST::CheckTime
+  is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
   is RakuAST::Sinkable
   is RakuAST::SinkPropagator
@@ -1081,6 +1081,9 @@ class RakuAST::Statement::Loop
 
     # The increment expression for the loop.
     has RakuAST::Expression $.increment;
+
+    has RakuAST::ExpressionThunk $.condition-thunk;
+    has RakuAST::ExpressionThunk $.increment-thunk;
 
     method new(RakuAST::Block :$body!, RakuAST::Expression :$condition,
                RakuAST::Expression :$setup, RakuAST::Expression :$increment,
@@ -1104,6 +1107,11 @@ class RakuAST::Statement::Loop
         $!body.set-implicit-topic(False, :local);
     }
 
+    method mark-block-statement() {
+        self.IMPL-UNTHUNK() unless self.IMPL-HAS-UNDO-PHASERS;
+        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
@@ -1115,31 +1123,58 @@ class RakuAST::Statement::Loop
         self.is-block-statement || self.sunk
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
-        if !self.IMPL-DISCARD-RESULT || nqp::elems(@undo-phasers) {
-            my $while := !self.negate;
-            unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
-                if ($!condition) {
-                    if self.negate {
-                        nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
-                            :postfix(
-                                RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
-                            ),
-                            :operand($!condition),
-                        ));
-                        $!condition.ensure-begin-performed($resolver, $context);
-                    }
-                    my $thunk := RakuAST::ExpressionThunk.new;
-                    $!condition.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                }
+    method IMPL-HAS-UNDO-PHASERS() {
+        nqp::elems($!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'))) ?? 1 !! 0;
+    }
 
-                if ($!increment) {
-                    my $thunk := RakuAST::ExpressionThunk.new;
-                    $!increment.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
+    # We need to thunk condition and increment but crucially, only if we're not
+    # a block statement and we're not sunk. The problem is that at BEGIN time
+    # we don't know that yet. But BEGIN time is the latest that we can thunk
+    # those expressions. We may not even get a CHECK time if this statement is
+    # executed at BEGIN time. Thus we thunk just in case and if it turns out
+    # we're sunk, we have to undo that thunking again.
+    method IMPL-UNTHUNK() {
+        if nqp::defined($!condition-thunk) {
+            if self.negate {
+                # No need to unthunk as we're throwing away the thunked ApplyPostfix
+                nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', $!condition.operand);
+            }
+            else {
+                $!condition.IMPL-REMOVE-THUNK($!condition-thunk)
+            }
+            nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', RakuAST::ExpressionThunk);
+        }
+        if nqp::defined($!increment-thunk) {
+            $!increment.IMPL-REMOVE-THUNK($!increment-thunk);
+            nqp::bindattr(self, RakuAST::Statement::Loop, '$!increment-thunk', RakuAST::ExpressionThunk);
+        }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # See IMPL-UNTHUNK for important information
+        my $while := !self.negate;
+        unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
+            if ($!condition) {
+                if self.negate {
+                    nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
+                        :postfix(
+                            RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
+                        ),
+                        :operand($!condition),
+                    ));
+                    $!condition.ensure-begin-performed($resolver, $context);
                 }
+                my $thunk := RakuAST::ExpressionThunk.new;
+                $!condition.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+                nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', $thunk);
+            }
+
+            if ($!increment) {
+                my $thunk := RakuAST::ExpressionThunk.new;
+                $!increment.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+                nqp::bindattr(self, RakuAST::Statement::Loop, '$!increment-thunk', $thunk);
             }
         }
     }
@@ -1284,6 +1319,7 @@ class RakuAST::Statement::Loop
     }
 
     method propagate-sink(Bool $is-sunk) {
+        self.IMPL-UNTHUNK() if $is-sunk && ! self.IMPL-HAS-UNDO-PHASERS;
         $!condition.apply-sink(False) if $!condition;
         $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;

@@ -935,13 +935,13 @@ class RakuAST::Call::PrivateMethod
                 }
             }
             $call := QAST::Op.new(
-                :op('callmethod'),
-                :name('dispatch:<!>'),
-                $invocant-qast,
-                RakuAST::StrLiteral.new($name).IMPL-EXPR-QAST($context),
+                :op('dispatch'),
+                QAST::SVal.new(:value('raku-meth-private')),
                 $!package.HOW.archetypes.parametric
                   ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
+                QAST::SVal.new(:value($name)),
+                $invocant-qast,
             );
         }
         else {

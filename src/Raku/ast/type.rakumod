@@ -118,6 +118,11 @@ class RakuAST::Type::Simple
             # Package stub could be replaced later, thus we need to look it up at runtime.
             $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
         }
+        elsif $!name.canonicalize eq 'GLOBAL' {
+            # We must always look up GLOBAL at runtime. Otherwise we'd e.g. use the setting's
+            # GLOBAL in EVAL.
+            QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+        }
         else {
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )

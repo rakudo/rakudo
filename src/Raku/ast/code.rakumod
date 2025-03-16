@@ -749,13 +749,17 @@ class RakuAST::PlaceholderParameterOwner
     # Cached generated placeholder signature.
     has RakuAST::Signature $!placeholder-signature;
 
+    method IMPL-IS-IN-METHOD() {
+        False
+    }
+
     method add-placeholder-parameter(RakuAST::VarDeclaration::Placeholder $placeholder) {
         unless nqp::islist($!attached-placeholder-parameters) {
             nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
                 '$!attached-placeholder-parameters', []);
         }
         my $name := $placeholder.lexical-name;
-        if self.IMPL-HAS-PARAMETER($name) || nqp::istype(self, RakuAST::Methodish) && $name eq '%_' {
+        if self.IMPL-HAS-PARAMETER($name) || (self.IMPL-IS-IN-METHOD || nqp::istype(self, RakuAST::Methodish)) && $name eq '%_' {
             # matches an explicitly declared parameter
             $placeholder.IMPL-ALREADY-DECLARED(True);
         }
@@ -1219,6 +1223,7 @@ class RakuAST::Block
   is RakuAST::ImplicitLookups
   is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::ScopePhaser
   is RakuAST::Doc::DeclaratorTarget
@@ -1239,6 +1244,8 @@ class RakuAST::Block
     # Should this block declare a fresh implicit `$!`?
     has int $!fresh-exception;
 
+    has int $!is-in-method;
+
     method new(RakuAST::Blockoid :$body,
                             Bool :$implicit-topic,
                             Bool :$required-topic,
@@ -1248,6 +1255,7 @@ class RakuAST::Block
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         $obj.set-implicit-topic($implicit-topic // 1, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
         $obj
@@ -1327,6 +1335,16 @@ class RakuAST::Block
 
     method IMPL-FATALIZE() {
         self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+    }
+
+    method IMPL-IS-IN-METHOD() {
+        $!is-in-method
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $resolver.find-attach-target('method') {
+            nqp::bindattr_i(self, RakuAST::Block, '$!is-in-method', True);
+        }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1615,6 +1633,7 @@ class RakuAST::PointyBlock
           $signature // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Block, '$!body',
           $body // RakuAST::Blockoid.new);
+        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         $obj.set-WHY($WHY);
         $obj
     }

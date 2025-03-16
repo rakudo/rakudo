@@ -890,14 +890,23 @@ class RakuAST::Call::PrivateMethod
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if $!name.is-multi-part && self.is-resolved {
+        if self.is-resolved {
             my $methpkg := self.resolution.compile-time-value;
-            unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $!package) {
-                self.add-sorry:
-                    $resolver.build-exception: 'X::Method::Private::Permission',
-                        :method(         $!name.last-part.name),
-                        :source-package( $methpkg.HOW.name($methpkg)),
-                        :calling-package( $!package.HOW.name($!package));
+            if $!name.is-multi-part {
+                unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $!package) {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Method::Private::Permission',
+                            :method(         $!name.last-part.name),
+                            :source-package( $methpkg.HOW.name($methpkg)),
+                            :calling-package( $!package.HOW.name($!package));
+                }
+            }
+            else {
+                unless nqp::can($methpkg.HOW, 'find_private_method') {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Method::Private::Unqualified',
+                            :method($!name.canonicalize);
+                }
             }
         }
     }

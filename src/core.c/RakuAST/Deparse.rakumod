@@ -2614,7 +2614,7 @@ CODE
         }
 
         with $ast.argument {
-            $base ~ self.deparse($_)
+            $base ~ '(' ~ self.deparse($_) ~ ')'
         }
         else {
             $base

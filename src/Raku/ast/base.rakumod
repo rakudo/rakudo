@@ -192,6 +192,16 @@ class RakuAST::Node {
         Nil
     }
 
+    method IMPL-CALCULATE-SINK() {
+        if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
+            self.calculate-sink();
+        }
+
+        self.visit-children(-> $child { $child.IMPL-CALCULATE-SINK() });
+
+        Nil
+    }
+
     method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new;
         my @code-todo := [self];

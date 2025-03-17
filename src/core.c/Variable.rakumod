@@ -164,12 +164,12 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :check($)! ) {
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :final($)! ) {
     $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will final {...}'",
+      feature => q"Variable trait 'will final {...}'",
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :init($)! ) {
     $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will init {...}'",
+      feature => q"Variable trait 'will init {...}'",
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :end($)! ) {
@@ -216,12 +216,12 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :pre($)! ) {
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :post($)! ) {
     $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will post {...}'",
+      feature => q"Variable trait 'will post {...}'",
     );
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :compose($)! ) {
     $v.throw( 'X::Comp::NYI',
-      feature => "Variable trait 'will compose {...}'",
+      feature => q"Variable trait 'will compose {...}'",
     );
 }
 

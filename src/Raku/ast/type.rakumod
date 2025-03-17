@@ -95,12 +95,13 @@ class RakuAST::Type::Simple
         my $resolved := $resolver.resolve-name-constant(self.name);
         if $resolved {
             self.set-resolution($resolved);
-        }
-        my $value := $resolved.compile-time-value;
-        if !$value.HOW.archetypes.generic && $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-            my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
-            if $resolved {
-                nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+
+            my $value := $resolved.compile-time-value;
+            if $!name.is-multi-part && !$value.HOW.archetypes.generic && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+                my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
+                if $resolved {
+                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+                }
             }
         }
     }

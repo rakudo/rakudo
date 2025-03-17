@@ -2126,12 +2126,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :$how, :$name, :$scope, :$augmented
         );
 
-        if $augmented {
-            $package.to-begin-time($*R, $*CU.context);
-        }
-        else {
-            $package.to-parse-time($*R, $*CU.context);
-        }
+        $package.to-parse-time($*R, $*CU.context);
 
         self.set-declarand($/, $*PACKAGE := $package);
     }

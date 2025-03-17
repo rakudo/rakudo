@@ -289,46 +289,49 @@ my class PseudoStash is CORE::v6c::PseudoStash {
 
             my Mu $lexpad;
             my Mu $sym-info;
-            nqp::stmts(
-                ($lexpad :=
-                    nqp::if(
-                        nqp::istype($!ctx, Map), # For a Stash fallback: OUR:: for static chain
-                        ($sym-info := nqp::getattr($!ctx, Map, '$!storage')),
-                        nqp::if(
-                            nqp::istype($!ctx, CtxDynThunk), # For dynamic chain mapping into GLOBAL/PROCESS
-                            nqp::getattr(nqp::getattr(($sym-info := $!ctx), CtxDynThunk, '$!stash'), Map, '$!storage'),
-                            # At this point the only possible value is BOOTContext
-                            ($sym-info := nqp::ctxlexpad($!ctx))))),
+            $lexpad :=
                 nqp::if(
-                    nqp::bitand_i($!stash-mode, PRECISE_SCOPE),
-                    ($!ctx := nqp::null()),
-                    nqp::repeat_while(
-                        (nqp::isnull($!ctx) && $!pick-fallback), # Switch to fallback if a context chain is exhausted
+                    nqp::istype($!ctx, Map), # For a Stash fallback: OUR:: for static chain
+                    ($sym-info := nqp::getattr($!ctx, Map, '$!storage')),
+                    nqp::if(
+                        nqp::istype($!ctx, CtxDynThunk), # For dynamic chain mapping into GLOBAL/PROCESS
+                        nqp::getattr(nqp::getattr(($sym-info := $!ctx), CtxDynThunk, '$!stash'), Map, '$!storage'),
+                        # At this point the only possible value is BOOTContext
+                        ($sym-info := nqp::ctxlexpad($!ctx))));
+            nqp::if(
+                nqp::bitand_i($!stash-mode, PRECISE_SCOPE),
+                ($!ctx := nqp::null()),
+                nqp::repeat_while(
+                    (nqp::isnull($!ctx) && $!pick-fallback), # Switch to fallback if a context chain is exhausted
+                    nqp::if(
+                        $!pick-fallback,
                         nqp::if(
-                            $!pick-fallback,
-                            nqp::if(
-                                nqp::elems($!fallbacks),
-                                nqp::stmts(
-                                    ($!ctx := nqp::shift($!fallbacks)),
-                                    nqp::if(
-                                        nqp::istype($!ctx, Promise),
-                                        nqp::stmts(
-                                            ($!ctx := nqp::getattr($!ctx, Promise, '$!dynamic_context')),
-                                            ($!pick-fallback := 0)))),
-                                nqp::stmts(
-                                    ($!ctx := nqp::null()),
-                                    ($!pick-fallback := 0))),
+                            nqp::elems($!fallbacks),
                             nqp::stmts(
+                                ($!ctx := nqp::shift($!fallbacks)),
                                 nqp::if(
-                                    nqp::iseq_i($!cur-mode, DYNAMIC_CHAIN),
-                                    ($!ctx := nqp::ctxcallerskipthunks($!ctx))),
-                                nqp::if(
-                                    nqp::iseq_i($!cur-mode, STATIC_CHAIN),
-                                    ($!ctx := nqp::ctxouterskipthunks($!ctx))),
-                                nqp::ifnull( # Ran through a chain till the end
-                                    $!ctx,
-                                    ($!pick-fallback := 1)))))),
-                Return.new(:$lexpad, :$sym-info, :mode($!cur-mode)))
+                                    nqp::istype($!ctx, Promise),
+                                    nqp::stmts(
+                                        ($!ctx := nqp::getattr($!ctx, Promise, '$!dynamic_context')),
+                                        ($!pick-fallback := 0)))),
+                            nqp::stmts(
+                                ($!ctx := nqp::null()),
+                                ($!pick-fallback := 0))),
+                        nqp::stmts(
+                            nqp::if(
+                                nqp::iseq_i($!cur-mode, DYNAMIC_CHAIN),
+                                ($!ctx := nqp::ctxcallerskipthunks($!ctx))),
+                            nqp::if(
+                                nqp::iseq_i($!cur-mode, STATIC_CHAIN),
+                                ($!ctx := nqp::ctxouterskipthunks($!ctx))),
+                            nqp::ifnull( # Ran through a chain till the end
+                                $!ctx,
+                                ($!pick-fallback := 1))))));
+            my $return := nqp::create(Return);
+            nqp::bindattr($return, Return, '$!lexpad', $lexpad);
+            nqp::bindattr($return, Return, '$!sym-info', $sym-info);
+            nqp::bindattr_i($return, Return, '$!mode', $!cur-mode);
+            $return
         }
     }
 

@@ -216,7 +216,9 @@ class RakuAST::Signature
             unless $!is-on-meta-method {
                 my int $slurpy-hash-seen;
                 for @param-asts {
-                    if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target && $_.target.sigil eq '%' {
+                    if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target && $_.target.sigil eq '%'
+                       || $_.slurpy =:= RakuAST::Parameter::Slurpy::Capture
+                    {
                         $slurpy-hash-seen := 1;
                         last;
                     }

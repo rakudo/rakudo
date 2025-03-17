@@ -2011,11 +2011,13 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::Meta
 {
     has RakuAST::Name $.name;
+    has RakuAST::Type $.type;
     has Bool $!is-bindable;
 
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
     }
@@ -2028,9 +2030,13 @@ class RakuAST::ParameterTarget::Term
         $!name.canonicalize
     }
 
-    method type() { Mu }
     method sigil() { '' }
     method twigil() { '' }
+
+    method set-type(RakuAST::Type $type) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!type', $type);
+        Nil
+    }
 
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!is-bindable', $bindable);
@@ -2055,7 +2061,7 @@ class RakuAST::ParameterTarget::Term
     }
 
     method IMPL-OF-TYPE() {
-        Mu
+        $!type ?? $!type.meta-object !! Mu
     }
 
     method IMPL-SIGIL-TYPE() {
@@ -2068,11 +2074,14 @@ class RakuAST::ParameterTarget::Term
             $context.ensure-sc($container);
             QAST::Var.new(
                 :scope('lexical'), :decl('contvar'), :name($!name.canonicalize),
-                :value($container)
+                :value($container), :returns(self.IMPL-OF-TYPE)
             )
         }
         else {
-            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+            QAST::Var.new(
+                :decl('var'), :scope('lexical'), :name($!name.canonicalize),
+                :returns(self.IMPL-OF-TYPE)
+            )
         }
     }
 
@@ -2085,8 +2094,7 @@ class RakuAST::ParameterTarget::Term
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        my str $scope := 'lexical';
-        QAST::Var.new( :name($!name.canonicalize), :$scope )
+        QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
     }
 
     method default-scope() { 'my' }

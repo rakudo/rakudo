@@ -302,7 +302,7 @@ augment class Code {
         # role was the only constraint, as that will be handled
         # later by the sigil
         my sub set-role-type(Mu \type, Mu \role) {
-            unless nqp::eqaddr(type,role) {
+            unless nqp::eqaddr(type,Mu) || nqp::eqaddr(type,role) {
                 %args<type> = TypeAST(
                   nqp::istype(type.HOW,Metamodel::CurriedRoleHOW)
                     && nqp::eqaddr(type.^curried_role,role)

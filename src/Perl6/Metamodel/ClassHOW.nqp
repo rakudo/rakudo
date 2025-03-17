@@ -285,19 +285,19 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDPLAN.
             self.create_BUILDPLAN($target);
 
-            # Attempt to auto-generate a BUILDALL method. We can
-            # only auto-generate a BUILDALL method if we have compiler
-            # services. If we don't, then BUILDALL will fall back to the
+            # Attempt to auto-generate a POPULATE method. We can
+            # only auto-generate a POPULATE method if we have compiler
+            # services. If we don't, then POPULATE will fall back to the
             # one in Mu, which will iterate over the BUILDALLPLAN.
             if nqp::isconcrete($compiler_services) && nqp::can($compiler_services, 'generate_buildplan_executor') {
 
-                # Class does not appear to have a BUILDALL yet
-                unless self.declares_method($target, 'BUILDALL') {
+                # Class does not appear to have a POPULATE yet
+                unless self.declares_method($target, 'POPULATE') {
                     my $method := nqp::findmethod(
                       $compiler_services, 'generate_buildplan_executor'
                     )($compiler_services, $target, self.BUILDALLPLAN($target));
 
-                    # We have a generated BUILDALL submethod, so install!
+                    # We have a generated POPULATE submethod, so install!
                     if nqp::isconcrete($method) {
                         $method.set_name('POPULATE');
                         self.add_method($target, 'POPULATE', $method);

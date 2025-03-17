@@ -889,7 +889,7 @@ sub guard-type-concreteness($tracker) {
 #- raku-is-attr-inited ---------------------------------------------------------
 # Object construction time checking of if a container is initialized. Done as
 # a dispatcher primarily to intern .^mixin_type, but also for more compact
-# bytecode size in generated BUILDALL.
+# bytecode size in generated POPULATE.
 
 # Array initialization checker
 my $array-init-check := -> $arr {

@@ -438,7 +438,7 @@ class RakuAST::Package::Attachable
             # attribute defined means we don't need to check it anymore
             nqp::deletekey($!attached-attribute-usages, $_.name);
 
-            # TODO: create method BUILDALL here
+            # TODO: create method POPULATE here
         }
     }
 }
@@ -646,8 +646,8 @@ class RakuAST::Class
     method default-how() { Metamodel::ClassHOW }
 
     method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
-        # create BUILDALL method if there's something to create,
-        # otherwise put in a generic fallback BUILDALL that doesn't
+        # create POPULATE method if there's something to create,
+        # otherwise put in a generic fallback POPULATE that doesn't
         # do anything
         self.meta-object; # Ensure it's composed
     }

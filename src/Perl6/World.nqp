@@ -3467,7 +3467,7 @@ class Perl6::World is HLL::World {
         has $!acc_sig_cache;
         has $!acc_sig_cache_type;
 
-        # The generic BUILDALL method for empty BUILDPLANs
+        # The generic POPULATE method for empty BUILDPLANs
         has $!empty_buildplan_method;
 
         # Types we always need
@@ -3623,7 +3623,7 @@ class Perl6::World is HLL::World {
 
         # Generate a method for building a new object that takes a hash
         # with attribute => value pairs to be assigned to the object's
-        # attributes.  Basically a flattened version of Mu.BUILDALL, which
+        # attributes.  Basically a flattened version of Mu.POPULATE, which
         # iterates over the BUILDALLPLAN at runtime with fewer inlining
         # and JITting opportunities.
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
@@ -3667,7 +3667,7 @@ class Perl6::World is HLL::World {
 #                $stmts.push(
 #                  QAST::Op.new( :op<say>,
 #                    QAST::SVal.new( :value(
-#                      $object.HOW.name($object) ~ '.BUILDALL called'
+#                      $object.HOW.name($object) ~ '.POPULATE called'
 #                    ))
 #                  ),
 #                );
@@ -4045,7 +4045,7 @@ class Perl6::World is HLL::World {
                         }
 
                         else {
-                            nqp::die('Invalid ' ~ $object.HOW.name($object) ~ '.BUILDALL plan: ' ~ $code);
+                            nqp::die('Invalid ' ~ $object.HOW.name($object) ~ '.POPULATE plan: ' ~ $code);
                         }
                     }
 

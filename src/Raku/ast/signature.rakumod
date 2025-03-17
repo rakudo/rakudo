@@ -1186,6 +1186,11 @@ class RakuAST::Parameter
         }
 
         my $sigil := $!target.sigil;
+        if $was-slurpy && nqp::isconcrete($!type) {
+            self.add-sorry: $resolver.build-exception: 'X::Parameter::TypedSlurpy', kind => 'positional' if $sigil eq '@';
+            self.add-sorry: $resolver.build-exception: 'X::Parameter::TypedSlurpy', kind => 'named' if $sigil eq '%';
+        }
+
         if self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',

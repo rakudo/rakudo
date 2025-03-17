@@ -960,11 +960,11 @@ class RakuAST::Parameter
             $flags := $flags +| nqp::const::SIG_ELEM_IS_COERCIVE;
         }
         if $!type {
-            my $meta-object := $!type.meta-object;
+            my $meta-object := self.IMPL-NOMINAL-TYPE;
             if $meta-object.HOW.archetypes.generic {
                 $flags := $flags +| nqp::const::SIG_ELEM_TYPE_GENERIC;
             }
-            my $primspec := nqp::objprimspec($!type.meta-object);
+            my $primspec := nqp::objprimspec($meta-object);
             if $primspec == nqp::const::BIND_VAL_INT {
                 $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_INT_VALUE;
             }

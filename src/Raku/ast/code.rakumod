@@ -1992,6 +1992,13 @@ class RakuAST::Routine
             self.add-sorry:
               $resolver.build-exception: 'X::Anon::Multi', multiness => $!multiness;
         }
+
+        if $!multiness eq 'proto' {
+            my $meta-object := self.meta-object;
+            if nqp::can($meta-object, 'sort_dispatchees') {
+                $meta-object.sort_dispatchees();
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {

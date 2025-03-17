@@ -2113,6 +2113,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
   is RakuAST::VarDeclaration
+  is RakuAST::CheckTime
 {
     has Mu $.block;
 
@@ -2121,6 +2122,12 @@ class RakuAST::VarDeclaration::Implicit::Block
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Block, '$!block', $block);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::can($!block, 'sort_dispatchees') {
+            $!block.sort_dispatchees();
+        }
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {

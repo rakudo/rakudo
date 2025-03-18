@@ -1,6 +1,7 @@
 use lib <lib>;
 use NativeCall::Compiler::GNU;
 use NativeCall::Compiler::MSVC;
+use NativeCall::Types;
 use Test;
 
 # Original implementation of GNU's cpp_param_letter

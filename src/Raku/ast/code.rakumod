@@ -2278,6 +2278,7 @@ class RakuAST::Sub
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CALCULATE-SINK unless self.sink-calculated;
         self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))
@@ -2570,6 +2571,7 @@ class RakuAST::Method
             self.meta-object.set_yada;
         }
 
+        self.IMPL-CALCULATE-SINK unless self.sink-calculated;
         self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))

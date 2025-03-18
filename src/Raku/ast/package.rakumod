@@ -579,7 +579,6 @@ class RakuAST::Role
 
     method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         self.meta-object;
-        self.body.IMPL-CALCULATE-SINK unless self.body.sink-calculated;
         self.body.IMPL-FINISH-ROLE-BODY($context);
     }
 }

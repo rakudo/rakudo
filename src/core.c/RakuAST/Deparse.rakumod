@@ -2613,7 +2613,9 @@ CODE
         }
 
         with $ast.argument {
-            $base ~ '(' ~ self.deparse($_) ~ ')'
+            my $deparsed := self.deparse($_);
+            $deparsed := "($deparsed)" unless $deparsed.starts-with('(');
+            $base ~ $deparsed
         }
         else {
             $base

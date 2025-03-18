@@ -1,4 +1,8 @@
 augment class Match {
+    # HLL symbol bound in the bootstrap
+    my constant QASTRegex := nqp::gethllsym('Raku', 'QASTRegex');
+    my constant QRegex := nqp::gethllsym('Raku', 'QRegex');
+
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
     # If it can't match against pattern var (or any element of var if it is an array)
@@ -71,7 +75,7 @@ augment class Match {
 
                     # The pattern is a string.
                     else {
-                        my Mu \lit  := QAST::Regex.new(
+                        my Mu \lit  := QASTRegex.new(
                           :rxtype<literal>, $topic,
                           :subtype( $nomod
                             ?? ''

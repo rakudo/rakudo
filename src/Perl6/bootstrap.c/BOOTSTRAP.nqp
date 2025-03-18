@@ -1,5 +1,6 @@
 use Perl6::Metamodel;
 use QRegex;
+use QAST;
 
 # Here we start to piece together the top of the object model hierarchy.
 # We can't just declare these bits in CORE.setting with normal Raku
@@ -6150,5 +6151,10 @@ nqp::gethllsym('Raku', 'JavaModuleLoader').set_interop_loader(-> {
 });
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
+
+# Make QAST::Regex and QRegex available to early setting where module loading
+# does not yet work.
+nqp::bindhllsym('Raku', 'QASTRegex', QAST::Regex);
+nqp::bindhllsym('Raku', 'QRegex', QRegex);
 
 # vim: expandtab sw=4

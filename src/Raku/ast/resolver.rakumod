@@ -564,7 +564,7 @@ class RakuAST::Resolver {
         else {
             # Could not find exception type, so build a fake (typically happens
             # during CORE.setting compilation).
-            nqp::die('nyi missing exception type fallback')
+            nqp::die("'$type-name' did not resolve to a known exception class");
         }
     }
 

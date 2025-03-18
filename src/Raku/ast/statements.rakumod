@@ -641,7 +641,8 @@ class RakuAST::Statement::Expression
         }
         else {
             $qast := $!expression.IMPL-TO-QAST($context);
-            if self.sunk && $!expression.needs-sink-call {
+            # For unknown reason we may not sink a loop body.
+            if self.sunk && $!expression.needs-sink-call && (!$!loop-modifier || $!loop-modifier.may-sink-body) {
                 $qast := QAST::Op.new( :op('p6sink'), $qast );
             }
             $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier && !$!loop-modifier;
@@ -689,7 +690,8 @@ class RakuAST::Statement::Expression
 
     method propagate-sink(Bool $is-sunk) {
         self.IMPL-UNTHUNK() if $is-sunk;
-        $!expression.apply-sink($is-sunk);
+        # For unknown reason we may not sink loop bodies.
+        $!expression.apply-sink((!$!loop-modifier || $!loop-modifier.may-sink-body) ?? $is-sunk !! False);
         $!condition-modifier.apply-sink(False) if $!condition-modifier;
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }

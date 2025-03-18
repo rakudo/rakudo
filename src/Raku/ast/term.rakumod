@@ -171,10 +171,13 @@ class RakuAST::Term::TopicCall
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!call.IMPL-POSTFIX-QAST(
+        my $postfix-ast := $!call.IMPL-POSTFIX-QAST(
           $context,
           self.get-implicit-lookups.AT-POS(0).resolution.IMPL-LOOKUP-QAST($context)
-        )
+        );
+        nqp::istype($!call, RakuAST::Call::Methodish)
+            ?? QAST::Op.new(:op<hllize>, $postfix-ast)
+            !! $postfix-ast
     }
 
     method visit-children(Code $visitor) {

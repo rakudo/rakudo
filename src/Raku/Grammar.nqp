@@ -594,7 +594,6 @@ role Raku::Common {
 
     # Build an exception by name through the current resolver
     method build-exception($name, *%opts) {
-
         # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
@@ -5847,7 +5846,7 @@ Rakudo significantly on *every* run."
 
           # alas, a mismatch
           || $<instead>=<.doc-identifier>? {self.typed-panic(
-               'X::Syntax::Pod::BeginWithoutEnd.new',
+               'X::Syntax::Pod::BeginWithoutEnd',
                type    => ~$<type>,
                spaces  => ~$<margin>,
                instead => $<instead> ?? ~$<instead> !! ''

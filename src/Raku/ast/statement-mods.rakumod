@@ -268,6 +268,8 @@ class RakuAST::StatementModifier::Until
 class RakuAST::StatementModifier::Given
   is RakuAST::StatementModifier::Loop
 {
+    method handles-condition() { False }
+
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {
         if $block {
             if $sink {

@@ -246,12 +246,10 @@ subtest 'The postfix "while" statement works' => {
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
       loop-modifier => RakuAST::StatementModifier::While.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::ApplyInfix.new(
-            left => RakuAST::Var::Lexical.new('$foo'),
-            infix => RakuAST::Infix.new('<'),
-            right => RakuAST::IntLiteral.new(5),
-          )
+        RakuAST::ApplyInfix.new(
+          left => RakuAST::Var::Lexical.new('$foo'),
+          infix => RakuAST::Infix.new('<'),
+          right => RakuAST::IntLiteral.new(5),
         )
       )
     );

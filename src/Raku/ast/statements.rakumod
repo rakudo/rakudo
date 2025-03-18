@@ -645,7 +645,8 @@ class RakuAST::Statement::Expression
             if self.sunk && $!expression.needs-sink-call && (!$!loop-modifier || $!loop-modifier.may-sink-body) {
                 $qast := QAST::Op.new( :op('p6sink'), $qast );
             }
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier && !$!loop-modifier;
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast)
+                if $!condition-modifier && (!$!loop-modifier || !$!loop-modifier.handles-condition);
         }
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;

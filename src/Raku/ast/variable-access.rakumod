@@ -268,9 +268,14 @@ class RakuAST::Var::Attribute
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        unless self.get-implicit-lookups.AT-POS(0).is-resolved {
-            self.add-sorry($resolver.build-exception('X::Syntax::NoSelf', :variable(self.name)));
-        }
+        my $package := $!package.meta-object;
+
+        self.add-sorry: $resolver.build-exception: 'X::Attribute::Undeclared',
+            :symbol($!name), :package-kind($!package.declarator), :package-name($package.HOW.name)
+            unless $package.HOW.has_attribute($package, $!name);
+
+        self.add-sorry: $resolver.build-exception: 'X::Syntax::NoSelf', :variable($!name)
+            unless self.get-implicit-lookups.AT-POS(0).is-resolved;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

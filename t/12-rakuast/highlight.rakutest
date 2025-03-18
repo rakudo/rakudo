@@ -108,7 +108,7 @@ say "foo" ~~ / [(o) $<foo>=o]+ $_ zippo "%&^" /;
 put $0;
 print $<foo>;
 CODE
-<yellow>say</yellow> <red>"foo"</red> <yellow>~~</yellow> <red>/ <blue>[<cyan>(<red>o</red>)</cyan> <cyan>$<foo>=</cyan><red>o</red>]<blue>+</blue> <cyan>$_</cyan> <red>zippo</red> <red>"\%\&^"</red> </blue>/</red>;
+<yellow>say</yellow> <red>"foo"</red> <yellow>~~</yellow> <red>/<blue>[<cyan>(<red>o</red>)</cyan> <cyan>$<foo>=</cyan><red>o</red>]<blue>+</blue> <cyan>$_</cyan> <red>zippo</red> <red>"\%\&^"</red> </blue>/</red>;
 <yellow>put</yellow> <cyan>$0</cyan>;
 <yellow>print</yellow> <cyan>$<foo></cyan>;
 HIGHLIGHTED

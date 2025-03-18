@@ -1461,8 +1461,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {
-        self.deparse($ast.power)
-          .trans("0123456789-+i<>" => "⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁱ", :delete)
+        $ast.power.trans("0123456789-+i<>" => "⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁱ", :delete)
     }
 
     multi method deparse(RakuAST::Postfix::Vulgar:D $ast --> Str:D) {

@@ -1,4 +1,5 @@
 my class Grammar is Match {
+    use NQPHLL:from<NQP>;
 
     # (oughta be down in Match or even nqp really)
     method locprepost() {

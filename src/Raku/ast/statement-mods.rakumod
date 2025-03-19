@@ -108,18 +108,28 @@ class RakuAST::StatementModifier::With
             QAST::Op.new(
                 :op('if'),
                 QAST::Op.new(
-                    :op('callmethod'), :name('defined'),
+                    :op('not_i'),
                     QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
-                        self.expression.IMPL-TO-QAST($context),
+                        :op('isnull'),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
+                            self.expression.IMPL-TO-QAST($context),
+                        )
+                    )
+                ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('defined'),
+                        QAST::Var.new( :name($tested), :scope('local') ),
                     ),
-                ),
-                self.IMPL-TEMPORARIZE-TOPIC(
-                    QAST::Var.new( :name($tested), :scope('local') ),
-                    $statement-qast
-                ),
-                self.IMPL-EMPTY($context)
+                    self.IMPL-TEMPORARIZE-TOPIC(
+                        QAST::Var.new( :name($tested), :scope('local') ),
+                        $statement-qast
+                    ),
+                    self.IMPL-EMPTY($context)
+                )
             )
         }
     }

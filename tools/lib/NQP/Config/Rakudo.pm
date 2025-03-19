@@ -273,6 +273,65 @@ sub configure_misc {
     }
 }
 
+sub configure_c_compiler {
+    my $self   = shift;
+    if ( !$self->is_win ) {
+        # We only require a C compiler on Windows for the
+        # script wrapper template.
+        return;
+    }
+
+    my $config = $self->{config};
+    my $options = $self->{options};
+
+    my @compilers = <cl gcc>;
+    my %probes = (
+        cl => 'cl',
+        gcc => 'gcc --version',
+        clang => 'clang --version'
+    );
+
+    $self->msg("Detecting C compiler... ");
+
+    # 1. If a compiler was given on the command line, only consider that one.
+    my $arg_cc  = $options->{'compiler'};
+    if ($arg_cc) {
+        if (!grep { $arg_cc eq $_ } @compilers) {
+            $self->sorry(
+                "The compiler '$arg_cc' is not one of our supported compilers:\n",
+                join(@compilers, ", ")
+            );
+        }
+        @compilers = $arg_cc;
+    }
+    # 2. If we have Moar as a backend, pick the compiler it used.
+    elsif (grep { 'moar' eq $_ } $self->active_backends) {
+        my $moar_cc = $self->{impls}{moar}->{config}->{'moar::cc'};
+        if (grep { $moar_cc eq $_ } @compilers) {
+            @compilers = $moar_cc;
+        }
+    }
+    # 3. Probe compilers in order picking the first that works.
+    for my $compiler (@compilers) {
+        my $command = $probes{$compiler};
+        my $output  = `$command 2>&1` || $!;
+        if ($? >> 8 == 0) {
+            $config->{compiler} = $compiler;
+            last;
+        }
+    }
+
+    if (!$config->{compiler}) {
+        $self->sorry(
+            "Failed to find a usable C compiler. Tried:",
+            join(@compilers, ", ")
+        );
+    }
+    else {
+        $self->msg($config->{compiler} . "\n");
+    }
+}
+
 sub configure_jvm_backend {
     my $self   = shift;
     my $ijvm   = $self->{impls}{jvm};

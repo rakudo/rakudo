@@ -1565,7 +1565,7 @@ class RakuAST::Parameter
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
-                my $value := $get-decont-var() // $temp-qast-var;
+                my $value := $get-decont-var() // QAST::Op.new(:op('decont'), $temp-qast-var);
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {

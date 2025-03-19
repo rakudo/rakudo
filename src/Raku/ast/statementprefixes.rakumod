@@ -448,13 +448,15 @@ class RakuAST::StatementPrefix::Wheneverable
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $name := '&' ~ nqp::uc(self.type);
         my $blorst   := self.blorst;
-        if nqp::istype($blorst, RakuAST::Statement::Whenever) {
-            $name := $name ~ '-ONE-WHENEVER'
-              unless $blorst.body.any-whenevers;
-        }
-        else {
-            $name := $name ~ '-ONE-WHENEVER'
-              if nqp::istype($blorst, RakuAST::Block) && $blorst.body.statement-list.single-last-whenever;
+        if $context.language-revision > 1 {
+            if nqp::istype($blorst, RakuAST::Statement::Whenever) {
+                $name := $name ~ '-ONE-WHENEVER'
+                  unless $blorst.body.any-whenevers;
+            }
+            else {
+                $name := $name ~ '-ONE-WHENEVER'
+                  if nqp::istype($blorst, RakuAST::Block) && $blorst.body.statement-list.single-last-whenever;
+            }
         }
 
         QAST::Op.new(

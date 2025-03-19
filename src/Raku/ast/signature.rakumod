@@ -886,11 +886,26 @@ class RakuAST::Parameter
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
         }
-        if nqp::defined($!type) && nqp::isconcrete($!type.meta-object) { # Not really a type at all
-            nqp::push(@post_constraints, $!type.meta-object);
-        }
-        if nqp::defined($!type) && nqp::istype($!type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
-            nqp::push(@post_constraints, $!type.meta-object);
+        if nqp::defined($!type) {
+            my $type := $!type.meta-object;
+            if nqp::isconcrete($type) { # Not really a type at all
+                nqp::push(@post_constraints, $type);
+            }
+            else {
+                my $archetypes := $type.HOW.archetypes;
+                if $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
+                    $type := $type.HOW.base_type($type);
+                    $archetypes := $type.HOW.archetypes;
+                }
+                if $archetypes.nominalizable
+                    # but not a case that's handled elsewhere
+                    && !nqp::isconcrete($type)
+                    && !$archetypes.nominal && !$archetypes.coercive
+                    && ! $archetypes.generic
+                {
+                    nqp::push(@post_constraints, $type);
+                }
+            }
         }
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
@@ -1726,21 +1741,32 @@ class RakuAST::Parameter
         }
 
         # Take care of checking against provided subset types and other nominalizable types.
-        # TODO: Investigate breakage -- No such method 'ACCEPTS' for invocant of type '::?CLASS:D'
-        #        if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
-        if nqp::defined($!type) && nqp::istype($!type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
-            $param-qast.push(
-                QAST::ParamTypeCheck.new(
-                    QAST::Op.new(
-                        :op<istrue>,
+        if nqp::defined($!type) {
+            my $type := $!type.meta-object;
+            my $archetypes := $type.HOW.archetypes;
+            if $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
+                $type := $type.HOW.base_type($type);
+                $archetypes := $type.HOW.archetypes;
+            }
+            if $archetypes.nominalizable
+                # but not a case that's handled elsewhere
+                && !nqp::isconcrete($type)
+                && !$archetypes.nominal && !$archetypes.coercive
+                && ! $archetypes.generic
+            {
+                $param-qast.push(
+                    QAST::ParamTypeCheck.new(
                         QAST::Op.new(
-                            :op('callmethod'), :name('ACCEPTS'),
-                            $!type.IMPL-EXPR-QAST($context),
-                            $temp-qast-var
+                            :op<istrue>,
+                            QAST::Op.new(
+                                :op('callmethod'), :name('ACCEPTS'),
+                                $!type.IMPL-EXPR-QAST($context),
+                                $temp-qast-var
+                            )
                         )
                     )
-                )
-            );
+                );
+            }
         }
 
         @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast

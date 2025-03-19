@@ -788,25 +788,31 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method Numeric(|) {*}
     multi method Numeric(Mu:U \v:) {
-        warn "Use of uninitialized value of type {self.^name} in numeric context";
+        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
+        $name    = " $name" if $name;
+        warn "Use of uninitialized value$name of type {self.^name} in numeric context";
         0
     }
     proto method Real(|) {*}
     multi method Real(Mu:U \v:) {
-        warn "Use of uninitialized value of type {self.^name} in numeric context";
+        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
+        $name    = " $name" if $name;
+        warn "Use of uninitialized value$name of type {self.^name} in numeric context";
         0
     }
     proto method Int(|) {*}
     multi method Int(Mu:U \v:) {
-        warn "Use of uninitialized value of type {self.^name} in numeric context";
+        my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
+        $name    = " $name" if $name;
+        warn "Use of uninitialized value$name of type {self.^name} in numeric context";
         0
     }
 
     proto method Str(|) {*}
     multi method Str(Mu:U \v:) {
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
-        $name   ~= ' ' if $name ne '';
-        warn "Use of uninitialized value {$name}of type {self.^name} in string"
+        $name    = " $name" if $name;
+        warn "Use of uninitialized value$name of type {self.^name} in string"
                 ~ " context.\nMethods .^name, .raku, .gist, or .say can be"
                 ~ " used to stringify it to something meaningful.";
         ''

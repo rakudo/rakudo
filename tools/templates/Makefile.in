@@ -28,15 +28,13 @@ quicktest:  @for_backends(@backend_prefix@-quicktest$(HARNESS_TYPE) )@
 @if(platform==windows
 win-runner.exe-tmpl: src/runner/runner.c src/runner/whereami.c src/runner/whereami.h
 	$(NOECHO)$(MKPATH) @nfpq(gen/win-runner)@
-    $(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ write-exec-size @nfp(gen/win-runner/exec_size.h)@
-	@if(sadly_doesnt_work @if(moar::cc!=gcc $(NOECHO)cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner-zero-size.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner src/runner/runner.c)@ @nfp(src/runner/whereami.c)@)@@if(moar::cc==gcc $(NOECHO)gcc -std=gnu99 -Os -flto -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,-z,noseparate-code,--build-id=none -o win-runner-zero-size.exe -I @nfp(gen/win-runner)@ -I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@
-	strip --strip-all win-runner-zero-size.exe)@)@
-    $(NOECHO)cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner-zero-size.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner src/runner/runner.c)@ @nfp(src/runner/whereami.c)@
-    $(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ write-exec-size @nfp(gen/win-runner/exec_size.h)@ win-runner-zero-size.exe
-	@if(sadly_doesnt_work @if(moar::cc!=gcc $(NOECHO)cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@)@@if(moar::cc==gcc $(NOECHO)gcc -std=gnu99 -Os -flto -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,-z,noseparate-code,--build-id=none -o win-runner.exe -I @nfp(gen/win-runner)@ -I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@
-	strip --strip-all win-runner.exe)@)@
-    $(NOECHO)cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@
-    $(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ validate-sizes win-runner-zero-size.exe win-runner.exe
+	$(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ write-exec-size @nfp(gen/win-runner/exec_size.h)@
+	@if(compiler==cl $(NOECHO) cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner-zero-size.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner src/runner/runner.c)@ @nfp(src/runner/whereami.c)@)@@if(compiler==gcc $(NOECHO) gcc -std=gnu99 -Os -municode -flto -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--build-id=none -o win-runner-zero-size.exe -I @nfp(gen/win-runner)@ -I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@
+	$(NOECHO)strip --strip-all win-runner-zero-size.exe)@
+	$(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ write-exec-size @nfp(gen/win-runner/exec_size.h)@ win-runner-zero-size.exe
+	@if(compiler==cl $(NOECHO) cl /O2 /D "NDEBUG" /GL /Gy /Zc:inline /nologo /MD /Fewin-runner.exe /I @nfp(gen/win-runner)@ /I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@)@@if(compiler==gcc $(NOECHO) gcc -std=gnu99 -Os -municode -flto -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--build-id=none -o win-runner.exe -I @nfp(gen/win-runner)@ -I @nfp(src/runner)@ @nfpl(src/runner/runner.c src/runner/whereami.c)@
+	$(NOECHO)strip --strip-all win-runner.exe)@
+	$(NOECHO)$(PERL5) @shquot(@script(wrapper-compiler-helper.pl)@)@ validate-sizes win-runner-zero-size.exe win-runner.exe
 	$(NOECHO)$(CP) win-runner.exe win-runner.exe-tmpl
 	$(NOECHO)$(RM_F) win-runner-zero-size.exe win-runner.exe
 )@

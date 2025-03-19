@@ -231,6 +231,7 @@ class RakuAST::Call::Name
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $!block;
+    has RakuAST::Routine $!routine;
     has Mu $!lexical; # For top-level package if we can only partially resolve
     has Mu $!package;
 
@@ -261,6 +262,8 @@ class RakuAST::Call::Name
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!block',
             $resolver.find-attach-target('block'));
+        nqp::bindattr(self, RakuAST::Call::Name, '$!routine',
+            $resolver.find-attach-target('routine'));
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -289,8 +292,24 @@ class RakuAST::Call::Name
             }
         }
 
-        if $!name.canonicalize eq 'return' {
+        my $name := $!name.canonicalize;
+        if $name eq 'return' {
             self.args.set-on-return(True);
+        }
+
+        my %returnish := nqp::hash(
+            'return', 1,
+            'return-rw', 1,
+            'fail', 1,
+            'nextsame', 1,
+            'nextwith', 1,
+            'EVAL', 1,
+            'EVALFILE', 1);
+        if nqp::existskey(%returnish, $name) {
+            my $routine := $!routine;
+            if $routine {
+                $routine.set-may-use-return(True);
+            }
         }
     }
 
@@ -562,6 +581,7 @@ class RakuAST::Call::Methodish
 # compiled into primitive operations rather than really being method calls.
 class RakuAST::Call::Method
   is RakuAST::Call::Methodish
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
@@ -767,6 +787,24 @@ class RakuAST::Call::Method
         }
     }
 
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $name := $!name.canonicalize;
+        my %returnish := nqp::hash(
+            'return', 1,
+            'return-rw', 1,
+            'fail', 1,
+            'nextsame', 1,
+            'nextwith', 1,
+            'EVAL', 1,
+            'EVALFILE', 1);
+        if nqp::existskey(%returnish, $name) {
+            my $routine := $resolver.find-attach-target('routine');
+            if $routine {
+                $routine.set-may-use-return(True);
+            }
+        }
+    }
+
     method PERFORM-CHECK(
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
@@ -782,6 +820,7 @@ class RakuAST::Call::Method
 # A call to a method with a quoted name.
 class RakuAST::Call::QuotedMethod
   is RakuAST::Call::Methodish
+  is RakuAST::BeginTime
 {
     has RakuAST::QuotedString   $.name;
 
@@ -807,6 +846,13 @@ class RakuAST::Call::QuotedMethod
     method default-operator-properties() { self.default-properties(".") }
 
     method can-be-used-with-hyper() { True }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $routine := $resolver.find-attach-target('routine');
+        if $routine {
+            $routine.set-may-use-return(True);
+        }
+    }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
@@ -1021,6 +1067,23 @@ class RakuAST::Call::VarMethod
         if $resolved {
             self.set-resolution($resolved);
         }
+
+        my $name := $!name.canonicalize;
+        my %returnish := nqp::hash(
+            'return', 1,
+            'return-rw', 1,
+            'fail', 1,
+            'nextsame', 1,
+            'nextwith', 1,
+            'EVAL', 1,
+            'EVALFILE', 1);
+        if nqp::existskey(%returnish, $name) {
+            my $routine := $resolver.find-attach-target('routine');
+            if $routine {
+                $routine.set-may-use-return(True);
+            }
+        }
+
         Nil
     }
 
@@ -1189,9 +1252,17 @@ class RakuAST::Stub
 # the ... stub
 class RakuAST::Stub::Fail
   is RakuAST::Stub
+  is RakuAST::BeginTime
 {
     method name() { '...' }
     method IMPL-FUNC-NAME() { 'fail' }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $routine := $resolver.find-attach-target('routine');
+        if $routine {
+            $routine.set-may-use-return(True);
+        }
+    }
 }
 
 # the ??? stub

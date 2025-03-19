@@ -1766,6 +1766,7 @@ class RakuAST::Routine
     has RakuAST::Code $!outer;
     has Bool $.need-routine-variable;
     has Bool $!replace-stub;
+    has Bool $!may-use-return;
 
     method multiness() {
         my $multiness := $!multiness;
@@ -1784,6 +1785,10 @@ class RakuAST::Routine
 
     method set-replace-stub(Bool $replace-stub) {
         nqp::bindattr(self, RakuAST::Routine, '$!replace-stub', $replace-stub ?? True !! False);
+    }
+
+    method set-may-use-return(Bool $may-use-return) {
+        nqp::bindattr(self, RakuAST::Routine, '$!may-use-return', $may-use-return ?? True !! False);
     }
 
     method declaration-kind() { 'routine' }
@@ -2072,16 +2077,18 @@ class RakuAST::Routine
         $context.ensure-sc($routine);
 
         # Add return exception and decont handler if needed.
-        # TODO optimize out if provably no return call
         my str $decont-rv-op := $context.lang-version lt 'd' && $context.is-moar
             ?? 'p6decontrv_6c'
             !! 'p6decontrv';
-        $result := QAST::Op.new(
-            :op<handlepayload>,
-            QAST::Op.new( :op($decont-rv-op), QAST::WVal.new( :value($routine) ), $result ),
-            'RETURN',
-            QAST::Op.new( :op<lastexpayload> )
-        );
+        $result := QAST::Op.new( :op($decont-rv-op), QAST::WVal.new( :value($routine) ), $result );
+        if $!may-use-return {
+            $result := QAST::Op.new(
+                :op<handlepayload>,
+                $result,
+                'RETURN',
+                QAST::Op.new( :op<lastexpayload> )
+            );
+        }
 
         # Add return type check if needed.
         # TODO also infer body type

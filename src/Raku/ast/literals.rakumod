@@ -284,7 +284,7 @@ class RakuAST::QuotedString
             $ws++ while nqp::existskey($nbsp,
                 nqp::substr($str, $ws := nqp::findcclass(nqp::const::CCLASS_WHITESPACE,
                     $str, $ws, $eos), 1));
-            nqp::push($result, nqp::substr($str, $pos, $ws - $pos));
+            nqp::push($result, nqp::box_s(nqp::substr($str, $pos, $ws - $pos), Str));
             $pos := $ws;
         }
         $result

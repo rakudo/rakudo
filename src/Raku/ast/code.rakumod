@@ -2080,7 +2080,8 @@ class RakuAST::Routine
         my str $decont-rv-op := $context.lang-version lt 'd' && $context.is-moar
             ?? 'p6decontrv_6c'
             !! 'p6decontrv';
-        $result := QAST::Op.new( :op($decont-rv-op), QAST::WVal.new( :value($routine) ), $result );
+        $result := QAST::Op.new( :op($decont-rv-op), QAST::WVal.new( :value($routine) ), $result )
+            unless $routine.rw;
         if $!may-use-return {
             $result := QAST::Op.new(
                 :op<handlepayload>,

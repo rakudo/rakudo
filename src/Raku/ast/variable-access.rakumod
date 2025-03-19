@@ -339,11 +339,16 @@ class RakuAST::Var::Attribute::Public
     has str                   $.name;
     has RakuAST::ApplyPostfix $!expression;
 
+    # Did we already get our args replaced once?
+    # Important so we don't swallow call chains like $.foo()(1)
+    has Bool $.has-args;
+
     method new(str $name) {
         my str $sigil := nqp::substr($name,0,1);
 
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Attribute::Public, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Var::Attribute::Public, '$!has-args', False);
         nqp::bindattr(  $obj, RakuAST::Var::Attribute::Public, '$!expression',
           # self.foo.item
           RakuAST::ApplyPostfix.new(
@@ -368,6 +373,7 @@ class RakuAST::Var::Attribute::Public
     }
 
     method replace-args(RakuAST::Args $args) {
+        nqp::bindattr(self, RakuAST::Var::Attribute::Public, '$!has-args', True);
         $!expression.operand.postfix.replace-args($args);
     }
 

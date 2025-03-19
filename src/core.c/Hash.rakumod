@@ -485,7 +485,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # only constraint on type
         elsif nqp::eqaddr(keyof,Str(Any)) {
-            my $what := hash.^mixin(Hash::Typed[of, default]);
+            my $what := hash.^mixin(Hash::Typed[of, Str(Any), default]);
              # needs to be done in COMPOSE phaser when that works
             my $name = hash.^name ~ '[' ~ of.^name;
             $name ~= (',Str(Any),' ~ default.^name)

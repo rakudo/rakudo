@@ -465,9 +465,16 @@ my class Hash { # declared in BOOTSTRAP
             !! self.clone
     }
 
-    method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
+    method ^parameterize(
+      Mu:U \hash,
+      Mu \of,
+      Mu \keyof = Str(Any),
+      Mu \default = of
+    ) {
         # fast path
-        if nqp::eqaddr(of,Mu) && nqp::eqaddr(keyof,Str(Any)) {
+        if nqp::eqaddr(of,Mu)
+          && nqp::eqaddr(keyof,Str(Any))
+          && nqp::eqaddr(default,Any) {
             hash
         }
 
@@ -478,10 +485,12 @@ my class Hash { # declared in BOOTSTRAP
 
         # only constraint on type
         elsif nqp::eqaddr(keyof,Str(Any)) {
-            my $what := hash.^mixin(Hash::Typed[of]);
+            my $what := hash.^mixin(Hash::Typed[of, default]);
              # needs to be done in COMPOSE phaser when that works
-            $what.^set_name:
-              hash.^name ~ '[' ~ of.^name ~ ']';
+            my $name = hash.^name ~ '[' ~ of.^name;
+            $name ~= (',Str(Any),' ~ default.^name)
+              unless nqp::eqaddr(default,of);
+            $what.^set_name: "$name]";
             $what
         }
 
@@ -499,10 +508,11 @@ my class Hash { # declared in BOOTSTRAP
 
         # a true object hash
         else {
-            my $what := hash.^mixin(Hash::Object[of, keyof]);
+            my $what := hash.^mixin(Hash::Object[of, keyof, default]);
             # needs to be done in COMPOSE phaser when that works
-            $what.^set_name:
-              hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name ~ ']';
+            my $name = hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name;
+            $name ~= (',' ~ default.^name) unless nqp::eqaddr(default,of);
+            $what.^set_name: "$name]";
             $what
         }
     }

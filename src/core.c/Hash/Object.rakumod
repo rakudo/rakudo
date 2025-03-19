@@ -1,10 +1,11 @@
-my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
+my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
+  does Associative[TValue] {
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {
         nqp::p6bindattrinvres(
           nqp::create(self),Hash,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TValue))
+          ContainerDescriptor.new(:of(TValue), :default(TDefault))
         )
     }
     method keyof () { TKey }

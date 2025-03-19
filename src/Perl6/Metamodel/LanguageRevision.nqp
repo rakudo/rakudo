@@ -30,9 +30,11 @@ role Perl6::Metamodel::LanguageRevision
             # may not represent the CORE's revision. But the World's
             # instance knows it.
             # TODO RakuAST needs different approach.
-            nqp::push(@lang-ver, $*COMPILING_CORE_SETTING && $*W
-              ?? $*W.setting_revision
-              !! $comp.language_revision
+            nqp::push(
+                @lang-ver,
+                $*COMPILING_CORE_SETTING
+                ?? $*W ?? $*W.setting_revision !! $*COMPILING_CORE_SETTING
+                !! $comp.language_revision
             );
         }
         else {

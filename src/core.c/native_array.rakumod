@@ -122,7 +122,7 @@ my class array is Cool does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2025-02-09T14:09:02+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -172,13 +172,13 @@ my class array is Cool does Iterable does Positional {
             $result.Seq
         }
 
-        multi method head(strarray:D:) {
+        multi method head(strarray:D:) is raw {
             nqp::atposref_s(self,0)
         }
-        multi method tail(strarray:D:) {
+        multi method tail(strarray:D:) is raw {
             nqp::atposref_s(self,nqp::sub_i(nqp::elems(self),1))
         }
-        multi method first(strarray:D:) {
+        multi method first(strarray:D:) is raw {
             nqp::atposref_s(self,0)
         }
         multi method first(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v) {
@@ -748,7 +748,7 @@ my class array is Cool does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2025-02-09T14:09:02+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -798,13 +798,13 @@ my class array is Cool does Iterable does Positional {
             $result.Seq
         }
 
-        multi method head(intarray:D:) {
+        multi method head(intarray:D:) is raw {
             nqp::atposref_i(self,0)
         }
-        multi method tail(intarray:D:) {
+        multi method tail(intarray:D:) is raw {
             nqp::atposref_i(self,nqp::sub_i(nqp::elems(self),1))
         }
-        multi method first(intarray:D:) {
+        multi method first(intarray:D:) is raw {
             nqp::atposref_i(self,0)
         }
         multi method first(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
@@ -1416,7 +1416,7 @@ my class array is Cool does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2025-02-09T14:09:02+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1466,13 +1466,13 @@ my class array is Cool does Iterable does Positional {
             $result.Seq
         }
 
-        multi method head(uintarray:D:) {
+        multi method head(uintarray:D:) is raw {
             nqp::atposref_u(self,0)
         }
-        multi method tail(uintarray:D:) {
+        multi method tail(uintarray:D:) is raw {
             nqp::atposref_u(self,nqp::sub_i(nqp::elems(self),1))
         }
-        multi method first(uintarray:D:) {
+        multi method first(uintarray:D:) is raw {
             nqp::atposref_u(self,0)
         }
         multi method first(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
@@ -2084,7 +2084,7 @@ my class array is Cool does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2025-02-09T14:09:02+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2134,13 +2134,13 @@ my class array is Cool does Iterable does Positional {
             $result.Seq
         }
 
-        multi method head(numarray:D:) {
+        multi method head(numarray:D:) is raw {
             nqp::atposref_n(self,0)
         }
-        multi method tail(numarray:D:) {
+        multi method tail(numarray:D:) is raw {
             nqp::atposref_n(self,nqp::sub_i(nqp::elems(self),1))
         }
-        multi method first(numarray:D:) {
+        multi method first(numarray:D:) is raw {
             nqp::atposref_n(self,0)
         }
         multi method first(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v) {

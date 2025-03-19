@@ -1882,14 +1882,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<race> {
         <.stmt-prefix-race> <.kok> <blorst>
     }
-
     # Prefixes that allow "whenever" inside them
+    token stub-wheneverable($*WHENEVERABLE-TYPE) { <?> }
     token statement-prefix:sym<react> {
         :my $*WHENEVER-COUNT := 0;
+        :my $*WHENEVERABLE;
+        <.stub-wheneverable('React')>
         <.stmt-prefix-react> <.kok> <blorst>
     }
     token statement-prefix:sym<supply> {
         :my $*WHENEVER-COUNT := 0;
+        :my $*WHENEVERABLE;
+        <.stub-wheneverable('Supply')>
         <.stmt-prefix-supply> <.kok> <blorst>
     }
 

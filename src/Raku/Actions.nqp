@@ -974,9 +974,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<gather>($/)  { self.SP-prefix($/, 'Gather')  }
     method statement-prefix:sym<once>($/)    { self.SP-prefix($/, 'Once')    }
     method statement-prefix:sym<quietly>($/) { self.SP-prefix($/, 'Quietly') }
-    method statement-prefix:sym<react>($/)   { self.SP-prefix($/, 'React')   }
+    method statement-prefix:sym<react>($/)   {
+        my $sp := $*WHENEVERABLE;
+        $sp.replace-blorst($<blorst>.ast);
+        $*R.pop-attach-target($sp);
+        self.attach: $/, $sp;
+    }
     method statement-prefix:sym<start>($/)   { self.SP-prefix($/, 'Start')   }
-    method statement-prefix:sym<supply>($/)  { self.SP-prefix($/, 'Supply')  }
+    method stub-wheneverable($/) {
+        my $wheneverable := Nodify('StatementPrefix', $*WHENEVERABLE-TYPE).new;
+        $*R.push-attach-target($wheneverable);
+        $*WHENEVERABLE := $wheneverable;
+    }
+    method statement-prefix:sym<supply>($/)   {
+        my $sp := $*WHENEVERABLE;
+        $sp.replace-blorst($<blorst>.ast);
+        $*R.pop-attach-target($sp);
+        self.attach: $/, $sp;
+    }
     method statement-prefix:sym<try>($/)     { self.SP-prefix($/, 'Try')     }
 
     # Helper method for statement prefixes that modify for loops

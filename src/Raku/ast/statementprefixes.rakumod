@@ -444,14 +444,47 @@ class RakuAST::StatementPrefix::Start
 # # Base class for prefixes that can have whenevers in them
 class RakuAST::StatementPrefix::Wheneverable
   is RakuAST::StatementPrefix::Blorst
+  is RakuAST::AttachTarget
 {
+    has List $!whenevers;
+
+    method new(RakuAST::Blorst $blorst?) {
+        my $obj := nqp::create(self);
+        unless self.allowed-on-for-statement {
+            if nqp::istype($blorst, RakuAST::Statement::For) {
+                nqp::die('Do not use this statement prefix on a RakuAST::Statement::For; ' ~
+                    'instead, set the mode on that node');
+            }
+        }
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst // RakuAST::Blorst);
+        $obj
+    }
+
+    method replace-blorst(RakuAST::Blorst $blorst) {
+        nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $blorst);
+    }
+
+    method attach-target-names() {
+        ['wheneverable']
+    }
+
+    method IMPL-WHENEVER-COUNT() {
+        nqp::isconcrete($!whenevers) ?? nqp::elems($!whenevers) !! 0;
+    }
+
+    method IMPL-ADD-WHENEVER(RakuAST::Statement::Whenever $whenever) {
+        unless nqp::isconcrete($!whenevers) {
+            nqp::bindattr(self, RakuAST::StatementPrefix::Wheneverable, '$!whenevers', []);
+        }
+        nqp::push($!whenevers, $whenever);
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $name := '&' ~ nqp::uc(self.type);
         my $blorst   := self.blorst;
-        if $context.language-revision > 1 {
+        if $context.language-revision > 1 && self.IMPL-WHENEVER-COUNT == 1 {
             if nqp::istype($blorst, RakuAST::Statement::Whenever) {
-                $name := $name ~ '-ONE-WHENEVER'
-                  unless $blorst.body.any-whenevers;
+                $name := $name ~ '-ONE-WHENEVER';
             }
             else {
                 $name := $name ~ '-ONE-WHENEVER'

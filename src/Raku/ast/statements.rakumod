@@ -1594,6 +1594,7 @@ class RakuAST::Statement::Whenever
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::ParseTime
 {
     has RakuAST::Expression $.trigger;
     has RakuAST::Block      $.body;
@@ -1617,6 +1618,13 @@ class RakuAST::Statement::Whenever
 
     method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(True, :required);
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $wheneverable := $resolver.find-attach-target('wheneverable');
+        if $wheneverable {
+            $wheneverable.IMPL-ADD-WHENEVER(self);
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

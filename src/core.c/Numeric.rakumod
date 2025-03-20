@@ -245,7 +245,7 @@ proto sub infix:<div>($, $, *%) is pure  {*}
 
 proto sub infix:<%>($?, $?, *%) is pure   {*}
 multi sub infix:<%>() { "infix:<%>".no-zero-arg }
-multi sub infix:<%>($x) { $x }
+multi sub infix:<%>($x) { $x.Numeric }
 multi sub infix:<%>(\a, \b) {
     Rakudo::Internals.compare-as-Real(&[%], a, b)
 }

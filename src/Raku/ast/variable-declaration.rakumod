@@ -2135,6 +2135,14 @@ class RakuAST::VarDeclaration::Implicit::Constant
     }
 }
 
+# An enum value, e.g. "a" and "b" from enum Foo <a b>
+# Is just a constant but we're using the subclass to identify them and
+# apply special handling on conflicts.
+class RakuAST::VarDeclaration::Implicit::EnumValue
+  is RakuAST::VarDeclaration::Implicit::Constant
+{
+}
+
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
   is RakuAST::VarDeclaration

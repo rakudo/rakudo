@@ -631,6 +631,16 @@ class RakuAST::Declaration::Mergeable {
         elsif nqp::can($other, 'lexical-name') && $other.lexical-name eq '%?REQUIRE-SYMBOLS' {
             # Nothing to do - the existing symbol suffices
         }
+        elsif nqp::istype($other, RakuAST::VarDeclaration::Implicit::EnumValue) {
+            self.set-value(
+                $resolver.build-exception(
+                    'X::PoisonedAlias',
+                    :alias(self.lexical-name),
+                    :package-type<enum>,
+                    :package-name($other.value.HOW.name($other.value)),
+                ).Failure
+            );
+        }
         else {
             $resolver.panic(
                 $resolver.build-exception(

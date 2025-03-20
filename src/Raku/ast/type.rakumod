@@ -753,8 +753,9 @@ class RakuAST::Type::Enum
             # Declare these values into the lexical scope
             # TODO: Bind an X::PoisonedAlias when a lexical already exists
             #   (Which is tricky, because base only does it when there is a clash in the current lexpad...)
-            $resolver.current-scope.add-generated-lexical-declaration:
-                RakuAST::VarDeclaration::Implicit::Constant.new(
+            $resolver.current-scope.merge-generated-lexical-declaration:
+                :resolver($resolver),
+                RakuAST::VarDeclaration::Implicit::EnumValue.new(
                     :name($key),
                     :scope(self.scope),
                     :value($val-meta)

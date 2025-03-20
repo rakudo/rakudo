@@ -79,6 +79,10 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!resolver', $resolver);
 
+        if $*COMPILING_CORE_SETTING {
+            Perl6::Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
+        }
+
         # If CompUnit's language revision is not set explicitly then guess it
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
           $language-revision := $language-revision

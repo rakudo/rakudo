@@ -354,17 +354,16 @@ class RakuAST::Node {
             $list
         }
         elsif nqp::istype($list, List) {
-            my $reified := nqp::getattr($list, List, '$!reified');
-            nqp::isconcrete($reified)
-                ?? $reified
-                !! nqp::if(
-                    nqp::isconcrete(nqp::getattr($list, List, '$!todo')),
-                    nqp::stmts(
-                        nqp::getattr($list, List, '$!todo').reify-all,
-                        nqp::getattr($list, List, '$!reified')
-                    ),
-                    nqp::bindattr($list, List, '$!reified', nqp::create(IterationBuffer))
-                )
+            my $todo := nqp::getattr($list, List, '$!todo');
+            if nqp::isconcrete($todo) {
+                $todo.reify-all;
+                nqp::getattr($list, List, '$!reified')
+            }
+            else {
+                nqp::isconcrete(nqp::getattr($list, List, '$!reified'))
+                    ?? nqp::getattr($list, List, '$!reified')
+                    !! nqp::bindattr($list, List, '$!reified', nqp::create(IterationBuffer));
+            }
         }
         else {
             nqp::list($list)

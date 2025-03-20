@@ -464,7 +464,9 @@ class RakuAST::Resolver {
             nqp::die("Could not find setting revision $setting-rev trying to look up $name");
         }
         else {
-            self.resolve-lexical-constant-in-context($!setting, $name)
+            $!setting
+                ?? self.resolve-lexical-constant-in-context($!setting, $name)
+                !! self.resolve-lexical-constant($name) # Compiling CORE.setting
         }
     }
 
@@ -918,7 +920,7 @@ class RakuAST::Resolver::Compile
     # version.
     method from-setting(Str :$setting-name!) {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting := $loader.load_setting($setting-name);
+        my $setting := $setting-name eq 'NULL.c' ?? nqp::null !! $loader.load_setting($setting-name);
         # We can't actually have the global yet, since the resolver is
         # needed in order to look up the package meta-object used to
         # create it. Thus it's set later.

@@ -42,7 +42,8 @@ my class Code { # declared in BOOTSTRAP
     }
 
     method outer(Code:D:) {
-        nqp::ifnull(nqp::getcodeobj(nqp::p6staticouter($!do)), Mu)
+        my $outer := nqp::p6staticouter($!do);
+        nqp::if(nqp::isnull($outer), Mu, nqp::ifnull(nqp::getcodeobj($outer), Mu))
     }
 
     # returns an identifier for this code object

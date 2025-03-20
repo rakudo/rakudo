@@ -1691,13 +1691,20 @@ class RakuAST::PointyBlock
         if $signature.meta-object.has_returns {
             my $Callable :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
-            $block.HOW.mixin(
-              $block,
-              $Callable.HOW.parameterize(
-                $Callable,
-                $signature.meta-object.returns
-              )
-            );
+            {
+                $block.HOW.mixin(
+                  $block,
+                  $Callable.HOW.parameterize(
+                    $Callable,
+                    $signature.meta-object.returns
+                  )
+                );
+                CATCH {
+                    unless $*COMPILING_CORE_SETTING {
+                        nqp::die($_);
+                    }
+                }
+            }
         }
         $block
     }
@@ -1855,13 +1862,20 @@ class RakuAST::Routine
         if $signature.meta-object.has_returns {
             my $Callable :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
-            $routine.HOW.mixin(
-              $routine,
-              $Callable.HOW.parameterize(
-                $Callable,
-                $signature.meta-object.returns
-              )
-            );
+            {
+                $routine.HOW.mixin(
+                  $routine,
+                  $Callable.HOW.parameterize(
+                    $Callable,
+                    $signature.meta-object.returns
+                  )
+                );
+                CATCH {
+                    unless $*COMPILING_CORE_SETTING {
+                        nqp::die($_);
+                    }
+                }
+            }
         }
 
         if nqp::istype(self.body, RakuAST::OnlyStar) && !nqp::istype(self, RakuAST::RegexDeclaration) {

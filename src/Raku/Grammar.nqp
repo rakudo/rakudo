@@ -1250,6 +1250,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              $*R.enter-scope($*CU);
              $*R.create-scope-implicits();
              self.actions.load-M-modules($/);
+             self.actions.load-bootstrap($/);
         }
 
         # Perform the actual parsing of the code, using origin tracking

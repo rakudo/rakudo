@@ -166,6 +166,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my %OPTIONS       := %*OPTIONS;
         my $context       := %OPTIONS<outer_ctx>;
         my $resolver-type := Nodify('Resolver', 'Compile');
+
+        my $setting-name := %OPTIONS<setting>;
+        if nqp::eqat($setting-name, 'NULL.', 0) {
+            my $comp := nqp::getcomp('Raku');
+            my $default_revision := $comp.language_revision;
+            my $setting_revision := $comp.lvs.internal-from-p6: nqp::substr($setting-name, 5, 1);
+            # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
+            # default only core.e will be compiled with 6.e compiler.
+            nqp::getcomp('Raku').set_language_revision(
+                $setting_revision > $default_revision
+                    ?? $setting_revision
+                    !! $default_revision );
+        }
+
         my $RESOLVER := $*R := nqp::isconcrete($context)
           ?? $resolver-type.from-context(
                :$context, :global(%OPTIONS<global>), :resolver($*OUTER-RESOLVER)
@@ -226,8 +240,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $*R.set-setting(:setting-name($loader.previous_setting_name($setting-name)));
                 }
                 else {
-                    # TODO CORE.c is being compiled. What resolver is to be used?
-                    nqp::die("Can't compiler CORE.c yet");
                 }
             }
 
@@ -350,15 +362,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # No version seen and not in an EVAL
-        elsif !$is-EVAL {
+        elsif !$is-EVAL && !$*COMPILING_CORE_SETTING {
             resolver-from-revision();
         }
 
         # Locate an EXPORTHOW and set those mappings on our current language.
-        my $EXPORTHOW :=
-          $RESOLVER.resolve-lexical-constant('EXPORTHOW').compile-time-value;
-        for stash-hash($EXPORTHOW) {
-            $LANG.set_how($_.key, $_.value);
+        my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');
+        if $EXPORTHOW {
+            for stash-hash($EXPORTHOW.compile-time-value) {
+                $LANG.set_how($_.key, $_.value);
+            }
         }
 
         my $package-how    := $LANG.how('package');
@@ -484,6 +497,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast.add-statement: $use;
         }
         self.attach: $/, $ast;
+    }
+
+    # Only needed for compiling CORE.setting
+    method load-bootstrap($/) {
+        unless $*R.setting {
+            my $name := "Perl6::BOOTSTRAP::v6c";
+            my $module := nqp::gethllsym('Raku', 'ModuleLoader').load_module($name, {},
+                $*R.get-global);
+            my $EXPORT := $module<EXPORT>.WHO;
+            Nodify('Statement', 'Import').IMPL-IMPORT-ONE($*R, $EXPORT<DEFAULT>.WHO);
+            my $LANG := $*LANG;
+            for $module<EXPORTHOW>.WHO {
+                my str $key := $_.key;
+                $LANG.set_how($key, nqp::decont($_.value));
+            }
+        }
     }
 
 #-------------------------------------------------------------------------------

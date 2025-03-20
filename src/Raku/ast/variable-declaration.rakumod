@@ -335,7 +335,7 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PRODUCE-META-OBJECT() {
-        my $Variable  := self.get-implicit-lookups.AT-POS(0).compile-time-value;
+        my $Variable  := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
         my $varvar := nqp::create($Variable);
         nqp::bindattr_s($varvar, $Variable, '$!name', $!name);
         nqp::bindattr_s($varvar, $Variable, '$!scope', $!scope);
@@ -426,10 +426,10 @@ class RakuAST::VarDeclaration::Constant
             $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-VALUE-TYPE.meta-object !! Mu }));
         $value := $value.Map
             if nqp::eqat($!name,'%',0)
-            && !nqp::istype($value, self.get-implicit-lookups.AT-POS(0).meta-object);
+            && !nqp::istype($value, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].meta-object);
         $value := $value.cache
             if nqp::eqat($!name, '@', 0)
-            && !nqp::istype($value, self.get-implicit-lookups.AT-POS(0).meta-object);
+            && !nqp::istype($value, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].meta-object);
         $!initializer.IMPL-THUNK-EXPRESSION($resolver, $context);
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 
@@ -440,10 +440,11 @@ class RakuAST::VarDeclaration::Constant
               $resolver.current-package
             );
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
-            if $!package.WHO.EXISTS-KEY($name) {
+            my $stash := $resolver.IMPL-STASH-HASH($!package);
+            if nqp::existskey($stash, $name) {
                 nqp::die("already have an 'our constant $name' in the package");
             }
-            $!package.WHO.BIND-KEY($name, $!value);
+            nqp::bindkey($stash, $name, $!value);
         }
 
         self.apply-traits(
@@ -462,7 +463,7 @@ class RakuAST::VarDeclaration::Constant
             self.add-sorry: $resolver.build-exception('X::ParametricConstant');
         }
 
-        my $type := self.get-implicit-lookups.AT-POS(0);
+        my $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
         if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) && !nqp::objprimspec($type.meta-object) {
             unless nqp::istype($!value, $type.meta-object) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
@@ -682,7 +683,7 @@ class RakuAST::VarDeclaration::Simple
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
             return True unless nqp::objprimspec(
-              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
             );
         }
         False
@@ -724,7 +725,7 @@ class RakuAST::VarDeclaration::Simple
             ?? (nqp::istype($!type, RakuAST::Lookup)
                 ?? ($!type.is-resolved
                     ?? $!type
-                    !! self.get-implicit-lookups.AT-POS(0)
+                    !! self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0]
                 ).resolution
                 !! $!type
              ).compile-time-value
@@ -834,7 +835,7 @@ class RakuAST::VarDeclaration::Simple
 
         my $subset;
         if my $where := $!where {
-            my $type := $of-type // self.get-implicit-lookups.AT-POS(0);
+            my $type := $of-type // self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             my $type-name := $type ?? $type.name.canonicalize !! "Mu";
             my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
             $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type ?? RakuAST::Trait::Of.new($type) !! Mu), :$where;
@@ -1110,7 +1111,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method IMPL-SIGIL-TYPE() {
-       self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value
     }
 
     method PRODUCE-META-OBJECT() {
@@ -1150,7 +1151,7 @@ class RakuAST::VarDeclaration::Simple
               # For classes package would be just $!attribute-package.compile-time-value
               # but for roles we have to use the $?CLASS generic to defer instantiation
               # to consuming class' compose times.
-              package               => self.get-implicit-lookups.AT-POS(3).resolution.maybe-compile-time-value,
+              package               => self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[3].resolution.maybe-compile-time-value,
               container_initializer => $!container-initializer,
             );
             nqp::bindattr_i($meta-object,$meta-object.WHAT,'$!inlined',1)
@@ -1276,7 +1277,7 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my $lookups := self.get-implicit-lookups;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my str $name := self.name;
         my $qast;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
@@ -1403,7 +1404,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            $qast := $lookups.AT-POS(1).IMPL-TO-QAST($context)
+            $qast := $lookups[1].IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");
@@ -2262,7 +2263,7 @@ class RakuAST::VarDeclaration::Implicit::State
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
         if $!init-to-zero {
-            my $Int := self.get-implicit-lookups.AT-POS(0).compile-time-value;
+            my $Int := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
             nqp::bindattr($container, Scalar, '$!value', nqp::box_i(0, $Int));
         } else {
             nqp::bindattr($container, Scalar, '$!value', $descriptor.default);

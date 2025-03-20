@@ -279,7 +279,7 @@ class RakuAST::Name
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
         my @parts := self.IMPL-LOOKUP-PARTS;
         my $final := @parts[nqp::elems(@parts) - 1];
-        my $PseudoStash-lookup := self.get-implicit-lookups.AT-POS(1);
+        my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         my $result;
         if $*IMPL-COMPILE-DYNAMICALLY && $!parts[0].name eq 'CORE' {
             nqp::shift($!parts); #FIXME don't modify please
@@ -345,14 +345,14 @@ class RakuAST::Name
     method IMPL-QAST-INDIRECT-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
         my @parts   := self.IMPL-LOOKUP-PARTS;
         my $final   := @parts[nqp::elems(@parts) - 1];
-        my $lookups := self.get-implicit-lookups;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $result  := QAST::Op.new(
             :op<call>,
-            $lookups.AT-POS(0).IMPL-TO-QAST($context),
+            $lookups[0].IMPL-TO-QAST($context),
             QAST::Op.new(
                 :op<callmethod>,
                 :name<new>,
-                $lookups.AT-POS(1).IMPL-TO-QAST($context),
+                $lookups[1].IMPL-TO-QAST($context),
             ),
         );
         nqp::push($result, QAST::SVal.new(:value($sigil))) if $sigil;

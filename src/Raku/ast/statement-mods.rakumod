@@ -33,7 +33,7 @@ class RakuAST::StatementModifier::Condition
     }
 
     method IMPL-EMPTY(RakuAST::IMPL::QASTContext $context) {
-        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
     }
 
     method expression-thunk() {
@@ -236,7 +236,7 @@ class RakuAST::StatementModifier::WhileUntil
             )
         }
         else {
-            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
             QAST::Op.new(:op<callmethod>, :name('from-loop'),
                 $Seq,
                 $statement-qast,

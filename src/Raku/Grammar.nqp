@@ -5130,7 +5130,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
                 my $ast := $<EXPR>.ast;
                 if nqp::istype($ast,$actions.r('ApplyListInfix')) {
-                    for $ast.operands.FLATTENABLE_LIST {
+                    my $operands := $ast.operands;
+                    for nqp::getattr($operands, $operands.WHAT, '$!reified') {
                         handle-any-named($_);
                     }
                 }

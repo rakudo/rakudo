@@ -346,7 +346,17 @@ class RakuAST::Resolver {
             );
         }
 
-        $partial ?? ($symbol, List.new, 'lexical') !! $resolved
+        $partial
+            ?? (
+                $symbol,
+                nqp::stmts(
+                    (my $list := nqp::create(List)),
+                    nqp::bindattr($list, List, '$!reified', nqp::create(IterationBuffer)),
+                    $list
+                ),
+                'lexical'
+            )
+            !! $resolved
     }
 
     # Resolve a RakuAST::Name to a constant.
@@ -358,7 +368,7 @@ class RakuAST::Resolver {
     method IMPL-STASH-HASH(Mu $pkg) {
         nqp::ishash(my $hash := $pkg.WHO)
           ?? $hash
-          !! $hash.FLATTENABLE_HASH()
+          !! nqp::getattr($hash, Map, '$!storage')
     }
 
     # Resolves a lexical in the chain of outer contexts.
@@ -594,8 +604,8 @@ class RakuAST::Resolver {
     method produce-compilation-exception(Any :$panic) {
         my $sorries := self.all-sorries;
         my $worries := self.all-worries;
-        my int $num-sorries := $sorries.elems;
-        my int $num-worries := $worries.elems;
+        my int $num-sorries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
+        my int $num-worries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($worries));
 
         if $panic && $num-sorries == 0 && $num-worries == 0 {
             # There's just the panic, so return it without an enclosing group.

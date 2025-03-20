@@ -1037,7 +1037,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if (nqp::istype(        # [foo]
                     $postfix,
                     Nodify('Postcircumfix','ArrayIndex')
-                  ) && $postfix.index.statements.elems == 1
+                  ) && nqp::elems($postfix.IMPL-UNWRAP-LIST($postfix.index.statements)) == 1
                 ) || nqp::istype(       # <bar>
                        $postfix,
                        Nodify('Postcircumfix','LiteralHashIndex')

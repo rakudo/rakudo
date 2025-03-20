@@ -41,7 +41,7 @@ class RakuAST::Label
 
     method PRODUCE-META-OBJECT() {
         my $label-type :=
-          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
         # TODO line, prematch, postmatch
         $label-type.new(:name($!name), :line(0), :prematch(''), :postmatch(''))
     }
@@ -328,7 +328,7 @@ class RakuAST::StatementList
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := self.IMPL-NON-EMPTY-CODE-STATEMENTS;
-        my $Nil := self.get-implicit-lookups.AT-POS(1);
+        my $Nil := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
             my $stmt-orig := $_.origin;
@@ -340,7 +340,7 @@ class RakuAST::StatementList
             }
             if $_.trace && nqp::isconcrete($stmt-orig) && !$*CU.precompilation-mode {
                 my $Blob :=
-                  self.get-implicit-lookups.AT-POS(0).compile-time-value;
+                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
                 $context.ensure-sc($Blob);
                 my $line := $stmt-orig.source.original-line($stmt-orig.from);
                 my $file := $stmt-orig.source.original-file;
@@ -431,7 +431,7 @@ class RakuAST::StatementList
         $!is-sunk
           || !@statements
           || @statements[nqp::elems(@statements) - 1].IMPL-DISCARD-RESULT
-            ?? self.get-implicit-lookups.AT-POS(1).compile-time-value
+            ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
             !! $result
     }
 }
@@ -479,7 +479,7 @@ class RakuAST::SemiList
         }
         else {
             my $name :=
-              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
             my $list := QAST::Op.new(:op('call'), :$name);
             for @statements {
                 $list.push($_.IMPL-TO-QAST($context));
@@ -532,7 +532,7 @@ class RakuAST::StatementSequence
         }
         elsif $n == 0 {
             my $name :=
-              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
             QAST::Op.new(:op('call'), :$name);
         }
         else {
@@ -556,7 +556,7 @@ class RakuAST::ProducesNil
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
     }
 }
 
@@ -849,7 +849,7 @@ class RakuAST::Statement::IfWith
         }
         else {
             $cur-end :=
-              self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context);
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
         }
 
         # Add the branches.
@@ -987,7 +987,7 @@ class RakuAST::Statement::Unless
             :op('unless'),
             $!condition.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context, :immediate),
-            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         )
     }
 
@@ -1041,7 +1041,7 @@ class RakuAST::Statement::Without
             :op('without'),
             $!condition.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context, :immediate),
-            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         )
     }
 
@@ -1230,14 +1230,14 @@ class RakuAST::Statement::Loop
             }
             unless self.sunk {
                 $wrapper.push(
-                  self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
                 );
             }
 
             $wrapper
         }
         elsif ($!condition || $!increment) {
-            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
             my $while := !self.negate;
             if (!$!increment && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
                 my $qast := QAST::Stmts.new;
@@ -1254,7 +1254,7 @@ class RakuAST::Statement::Loop
                 $qast
             }
             else {
-                my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+                my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
                 my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
                     $Seq,
                     $!body.IMPL-TO-QAST($context),
@@ -1289,7 +1289,7 @@ class RakuAST::Statement::Loop
             }
         }
         else {
-            my $Seq := self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context);
+            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
             # In theory we could use the from-loop candidate without condition
             # for plain loop but that would create a lazy loop and for unknown
             # reason the old implementation didn't go that route.
@@ -1572,7 +1572,7 @@ class RakuAST::Statement::When
         my $sm-qast := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
             $!condition.IMPL-TO-QAST($context),
-            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         );
         QAST::Op.new(
             :op('if'),

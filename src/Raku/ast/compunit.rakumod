@@ -341,9 +341,10 @@ class RakuAST::CompUnit
                     $check-phaser();
                 }
                 CATCH {
+                    my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                     my $exception := $_;
-                    my $BeginTime := self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value;
-                    my $coercer := self.get-implicit-lookups.AT-POS(3).resolution.compile-time-value;
+                    my $BeginTime := $lookups[2].resolution.compile-time-value;
+                    my $coercer := $lookups[3].resolution.compile-time-value;
                     $exception := $coercer($_);
                     my $wrapped := $BeginTime.new(:$exception, :use-case('evaluating a CHECK'));
                     if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check) && (my $origin := $check-phaser.origin) {
@@ -370,7 +371,7 @@ class RakuAST::CompUnit
     }
 
     method IMPL-FATALIZE {
-        self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -492,7 +493,7 @@ class RakuAST::CompUnit
             :post_deserialize($context.is-nested ?? [] !! $context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context) )),
+                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations
             # have occurred.

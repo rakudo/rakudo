@@ -123,7 +123,7 @@ class RakuAST::Trait
             }
             $args.IMPL-BEGIN($resolver, $context);
             $target.IMPL-BEGIN-TIME-CALL(
-              self.get-implicit-lookups.AT-POS(0),
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0],
               $args,
               $resolver,
               $context

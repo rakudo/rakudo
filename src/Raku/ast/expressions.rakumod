@@ -548,7 +548,7 @@ class RakuAST::Infix
             && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
         {
             my $match-type :=
-              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
             my $result-local := QAST::Node.unique('!sm-result');
             my $rhs := $right.IMPL-EXPR-QAST($context);
 
@@ -614,7 +614,7 @@ class RakuAST::Infix
             }
             $op.push(QAST::WVal.new(
                 :named('false'),
-                :value(self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value))
+                :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value))
             );
             $op
         }
@@ -899,7 +899,7 @@ class RakuAST::FlipFlop
                               Mu $rhs
     ) {
         # Need various constants.
-        my $Int   := self.get-implicit-lookups.AT-POS(3).compile-time-value;
+        my $Int   := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[3].compile-time-value;
         my $Int-zero := $Int.new(0);
         my $Int-one  := $Int.new(1);
         $context.ensure-sc($Int-zero);
@@ -907,13 +907,13 @@ class RakuAST::FlipFlop
 
         my $zero  := QAST::Want.new( QAST::WVal.new(:value($Int-zero), :returns($Int-zero.WHAT)), 'Ii', QAST::IVal.new(:value(0)) );
         my $one   := QAST::Want.new( QAST::WVal.new(:value($Int-one), :returns($Int-one.WHAT)), 'Ii', QAST::IVal.new(:value(1)) );
-        my $nil   := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(0).compile-time-value) );
-        my $true  := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(1).compile-time-value) );
-        my $false := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(2).compile-time-value) );
+        my $nil   := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value) );
+        my $true  := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value) );
+        my $false := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].compile-time-value) );
         my $topic := QAST::Var.new( :name<$_>, :scope<lexical> );
 
         # Twiddle to make special-case RHS * work.
-        my $Whatever := self.get-implicit-lookups.AT-POS(4).compile-time-value;
+        my $Whatever := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[4].compile-time-value;
         if nqp::istype($rhs.returns, $Whatever) {
             $rhs := $false;
         }
@@ -1247,7 +1247,7 @@ class RakuAST::MetaInfix::Assign
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1346,7 +1346,7 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1407,7 +1407,7 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -1524,7 +1524,7 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1616,7 +1616,7 @@ class RakuAST::MetaInfix::Zip
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1709,7 +1709,7 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-OPERATOR() {
-        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {

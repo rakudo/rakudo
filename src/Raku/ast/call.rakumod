@@ -286,7 +286,7 @@ class RakuAST::Call::Name
         }
 
         if !$resolved && $!name.is-multi-part {
-            my $resolved := $resolver.resolve-lexical-constant($!name.parts.AT-POS(0).name);
+            my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
             if $resolved {
                 nqp::bindattr(self, RakuAST::Call::Name, '$!lexical', $resolved);
             }
@@ -671,7 +671,7 @@ class RakuAST::Call::Method
 # determining whether the type actually exists in this scope (throwing
 # a X::Method::InvalidQualifier).  The resolution below will die if the
 # type object cannot be found, deviating from base.
-                my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
                 $context.ensure-sc($Qualified);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
@@ -724,7 +724,7 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($name) );
             }
             else {
-                my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
                 $context.ensure-sc($Qualified);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
@@ -1231,7 +1231,7 @@ class RakuAST::Stub
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
-          self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         );
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);

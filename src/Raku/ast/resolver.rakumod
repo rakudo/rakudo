@@ -715,7 +715,7 @@ class RakuAST::Resolver {
                 }
             }
             if nqp::elems(%routines) == 0 && nqp::elems(%types) == 1 {
-                for %routines {
+                for %types {
                     @exceptions.push: self.build-exception: 'X::Undeclared',
                         :$filename,
                         :what<Type>,

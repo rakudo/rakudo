@@ -311,7 +311,10 @@ class RakuAST::QuotedString
                 $part := @parts;
             }
             elsif $_ eq 'val' {
-                my $val := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                my $val := $val-lookup.is-resolved
+                    ?? $val-lookup.resolution.compile-time-value
+                    !! -> $val { $val };
                 $part := $val(nqp::hllizefor($part, 'Raku'));
             }
             elsif $_ eq 'heredoc' {

@@ -267,13 +267,36 @@ class RakuAST::QuotedString
         }
     }
 
+    method IMPL-WORDS-AUTODEREF(str $str) {
+        my $result := nqp::list();
+        my int $pos := 0;
+        my int $eos := nqp::chars($str);
+        my int $ws;
+        my $nbsp := nqp::hash(
+            "\x00A0", True,
+            "\x2007", True,
+            "\x202F", True,
+            "\xFEFF", True,
+        );
+        while ($pos := nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $str, $pos, $eos)) < $eos {
+            # Search for another white space character as long as we hit non-breakable spaces.
+            $ws := $pos;
+            $ws++ while nqp::existskey($nbsp,
+                nqp::substr($str, $ws := nqp::findcclass(nqp::const::CCLASS_WHITESPACE,
+                    $str, $ws, $eos), 1));
+            nqp::push($result, nqp::substr($str, $pos, $ws - $pos));
+            $pos := $ws;
+        }
+        $result
+    }
+
     method IMPL-PROCESS-PART($result, $part) {
         return Nil if $part =:= Nil;
         for $!processors {
             if $_ eq 'words' {
                 return Nil unless nqp::istype($part, Str);
                 my @parts;
-                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                for self.IMPL-WORDS-AUTODEREF($part) {
                     nqp::push(@parts, $_);
                 }
                 $part := @parts;
@@ -282,7 +305,7 @@ class RakuAST::QuotedString
                 return Nil unless nqp::istype($part, Str);
                 #TODO actually implement special handling of « »
                 my @parts;
-                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                for self.IMPL-WORDS-AUTODEREF($part) {
                     nqp::push(@parts, $_);
                 }
                 $part := @parts;

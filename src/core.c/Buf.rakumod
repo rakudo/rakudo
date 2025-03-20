@@ -14,7 +14,7 @@ enum Endian (
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
-#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2025-03-20T12:47:49+01:00 by tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -194,7 +194,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Blob Signed role ---------------------------------
 #- start of generated part of Blob Unsigned role -------------------------------
-#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2025-03-20T12:47:49+01:00 by tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -364,7 +364,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         my int $i     = -1;
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::push_s($list,nqp::atpos_u(self,$i))
+        nqp::push_s($list,nqp::atpos_u(self,$i).Str)
           while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)

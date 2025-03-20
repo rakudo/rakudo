@@ -22,10 +22,12 @@ my %type_mapper = (
   Signed => ( :name<SignedBlob>,
               :postfix<i>,
               :containerize(''),
+              :coerce(''),
             ).Map,
   Unsigned => ( :name<UnsignedBlob>,
                 :postfix<u>,
                 :containerize('my $ = '),
+                :coerce('.Str'),
               ).Map,
 );
 
@@ -224,7 +226,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
         my int $i     = -1;
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::push_s($list,nqp::atpos_#postfix#(self,$i))
+        nqp::push_s($list,nqp::atpos_#postfix#(self,$i)#coerce#)
           while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)

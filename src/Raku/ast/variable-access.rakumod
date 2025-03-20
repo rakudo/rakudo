@@ -248,9 +248,15 @@ class RakuAST::Var::Attribute
     method sigil() { nqp::substr($!name, 0, 1) }
 
     method can-be-bound-to() {
-        my $package := $!package.meta-object;
-        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
-        nqp::objprimspec($attr-type) ?? False !! True
+        # stubbed-meta-object gives you the type object without trying to compose it first.
+        my $package := $!package.stubbed-meta-object;
+        if $package.HOW.has_attribute($package, $!name) {
+            my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+            return nqp::objprimspec($attr-type) ?? False !! True
+        }
+
+        # Return True so we don't have multi error for a non-existent attribute.
+        True
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -268,7 +274,8 @@ class RakuAST::Var::Attribute
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $package := $!package.meta-object;
+        # stubbed-meta-object gives you the type object without trying to compose it first.
+        my $package := $!package.stubbed-meta-object;
 
         self.add-sorry: $resolver.build-exception: 'X::Attribute::Undeclared',
             :symbol($!name), :package-kind($!package.declarator), :package-name($package.HOW.name)
@@ -300,35 +307,41 @@ class RakuAST::Var::Attribute
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $package := $!package.meta-object;
-        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
-        QAST::Var.new(
-            :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
-            :name($!name), :returns($attr-type),
-            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context),
-            self.IMPL-QAST-PACKAGE-LOOKUP($context),
-        )
+        if $package.HOW.has_attribute($package, $!name) {
+            my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+            return QAST::Var.new(
+                :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
+                :name($!name), :returns($attr-type),
+                self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context),
+                self.IMPL-QAST-PACKAGE-LOOKUP($context)
+            )
+        }
+        QAST::Op.new(:op<null>)
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         my $package := $!package.meta-object;
-        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
-        unless nqp::eqaddr($attr-type, Mu) {
-            $context.ensure-sc($attr-type);
-            $source-qast := QAST::Op.new(
-                :op('p6bindassert'),
-                $source-qast,
-                QAST::WVal.new( :value($attr-type) )
-            );
+        if $package.HOW.has_attribute($package, $!name) {
+            my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+            unless nqp::eqaddr($attr-type, Mu) {
+                $context.ensure-sc($attr-type);
+                $source-qast := QAST::Op.new(
+                    :op('p6bindassert'),
+                    $source-qast,
+                    QAST::WVal.new( :value($attr-type) )
+                );
+            }
+            return QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new(
+                    :scope('attribute'), :name($!name), :returns($attr-type),
+                    self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context),
+                    self.IMPL-QAST-PACKAGE-LOOKUP($context)
+                ),
+                $source-qast
+            )
         }
-        QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new(
-                :scope('attribute'), :name($!name), :returns($attr-type),
-                self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context),
-                self.IMPL-QAST-PACKAGE-LOOKUP($context),
-            ),
-            $source-qast
-        )
+        QAST::Op.new(:op<null>)
     }
 }
 

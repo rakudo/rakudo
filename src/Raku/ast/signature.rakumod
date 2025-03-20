@@ -1105,7 +1105,9 @@ class RakuAST::Parameter
 
         # Apply possible is required trait
         my $meta-object := self.meta-object;
-        self.set-required unless $meta-object.optional || $meta-object.slurpy || $meta-object.capture;
+        self.set-required
+            if $meta-object.HOW.is_composed
+            && !($meta-object.optional || $meta-object.slurpy || $meta-object.capture);
 
         $!target.to-begin-time($resolver, $context) if $!target;
     }

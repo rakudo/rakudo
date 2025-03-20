@@ -705,12 +705,32 @@ class RakuAST::Resolver {
                 my @suggestions := self.suggest-routines($name);
                 %routine-suggestion{$name} := @suggestions;
             }
-            @exceptions.push: self.build-exception: 'X::Undeclared::Symbols',
-                :$filename,
-                :routine_suggestion(nqp::hllizefor(%routine-suggestion, 'Raku')),
-                :type_suggestion(nqp::hllizefor(%type-suggestion, 'Raku')),
-                :unk_types(nqp::hllizefor(%types, 'Raku')),
-                :unk_routines(nqp::hllizefor(%routines, 'Raku'));
+            if nqp::elems(%routines) == 1 && nqp::elems(%types) == 0 {
+                for %routines {
+                    @exceptions.push: self.build-exception: 'X::Undeclared',
+                        :$filename,
+                        :what<Routine>,
+                        :suggestions(nqp::hllizefor(%routine-suggestion, 'Raku')),
+                        :symbol($_.key),
+                }
+            }
+            if nqp::elems(%routines) == 0 && nqp::elems(%types) == 1 {
+                for %routines {
+                    @exceptions.push: self.build-exception: 'X::Undeclared',
+                        :$filename,
+                        :what<Type>,
+                        :suggestions(nqp::hllizefor(%routine-suggestion, 'Raku')),
+                        :symbol($_.key),
+                }
+            }
+            else {
+                @exceptions.push: self.build-exception: 'X::Undeclared::Symbols',
+                    :$filename,
+                    :routine_suggestion(nqp::hllizefor(%routine-suggestion, 'Raku')),
+                    :type_suggestion(nqp::hllizefor(%type-suggestion, 'Raku')),
+                    :unk_types(nqp::hllizefor(%types, 'Raku')),
+                    :unk_routines(nqp::hllizefor(%routines, 'Raku'));
+            }
         }
         RakuAST::Node.IMPL-WRAP-LIST(@exceptions)
     }

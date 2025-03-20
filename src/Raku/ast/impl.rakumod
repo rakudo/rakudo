@@ -139,4 +139,7 @@ class RakuAST::IMPL::QASTContext {
 # Rakudo-specific class used for holding state used during interpretation of
 # simple code at BEGIN time.
 class RakuAST::IMPL::InterpContext {
+    method new() {
+        nqp::create(self)
+    }
 }

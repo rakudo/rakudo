@@ -575,6 +575,10 @@ class RakuAST::ExpressionThunk
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
 
+    method new() {
+        nqp::create(self)
+    }
+
     method set-next(RakuAST::ExpressionThunk $next) {
         nqp::bindattr(self, RakuAST::ExpressionThunk, '$!next', $next);
         Nil

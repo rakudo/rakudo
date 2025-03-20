@@ -2547,6 +2547,10 @@ class RakuAST::VarDeclaration::Placeholder::Named
 class RakuAST::VarDeclaration::Placeholder::Slurpy
   is RakuAST::VarDeclaration::Placeholder
 {
+    method new() {
+        nqp::create(self)
+    }
+
     method generate-parameter() {
         RakuAST::Parameter.new:
           target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),

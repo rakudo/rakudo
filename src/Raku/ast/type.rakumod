@@ -605,7 +605,7 @@ class RakuAST::Type::Enum
             $base-type := $!of.compile-time-value;
             $has-base-type := True;
         }
-        my %values := nqp::hash;
+        my @values := nqp::list;
         my $cur-val := nqp::box_i(-1, Int); # Boxed to support .succ
         if $*COMPILING_CORE_SETTING
             && $!term.semilist.IMPL-IS-SINGLE-EXPRESSION
@@ -629,7 +629,7 @@ class RakuAST::Type::Enum
                         $base-type := $value.WHAT;
                         $has-base-type := 1;
                     }
-                    %values{$_.key} := $value;
+                    nqp::push(@values, [$_.key, $value]);
                 }
                 elsif nqp::istype($_, RakuAST::FatArrow) {
                     my $value := self.IMPL-BEGIN-TIME-EVALUATE($_.value, $resolver, $context);
@@ -644,7 +644,7 @@ class RakuAST::Type::Enum
                         $base-type := $value.WHAT;
                         $has-base-type := 1;
                     }
-                    %values{$_.key} := $value;
+                    nqp::push(@values, [$_.key, $value]);
                 }
                 else {
                     nqp::die('NYI ' ~ $_.HOW.name($_));
@@ -671,14 +671,14 @@ class RakuAST::Type::Enum
                                     nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $cur-val.WHAT.raku ~ "'");
                                 }
                             }
-                            %values{$_.key} := $cur-val;
+                            nqp::push(@values, [$_.key, $_.value]);
                         } elsif nqp::istype($_, Str) {
                             if !$has-base-type {
                                 # TODO: Again, uncertain what to do when user provides a base type but then only hands a list of Str
                                 $base-type := Int;
                                 $has-base-type := True;
                             }
-                            %values{$_} := ($cur-val := $cur-val.succ);
+                            nqp::push(@values, [$_, ($cur-val := $cur-val.succ)]);
                         }
                     }
                 }
@@ -725,9 +725,9 @@ class RakuAST::Type::Enum
         # Create type objects for each value and install into proper scop
         my %stash := $resolver.IMPL-STASH-HASH($anonymous ?? $!current-package !! $meta);
         my int $index;
-        for %values -> $pair {
-            my $key     := $pair.key;
-            my $value   := $pair.value;
+        for @values -> $pair {
+            my $key   := $pair[0];
+            my $value := $pair[1];
 
             if !nqp::defined($value) {
                 nqp::die("Using a type object as a value for an enum not yet implemented. Sorry.");

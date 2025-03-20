@@ -1104,6 +1104,10 @@ class RakuAST::Parameter
 
         self.apply-traits($resolver, $context, self);
 
+        # Apply possible is required trait
+        my $meta-object := self.meta-object;
+        self.set-required unless $meta-object.optional || $meta-object.slurpy || $meta-object.capture;
+
         $!target.to-begin-time($resolver, $context) if $!target;
     }
 

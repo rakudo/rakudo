@@ -778,3 +778,15 @@ class RakuAST::LiteralBuilder {
         $!cached-complex.new($real, $imaginary)
     }
 }
+
+class RakuAST::BOOTException {
+  has Str $.message;
+  method new(Str $message) {
+      my $obj := nqp::create(self);
+      nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
+      $obj
+  }
+  method throw() {
+      nqp::die($!message);
+  }
+}

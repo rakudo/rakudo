@@ -574,7 +574,13 @@ class RakuAST::Resolver {
         else {
             # Could not find exception type, so build a fake (typically happens
             # during CORE.setting compilation).
-            nqp::die("'$type-name' did not resolve to a known exception class");
+            my $message := $type-name;
+            $message := "$message(";
+            for %opts {
+                $message := $message ~ $_.key ~ " => " ~ $_.value ~ ", ";
+            }
+            $message := "$message)";
+            RakuAST::BOOTException.new($message);
         }
     }
 

@@ -77,6 +77,26 @@ sub monkey-see-no-eval($/) {
             };
 }
 
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        nqp::hllizefor(@copy, 'Raku')
+    }
+    elsif nqp::ishash($x) {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        nqp::hllizefor(%copy, 'Raku').item
+    }
+    else {
+        nqp::hllizefor($x, 'Raku')
+    }
+}
+
 #-------------------------------------------------------------------------------
 # Role for all Action classes associated with Raku grammar slangs
 
@@ -870,9 +890,85 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $/.add-categorical(
                   $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
             }
+            for $ast.superseded-declarators {
+                my $pdecl := $_.key;
+                my $meta := $_.value;
+                unless $/.know_how($pdecl) {
+                    $/.typed-panic('X::EXPORTHOW::NothingToSupersede',
+                        declarator => $pdecl);
+                }
+                if $/.know_how("U:$pdecl") {
+                    $/.typed-panic('X::EXPORTHOW::Conflict',
+                        declarator => $pdecl, directive => 'SUPERSEDE');
+                }
+                $*LANG.set_how($pdecl, $meta);
+                $*LANG.set_how("U:$pdecl", nqp::hash('SUPERSEDE', $meta));
+            }
+            for $ast.added-declarators {
+                my str $pdecl := $_.key;
+                my $meta  := nqp::decont($_.value);
+                if $/.know_how($pdecl) {
+                    $/.typed-panic('X::EXPORTHOW::Conflict',
+                        declarator => $pdecl, directive => 'DECLARE');
+                }
+                $*LANG.set_how($pdecl, $meta);
+                $*LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
+                self.add_package_declarator($/, $pdecl);
+            }
         }
 
         self.attach: $/, $ast;
+    }
+
+    method add_package_declarator($/, str $pdecl) {
+        my $cursor := $/;
+
+        # Compute name of grammar/action entry.
+        my $canname := 'package-declarator:sym<' ~ $pdecl ~ '>';
+
+        # Add to grammar if needed.
+        unless nqp::can($cursor, $canname) {
+            my role PackageDeclarator[$meth_name, $declarator] {
+                token ::($meth_name) {
+                    $<sym>=[$declarator] <.kok> <package-def($declarator)>
+                    <.set_braid_from(self)>
+                }
+            }
+            $cursor.HOW.mixin($cursor, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
+
+            # This also becomes the current MAIN. Also place it in %?LANG.
+            %*LANG<MAIN> := $cursor.WHAT;
+        }
+
+        my $actions := $cursor.actions;
+        # Add action method if needed.
+        unless nqp::can($actions, $canname) {
+            my role PackageDeclaratorAction[$meth] {
+                method ::($meth)($/) {
+                    self.attach: $/, $<package-def>.ast;
+                }
+            };
+            $actions := $actions.HOW.mixin($actions,
+                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
+            %*LANG<MAIN-actions> := $actions;
+        }
+        $cursor.define_slang("MAIN", $cursor.WHAT, $actions);
+        $cursor.set_actions($actions);
+
+        my $scalar := p6ize_recursive(%*LANG);
+        my $descriptor_type := $*R.type-from-setting('ContainerDescriptor');
+        my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
+        nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
+        $*R.current-scope.merge-generated-lexical-declaration(
+            :resolver($*R),
+            :force,
+            self.r('VarDeclaration', 'Implicit', 'Constant').new(
+                :name('%?LANG'),
+                :value($scalar),
+            )
+        );
+
+        $*LANG := $cursor;
     }
 
     method statement-control:sym<need>($/) {
@@ -2183,7 +2279,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my $name-match := $*PACKAGE-NAME;
         my $name       := $name-match ?? $name-match.ast !! Nodify('Name');
-        my $package    := Nodify(nqp::tclc($declarator)).new(
+        my %special := nqp::hash(
+            'package', 'Package',
+            'role', 'Role',
+            'class', 'Class',
+            'module', 'Module',
+            'grammar', 'Grammar',
+            'knowhow', 'Knowhow',
+            'native', 'Native',
+        );
+        my $package := Nodify(nqp::existskey(%special, $declarator) ?? %special{$declarator} !! 'Package').new(
           :$how, :$name, :$scope, :$augmented
         );
 

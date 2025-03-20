@@ -1783,9 +1783,19 @@ class RakuAST::Categorical {
 
 class RakuAST::ModuleLoading {
     has List $!categoricals;
+    has Hash $!superseded-declarators;
+    has Hash $!declarators;
 
     method categoricals() {
         self.IMPL-WRAP-LIST($!categoricals)
+    }
+
+    method superseded-declarators() {
+        $!superseded-declarators // nqp::hash
+    }
+
+    method added-declarators() {
+        $!declarators // nqp::hash
     }
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
@@ -1888,6 +1898,52 @@ class RakuAST::ModuleLoading {
         }
     }
 
+    method IMPL-IMPORT-EXPORTHOW(RakuAST::Resolver $resolver, Mu $handle) {
+        my $EXPORTHOW := $handle.export-how-package;
+        if nqp::defined($EXPORTHOW) {
+            $EXPORTHOW.pairs.map(-> $pair {
+                my str $key := $pair.key;
+                if $key eq 'SUPERSEDE' {
+                    my %SUPERSEDE := self.IMPL-STASH-HASH($pair.value.WHO);
+                    nqp::bindattr(self, RakuAST::ModuleLoading, '$!superseded-declarators', nqp::hash)
+                        unless nqp::isconcrete($!superseded-declarators);
+                    for %SUPERSEDE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        $!superseded-declarators{$pdecl} := $meta;
+                    }
+                }
+                elsif $key eq 'DECLARE' {
+                    nqp::bindattr(self, RakuAST::ModuleLoading, '$!declarators', nqp::hash)
+                        unless nqp::isconcrete($!declarators);
+                    my %DECLARE := self.IMPL-STASH-HASH($pair.value.WHO);
+                    for %DECLARE {
+                        my str $pdecl := $_.key;
+                        my $meta  := nqp::decont($_.value);
+                        $!declarators{$pdecl} := $meta;
+                    }
+                }
+                else {
+                    if $key eq nqp::lc($key) {
+                        # The legacy API behaves like an unchecked supersede.
+                        # It was supposed to go away long ago according to this
+                        # original comment:
+                        # XXX Can give deprecation warning in the future, remove
+                        # before 6.0.0.
+                        # However, we also land here when one declares an our
+                        # scoped EXPORTHOW package instead of a my scoped. This
+                        # will pick up all declarators declared in the setting.
+                        # So unfortunately we cannot error out here. Maybe the
+                        # setting's EXPORTHOW can be adapted?
+                    }
+                    else {
+                        $resolver.build-exception('X::EXPORTHOW::InvalidDirective', directive => $key).throw;
+                    }
+                }
+            }).eager;
+        }
+    }
+
     method IMPL-STASH-HASH(Mu $pkg) {
         my $hash := $pkg;
         unless nqp::ishash($hash) {
@@ -1925,6 +1981,7 @@ class RakuAST::Statement::Use
 
         my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $!module-name);
         self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist, :module($!module-name.canonicalize));
+        self.IMPL-IMPORT-EXPORTHOW($resolver, $comp-unit.handle);
     }
 
     method visit-children(Code $visitor) {
@@ -2014,6 +2071,7 @@ class RakuAST::Statement::Import
         my $CompUnitHandle := self.get-implicit-lookups().AT-POS(0).compile-time-value;
         my $handle := $CompUnitHandle.from-unit($module.WHO);
         self.IMPL-IMPORT($resolver, $handle, $arglist, :module($!module-name.canonicalize));
+        self.IMPL-IMPORT-EXPORTHOW($resolver, $handle);
     }
 
     method visit-children(Code $visitor) {

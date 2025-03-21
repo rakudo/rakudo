@@ -694,20 +694,38 @@ class RakuAST::Call::Method
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
-                $call := $dispatcher
-                  ?? QAST::Op.new:
-                       :op('callmethod'),
-                       :name($dispatcher),
-                       QAST::SVal.new( :value('dispatch:<::>') ),
-                       $invocant-qast,
-                       QAST::SVal.new(:value($name)),
-                       QAST::WVal.new(:value($Qualified))
-                  !! QAST::Op.new:
-                       :op('callmethod'),
-                       :name('dispatch:<::>'),
-                       $invocant-qast,
-                       QAST::SVal.new(:value($name)),
-                       QAST::WVal.new(:value($Qualified));
+                if $dispatcher {
+                    $call := QAST::Op.new:
+                        :op('callmethod'),
+                        :name($dispatcher),
+                        QAST::SVal.new( :value('dispatch:<::>') ),
+                        $invocant-qast,
+                        QAST::SVal.new(:value($name)),
+                        QAST::WVal.new(:value($Qualified));
+                }
+                else {
+                    my $temp := QAST::Node.unique('inv_once');
+                    my $stmts := QAST::Stmts.new(
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+                            $invocant-qast
+                        ),
+                        $call := QAST::Op.new(
+                            :op('dispatch'),
+                            QAST::SVal.new( :value('raku-meth-call-qualified') ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($temp), :scope('local') ),
+                            ),
+                            QAST::SVal.new(:value($name)),
+                            QAST::WVal.new(:value($Qualified)),
+                            QAST::Var.new( :name($temp), :scope('local') ),
+                        )
+                    );
+                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
+                    return $stmts;
+                }
             }
         }
         else {

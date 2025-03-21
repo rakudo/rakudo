@@ -827,6 +827,12 @@ class RakuAST::Call::Method
                 macro => $!name.canonicalize;
         }
 
+        if self.macroish && self.dispatcher {
+            self.add-sorry:
+              $resolver.build-exception: 'X::AdHoc',
+                  payload => 'Cannot use ' ~ self.dispatch ~ ' on a non-identifier method call';
+        }
+
         if $!name && $!name.is-multi-part {
             my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             unless $Qualified.is-resolved {

@@ -1517,6 +1517,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         elsif $<quote> {
+            $dispatch := '!' if $DOTTY eq '!';
             $ast := Nodify('Call','QuotedMethod').new(
               :name($<quote>.ast), :$args, :$dispatch
             );

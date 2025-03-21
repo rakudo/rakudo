@@ -856,6 +856,7 @@ class RakuAST::Call::QuotedMethod
   is RakuAST::BeginTime
 {
     has RakuAST::QuotedString   $.name;
+    has Mu $!package;
 
     method new(
       RakuAST::QuotedString :$name!,
@@ -881,6 +882,7 @@ class RakuAST::Call::QuotedMethod
     method can-be-used-with-hyper() { True }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Call::QuotedMethod, '$!package', $resolver.current-package);
         my $routine := $resolver.find-attach-target('routine');
         if $routine {
             $routine.set-may-use-return(True);
@@ -892,7 +894,9 @@ class RakuAST::Call::QuotedMethod
         my $dispatcher := self.dispatcher;
 
         my $call := $dispatcher
-          ?? QAST::Op.new( :op('callmethod'), :name($dispatcher), $invocant-qast, $name-qast )
+          ?? $dispatcher eq 'dispatch:<!>'
+            ?? QAST::Op.new( :op('callmethod'), :name($dispatcher), $invocant-qast, $name-qast, QAST::WVal.new(:value($!package)) )
+            !! QAST::Op.new( :op('callmethod'), :name($dispatcher), $invocant-qast, $name-qast )
           !! QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call

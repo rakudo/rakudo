@@ -1290,6 +1290,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $operand.replace-args($ast.args);
                     self.attach: $/, $operand;
                 }
+                elsif nqp::istype($operand, Nodify('VarDeclaration', 'Anonymous')) && nqp::istype($ast, Nodify('Call', 'MetaMethod'))
+                {
+                    # A call like $.^foo. Parses completely differently from $.foo
+                    self.attach: $/, Nodify('ApplyPostfix').new(
+                        operand => Nodify('ApplyPostfix').new(
+                            operand => Nodify('Term', 'Self').new.to-begin-time($*R, $*CU.context),
+                            postfix => $ast
+                        ).to-begin-time($*R, $*CU.context),
+                        postfix => Nodify('Call', 'Method').new(
+                            name => Nodify('Name').from-identifier(
+                                $operand.sigil eq '@' ?? 'list' !! $operand.sigil eq '%' ?? 'hash' !! 'item'
+                            ).to-begin-time($*R, $*CU.context)
+                        ).to-begin-time($*R, $*CU.context)
+                    );
+                }
                 else {
                     self.attach: $/, Nodify('ApplyPostfix').new:
                         postfix => $ast, operand => $operand;

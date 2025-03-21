@@ -1953,15 +1953,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<identifier>($/) {
         my $args := $<args>.ast;
         my $name := $<identifier>.core2ast;
-        self.attach: $/, (my $invocant := $args.invocant)
+        if (my $invocant := $args.invocant) {
             # Indirect method call syntax, e.g. key($pair:)
-            ?? Nodify('ApplyPostfix').new(
+            if $args.arity == 1 {
+                my $arg := $args.IMPL-UNWRAP-LIST($args.args)[0];
+                if nqp::istype($arg, Nodify('ApplyListInfix')) && nqp::istype($arg.infix, Nodify('Infix')) && $arg.infix.operator eq ',' {
+                    # Need to unpack the actual argument list:
+                    # ArgList  ⎡$o: 1, 2⎤
+                    #   Var::Lexical 【$o】  ⎡$o⎤
+                    #   ApplyListInfix  ⎡,⎤
+                    #     Infix 【,】  ⎡,⎤
+                    #     IntLiteral  ⎡1⎤
+                    #     IntLiteral  ⎡2⎤
+                    $args.replace-args($arg.operands);
+                }
+            }
+            self.attach: $/, Nodify('ApplyPostfix').new(
                 operand => $invocant,
                 postfix => Nodify('Call', 'Method').new(:$name, :$args)
             )
-            !! Nodify('Call', 'Name').new:
-              name => $name,
-              args => $args,
+        }
+        else {
+            self.attach: $/, Nodify('Call', 'Name').new(
+                name => $name,
+                args => $args
+            )
+        }
     }
 
     method term:sym<nqp::op>($/) {
@@ -1991,16 +2008,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             if $<args> {
                 my $args := $<args>.ast;
-                self.attach: $/, (my $invocant := $args.invocant)
-                  # Indirect method call syntax, e.g. new Int: 1
-                  ?? Nodify('ApplyPostfix').new(
-                       operand => $invocant,
-                       postfix => Nodify('Call','Method').new(:$name, :$args)
-                     )
-                  # Normal named call
-                  !! $name.is-identifier && !$name.has-colonpairs
-                    ?? Nodify('Call','Name','WithoutParentheses').new(:$name, :$args)
-                    !! Nodify('Call','Name').new(:$name, :$args)
+                if (my $invocant := $args.invocant) {
+                    # Indirect method call syntax, e.g. new Int: 1
+                    if $args.arity == 1 {
+                        my $arg := $args.IMPL-UNWRAP-LIST($args.args)[0];
+                        if nqp::istype($arg, Nodify('ApplyListInfix')) && nqp::istype($arg.infix, Nodify('Infix')) && $arg.infix.operator eq ',' {
+                            # Need to unpack the actual argument list:
+                            # ArgList  ⎡$o: 1, 2⎤
+                            #   Var::Lexical 【$o】  ⎡$o⎤
+                            #   ApplyListInfix  ⎡,⎤
+                            #     Infix 【,】  ⎡,⎤
+                            #     IntLiteral  ⎡1⎤
+                            #     IntLiteral  ⎡2⎤
+                            $args.replace-args($arg.operands);
+                        }
+                    }
+                    self.attach: $/, Nodify('ApplyPostfix').new(
+                        operand => $invocant,
+                        postfix => Nodify('Call','Method').new(:$name, :$args)
+                    )
+                }
+                else {
+                    # Normal named call
+                    self.attach: $/, $name.is-identifier && !$name.has-colonpairs
+                        ?? Nodify('Call','Name','WithoutParentheses').new(:$name, :$args)
+                        !! Nodify('Call','Name').new(:$name, :$args)
+                }
             }
             else {
                 self.attach: $/, $*IS-TYPE

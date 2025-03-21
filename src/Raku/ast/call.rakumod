@@ -42,6 +42,11 @@ class RakuAST::ArgList
         Nil
     }
 
+    method replace-args(List @args) {
+        nqp::bindattr(self, RakuAST::ArgList, '$!args', self.IMPL-UNWRAP-LIST(@args));
+        Nil
+    }
+
     method set-on-return(Bool $on-return) {
         nqp::bindattr(self, RakuAST::ArgList, '$!on-return', $on-return);
     }
@@ -57,7 +62,8 @@ class RakuAST::ArgList
         }
     }
 
-    method has-args() { nqp::elems($!args) }
+    method has-args() { nqp::elems($!args) ?? True !! False }
+    method arity() { nqp::elems($!args) }
 
     method args() {
         self.IMPL-WRAP-LIST($!args)

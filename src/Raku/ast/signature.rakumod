@@ -171,7 +171,6 @@ class RakuAST::Signature
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Mu')),
             RakuAST::Var::Compiler::Lookup.new('$?CLASS')
         ])
     }
@@ -193,11 +192,11 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $type;
                 if $!is-on-meta-method {
-                    $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                    $type := Mu;
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
-                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
                             $type.set-resolution($Class.resolution);

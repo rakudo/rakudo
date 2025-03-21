@@ -1283,13 +1283,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
                     make $node;
                 }
-                elsif nqp::istype($operand, Nodify('Var', 'Attribute', 'Public')) && !$operand.has-args
-                    && nqp::istype($ast, Nodify('Call', 'Term'))
-                {
-                    # A call like $.foo(1), just need to shuffle the args into the existing call
-                    $operand.replace-args($ast.args);
-                    self.attach: $/, $operand;
-                }
                 elsif nqp::istype($operand, Nodify('VarDeclaration', 'Anonymous')) && nqp::istype($ast, Nodify('Call', 'MetaMethod'))
                 {
                     # A call like $.^foo. Parses completely differently from $.foo
@@ -2210,7 +2203,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast := Nodify('Var','Attribute').new($name);
         }
         elsif $twigil eq '.' {
-            $ast := Nodify('Var','Attribute','Public').new($name);
+            my $args := $<arglist> ?? $<arglist>.ast !! Nodify('ArgList');
+            $ast := Nodify('Var','Attribute','Public').new(:$name, :$args);
         }
         elsif $twigil eq '?' {
             my $origin-source := $*ORIGIN-SOURCE;

@@ -356,7 +356,7 @@ class RakuAST::Var::Attribute::Public
     # Important so we don't swallow call chains like $.foo()(1)
     has Bool $.has-args;
 
-    method new(str $name) {
+    method new(str :$name, RakuAST::ArgList :$args) {
         my str $sigil := nqp::substr($name,0,1);
 
         my $obj := nqp::create(self);
@@ -378,6 +378,7 @@ class RakuAST::Var::Attribute::Public
             )
           )
         );
+        $obj.replace-args($args) if $args;
         $obj
     }
 

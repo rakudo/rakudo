@@ -3709,6 +3709,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <!{ $*QSIGIL }>
             <?MARKER('baresigil')>
         ]
+        # $.foo: 1, 2
+        [ <?{ $<twigil> && ( $<twigil> eq '.' || $<twigil> eq '.^' ) }>
+            [ <.unspace> | '\\' | <?> ] <?[(:]> <!RESTRICTED>
+            :dba('method arguments')
+            [
+                | ':' <?before \s | '{'> <!{ $*QSIGIL }> <arglist>
+                | '(' <arglist> ')'
+            ]
+        ]?
 
         { $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL }
     }

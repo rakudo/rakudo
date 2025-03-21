@@ -996,6 +996,19 @@ class RakuAST::Call::PrivateMethod
                 }
             }
         }
+
+        if $!name.is-identifier {
+            my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+            my $package := $!package;
+            if nqp::can($package.HOW, 'archetypes') && !$package.HOW.archetypes.generic && !$package.HOW.archetypes.parametric && nqp::can($package.HOW, 'find_private_method') {
+                my $meth := $package.HOW.find_private_method($package, $name);
+                unless nqp::defined($meth) && $meth {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Method::NotFound',
+                            :method($!name.canonicalize), :typename($package.HOW.name($package)), :private(True);
+                }
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

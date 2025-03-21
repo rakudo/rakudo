@@ -915,6 +915,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $*LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
                 self.add_package_declarator($/, $pdecl);
             }
+            for $ast.unchecked-declarators {
+                my str $pdecl := $_.key;
+                my $meta  := nqp::decont($_.value);
+                $*LANG.set_how($pdecl, $meta);
+                $*LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
+                self.add_package_declarator($/, $pdecl);
+            }
         }
 
         self.attach: $/, $ast;

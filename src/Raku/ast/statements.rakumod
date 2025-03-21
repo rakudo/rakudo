@@ -1785,6 +1785,7 @@ class RakuAST::ModuleLoading {
     has List $!categoricals;
     has Hash $!superseded-declarators;
     has Hash $!declarators;
+    has Hash $!unchecked-declarators;
 
     method categoricals() {
         self.IMPL-WRAP-LIST($!categoricals)
@@ -1796,6 +1797,10 @@ class RakuAST::ModuleLoading {
 
     method added-declarators() {
         $!declarators // nqp::hash
+    }
+
+    method unchecked-declarators() {
+        $!unchecked-declarators // nqp::hash
     }
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
@@ -1935,6 +1940,13 @@ class RakuAST::ModuleLoading {
                         # will pick up all declarators declared in the setting.
                         # So unfortunately we cannot error out here. Maybe the
                         # setting's EXPORTHOW can be adapted?
+                        # Also there even seem to be spectests still using this
+                        # old API.
+                        nqp::bindattr(self, RakuAST::ModuleLoading, '$!unchecked-declarators', nqp::hash)
+                            unless nqp::isconcrete($!unchecked-declarators);
+                        my str $pdecl := $pair.key;
+                        my $meta  := nqp::decont($pair.value);
+                        $!unchecked-declarators{$pdecl} := $meta;
                     }
                     else {
                         $resolver.build-exception('X::EXPORTHOW::InvalidDirective', directive => $key).throw;

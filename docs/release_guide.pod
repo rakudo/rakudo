@@ -74,7 +74,7 @@ modules are there and manually check them for false positives.
 
 Possible false positives are:
 
-* Modules related to async sometimes have flapping tests, such as C<Test::Async> etc.
+* Modules related to async sometimes have flapping tests
 * The C<November> module
 
 If the module installs fine on the latest Rakudo built from HEAD

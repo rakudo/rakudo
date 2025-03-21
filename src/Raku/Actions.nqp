@@ -1269,7 +1269,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if $<dotty> && $<dotty><sym> eq '.=' {
                     my $infix := Nodify('DottyInfix', 'CallAssign').new;
                     self.SET-NODE-ORIGIN($<dotty><sym>, $infix);
-                    $ast.set-dispatcher(''); # Already handled by DottyInfix::CallAssign
+                    $ast.set-dispatcher('') if nqp::istype($ast, Nodify('Call', 'Methodish')); # Already handled by DottyInfix::CallAssign
                     my $node := Nodify('ApplyDottyInfix').new:
                         :$infix,
                         :left($operand),

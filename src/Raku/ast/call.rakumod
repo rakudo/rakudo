@@ -954,6 +954,10 @@ class RakuAST::Call::PrivateMethod
 
     method needs-resolution() { False }
 
+    method can-be-used-with-hyper() {
+        $!name && $!name.is-multi-part
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::PrivateMethod, '$!package', $resolver.current-package);
         if $!name.is-multi-part {
@@ -1032,6 +1036,24 @@ class RakuAST::Call::PrivateMethod
                 self.resolution.IMPL-TO-QAST($context),
             );
         }
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := $!name.canonicalize;
+        my $call;
+        my @parts := nqp::split('::', $name);
+
+        $name := @parts[ nqp::elems(@parts)-1 ];
+
+        $call := QAST::Op.new:
+            :op('callmethod'), :name('dispatch:<hyper>'),
+            $operand-qast,
+            QAST::SVal.new( :value($name) ),
+            QAST::SVal.new( :value('dispatch:<!>') ),
+            QAST::SVal.new( :value($name) ),
+            self.resolution.IMPL-TO-QAST($context);
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

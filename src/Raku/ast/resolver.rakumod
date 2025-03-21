@@ -719,7 +719,7 @@ class RakuAST::Resolver {
                     @exceptions.push: self.build-exception: 'X::Undeclared',
                         :$filename,
                         :what<Type>,
-                        :suggestions(nqp::hllizefor(%routine-suggestion, 'Raku')),
+                        :suggestions(nqp::hllizefor(%type-suggestion, 'Raku')),
                         :symbol($_.key),
                 }
             }

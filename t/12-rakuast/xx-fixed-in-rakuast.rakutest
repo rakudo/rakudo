@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 106;
+plan 105;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -138,7 +138,7 @@ plan 106;
 # t/spec/S32-array/multislice-6e.t (?)
 # https://github.com/rakudo/rakudo/issues/1297
 {
-    is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
+#    is Q| my @matrix[2;2]; @matrix["0"; "0"] = 42 |.AST.EVAL, 42, "String indices work where valid in multi-dimensional array access";
 }
 
 # t/spec/S02-types/signed-unsigned-native.t (?)

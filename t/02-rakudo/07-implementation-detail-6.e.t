@@ -12,7 +12,7 @@ sub non-implementation(\base, \matcher) {
 
 my @UPPER = <DYNAMIC-FALLBACK EVAL EVALFILE HOW NYI RUN-MAIN VAR WHAT WHERE WHICH WHO>;
 
-my @lower = ("",<<
+my @lower = <<
   abs acos acosec acosech acosh acotan acotanh all any append
   asec asech asin asinh atan atan2 atanh atomic-add-fetch atomic-assign
   atomic-dec-fetch atomic-fetch atomic-fetch-add atomic-fetch-dec
@@ -36,7 +36,7 @@ my @lower = ("",<<
   trim-leading trim-trailing truncate uc unimatch uniname
   uninames uniparse uniprop uniprops unique unival univals unlink
   unpolar unshift val values warn wordcase words zprintf
->>).flat;
+>>;
 
 my @lower-not-implemented = ();
 

@@ -393,7 +393,7 @@ subtest 'class with accessor usage' => {
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      expression => RakuAST::Var::Attribute::Public.new('$.bar')
+                      expression => RakuAST::Var::Attribute::Public.new(:name<$.bar>)
                     )
                   )
                 )

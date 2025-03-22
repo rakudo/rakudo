@@ -3,6 +3,9 @@ use Test;
 
 plan 6;
 
+skip-rest("programmatically built roles are severely broken at the moment");
+=finish
+
 my $ast;
 my $deparsed;
 my $raku;

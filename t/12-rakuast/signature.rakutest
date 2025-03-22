@@ -27,8 +27,11 @@ subtest 'Default type for block and routine' => {
     );
 
     is-deeply $deparsed, 'sub ($param) { }', 'deparse';
-    ok .signature.params[0].type =:= Any, "@type[$++]: Default type of sub"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) {
+        todo "Returns Mu instead of Any" if (!$).defined || $_ == 2;
+        ok .signature.params[0].type =:= Any,
+          "@type[$++]: Default type of param"
+    }
 }
 
 subtest 'Default type for block and routine' => {

@@ -594,6 +594,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2024-12-14   Rakudo #178 "2024.12"           (jdv)
   2025-01-25   Rakudo #179 "2025.01"           (Coke)
   2025-02-22   Rakudo #180 "2025.02"           (jdv)
+  2025-03-23   Rakudo #181 "2025.03"           (Coke)
 
 =head1 COPYRIGHT
 

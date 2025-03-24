@@ -1787,6 +1787,7 @@ class RakuAST::ParameterTarget
 {
     method set-rw() { }
     method set-ro(Bool $ro) { }
+    method set-where(RakuAST::Expression $where) { }
     method sigil() { '' }
     method name() { '' }
     method set-bindable(Bool $is-bindable) {
@@ -1924,6 +1925,10 @@ class RakuAST::ParameterTarget::Var
 
     method set-ro($ro) {
         $!declaration.set-ro($ro) if $!declaration;
+    }
+
+    method set-where(RakuAST::Expression $where) {
+        $!declaration.set-where($where) if $!declaration;
     }
 
     method PRODUCE-META-OBJECT() {

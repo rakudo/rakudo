@@ -664,6 +664,10 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
     }
 
+    method set-where(RakuAST::Expression $where) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!where', $where);
+    }
+
     method add-colonpair(RakuAST::ColonPair $pair) {
         nqp::die("Cannot add colonpair to variable declaration without initializer")
             unless $!initializer;
@@ -1611,6 +1615,7 @@ class RakuAST::VarDeclaration::Signature
 
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+            $param.target.set-where($param.where) if $param.where;
             $param.set-bindable(False) if $binding;
             $param.set-default-rw unless $binding;
             for $traits {

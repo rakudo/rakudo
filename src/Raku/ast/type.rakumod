@@ -788,7 +788,7 @@ class RakuAST::Type::Subset
   is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Name       $.name;
-    has RakuAST::Trait::Of  $.of;
+    has RakuAST::Type       $.of;
     has RakuAST::Expression $.where;
 
     has Mu $!current-package;
@@ -796,7 +796,7 @@ class RakuAST::Type::Subset
 
     method new(          str :$scope,
                RakuAST::Name :$name!,
-          RakuAST::Trait::Of :$of,
+               RakuAST::Type :$of,
          RakuAST::Expression :$where,
                         List :$traits,
     RakuAST::Doc::Declarator :$WHY
@@ -822,7 +822,7 @@ class RakuAST::Type::Subset
             nqp::istype($_, RakuAST::Trait::Of)
               ?? $!of
                 ?? nqp::die("Cannot declare more than one 'of' trait per subset")
-                !! nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $_)
+                !! nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $_.type)
               !! self.add-trait($_);
         }
     }
@@ -859,7 +859,7 @@ class RakuAST::Type::Subset
 
     method is-coercive() {
         $!of
-            ?? $!of.type.is-coercive
+            ?? $!of.is-coercive
             !! False
     }
 
@@ -949,7 +949,7 @@ class RakuAST::Type::Subset
         Perl6::Metamodel::SubsetHOW.new_type(
             :name($!name.canonicalize),
             :refinee(Any),
-            :refinement(Any)
+            :refinement(nqp::null)
         )
     }
 
@@ -957,8 +957,7 @@ class RakuAST::Type::Subset
         my $type  := self.stubbed-meta-object;
         my $block := $!block;
 
-        $type.HOW.set_of($type, $!of.type.meta-object)
-          if $!of;
+        $type.HOW.set_of($type, $!of.meta-object) if $!of;
         $type.HOW.set_where($type, $block
           ?? $block.IMPL-CURRIED
             ?? $block.IMPL-CURRIED.meta-object

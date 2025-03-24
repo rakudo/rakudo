@@ -45,11 +45,9 @@ subtest 'Simple subset Foo of Int' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Trait::Of.new(
-        RakuAST::Type::Simple.new(
+      of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
         )
-      )
     );
 
     is-deeply $deparsed, 'my subset Foo of Int', 'deparse';
@@ -74,10 +72,8 @@ subtest 'Subset with a where block' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Trait::Of.new(
-        RakuAST::Type::Simple.new(
+      of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
-        )
       ),
       where => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -121,10 +117,8 @@ subtest 'Subset with a where pointy block' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Trait::Of.new(
-        RakuAST::Type::Simple.new(
+      of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
-        )
       ),
       where => RakuAST::PointyBlock.new(
         signature => RakuAST::Signature.new(
@@ -175,10 +169,8 @@ subtest 'Subset with a where whatevercode' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Trait::Of.new(
-        RakuAST::Type::Simple.new(
+      of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
-        )
       ),
       where => RakuAST::ApplyInfix.new(
         left => RakuAST::Term::Whatever.new,

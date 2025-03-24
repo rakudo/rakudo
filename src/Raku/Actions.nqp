@@ -2719,7 +2719,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl  := Nodify('Type', 'Subset').new(
             :name($<longname>.ast),
             :where($where),
-            :scope($*SCOPE)
+            :scope($*SCOPE),
+            :of($*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type'))
         );
 
         $where && $*DECLARAND

@@ -848,7 +848,7 @@ class RakuAST::VarDeclaration::Simple
             my $type := $of-type // self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             my $type-name := $type ?? $type.name.canonicalize !! "Mu";
             my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
-            $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type ?? RakuAST::Trait::Of.new($type) !! Mu), :$where;
+            $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type || Mu), :$where;
             $subset.ensure-begin-performed($resolver, $context);
             self.set-type($subset);
         }

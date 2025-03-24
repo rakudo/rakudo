@@ -512,3 +512,19 @@ class RakuAST::Term::RadixNumber
         $visitor($!value);
     }
 }
+
+class RakuAST::Term::Declaration
+  is RakuAST::Term
+{
+    has RakuAST::Declaration $.value;
+
+    method new(RakuAST::Declaration $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Term::Declaration, '$!value', $value);
+        $obj
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!value.IMPL-TO-QAST($context)
+    }
+}

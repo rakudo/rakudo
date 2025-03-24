@@ -608,8 +608,8 @@ class RakuAST::Parameter
         $obj
     }
 
-    method set-type(RakuAST::Type $type) {
-        if $!type {
+    method set-type(RakuAST::Type $type, Bool :$replace) {
+        if $!type && !$replace {
             nqp::bindattr(self, RakuAST::Parameter, '$!conflicting-type', $!type);
         }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
@@ -691,6 +691,11 @@ class RakuAST::Parameter
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
+        Nil
+    }
+
+    method set-target(RakuAST::ParameterTarget $target) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!target', $target);
         Nil
     }
 

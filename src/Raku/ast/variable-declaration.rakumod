@@ -1616,6 +1616,21 @@ class RakuAST::VarDeclaration::Signature
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
             $param.target.set-where($param.where) if $param.where;
+            if nqp::defined($param.value) && !$param.target {
+                # We don't have a target that can carry the where clause. Have to synthesize one here
+                my $value := $param.value;
+                my $type := $value.WHAT;
+                my $type-name := $value.HOW.name($value);
+                my $type-ast := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($type-name));
+                $type-ast.set-resolution(RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $type));
+                my $where := RakuAST::Term::Declaration.new(RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $value));
+                my $target := RakuAST::ParameterTarget::Var.new(:name('$'), :var-declaration);
+                $param.set-target($target);
+                $param.set-where($where);
+                $target.set-type($type-ast);
+                $target.set-where($where);
+                $target.IMPL-BEGIN($resolver, $context);
+            }
             $param.set-bindable(False) if $binding;
             $param.set-default-rw unless $binding;
             for $traits {

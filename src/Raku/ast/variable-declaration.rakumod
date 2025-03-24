@@ -1154,7 +1154,7 @@ class RakuAST::VarDeclaration::Simple
 
             my $meta-object := $!attribute-package.attribute-type.new(
               name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
-              type => $type,
+              type => $scope eq 'HAS' ?? self.IMPL-CONTAINER-TYPE($of) !! $type,
               has_accessor          => self.twigil eq '.',
               container_descriptor  => $descriptor,
               auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor, :attribute),

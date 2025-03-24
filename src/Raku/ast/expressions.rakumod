@@ -2017,21 +2017,34 @@ class RakuAST::ApplyInfix
                 }
             }
 
-            my $type := self.left.return-type;
+            my $type := $left.return-type;
             # Subset type checking can have side effects, so don't do that at compile time.
-            if nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
-                my $right := self.right;
-                if nqp::istype($right,RakuAST::Literal) {
-                    if nqp::objprimspec($type) {
-                        $type := $type.HOW.mro($type)[1];
-                    }
+            if (nqp::istype($infix, RakuAST::Assignment) || $infix.operator eq ':=')
+                && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
 
-                    my $value := $right.compile-time-value;
-                    if !nqp::istype($value, $type)
-                      && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
-                        self.add-sorry:
-                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :vartype($type), :$value;
+                my $sigil := (try $left.sigil) // '';
+                if nqp::istype($right, RakuAST::Literal) || ($sigil eq '$' && nqp::istype($right, RakuAST::QuotedString)) {
+                    my $obj-type := nqp::objprimspec($type) ?? $type.HOW.mro($type)[1] !! $type;
+
+                    # $right may be QuotedString, so use maybe-compile-time-value
+                    my $value := $right.maybe-compile-time-value;
+                    unless nqp::istype($value, $obj-type) {
+                        my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
+                        my $exp_comp := nqp::can($obj-type.HOW, "is_composed") && $obj-type.HOW.is_composed($obj-type);
+
+                        if $got_comp && $exp_comp {
+                            if nqp::istype($obj-type, $resolver.type-from-setting('Numeric')) {
+                                self.add-sorry:
+                                    $resolver.build-exception: 'X::Syntax::Number::LiteralType',
+                                        :varname(self.left.name), :vartype($type), :$value;
+                            } else {
+                                self.add-sorry:
+                                    $resolver.build-exception: nqp::istype($infix, RakuAST::Assignment) ?? 'X::TypeCheck::Assignment' !! 'X::TypeCheck::Binding',
+                                        symbol    => self.left.name,
+                                        got       => $value,
+                                        expected  => $type;
+                            }
+                        }
                     }
                 }
             }

@@ -1027,9 +1027,9 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
-        my $type := self.type;
+        my $type := $!type;
         # Subset type checking can have side effects, so don't do that at compile time.
-        if nqp::istype($type,RakuAST::Type::Simple) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
+        if nqp::istype($type, RakuAST::Type::Simple) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
             my $initializer := self.initializer;
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
@@ -1042,21 +1042,29 @@ class RakuAST::VarDeclaration::Simple
                 }
 
                 my $expression := $initializer.expression;
-                if nqp::istype($expression,RakuAST::Literal) {
-                    my $vartype := $type.PRODUCE-META-OBJECT;
-                    if nqp::objprimspec($vartype) {
-                        $vartype := $vartype.HOW.mro($vartype)[1];
-                    }
+                if nqp::istype($expression, RakuAST::Literal) || (self.sigil eq '$' && nqp::istype($expression, RakuAST::QuotedString)) {
+                    $type := $type.meta-object;
+                    my $obj-type := nqp::objprimspec($type) ?? $type.HOW.mro($type)[1] !! $type;
 
-                    my $value := $expression.compile-time-value;
-                    if !nqp::istype($value,$vartype)
-                      && nqp::istype(
-                           $vartype,
-                           $resolver.type-from-setting('Numeric')
-                         ) {
-                        self.add-sorry:
-                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :varname(self.name), :$vartype, :$value;
+                    # $value may be QuotedString, so use maybe-compile-time-value
+                    my $value := $expression.maybe-compile-time-value;
+                    unless nqp::istype($value, $obj-type) {
+                        my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
+                        my $exp_comp := nqp::can($obj-type.HOW, "is_composed") && $obj-type.HOW.is_composed($obj-type);
+
+                        if $got_comp && $exp_comp {
+                            if nqp::istype($obj-type, $resolver.type-from-setting('Numeric')) {
+                                self.add-sorry:
+                                $resolver.build-exception: 'X::Syntax::Number::LiteralType',
+                                    :varname(self.name), :vartype($type), :$value;
+                            } else {
+                                self.add-sorry:
+                                    $resolver.build-exception: $initializer.is-binding ?? 'X::TypeCheck::Binding' !! 'X::TypeCheck::Assignment',
+                                        symbol    => self.name,
+                                        got       => $value,
+                                        expected  => $type;
+                            }
+                        }
                     }
                 }
             }

@@ -1151,18 +1151,17 @@ class RakuAST::Parameter
             if nqp::isconcrete($!type) && $!default.has-compile-time-value {
                 my $value := $!default.maybe-compile-time-value;
                 my $type := $!type.meta-object;
-                if nqp::objprimspec($type) {
-                    $type := $type.HOW.mro($type)[1];
-                }
+                my $obj-type := nqp::objprimspec($type) ?? $type.HOW.mro($type)[1] !! $type;
 
-                if !nqp::istype($value, $type) {
+                unless nqp::istype($value, $obj-type) {
                     my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
-                    my $exp_comp := nqp::can($type.HOW, "is_composed") && $type.HOW.is_composed($type);
+                    my $exp_comp := nqp::can($obj-type.HOW, "is_composed") && $obj-type.HOW.is_composed($obj-type);
+
                     if $got_comp && $exp_comp {
                         self.add-sorry:
                             $resolver.build-exception: 'X::Parameter::Default::TypeCheck',
                                 got => $value,
-                                expected => $type
+                                expected => $type;
                     }
                 }
             }

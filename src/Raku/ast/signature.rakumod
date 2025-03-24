@@ -2046,10 +2046,12 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
   is RakuAST::ContainerCreator
   is RakuAST::Declaration
+  is RakuAST::BeginTime
   is RakuAST::Meta
 {
     has RakuAST::Name $.name;
     has RakuAST::Type $.type;
+    has RakuAST::Expression $.where;
     has Bool $!is-bindable;
 
     method new(RakuAST::Name $name!) {
@@ -2076,6 +2078,10 @@ class RakuAST::ParameterTarget::Term
         Nil
     }
 
+    method set-where(RakuAST::Expression $where) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!where', $where);
+    }
+
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!is-bindable', $bindable);
     }
@@ -2089,6 +2095,17 @@ class RakuAST::ParameterTarget::Term
         my $lookup := RakuAST::Term::Name.new($!name);
         $lookup.set-resolution(self);
         $lookup
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if my $where := $!where {
+            my $type := $!type;
+            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
+            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
+            my $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type), :$where;
+            $subset.to-begin-time($resolver, $context);
+            self.set-type($subset);
+        }
     }
 
     method PRODUCE-META-OBJECT() {
@@ -2141,6 +2158,8 @@ class RakuAST::ParameterTarget::Term
 
     method visit-children(Code $visitor) {
         $visitor($!name);
+        $visitor($!type) if $!type;
+        $visitor($!where) if $!where;
     }
 }
 

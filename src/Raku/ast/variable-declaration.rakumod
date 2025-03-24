@@ -853,7 +853,7 @@ class RakuAST::VarDeclaration::Simple
             my $type-name := $type ?? $type.name.canonicalize !! "Mu";
             my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
             $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type || Mu), :$where;
-            $subset.ensure-begin-performed($resolver, $context);
+            $subset.to-begin-time($resolver, $context);
             self.set-type($subset);
         }
 

@@ -415,7 +415,7 @@ class RakuAST::Call::Name
             }
             else {
                 my $name;
-                if self.is-resolved || !$*COMPILING_CORE_SETTING {
+                if self.is-resolved || !$*COMPILING_CORE_SETTING && !$*IMPL-COMPILE-DYNAMICALLY {
                     $name := self.resolution.lexical-name;
                 }
                 else {

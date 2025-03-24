@@ -321,12 +321,14 @@ class RakuAST::Code
                 if nqp::istype($visit, QAST::Op) {
                     my $op := $visit.op;
                     if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain') && $visit.name {
-                        my $routine := $!resolver.resolve-lexical-constant($visit.name);
-                        my $value := $routine.compile-time-value;
                         if ! $declared-in-cu($visit.name) {
-                            $context.ensure-sc($value);
-                            $visit.name(nqp::null);
-                            $visit.unshift(QAST::WVal.new(:$value));
+                            my $routine := $!resolver.resolve-lexical-constant($visit.name);
+                            if $routine {
+                                my $value := $routine.compile-time-value;
+                                $context.ensure-sc($value);
+                                $visit.name(nqp::null);
+                                $visit.unshift(QAST::WVal.new(:$value));
+                            } # else leave in the runtime lookup for post-declared subs
                         }
                     }
                     $visit-children($visit)
@@ -506,7 +508,7 @@ class RakuAST::Code
                 :op('p6capturelex'),
                 QAST::Op.new(
                     :op('callmethod'), :name('clone'),
-                    QAST::WVal.new( :value($throwaway_block) )
+                    QAST::WVal.new( :value($throwaway_block) ).annotate_self('past_block', $throwaway_block_past).annotate_self('code_object', $throwaway_block)
                 )));
         $block[1].push($fixup);
 
@@ -2416,6 +2418,7 @@ class RakuAST::RoleBody
 
     method IMPL-FINISH-ROLE-BODY(RakuAST::IMPL::QASTContext $context) {
         unless self.is-stub {
+            my $*IMPL-COMPILE-DYNAMICALLY := 1;
             my $body-qast := self.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
             self.IMPL-BEGIN-TIME-LEXICAL-FIXUP($context, $body-qast, $!fixup);
         }

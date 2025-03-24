@@ -1029,7 +1029,7 @@ class RakuAST::VarDeclaration::Simple
 
         my $type := self.type;
         # Subset type checking can have side effects, so don't do that at compile time.
-        if nqp::istype($type,RakuAST::Type::Simple) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
+        if nqp::istype($type, RakuAST::Type::Simple) && !nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
             my $initializer := self.initializer;
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
@@ -1042,14 +1042,14 @@ class RakuAST::VarDeclaration::Simple
                 }
 
                 my $expression := $initializer.expression;
-                if nqp::istype($expression,RakuAST::Literal) {
-                    my $vartype := $type.PRODUCE-META-OBJECT;
+                if nqp::istype($expression, RakuAST::Literal) {
+                    my $vartype := $type.meta-object;
                     if nqp::objprimspec($vartype) {
                         $vartype := $vartype.HOW.mro($vartype)[1];
                     }
 
                     my $value := $expression.compile-time-value;
-                    if !nqp::istype($value,$vartype)
+                    if !nqp::istype($value, $vartype)
                       && nqp::istype(
                            $vartype,
                            $resolver.type-from-setting('Numeric')

@@ -1,0 +1,105 @@
+use Test;
+use experimental :pack;
+
+# L<S32::Str/Str/"=item pack">
+
+plan 38;
+
+{
+    for 'H*', ('H*',) -> $t {
+        my $buf = pack($t, "414243");
+        is-deeply $buf.contents, (:16<41>, :16<42>, :16<43>), "$t works";
+    }
+}
+
+{
+    for 'H', ('H',) -> $t {
+        my $buf = pack($t, 'a');
+        is-deeply $buf.contents, ( 0xA0, ), "$t works on odd-length strings";
+    }
+}
+
+{
+    for "A11 A28 A8 A*", <A11 A28 A8 A*> -> $t {
+        my $buf = pack($t, "03/23/2001", "Totals", "1235.00", "   1172.98");
+        is-deeply $buf.contents,
+          "03/23/2001 Totals                      1235.00    1172.98"
+          .encode.contents,
+          "$t works";
+    }
+}
+
+{
+    for "C S L n N v V", <C S L n N v V> -> $t {
+        my $buf = pack($t,
+          0x130, 0x10030, 0x100000030,
+          0x1234, 0x12345678,
+          0x1234, 0x12345678);
+        is-deeply $buf.contents,
+          (0x30, 0x30, 0x00, 0x30, 0x00, 0x00, 0x00,
+          0x12, 0x34, 0x12, 0x34, 0x56, 0x78,
+          0x34, 0x12, 0x78, 0x56, 0x34, 0x12),
+          "$t work";
+    }
+}
+
+{
+    for 'x', ('x',) -> $t {
+        my $buf = pack($t);
+        is-deeply $buf.contents, (0x00,), "$t by itself works";
+    }
+}
+
+{
+    for 'x4', ('x4',) -> $t {
+        my $buf = pack($t);
+        is-deeply $buf.contents, (0x00, 0x00, 0x00, 0x00), "$t & amount works";
+    }
+}
+
+{
+    for 'x*', ('x*',) -> $t {
+        my $buf = pack($t);
+        is-deeply $buf.contents, (), "$t & amount works: does nothing";
+    }
+}
+
+{
+    for "H*", <H*> -> $template {
+        my $hexstring = Buf.new(:16<41>, :16<42>, :16<43>).unpack($template);
+        is $hexstring, "414243", 'H* works';
+    }
+}
+
+{
+    my $buf =
+      "03/23/2001 Totals                      1235.00    1172.98".encode;
+    for "A10 x A6 x19 A10 x A*", <A10 x A6 x19 A10 x A*> -> $template {
+        my ($date,$totals,$tot_income,$tot_expend) = $buf.unpack($template);
+
+        is $date,       "03/23/2001",  'field 1 (A11) works';
+        is $totals,     "Totals",      'field 2 (A28) works';
+        is $tot_income, "   1235.00",  'field 3 (A8) works';
+        is $tot_expend, "   1172.98",  'field 4 (A*) works';
+    }
+}
+
+{
+    my $buf = Buf.new(0x30, 0x30, 0x00, 0x30, 0x00, 0x00, 0x00,
+                      0x12, 0x34, 0x12, 0x34, 0x56, 0x78,
+                      0x34, 0x12, 0x78, 0x56, 0x34, 0x12);
+    for "C S L n N v V", <C S L n N v V> -> $template {
+        my ($char, $short, $long, $bigend_short, $bigend_long,
+          $lilend_short, $lilend_long) = $buf.unpack($template);
+
+        is $char,         0x30,       'C works';
+        is $short,        0x30,       'S works';
+        is $long,         0x30,       'L works';
+        is $bigend_short, 0x1234,     'n works';
+        is $bigend_long,  0x12345678, 'N works';
+        is $lilend_short, 0x1234,     'v works';
+        is $lilend_long,  0x12345678, 'V works';
+    }
+}
+
+# vim: expandtab shiftwidth=4

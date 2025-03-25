@@ -155,7 +155,7 @@ my class Any { # declared in BOOTSTRAP
         die "Must specify something to classify with, a Callable, Hash or List";
     }
     multi method classify(Whatever, :&as) {
-        Hash.^parameterize(Any,Mu).new.classify-list(
+        Hash.^parameterize(Mu,Mu,Any).new.classify-list(
           { $_ }, self, :&as
         )
     }
@@ -163,7 +163,7 @@ my class Any { # declared in BOOTSTRAP
         ( $into // $into.new ).classify-list($test, self, :&as)
     }
     multi method classify($test, :&as)   {
-        Hash.^parameterize(Any,Mu).new.classify-list($test, self, :&as )
+        Hash.^parameterize(Mu,Mu,Any).new.classify-list($test, self, :&as )
     }
 
     proto method categorize(|) is nodal {*}
@@ -171,7 +171,7 @@ my class Any { # declared in BOOTSTRAP
         die "Must specify something to categorize with, a Callable, Hash or List";
     }
     multi method categorize(Whatever, :&as) {
-        Hash.^parameterize(Any,Mu).new.categorize-list(
+        Hash.^parameterize(Mu,Mu,Any).new.categorize-list(
           { $_ }, self.list, :&as
         )
     }
@@ -179,7 +179,7 @@ my class Any { # declared in BOOTSTRAP
         ( $into // $into.new ).categorize-list( $test, self.list, :&as )
     }
     multi method categorize($test, :&as) {
-        Hash.^parameterize(Any,Mu).new.categorize-list($test, self.list, :&as)
+        Hash.^parameterize(Mu,Mu,Any).new.categorize-list($test, self.list, :&as)
     }
 
     method reverse() is nodal { self.list.reverse }
@@ -546,7 +546,7 @@ multi sub classify($test, +items, :$into!, *%named ) {
     ( $into // $into.new).classify-list($test, items, |%named)
 }
 multi sub classify($test, +items, *%named ) {
-    Hash.^parameterize(Any,Mu).new.classify-list($test, items, |%named);
+    Hash.^parameterize(Mu,Mu,Any).new.classify-list($test, items, |%named);
 }
 
 proto sub categorize($, |) {*}
@@ -554,7 +554,7 @@ multi sub categorize($test, +items, :$into!, *%named ) {
     ( $into // $into.new).categorize-list($test, items, |%named)
 }
 multi sub categorize($test, +items, *%named ) {
-    Hash.^parameterize(Any,Mu).new.categorize-list($test, items, |%named)
+    Hash.^parameterize(Mu,Mu,Any).new.categorize-list($test, items, |%named)
 }
 
 proto sub item(|) is pure {*}

@@ -2,7 +2,7 @@ use Test;
 
 use experimental :cached;
 
-plan 38;
+plan 41;
 
 {
     my @seen;
@@ -83,5 +83,15 @@ plan 38;
     #?rakudo.jvm todo "is cached is only a hint"
     is-deeply @str, [<Camelia>], 'was the code done (4)';
 } #4
+
+# https://github.com/Raku/old-issue-tracker/issues/3539
+# snick in a test for RT #122896
+{
+    my $lib  := $*PROGRAM.sibling("lib");
+    my $proc := run $*EXECUTABLE, "-I$lib", "-MCachedSub", "-e", "say frobnicate(42)", :out, :err;
+    is-deeply $proc.exitcode, 0, 'was the call successful';
+    is-deeply $proc.out.slurp, "84\n", 'did it produce the right output';
+    is-deeply $proc.err.slurp, "", 'no error output';
+}
 
 # vim: expandtab shiftwidth=4

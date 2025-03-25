@@ -2036,6 +2036,8 @@ class RakuAST::ParameterTarget::Var
        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
+    method has-compile-time-value() { False }
+
     method default-scope() { self.twigil eq '!' ?? 'has' !! 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
@@ -2156,6 +2158,8 @@ class RakuAST::ParameterTarget::Term
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
     }
+
+    method has-compile-time-value() { False }
 
     method default-scope() { 'my' }
 

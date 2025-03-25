@@ -2704,6 +2704,7 @@ CODE
           if $scope && $scope ne $ast.default-scope;
 
         @parts.push(self.hsyn("type",self.deparse($ast.name)));
+        @parts.push(self.xsyn('trait', 'of'));
         @parts.push(self.hsyn("traitmod-of", self.deparse($_))) with $ast.of;
         @parts.push(self.hsyn("type", self.deparse($_))) for $ast.traits;
 

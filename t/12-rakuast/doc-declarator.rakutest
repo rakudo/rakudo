@@ -563,11 +563,9 @@ subtest 'Simple subset with declarator pod' => {
     ast RakuAST::Type::Subset.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Trait::Of.new(
-        RakuAST::Type::Simple.new(
+      of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
         )
-      )
     ).declarator-docs(
       leading  => ("leading comment\n",),
       trailing => ("trailing comment\n",)

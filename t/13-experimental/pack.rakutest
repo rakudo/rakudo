@@ -3,7 +3,7 @@ use experimental :pack;
 
 # L<S32::Str/Str/"=item pack">
 
-plan 38;
+plan 39;
 
 {
     for 'H*', ('H*',) -> $t {
@@ -100,6 +100,13 @@ plan 38;
         is $lilend_short, 0x1234,     'v works';
         is $lilend_long,  0x12345678, 'V works';
     }
+}
+
+# https://github.com/Raku/old-issue-tracker/issues/3530
+{
+    use experimental :pack;
+    my Blob $x;
+    throws-like { $x ~= pack "V",1 }, X::Buf::AsStr;
 }
 
 # vim: expandtab shiftwidth=4

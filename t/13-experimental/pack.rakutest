@@ -104,7 +104,6 @@ plan 39;
 
 # https://github.com/Raku/old-issue-tracker/issues/3530
 {
-    use experimental :pack;
     my Blob $x;
     throws-like { $x ~= pack "V",1 }, X::Buf::AsStr;
 }

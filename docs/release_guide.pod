@@ -358,9 +358,10 @@ Use the L<Github release|https://github.com/rakudo/rakudo/blob/main/tools/releas
 NQP and Rakudo Github release, refer to MoarVM release guide for the details about artifacts attachment.
 
 The script will look like it failed entirely, but this is due to the artifacts upload; verify that the release
-was created, and then do the attachment of artifacts manually.
+was created, and then do the attachment of artifacts manually for both NQP and Rakudo. Note that if the NQP
+release fails to create for some reason, you can create it by hand on github.
 
-Copy the announce into the github release description field.
+Copy the announce into the github release description field for Rakudo.
 
 See previous releases for any details.
 

@@ -94,7 +94,7 @@ my role Setty does QuantHash {
     }
 
     method !HASHIFY(\type) {
-        my \hash := Hash.^parameterize(type,Any).new;
+        my \hash := Hash.^parameterize(type,Mu,Any).new;
         my \descriptor := nqp::getattr(hash,Hash,'$!descriptor');
 
         nqp::if(

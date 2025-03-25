@@ -2352,20 +2352,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # etc.)
         my $R := $*R;
         my $package := $*PACKAGE;
-        if nqp::istype($package, Nodify('ParseTime')) {
-            $package.ensure-parse-performed($R, $*CU.context);
-        }
         $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
         $R.push-package($package);
-
-        if $*SIGNATURE {
-            my $params := $*SIGNATURE.ast;
-            for $params.IMPL-UNWRAP-LIST($params.parameters) {
-                $R.declare-lexical($_.target) if $_.target;
-            }
-        }
     }
 
     method leave-package-scope($/) {

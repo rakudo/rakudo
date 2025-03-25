@@ -174,7 +174,12 @@ class RakuAST::Package
         # TODO split off the above into a pre-begin handler, so the enter-scope
         # and declarations can go back into RakuAST::Actions
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
-            $resolver.enter-scope(self);
+            if $*LEXICAL-SCOPE {
+                $resolver.re-enter-scope($*LEXICAL-SCOPE);
+            }
+            else { # Require
+                $resolver.enter-scope(self);
+            }
             self.declare-lexicals($resolver, $context);
         }
 
@@ -467,6 +472,10 @@ class RakuAST::Role
         else {
             $signature := RakuAST::Signature.new unless $signature;
             $role-body := RakuAST::RoleBody.new(:$signature);
+        }
+
+        for $signature.IMPL-UNWRAP-LIST($signature.parameters) {
+            $_.set-owner($role-body);
         }
 
         nqp::bindattr(self, RakuAST::Role, '$!fixup', RakuAST::LexicalFixup.new) unless $!fixup;

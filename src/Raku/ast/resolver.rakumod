@@ -994,6 +994,14 @@ class RakuAST::Resolver::Compile
         Nil
     }
 
+    method re-enter-scope(RakuAST::Resolver::Compile::Scope $scope) {
+        nqp::push($!scopes, $scope);
+        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope.scope);
+        }
+        Nil
+    }
+
     # Indicates that any implicit declarations for the current scope should now
     # come into force. Only used in compilation mode. Called by the compiler at
     # the appropriate point.
@@ -1010,7 +1018,7 @@ class RakuAST::Resolver::Compile
         if nqp::istype($scope.scope, RakuAST::AttachTarget) {
             self.pop-attach-target($scope.scope);
         }
-        Nil
+        $scope
     }
 
     # Walks scopes from inner to outer and returns the first concrete value

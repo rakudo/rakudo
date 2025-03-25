@@ -3769,19 +3769,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*BLOCK;
         :my $*PACKAGE;
+        :my $scope;
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
+        <.stub-package($<longname>)>
+        { $*R.enter-scope($*PACKAGE) }
         [ :dba('generic role')
           <?{ ($*PKGDECL // '') eq 'role' }>
-          '[' ~ ']' <signature(:DECLARE-TARGETS(0))>
+          '[' ~ ']' <signature(:DECLARE-TARGETS(1))>
           { $*IN-DECL := ''; }
         ]?
-        <.stub-package($<longname>)>
         { $/.set_package($*PACKAGE) }
         :my $*ALSO-TARGET := $*PACKAGE;
         :my $*TRUSTS-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
-        <.enter-package-scope($<signature>)>
+        { $scope := $*R.leave-scope() }
+        <.enter-package-scope($<signature>, $scope)>
         [
           || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
           || ';'
@@ -3800,7 +3803,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token stub-package($*PACKAGE-NAME) { <?> }
-    token enter-package-scope($*SIGNATURE) { <?> }
+    token enter-package-scope($*SIGNATURE, $*LEXICAL-SCOPE) { <?> }
     token leave-package-scope { <?> }
 
     proto token scope-declarator {*}

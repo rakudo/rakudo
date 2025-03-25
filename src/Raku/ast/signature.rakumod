@@ -724,6 +724,10 @@ class RakuAST::Parameter
         Nil
     }
 
+    method set-owner(RakuAST::Code $owner) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!owner', $owner);
+    }
+
     method add-type-capture(RakuAST::Type::Capture $type-capture) {
         nqp::push($!type-captures, $type-capture);
         Nil

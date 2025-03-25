@@ -522,7 +522,7 @@ proto sub circumfix:<{ }>(|) {*}
 multi sub circumfix:<{ }>() is default { my % }
 multi sub circumfix:<{ }>(*@elems) { my % = @elems }
 
-sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Any).new(@elems) }
+sub circumfix:<:{ }>(*@elems) { Hash.^parameterize(Mu,Mu,Any).new(@elems) }
 
 proto sub hash(|) {*}
 #?if !jvm

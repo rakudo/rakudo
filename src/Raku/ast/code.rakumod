@@ -264,9 +264,13 @@ class RakuAST::Code
             $current-block := nqp::elems(@blocks) ?? @blocks[nqp::elems(@blocks) - 1] !! NQPMu;
         }
 
+        my %seen;
         my $declared-in-cu := sub ($name) {
             for @blocks {
-                return 1 if nqp::existskey($_, $name);
+                if nqp::existskey($_, $name) {
+                    %seen{$name} := 1;
+                    return 1;
+                }
             }
             return 0;
         }
@@ -289,10 +293,13 @@ class RakuAST::Code
                 }
             }
             else {
-                if $scope eq 'lexical' && ! $declared-in-cu($name) {
+                if $scope eq 'lexical' && ! $declared-in-cu($name) && !%seen{$name} {
                     my $value := $var.ann('compile-time-value');
                     if !($value =:= NQPMu) {
-                        $var := QAST::WVal.new(:$value);
+                        %seen{$name} := 1;
+                        $block[0].push(
+                            QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                        );
                     }
                     elsif $name ne '$_' { #TODO figure out why we specifially don't declare $_ in ExpressionThunks
                         my $decl := $!resolver.resolve-lexical-constant($name);
@@ -300,7 +307,10 @@ class RakuAST::Code
                             $decl.to-begin-time($resolver, $context); # Ensure any required lookups are resolved
                             my $value := $decl.compile-time-value;
                             $context.ensure-sc($value);
-                            $var := QAST::WVal.new(:$value);
+                            %seen{$name} := 1;
+                            $block[0].push(
+                                QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                            );
                         }
                         else {
                             nqp::die("Could not find a compile-time-value for lexical $name");

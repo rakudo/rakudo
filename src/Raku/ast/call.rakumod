@@ -355,13 +355,15 @@ class RakuAST::Call::Name
                     my $type := $_.return-type;
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
+                    last unless $ok;
+                    $ok := 0 if nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW); # Avoid side-effects of comparing subset
                     nqp::push(@flags, nqp::objprimspec($type));
                 }
-                if nqp::elems(@types) == 1 && nqp::istype(@args[0], RakuAST::Literal) {
-                    my $rev := @args[0].native-type-flag;
-                    @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
-                }
                 if $ok {
+                    if nqp::elems(@types) == 1 && nqp::istype(@args[0], RakuAST::Literal) {
+                        my $rev := @args[0].native-type-flag;
+                        @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
+                    }
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     my @ct_result_multi;
                     if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && $routine.onlystar {

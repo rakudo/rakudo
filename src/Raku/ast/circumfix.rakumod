@@ -63,6 +63,14 @@ class RakuAST::Circumfix::Parentheses
         True
     }
 
+    method has-compile-time-value() {
+        $!semilist.has-compile-time-value;
+    }
+
+    method maybe-compile-time-value() {
+        $!semilist.maybe-compile-time-value;
+    }
+
     method IMPL-CAN-INTERPRET() {
         $!semilist.IMPL-CAN-INTERPRET
     }

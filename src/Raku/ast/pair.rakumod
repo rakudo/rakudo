@@ -123,6 +123,14 @@ class RakuAST::ColonPair
         ])
     }
 
+    method IMPL-CREATE-PAIR(Str $key, Mu $value) {
+        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+        my $pair := nqp::create($Pair);
+        nqp::bindattr($pair, $Pair, '$!key', $key);
+        nqp::bindattr($pair, $Pair, '$!value', $value);
+        $pair
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $pair-type :=
           self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
@@ -182,6 +190,7 @@ class RakuAST::QuotePair
 # A truthy colonpair (:foo).
 class RakuAST::ColonPair::True
   is RakuAST::QuotePair
+  is RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -205,6 +214,10 @@ class RakuAST::ColonPair::True
 
     method simple-compile-time-quote-value() { True }
 
+    method compile-time-value() {
+        self.IMPL-CREATE-PAIR(self.key, True)
+    }
+
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := True;
         $context.ensure-sc($value);
@@ -223,6 +236,7 @@ class RakuAST::ColonPair::True
 # A falsey colonpair (:!foo).
 class RakuAST::ColonPair::False
   is RakuAST::QuotePair
+  is RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -246,6 +260,10 @@ class RakuAST::ColonPair::False
 
     method simple-compile-time-quote-value() { False }
 
+    method compile-time-value() {
+        self.IMPL-CREATE-PAIR(self.key, False)
+    }
+
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := False;
         $context.ensure-sc($value);
@@ -264,6 +282,7 @@ class RakuAST::ColonPair::False
 # A number colonpair (:2th).
 class RakuAST::ColonPair::Number
   is RakuAST::QuotePair
+  is RakuAST::CompileTimeValue
 {
     has RakuAST::IntLiteral $.value;
 
@@ -275,6 +294,10 @@ class RakuAST::ColonPair::Number
     }
 
     method simple-compile-time-quote-value() { $!value.value }
+
+    method compile-time-value() {
+        self.IMPL-CREATE-PAIR(self.key, $!value.value)
+    }
 
     method visit-children(Code $visitor) {
         $visitor($!value);
@@ -314,6 +337,14 @@ class RakuAST::ColonPair::Value
         else {
             Nil
         }
+    }
+
+    method has-compile-time-value() {
+        $!value.has-compile-time-value
+    }
+
+    method maybe-compile-time-value() {
+        self.IMPL-CREATE-PAIR(self.key, $!value.maybe-compile-time-value)
     }
 
     method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }

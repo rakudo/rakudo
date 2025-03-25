@@ -191,7 +191,7 @@ class RakuAST::ArgList
 
     method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic) {
         for $!args -> $arg {
-            return False if !nqp::istype($arg, RakuAST::CompileTimeValue) || (!$allow-generic && $arg.compile-time-value.HOW.archetypes.generic);
+            return False if !$arg.has-compile-time-value || (!$allow-generic && $arg.maybe-compile-time-value.HOW.archetypes.generic);
         }
         True
     }
@@ -201,10 +201,10 @@ class RakuAST::ArgList
         my %named;
         for $!args -> $arg {
             if nqp::istype($arg, RakuAST::NamedArg) {
-                %named{$arg.named-arg-name} := $arg.named-arg-value.compile-time-value;
+                %named{$arg.named-arg-name} := $arg.named-arg-value.maybe-compile-time-value;
             }
             else {
-                nqp::push(@pos, $arg.compile-time-value);
+                nqp::push(@pos, $arg.maybe-compile-time-value);
             }
         }
         [@pos, %named]

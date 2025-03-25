@@ -2768,10 +2768,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my $circumfix := $<circumfix>;
         my $trait := $<typename>
-            ?? Nodify('Trait', 'Is').new-from-type(:type($<typename>.ast))
+            ?? Nodify('Trait', 'Is').new-from-type(
+                :type($<typename>.ast),
+                :argument($circumfix ?? $circumfix.ast !! Mu)
+            )
             !! Nodify('Trait', 'Is').new(
-              :name($longname.trait-is2ast),
-              :argument($circumfix ?? $circumfix.ast !! Mu)
+                :name($longname.trait-is2ast),
+                :argument($circumfix ?? $circumfix.ast !! Mu)
             );
 
         self.attach: $/, $trait;

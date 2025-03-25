@@ -4303,9 +4303,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule trait_mod {*}
     rule trait_mod:sym<is> {
-        <.traitmod-is> [ <typename(:allow-capture(0))> || <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        <.traitmod-is> [ <typename(:allow-capture(0), :coercion(0))><circumfix>? || <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
-            if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
+            if $<circumfix> && $<longname> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>;
                 $*BORG<name> := 'is ' ~ $<longname>;
             }
@@ -4848,7 +4848,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Types
 
-    token typename(:$allow-capture = 1) {
+    token typename(:$allow-capture = 1, :$coercion = 1) {
         [
           # parse ::?CLASS as special case
           | '::?'<identifier> <colonpair>*
@@ -4870,7 +4870,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <whence=.postcircumfix>
         ]?
         <.unspace>?
-        [ <?[(]>
+        [ <?{ $coercion }> <?[(]>
           '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>]
         ]?
         [<.ws> <.traitmod-of> <.ws> <typename> ]?

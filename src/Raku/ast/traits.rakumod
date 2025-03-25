@@ -150,9 +150,11 @@ class RakuAST::Trait::Is
         $obj
     }
 
-    method new-from-type(RakuAST::Type :$type!) {
+    method new-from-type(RakuAST::Type :$type!, RakuAST::Circumfix :$argument) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Trait::Is, '$!type', $type);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!argument',
+            $argument // RakuAST::Circumfix);
         $obj
     }
 
@@ -176,6 +178,7 @@ class RakuAST::Trait::Is
         my @args := [$target];
         if $!type {
             @args.push($!type);
+            @args.push($!argument) if $!argument;
         }
         else {
             my $key := $!name.canonicalize;

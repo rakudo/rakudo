@@ -4850,8 +4850,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           # parse ::?CLASS as special case
           | '::?'<identifier> <colonpair>*
 
-          | :my $*IN-TYPENAME := 1;
-            <longname>
+          | <longname(1)>
             <?{
                  # ::T introduces a type, so always is one
                  nqp::eqat(~$<longname>, '::', 0)
@@ -5204,7 +5203,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
-    token longname {
+    token longname($*IN-TYPENAME = 0) {
         <name>
         {}
         [

@@ -3,7 +3,7 @@ use experimental :pack;
 
 # L<S32::Str/Str/"=item pack">
 
-plan 39;
+plan 42;
 
 {
     for 'H*', ('H*',) -> $t {
@@ -106,6 +106,13 @@ plan 39;
 {
     my Blob $x;
     throws-like { $x ~= pack "V",1 }, X::Buf::AsStr;
+}
+
+#?rakudo.js.browser 3 skip "use at EVAL time not supported in the browser"
+{
+    throws-like { pack("B",  1) },       X::Buf::Pack, directive => 'B';
+    throws-like { Buf.new.unpack("B") }, X::Buf::Pack, directive => 'B';
+    throws-like { pack "A2", "mÄ" },     X::Buf::Pack::NonASCII, char => 'Ä';
 }
 
 # vim: expandtab shiftwidth=4

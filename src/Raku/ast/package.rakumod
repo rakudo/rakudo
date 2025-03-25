@@ -550,6 +550,12 @@ class RakuAST::Role
     }
 
     method install-extra-declarations(RakuAST::Resolver $resolver) {
+        # We might have declarations from our signature. Need to push them on
+        # to the outer scope as the role itself won't generate code for its
+        # declarations.
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations) {
+            $resolver.current-scope.add-generated-lexical-declaration($_);
+        }
         $resolver.current-scope.add-generated-lexical-declaration(self.body.fixup) if self.body.fixup;
     }
 

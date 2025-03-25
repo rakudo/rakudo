@@ -3,7 +3,7 @@ use experimental :pack;
 
 # L<S32::Str/Str/"=item pack">
 
-plan 42;
+plan 43;
 
 {
     for 'H*', ('H*',) -> $t {
@@ -113,6 +113,14 @@ plan 42;
     throws-like { pack("B",  1) },       X::Buf::Pack, directive => 'B';
     throws-like { Buf.new.unpack("B") }, X::Buf::Pack, directive => 'B';
     throws-like { pack "A2", "mÄ" },     X::Buf::Pack::NonASCII, char => 'Ä';
+}
+
+#?rakudo.js.browser skip "use at EVAL time not supported in the browser"
+# https://github.com/rakudo/rakudo/issues/2111
+{
+    lives-ok { EVAL(
+      'package Zoo { sub go() is export { "".encode.unpack("*") }; }; import Zoo; go()'
+    ) }, 'is "use experimental :pack" visible?';
 }
 
 # vim: expandtab shiftwidth=4

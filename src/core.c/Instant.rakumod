@@ -132,7 +132,6 @@ sub term:<now>(--> Instant:D) {
     # represents two seconds in UTC time.  This ambiguity is currently
     # resolved by returning the leap second.
 
-    my int $offset-nanos = Rakudo::Internals.current-offset-nanos;
     Instant.from-posix-nanos(
         nqp::add_i(nqp::time, Rakudo::Internals.current-offset-nanos))
 }

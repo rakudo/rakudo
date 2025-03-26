@@ -2825,6 +2825,8 @@ class RakuAST::RegexThunk
         my $parameter := nqp::create(Parameter);
         nqp::bindattr($parameter, Parameter, '$!type', Mu);
         nqp::bindattr($signature, Signature, '@!params', nqp::list($parameter));
+        nqp::bindattr_i($signature, Signature, '$!arity', 1);
+        nqp::bindattr($signature, Signature, '$!count', nqp::box_i(1, Int));
 
         # Create Regex object.
         my $regex := nqp::create(Regex);

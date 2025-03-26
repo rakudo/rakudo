@@ -2376,6 +2376,19 @@ class RakuAST::Prefix
     }
 }
 
+# prefix:<||> generates a prefix:<|> call but is treated differently by a surrounding
+# postcircumfix:<[ ]> which itself turns into postcircumfix:<[; ]>
+class RakuAST::Prefix::Multislice
+  is RakuAST::Prefix
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Prefix, '$!operator', '|');
+        nqp::bindattr($obj, RakuAST::Prefixish, '$!colonpairs', []);
+        $obj
+    }
+}
+
 # The prefix hyper meta-operator.
 class RakuAST::MetaPrefix::Hyper
   is RakuAST::Prefixish
@@ -2685,9 +2698,50 @@ class RakuAST::Postfix::Vulgar
 class RakuAST::Postcircumfix
   is RakuAST::Postfixish { }
 
+class RakuAST::Postcircumfix::Index
+  is RakuAST::Postcircumfix
+{
+    method is-multislice() {
+        my $statements := self.index.code-statements;
+        nqp::elems($statements) > 1
+        || self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))
+    }
+
+    method IMPL-INDEX-QAST(RakuAST::IMPL::QASTContext $context) {
+        if self.is-multislice && nqp::elems(self.index.code-statements) == 1 {
+            my $stmt := self.index.code-statements[0];
+            if nqp::istype($stmt, RakuAST::Statement::Expression)
+                && nqp::istype($stmt.expression, RakuAST::ApplyPrefix)
+                && nqp::istype($stmt.expression.prefix, RakuAST::Prefix::Multislice)
+            {
+                # cut out the || op
+                $stmt.expression.operand.IMPL-TO-QAST($context);
+            }
+            elsif nqp::istype($stmt, RakuAST::Statement::Expression)
+                && nqp::istype($stmt.expression, RakuAST::ApplyListInfix)
+                && nqp::istype($stmt.expression.infix, RakuAST::Infix)
+                && $stmt.expression.infix.operator eq ','
+                && nqp::istype((my $operand := self.IMPL-UNWRAP-LIST($stmt.expression.operands)[0]), RakuAST::ApplyPrefix)
+                && nqp::istype($operand.prefix, RakuAST::Prefix::Multislice)
+            {
+                # cut out the || op
+                my $qast := $stmt.IMPL-TO-QAST($context);
+                $qast[0] := $qast[0][0][0];
+                $qast
+            }
+            else {
+                $stmt.IMPL-TO-QAST($context)
+            }
+        }
+        else {
+            self.index.IMPL-TO-QAST($context)
+        }
+    }
+}
+
 # A postcircumfix array index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::ArrayIndex
-  is RakuAST::Postcircumfix
+  is RakuAST::Postcircumfix::Index
   is RakuAST::CheckTime
   is RakuAST::Lookup
   is RakuAST::ParseTime
@@ -2717,7 +2771,7 @@ class RakuAST::Postcircumfix::ArrayIndex
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical(
-            nqp::elems($!index.code-statements) > 1
+            self.is-multislice
                 ?? '&postcircumfix:<[; ]>'
                 !! '&postcircumfix:<[ ]>');
         if $resolved {
@@ -2742,7 +2796,7 @@ class RakuAST::Postcircumfix::ArrayIndex
         # 2nd chance to resolve to avoid bootstrapping issue in the setting
         unless self.is-resolved {
             my $resolved := $resolver.resolve-lexical(
-                nqp::elems($!index.code-statements) > 1
+                self.is-multislice
                     ?? '&postcircumfix:<[; ]>'
                     !! '&postcircumfix:<[ ]>');
             if $resolved {
@@ -2808,12 +2862,12 @@ class RakuAST::Postcircumfix::ArrayIndex
             $name := self.resolution.lexical-name;
         }
         else {
-            $name := nqp::elems($!index.code-statements) > 1
+            $name := self.is-multislice
                 ?? '&postcircumfix:<[; ]>'
                 !! '&postcircumfix:<[ ]>';
         }
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
@@ -2843,7 +2897,7 @@ class RakuAST::Postcircumfix::ArrayIndex
 
 # A postcircumfix hash index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::HashIndex
-  is RakuAST::Postcircumfix
+  is RakuAST::Postcircumfix::Index
   is RakuAST::Lookup
   is RakuAST::ParseTime
   is RakuAST::CheckTime
@@ -2880,7 +2934,7 @@ class RakuAST::Postcircumfix::HashIndex
     }
 
     method IMPL-LEXICAL-NAME() {
-        nqp::elems($!index.code-statements) > 1
+        self.is-multislice
             ?? '&postcircumfix:<{; }>'
             !! '&postcircumfix:<{ }>';
     }
@@ -2908,7 +2962,7 @@ class RakuAST::Postcircumfix::HashIndex
             RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         my $bind := $source-qast;
         $bind.named('BIND');

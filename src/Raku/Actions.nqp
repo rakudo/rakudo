@@ -1335,6 +1335,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Prefix').new('temp')
     }
 
+    # prefix:<||> generates a prefix:<|> call but is treated differently by a surrounding
+    # postcircumfix:<[ ]> which itself turns into postcircumfix:<[; ]>
+    method prefix:sym<||>($/) {
+        self.attach: $/, Nodify('Prefix', 'Multislice').new
+    }
+
     method prefixish($/) {
         my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
         $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))

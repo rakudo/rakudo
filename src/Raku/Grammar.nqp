@@ -2595,6 +2595,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix:sym<->  { <sym> }
     token prefix:sym<−>  { <sym> }
     token prefix:sym<|>  { <sym> }
+    token prefix:sym<||> {
+        <?{ self.language-revision >= 3 }>
+        <sym>
+    }
     token prefix:sym<+^> { <sym> }
     token prefix:sym<~^> { <sym> }
     token prefix:sym<?^> { <sym> }

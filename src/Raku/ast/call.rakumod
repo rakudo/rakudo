@@ -550,11 +550,13 @@ class RakuAST::Call::Term
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        QAST::Op.new(
+        my $call := QAST::Op.new(
             :op<call>,
             :name('&METAOP_HYPER_CALL'),
             $operand-qast,
-        )
+        );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
     }
 
     method IMPL-CAN-INTERPRET() {

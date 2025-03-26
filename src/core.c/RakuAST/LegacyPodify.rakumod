@@ -411,7 +411,7 @@ class RakuAST::LegacyPodify {
         }
 
         my $leading := %*ENV<RAKUDO_POD_DECL_BLOCK_USER_FORMAT>
-          ?? $ast.leading.join("\n")
+          ?? $ast.leading>>.chomp.grep(?*).join("\n")
           !! normalize($ast.leading);
         my $trailing := normalize $ast.trailing;
 

@@ -3686,8 +3686,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $orig := $/.orig;
 
                 # verify \n \s* #=
-                my $i    := $from - 3;
-                while nqp::eqat($orig,' ',--$i) { }
+                my $i := $from - 3;
+                unless nqp::eqat($orig,"\n",$i) {
+                    while nqp::eqat($orig,' ',--$i) { }
+                }
 
                 if nqp::eqat($orig,"\n",$i) {
                     accept($/);

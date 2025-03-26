@@ -2725,8 +2725,6 @@ class RakuAST::Postcircumfix::Index
                 && nqp::istype($operand.prefix, RakuAST::Prefix::Multislice)
             {
                 # cut out the || op
-                nqp::note($stmt.dump);
-                nqp::note($stmt.IMPL-TO-QAST($context).dump);
                 my $qast := $stmt.IMPL-TO-QAST($context);
                 $qast[0] := $qast[0][0];
                 $qast

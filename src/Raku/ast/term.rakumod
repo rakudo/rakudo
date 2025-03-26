@@ -5,6 +5,7 @@ class RakuAST::Term::Name
   is RakuAST::Term
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -39,6 +40,13 @@ class RakuAST::Term::Name
             }
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if ! $!name.is-pseudo-package && ! $!name.is-package-lookup && ! $!name.is-indirect-lookup && ! self.is-resolved {
+            self.add-sorry:
+                $resolver.build-exception: 'X::NoSuchSymbol', :symbol($!name.canonicalize);
+        }
     }
 
     method build-bind-exception(RakuAST::Resolver $resolver) {

@@ -2,6 +2,7 @@
 class RakuAST::TraitTarget {
     has Mu $!traits;
     has List $!sorries;
+    has List $!worries;
 
     # Set the list of traits on this declaration.
     method set-traits(List $traits) {
@@ -39,6 +40,9 @@ class RakuAST::TraitTarget {
         if $!sorries {
             self.add-sorry($_) for $!sorries;
         }
+        if $!worries {
+            self.add-worry($_) for $!worries;
+        }
     }
 
     # Apply all traits (and already applied will not be applied again).
@@ -58,6 +62,17 @@ class RakuAST::TraitTarget {
                     $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
                         unless nqp::isconcrete($ex);
                     nqp::push($!sorries, $ex);
+                }
+                CONTROL {
+                    if nqp::getextype($_) == nqp::const::CONTROL_WARN {
+                        nqp::bindattr(self, RakuAST::TraitTarget, '$!worries', []) unless nqp::isconcrete($!worries);
+                        my $ex := nqp::getpayload($_);
+                        $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
+                            unless nqp::isconcrete($ex);
+                        nqp::push($!worries, $ex);
+                        nqp::resume($_);
+                    }
+                    nqp::rethrow($_);
                 }
                 my $name := (try $_.name.canonicalize) // '';
                 if is-traits-to-warn-on-duplicate{$name} && %seen{$name}++ {

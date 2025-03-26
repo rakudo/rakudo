@@ -893,6 +893,7 @@ class RakuAST::ScopePhaser {
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;
     has int $!next-enter-phaser-result;
+    has int $!needs-result;
 
     method add-phaser(
       Str $name,
@@ -949,17 +950,22 @@ class RakuAST::ScopePhaser {
         $result-name
     }
 
+    method set-needs-result(Bool $needs-result) {
+        nqp::bindattr_i(self, RakuAST::ScopePhaser, '$!needs-result', $needs-result ?? 1 !! 0);
+    }
+
     method needs-result() {
+        return 1 if $!needs-result;
         if nqp::istype(self, RakuAST::Meta) {
             my $phasers := nqp::getattr(self.meta-object, Block, '$!phasers');
             nqp::ishash($phasers) && (
                 nqp::existskey($phasers, 'UNDO')
                 || nqp::existskey($phasers, 'KEEP')
                 || nqp::existskey($phasers, 'POST')
-            ) ?? True !! False
+            ) ?? 2 !! 0
         }
         else {
-            False
+            0
         }
     }
 
@@ -1020,7 +1026,7 @@ class RakuAST::ScopePhaser {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
         my $phasers := $block ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
 
-        if $!has-exit-handler || self.needs-result || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
+        if $!has-exit-handler || self.needs-result > 1 || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
             $qast.has_exit_handler(1);
         }
 

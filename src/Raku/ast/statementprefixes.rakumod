@@ -708,6 +708,17 @@ class RakuAST::StatementPrefix::Phaser::Quit
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
+
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.set-needs-result(True);
+            self.blorst.body.statement-list.add-statement(
+                RakuAST::Statement::Expression.new(
+                    :expression(
+                        RakuAST::Var::Lexical.new('$_', :sigil('$'), :desigilname(RakuAST::Name.from-identifier('_'))).to-begin-time($resolver, $context)
+                    )
+                )
+            );
+        }
     }
 
     method meta-object() {

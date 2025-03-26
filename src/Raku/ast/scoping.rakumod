@@ -353,7 +353,7 @@ class RakuAST::LexicalScope
             my $handle := QAST::Op.new( :op('handle'), $statements );
             if $!need-succeed-handler {
                 $handle.push('SUCCEED');
-                $handle.push(QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ));
+                $handle.push(QAST::Op.new( :op('p6return'), QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ) ));
             }
             if $!catch-handlers {
                 self.IMPL-ADD-HANDLER($handle, 'CATCH');

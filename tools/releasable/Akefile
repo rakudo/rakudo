@@ -494,7 +494,7 @@ sub custom-env() {
 task ‘rakudo-inline-perl5’, { # Step ⓬ (rakudo release guide)
     run :cwd($RAKUDO-PATH), <git clone>, ‘https://github.com/ugexe/zef’;
     my %env = custom-env;
-    run :cwd($RAKUDO-PATH.add: ‘zef’), :%env, <perl6 -Ilib bin/zef install .>;
+    run :cwd($RAKUDO-PATH.add: ‘zef’), :%env, <perl6 -I. bin/zef install .>;
     run :cwd($RAKUDO-PATH), :%env, <zef install Inline::Perl5>;
     True
 }

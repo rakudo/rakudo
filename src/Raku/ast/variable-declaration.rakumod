@@ -1384,12 +1384,23 @@ class RakuAST::VarDeclaration::Simple
                         if $sigil eq '@' || $sigil eq '%' {
                             # Call STORE method, passing :INITIALIZE to indicate
                             # it's the initialization for immutable types.
-                            $perform-init-qast := QAST::Op.new(
-                              :op('callmethod'), :name('STORE'),
-                              $var-access,
-                              $init-qast,
-                              QAST::WVal.new( :named('INITIALIZE'), :value(True) )
-                            );
+                            if $sigil eq '@' && $!shape && nqp::istype($!initializer, RakuAST::Initializer::CallAssign) && nqp::istype($!initializer.postfixish, RakuAST::Call::Method) {
+                                my $method-call := $!initializer.postfixish;
+                                $perform-init-qast := QAST::Op.new(
+                                    :op('callmethod'), :name('dispatch:<.=>'),
+                                    $var-access,
+                                    QAST::SVal.new(:value($method-call.name.canonicalize)), # method to call
+                                );
+                                $method-call.args.IMPL-ADD-QAST-ARGS($context, $perform-init-qast);
+                            }
+                            else {
+                                $perform-init-qast := QAST::Op.new(
+                                  :op('callmethod'), :name('STORE'),
+                                  $var-access,
+                                  $init-qast,
+                                  QAST::WVal.new( :named('INITIALIZE'), :value(True) )
+                                );
+                            }
                         }
                         else {
                             # Scalar assignment.

@@ -177,6 +177,15 @@ augment class RakuAST::Node {
             }).head
         }
     }
+
+    method parent(int $generation?) {
+        with @*LINEAGE {
+            $_[$generation] // Nil
+        }
+        else {
+            Nil
+        }
+    }
 }
 
 my class RakuAST::Doc::LegacyRow is RakuAST::Node {

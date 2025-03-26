@@ -2725,8 +2725,10 @@ class RakuAST::Postcircumfix::Index
                 && nqp::istype($operand.prefix, RakuAST::Prefix::Multislice)
             {
                 # cut out the || op
+                nqp::note($stmt.dump);
+                nqp::note($stmt.IMPL-TO-QAST($context).dump);
                 my $qast := $stmt.IMPL-TO-QAST($context);
-                $qast[0] := $qast[0][0][0];
+                $qast[0] := $qast[0][0];
                 $qast
             }
             else {
@@ -2877,7 +2879,7 @@ class RakuAST::Postcircumfix::ArrayIndex
             RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         my $bind := $source-qast;
         $bind.named('BIND');
         $op.push($bind);
@@ -2953,7 +2955,7 @@ class RakuAST::Postcircumfix::HashIndex
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.is-resolved ?? self.resolution.lexical-name !! self.IMPL-LEXICAL-NAME;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
     }

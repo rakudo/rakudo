@@ -2083,11 +2083,13 @@ class RakuAST::ApplyListInfix
 {
     has RakuAST::Infixish $.infix;
     has List $!operands;
+    has List $!adverbs;
 
     method new(RakuAST::Infixish :$infix!, List :$operands!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!infix', $infix);
         nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands', my $list := []);
+        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!adverbs', []);
         for self.IMPL-UNWRAP-LIST($operands) {
             if nqp::istype($_, RakuAST::ColonPairs) {
                 for $_.colonpairs {
@@ -2106,12 +2108,22 @@ class RakuAST::ApplyListInfix
         nqp::bindattr(self, RakuAST::ApplyListInfix, '$!operands', @operands);
     }
 
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!adverbs.push($pair);
+        Nil
+    }
+
     method operator() { $!infix }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @operands;
         for $!operands {
             @operands.push($_.IMPL-TO-QAST($context));
+        }
+        for $!adverbs {
+            my $arg := $_.IMPL-VALUE-QAST($context);
+            $arg.named($_.named-arg-name);
+            @operands.push($arg);
         }
         $!infix.IMPL-LIST-INFIX-QAST: $context, @operands;
     }

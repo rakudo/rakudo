@@ -1,0 +1,95 @@
+use Test;
+use experimental :macros;
+
+plan 6;
+
+# Test that we get the values we expect from WHY.contents, WHY.leading,
+# WHY.trailing, and that WHY.WHEREFORE is the appropriate thing
+# Also checks the $=pod object is set appropriately.
+my $pod_index = 0;
+sub test-leading($thing, $value) is test-assertion {
+    subtest $thing.^name => {
+        plan 8;
+        is $thing.WHY.?contents, $value, $value  ~ ' - contents';
+        is $thing.WHY.?WHEREFORE.^name, $thing.^name, $value ~ ' - WHEREFORE';
+        is $thing.WHY.?leading, $value, $value ~ ' - leading';
+        ok !$thing.WHY.?trailing.defined, $value ~ ' - no trailing';
+        is ~$thing.WHY, $value, $value ~ ' - stringifies correctly';
+
+        is $=pod[$pod_index].?WHEREFORE.^name,$thing.^name, "\$=pod $value - WHEREFORE";
+        is ~$=pod[$pod_index], $value, "\$=pod $value";
+        does-ok $thing, Callable, 'a macro does Callable';
+        $pod_index++;
+    }
+}
+
+sub test-trailing($thing, $value) is test-assertion {
+    subtest $thing.^name => {
+        plan 8;
+        is $thing.WHY.?contents, $value, $value  ~ ' - contents';
+        is $thing.WHY.?WHEREFORE.^name, $thing.^name, $value ~ ' - WHEREFORE';
+        is $thing.WHY.?trailing, $value, $value ~ ' - trailing';
+        ok !$thing.WHY.?leading.defined, $value ~ ' - no leading';
+        is ~$thing.WHY, $value, $value ~ ' - stringifies correctly';
+
+        is $=pod[$pod_index].?WHEREFORE.^name, $thing.^name, "\$=pod $value - WHEREFORE";
+        is ~$=pod[$pod_index], $value, "\$=pod $value";
+        does-ok $thing, Callable, 'a macro does Callable';
+        $pod_index++;
+    }
+}
+
+sub test-both($thing, $leading, $trailing) is test-assertion {
+    subtest $thing.^name => {
+        plan 8;
+        my $combined = "$leading\n$trailing";
+        my $name     = "$leading\\n$trailing";
+
+        is $thing.WHY.?contents, $combined, $name  ~ ' - contents';
+        is $thing.WHY.?WHEREFORE.^name, $thing.^name, $name ~ ' - WHEREFORE';
+        is $thing.WHY.?leading, $leading, $name ~ ' - trailing';
+        is $thing.WHY.?trailing, $trailing, $name ~ ' - trailing';
+        is ~$thing.WHY, $combined, $name ~ ' - stringifies correctly';
+
+        is $=pod[$pod_index].?WHEREFORE.^name, $thing.^name, "\$=pod $name - WHEREFORE";
+        is ~$=pod[$pod_index], $combined, "\$=pod $name";
+        does-ok $thing, Callable, 'a macro does Callable';
+        $pod_index++;
+    }
+}
+
+#|{I like numbers before}
+macro four { quasi { 2+2 } }
+
+test-leading(&four, 'I like numbers before');
+
+macro five { quasi { 2+2 } }
+#={I like numbers after}
+
+test-trailing(&five, 'I like numbers after');
+
+#| I like numbers before
+macro six { quasi { 2+2 } }
+
+test-leading(&six, 'I like numbers before');
+
+macro seven { quasi { 2+2 } }
+#= I like numbers after
+
+test-trailing(&seven, 'I like numbers after');
+
+#| I like
+macro eight { quasi { 2+2 } }
+#= numbers
+
+test-both(&eight, 'I like', 'numbers');
+
+# https://github.com/Raku/old-issue-tracker/issues/3216
+{
+    throws-like q[role popo { macro marco { $^a but popo }; marco popo; }],
+        X::Role::Parametric::NoSuchCandidate,
+        role    => { .^name eq 'popo' }
+        ;
+}
+
+# vim: expandtab shiftwidth=4

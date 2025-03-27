@@ -1018,6 +1018,13 @@ class RakuAST::Call::PrivateMethod
                 }
             }
         }
+        else {
+            unless nqp::can($!package.HOW, 'find_private_method') {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Method::Private::Unqualified',
+                        :method($!name.canonicalize);
+            }
+        }
 
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;

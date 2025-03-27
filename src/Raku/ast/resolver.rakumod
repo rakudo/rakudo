@@ -594,7 +594,7 @@ class RakuAST::Resolver {
             unless nqp::can($ex, 'SET_FILE_LINE') {
                 try {
                     my $XComp := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier-parts('X', 'Comp'));
-                    $ex.HOW.mixin($ex, $XComp).BUILD_LEAST_DERIVED(nqp::hash());
+                    $ex.HOW.mixin($ex, $XComp.compile-time-value).BUILD_LEAST_DERIVED(nqp::hash());
                 }
             }
         }

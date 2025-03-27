@@ -703,6 +703,7 @@ class RakuAST::Var::Package
   is RakuAST::Var
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.sigil;
     has RakuAST::Name $.name;
@@ -727,11 +728,19 @@ class RakuAST::Var::Package
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $resolved := $resolver.resolve-name(RakuAST::Name.new($!name.root-part));
+        my $resolved := $resolver.resolve-name(RakuAST::Name.new($!name.root-part))
+            unless $!name.is-empty || nqp::istype($!name.root-part, RakuAST::Name::Part::Empty);
         if $resolved {
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if !self.is-resolved && ($!name.is-empty || $!name.is-anonymous) {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Undeclared', :symbol($!sigil ~ $!name.canonicalize);
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

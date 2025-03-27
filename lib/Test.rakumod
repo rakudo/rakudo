@@ -627,19 +627,20 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
         CATCH {
             default {
                 pass $msg;
-                my $type_ok = $_ ~~ $ex_type;
-                if !$type_ok && $ex_type ~~ X::Comp && $_ ~~ X::Comp::Group {
+                my $ex := $_;
+                my $type_ok = $ex ~~ $ex_type;
+                if !$type_ok && $ex_type ~~ X::Comp && $ex ~~ X::Comp::Group {
                     # Compile time exceptions may be found in a group if the compiler reports
                     # more than one problem.
-                    with $_.sorrows.first($ex_type) -> $ex {
-                        $_ := $ex;
+                    with $_.sorrows.first($ex_type) -> $nested-ex {
+                        $ex := $nested-ex;
                         $type_ok = True;
                     }
                 }
                 ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
-                        my $got is default(Nil) = $_."$k"();
+                        my $got is default(Nil) = $ex."$k"();
                         my $ok = $got ~~ $v,;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
@@ -649,8 +650,8 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                     }
                 } else {
                     _diag "Expected: $ex_type.^name()\n"
-                        ~ "Got:      $_.^name()\n"
-                        ~ "Exception message: $_.message()";
+                        ~ "Got:      $ex.^name()\n"
+                        ~ "Exception message: $ex.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }

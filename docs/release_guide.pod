@@ -108,7 +108,7 @@ rakudo tickets for all unwanted changes in Rakudo behavior.
 =item *
 
 During the month leading up to the release, it's a good idea to keep
-the Changelog up to date. Use the `releasable6`
+the Changelog up to date. Use the C<releasable6>
 IRC bot to prepare a ChangeLog. The bot resides in
 the C<#raku-dev> channel, call it as C<releasable6: status>
 to obtain a report with commits that haven't been logged yet

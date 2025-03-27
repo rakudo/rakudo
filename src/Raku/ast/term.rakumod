@@ -39,6 +39,15 @@ class RakuAST::Term::Name
                 }
             }
         }
+        elsif $!name.is-package-search {
+            my $parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
+            nqp::shift($parts); # Remove leading ::
+            my $name := RakuAST::Name.new(|$parts);
+            $resolved := $resolver.resolve-name($name);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
         Nil
     }
 
@@ -61,7 +70,12 @@ class RakuAST::Term::Name
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if $!name.is-pseudo-package {
-            $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
+            if self-is-resolved {
+                self.resolution.IMPL-LOOKUP-QAST($context);
+            }
+            else {
+                $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
+            }
         }
         elsif $!name.is-package-lookup {
             return self.is-resolved && !$!name.is-global-lookup

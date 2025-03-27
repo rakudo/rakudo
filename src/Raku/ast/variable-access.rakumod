@@ -727,8 +727,7 @@ class RakuAST::Var::Package
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
-        my $resolved := $resolver.resolve-name(RakuAST::Name.new(@parts[0]));
+        my $resolved := $resolver.resolve-name(RakuAST::Name.new($!name.root-part));
         if $resolved {
             self.set-resolution($resolved);
         }

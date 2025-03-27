@@ -2196,7 +2196,7 @@ class RakuAST::Statement::Require
                 )
             }
             else {
-                $!module-name.parts.AT-POS(0).expr.IMPL-TO-QAST($context)
+                $!module-name.indirect-lookup-part.expr.IMPL-TO-QAST($context)
             }
         }
         else {

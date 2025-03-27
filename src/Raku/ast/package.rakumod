@@ -149,7 +149,7 @@ class RakuAST::Package
         my str $scope := self.scope;
         $scope := 'our' if $scope eq 'unit';
         my $name := $!name;
-        if $name && !$name.is-empty {
+        if $name && !$name.is-empty && !$name.is-anonymous {
             my $type-object := self.stubbed-meta-object;
             my $current     := $resolver.current-package;
             my $full-name   := nqp::eqaddr($current,$resolver.get-global)

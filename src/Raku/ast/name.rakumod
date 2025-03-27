@@ -48,8 +48,15 @@ class RakuAST::Name
         $!parts[nqp::elems($!parts) - 1]
     }
 
+    method root-part() {
+        nqp::die("Can't get root-part of empty name") unless nqp::elems($!parts);
+        my $root := $!parts[0];
+        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::Empty);
+        $root
+    }
+
     method is-multi-part() {
-        nqp::elems($!parts) > 1
+        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Empty))
     }
 
     method is-identifier() {
@@ -59,10 +66,23 @@ class RakuAST::Name
                 && $!parts[0].has-compile-time-name
                 && nqp::index($!parts[0].name, '::') == -1
         )
+        || nqp::elems($!parts) == 2 && (
+            nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+            && (
+                nqp::istype($!parts[1], RakuAST::Name::Part::Simple)
+                || nqp::istype($!parts[1], RakuAST::Name::Part::Expression)
+                    && $!parts[1].has-compile-time-name
+                    && nqp::index($!parts[1].name, '::') == -1
+            )
+        )
     }
 
     method is-empty() {
         nqp::elems($!parts) == 0 || (nqp::elems($!parts) == 1 && $!parts[0].is-empty)
+    }
+
+    method is-anonymous() {
+        nqp::elems($!parts) == 2 && $!parts[0].is-empty && $!parts[1].is-empty # name is just '::'
     }
 
     method is-simple() {
@@ -101,6 +121,12 @@ class RakuAST::Name
         for $!parts {
             return True if nqp::istype($_, RakuAST::Name::Part::Expression);
         }
+    }
+
+    method indirect-lookup-part() {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+            ?? $!parts[1]
+            !! $!parts[0]
     }
 
     method has-colonpairs() {
@@ -186,12 +212,13 @@ class RakuAST::Name
 
     method canonicalize(:$colonpairs) {
         my $canon-parts := nqp::list_s();
+        my $first := 1;
         for $!parts {
             if nqp::istype($_, RakuAST::Name::Part::Simple) {
                 nqp::push_s($canon-parts, $_.name);
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Empty) {
-                nqp::push_s($canon-parts, '');
+                nqp::push_s($canon-parts, '') unless $first;
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
                 if $_.has-compile-time-name {
@@ -206,6 +233,7 @@ class RakuAST::Name
             else {
                 nqp::die('canonicalize NYI for non-simple name part ' ~ $_.HOW.name($_));
             }
+            $first := 0;
         }
         my $name := nqp::join('::', $canon-parts);
         unless nqp::isconcrete($colonpairs) && !$colonpairs {
@@ -217,6 +245,10 @@ class RakuAST::Name
     method is-pseudo-package() {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
         || nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+    }
+
+    method is-package-search() {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
     }
 
     method qualified-with(RakuAST::Name $target) {
@@ -267,6 +299,7 @@ class RakuAST::Name
 
     method IMPL-LOOKUP-PARTS() {
         my @parts := nqp::clone($!parts);
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
         if nqp::elems(@parts) && nqp::elems($!colonpairs) {
             my $final := nqp::pop(@parts);
             $final := RakuAST::Name.from-identifier($final.name);

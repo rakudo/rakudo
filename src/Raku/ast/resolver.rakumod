@@ -267,9 +267,10 @@ class RakuAST::Resolver {
                Bool :$current-scope-only,
                 str :$sigil
     ) {
+        nqp::die('Empty name lookup not possible as a constant')
+            if $constant.is-empty;
         my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
-        nqp::die('0-part name lookup not possible as a constant')
-          unless @parts;
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
 
         my $root := @parts.shift;
         # TODO pseudo-packages

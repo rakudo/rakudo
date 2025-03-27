@@ -93,7 +93,7 @@ class RakuAST::Type::Simple
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Type::Simple, '$!package', $resolver.current-package);
-        my $resolved := $resolver.resolve-name-constant(self.name);
+        my $resolved := $resolver.resolve-name-constant(self.name) unless self.name.is-empty;
         if $resolved {
             self.set-resolution($resolved);
 

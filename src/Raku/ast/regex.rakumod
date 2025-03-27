@@ -1203,7 +1203,7 @@ class RakuAST::Regex::Assertion::Named
             QAST::Regex.new: :rxtype<subrule>, :subtype<method>,
                 QAST::NodeList.new:
                     QAST::SVal.new( :value('INDMETHOD') ),
-                    $longname.parts.AT-POS(0).IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
+                    $longname.indirect-lookup-part().IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
         }
         else {
             my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);

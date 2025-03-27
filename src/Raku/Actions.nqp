@@ -3248,6 +3248,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         my str $longname := ~$<longname>;
         if nqp::eqat($longname, '::', 0) {
+            $base-name := $base-name.without-first-part;
             if $<arglist> || $<typename> {
                 $/.panic("Cannot put type parameters on a type capture");
             }
@@ -3558,6 +3559,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my @parts;
             if $<identifier> {
                 @parts.push(Nodify('Name','Part','Simple').new(~$<identifier>));
+            }
+            elsif $<morename> {
+                @parts.push(Nodify('Name', 'Part', 'Empty').new);
             }
             for $<morename> {
                 @parts.push($_.ast);
@@ -4441,7 +4445,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
         if $name.is-indirect-lookup {
             if $<assertion> {
-                if $name.parts.elems > 1 {
+                if $name.is-multi-part {
                     $/.typed-panic('X::Syntax::Regex::Alias::LongName');
                 }
                 else {
@@ -4449,7 +4453,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                     $/.typed-panic('X::Syntax::Reserved', :reserved('dynamic alias name in regex'));
                 }
             }
-            if $name.parts.elems > 1 {
+            if $name.is-multi-part {
                 # If ever implemented, take care with RESTRICTED
                 $/.typed-panic('X::NYI', :feature('long dynamic name in regex assertion'));
             }
@@ -4459,7 +4463,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         }
 
         if $<assertion> {
-            if $name.parts.elems > 1 {
+            if $name.is-multi-part {
                 $/.typed-panic('X::Syntax::Regex::Alias::LongName');
             }
         }

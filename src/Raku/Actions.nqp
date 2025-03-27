@@ -885,6 +885,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast := Nodify('Statement','Use').new(
               :module-name($<module-name>.ast), :$argument
             );
+            self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
             $ast.ensure-begin-performed($*R, $*CU.context);
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
                 $/.add-categorical(
@@ -996,6 +997,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := Nodify('Statement', 'Import').new(
           :module-name($<module-name>.ast), :$argument
         );
+        self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
         $ast.to-begin-time($*R, $*CU.context);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
             $/.add-categorical(

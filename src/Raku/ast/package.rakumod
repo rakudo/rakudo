@@ -31,6 +31,8 @@ class RakuAST::Package
 
     has RakuAST::CompilerServices $.compiler-services;
 
+    has Mu $!compose-exception;
+
     method new(          str :$scope,
                RakuAST::Name :$name,
           RakuAST::Signature :$parameterization,
@@ -206,6 +208,10 @@ class RakuAST::Package
             }
         }
 
+        if $!compose-exception {
+            self.add-sorry: $resolver.convert-exception($!compose-exception)
+        }
+
         self.add-trait-sorries;
 
         if $!is-stub && !$!stub-defused && !$!is-require-stub
@@ -295,6 +301,9 @@ class RakuAST::Package
     method PRODUCE-META-OBJECT() {
         my $type := self.stubbed-meta-object;
         $type.HOW.compose($type, :compiler_services($!compiler-services));
+        CATCH {
+            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+        }
         $type
     }
 
@@ -575,7 +584,12 @@ class RakuAST::Role
 
             # The role needs to be composed before we add the possibility
             # to the group
-            $how.compose($type, :compiler_services(self.compiler-services));
+            {
+                $how.compose($type, :compiler_services(self.compiler-services));
+                CATCH {
+                    nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+                }
+            }
 
             my $group :=
               nqp::getattr(self, RakuAST::Package::Attachable, '$!role-group');
@@ -672,7 +686,12 @@ class RakuAST::Class
         my $how  := $type.HOW;
 
         self.PRODUCE-META-ATTACHABLES($type, $how);
+        {
         $how.compose($type, :compiler_services(self.compiler-services));
+            CATCH {
+                nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+            }
+        }
         $type
     }
 }

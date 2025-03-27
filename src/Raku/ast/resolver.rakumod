@@ -586,6 +586,20 @@ class RakuAST::Resolver {
         }
     }
 
+    method convert-exception(Mu $ex) {
+        my $coercer := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('&COMP_EXCEPTION'));
+        if $coercer {
+            $ex := $coercer.compile-time-value()($ex);
+            unless nqp::can($ex, 'SET_FILE_LINE') {
+                try {
+                    my $XComp := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier-parts('X', 'Comp'));
+                    $ex.HOW.mixin($ex, $XComp).BUILD_LEAST_DERIVED(nqp::hash());
+                }
+            }
+        }
+        $ex
+    }
+
     # Add a node to the list of those with check-time problems.
     method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
         unless $!nodes-with-check-time-problems {

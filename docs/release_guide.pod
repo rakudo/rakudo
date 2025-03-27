@@ -68,9 +68,8 @@ Some things are hard to automate, and you have to understand what is
 Once a week or on-demand run the L<Blin tool|https://github.com/Raku/Blin> to
 check regressions in the ecosystem modules.
 
-First, bump MoarVM and NQP if necessary. To do so you can either use
-a very helpful L<Z script|https://github.com/Raku/z> or obtain
-actual values using `git describe` in appropriate repo and edit the MOAR_REVISION
+First, bump MoarVM and NQP if necessary. You can use
+C<git describe> in appropriate repo to get the target value, and edit the MOAR_REVISION
 and NQP_REVISION files.
 
 Given you have a Blin image built and ready, run it to get results.

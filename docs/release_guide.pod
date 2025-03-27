@@ -306,7 +306,8 @@ when Rakudo behavior was changed and it affected roast, so the developer
 updated roast master branch, but the errata branch still checks for old
 behavior.
 
-  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress-errata
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress-errata-c
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress-errata-d
 
 If the tests are failing, note which ones do, and investigate if there
 were changes to the files recently. If yes, you have to cherry-pick or

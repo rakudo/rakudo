@@ -115,7 +115,8 @@ task ‘human-2-extra’ => <rakudo-manual-check rakudo-leap-seconds
                          rakudo-nqp>;
 
 task ‘rakudo’ => <rakudo-build rakudo-test
-                  rakudo-inline-perl5 rakudo-stress rakudo-stress-errata
+                  rakudo-inline-perl5 rakudo-stress
+                  rakudo-stress-errata-c rakudo-stress-errata-d
                   rakudo-archive rakudo-extract
                   rakudo-post-build rakudo-post-test>;
 
@@ -507,12 +508,19 @@ task ‘rakudo-stress’, { # Step ⓭ (rakudo release guide)
     True
 }
 
-task ‘rakudo-stress-errata’, { # Step ⓭ (rakudo release guide)
+task ‘rakudo-stress-errata-c’, { # Step ⓭ (rakudo release guide)
     # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
     note ‘Ignore missing file warnings:’;
     my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout 6.c-errata>;
     antiflap-run :cwd($RAKUDO-PATH), :%env, <make stresstest>; # test stable language spec
+    True
+}
+
+task ‘rakudo-stress-errata-d’, { # Step ⓭ (rakudo release guide)
+    # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
+    note ‘Ignore missing file warnings:’;
+    my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout 6.d-errata>;
     antiflap-run :cwd($RAKUDO-PATH), :%env, <make stresstest>; # test stable language spec
     True

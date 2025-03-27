@@ -539,6 +539,9 @@ class RakuAST::Role
         my $group := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
         if $group && !nqp::istype($group.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
             $group := $group.compile-time-value;
+            $resolver.panic(
+                $resolver.build-exception('X::Redeclaration', :symbol(self.name.canonicalize))
+            ) unless nqp::can($group.HOW, 'add_possibility');
         }
 
         # No existing one found - create a role group

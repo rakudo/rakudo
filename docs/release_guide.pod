@@ -5,11 +5,10 @@
 Rakudo’s development release cycle is monthly.
 
 Each development release is given a sequential number and a name based
-on the release year and month.  Older releases had code names based on
-an active Perl Mongers group.
+on the release year and month.  Historically, releases had code names based on
+an active Perl Mongers group, reflecting Raku's original "Perl 6" status.
 
-For releases made so far, see the list of development releases at the
-end of this document.
+See the list of all previous releases at the end of this document.
 
 =head2 Planned future releases
 
@@ -23,14 +22,28 @@ some releases to ensure any compatibility issues are resolved.
 
 =head2 Prerequisites (for release managers)
 
-Currently the release is only runnable on a linux box. (Most steps
-B<do> work on OS X except notably creating the C<.tar.gz> release files)
+=over 4
+
+=item *
+
+Currently the release is only known to work correctly on linux.
+
+=item *
+
+Ensure you have a working Raku with C<Ake> module installed .
+
+=item *
 
 C<Ake> uses C<gpg2> to sign releases (available in the C<gnugpg2> system package).
 
-=head2 Steps to create a release (for release managers)
+=item *
 
-Currently there are two tools:
+A working install of L<Blin|https://github.com/Raku/Blin>, or someone else
+to run it for you.
+
+=back
+
+=head2 Steps to create a release (for release managers)
 
 =over
 
@@ -38,9 +51,6 @@ Currently there are two tools:
 L<Release Akefile|https://github.com/rakudo/rakudo/blob/main/tools/releasable/Akefile>
 which is meant to be used together with
 L<Releasable|https://github.com/Raku/whateverable/wiki/Releasable> bot
-
-=item *
-L<NeuralAnomaly|https://github.com/zoffixznet/na> bot
 
 =back
 
@@ -50,6 +60,10 @@ Some things are hard to automate, and you have to understand what is
 =over 4
 
 =item 1.
+
+=over 4
+
+=item *
 
 Once a week or on-demand run the L<Blin tool|https://github.com/Raku/Blin> to
 check regressions in the ecosystem modules.
@@ -84,22 +98,56 @@ then it's a good idea to report it anyway, if it fails more times than installs
 it's a good idea to report it too.
 
 Modify the C<failures.md> report to remove false positives and
-post it as a new Rakudo blocker ticket.
+post it as a new Rakudo blocker ticket. You may have to remove the
+previous/next output due to size constraints on github issues.
 
 Generally, any kind of breakage in modules is unwanted, but there are
 exceptions. Submit Pull Requests to anything that is affected and file
 rakudo tickets for all unwanted changes in Rakudo behavior.
 
-=over 4
+=item *
+
+During the month leading up to the release, it's a good idea to keep
+the Changelog up to date. Use the `releasable6`
+IRC bot to prepare a ChangeLog. The bot resides in
+the C<#raku-dev> channel, call it as C<releasable6: status>
+to obtain a report with commits that haven't been logged yet
+
+Do not commit directly to Rakudo, but instead modify the 
+L<ChangeLog wiki|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft>
+
+Ensure you have a proper list of "ignored" commits, such as
+merge commits, tiny ones, reverts etc. While the bot will give
+you the primary commit message, it's also OK to combine commits
+into a single Changelog entry, esp. for projects like RakuAST.
+
+Later you will list them in a specific format in the commit
+message for the release bot to understand that some commits
+were not logged and there is no need to notify about them.
+
+As for the format, refer to previous release commits to
+get an inspiration of how it is done.
+
+=item *
+
+B<Bump often>, especially the day before the release. Otherwise issues
+with MoarVM/NQP might go unnoticed for too long.
+
+=back
 
 =item 2.
 
 A few days before the Rakudo release, it’s a good idea to...
 
+=over 4
+
 =item *
 
-Remind people of the upcoming release, invite people to update the
-L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft> or
+Remind people of the upcoming release, invite people to update
+L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft> with any
+updates the bot shows as missing. At this point, no changes to the rakudo's
+copy in C<docs/ChangeLog>
+
 do it yourself, etc. Note that the upcoming ChangeLog addition is kept on the
 wiki so that people can easily do minor corrections, but for the release it
 has to be added to the top of C<docs/ChangeLog>.
@@ -119,11 +167,6 @@ that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).
-
-=item *
-
-B<Bump often>, especially the day before the release. Otherwise issues
-with MoarVM/NQP might go unnoticed for too long.
 
 =item *
 
@@ -149,23 +192,12 @@ cherry-picked important fixes).
 
 =item 3.
 
-As the actual release date nears, use the `releasable6`
-IRC bot to prepare a ChangeLog. The bot resides in
-the C<#raku-dev> channel, call it as C<releasable6, status>
-to obtain a report with commits you need to log.
-Do not commit directly to Rakudo, but instead modify the wiki
-page with a draft.
-
-Ensure you have a proper list of "ignored" commits, such as
-merge commits, tiny ones, reverts etc.
-Later you will list them in a specific format in the commit
-message for the release bot to understand that some commits
-were not logged and there is no need to notify about them.
-
-As for the format, refer to previous release commits to
-get an inspiration of how it is done.
+=for comment
+Need to renumber the items and get rid of item 3, and renumber in Akefile
 
 =item 4.
+
+=over 
 
 =item *
 
@@ -223,6 +255,8 @@ and push the release branch up.  This has to be done before the ake commands run
 as they update the remote. Be sure to include the deliberately ignored commits here
 for the releaseable bot.
 
+=back
+
 =item 5.
 
 Ensure that a monthly MoarVM release has been completed.
@@ -232,16 +266,14 @@ is green. It is also a good idea to look for JVM issues at this point.
 
 =item 6.
 
-While it is possible to make a release by hands, nowadays most steps
-are handled using the C<Akefile> script.
-
-Ensure you have a working Raku with C<Ake> module installed, go to
-the directory to do a release:
+Go to this directory to do a release:
 
     cd rakudo/tools/releasable
 
-While there is a single task in the script doing all the release process,
-it is generally a much better practice to run it step by step.
+This guide will step you through all the individual steps supported
+by C<Ake>, and note when manual effort is required.
+
+=over 4
 
 =item *
 
@@ -268,9 +300,13 @@ This means that:
 Be very careful and ensure all variables are spelled properly as it
 affects what branches will be used to push commits to
 
+=back
+
 =item 7.
 
-Execute Akefile stages one by one, with appropriate env variable values:
+Execute Akefile stages one by one, with appropriate env variables set.
+
+=over 4
 
 =item *
 
@@ -365,6 +401,8 @@ release fails to create for some reason, you can create it by hand on github.
 Copy the announce into the github release description field for Rakudo.
 
 See previous releases for any details.
+
+=back
 
 =item 8.
 
@@ -492,7 +530,6 @@ Previous releases were bundled as part of monthly Parrot releases.
   2015-09-17   Rakudo #91 "Zürich"             (Coke)
   2015-10-22   Rakudo #92 "Niceville"          (Coke) # v6.b
   2015-11-19   Rakudo #93 "Bend"               (Coke)
-
   2015-12-25   Rakudo #94 "коледа"             (Coke) # v6.c
   2016-02-01   Rakudo #95 "2016.01"            (Coke)
   2016-02-02   2016.01.1                       (Coke)
@@ -535,7 +572,6 @@ Previous releases were bundled as part of monthly Parrot releases.
   2018-09-02   Rakudo #125 "2018.08"           (AlexDaniel + Releasable)
   2018-09-23   Rakudo #126 "2018.09"           (AlexDaniel + Releasable)
   2018-10-28   Rakudo #127 "2018.10"           (AlexDaniel + Releasable)
-
   2018-11-29   Rakudo #128 "2018.11"           (AlexDaniel + Releasable) # v6.d
   2018-12-21   Rakudo #129 "2018.12"           (AlexDaniel + Releasable)
   2019-03-07   Rakudo #130 "2019.03"           (AlexDaniel + Releasable)

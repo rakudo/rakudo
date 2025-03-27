@@ -24,6 +24,19 @@ class RakuAST::BeginTime
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        CATCH {
+            my $ex := $resolver.convert-exception($_);
+            if nqp::istype(self, RakuAST::CheckTime) {
+                self.add-sorry: $ex;
+            }
+            else {
+                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
+                    my $origin-match := $origin.as-match;
+                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
+                }
+                $ex.rethrow;
+            }
+        }
         if $code.IMPL-CAN-INTERPRET {
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
         }

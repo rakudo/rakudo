@@ -175,7 +175,6 @@ class RakuAST::Node {
         # TODO eliminate resolve-only, since that's just check time.
         unless $resolve-only {
             if nqp::istype(self, RakuAST::CheckTime) {
-                self.clear-check-time-problems();
                 self.PERFORM-CHECK($resolver, $context);
                 if self.has-check-time-problems {
                     $resolver.add-node-with-check-time-problems(self);

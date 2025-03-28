@@ -2732,7 +2732,13 @@ CODE
     }
 
     multi method deparse(RakuAST::Var::Attribute::Public:D $ast --> Str:D) {
-        self.hsyn('var-public', $ast.name)
+        my str $deparsed = self.hsyn('var-public', $ast.name);
+        if $ast.args && $ast.args.args {
+            $deparsed ~ '(' ~ self.deparse($ast.args) ~ ')'
+        }
+        else {
+            $deparsed
+        }
     }
 
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {

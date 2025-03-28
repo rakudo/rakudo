@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -426,6 +426,98 @@ CODE
           "$type: Correct class name";
         is $class.new(bar => 99).test-meth, 99,
           "$type: Attribute access compiles correctly";
+    }
+}
+
+subtest 'class with method as accessor' => {
+    # my class TestClassMethodAsAccessor {
+    # method looks-like-accessor($a,$b) {
+    #     $a + $b
+    # }
+    # method foo {
+    #     $.looks-like-accessor(42,666)
+    # }
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("TestClassMethodAsAccessor"),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name      => RakuAST::Name.from-identifier("looks-like-accessor"),
+                signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target   => RakuAST::ParameterTarget::Var.new(
+                        name => "\$a"
+                      )
+                    ),
+                    RakuAST::Parameter.new(
+                      target   => RakuAST::ParameterTarget::Var.new(
+                        name => "\$b"
+                      )
+                    ),
+                  )
+                ),
+                body      => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new("\$a"),
+                        infix => RakuAST::Infix.new("+"),
+                        right => RakuAST::Var::Lexical.new("\$b")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Attribute::Public.new(
+                        name => "\$.looks-like-accessor",
+                        args => RakuAST::ArgList.new(
+                          RakuAST::IntLiteral.new(42),
+                          RakuAST::IntLiteral.new(666)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassMethodAsAccessor {
+    method looks-like-accessor ($a, $b) {
+        $a + $b
+    }
+    method foo {
+        $.looks-like-accessor(42, 666)
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with method as accessor evaluates to a type object";
+        is $class.^name, 'TestClassMethodAsAccessor',
+          "$type: Correct class name";
+        is-deeply $class.new.foo, 42+666,
+          "$type: accessor compiles correctly";
     }
 }
 

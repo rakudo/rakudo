@@ -1226,7 +1226,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Var::Attribute::Public:D: --> Str:D) {
-        self!nameds: <name>
+        self!nameds: <name args>
     }
 
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {

@@ -391,6 +391,10 @@ class RakuAST::Var::Attribute::Public
         $!expression.operand.postfix.replace-args($args);
     }
 
+    method args() {
+        $!expression.operand.postfix.args
+    }
+
     method creates-block() {
         $!expression.creates-block;
     }

@@ -2174,9 +2174,6 @@ class RakuAST::Statement::Require
                 RakuAST::Package.new(:scope<my>, :name($!module-name.without-colonpair('file')), :is-require-stub),
             );
             $!module.to-begin-time($resolver, $context);
-            if nqp::istype($resolver, RakuAST::Resolver::Compile) {
-                $resolver.leave-scope;
-            }
             $!module.set-is-stub(True);
         }
 

@@ -2353,6 +2353,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $package.to-parse-time($*R, $*CU.context);
 
         self.set-declarand($/, $*PACKAGE := $package);
+
+        $*R.enter-scope($*PACKAGE);
     }
 
     method enter-package-scope($/) {
@@ -2360,6 +2362,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # etc.)
         my $R := $*R;
         my $package := $*PACKAGE;
+        $package.ensure-installed($R, $*CU.context);
+
+        if $*LEXICAL-SCOPE {
+            $*R.re-enter-scope($*LEXICAL-SCOPE);
+        }
+        else { # Require
+            $*R.enter-scope($package);
+        }
+
+        $package.declare-lexicals($*R, $*CU.context);
+
         $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.

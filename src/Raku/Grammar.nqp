@@ -3777,7 +3777,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
         <.stub-package($<longname>)>
-        { $*R.enter-scope($*PACKAGE) }
         [ :dba('generic role')
           <?{ ($*PKGDECL // '') eq 'role' }>
           '[' ~ ']' <signature(:DECLARE-TARGETS(1))>

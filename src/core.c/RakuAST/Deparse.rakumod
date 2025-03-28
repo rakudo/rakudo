@@ -561,11 +561,18 @@ CODE
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
-        self.deparse($ast.left)
+        my str $deparsed = self.deparse($ast.left)
           ~ $.before-infix
           ~ self.deparse($ast.infix)
           ~ $.after-infix
-          ~ self.deparse($ast.right)
+          ~ self.deparse($ast.right);
+
+        if $ast.colonpairs -> @pairs {
+            "$deparsed @pairs.map({ self.deparse($_) }).join()"
+        }
+        else {
+            $deparsed
+        }
     }
 
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {

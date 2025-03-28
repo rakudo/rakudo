@@ -1925,11 +1925,23 @@ class RakuAST::ApplyInfix
     has RakuAST::Infixish $.infix;
     has RakuAST::ArgList  $.args;
 
-    method new(RakuAST::Infixish :$infix!, RakuAST::Expression :$left!,
-            RakuAST::Expression :$right!) {
+    method new(
+      RakuAST::Infixish   :$infix!,
+      RakuAST::Expression :$left!,
+      RakuAST::Expression :$right!,
+      List                :$colonpairs
+    ) {
+        unless nqp::islist($colonpairs) {
+            $colonpairs := nqp::isconcrete($colonpairs)
+              ?? self.IMPL-UNWRAP-LIST($colonpairs)
+              !! [];
+        }
+
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!args', RakuAST::ArgList.new($left, $right));
+        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!args',
+          RakuAST::ArgList.new($left, $right, |$colonpairs)
+        );
         $obj
     }
 
@@ -1944,6 +1956,15 @@ class RakuAST::ApplyInfix
         $!args.push($pair);
         Nil
     }
+    method colonpairs() {
+        my @colonpairs;
+        my int $i := 2;
+        while nqp::isconcrete($!args.arg-at-pos($i)) {
+            @colonpairs.push($!args.arg-at-pos($i++));
+        }
+        self.IMPL-WRAP-LIST(@colonpairs)
+    }
+
     method operands() { $!args.IMPL-UNWRAP-LIST($!args.args) }
     method operator() { $!infix }
 

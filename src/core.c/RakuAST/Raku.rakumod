@@ -304,7 +304,7 @@ augment class RakuAST::Node {
 #- A ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::ApplyInfix:D: --> Str:D) {
-        self!nameds: <left infix right>
+        self!nameds: <left infix right colonpairs>
     }
 
     multi method raku(RakuAST::ApplyDottyInfix:D: --> Str:D) {

@@ -191,11 +191,6 @@ cherry-picked important fixes).
 
 =item 3.
 
-=for comment
-Need to renumber the items and get rid of item 3, and renumber in Akefile
-
-=item 4.
-
 =over 
 
 =item *
@@ -256,14 +251,14 @@ for the releaseable bot.
 
 =back
 
-=item 5.
+=item 4.
 
 Ensure that a monthly MoarVM release has been completed.
 It is usually done by the Rakudo release manager, so good luck.
 Make sure that MoarVM builds on Windows and CI for MoarVM
 is green. It is also a good idea to look for JVM issues at this point.
 
-=item 6.
+=item 5.
 
 Go to this directory to do a release:
 
@@ -301,7 +296,7 @@ affects what branches will be used to push commits to
 
 =back
 
-=item 7.
+=item 6.
 
 Execute Akefile stages one by one, with appropriate env variables set.
 
@@ -403,7 +398,7 @@ See previous releases for any details.
 
 =back
 
-=item 8.
+=item 7.
 
 Build binary packages by following the steps in C<docs/release_guide_binary.md>.
 
@@ -411,7 +406,7 @@ NOTE:  I, jdv, have never done this step.  Instead, I just tell patrickb and
 El_Che on IRC that the source release is done and they build various downstream
 release artifacts.
 
-=item 9.
+=item 8.
 
 Don’t send out any announcements until the files are actually available
 per step 8 above.
@@ -429,11 +424,11 @@ Run this to get rakudo.org to pickup the changes:
 
 ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
 
-=item 10.
+=item 9.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 11.
+=item 10.
 
 You’re done! Celebrate with the appropriate amount of fun.
 

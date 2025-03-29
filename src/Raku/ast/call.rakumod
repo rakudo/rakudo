@@ -321,9 +321,10 @@ class RakuAST::Call::Name
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my int $ARG_IS_LITERAL := 32;
+        my $name := $!name.canonicalize;
 
         my $block := $!block;
-        if $!name.canonicalize eq 'return'
+        if $name eq 'return'
             && $block && $block.signature && (my $ret := $block.signature.returns)
             && $ret.has-compile-time-value
             && (nqp::isconcrete($ret.maybe-compile-time-value) || nqp::istype($ret.maybe-compile-time-value, Nil))
@@ -336,6 +337,13 @@ class RakuAST::Call::Name
 
         unless self.is-resolved {
             self.PERFORM-BEGIN($resolver, $context);
+        }
+
+        if !self.is-resolved && ($name eq 'pi' || $name eq 'tau' || $name eq 'e') {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Undeclared',
+                    :what<Variable>,
+                    :symbol($name);
         }
 
         if self.is-resolved && (

@@ -480,7 +480,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # error checking
         elsif nqp::isconcrete(of) {
-            "Can not parameterize {hash.^name} with {of.raku}"
+            die "Can not parameterize {hash.^name} with {of.raku}"
         }
 
         # only constraint on type

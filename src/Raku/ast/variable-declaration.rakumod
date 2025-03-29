@@ -1782,7 +1782,7 @@ class RakuAST::VarDeclaration::Anonymous
         nqp::findmethod(RakuAST::VarDeclaration::Simple, 'PERFORM-CHECK')(self, $resolver, $context);
 
         self.add-sunk-worry($resolver, 'unnamed ' ~ self.sigil ~ ' variable')
-            if self.sunk;
+            if self.sunk && !self.initializer;
     }
 
     method IMPL-BIND-QAST(

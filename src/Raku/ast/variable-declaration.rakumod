@@ -1108,6 +1108,18 @@ class RakuAST::VarDeclaration::Simple
                     ?? $package.HOW.name($package)
                     !! "mainline"));
         }
+
+        if $type {
+            my $archetypes := $type.compile-time-value.HOW.archetypes;
+            unless $archetypes.nominalish
+                || $archetypes.generic
+                || $archetypes.definite
+                || $archetypes.coercive
+            {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Syntax::Variable::BadType', type => $type.compile-time-value;
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

@@ -480,9 +480,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Have check time.
         $COMPUNIT.check($RESOLVER);
-        my $exception := $RESOLVER.produce-compilation-exception;
+        self.report-problems();
+
+        $RESOLVER.leave-scope();
+    }
+
+    method report-problems() {
+        my $exception := $*R.produce-compilation-exception;
         if nqp::isconcrete($exception) {
-            if $RESOLVER.has-compilation-errors {
+            if $*R.has-compilation-errors {
                 # Really has errors, so report them.
                 $exception.throw;
             }
@@ -491,8 +497,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 stderr().print($exception.gist);
             }
         }
-
-        $RESOLVER.leave-scope();
     }
 
     # Action method to load any modules specified with -M
@@ -864,6 +868,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $ast;
         }
         else {
+            my $args := $<arglist><EXPR>.ast;
+            $args.IMPL-CHECK($*R, $*CU.context, False);
+            self.report-problems();
             nqp::die("Don't know how to 'no " ~ $name ~ "'")
         }
     }

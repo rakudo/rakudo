@@ -4289,7 +4289,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method metachar:sym<bs>($/) {
-        self.attach: $/, $<backslash>.ast;
+        # If we don't get an AST for backslash it means we're reporting an error.
+        self.attach: $/, $<backslash>.ast // Nodify('Regex', 'Assertion', 'Fail');
     }
 
     method metachar:sym<mod>($/) {

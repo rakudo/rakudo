@@ -601,6 +601,13 @@ class RakuAST::Resolver {
         $ex
     }
 
+    method convert-begin-time-exception(Mu $ex) {
+        $ex := self.convert-exception($ex);
+        my $xcbt := self.resolve-name(RakuAST::Name.from-identifier-parts('X', 'Comp', 'BeginTime'));
+        $ex := $xcbt.compile-time-value.new(:exception($ex), :use-case('evaluating a BEGIN')) if $xcbt;
+        $ex
+    }
+
     # Add a node to the list of those with check-time problems.
     method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
         unless $!nodes-with-check-time-problems {

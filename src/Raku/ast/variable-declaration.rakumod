@@ -432,8 +432,19 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
-            $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-VALUE-TYPE.meta-object !! Mu }));
+        my $value;
+        {
+            CATCH {
+                my $ex := $resolver.convert-begin-time-exception($_);
+                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
+                    my $origin-match := $origin.as-match;
+                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
+                }
+                $ex.rethrow;
+            }
+            $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
+                $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-VALUE-TYPE.meta-object !! Mu }));
+        };
         $value := $value.Map
             if nqp::eqat($!name,'%',0)
             && !nqp::istype($value, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].meta-object);

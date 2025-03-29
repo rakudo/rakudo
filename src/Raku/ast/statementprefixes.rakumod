@@ -560,9 +560,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
         my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
         {
             CATCH {
-                my $ex := $resolver.convert-exception($_);
-                my $xcbt := $resolver.resolve-name(RakuAST::Name.from-identifier-parts('X', 'Comp', 'BeginTime'));
-                $ex := $xcbt.compile-time-value.new(:exception($ex), :use-case('evaluating a BEGIN')) if $xcbt;
+                my $ex := $resolver.convert-begin-time-exception($_);
                 if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
                     my $origin-match := $origin.as-match;
                     $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);

@@ -1905,7 +1905,16 @@ class RakuAST::ModuleLoading {
             }
             my $declarand := RakuAST::Declaration::Import.new:
                     :lexical-name($key), :compile-time-value($value);
-            $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+
+            my $existing := nqp::isconcrete($declarand.compile-time-value)
+                ?? Nil
+                !! $resolver.resolve-lexical-constant($key);
+            if $existing {
+                $existing.merge($declarand, :$resolver) unless $existing.compile-time-value =:= $declarand.compile-time-value;
+            }
+            else {
+                $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+            }
 
             my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
             if $categorical {

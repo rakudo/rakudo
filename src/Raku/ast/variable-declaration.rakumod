@@ -655,7 +655,16 @@ class RakuAST::VarDeclaration::Simple
         self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
     }
 
-    method set-type(RakuAST::Type $type) {
+    method set-type(RakuAST::Type $type, Bool :$replace, Bool :$outer) {
+        if $!type && !$replace {
+            if $outer {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $type);
+                return Nil;
+            }
+            else {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type);
+            }
+        }
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
     }
 
@@ -865,7 +874,7 @@ class RakuAST::VarDeclaration::Simple
             my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
             $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type || Mu), :$where;
             $subset.to-begin-time($resolver, $context);
-            self.set-type($subset);
+            self.set-type($subset, :replace);
         }
 
         # Apply any traits.
@@ -1613,7 +1622,7 @@ class RakuAST::VarDeclaration::Signature
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
             # tell the parameter targets to create containers
             if $type {
-                $param.target.set-type($type);
+                $param.target.set-type($type, :outer);
             }
             if $param.target {
                 $param.target.replace-scope($scope);

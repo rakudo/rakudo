@@ -1925,9 +1925,9 @@ class RakuAST::ParameterTarget::Var
             :target(self.lexical-name)
     }
 
-    method set-type(RakuAST::Type $type) {
+    method set-type(RakuAST::Type $type, Bool :$outer) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
-        $!declaration.set-type($type) if $!declaration;
+        $!declaration.set-type($type, :$outer) if $!declaration;
         Nil
     }
 

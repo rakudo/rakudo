@@ -48,8 +48,7 @@ class RakuAST::Literal
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        self.add-worry: $resolver.build-exception: 'X::AdHoc',
-            payload => 'Useless use of constant ' ~ self.type-name ~ ' ' ~ $!value.gist ~ ' in sink context'
+        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ $!value.gist)
             if self.sunk;
     }
 
@@ -228,8 +227,7 @@ class RakuAST::QuotedString
       RakuAST::IMPL::QASTContext $context
     ) {
         my $value := self.literal-value;
-        self.add-worry: $resolver.build-exception: 'X::AdHoc',
-            payload => 'Useless use of constant ' ~ self.type-name ~ ' ' ~ $value.gist ~ ' in sink context'
+        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ $value.gist)
             if self.sunk && $value;
     }
 

@@ -1778,6 +1778,13 @@ class RakuAST::VarDeclaration::Anonymous
         self.IMPL-WRAP-LIST(['my', 'state'])
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::VarDeclaration::Simple, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        self.add-sunk-worry($resolver, 'unnamed ' ~ self.sigil ~ ' variable')
+            if self.sunk;
+    }
+
     method IMPL-BIND-QAST(
       RakuAST::IMPL::QASTContext $context,
                       QAST::Node $source-qast

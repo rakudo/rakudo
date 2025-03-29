@@ -203,6 +203,9 @@ class RakuAST::Name
                     nqp::rethrow($_);
                 }
             }
+            elsif nqp::istype($cp, RakuAST::Term::Name) && $cp.name.canonicalize eq 'Nil' {
+                $name := $name ~ ':<>'
+            }
             else {
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $cp.HOW.name($cp));
             }

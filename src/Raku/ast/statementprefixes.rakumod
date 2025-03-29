@@ -558,8 +558,20 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
         nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
         my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
-        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-          '$!value', $producer());
+        {
+            CATCH {
+                my $ex := $resolver.convert-exception($_);
+                my $xcbt := $resolver.resolve-name(RakuAST::Name.from-identifier-parts('X', 'Comp', 'BeginTime'));
+                $ex := $xcbt.compile-time-value.new(:exception($ex), :use-case('evaluating a BEGIN')) if $xcbt;
+                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
+                    my $origin-match := $origin.as-match;
+                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
+                }
+                $ex.rethrow;
+            }
+            nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
+              '$!value', $producer());
+        }
         Nil
     }
 

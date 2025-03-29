@@ -1071,6 +1071,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<BEGIN>($/) {
         my $ast :=
           Nodify('StatementPrefix','Phaser','Begin').new($<blorst>.ast);
+        self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
         $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }

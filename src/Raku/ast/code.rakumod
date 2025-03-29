@@ -338,6 +338,14 @@ class RakuAST::Code
                                 $context.ensure-sc($value);
                                 $visit.name(nqp::null);
                                 $visit.unshift(QAST::WVal.new(:$value));
+                            }
+                            elsif nqp::elems(@blocks) == 2 {
+                                # we're in top level block (excluding wrapper) and routines would
+                                # definitely get called. Can't do so if we couldn't find it.
+                                $resolver.build-exception(
+                                    'X::Undeclared::Symbols',
+                                    :unk_routines(nqp::hllizefor(nqp::hash($visit.name, [self.origin ?? self.origin.as-match.line !! -1]), 'Raku'))
+                                ).throw
                             } # else leave in the runtime lookup for post-declared subs
                         }
                     }

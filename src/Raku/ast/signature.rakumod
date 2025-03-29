@@ -1198,6 +1198,18 @@ class RakuAST::Parameter
             self.add-sorry: $sorry if $sorry;
         }
 
+        if $!type {
+            my $archetypes := $!type.compile-time-value.HOW.archetypes;
+            unless $archetypes.nominalish
+                || $archetypes.generic
+                || $archetypes.definite
+                || $archetypes.coercive
+            {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Parameter::BadType', type => $!type.compile-time-value;
+            }
+        }
+
         # True/False parse as type
         if $!type && $!type.is-known-to-be(Bool) && nqp::isconcrete($!type.meta-object) {
             my $val := $!value.gist;

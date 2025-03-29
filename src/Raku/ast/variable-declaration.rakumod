@@ -1109,7 +1109,7 @@ class RakuAST::VarDeclaration::Simple
                     !! "mainline"));
         }
 
-        if $type {
+        if $type && !$!is-parameter { # Parameter checks this already
             my $archetypes := $type.compile-time-value.HOW.archetypes;
             unless $archetypes.nominalish
                 || $archetypes.generic

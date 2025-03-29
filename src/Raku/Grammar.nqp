@@ -1572,6 +1572,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>    # initial body
         [                 # any elsifs/orwiths
           [
+            | <.block-else>\h*<.block-if> <.typed-panic: 'X::Syntax::Malformed::Elsif'>
             | [<.block-elsif>{@*IF-PARTS.push('Elsif')}|<.block-orwith>{@*IF-PARTS.push('Orwith')}]
               <EXPR>
               <pointy-block>

@@ -407,6 +407,7 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
+  is RakuAST::CheckTime
 {
     has RakuAST::ArgList $.args;
 
@@ -422,6 +423,13 @@ class RakuAST::Type::Parameterized
     method visit-children(Code $visitor) {
         $visitor(self.base-type);
         $visitor($!args);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+            # Force parameterization now
+            self.meta-object;
+        }
     }
 
     method PRODUCE-META-OBJECT() {

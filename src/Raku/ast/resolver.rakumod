@@ -588,14 +588,21 @@ class RakuAST::Resolver {
     }
 
     method convert-exception(Mu $ex) {
-        my $coercer := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('&COMP_EXCEPTION'));
-        if $coercer {
-            $ex := $coercer.compile-time-value()($ex);
-            unless nqp::can($ex, 'SET_FILE_LINE') {
-                try {
-                    my $XComp := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier-parts('X', 'Comp'));
-                    $ex.HOW.mixin($ex, $XComp.compile-time-value).BUILD_LEAST_DERIVED(nqp::hash());
-                }
+        my $Exception := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('Exception'));
+        return $ex unless $Exception;
+        unless nqp::istype($ex, $Exception.compile-time-value) {
+            my $coercer := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('&COMP_EXCEPTION'));
+            if $coercer {
+                $ex := $coercer.compile-time-value()($ex);
+            }
+            else {
+                return $ex;
+            }
+        }
+        unless nqp::can($ex, 'SET_FILE_LINE') {
+            try {
+                my $XComp := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier-parts('X', 'Comp'));
+                $ex.HOW.mixin($ex, $XComp.compile-time-value).BUILD_LEAST_DERIVED(nqp::hash());
             }
         }
         $ex

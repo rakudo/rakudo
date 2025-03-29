@@ -1110,6 +1110,10 @@ class RakuAST::Parameter
             }
         }
 
+        CATCH {
+            $resolver.convert-begin-time-exception($_).throw
+        }
+
         self.apply-traits($resolver, $context, self);
 
         # Apply possible is required trait

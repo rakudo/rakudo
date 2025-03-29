@@ -715,21 +715,24 @@ class RakuAST::Resolver {
         if %routines || %types {
             my %routine-suggestion;
             my %type-suggestion;
+            my %post-types;
             for %routines {
                 my $name := $_.key;
                 my @suggestions := self.suggest-routines($name);
                 %routine-suggestion{$name} := @suggestions;
-            }
-            if nqp::elems(%routines) == 1 && nqp::elems(%types) == 0 {
-                for %routines {
-                    @exceptions.push: self.build-exception: 'X::Undeclared',
-                        :$filename,
-                        :what<Routine>,
-                        :suggestions(nqp::hllizefor(%routine-suggestion, 'Raku')),
-                        :symbol($_.key),
+
+                my $constant := self.resolve-name(RakuAST::Name.from-identifier($name));
+                if nqp::istype($constant, RakuAST::CompileTimeValue) {
+                    # Name resolves, but is it an instance or a type object?
+                    my $meta-object := $constant.compile-time-value;
+                    unless nqp::isnull($meta-object) || nqp::isconcrete_nd($meta-object) {
+                        %post-types{$name} := [] unless nqp::existskey(%post-types, $name);
+                        nqp::push(%post-types{$name}, $constant.origin ?? $constant.origin.from !! -1);
+                    }
                 }
             }
-            if nqp::elems(%routines) == 0 && nqp::elems(%types) == 1 {
+
+            if nqp::elems(%routines) == 0 && nqp::elems(%types) == 1 && nqp::elems(%post-types) == 0 {
                 for %types {
                     @exceptions.push: self.build-exception: 'X::Undeclared',
                         :$filename,
@@ -744,7 +747,8 @@ class RakuAST::Resolver {
                     :routine_suggestion(nqp::hllizefor(%routine-suggestion, 'Raku')),
                     :type_suggestion(nqp::hllizefor(%type-suggestion, 'Raku')),
                     :unk_types(nqp::hllizefor(%types, 'Raku')),
-                    :unk_routines(nqp::hllizefor(%routines, 'Raku'));
+                    :unk_routines(nqp::hllizefor(%routines, 'Raku')),
+                    :post_types(nqp::hllizefor(%post-types, 'Raku'));
             }
         }
         RakuAST::Node.IMPL-WRAP-LIST(@exceptions)

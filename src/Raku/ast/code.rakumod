@@ -1841,6 +1841,10 @@ class RakuAST::Routine
         self.IMPL-WRAP-LIST(['routine', 'block'])
     }
 
+    method is-stub() {
+        False
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
@@ -1856,12 +1860,6 @@ class RakuAST::Routine
     method build-bind-exception(RakuAST::Resolver $resolver) {
         $resolver.build-exception: 'X::Bind::Rebind',
             :target(self.lexical-name)
-    }
-
-    method is-stub() {
-        my $statement-list := self.body.statement-list;
-        $statement-list.IMPL-IS-SINGLE-EXPRESSION
-            && nqp::istype(self.IMPL-UNWRAP-LIST($statement-list.statements)[0].expression, RakuAST::Stub)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2338,6 +2336,12 @@ class RakuAST::Sub
         $signature ?? $signature.provides-return-value !! False
     }
 
+    method is-stub() {
+        my $statement-list := self.body.statement-list;
+        $statement-list.IMPL-IS-SINGLE-EXPRESSION
+            && nqp::istype(self.IMPL-UNWRAP-LIST($statement-list.statements)[0].expression, RakuAST::Stub)
+    }
+
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
 
@@ -2632,6 +2636,12 @@ class RakuAST::Method
         return False if self.needs-result;
         my $signature := self.signature;
         $signature ?? $signature.provides-return-value !! False
+    }
+
+    method is-stub() {
+        my $statement-list := self.body.statement-list;
+        $statement-list.IMPL-IS-SINGLE-EXPRESSION
+            && nqp::istype(self.IMPL-UNWRAP-LIST($statement-list.statements)[0].expression, RakuAST::Stub)
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {

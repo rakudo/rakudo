@@ -2113,7 +2113,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             if $arg.from < $op.from {
                 if $op<colonpair> -> $cp {
                     my $ast := $cp.ast;
-                    $ast.set-key($op.adverb-pc2str($ast.key));
+                    if nqp::can($ast, 'key') {
+                        $ast.set-key($op.adverb-pc2str($ast.key));
+                    }
+                    else {
+                        self.typed-sorry('X::Syntax::Adverb', what => ~$cp);
+                    }
                 }
                 $actions.POSTFIX-EXPR($op)
             }

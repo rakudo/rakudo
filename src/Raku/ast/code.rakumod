@@ -1904,14 +1904,12 @@ class RakuAST::Routine
             }
         }
 
-        if nqp::istype(self.body, RakuAST::OnlyStar) && !nqp::istype(self, RakuAST::RegexDeclaration) {
-            $routine.set_onlystar;
+        if $!package {
+            nqp::bindattr($routine, Routine, '$!package', $!package.compile-time-value);
         }
 
-        if $!package {
-            nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value);
-            ($!package.stubbed-meta-object.WHO){self.lexical-name} := $routine
-                if self.lexical-name && self.scope eq 'our' && self.multiness ne 'multi';
+        if nqp::istype(self.body, RakuAST::OnlyStar) && !nqp::istype(self, RakuAST::RegexDeclaration) {
+            $routine.set_onlystar;
         }
 
         # Make sure that any OperatorProperties are set on the meta-object
@@ -1976,6 +1974,19 @@ class RakuAST::Routine
             $!signature.to-begin-time($resolver, $context);
         }
 
+        my $routine := self.meta-object;
+        if $!package && self.lexical-name && self.scope eq 'our' && self.multiness ne 'multi' {
+
+            my $stash := $!package.stubbed-meta-object.WHO;
+
+            if nqp::existskey($stash, self.lexical-name) {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Redeclaration', :symbol(self.lexical-name);
+            }
+
+            $stash{self.lexical-name} := $routine;
+        }
+
         if self.multiness eq 'multi' && self.name {
             my $name := '&' ~ self.name.canonicalize;
             my $proto := $resolver.resolve-lexical($name, :current-scope-only);
@@ -2019,10 +2030,10 @@ class RakuAST::Routine
                     );
                 }
             }
-            $proto.add_dispatchee(self.meta-object);
+            $proto.add_dispatchee($routine);
         }
         elsif self.multiness eq 'proto' {
-            nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
+            nqp::bindattr($routine, Routine, '@!dispatchees', []);
             $resolver.current-scope.add-generated-lexical-declaration(self);
         }
 

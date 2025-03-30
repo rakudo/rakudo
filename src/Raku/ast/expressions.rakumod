@@ -1321,8 +1321,7 @@ class RakuAST::MetaInfix::Assign
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        $operands[0].apply-sink($is-sunk); # Only target of assignment can be sunk
-        my $i := 1;
+        my $i := 0;
         while $i < nqp::elems($operands) {
             $operands[$i].apply-sink(False);
             $i++;

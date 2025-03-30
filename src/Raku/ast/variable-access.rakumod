@@ -11,6 +11,7 @@ class RakuAST::Var::Lexical
   is RakuAST::Lookup
   is RakuAST::ParseTime
   is RakuAST::CheckTime
+  is RakuAST::Sinkable
 {
     has str $.sigil;
     has str $.twigil;
@@ -68,6 +69,7 @@ class RakuAST::Var::Lexical
                 self.add-sorry($resolver.build-exception('X::Syntax::NoSelf', :variable(self.name)));
             }
         }
+        self.add-sunk-worry($resolver, self.name) if self.sunk;
     }
 
     method undeclared-symbol-details() {

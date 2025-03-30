@@ -220,6 +220,10 @@ class RakuAST::Package
                     packages => self.IMPL-WRAP-LIST([$!name.canonicalize]);
         }
 
+        if self.is-resolved && $!repr {
+            self.add-sorry: $resolver.build-exception: 'X::TooLateForREPR', type => self.stubbed-meta-object;
+        }
+
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
     }
 

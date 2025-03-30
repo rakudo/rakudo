@@ -2494,7 +2494,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my str $scope := $*SCOPE;
         my     $type  := $*OFTYPE.ast if $*OFTYPE;
-        my str $sigil := $<sigil>;
+        my str $sigil := $<variable><sigil>;
         my     $where := $*WHERE;
 
         # No type or type is not a native type
@@ -2529,14 +2529,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my $decl;
         my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
-        if $<desigilname> {
-            my $desigilname := $<desigilname>;
+        if $<variable><desigilname> {
+            my $desigilname := $<variable><desigilname>;
             my $ast := $desigilname<longname>
                 ?? $desigilname<longname>.ast
                 !! Nodify('Name').from-identifier(~$desigilname);
             $ast.to-begin-time($*R, $*CU.context);
 
-            my str $twigil := $<twigil> || '';
+            my str $twigil := $<variable><twigil> || '';
             my str $name   := $sigil ~ $twigil ~ $ast.canonicalize;
             my $dynprag := $*LANG.pragma('dynamic-scope');
             my $forced-dynamic := $dynprag ?? $dynprag($name) !! 0;
@@ -2559,7 +2559,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                    "Cannot declare an anonymous '$scope' scoped variable"
                  )
               !! ($decl := Nodify('VarDeclaration', 'Anonymous').new(
-                     :$scope, :$type, :$sigil, :twigil(~$<twigil> || ''),
+                     :$scope, :$type, :$sigil, :twigil(~$<variable><twigil> || ''),
                      :$shape,
                    ));
         }

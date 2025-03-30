@@ -4773,7 +4773,7 @@ my class array is Cool does Iterable does Positional {
 
     method ^parameterize(Mu:U \arr, Mu \t) {
         if nqp::isconcrete(t) {
-            return "Can not parameterize {arr.^name} with {t.raku}";
+            die "Can not parameterize {arr.^name} with {t.raku}";
         }
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
@@ -4795,7 +4795,7 @@ my class array is Cool does Iterable does Positional {
             $what := arr.^mixin(uintarray[$t]);
         }
         else {
-            return "Can only parameterize array with a native type, not {t.^name}";
+            die "Can only parameterize array with a native type, not {t.^name}";
         }
 
         $what.^set_name("{arr.^name}[{t.^name}]");

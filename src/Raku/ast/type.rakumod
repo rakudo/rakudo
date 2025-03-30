@@ -407,6 +407,7 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
 {
     has RakuAST::ArgList $.args;
@@ -423,6 +424,13 @@ class RakuAST::Type::Parameterized
     method visit-children(Code $visitor) {
         $visitor(self.base-type);
         $visitor($!args);
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
+        unless nqp::can($ptype.HOW, 'parameterize') {
+            $resolver.build-exception('X::NotParametric', type => $ptype).throw;
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

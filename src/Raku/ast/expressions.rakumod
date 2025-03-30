@@ -661,7 +661,7 @@ class RakuAST::Infix
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        if $!operator eq ':=' || $!operator eq '⚛=' {
+        if $!operator eq ':=' || $!operator eq '⚛=' || $!operator eq '~~' {
             # We don't sink anything when binding. In fact binding is a way to specifically avoid sinking.
             my $i := 0;
             while $i < nqp::elems($operands) {

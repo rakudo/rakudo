@@ -4242,11 +4242,6 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::NotParametric', type => $role);
             }
             my $curried := $role.HOW.parameterize($role, |@pos_args, |%named_args);
-            if nqp::isconcrete($curried)
-              && nqp::istype($curried, self.find_single_symbol_in_setting("Str")) {
-                self.throw($/, 'X::AdHoc', payload => $curried)
-            }
-
             self.add_object_if_no_sc($curried)
         }
         else {

@@ -1260,6 +1260,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 if nqp::can($operand, 'add-colonpair') {
+                    CATCH {
+                        $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
+                    }
                     $operand.add-colonpair($<colonpair>.ast);
                 }
                 else {

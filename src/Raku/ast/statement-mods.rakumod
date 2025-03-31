@@ -196,8 +196,6 @@ class RakuAST::StatementModifier::Loop
 {
     method expression-thunk() { Nil }
 
-    method may-sink-body() { True }
-
     method handles-condition() { True }
 }
 
@@ -209,9 +207,6 @@ class RakuAST::StatementModifier::WhileUntil
     method negate() { False }
 
     method handles-condition() { False }
-
-    # For unknown reason we may not sink while/until loop bodies.
-    method may-sink-body() { False }
 
     method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
     }

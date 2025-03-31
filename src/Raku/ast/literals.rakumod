@@ -154,7 +154,6 @@ class RakuAST::StrLiteral
 # that they are specified here).
 class RakuAST::QuotedString
   is RakuAST::ColonPairish
-  is RakuAST::CheckTime
   is RakuAST::Term
   is RakuAST::ImplicitLookups
 {

@@ -5,7 +5,6 @@ class RakuAST::Term::Name
   is RakuAST::Term
   is RakuAST::Lookup
   is RakuAST::ParseTime
-  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -129,7 +128,6 @@ class RakuAST::Term::Self
   is RakuAST::Term
   is RakuAST::Lookup
   is RakuAST::ParseTime
-  is RakuAST::CheckTime
 {
     has RakuAST::Var::Attribute::Public $!variable;
 
@@ -190,6 +188,10 @@ class RakuAST::Term::TopicCall
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('$_'),
         ])
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -404,7 +406,6 @@ class RakuAST::Term::Capture
 class RakuAST::Term::Reduce
   is RakuAST::Term
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Infixish $.infix;

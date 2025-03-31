@@ -6,6 +6,7 @@ class RakuAST::CaptureSource
 class RakuAST::Expression
   is RakuAST::MayCreateBlock
   is RakuAST::Sinkable
+  is RakuAST::CheckTime
 {
     method needs-sink-call() { True }
 
@@ -37,6 +38,13 @@ class RakuAST::Expression
             });
         });
         nqp::join('', @chunks)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk;
+
+        True
     }
 
     method IMPL-QAST-ADD-THUNK-DECL-CODE(RakuAST::IMPL::QASTContext $context, Mu $target) {
@@ -1921,7 +1929,6 @@ class RakuAST::WhateverApplicable
 class RakuAST::ApplyInfix
   is RakuAST::Expression
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::SinkPropagator
   is RakuAST::WhateverApplicable
 {
@@ -3169,7 +3176,6 @@ class RakuAST::MetaPostfix::Hyper
 class RakuAST::ApplyPostfix
   is RakuAST::Termish
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::WhateverApplicable
 {
     has RakuAST::Postfixish $.postfix;

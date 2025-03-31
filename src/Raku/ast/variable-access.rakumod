@@ -10,7 +10,6 @@ class RakuAST::Var::Lexical
   is RakuAST::Var
   is RakuAST::Lookup
   is RakuAST::ParseTime
-  is RakuAST::CheckTime
   is RakuAST::Sinkable
 {
     has str $.sigil;

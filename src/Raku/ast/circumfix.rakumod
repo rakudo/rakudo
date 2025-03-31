@@ -15,6 +15,11 @@ class RakuAST::Circumfix::Parentheses
         $obj
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context since parentheses may just be used
+        # for syntactic grouping.
+    }
+
     # Generally needs to be called before children are visited, which is when the Apply*
     # expressions implement their currying. After that happens, any RakuAST::Term::Whatever
     # operands will have been converted to RakuAST::Var::Lexical. At that stage, the below

@@ -1,6 +1,5 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope
-  is RakuAST::CheckTime
   is RakuAST::MayCreateBlock
   is RakuAST::Node
 {

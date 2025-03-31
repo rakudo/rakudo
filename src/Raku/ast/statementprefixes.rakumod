@@ -47,6 +47,10 @@ class RakuAST::StatementPrefix::Do
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-CALLISH-QAST($context)
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
 }
 
 # The `quietly` statement prefix.
@@ -58,6 +62,10 @@ class RakuAST::StatementPrefix::Quietly
 
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -79,6 +87,10 @@ class RakuAST::StatementPrefix::CallMethod
     # default for these cases is False
     method allowed-on-for-statement() { False }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
           :op('callmethod'), :name(self.type),
@@ -92,6 +104,10 @@ class RakuAST::StatementPrefix::Race
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "race" }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
 }
 
 # The `hyper` statement prefix.
@@ -99,6 +115,10 @@ class RakuAST::StatementPrefix::Hyper
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "hyper" }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
 }
 
 # The `lazy` statement prefix.
@@ -134,6 +154,10 @@ class RakuAST::StatementPrefix::Try
 
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -221,6 +245,10 @@ class RakuAST::StatementPrefix::Thunky
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
     }
 
     method PRODUCE-META-OBJECT() {
@@ -517,6 +545,10 @@ class RakuAST::StatementPrefix::Supply
 class RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix {
     method dump-markers() { '🛸' }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
 }
 
 # Done by all phasers that don't produce a result.

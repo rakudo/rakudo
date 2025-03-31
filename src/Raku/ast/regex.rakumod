@@ -2124,7 +2124,7 @@ class RakuAST::Regex::Quantifier::BlockRange
     }
 
     method visit-children(Code $visitor) {
-        $visitor(self.backtrack);
+        $visitor(self.backtrack) if self.backtrack;
         $visitor($!block);
     }
 }

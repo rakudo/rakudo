@@ -4,7 +4,6 @@ class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ParseTime
   is RakuAST::Term
 {

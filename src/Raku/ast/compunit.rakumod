@@ -7,6 +7,7 @@ class RakuAST::CompUnit
   is RakuAST::AttachTarget
   is RakuAST::ScopePhaser
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;

@@ -368,7 +368,6 @@ class RakuAST::VarDeclaration::Constant
   is RakuAST::VarDeclaration
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
   is RakuAST::ImplicitLookups
   is RakuAST::Term
@@ -561,7 +560,6 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::Meta
   is RakuAST::ParseTime
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::Term
   is RakuAST::Doc::DeclaratorTarget
 {
@@ -1549,7 +1547,6 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::Term
 {
     has RakuAST::Signature $.signature;

@@ -1311,7 +1311,7 @@ my class Rakudo::Internals {
         has str $!abspath;
         has $!handle;
         has $!dir;
-        has $!file,
+        has $!file;
         has str $!dir-sep;
         has $!todo;
         has $!seen;

@@ -812,13 +812,24 @@ class RakuAST::LiteralBuilder {
 }
 
 class RakuAST::BOOTException {
-  has Str $.message;
-  method new(Str $message) {
-      my $obj := nqp::create(self);
-      nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
-      $obj
-  }
-  method throw() {
-      nqp::die($!message);
-  }
+    has Str $!message;
+    has Hash $!opts;
+    method new(Str $message, %opts) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
+        nqp::bindattr($obj, RakuAST::BOOTException, '$!opts', %opts);
+        $obj
+    }
+    method message() {
+        my $message := $!message;
+        $message := "$message(";
+        for $!opts {
+            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+        }
+        $message := "$message)";
+        $message
+    }
+    method throw() {
+        nqp::die($!message);
+    }
 }

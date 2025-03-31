@@ -4,14 +4,15 @@ my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
 my class X::Experimental        { ... }
 
+my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
+my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) { ... }
+
 # externalize the endian indicators
 enum Endian (
   NativeEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_NATIVE,Int),
   LittleEndian => nqp::box_i(nqp::const::BINARY_ENDIAN_LITTLE,Int),
   BigEndian    => nqp::box_i(nqp::const::BINARY_ENDIAN_BIG,Int),
 );
-
-my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
 #- Generated on 2025-03-20T12:47:49+01:00 by tools/build/makeBLOB_ROLES.raku
@@ -382,11 +383,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     $?CLASS.^add_role(T.^unsigned ?? UnsignedBlob.^parameterize(T) !! SignedBlob.^parameterize(T));
 
     # other then *8 not supported yet
-    my int $bpe = try {
-#?if jvm
-        # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-01-20#l202
+    my int $bpe = do {
         CATCH { default { Nil } }
-#?endif
         (T.^nativesize / 8).Int
     } // 1;
 
@@ -418,11 +416,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::create(self).STORE(@values, :INITIALIZE)
     }
 
-    # Because it is (apparently) impossible to stub the Buf role in the
-    # setting, the lookup for Buf needs to be done at runtime, hence the
-    # ::<Buf> rather than just Buf.
     method Buf(Blob:D:) {
-        (nqp::eqaddr(T,uint8) ?? ::<Buf> !! ::<Buf>.^parameterize(T)).new: self
+        (nqp::eqaddr(T,uint8) ?? Buf !! Buf.^parameterize(T)).new: self
     }
 
     proto method STORE(Blob:D: |) {*}

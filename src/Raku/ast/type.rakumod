@@ -441,7 +441,7 @@ class RakuAST::Type::Parameterized
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
-        unless nqp::can($ptype.HOW, 'parameterize') {
+        unless nqp::can($ptype.HOW, 'parameterize') || ($*COMPILING_CORE_SETTING // 0) == 1 {
             $resolver.build-exception('X::NotParametric', type => $ptype).throw;
         }
 

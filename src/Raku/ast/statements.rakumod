@@ -1146,7 +1146,8 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-HAS-UNDO-PHASERS() {
-        nqp::elems($!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'))) ?? 1 !! 0;
+        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
+        nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO') ?? 1 !! 0
     }
 
     # We need to thunk condition and increment but crucially, only if we're not
@@ -1358,8 +1359,9 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        my @undo-phasers := $!body.IMPL-UNWRAP-LIST($!body.meta-object.phasers('UNDO'));
-        self.sunk && !nqp::elems(@undo-phasers) && $node =:= $!body
+        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
+        my $has-undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO');
+        self.sunk && !$has-undo-phasers && $node =:= $!body
     }
 }
 

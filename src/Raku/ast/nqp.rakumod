@@ -65,6 +65,10 @@ class RakuAST::Nqp
         }
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new(:op($!op));
         $!args.IMPL-ADD-QAST-ARGS($context, $call);

@@ -315,7 +315,7 @@ class RakuAST::Infix
     }
 
     method can-be-sunk() {
-        $!operator ne ':=' && $!operator ne '~~'
+        $!operator ne ':=' && $!operator ne '⚛=' && $!operator ne '~~' && $!operator ne 'does'
     }
 
     method IMPL-OPERATOR() {
@@ -2199,6 +2199,11 @@ class RakuAST::ApplyListInfix
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |self.IMPL-UNWRAP-LIST($!operands));
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.infix.can-be-sunk && self.sunk && !self.infix.short-circuit;
+    }
+
     method IMPL-CAN-INTERPRET() {
         if $!infix.IMPL-CAN-INTERPRET {
             for self.IMPL-UNWRAP-LIST($!operands) {
@@ -2303,6 +2308,9 @@ class RakuAST::ApplyDottyInfix
         nqp::istype($!infix, RakuAST::DottyInfix::CallAssign) ?? False !! True
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-DOTTY-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),
@@ -2333,6 +2341,10 @@ class RakuAST::Prefixish
         for $!colonpairs {
             $visitor($_);
         }
+    }
+
+    method can-be-sunk() {
+        True
     }
 
     method IMPL-OPERATOR() {
@@ -2373,6 +2385,10 @@ class RakuAST::Prefix
 
     method default-operator-properties() {
         OperatorProperties.prefix($!operator)
+    }
+
+    method can-be-sunk() {
+        $!operator ne '--' && $!operator ne '++' && $!operator ne '--⚛' && $!operator ne '++⚛'
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2524,6 +2540,11 @@ class RakuAST::ApplyPrefix
         self.IMPL-MAYBE-CURRY($resolver, $context);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.prefix.can-be-sunk && self.sunk;
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
@@ -2541,7 +2562,7 @@ class RakuAST::ApplyPrefix
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!operand.apply-sink($is-sunk);
+        $!operand.apply-sink($!prefix.can-be-sunk ?? $is-sunk !! False);
     }
 }
 
@@ -3289,6 +3310,10 @@ class RakuAST::Ternary
         nqp::bindattr($obj, RakuAST::Ternary, '$!then', $then);
         nqp::bindattr($obj, RakuAST::Ternary, '$!else', $else);
         $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

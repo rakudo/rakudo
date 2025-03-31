@@ -1952,6 +1952,10 @@ class RakuAST::VarDeclaration::Term
         $!initializer.add-colonpair($pair);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
     }

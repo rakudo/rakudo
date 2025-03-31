@@ -493,8 +493,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $exception.throw;
             }
             else {
-                # Only potential difficulties, just just print them.
-                stderr().print($exception.gist);
+                # Only potential difficulties, just print them.
+                try stderr().print($exception.gist);
             }
         }
     }

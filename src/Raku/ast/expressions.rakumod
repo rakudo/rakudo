@@ -2772,7 +2772,7 @@ class RakuAST::Postcircumfix::Index
     method is-multislice() {
         my $statements := self.index.code-statements;
         nqp::elems($statements) > 1
-        || self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))
+        || nqp::elems(self.IMPL-UNWRAP-LIST(self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))))
     }
 
     method IMPL-INDEX-QAST(RakuAST::IMPL::QASTContext $context) {

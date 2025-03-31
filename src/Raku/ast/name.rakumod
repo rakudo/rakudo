@@ -520,6 +520,7 @@ class RakuAST::Name::Part::Expression
     }
 
     method is-empty() {
+        return False unless nqp::can($!expr, 'literalize');
         my $name := $!expr.literalize;
         nqp::defined($!expr) && $!expr eq ''
     }

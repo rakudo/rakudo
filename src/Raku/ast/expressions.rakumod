@@ -2060,6 +2060,10 @@ class RakuAST::ApplyInfix
                 }
             }
         }
+
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.infix.can-be-sunk && self.sunk && !self.infix.short-circuit;
+
         True
     }
 

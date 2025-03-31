@@ -1655,8 +1655,8 @@ my class Rakudo::QuantHash {
               )
             )
           )
-        ),
-        ($iter := nqp::iterator(aelems)),
+        );
+        $iter := nqp::iterator(aelems);
         nqp::while(                   # vivify all untouched lefthand keys
           $iter,
           nqp::if(

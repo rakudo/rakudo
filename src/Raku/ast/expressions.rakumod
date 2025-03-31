@@ -233,6 +233,10 @@ class RakuAST::Infixish
     method can-be-sunk() {
         True
     }
+
+    method short-circuit() {
+        False
+    }
 }
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
@@ -303,7 +307,7 @@ class RakuAST::Infix
     }
 
     method can-be-sunk() {
-        $!operator ne ':='
+        $!operator ne ':=' && $!operator ne '~~'
     }
 
     method IMPL-OPERATOR() {
@@ -661,15 +665,7 @@ class RakuAST::Infix
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        if $!operator eq ':=' || $!operator eq '⚛=' || $!operator eq '~~' {
-            # We don't sink anything when binding. In fact binding is a way to specifically avoid sinking.
-            my $i := 0;
-            while $i < nqp::elems($operands) {
-                $operands[$i].apply-sink(False);
-                $i++;
-            }
-        }
-        elsif self.short-circuit { # Only final part of short-circuiting operators can be sunk
+        if self.short-circuit { # Only final part of short-circuiting operators can be sunk
             my $i := 0;
             while $i < nqp::elems($operands) - 1 {
                 $operands[$i].apply-sink(False);
@@ -677,9 +673,22 @@ class RakuAST::Infix
             }
             $operands[$i].apply-sink($is-sunk);
         }
-        else {
+        elsif self.operator eq ',' {
             for $operands {
                 $_.apply-sink($is-sunk);
+            }
+        }
+        elsif self.operator eq 'xor' {
+            $operands[0].apply-sink(False);
+            my $i := 1;
+            while $i < nqp::elems($operands) {
+                $operands[$i].apply-sink($is-sunk);
+                $i++;
+            }
+        }
+        else {
+            for $operands {
+                $_.apply-sink(False);
             }
         }
     }
@@ -1251,6 +1260,10 @@ class RakuAST::MetaInfix::Assign
     }
 
     method reducer-name() { $!infix.reducer-name }
+
+    method can-be-sunk() {
+        False
+    }
 
     method IMPL-IS-TEST() {
         my $basesym := self.infix.operator;

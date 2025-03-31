@@ -578,12 +578,10 @@ class RakuAST::Resolver {
             # Could not find exception type, so build a fake (typically happens
             # during CORE.setting compilation).
             my $message := $type-name;
-            $message := "$message(";
             for %opts {
-                $message := $message ~ $_.key ~ " => " ~ $_.value ~ ", ";
+                $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
             }
-            $message := "$message)";
-            RakuAST::BOOTException.new($message);
+            RakuAST::BOOTException.new($message, %opts);
         }
     }
 

@@ -348,7 +348,7 @@ class RakuAST::Var::Attribute
 
 # Wrapper for $.foo "attribute" accesses
 class RakuAST::Var::Attribute::Public
-  is RakuAST::Node
+  is RakuAST::Term
 {
     has str                   $.name;
     has RakuAST::ApplyPostfix $!expression;
@@ -400,28 +400,8 @@ class RakuAST::Var::Attribute::Public
         $!expression.creates-block;
     }
 
-    method wrap-with-thunk(RakuAST::ExpressionThunk $thunk) {
-        $!expression.wrap-with-thunk($thunk);
-    }
-
-    method visit-thunks(Code $visitor) {
-        $!expression.visit-thunks($visitor);
-    }
-
-    method outer-most-thunk() {
-        $!expression.outer-most-thunk;
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!expression.IMPL-TO-QAST($context)
-    }
-
-    method IMPL-CURRIED() {
-        $!expression.IMPL-CURRIED()
-    }
-
-    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
-        $!expression.IMPL-ADJUST-QAST-FOR-LVALUE($qast)
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!expression.IMPL-EXPR-QAST($context)
     }
 }
 

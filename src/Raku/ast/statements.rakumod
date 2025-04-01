@@ -703,7 +703,7 @@ class RakuAST::Statement::Expression
 
     method propagate-sink(Bool $is-sunk) {
         self.IMPL-UNTHUNK() if $is-sunk;
-        $!expression.apply-sink($is-sunk);
+        $!expression.apply-sink($is-sunk, :okifnil($!loop-modifier ?? True !! False));
         $!condition-modifier.apply-sink(False) if $!condition-modifier;
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }

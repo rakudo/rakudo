@@ -8,6 +8,8 @@ class RakuAST::Expression
   is RakuAST::Sinkable
   is RakuAST::CheckTime
 {
+    has int $!okifnil;
+
     method needs-sink-call() { True }
 
     # All expressions can be thunked - that is, compiled such that they get
@@ -26,6 +28,17 @@ class RakuAST::Expression
         $thunk.set-next($!thunks) if $!thunks;
         nqp::bindattr(self, RakuAST::Expression, '$!thunks', $thunk);
         Nil
+    }
+
+    method apply-sink(Bool $is-sunk, Bool :$okifnil) {
+        nqp::bindattr_i(self, RakuAST::Expression, '$!okifnil', 1) if $okifnil;
+        nqp::findmethod(RakuAST::Node, 'apply-sink')(self, $is-sunk);
+    }
+
+    method add-sunk-worry(RakuAST::Resolver $resolver, $what) {
+        my $payload := "Useless use of $what in sink context";
+        $payload := $payload ~ " (use Nil instead to suppress this warning)" if $!okifnil;
+        self.add-worry: $resolver.build-exception: 'X::AdHoc', :$payload;
     }
 
     method dump-extras(int $indent) {

@@ -112,6 +112,11 @@ class RakuAST::Type::Simple
         unless self.is-resolved {
             self.PERFORM-PARSE($resolver, $context);
         }
+
+        if self.is-resolved {
+            self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+                if self.sunk && !(self.resolution.compile-time-value =:= Nil);
+        }
     }
 
     method PRODUCE-META-OBJECT() {

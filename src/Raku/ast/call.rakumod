@@ -1320,6 +1320,7 @@ class RakuAST::Call::BlockMethod
 # Base role for all stubs
 class RakuAST::Stub
   is RakuAST::ImplicitLookups
+  is RakuAST::Term
 {
     has RakuAST::ArgList $.args;
 

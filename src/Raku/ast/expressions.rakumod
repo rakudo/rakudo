@@ -3355,3 +3355,115 @@ class RakuAST::Ternary
         $!else.apply-sink($is-sunk);
     }
 }
+
+# A for loop. Is here because it inherits from Term, so it must be defined after that.
+class RakuAST::Statement::For
+  is RakuAST::Statement
+  is RakuAST::ForLoopImplementation
+  is RakuAST::Term
+  is RakuAST::SinkPropagator
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    # The thing to iterate over.
+    has RakuAST::Expression $.source;
+
+    # The body of the loop.
+    has RakuAST::Block $.body;
+
+    # The block to run if nothing to iterate over
+    has RakuAST::Block $.otherwise;
+
+    # The mode of evaluation, (defaults to serial, may be race or hyper also).
+    has str $.mode;
+
+    method new(
+      RakuAST::Expression :$source!,
+           RakuAST::Block :$body!,
+           RakuAST::Block :$otherwise,
+                      str :$mode,
+                     List :$labels
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!source', $source);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!body', $body);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!otherwise', $otherwise);
+        nqp::bindattr_s($obj, RakuAST::Statement::For, '$!mode', $mode || 'serial');
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method replace-mode(str $mode) {
+        nqp::bindattr_s(self, RakuAST::Statement::For, '$!mode', $mode);
+        Nil
+    }
+
+    method replace-otherwise(RakuAST::Block $otherwise) {
+        nqp::bindattr(self, RakuAST::Statement::For, '$!otherwise', $otherwise);
+        Nil
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!source.apply-sink(False);
+        $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # Figure out the execution mode modifiers to apply.
+        my str $mode := $!mode;
+        my str $after-mode := '';
+        if $!otherwise {
+            $mode := 'serial';
+            $after-mode := 'eager';
+        }
+        elsif $mode eq 'lazy' {
+            $mode := 'serial';
+            $after-mode := 'lazy';
+        }
+        else {
+            $after-mode := self.IMPL-DISCARD-RESULT ?? 'sink' !! 'eager';
+        }
+
+        # Delegate to the for loop compilation helper (which we pass various
+        # attributes to in order to make it callable for the statement modifier
+        # form also).
+        my @labels := self.IMPL-UNWRAP-LIST(self.labels);
+        my $qast := self.IMPL-FOR-QAST(
+          $context,
+          $mode,
+          $after-mode,
+          $!source.IMPL-TO-QAST($context),
+          $!body.IMPL-TO-QAST($context),
+          @labels ?? @labels[0] !! RakuAST::Label
+        );
+
+        $!otherwise
+          ?? QAST::Op.new(:op<unless>,
+               $qast,
+               QAST::Op.new(:op<call>,
+                 $!otherwise.IMPL-TO-QAST($context)
+               )
+             )
+          !! $qast
+    }
+
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
+        $visitor($!body);
+        $visitor($!otherwise) if $!otherwise;
+        self.visit-labels($visitor);
+    }
+}

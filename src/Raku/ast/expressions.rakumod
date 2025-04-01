@@ -2575,7 +2575,7 @@ class RakuAST::ApplyPrefix
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!operand.apply-sink($!prefix.can-be-sunk ?? $is-sunk !! False);
+        $!operand.apply-sink(False);
     }
 }
 

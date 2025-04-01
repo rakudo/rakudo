@@ -1240,9 +1240,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # A prefix expression
     method PREFIX-EXPR($/) {
-        self.attach: $/, Nodify('ApplyPrefix').new:
-          prefix  => $/.ast // Nodify('Prefix').new($<prefix><sym>),
-          operand => $/[0].ast;
+        my $ast := Nodify('ApplyPrefix').new:
+            prefix  => $/.ast // Nodify('Prefix').new($<prefix><sym>),
+            operand => $/[0].ast;
+        $ast.set-origin(
+            Nodify('Origin').new:
+                :from($/.from),
+                :to($/[0].to),
+                :source($*ORIGIN-SOURCE)
+        );
+        self.attach: $/, $ast;
     }
 
     # A postfix expression

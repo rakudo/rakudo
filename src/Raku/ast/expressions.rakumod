@@ -3298,6 +3298,7 @@ class RakuAST::ApplyPostfix
 # The ternary conditional operator (?? !!).
 class RakuAST::Ternary
   is RakuAST::Expression
+  is RakuAST::SinkPropagator
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
@@ -3332,4 +3333,12 @@ class RakuAST::Ternary
     }
 
     method properties() { OperatorProperties.infix('?? !!') }
+
+    method needs-sink-call() { False }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!then.apply-sink($is-sunk);
+        $!else.apply-sink($is-sunk);
+    }
 }

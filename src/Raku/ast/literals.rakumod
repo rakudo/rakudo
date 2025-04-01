@@ -48,7 +48,7 @@ class RakuAST::Literal
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ $!value.gist)
+        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ (self.origin ?? self.origin.Str !! $!value.gist))
             if self.sunk;
     }
 
@@ -226,7 +226,7 @@ class RakuAST::QuotedString
       RakuAST::IMPL::QASTContext $context
     ) {
         my $value := self.literal-value;
-        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ $value.gist)
+        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ (self.origin ?? self.origin.Str !! $value.gist))
             if self.sunk && $value;
     }
 

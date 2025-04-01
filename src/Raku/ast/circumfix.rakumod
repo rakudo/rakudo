@@ -17,7 +17,10 @@ class RakuAST::Circumfix::Parentheses
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Avoid worries about sink context since parentheses may just be used
-        # for syntactic grouping.
+        # for syntactic grouping. Unless it's an empty list, then there's no one
+        # else to blame.
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk && $!semilist.is-empty;
     }
 
     # Generally needs to be called before children are visited, which is when the Apply*

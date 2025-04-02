@@ -1149,10 +1149,10 @@ class RakuAST::Parameter
 
         if $!default {
             # Ensure this is something that a default can go on.
-            if nqp::isconcrete($!slurpy) {
+            if !($!slurpy =:= RakuAST::Parameter::Slurpy) {
                 self.add-sorry:
                   $resolver.build-exception: 'X::Parameter::Default',
-                    how => 'slurpy', parameter => $!target.name;
+                    how => 'slurpy', parameter => $!target.desigilname;
             }
             if self.is-declared-required {
                 self.add-sorry:
@@ -1814,6 +1814,7 @@ class RakuAST::ParameterTarget
     method set-where(RakuAST::Expression $where) { }
     method sigil() { '' }
     method name() { '' }
+    method desigilname() { self.name }
     method set-bindable(Bool $is-bindable) {
         nqp::die("set-bindable NYI on " ~ self.HOW.name(self));
     }

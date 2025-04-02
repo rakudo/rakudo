@@ -4999,7 +4999,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             # TODO: Re-add suggestions
             {
                 self.typed-panic: 'X::Parameter::InvalidType',
-                  :typename($<longname>)
+                  :typename(~$<longname>)
             }
         ]
         <.ws>

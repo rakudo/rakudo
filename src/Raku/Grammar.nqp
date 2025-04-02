@@ -4960,7 +4960,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     method panic-after-default($/, str $type) {
         $/.typed-panic: "X::Parameter::AfterDefault",
           type     => $type,
-          modifier => ~$<modifier>,
+          modifier => ~$<modifier>[0],
           default  => ~$<default-value>
     }
 

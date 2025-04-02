@@ -2614,6 +2614,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method routine-def($/) {
         my $routine := $*BLOCK;
+
+        # If there was no signature specification at all, but there *was*
+        # a type specification, we need to add the return type now
+        if $*OFTYPE -> $returns {
+            $returns := $returns.ast;
+            if $routine.signature -> $signature {
+                $signature.set-returns($returns)
+                  unless $signature.returns;
+            }
+            else {
+                $routine.replace-signature(Nodify('Signature').new(:$returns))
+            }
+        }
+
         $routine.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
           !! $<blockoid>

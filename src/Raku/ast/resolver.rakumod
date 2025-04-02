@@ -633,6 +633,11 @@ class RakuAST::Resolver {
         Nil
     }
 
+    method have-check-time-problems() {
+        ($!nodes-with-check-time-problems || $!nodes-unresolved-after-check-time)
+            ?? True !! False
+    }
+
     # Produce an exception with any compile-time errors, optionally using the
     # specified one as a the main "panic" exception. Incorporates any sorries
     # and worries from check time, and also those registered by specific

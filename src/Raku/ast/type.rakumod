@@ -436,10 +436,23 @@ class RakuAST::Type::Parameterized
         unless nqp::can($ptype.HOW, 'parameterize') {
             $resolver.build-exception('X::NotParametric', type => $ptype).throw;
         }
+
+        my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
+        my $fail := 0;
+        for $args -> $arg {
+            if nqp::istype($arg, RakuAST::Lookup) && !$arg.is-resolved && $arg.needs-resolution {
+                $resolver.add-node-unresolved-after-check-time($arg);
+                $fail := 1;
+            }
+        }
+        if $fail {
+            $resolver.produce-compilation-exception.throw;
+        }
+
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES && !$resolver.have-check-time-problems {
             # Force parameterization now
             self.meta-object;
         }

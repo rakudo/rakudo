@@ -434,7 +434,16 @@ class RakuAST::VarDeclaration::Constant
         my $value;
         {
             CATCH {
-                my $ex := $resolver.convert-begin-time-exception($_);
+                my $ex := $resolver.convert-exception($_);
+                my $XUndeclaredSymbols := $resolver.resolve-name-constant-in-setting(
+                    RakuAST::Name.from-identifier-parts('X', 'Undeclared', 'Symbols'));
+                # The only reason for this distinction is that in the old compiler the grammar
+                # would have thrown such an exception before we even tried to evaluate the constant
+                # thus it would not have been wrapped in an X::Comp::BeginTime and some spectests
+                # depend on this.
+                $ex := nqp::istype($ex, $XUndeclaredSymbols.compile-time-value)
+                    ?? $ex
+                    !! $resolver.convert-begin-time-exception($ex);
                 if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
                     my $origin-match := $origin.as-match;
                     $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);

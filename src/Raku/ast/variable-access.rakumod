@@ -279,7 +279,8 @@ class RakuAST::Var::Attribute
         my $package := $!package.stubbed-meta-object;
 
         self.add-sorry: $resolver.build-exception: 'X::Attribute::Undeclared',
-            :symbol($!name), :package-kind($!package.declarator), :package-name($package.HOW.name)
+            :symbol($!name), :package-kind($!package.declarator),
+            :package-name($package.HOW.name), :what('attribute')
             unless $package.HOW.has_attribute($package, $!name);
 
         self.add-sorry: $resolver.build-exception: 'X::Syntax::NoSelf', :variable($!name)

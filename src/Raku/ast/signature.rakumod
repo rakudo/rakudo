@@ -84,19 +84,19 @@ class RakuAST::Signature
                             $_.is-optional ?? 2 !!
                             $_.is-declared-required || $_.slurpy =:= RakuAST::Parameter::Slurpy ?? 3 !! 4;
 
-                if $kind =:= 3 {               # required
-                    if $prev-kind =:= 2 {      # optional
+                if $kind == 3 {               # required
+                    if $prev-kind == 2 {      # optional
                         self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.name;
-                    } elsif $prev-kind =:= 4 { # variadic
+                    } elsif $prev-kind == 4 { # variadic
                         self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
-                    } elsif $prev-kind =:= 1 { # named
+                    } elsif $prev-kind == 1 { # named
                         self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
                     }
 
-                } elsif $kind := 2 {           # optional
-                    if $prev-kind =:= 4 {      # variadic
+                } elsif $kind == 2 {          # optional
+                    if $prev-kind == 4 {      # variadic
                         self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
-                    } elsif $prev-kind =:= 1 { # named
+                    } elsif $prev-kind == 1 { # named
                         self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
                     }
                 }

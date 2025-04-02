@@ -2559,9 +2559,15 @@ class RakuAST::VarDeclaration::Placeholder
         my $block := $resolver.find-attach-target('block');
         my $name := self.declared-name;
 
-        if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature {
+        if $block {
+            if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
+            }
+        }
+        else {
             self.add-sorry:
-                $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
+                $resolver.build-exception: 'X::Placeholder::Mainline', placeholder => $name;
         }
 
         my $signature := $block.signature;

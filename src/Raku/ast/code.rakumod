@@ -2001,7 +2001,7 @@ class RakuAST::Routine
         if self.multiness eq 'multi' && self.name {
             my $name := '&' ~ self.name.canonicalize;
             my $proto := $resolver.resolve-lexical($name, :current-scope-only);
-            if $proto {
+            if $proto && nqp::can($proto.compile-time-value, 'is_dispatcher') && $proto.compile-time-value.is_dispatcher {
                 $proto := $proto.compile-time-value;
             }
             else {
@@ -2011,7 +2011,10 @@ class RakuAST::Routine
 
                 my $scope := $resolver.current-scope;
 
-                if ($proto := $resolver.resolve-lexical-constant($name)) || ($proto := $resolver.resolve-lexical-constant-in-outer($name)) {
+                if (   ($proto := $resolver.resolve-lexical-constant($name))
+                    || ($proto := $resolver.resolve-lexical-constant-in-outer($name))
+                   ) && nqp::can($proto.compile-time-value, 'is_dispatcher') && $proto.compile-time-value.is_dispatcher
+                {
                     $proto := $proto.compile-time-value.derive_dispatcher;
                     $scope.add-generated-lexical-declaration(
                         RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))

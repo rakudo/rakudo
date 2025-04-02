@@ -1179,7 +1179,10 @@ class RakuAST::Resolver::Compile
 
     # Add a worry check-time problem produced by the compiler.
     method add-worry(Any $exception) {
-        nqp::push($!worries, $exception);
+        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
+        if !nqp::isconcrete($worries) || $worries {
+            nqp::push($!worries, $exception);
+        }
         Nil
     }
     method has-worries() { nqp::elems($!worries) > 0 }

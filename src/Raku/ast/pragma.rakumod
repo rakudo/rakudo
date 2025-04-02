@@ -54,7 +54,7 @@ class RakuAST::Pragma
           'strict',             1,
           'trace',              1,
           'variables',          0,
-          'worries',            1,
+          'worries',            0,
         );
     }
 
@@ -234,6 +234,9 @@ class RakuAST::Pragma
         }
         elsif $name eq 'fatal' {
             $resolver.current-scope.set-fatal($on ?? True !! False);
+        }
+        elsif $name eq 'worries' {
+            $resolver.current-scope.set-worries($on ?? True !! False);
         }
         else {
             $resolver.build-exception("X::Pragma::Unknown",:$name).throw;

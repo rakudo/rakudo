@@ -19,10 +19,16 @@ class RakuAST::LexicalScope
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
+    # Scope pragmas. Note that the default for these is undefined!
     has Bool $.fatal;
+    has Bool $.tell-worries;
 
     method set-fatal(Bool $on) {
         nqp::bindattr(self, RakuAST::LexicalScope, '$!fatal', $on);
+    }
+
+    method set-worries(Bool $on) {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!tell-worries', $on);
     }
 
     method creates-block() {

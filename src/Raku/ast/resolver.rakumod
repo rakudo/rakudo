@@ -1413,6 +1413,46 @@ class RakuAST::Resolver::Compile
         }
         return @suggestions;
     }
+
+    method suggest-typename(Str $name) {
+        # Set up lookup for newbie type errors in typenames
+        my $newbies := nqp::hash(
+          'Integer',   ('Int',),
+          'integer',   ('Int','int'),
+          'Float',     ('Num',),
+          'float',     ('Num','num'),
+          'Number',    ('Num',),
+          'number',    ('Num','num'),
+          'String',    ('Str',),
+          'string',    ('Str','str'),
+        );
+
+        my %seen;
+        %seen{$name} := 1;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my @suggestions;
+
+        if (my @alternates := nqp::atkey($newbies, $name)) {
+            for @alternates {
+                nqp::push(@suggestions, $_);
+            }
+        }
+
+        my &evaluator := -> $name {
+            # only care about type objects
+            my $first := nqp::substr($name, 0, 1);
+            unless $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':' {
+                #unless !$has_object || (nqp::isconcrete($object) && !nqp::istype($object.HOW, Perl6::Metamodel::EnumHOW)) {
+                &inner-evaluator($name);
+            }
+        }
+        self.walk-scopes(%seen, &evaluator);
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+
+        return @suggestions;
+    }
 }
 
 #-------------------------------------------------------------------------------

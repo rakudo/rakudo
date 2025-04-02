@@ -102,12 +102,39 @@ class RakuAST::Nqp
 
     method IMPL-CAN-INTERPRET() {
         my @args := nqp::getattr(self.args, RakuAST::ArgList, '$!args');
-        $!op eq 'p6box_i' && @args[0].IMPL-CAN-INTERPRET;
+        my $op := $!op;
+        ($op eq 'hash' || $op eq 'list_s' || $op eq 'atpos_s' || $!op eq 'p6box_i')
+             && @args[0].IMPL-CAN-INTERPRET;
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $context) {
         my @args := nqp::getattr(self.args, RakuAST::ArgList, '$!args');
-        nqp::box_i(@args[0].IMPL-INTERPRET($context), Int);
+        my $op := $!op;
+        if $op eq 'hash' {
+            my @args := self.args.IMPL-INTERPRET($context)[0];
+            my $result := nqp::hash;
+            while @args {
+                my $key := nqp::shift(@args);
+                my $val := nqp::shift(@args);
+                $result{$key} := $val;
+            }
+            $result
+        }
+        elsif $op eq 'list_s' {
+            my @args := self.args.IMPL-INTERPRET($context)[0];
+            my $result := nqp::list_s;
+            for @args {
+                nqp::push_s($result, $_);
+            }
+            $result
+        }
+        elsif $op eq 'atpos_s' {
+            my @args := self.args.IMPL-INTERPRET($context)[0];
+            nqp::atpos_s(@args[0], @args[1]);
+        }
+        elsif $op eq 'box_i' {
+            nqp::box_i(@args[0].IMPL-INTERPRET($context), Int);
+        }
     }
 }
 

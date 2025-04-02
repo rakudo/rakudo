@@ -3696,10 +3696,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
 
           # $0
-          | <sigil> $<index>=[\d+]
+          | <sigil> $<index>=[\d+]                  [<?{ $*IN-DECL }> <.typed-panic('X::Syntax::Variable::Numeric')>]?
 
           # $<foo>
-          | <sigil> <?[<]> <postcircumfix>
+          | <sigil> <?[<]> <postcircumfix>          [<?{ $*IN-DECL }> <.typed-panic('X::Syntax::Variable::Match')>]?
 
           # 👍
           | $<desigilname>=<.sigilless-variable>
@@ -3959,20 +3959,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*VARIABLE;
         :my $*VARIABLE-NAME;
         :my $sigil;
-        [
-          | <sigil> <twigil>? <desigilname>?
-
-          | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
-
-          | $<desigilname>=<.sigilless-variable>
-
-          # TODO cases for when you declare something you're not allowed to
-        ]
+        <variable>
         {
             $*IN-DECL := '';
             $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
-            $sigil := $<sigil> ?? $<sigil>.Str !! "";
-            $*VARIABLE-NAME := $<sigil> ~ $<twigil> ~ $<desigilname>;
+            $sigil := $<variable><sigil> ?? $<variable><sigil>.Str !! "";
+            $*VARIABLE-NAME := $sigil ~ $<variable><twigil> ~ $<variable><desigilname>;
             $/.add-variable($*VARIABLE-NAME);
         }
         [

@@ -663,6 +663,9 @@ class RakuAST::Resolver {
                 RakuAST::Name.from-identifier-parts('X', 'Comp', 'Group');
             if $XCompGroup-res {
                 my $XCompGroup := $XCompGroup-res.compile-time-value;
+                if !$panic && $num-sorries {
+                    $panic := nqp::pop(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
+                }
                 $panic
                   ?? $XCompGroup.new(:$panic, :$sorries, :$worries)
                   !! $XCompGroup.new(         :$sorries, :$worries)

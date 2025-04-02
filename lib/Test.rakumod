@@ -632,7 +632,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                 if !$type_ok && $ex_type ~~ X::Comp && $ex ~~ X::Comp::Group {
                     # Compile time exceptions may be found in a group if the compiler reports
                     # more than one problem.
-                    with $_.sorrows.first($ex_type) -> $nested-ex {
+                    with ($_.panic, |$_.sorrows).first($ex_type) -> $nested-ex {
                         $ex := $nested-ex;
                         $type_ok = True;
                     }

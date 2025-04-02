@@ -2522,6 +2522,8 @@ class RakuAST::VarDeclaration::Placeholder
 
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
+    method declared-name() { self.lexical-name }
+
     method generate-parameter() {
         nqp::die('Missing generate-parameter implementation')
     }
@@ -2560,7 +2562,7 @@ class RakuAST::VarDeclaration::Placeholder
             # @_ and %_ are only real placeholders if they were not
             # already defined in the signature, so we need to check
             # there before pulling the plug
-            my $name := self.lexical-name;
+            my $name := self.declared-name;
             if $name eq '@_' || $name eq '%_' {
                 return True if $signature.IMPL-HAS-PARAMETER($name) || $name eq '%_' && $method;
             }
@@ -2610,6 +2612,10 @@ class RakuAST::VarDeclaration::Placeholder::Positional
         $obj
     }
 
+    method declared-name() {
+        nqp::replace(self.lexical-name, 1, 0, '^')
+    }
+
     method generate-parameter() {
         RakuAST::Parameter.new:
           target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name))
@@ -2630,6 +2636,10 @@ class RakuAST::VarDeclaration::Placeholder::Named
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Placeholder::Named,
             '$!lexical-name', $declared-name);
         $obj
+    }
+
+    method declared-name() {
+        nqp::replace(self.lexical-name, 1, 0, ':')
     }
 
     method generate-parameter() {

@@ -2674,6 +2674,12 @@ class RakuAST::Method
     }
 }
 
+# Just exists so we know this method is an attribute initializer, for better error messages.
+class RakuAST::Method::Initializer
+  is RakuAST::Method
+{
+}
+
 # A submethod.
 class RakuAST::Submethod
   is RakuAST::Method

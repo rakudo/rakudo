@@ -732,8 +732,10 @@ class RakuAST::VarDeclaration::Simple
 
     method visit-children(Code $visitor) {
         $visitor($!type)        if nqp::isconcrete($!type);
-        $visitor($!initializer) if nqp::isconcrete($!initializer);
-        $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
+        if nqp::isconcrete($!initializer) {
+            $visitor($!initializer);
+            $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
+        }
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
         $visitor($!where)       if nqp::isconcrete($!where);
@@ -794,7 +796,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!block', $block);
 
         if self.is-attribute {
-            my $method := RakuAST::Method.new(
+            my $method := RakuAST::Method::Initializer.new(
               :signature(RakuAST::Signature.new(
                 :parameters([
                   RakuAST::Parameter.new(
@@ -951,6 +953,9 @@ class RakuAST::VarDeclaration::Simple
                     self.add-trait(
                         RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
                     );
+                    # No need anymore, since the initializer is already referenced by the method.
+                    # Avoids double CHECK on the initializer code.
+                    nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer', RakuAST::Initializer);
                 }
             }
             else {
@@ -1093,7 +1098,7 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
-        if self.sigil eq '$' && !self.initializer && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
+        if self.sigil eq '$' && !(self.initializer || $!initializer-method) && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
             my $descriptor := self.container-descriptor;
             my $ddefault := $descriptor.default;
             my $bind-constraint := self.bind-constraint;
@@ -2563,26 +2568,34 @@ class RakuAST::VarDeclaration::Placeholder
             if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature {
                 self.add-sorry:
                     $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
+                return False;
+            }
+            elsif nqp::istype($block, RakuAST::Method::Initializer) {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Placeholder::Attribute', placeholder => $name;
+                return False;
+            }
+            else {
+                my $signature := $block.signature;
+                if $signature && $signature.parameters-initialized {
+                    my $method := $resolver.find-attach-target('method');
+                    # @_ and %_ are only real placeholders if they were not
+                    # already defined in the signature, so we need to check
+                    # there before pulling the plug
+                    if $name eq '@_' || $name eq '%_' {
+                        return True if $signature.IMPL-HAS-PARAMETER($name) || $name eq '%_' && $method;
+                    }
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Signature::Placeholder',
+                        precursor   => 1,
+                        placeholder => $name;
+                    return False;
+                }
             }
         }
         else {
             self.add-sorry:
                 $resolver.build-exception: 'X::Placeholder::Mainline', placeholder => $name;
-        }
-
-        my $signature := $block.signature;
-        if $signature && $signature.parameters-initialized {
-            my $method := $resolver.find-attach-target('method');
-            # @_ and %_ are only real placeholders if they were not
-            # already defined in the signature, so we need to check
-            # there before pulling the plug
-            if $name eq '@_' || $name eq '%_' {
-                return True if $signature.IMPL-HAS-PARAMETER($name) || $name eq '%_' && $method;
-            }
-            self.add-sorry:
-              $resolver.build-exception: 'X::Signature::Placeholder',
-                precursor   => 1,
-                placeholder => $name;
             return False;
         }
         True

@@ -1282,17 +1282,20 @@ class RakuAST::Block
     has int $!fresh-exception;
 
     has int $!is-in-method;
+    has int $!may-have-signature;
 
     method new(RakuAST::Blockoid :$body,
                             Bool :$implicit-topic,
                             Bool :$required-topic,
                             Bool :$exception,
+                            Bool :$may-have-signature,
         RakuAST::Doc::Declarator :$WHY,
               RakuAST::Signature :$signature # ignored, just for compatability with Routine
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
         nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
+        nqp::bindattr_i($obj, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
         $obj.set-implicit-topic($implicit-topic // 1, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
         $obj
@@ -1301,6 +1304,14 @@ class RakuAST::Block
     # Helper method to return if there are any whenevers in this block,
     # either directly, or in any embedded blocks.
     method any-whenevers() { self.body.statement-list.any-whenevers }
+
+    method may-have-signature() {
+        $!may-have-signature ?? True !! False
+    }
+
+    method set-may-have-signature(Bool $may-have-signature) {
+        nqp::bindattr_i(self, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
+    }
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Block, '$!body', $new-body);
@@ -1679,6 +1690,8 @@ class RakuAST::PointyBlock
         nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
         Nil
     }
+
+    method may-have-signature() { True }
 
     method bare-block() { False }
 

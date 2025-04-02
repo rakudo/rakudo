@@ -2556,13 +2556,20 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $signature := $resolver.find-attach-target('block').signature;
-        my $method := $resolver.find-attach-target('method');
+        my $block := $resolver.find-attach-target('block');
+        my $name := self.declared-name;
+
+        if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
+        }
+
+        my $signature := $block.signature;
         if $signature && $signature.parameters-initialized {
+            my $method := $resolver.find-attach-target('method');
             # @_ and %_ are only real placeholders if they were not
             # already defined in the signature, so we need to check
             # there before pulling the plug
-            my $name := self.declared-name;
             if $name eq '@_' || $name eq '%_' {
                 return True if $signature.IMPL-HAS-PARAMETER($name) || $name eq '%_' && $method;
             }

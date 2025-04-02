@@ -637,8 +637,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Action methods for handling (pointy) blocks
-    method pointy-block($/) { self.attach-block($/) }
-    method        block($/) { self.attach-block($/) }
+    method pointy-block($/) {
+        $*BLOCK.set-may-have-signature(1);
+        self.attach-block($/)
+    }
+    method block($/) {
+        self.attach-block($/)
+    }
 
     # Action method for handling the inside of (pointy) blocks
     method blockoid($/) {

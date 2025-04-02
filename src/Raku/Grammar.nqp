@@ -5611,6 +5611,7 @@ Rakudo significantly on *every* run."
           | [ \r\n || \v ] <.heredoc>
           | <.horizontal-whitespace>
           | <.unspace>
+          | <.vcs-conflict>
         ]*
         <?MARKER('ws')>
         <.reset-expectations>
@@ -5634,13 +5635,7 @@ Rakudo significantly on *every* run."
         [
           [
             | \v
-            | '<<<<<<<'
-              {}                       # disable LTM
-              <?before [.*? \v '=======']: .*? \v '>>>>>>>' >
-              <.sorry: 'Found a version control conflict marker'> \V* \v
-            | '======='
-              {}                       # disable LTM
-              .*? \v '>>>>>>>' \V* \v  # ignore second part of a conflict marker
+            | <.vcs-conflict>
           ]
         ]+
     }
@@ -5652,6 +5647,13 @@ Rakudo significantly on *every* run."
           | \h+
           | \h* <.comment>
           | <?before \h* '=' [ \w | '\\'] > ^^ <.doc-TOP>
+        ]
+    }
+
+    token vcs-conflict {
+        [
+        | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
+        | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
         ]
     }
 

@@ -673,7 +673,8 @@ class RakuAST::Type::Enum
             }
         }
         else {
-            my $evaluated := self.IMPL-BEGIN-TIME-EVALUATE($!term, $resolver, $context).List;
+            my $evaluated := self.IMPL-BEGIN-TIME-EVALUATE($!term, $resolver, $context);
+            $evaluated := $evaluated.List if nqp::isconcrete($evaluated);
             if nqp::istype($evaluated, List) {
                 my @items := self.IMPL-UNWRAP-LIST($evaluated);
                 if nqp::elems(@items) == 0 {

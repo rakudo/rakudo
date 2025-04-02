@@ -2259,6 +2259,10 @@ class RakuAST::Routine
         }
     }
 
+    method declaration-name() {
+        self.name.canonicalize
+    }
+
     method is-lexical() {
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'

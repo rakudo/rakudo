@@ -273,7 +273,7 @@ class RakuAST::LexicalScope
                 if nqp::existskey(%lookup, $lexical-name) {
                     self.add-worry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name), :what($_.declaration-kind)
+                        :symbol($_.declaration-name), :what($_.declaration-kind)
                     # It will be two worries for var declaration, so skip one, not sure about others.
                     unless nqp::istype($_, RakuAST::VarDeclaration);
                 }
@@ -289,7 +289,7 @@ class RakuAST::LexicalScope
                 if nqp::existskey(%lookup, $lexical-name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($lexical-name),
+                        :symbol($_.declaration-name),
                         :what($_.declaration-kind),
                         :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '')
                     unless %lookup{$lexical-name} =:= $_;
@@ -506,6 +506,10 @@ class RakuAST::Declaration
 
     method declaration-kind() {
         'symbol'
+    }
+
+    method declaration-name() {
+        self.lexical-name
     }
 }
 

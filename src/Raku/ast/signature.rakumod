@@ -2031,7 +2031,7 @@ class RakuAST::ParameterTarget::Var
               $resolver.build-exception: 'X::Parameter::Placeholder',
                 type      => "named",
                 parameter => self.DEPARSE,
-                right     => ':' ~ $!name;
+                right     => ':' ~ nqp::replace($!name, 1, 1, '');
         }
         elsif $twigil eq '^' {
             self.add-sorry:

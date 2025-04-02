@@ -747,10 +747,12 @@ role Raku::Common {
         $stopper := $stopper // $goal;
         $stopper := $stopper ~~ / (.*\S) \s* /;
         $stopper := ~$stopper[0];
+        my @line-file := HLL::Compiler.linefileof(self.orig(), self.from(), :cache, :directives);
         self.typed-panic: 'X::Comp::FailGoal',
           :$dba,
           :goal($stopper),
-          :line-real(HLL::Compiler.lineof(self.orig(), self.from(), :cache(1)))
+          :line-real(@line-file[0]),
+          :filename-real(@line-file[1])
         ;
     }
 

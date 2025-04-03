@@ -108,15 +108,23 @@ class RakuAST::Package
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!augmented {
-            my $resolved := $resolver.resolve-name(self.name);
-            if $resolved {
-                unless $resolved.compile-time-value.HOW.archetypes.augmentable {
-                    self.add-sorry:
-                        $resolver.build-exception: 'X::Syntax::Augment::Illegal',
-                            :package(self.name.canonicalize);
-                    $resolver.add-node-with-check-time-problems(self);
+            if self.name {
+                my $resolved := $resolver.resolve-name(self.name);
+                if $resolved {
+                    unless $resolved.compile-time-value.HOW.archetypes.augmentable {
+                        self.add-sorry:
+                            $resolver.build-exception: 'X::Syntax::Augment::Illegal',
+                                :package(self.name.canonicalize);
+                        $resolver.add-node-with-check-time-problems(self);
+                    }
+                    self.set-resolution($resolved);
                 }
-                self.set-resolution($resolved);
+            }
+            else {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Anon::Augment',
+                        :package-kind(self.declarator);
+                $resolver.add-node-with-check-time-problems(self);
             }
         }
         elsif $!name {

@@ -401,6 +401,15 @@ class RakuAST::Var::Attribute::Public
         $!expression.creates-block;
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-attach-target('block');
+        if nqp::istype($block, RakuAST::Method::Initializer) {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!name;
+            return False;
+        }
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-EXPR-QAST($context)
     }

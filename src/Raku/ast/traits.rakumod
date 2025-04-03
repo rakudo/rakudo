@@ -59,8 +59,20 @@ class RakuAST::TraitTarget {
                 CATCH {
                     nqp::bindattr(self, RakuAST::TraitTarget, '$!sorries', []) unless nqp::isconcrete($!sorries);
                     my $ex := nqp::getpayload($_);
-                    $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
-                        unless nqp::isconcrete($ex);
+                    if $ex {
+			    #my $payload := nqp::getpayload($ex);
+                        my $XUndeclaredSymbols := $resolver.resolve-name-constant-in-setting(
+                            RakuAST::Name.from-identifier-parts('X', 'Inheritance', 'UnknownParent'));
+                        if nqp::istype($ex, $XUndeclaredSymbols.compile-time-value) {
+                            for $resolver.suggest-typename($ex.parent) {
+                                $ex.suggestions.push($_)
+                            }
+                        }
+                    }
+                    else {
+                        $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
+                            unless nqp::isconcrete($ex);
+                    }
                     nqp::push($!sorries, $ex);
                 }
                 CONTROL {

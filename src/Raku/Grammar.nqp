@@ -4342,7 +4342,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my $name := $<longname>.ast;
                 $/.typed-panic('X::InvalidType',
                   :typename($name.canonicalize(:colonpairs(0))),
-                  :suggestions([])); #TODO suggestions
+                  :suggestions($*R.suggest-typename($name.name)));
            }
         || <.malformed: 'trait'>
     }
@@ -4882,11 +4882,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token typo-typename($panic = 0) {
         <longname>
         {
-            #TODO bring back suggestions for which types may have been meant
+            my $longname := $<longname>.ast.canonicalize;
             my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
             $/."$method"('X::Undeclared',
               what   => "Type",
-              symbol => $<longname>.ast.canonicalize
+              symbol => $longname,
+              suggestions => $*R.suggest-typename($longname)
             );
         }
     }
@@ -4998,7 +4999,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $<quant>=[ '?' | '!' | <?> ]
 
           | <longname>
-            # TODO: Re-add suggestions
             {
                 self.typed-panic: 'X::Parameter::InvalidType',
                   :typename(~$<longname>),

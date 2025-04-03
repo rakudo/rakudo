@@ -58,13 +58,9 @@ class RakuAST::Term::Name
     }
 
     method build-bind-exception(RakuAST::Resolver $resolver) {
-        if self.name.is-pseudo-package {
-            $resolver.build-exception: 'X::Bind'
-        }
-        else {
-            $resolver.build-exception: 'X::Bind::Rebind',
-                :target(self.name.canonicalize)
-        }
+        my $target := self.name.canonicalize;
+        $target := "pseudo-package $target" if self.name.is-pseudo-package;
+        $resolver.build-exception: 'X::Bind::Rebind', :$target;
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

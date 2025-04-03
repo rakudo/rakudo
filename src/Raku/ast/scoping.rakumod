@@ -954,7 +954,6 @@ class RakuAST::PackageInstaller {
         my $final;
         my $lexical;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
-        my $pure-package-installation := !nqp::istype(self, RakuAST::Type::Subset);
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
         $resolver.add-sorry: $resolver.build-exception:
@@ -966,11 +965,9 @@ class RakuAST::PackageInstaller {
         if $name.is-identifier {
             $final := $name.canonicalize(:colonpairs(0));
             $lexical := $resolver.resolve-lexical-constant($final);
-            if $pure-package-installation || !$lexical {
-                $resolver.current-scope.merge-generated-lexical-declaration:
-                    :$resolver,
-                    self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
-            }
+            $resolver.current-scope.merge-generated-lexical-declaration:
+                :$resolver,
+                self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {
                 $target := $current-package;
@@ -1021,7 +1018,7 @@ class RakuAST::PackageInstaller {
                     RakuAST::Declaration::LexicalPackage.new:
                         :lexical-name($first),
                         :compile-time-value($target),
-                        :package($pure-package-installation ?? self !! $current-package);
+                        :package(self);
                 if $scope eq 'our' {
                     # TODO conflicts
                     my %stash := $resolver.IMPL-STASH-HASH($current-package);

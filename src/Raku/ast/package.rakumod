@@ -109,6 +109,12 @@ class RakuAST::Package
         if $!augmented {
             my $resolved := $resolver.resolve-name(self.name);
             if $resolved {
+                unless $resolved.compile-time-value.HOW.archetypes.augmentable {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Syntax::Augment::Illegal',
+                            :package(self.name.canonicalize);
+                    $resolver.add-node-with-check-time-problems(self);
+                }
                 self.set-resolution($resolved);
             }
         }
@@ -270,8 +276,11 @@ class RakuAST::Package
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
-        if $!augmented || self.is-resolved {
+        if self.is-resolved {
             self.resolution.compile-time-value;
+        }
+        elsif $!augmented && nqp::istype(self, RakuAST::Role) {
+            Nil # Will report the error a little later
         }
         else {
             # Create the type object and return it; this stubs the type.

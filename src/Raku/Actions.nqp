@@ -2374,6 +2374,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
 
         $package.to-parse-time($*R, $*CU.context);
+        self.report-problems();
 
         self.set-declarand($/, $*PACKAGE := $package);
 

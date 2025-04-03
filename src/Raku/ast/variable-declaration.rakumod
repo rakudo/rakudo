@@ -2658,6 +2658,17 @@ class RakuAST::VarDeclaration::Placeholder::Positional
         RakuAST::Parameter.new:
           target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name))
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $name := self.declared-name;
+
+        if nqp::chars($name) == 3 && nqp::substr($name, 2, 1) ~~ /^<[A..Z]>$/ {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Syntax::Perl5Var', :$name;
+        }
+
+        nqp::findmethod(RakuAST::VarDeclaration::Placeholder, 'PERFORM-CHECK')(self, $resolver, $context);
+    }
 }
 
 # A named placeholder parameter.

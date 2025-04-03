@@ -649,6 +649,28 @@ class RakuAST::Resolver {
         my int $num-sorries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
         my int $num-worries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($worries));
 
+        if 1 < $num-sorries {
+            my $XPackageStubbed := self.resolve-name-constant-in-setting:
+                RakuAST::Name.from-identifier-parts('X', 'Package', 'Stubbed');
+            if $XPackageStubbed {
+                $XPackageStubbed := $XPackageStubbed.compile-time-value;
+                my @stubbed;
+                my @others;
+                for RakuAST::Node.IMPL-UNWRAP-LIST($sorries) {
+                    nqp::push(nqp::istype($_, $XPackageStubbed) ?? @stubbed !! @others, $_);
+                }
+                if nqp::elems(@stubbed) {
+                    my $stubbed := nqp::shift(@stubbed);
+                    while nqp::elems(@stubbed) {
+                        $stubbed.packages.append: nqp::shift(@stubbed).packages;
+                    }
+                    nqp::push(@others, $stubbed);
+                }
+                $sorries := RakuAST::Node.IMPL-WRAP-LIST(@others);
+                $num-sorries := $sorries.elems;
+            }
+        }
+
         if $panic && $num-sorries == 0 && $num-worries == 0 {
             # There's just the panic, so return it without an enclosing group.
             $panic

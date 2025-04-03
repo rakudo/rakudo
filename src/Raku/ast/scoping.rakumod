@@ -1045,7 +1045,13 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
-                nqp::setwho($type-object, %stash{$final}.WHO);
+                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier {
+                    nqp::setwho($type-object, %stash{$final}.WHO);
+                }
+                else {
+                    $resolver.add-sorry: $resolver.build-exception:
+                        'X::Redeclaration', :symbol($name.canonicalize);
+                }
             }
             %stash{$final} := $type-object;
         }

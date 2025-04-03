@@ -72,6 +72,7 @@ class RakuAST::Package
     method dba()         { "package"             }
     method default-how() { Metamodel::PackageHOW }
 
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['augment', 'my', 'our', 'unit']) }
     method default-scope()       { 'our' }
     method can-have-methods()    { False }
     method can-have-attributes() { False }
@@ -214,6 +215,8 @@ class RakuAST::Package
         if $!compose-exception {
             self.add-sorry: $resolver.convert-exception($!compose-exception)
         }
+
+        self.check-scope($resolver, self.declarator);
 
         self.add-trait-sorries;
 

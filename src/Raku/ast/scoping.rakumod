@@ -890,6 +890,13 @@ class RakuAST::UndeclaredSymbolDescription::Routine
         nqp::bindkey($routines, self.name, [$node.origin.as-match.line]);
     }
 }
+class RakuAST::UndeclaredSymbolDescription::Type
+  is RakuAST::UndeclaredSymbolDescription
+{
+    method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
+        nqp::bindkey($types, self.name, [$node.origin.as-match.line]);
+    }
+}
 
 # Some program elements are not really lookups, but require the resolution
 # of symbols as part of their compilation. For example, a positional regex

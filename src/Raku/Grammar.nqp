@@ -4259,7 +4259,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         [ <.ws>
           <term_init=initializer>
-            || <.typed-panic: "X::Syntax::Missing">
+            || <.typed-panic: "X::Syntax::Missing", :what('initializer on constant declaration')>
         ]
 
         <.cheat-heredoc>?

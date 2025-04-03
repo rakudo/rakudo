@@ -1045,6 +1045,10 @@ class RakuAST::VarDeclaration::Simple
         ) if self.twigil eq '?' && !$*COMPILING_CORE_SETTING;
 
         self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::IndirectDeclaration'
+        ) if self.desigilname.is-indirect-lookup;
+
+        self.add-sorry(
           $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
         ) if $!conflicting-type;

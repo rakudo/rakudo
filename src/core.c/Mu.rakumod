@@ -94,7 +94,7 @@ my class Mu { # declared in BOOTSTRAP
                 my $what;
                 my $where;
                 if nqp::isconcrete(object) && nqp::can(object,"name") {
-                    $what  := object.name;
+                    $what  := object.name || ('this nameless ' ~ (object.^name ~~ /^ \w+ /).lc);
                     $where := "routine/$what".subst('<', '&lt;', :g).subst('>', '&gt;', :g);
                 }
                 else {

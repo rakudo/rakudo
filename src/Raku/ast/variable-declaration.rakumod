@@ -1040,6 +1040,11 @@ class RakuAST::VarDeclaration::Simple
         ) if self.twigil eq '!' && (self.scope eq 'my' || self.scope eq 'our' || self.scope eq 'state');
 
         self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::Twigil',
+            :twigil(self.twigil), :scope(self.scope), :name(self.name), :additional(' because it is reserved')
+        ) if self.twigil eq '?' && !$*COMPILING_CORE_SETTING;
+
+        self.add-sorry(
           $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
         ) if $!conflicting-type;

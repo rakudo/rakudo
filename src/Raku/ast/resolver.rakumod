@@ -762,8 +762,15 @@ class RakuAST::Resolver {
             my %post-types;
             for %routines {
                 my $name := $_.key;
-                my @suggestions := self.suggest-routines($name);
-                %routine-suggestion{$name} := @suggestions;
+                # no sigil or &
+                if nqp::eqat($name, '&', 0) || $name ge 'a' {
+                    my @suggestions := self.suggest-routines($name);
+                    %routine-suggestion{$name} := @suggestions;
+                }
+                else { # Unknown types may get parsed as routine names
+                    my @suggestions := self.suggest-typename($name);
+                    %type-suggestion{$name} := @suggestions;
+                }
 
                 my $constant := self.resolve-name(RakuAST::Name.from-identifier($name));
                 if nqp::istype($constant, RakuAST::CompileTimeValue) {
@@ -777,7 +784,7 @@ class RakuAST::Resolver {
             }
             for %types {
                 my $name := $_.key;
-                my @suggestions := self.suggest-routines($name);
+                my @suggestions := self.suggest-typename($name);
                 %type-suggestion{$name} := @suggestions;
             }
 

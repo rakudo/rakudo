@@ -73,7 +73,7 @@ class RakuAST::Var::Lexical
 
     method undeclared-symbol-details() {
         $!sigil eq '&'
-            ?? RakuAST::UndeclaredSymbolDescription::Routine.new(self.name)
+            ?? RakuAST::UndeclaredSymbolDescription::Routine.new($!desigilname.canonicalize)
             !! Nil
     }
 

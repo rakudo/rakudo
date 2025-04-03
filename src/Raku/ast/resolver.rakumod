@@ -753,6 +753,11 @@ class RakuAST::Resolver {
                     }
                 }
             }
+            for %types {
+                my $name := $_.key;
+                my @suggestions := self.suggest-routines($name);
+                %type-suggestion{$name} := @suggestions;
+            }
 
             if nqp::elems(%routines) == 0 && nqp::elems(%types) == 1 && nqp::elems(%post-types) == 0 {
                 for %types {

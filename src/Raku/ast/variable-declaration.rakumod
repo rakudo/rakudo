@@ -1115,6 +1115,28 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
+        if $type && self.is-attribute {
+            my $of := self.IMPL-OF-TYPE;
+            # Subset type checking can have side effects, so don't do that at compile time.
+            unless nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
+                my $initializer := self.initializer;
+                if nqp::istype($initializer, RakuAST::Initializer::Assign)
+                     || nqp::istype($initializer, RakuAST::Initializer::Bind)
+                {
+                    my $expression := $initializer.expression;
+                    my $expression-type := $expression.return-type;
+                    unless $expression-type =:= Mu || nqp::objprimspec($of) {
+                        unless nqp::istype($expression-type, $of) {
+                            self.add-sorry:
+                                $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
+                                    :name(self.name), :operation($initializer.is-binding ?? 'bind' !! 'assign'),
+                                    :got($expression-type.HOW.name($expression-type)), :expected($of.HOW.name($of));
+                        }
+                    }
+                }
+            }
+        }
+
         if self.sigil eq '$' && !(self.initializer || $!initializer-method) && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
             my $descriptor := self.container-descriptor;
             my $ddefault := $descriptor.default;

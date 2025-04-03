@@ -723,8 +723,11 @@ class RakuAST::VarDeclaration::Simple
             my str $sigil := self.sigil;
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
+            my $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             return True unless nqp::objprimspec(
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+                # $type will be undefined if $!type is set by an Of trait.
+                # In that case we assume the trait type has been resolved
+                ($type // $!type).resolution.compile-time-value
             );
         }
         False

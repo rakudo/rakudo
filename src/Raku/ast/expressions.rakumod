@@ -2063,7 +2063,7 @@ class RakuAST::ApplyInfix
 
             my $type := self.left.return-type;
             # Subset type checking can have side effects, so don't do that at compile time.
-            if nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
+            if !nqp::istype(self.left, RakuAST::Literal) && nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
                 my $right := self.right;
                 if nqp::istype($right,RakuAST::Literal) {
                     if nqp::objprimspec($type) {

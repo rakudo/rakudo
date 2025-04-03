@@ -390,7 +390,7 @@ class RakuAST::Package::Attachable
     # attach target mechanism. Attribute usages are also attached for checking
     # after compose time.
     has Mu $!attached-methods;
-    has Mu $!attached-attributes;
+    has Mu $.attached-attributes;
     has Mu $!attached-attribute-usages;
     has Mu $!role-group;
 

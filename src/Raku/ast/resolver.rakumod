@@ -1379,6 +1379,14 @@ class RakuAST::Resolver::Compile
                 $seen{$name} := 1;
                 $inner-evaluator($name);
             }
+            if nqp::istype($scope.scope, RakuAST::Package::Attachable) {
+                for $scope.scope.attached-attributes {
+                    my $name := $_.lexical-name;
+                    next if nqp::existskey($seen, $name);
+                    $seen{$name} := 1;
+                    $inner-evaluator($name);
+                }
+            }
         }
 
         my $ctx := nqp::getattr(self, RakuAST::Resolver, '$!outer');

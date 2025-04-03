@@ -2343,7 +2343,7 @@ class RakuAST::Sub
     }
 
     method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'anon', 'our'])
+        self.IMPL-WRAP-LIST(['my', 'anon', 'our', 'unit'])
     }
 
     method get-boundary-sink-propagator() {
@@ -2364,6 +2364,8 @@ class RakuAST::Sub
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        self.check-scope($resolver, 'sub');
 
         # Anonymous multis will already have been reported and would lead to compiler
         # error in the next check.

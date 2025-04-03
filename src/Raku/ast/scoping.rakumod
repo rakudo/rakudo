@@ -470,6 +470,17 @@ class RakuAST::Declaration
         nqp::die('allowed-scopes is not implemented on ' ~ self.HOW.name(self))
     }
 
+    method check-scope(RakuAST::Resolver $resolver, str $declaration) {
+        my $scope := self.scope;
+        for self.IMPL-UNWRAP-LIST(self.allowed-scopes) {
+            if $_ eq $scope {
+                return;
+            }
+        }
+        self.add-sorry:
+            $resolver.build-exception: 'X::Declaration::Scope', :$scope, :$declaration;
+    }
+
     # Gets the scope of this declaration.
     method scope() {
         my str $scope := $!scope;

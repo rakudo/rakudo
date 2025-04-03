@@ -2072,7 +2072,7 @@ class RakuAST::Routine
 
         if $!multiness && !$!name {
             self.add-sorry:
-              $resolver.build-exception: 'X::Anon::Multi', multiness => $!multiness;
+              $resolver.build-exception: 'X::Anon::Multi', multiness => $!multiness, routine-type => self.declaration-kind;
         }
 
         if $!multiness eq 'proto' {
@@ -2623,6 +2623,8 @@ class RakuAST::Method
         $obj.set-WHY($WHY);
         $obj
     }
+
+    method declaration-kind() { 'method' }
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);

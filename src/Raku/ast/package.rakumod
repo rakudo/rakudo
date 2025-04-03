@@ -119,6 +119,12 @@ class RakuAST::Package
                     }
                     self.set-resolution($resolved);
                 }
+                else {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Augment::NoSuchType',
+                            :package(self.name.canonicalize), :package-kind(self.declarator);
+                    $resolver.add-node-with-check-time-problems(self);
+                }
             }
             else {
                 self.add-sorry:

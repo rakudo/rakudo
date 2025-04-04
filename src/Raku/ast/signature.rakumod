@@ -1127,11 +1127,11 @@ class RakuAST::Parameter
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
 
-        if nqp::istype($!owner, RakuAST::Routine) {
+        if nqp::istype($!owner, RakuAST::Sub) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 for self.IMPL-UNWRAP-LIST(self.traits) {
-                    if nqp::istype($_, RakuAST::Trait::Is) && $_.name.canonicalize eq 'copy' {
+                    if nqp::istype($_, RakuAST::Trait::Is) && $_.name.canonicalize eq 'rw' {
                         self.add-worry:
                           $resolver.build-exception: 'X::AdHoc',
                             payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?";

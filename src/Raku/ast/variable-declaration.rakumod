@@ -655,7 +655,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method name() {
-        self.sigil ~ (self.twigil // (self.is-attribute ?? '!' !! '')) ~ $!desigilname.canonicalize;
+        self.sigil ~ (self.twigil || (self.is-attribute ?? '!' !! '')) ~ $!desigilname.canonicalize;
     }
 
     method lexical-name() {
@@ -1132,7 +1132,7 @@ class RakuAST::VarDeclaration::Simple
                         {
                             self.add-sorry:
                                 $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
-                                    :name(self.name), :operation($initializer.is-binding ?? 'bind' !! 'assign'),
+                                    :name(self.lexical-name), :operation($initializer.is-binding ?? 'bind' !! 'assign'),
                                     :got($expression-type.HOW.name($expression-type)), :expected($of.HOW.name($of));
                         }
                     }

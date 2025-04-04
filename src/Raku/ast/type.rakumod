@@ -762,7 +762,8 @@ class RakuAST::Type::Enum
         }
 
         # Create type objects for each value and install into proper scop
-        my %stash := $resolver.IMPL-STASH-HASH($anonymous ?? $!current-package !! $meta);
+        my %meta-stash := $resolver.IMPL-STASH-HASH($meta);
+        my %package-stash := $resolver.IMPL-STASH-HASH($!current-package);
         my int $index;
         for @values -> $pair {
             my $key   := $pair[0];
@@ -785,8 +786,9 @@ class RakuAST::Type::Enum
 #            if nqp::existskey(%stash, $key) {
 #                nqp::die("Redeclaration of symbol '" ~ $key ~ "'.");
 #            }
-            unless $anonymous && self.scope eq 'my' {
-                %stash{$key} := $val-meta;
+            %meta-stash{$key} := $val-meta;
+            unless self.scope eq 'my' {
+                %package-stash{$key} := $val-meta;
             }
 
             # Declare these values into the lexical scope

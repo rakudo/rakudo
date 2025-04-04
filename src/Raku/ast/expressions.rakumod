@@ -2062,21 +2062,35 @@ class RakuAST::ApplyInfix
             }
 
             my $type := self.left.return-type;
-            # Subset type checking can have side effects, so don't do that at compile time.
-            if !nqp::istype(self.left, RakuAST::Literal) && nqp::istype($infix, RakuAST::Assignment) && !nqp::eqaddr($type, Mu) && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
-                my $right := self.right;
-                if nqp::istype($right,RakuAST::Literal) {
-                    if nqp::objprimspec($type) {
-                        $type := $type.HOW.mro($type)[1];
-                    }
+            if nqp::istype($infix, RakuAST::Assignment) {
+                if !nqp::istype(self.left, RakuAST::Literal) && !nqp::eqaddr($type, Mu)
+                    # Subset type checking can have side effects, so don't do that at compile time.
+                    && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW)
+                {
+                    my $right := self.right;
+                    if nqp::istype($right,RakuAST::Literal) {
+                        if nqp::objprimspec($type) {
+                            $type := $type.HOW.mro($type)[1];
+                        }
 
-                    my $value := $right.compile-time-value;
-                    if !nqp::istype($value, $type)
-                      && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
-                        self.add-sorry:
-                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :vartype($type), :$value;
+                        my $value := $right.compile-time-value;
+                        if !nqp::istype($value, $type)
+                          && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
+                            self.add-sorry:
+                              $resolver.build-exception: 'X::Syntax::Number::LiteralType',
+                                :vartype($type), :$value;
+                        }
                     }
+                }
+
+                if nqp::istype(self.left, RakuAST::Var::Lexical) && self.left.is-resolved
+                    && nqp::istype((my $target := self.left.resolution), RakuAST::ParameterTarget::Var)
+                    && $target.declaration && $target.declaration.is-ro
+                    && nqp::objprimspec($target.declaration.return-type)
+                {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Assignment::RO::Comp',
+                            :variable(self.left.name);
                 }
             }
         }

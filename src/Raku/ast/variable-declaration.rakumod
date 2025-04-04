@@ -588,7 +588,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
     has Bool                 $!is-rw;
-    has Bool                 $!is-ro;
+    has Bool                 $.is-ro;
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
     has RakuAST::Code        $!block;

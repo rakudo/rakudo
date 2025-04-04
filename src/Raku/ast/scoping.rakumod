@@ -35,6 +35,11 @@ class RakuAST::LexicalScope
         True
     }
 
+    # If this counts as a declaration, this is the declarator reported in error messages.
+    method declarator() {
+        Nil
+    }
+
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
@@ -102,14 +107,21 @@ class RakuAST::LexicalScope
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
             my @variables;
+            my %variables-seen;
             my @not-if-duplicate;
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
                     nqp::push(@declarations, $node);
                     nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
                 }
-                elsif nqp::istype($node, RakuAST::Var::Lexical) || nqp::istype($node, RakuAST::Var::Dynamic) {
+                elsif nqp::istype($node, RakuAST::Var::Lexical)
+                    || nqp::istype($node, RakuAST::Var::Dynamic)
+                {
                     nqp::push(@variables, $node);
+                }
+                elsif nqp::istype($node, RakuAST::VarDeclaration::Placeholder) {
+                    nqp::push(@variables, $node) unless nqp::existskey(%variables-seen, $node.declared-name);
+                    %variables-seen{$node.declared-name} := 1;
                 }
                 if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
@@ -310,10 +322,19 @@ class RakuAST::LexicalScope
             else {
                 if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
                     my $decl := %declarations{$var.name};
-                    $decl.add-sorry:
-                      $resolver.build-exception:
-                        $var.postdeclaration-exception-name,
-                        :symbol($decl.lexical-name);
+                    if nqp::istype($decl, RakuAST::VarDeclaration::Placeholder) {
+                        $decl.add-sorry:
+                            $resolver.build-exception: 'X::Placeholder::NonPlaceholder',
+                                :placeholder($decl.declared-name),
+                                :variable_name($var.name),
+                                :decl(self.declarator // ''),
+                    }
+                    else {
+                        $decl.add-sorry:
+                            $resolver.build-exception:
+                                $var.postdeclaration-exception-name,
+                                :symbol($decl.lexical-name);
+                    }
                     $resolver.add-node-with-check-time-problems($decl);
                 }
             }

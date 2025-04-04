@@ -2331,6 +2331,8 @@ class RakuAST::Sub
         $obj
     }
 
+    method declarator() { 'sub' }
+
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Sub, '$!body', $new-body);
         Nil
@@ -2624,6 +2626,7 @@ class RakuAST::Method
         $obj
     }
 
+    method declarator() { 'sub' }
     method declaration-kind() { 'method' }
 
     method replace-body(RakuAST::Blockoid $new-body) {
@@ -2723,6 +2726,8 @@ class RakuAST::Method::AttributeAccessor
         nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!rw', $rw // 0);
         $obj
     }
+
+    method declarator() { 'submethod' }
 
     method PRODUCE-META-OBJECT() {
         my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);

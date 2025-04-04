@@ -1126,7 +1126,10 @@ class RakuAST::VarDeclaration::Simple
                     my $expression := $initializer.expression;
                     my $expression-type := $expression.return-type;
                     unless $expression-type =:= Mu || nqp::objprimspec($of) {
-                        unless nqp::istype($expression-type, $of) {
+                        unless $expression.has-compile-time-value
+                            ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
+                            !! nqp::istype($expression-type, $of.IMPL-BASE-TYPE) # bare type can't match definedness
+                        {
                             self.add-sorry:
                                 $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
                                     :name(self.name), :operation($initializer.is-binding ?? 'bind' !! 'assign'),

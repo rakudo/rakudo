@@ -95,6 +95,10 @@ class RakuAST::Type::Simple
         RakuAST::UndeclaredSymbolDescription::Type.new(self.name.canonicalize)
     }
 
+    method return-type() {
+        self.is-resolved ?? self.resolution.compile-time-value !! Mu
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Type::Simple, '$!package', $resolver.current-package);
         my $resolved := $resolver.resolve-name-constant(self.name) unless self.name.is-empty;

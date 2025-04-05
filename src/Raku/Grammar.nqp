@@ -5676,13 +5676,13 @@ Rakudo significantly on *every* run."
     }
 
     # single / multi-line leading declarator block
-    token comment:sym<#|> { '#|' \h? $<attachment>=[\N* \n?] }
+    token comment:sym<#|> { '#|' \h $<attachment>=[\N* \n?] }
     token comment:sym<#|(...)> {
        '#|' <?opener> <attachment=.quibble(self.Quote)>
     }
 
     # single / multi-line trailing declarator block
-    token comment:sym<#=> { '#=' \h? $<attachment>=[\N* \n?] }
+    token comment:sym<#=> { '#=' \h $<attachment>=[\N* \n?] }
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(self.Quote)> \n?
     }

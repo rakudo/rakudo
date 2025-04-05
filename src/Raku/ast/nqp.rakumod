@@ -101,10 +101,9 @@ class RakuAST::Nqp
     }
 
     method IMPL-CAN-INTERPRET() {
-        my @args := nqp::getattr(self.args, RakuAST::ArgList, '$!args');
         my $op := $!op;
         ($op eq 'hash' || $op eq 'list_s' || $op eq 'atpos_s' || $!op eq 'p6box_i')
-             && @args[0].IMPL-CAN-INTERPRET;
+             && self.args.IMPL-CAN-INTERPRET;
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $context) {

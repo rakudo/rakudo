@@ -8,40 +8,24 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has Int $!version;
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
+    has %!config;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
     my constant @script-postfixes = '', '-m', '-j', '-js';
     my constant @all-script-extensions =
         '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
 
-    my constant $windows-wrapper = Q/@rem = '--*-Perl-*--
-@echo off
-if "%OS%" == "Windows_NT" goto WinNT
-#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
-goto endofraku
-:WinNT
-#raku# "%~dpn0" %*
-if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
-if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
-if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
-goto endofraku
-@rem ';
-__END__
-:endofraku
-/;
-
-    my constant $raku-wrapper = '#!/usr/bin/env #raku#
-sub MAIN(*@, *%) {
+    my constant $raku-wrapper-code = 'sub MAIN(*@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#");
 }';
 
-
-    method TWEAK() {
+    method TWEAK(Str :$wrapper-mode, Str :$wrapper-rakudo-dir) {
         $!lock       := Lock.new;
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
         $!precomp-store := $!precomp-stores := nqp::null;
+        self!seed-config(:$wrapper-mode, :$wrapper-rakudo-dir);
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -135,6 +119,49 @@ sub MAIN(*@, *%) {
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
+    method !seed-config(:$wrapper-mode, :$wrapper-rakudo-dir) {
+        with $wrapper-mode {
+            my $file = self!config-file;
+            unless $file.e {
+                self!set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir // '');
+                self!write-config if self!prefix-writeable;
+            }
+        }
+    }
+
+    method !write-config() {
+        self!config-file.spurt(Rakudo::Internals::JSON.to-json(%!config));
+    }
+
+    method config() is implementation-detail {
+        unless %!config {
+            my $file = self!config-file;
+            if $file.e {
+                %!config = Rakudo::Internals::JSON.from-json($file.slurp);
+            }
+            else {
+                %!config =
+                    wrapper-mode => 'path',
+                    wrapper-rakudo-dir => '',
+                ;
+            }
+        }
+        %!config
+    }
+
+    method !set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir) {
+        %!config<wrapper-mode> = $wrapper-mode;
+        %!config<wrapper-rakudo-dir> = $wrapper-rakudo-dir;
+    }
+
+    method change-wrapper-mode($wrapper-mode, $wrapper-rakudo-dir = '') is implementation-detail {
+        self!set-wrapper-config($wrapper-mode, $wrapper-rakudo-dir);
+        self!prefix-writeable or die "No writeable path found, $.prefix not writeable";
+        self!write-config;
+        self!regenerate-bin-wrappers;
+    }
+
+    method !config-file   { $.prefix.add('config.json') }
     method !sources-dir   { with $.prefix.add('sources')   { .mkdir unless .e; $_ } }
     method !resources-dir { with $.prefix.add('resources') { .mkdir unless .e; $_ } }
     method !dist-dir      { with $.prefix.add('dist')      { .mkdir unless .e; $_ } }
@@ -223,9 +250,7 @@ sub MAIN(*@, *%) {
       Bool          :$precompile = True,
     ) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
-        my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
-            $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
-        }
+        my %files = $dist.files;
 
         $!lock.protect( {
         my @*MODULES;
@@ -279,28 +304,17 @@ sub MAIN(*@, *%) {
         # bin/ scripts
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
-            my $name        = $name-path.subst(/^bin\//, '');
-            my $id          = self!file-id(~$file, $dist-id);
+            my $id           = self!file-id(~$file, $dist-id);
             # wrappers are put in bin/; originals in resources/
-            my $destination = $resources-dir.add($id);
-            my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
-            for @script-postfixes -> $be {
-                $.prefix.add("$withoutext$be").IO.spurt:
-                    $raku-wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
-                if $is-win {
-                    $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows-wrapper.subst('#raku#', "rakudo$be", :g);
-                }
-                else {
-                    $.prefix.add("$withoutext$be").IO.chmod(0o755);
-                }
-            }
+            my $destination  = $resources-dir.add($id);
             self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
             my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
+
+            self.generate-bin-wrapper($name-path);
         }
 
         # resources/
@@ -365,6 +379,59 @@ sub MAIN(*@, *%) {
             PROCESS::<$REPO> := $head;
         }
     } ) }
+
+    method !regenerate-bin-wrappers() {
+        $!lock.protect( {
+
+        my $lock = $.prefix.add('repo.lock').open(:create, :w);
+        $lock.lock;
+        LEAVE .unlock, .close with $lock;
+
+        my $version = self!repository-version;
+        self.upgrade-repository unless $version == 2;
+
+        for self.installed() -> $distribution {
+            my $dist  = CompUnit::Repository::Distribution.new($distribution);
+            for $dist.files.keys -> $name-path {
+                next unless $name-path.starts-with('bin/');
+                self.generate-bin-wrapper($name-path);
+            }
+        }
+    } ) }
+
+    method generate-bin-wrapper($name-path) is implementation-detail {
+        my $name         = $name-path.subst(/^bin\//, '');
+        my $withoutext   = $name-path.subst(/\.raku$/, '');
+        my $ext = Rakudo::Internals.IS-WIN ?? '.exe' !! '';
+        for @script-postfixes -> $be {
+            $.prefix.add("$withoutext$be.raku").spurt:
+                $raku-wrapper-code.subst('#name#', $name, :g);
+            my $prog-conf = do given self.config<wrapper-mode> {
+                when 'absolute' {
+                    "<plat-sep>"
+                    ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
+                }
+                when 'relative' {
+                    "<abs-slash>"
+                    ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
+                }
+                default { # 'path'
+                    "<plain>rakudo$be$ext"
+                }
+            };
+            my $blob = generate-runner-blob(
+              :program($prog-conf),
+              :args((
+              '<abs-slash>' ~ $name.subst(/\.raku$/, '') ~ "$be.raku",
+              '<cmd-args>',
+              ))
+            );
+            $.prefix.add("$withoutext$be$ext").spurt: $blob;
+            unless Rakudo::Internals.IS-WIN {
+                $.prefix.add("$withoutext$be").chmod: 0o755;
+            }
+        }
+    }
 
     my sub unlink-if-exists(IO::Path:D $io) { $io.unlink if $io.e }
 
@@ -743,6 +810,236 @@ and so the packages will not be installed in the correct location.
 Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
 file location in the distribution.
 See http://design.raku.org/S22.html#provides for more information.\n";
+    }
+
+    # Runner generation logic starts here.
+
+    my %arg-op = missing   => 0,
+                 plain     => 1,
+                 cmd-args  => 2,
+                 plat-sep  => 3,
+                 abs       => 4,
+                 abs-slash => 5,
+    ;
+
+    sub validate-env-var($name) {
+        die "$name is not a valid env var name" unless $name ~~ / ^ <[ a..z A..Z _ ]> <[ a..z A..Z 0..9 _ ]>* $ /;
+    }
+
+    sub generate-posix(
+        Str           :$program!,
+        Str           :$cwd,
+                      :@args,
+                      :%env-add,
+                      :@env-remove,
+    ) {
+        my @call-parts = "exec";
+
+        sub sh-escape(Str $text) {
+            S/ ( \$ | \` | \" | \\ | \n ) / \\$1 / given $text;
+        }
+
+        sub process-path(Str() $path) {
+            if $path ~~ /
+                    "<" ( "plain" || "cmd-args" || "plat-sep" || "abs" || "abs-slash" ) ">"
+                    (.*)
+                / {
+                my $op = $0.Str;
+                my $val = $1.Str;
+                given $op {
+                    when "plain" | "plat-sep" {
+                        return '"' ~ sh-escape($val) ~ '"';
+                    }
+                    when "cmd-args" {
+                        return '"$@"';
+                    }
+                    when "abs" | "abs-slash" {
+                        return '"${DIR}/' ~ sh-escape($val) ~ '"';
+                    }
+                }
+            }
+            else {
+                die("Creating executable wrapper failed. Unknown arg: $path");
+            }
+        }
+
+        # Write program
+        unless $program ~~ / ^ "<" ( "plain" || "plat-sep" || "abs" ) ">" / {
+            die("Creating executable wrapper failed. Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".");
+        }
+        @call-parts.push: process-path($program);
+
+        # Write args
+        for @args -> $arg {
+            @call-parts.push: process-path($arg);
+        }
+
+        my @lines;
+
+        # Write CWD
+        if $cwd {
+            unless $cwd ~~ / ^ "<" ( "plain" || "abs" ) ">" / {
+                die("Creating executable wrapper failed. CWD is invalid. Must start with \"<plain>\" or \"<abs>\".");
+            }
+            @lines.push: 'cd ' ~ process-path($cwd);
+        }
+
+        # Write env vars
+        for %env-add.keys.sort -> $key {
+            validate-env-var $key;
+            my $val = %env-add{$key};
+            @lines.push: "export $key=$val"
+        }
+
+        @env-remove.map: -> $name {
+            validate-env-var $name;
+            @lines.push: "unset $name"
+        }
+
+        @lines.push: @call-parts.join(" ");
+
+        
+        my $text = get-template('posix-runner-tmpl').slurp;
+        $text ~= @lines.join("\n");
+        $text
+    }
+
+    sub get-template($name) {
+        nqp::gethllsym('default', 'SysConfig').rakudo-home.IO.add("templates").add($name)
+    }
+
+    sub create-config-blob(
+        Str           :$program!,
+        Str           :$arg0,
+        Str           :$cwd,
+                      :@args,
+                      :%env-add,
+                      :@env-remove,
+    ) {
+        my $char-size = Rakudo::Internals.IS-WIN ?? 2 !! 1;
+        my $encoding = Rakudo::Internals.IS-WIN ?? 'utf16le' !! 'utf8';
+        my @end-str-bytes = Rakudo::Internals.IS-WIN ?? (0x00, 0x00) !! (0x00,);
+
+        my $marker = "EXEC_RUNNER_WRAPPER_CONFIG_MARKER".encode($encoding);
+
+        my Buf $cbuf .= new;
+        my Int $pos = 0;
+
+        sub write-str(Str() $str) {
+            my $bytes = $str.encode($encoding);
+            if $bytes.elems + 1 >= 2**16 {
+                die("Creating executable wrapper failed. String exceeds maximum size.");
+            }
+            $cbuf.write-uint16: $pos, ($bytes.elems / $char-size + 1).Int;
+            $pos += 2;
+            $cbuf.append: $bytes;
+            $cbuf.append: @end-str-bytes;
+            $pos += $bytes.elems + $char-size;
+        }
+
+        sub write-path(Str() $path) {
+            if $path ~~ /
+                    "<" ( "plain" || "cmd-args" || "plat-sep" || "abs" || "abs-slash" ) ">"
+                    (.*)
+                / {
+                my $op = %arg-op{$0};
+                my $val = $1;
+
+                $cbuf.write-uint8: $pos, $op;
+                $pos += 1;
+
+                if ($op != %arg-op<cmd-args>) {
+                    write-str($val);
+                }
+            }
+            else {
+                die("Creating executable wrapper failed. Unknown arg: $path");
+            }
+        }
+
+        # Write marker
+        $cbuf.append: $marker;
+        $cbuf.append: @end-str-bytes;
+        $pos += $marker.elems + $char-size;
+
+        # Write program
+        unless $program ~~ / ^ "<" ( "plain" || "plat-sep" || "abs" ) ">" / {
+            die("Creating executable wrapper failed. Program is invalid. Must start with \"<plain>\", \"<plat-sep>\", \"<abs>\".");
+        }
+        write-path($program);
+
+        # Write arg0 set
+        $cbuf.write-uint8: $pos, ($arg0.defined ?? 1 !! 0);
+        $pos += 1;
+
+        # Write arg0
+        if $arg0.defined {
+            write-str($arg0);
+        }
+
+        # Write number of args
+        $cbuf.write-uint16: $pos, @args.elems;
+        $pos += 2;
+
+        # Write args
+        for @args -> $arg {
+            write-path($arg);
+        }
+
+        # Write CWD
+        if $cwd {
+            unless $cwd ~~ / ^ "<" ( "plain" || "abs" ) ">" / {
+                die("Creating executable wrapper failed. CWD is invalid. Must start with \"<plain>\" or \"<abs>\".");
+            }
+            write-path($cwd);
+        }
+        else {
+            $cbuf.write-uint8: $pos, %arg-op<missing>;
+            $pos += 1;
+        }
+
+        # Write number of env vars
+        $cbuf.write-uint16: $pos, %env-add.elems;
+        $pos += 2;
+
+        # Write env vars
+        for %env-add.keys.sort -> $key {
+            validate-env-var $key;
+            my $val = %env-add{$key};
+            write-str($key ~ "=" ~ $val);
+        }
+
+        # Write number of ignore env vars
+        $cbuf.write-uint16: $pos, @env-remove.elems;
+        $pos += 2;
+
+        # Write ignore env vars
+        for @env-remove.sort -> $val {
+            validate-env-var $val;
+            write-str($val);
+        }
+
+        $cbuf;
+    }
+
+    sub generate-runner-blob(
+        Str           :$program!,
+        Str           :$arg0,
+        Str           :$cwd,
+                      :@args,
+                      :%env-add,
+                      :@env-remove
+                      --> Blob
+    ) {
+        if Rakudo::Internals.IS-WIN {
+            my Buf $blob = get-template("win-runner.exe-tmpl").slurp(:bin);
+            $blob.append: create-config-blob(:$program, :$arg0, :$cwd, :@args, :%env-add, :@env-remove);
+            $blob
+        }
+        else {
+            my $text = generate-posix :$program, :$cwd, :@args, :%env-add, :@env-remove;
+            $text.encode
+        }
     }
 }
 

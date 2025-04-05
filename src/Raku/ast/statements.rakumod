@@ -1175,7 +1175,7 @@ class RakuAST::Statement::Loop
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # See IMPL-UNTHUNK for important information
         my $while := !self.negate;
-        unless (!$!increment && $!condition && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
+        unless (!$!increment && $!condition && $!condition.has-compile-time-value && nqp::istrue($!condition.maybe-compile-time-value) == $while) {
             if ($!condition) {
                 if self.negate {
                     nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(

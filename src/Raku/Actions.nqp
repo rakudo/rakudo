@@ -2557,7 +2557,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $decl.set-already-declared;
             }
 
-            self.set-declarand($/, $decl);
+            self.set-declarand($/, $decl) if $scope eq 'has';
         }
         else {
             $scope ne 'my' && $scope ne 'state'

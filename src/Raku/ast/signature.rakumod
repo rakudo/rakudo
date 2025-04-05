@@ -1998,8 +1998,9 @@ class RakuAST::ParameterTarget::Var
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!attribute-package',
-            $resolver.find-attach-target('package'));
+        my $package := $resolver.find-attach-target('package');
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!attribute-package', $package)
+            unless $package =:= Nil;
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2026,14 +2027,16 @@ class RakuAST::ParameterTarget::Var
         my $twigil := self.twigil;
 
         if $twigil eq '!' {
-            my $package := $!attribute-package.meta-object;
-            unless $package.HOW.has_attribute($package, $!name) {
-                self.add-sorry:
-                  $resolver.build-exception: 'X::Attribute::Undeclared',
-                    symbol       => $!name,
-                    package-kind => $!attribute-package.declarator,
-                    package-name => $!attribute-package.name.canonicalize,
-                    what         => 'attribute';
+            if $!attribute-package {
+                my $package := $!attribute-package.meta-object;
+                unless $package.HOW.has_attribute($package, $!name) {
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Attribute::Undeclared',
+                        symbol       => $!name,
+                        package-kind => $!attribute-package.declarator,
+                        package-name => $!attribute-package.name.canonicalize,
+                        what         => 'attribute';
+                }
             }
         }
         elsif $twigil eq ':' {

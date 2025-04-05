@@ -2584,6 +2584,12 @@ class RakuAST::Methodish
         self.apply-traits($resolver, $context, self)
     }
 
+    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
+
+        self.check-scope($resolver, self.declarator);
+    }
+
     method IMPL-INVOCANT-TYPE-CHECK() {
         True
     }
@@ -2626,7 +2632,7 @@ class RakuAST::Method
         $obj
     }
 
-    method declarator() { 'sub' }
+    method declarator() { 'method' }
     method declaration-kind() { 'method' }
 
     method replace-body(RakuAST::Blockoid $new-body) {
@@ -2699,6 +2705,8 @@ class RakuAST::Submethod
   is RakuAST::Method
 {
     method IMPL-META-OBJECT-TYPE() { Submethod }
+
+    method declarator() { 'submethod' }
 }
 
 class RakuAST::Method::AttributeAccessor

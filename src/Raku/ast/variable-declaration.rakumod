@@ -504,6 +504,9 @@ class RakuAST::VarDeclaration::Constant
                 return False;
             }
         }
+
+        self.check-scope($resolver, 'constant');
+
         True
     }
 
@@ -1028,6 +1031,8 @@ class RakuAST::VarDeclaration::Simple
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
+
+        self.check-scope($resolver, 'variable');
 
         self.add-sorry(
           $resolver.build-exception: 'X::Adhoc',

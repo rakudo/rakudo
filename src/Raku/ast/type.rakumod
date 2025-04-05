@@ -585,7 +585,7 @@ class RakuAST::Type::Enum
 
     method default-scope() { 'our' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['anon', 'my', 'our']) }
 
     method dba() { 'enum' }
 
@@ -811,6 +811,8 @@ class RakuAST::Type::Enum
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
+
+        self.check-scope($resolver, 'enum');
     }
 
     method PRODUCE-META-OBJECT() {
@@ -988,6 +990,8 @@ class RakuAST::Type::Subset
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
+
+        self.check-scope($resolver, 'subset');
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

@@ -493,13 +493,21 @@ class RakuAST::Declaration
 
     method check-scope(RakuAST::Resolver $resolver, str $declaration) {
         my $scope := self.scope;
+        my $ok := 0;
         for self.IMPL-UNWRAP-LIST(self.allowed-scopes) {
             if $_ eq $scope {
-                return;
+                $ok := 1;
+                last;
             }
         }
         self.add-sorry:
-            $resolver.build-exception: 'X::Declaration::Scope', :$scope, :$declaration;
+            $resolver.build-exception: 'X::Declaration::Scope', :$scope, :$declaration
+            unless $ok;
+
+        if $scope eq 'our' && nqp::istype($resolver.find-attach-target('package'), RakuAST::Role) {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Declaration::OurScopeInRole', :$declaration;
+        }
     }
 
     # Gets the scope of this declaration.

@@ -87,6 +87,10 @@ class RakuAST::Var::Lexical
             !! Mu
     }
 
+    method maybe-compile-time-value() {
+        self.resolution.compile-time-value
+    }
+
     method IMPL-IS-META-OP() {
         ($!sigil eq '&' || $!sigil eq '')
             && (my $cp := $!desigilname.IMPL-UNWRAP-LIST($!desigilname.colonpairs))

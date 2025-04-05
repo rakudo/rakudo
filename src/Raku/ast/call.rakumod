@@ -189,9 +189,16 @@ class RakuAST::ArgList
         [@pos, %named]
     }
 
-    method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic) {
+    method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic, :$allow-variable) {
         for $!args -> $arg {
-            return False if !$arg.has-compile-time-value || (!$allow-generic && $arg.maybe-compile-time-value.HOW.archetypes.generic);
+            if $arg.has-compile-time-value {
+                return False if !$allow-generic && $arg.maybe-compile-time-value.HOW.archetypes.generic;
+            }
+            else {
+                unless $allow-variable && nqp::istype($arg, RakuAST::Var::Lexical) && $arg.is-resolved && $arg.resolution.has-compile-time-value {
+                    return False;
+                }
+            }
         }
         True
     }

@@ -470,7 +470,7 @@ class RakuAST::Type::Parameterized
         if !$!args.args {
             self.base-type.compile-time-value
         }
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:allow-generic) {
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:allow-generic, :allow-variable) {
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];

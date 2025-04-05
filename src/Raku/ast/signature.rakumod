@@ -1185,6 +1185,11 @@ class RakuAST::Parameter
                 $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.name;
         }
 
+        if nqp::istype($!owner, RakuAST::Sub) && $!target && ($!target.twigil eq '.' || $!target.twigil eq '!') {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.name;
+        }
+
         my $param-obj := self.meta-object;
         my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
         my $ptype-archetypes := $param-type.HOW.archetypes($param-type);

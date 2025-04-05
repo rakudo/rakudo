@@ -4041,13 +4041,6 @@ multi sub infix:<eq>(str $a, str $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
 }
 
-multi sub infix:<ne>(Str:D $a, Str:D $b --> Bool:D) {
-    nqp::hllbool(nqp::isne_s(nqp::unbox_s($a),nqp::unbox_s($b)))
-}
-multi sub infix:<ne>(str $a, str $b --> Bool:D) {
-    nqp::hllbool(nqp::isne_s($a, $b))
-}
-
 multi sub infix:<lt>(Str:D $a, Str:D $b --> Bool:D) {
     nqp::hllbool(nqp::islt_s(nqp::unbox_s($a),nqp::unbox_s($b)))
 }

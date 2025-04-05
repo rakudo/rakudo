@@ -661,7 +661,7 @@ class RakuAST::Type::Enum
                     nqp::die('Can only declare simple enums in setting ' ~ $_.dump) unless $_.IMPL-CAN-INTERPRET;
                     my $value := $_.value.IMPL-INTERPRET($context);
                     if $has-base-type {
-                        unless nqp::istype($value, $base-type) {
+                        unless nqp::objprimspec($base-type) || nqp::istype($value, $base-type) {
                             nqp::die("Type error in enum. Got '" ~ $value.HOW.name($value) ~ "'"
                                     ~ " Expected: '" ~ $base-type.HOW.name($base-type) ~ "'"
                             );

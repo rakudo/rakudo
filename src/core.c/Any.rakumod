@@ -674,6 +674,12 @@ sub dd(|c) {  # is implementation-detail
     elsif c.hash -> %named {
         note .raku for %named.sort: { .key }
     }
+    elsif $*CU -> $CU { # assume that we are in a CHECK phaser, show the tree
+        my @stmts = $CU.statement-list.statements;
+        @stmts.pop;   # too early to do .head(*-1)
+        .say for @stmts;
+        exit;
+    }
     else { # tell where we are
         note .name
           ?? "{lc .^name} {.name}{.signature.gist}"

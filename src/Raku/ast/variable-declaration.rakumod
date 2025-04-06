@@ -2642,7 +2642,10 @@ class RakuAST::VarDeclaration::Placeholder
         my $name := self.declared-name;
 
         if $block {
-            if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature {
+            my $method := $resolver.find-attach-target('method');
+            if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature
+                && !(self.lexical-name eq '%_' && $method)
+            {
                 self.add-sorry:
                     $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
                 return False;
@@ -2655,7 +2658,6 @@ class RakuAST::VarDeclaration::Placeholder
             else {
                 my $signature := $block.signature;
                 if $signature && $signature.parameters-initialized {
-                    my $method := $resolver.find-attach-target('method');
                     # @_ and %_ are only real placeholders if they were not
                     # already defined in the signature, so we need to check
                     # there before pulling the plug

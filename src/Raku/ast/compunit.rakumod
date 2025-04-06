@@ -630,6 +630,7 @@ class RakuAST::CompUnit
 
 class RakuAST::CtxSave
   is RakuAST::ParseTime
+  is RakuAST::Term
 {
     method new() {
         nqp::create(self)

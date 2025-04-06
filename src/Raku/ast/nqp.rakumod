@@ -131,8 +131,11 @@ class RakuAST::Nqp
             my @args := self.args.IMPL-INTERPRET($context)[0];
             nqp::atpos_s(@args[0], @args[1]);
         }
-        elsif $op eq 'box_i' {
+        elsif $op eq 'p6box_i' {
             nqp::box_i(@args[0].IMPL-INTERPRET($context), Int);
+        }
+        else {
+            nqp::die('NYI');
         }
     }
 }

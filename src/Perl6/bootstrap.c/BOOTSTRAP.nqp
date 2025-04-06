@@ -3574,7 +3574,7 @@ BEGIN {
         method push_outer_edge($node) {
             nqp::push($!edges, $node);
             nqp::bindattr_i($node, Node, '$!edges_in',
-              nqp::getattr($node, Node, '$!edges_in') + 1
+              nqp::getattr_i($node, Node, '$!edges_in') + 1
             );
         }
 

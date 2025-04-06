@@ -587,14 +587,14 @@ class RakuAST::Resolver {
 
     method convert-exception(Mu $ex) {
         my $Exception := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('Exception'));
-        return $ex unless $Exception;
+        nqp::rethrow($ex) unless $Exception;
         unless nqp::istype($ex, $Exception.compile-time-value) {
             my $coercer := self.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('&COMP_EXCEPTION'));
             if $coercer {
                 $ex := $coercer.compile-time-value()($ex);
             }
             else {
-                return $ex;
+                nqp::rethrow($ex);
             }
         }
         unless nqp::can($ex, 'SET_FILE_LINE') {
@@ -675,7 +675,7 @@ class RakuAST::Resolver {
         }
         elsif !$panic && $num-sorries == 1 && $num-worries == 0 {
             # Only one sorry and no worries, so no need to wrap that either.
-            $sorries.AT-POS(0)
+            RakuAST::Node.IMPL-UNWRAP-LIST($sorries)[0];
         }
         elsif $num-sorries || $num-worries {
             # Resolve the group exception type.
@@ -692,7 +692,7 @@ class RakuAST::Resolver {
             }
             # Fallback if missing group.
             else {
-                $panic || $sorries.AT-POS(0)
+                $panic || RakuAST::Node.IMPL-UNWRAP-LIST($sorries)[0]
             }
         }
         else {

@@ -989,7 +989,8 @@ class RakuAST::PackageInstaller {
         RakuAST::Name $name,
         RakuAST::Package $current-package,
         Mu :$meta-object
-     ) {
+    ) {
+        my $orig-scope := $scope;
         my $target;
         my $final;
         my $lexical;
@@ -1085,7 +1086,7 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
-                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier {
+                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier || $orig-scope eq 'my' {
                     nqp::setwho($type-object, %stash{$final}.WHO);
                 }
                 else {

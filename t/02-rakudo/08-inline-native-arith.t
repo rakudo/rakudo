@@ -2,9 +2,11 @@ use Test;
 use nqp;
 plan 4;
 
-my $p = run($*EXECUTABLE, '--target=optimize',
+my $target = nqp::getcomp('Raku').exists_stage('optimize') ?? 'optimize' !! 'qast';
+my $p = run($*EXECUTABLE, "--target=$target",
     '-e', 'my int $i = 1; for ^10 { $i = $i * 2 }', :out);
-todo 'no mul_i in output of --target=optimize', 1 if $*VM.name eq 'jvm';
+todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
+todo "no mul_i in output of --target=$target", 1 if $*VM.name eq 'jvm';
 like $p.out.slurp(:close), /mul_i/,
     '$i * 2 inlines to mul_i when $i is declared as int';
 

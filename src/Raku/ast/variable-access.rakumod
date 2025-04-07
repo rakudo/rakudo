@@ -425,6 +425,31 @@ class RakuAST::Var::Attribute::Public
 class RakuAST::Var::Compiler
   is RakuAST::Var { }
 
+# The $?LANG variable which refers to the cursor at that point of the parse.
+class RakuAST::Var::Compiler::Lang
+  is RakuAST::Var::Compiler
+{
+    has Mu $.cursor;
+
+    method new(Mu $cursor) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::Compiler::Lang, '$!cursor', $cursor);
+        $obj
+    }
+
+    method sigil() { '$' }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!cursor;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!cursor }
+}
+
 # The $?FILE variable, which is created pre-resolved to a string value.
 class RakuAST::Var::Compiler::File
   is RakuAST::Var::Compiler

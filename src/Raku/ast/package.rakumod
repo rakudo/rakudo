@@ -600,6 +600,13 @@ class RakuAST::Role
 
     method additional-body-lexicals() {
         self.meta-object-as-body-lexicals('ROLE');
+
+        self.body.add-generated-lexical-declaration(
+            # $?CONCRETIZATION is actually a run-time symbol because it's being initialized when role is
+            # getting specialized. But we make it ?-twigilled to stay in line with $?ROLE, $?CLASS, etc.,
+            # and to reduce pollution of lexcial namespace.
+            RakuAST::VarDeclaration::Implicit::RoleConcretization.new(:name('$?CONCRETIZATION'), :scope('my'))
+        );
     }
 
     method PRODUCE-META-OBJECT() {

@@ -2361,6 +2361,31 @@ class RakuAST::VarDeclaration::Implicit::RegexCapture
     }
 }
 
+class RakuAST::VarDeclaration::Implicit::RoleConcretization
+  is RakuAST::VarDeclaration::Implicit
+{
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $conc-name := '$?CONCRETIZATION';
+        QAST::Stmts.new(
+            QAST::Var.new( :name($conc-name), :decl<static>, :scope<lexical> ),
+            # The symbol would be set from $*MOP-ROLE-CONCRETIZATION provided by MOP specialization code.
+            # NOTE The fallback to VMNull is ok here because it won't be revealed to user code which would
+            # only be run after the concretization.
+            QAST::Stmt.new(
+                QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new( :name($conc-name), :scope<lexical> ),
+                    QAST::VarWithFallback.new(
+                        :name<$*MOP-ROLE-CONCRETIZATION>,
+                        :scope<contextual>,
+                        :fallback( QAST::Op.new( :op<null> ) )
+                    )
+                )
+            )
+        )
+    }
+}
+
 # The implicit `&?ROUTINE` term declaration for the routine.
 class RakuAST::VarDeclaration::Implicit::Routine
   is RakuAST::VarDeclaration::Implicit

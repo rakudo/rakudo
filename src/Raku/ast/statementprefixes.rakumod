@@ -153,7 +153,7 @@ class RakuAST::StatementPrefix::Try
     method type() { "try" }
 
     method propagate-sink(Bool $is-sunk) {
-        self.blorst.apply-sink($is-sunk);
+        self.blorst.apply-sink(False);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

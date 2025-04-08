@@ -52,9 +52,10 @@ sub qast-descendable (Mu $qast --> Bool:D) is export {
     || nqp::istype($qast, QAST::Want)
 }
 
+my constant $default-target = nqp::getcomp('Raku').exists_stage('optimize') ?? 'optimize' !! 'qast';
 sub qast-is (Str:D $code is copy, &test, Str:D $desc,
     Bool:D :$full = False,
-    Str:D  :$target where 'optimize'|'ast' = 'optimize',
+    Str:D  :$target where 'optimize'|'qast'|'ast' = $default-target,
 ) is export is test-assertion {
     $code = "use nqp; nqp::qast_test_START_MARK;\n"
       ~ $code ~ "\n; nqp::qast_test_END_MARK;\n"
@@ -131,7 +132,7 @@ Defined as:
 
     sub qast-is (Str:D $code is copy, &test, Str:D $desc,
         Bool:D :$full = False,
-        Str:D  :$target where 'optimize'|'ast' = 'optimize',
+        Str:D  :$target where 'optimize'|'qast'|'ast' = $default-target,
     )
 
 Evals C<$code> and calls C<&test> with the resultant QAST tree as

@@ -1025,35 +1025,30 @@ CODE
 subtest 'A pointy block node with a state variable' => {
     # -> { state $foo = 42; $foo++ }
     ast RakuAST::PointyBlock.new(
-      signature => RakuAST::Signature.new(
-        parameters => ()
-      ),
-      body => RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::VarDeclaration::Simple.new(
-                  scope       => 'state',
-                  sigil       => '$',
-                  desigilname => RakuAST::Name.from-identifier('foo'),
-                  initializer => RakuAST::Initializer::Assign.new(
-                    RakuAST::IntLiteral.new(42)
-                  )
-                )
-              ),
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::ApplyPostfix.new(
-                  postfix => RakuAST::Postfix.new(:operator<++>),
-                  operand => RakuAST::Var::Lexical.new('$foo')
-                )
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => "state",
+              sigil       => "\$",
+              desigilname => RakuAST::Name.from-identifier("foo"),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(42)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new("\$foo"),
+              postfix => RakuAST::Postfix.new(
+                operator => "++"
               )
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 -> {
     state $foo = 42;
     $foo++

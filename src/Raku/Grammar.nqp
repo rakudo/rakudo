@@ -3870,6 +3870,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              {}
              <.malformed: "$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)">
 
+          || <.ws><typename><.ws> <?before "where" <.ws> <EXPR>> {}
+              <.malformed("$*SCOPE (found type followed by constraint; did you forget a variable in between?)")>
+          || <.ws><typename><.ws> <?before <trait>> {}
+              <.malformed("$*SCOPE (found type followed by trait; did you forget a variable in between?)")>
+          || <.ws><typename><.ws> <?before [ <.terminator> | $ ]> {}
+              <.malformed("$*SCOPE (did you forget a variable after type?)")>
           || <.ws><!typename> <typo-typename> <!>
 
           || <.malformed: $*SCOPE>

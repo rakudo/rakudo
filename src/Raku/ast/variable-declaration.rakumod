@@ -2640,11 +2640,12 @@ class RakuAST::VarDeclaration::Placeholder
     ) {
         my $block := $resolver.find-attach-target('block');
         my $name := self.declared-name;
+        my $lexical-name := self.lexical-name;
 
         if $block {
             my $method := $resolver.find-attach-target('method');
             if nqp::istype($block, RakuAST::Block) && !$block.may-have-signature
-                && !(self.lexical-name eq '%_' && $method)
+                && !($lexical-name eq '%_' && $method)
             {
                 self.add-sorry:
                     $resolver.build-exception: 'X::Placeholder::Block', placeholder => $name;
@@ -2669,6 +2670,12 @@ class RakuAST::VarDeclaration::Placeholder
                         precursor   => 1,
                         placeholder => $name;
                     return False;
+                }
+                elsif nqp::istype($block, RakuAST::Method) && $lexical-name ne '%_' {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::AdHoc', :payload(
+                            "Placeholder variables (eg. $name) cannot be used in a method.\nPlease specify an explicit signature, like {$method.declarator} {$method.name.canonicalize} ($lexical-name) \{ ... \}");
+                    return False
                 }
             }
         }

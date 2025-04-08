@@ -26,11 +26,8 @@ subtest 'Simple literal substitution on topic' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is-deeply EVAL($it).gist, '｢o｣', "$type: did we get right return value";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $_, "fxo", "$type: is topic changed";
     }
 }
@@ -49,11 +46,8 @@ subtest 'Simple literal modification on topic' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is-deeply EVAL($it), 'fxo', "$type: did we get right return value";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $_, "foo", "$type: is topic unchanged";
     }
 }
@@ -70,11 +64,8 @@ subtest 'Simple literal substitution using infix syntax' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
-        todo("broken between 2025.02 and 2025.03") if $type eq 'AST' | 'Raku';
         is $_, "fxo", "$type: is the result correct";
     }
 }

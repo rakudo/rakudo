@@ -391,7 +391,10 @@ class RakuAST::CompUnit
 
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
-        unless $!is-eval {
+        if $!is-eval {
+            add(RakuAST::VarDeclaration::Implicit::BlockTopic.new(:!parameter));
+        }
+        else {
             my $global := RakuAST::Package.new(
               how  => $!global-package-how,
               name => RakuAST::Name.from-identifier('GLOBAL')
@@ -410,9 +413,9 @@ class RakuAST::CompUnit
             ));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
 
-        add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         add(RakuAST::VarDeclaration::Implicit::Cursor.new());
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(

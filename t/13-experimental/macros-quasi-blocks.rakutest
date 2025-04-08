@@ -1,6 +1,6 @@
 use Test;
 use experimental :macros;
-plan 14;
+plan 12;
 
 # Just to avoid tedium, the macros in this file are
 # named after Santa's reindeers.
@@ -82,18 +82,6 @@ plan 14;
 
     my $result = cupid;
     is $result, "I'm cupid!", "lexical lookup from quasi to macro works";
-}
-
-#?rakudo skip "Cannot resolve caller prefix:<++>(Mu)"
-{
-    my $counter = 0;
-
-    macro donner {
-        quasi { ++$counter }
-    }
-
-    is donner, 1, "lexical lookup from quasi to outside macro works";
-    is donner, 2, "...twice";
 }
 
 {

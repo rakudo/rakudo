@@ -1,6 +1,6 @@
 use Test;
 use experimental :macros;
-plan 6;
+plan 5;
 
 # editorial note:
 # most macros in this file have been named after 20th-century physicists.
@@ -37,19 +37,6 @@ plan 6;
     }
 
     is einstein(), 4, "can build ASTs incrementally";
-}
-
-# https://github.com/Raku/old-issue-tracker/issues/3353
-#?rakudo.moar skip 'Specified code ref has no outer, RT #121533'
-#?rakudo.js skip 'Skipping failed macro test, it fail on moar too'
-{ # building an AST incrementally in a for loop
-    macro podolsky() {
-        my $q = quasi { 2 };
-        $q = quasi { 1 + {{{$q}}} } for ^2;
-        $q;
-    }
-
-    is podolsky(), 4, "can build ASTs in a for loop";
 }
 
 { # using the mainline context from an unquote

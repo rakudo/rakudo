@@ -894,13 +894,13 @@ class RakuAST::Statement::IfWith
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!then.body.apply-sink($is-sunk);
+        $!then.apply-sink($is-sunk);
         for $!elsifs {
             $_.condition.apply-sink(False);
-            $_.then.body.apply-sink($is-sunk);
+            $_.then.apply-sink($is-sunk);
         }
         if $!else {
-            $!else.body.apply-sink($is-sunk);
+            $!else.apply-sink($is-sunk);
         }
     }
 

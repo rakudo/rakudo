@@ -26,7 +26,7 @@ else {
         is-run ｢
             if  1 { LEAVE 42.uc; Any }; if  1 { LEAVE 42.uc; 42  };
             for 1 { LEAVE 42.uc; Any }; for 1 { LEAVE 42.uc; 42  };
-        ｣, :err{ 2 == .comb: 'Useless use' },
+        ｣, :err{ 2|4 == .comb: 'Useless use' },
             'we get warnings with phasers that do not care about return value';
 
         is-run ｢

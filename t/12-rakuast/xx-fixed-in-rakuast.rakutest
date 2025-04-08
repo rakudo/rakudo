@@ -200,6 +200,7 @@ plan 105;
             .subst( /    ">" $ /,          :global)  # Strip out the final prompt
     }
 
+    todo "Fails in legacy grammar";
     is-run-repl "use lib <t/packages/12-rakuast/lib>;\nuse Depth::One;\nuse Depth;\nDepth.new\n",
         :out("Nil\nNil\nNil\nDepth.new\n"),
         "repl can successfully use and instantiate a class ('Depth') that is shadowed and surpassed by an earlier used class ('Depth::One')";

@@ -71,7 +71,7 @@ throws-like {
 # https://github.com/Raku/old-issue-tracker/issues/6580
 subtest 'unclosed hash quote index operator <> message' => {
     plan 2;
-    throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
+    throws-like "\n\nsay \$<\n\n", Exception,
         'good error message for unclosed <> hash operator',
         gist => all(
             /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /

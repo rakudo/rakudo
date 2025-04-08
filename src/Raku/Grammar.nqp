@@ -3233,7 +3233,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                         for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without', 'supply', 'whenever', 'react' {
                             if $_ eq $word {
                                 $needparens++ if $_ eq 'loop';
-                                self.typed-sorry-at($*TERMISH<term><identifier>.to, 'X::Syntax::KeywordAsFunction', :$word, :$needparens);
+                                if nqp::istype($term, self.actions.r('Call', 'Name')) && !nqp::istype($term, self.actions.r('Call', 'Name', 'WithoutParentheses')) {
+                                    self.typed-sorry-at($*TERMISH<term><identifier>.to, 'X::Syntax::KeywordAsFunction', :$word, :$needparens);
+                                }
+                                else {
+                                    self.typed-sorry-at($*TERMISH<term><longname>.to, 'X::AdHoc', :payload(
+                                        "Word '$_' interpreted as a listop; please use 'do $_' to introduce the statement control word"
+                                    ));
+                                }
                                 self.panic("Unexpected block in infix position (two terms in a row)");
                             }
                         }

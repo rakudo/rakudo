@@ -813,6 +813,16 @@ class RakuAST::Type::Enum
         self.add-trait-sorries;
 
         self.check-scope($resolver, 'enum');
+
+        unless self.meta-object.HOW.enum_value_list(self.meta-object) {
+            for self.IMPL-UNWRAP-LIST($!term.find-nodes(RakuAST::Var::Lexical)) {
+                my $var := $_.origin.Str;
+                self.add-worry:
+                    $resolver.build-exception: 'X::AdHoc', :payload(
+                        "No values supplied to enum (does $var need to be declared constant?)"
+                    );
+            }
+        }
     }
 
     method PRODUCE-META-OBJECT() {

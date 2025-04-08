@@ -2227,6 +2227,19 @@ class RakuAST::ApplyListInfix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype($!infix, RakuAST::Feed) {
+            for $!operands {
+                if nqp::istype($_, RakuAST::Var::Lexical) && $_.sigil eq '&' {
+                    self.add-sorry(
+                        $resolver.build-exception: 'X::AdHoc', :payload(
+                            "A feed may not sink values into a code object.\n"
+                                ~ "Did you mean a call like '"
+                                ~ $_.desigilname.canonicalize
+                                ~ "()' instead?"));
+                }
+            }
+        }
+
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.infix.can-be-sunk && self.sunk && !self.infix.short-circuit;
     }

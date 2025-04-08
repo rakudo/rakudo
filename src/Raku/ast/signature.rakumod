@@ -884,12 +884,6 @@ class RakuAST::Parameter
             }
         }
         my @post_constraints;
-        if $!where {
-            nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
-        }
-        if $!array-shape {
-            nqp::push(@post_constraints, $!array-shape.meta-object);
-        }
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
         }
@@ -913,6 +907,12 @@ class RakuAST::Parameter
                     nqp::push(@post_constraints, $type);
                 }
             }
+        }
+        if $!where {
+            nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
+        }
+        if $!array-shape {
+            nqp::push(@post_constraints, $!array-shape.meta-object);
         }
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);

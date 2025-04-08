@@ -1023,7 +1023,8 @@ class RakuAST::Call::PrivateMethod
                 unless nqp::defined($meth) && $meth {
                     self.add-sorry:
                         $resolver.build-exception: 'X::Method::NotFound',
-                            :method($!name.canonicalize), :typename($package.HOW.name($package)), :private(True);
+                            :method($!name.canonicalize), :typename($package.HOW.name($package)),
+                            :private(True), :invocant($package), :in-class-call(True);
                 }
             }
         }

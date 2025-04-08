@@ -51,7 +51,11 @@ class RakuAST::Term::Name
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if ! $!name.is-pseudo-package && ! $!name.is-package-lookup && ! $!name.is-indirect-lookup && ! self.is-resolved {
+        my $name := $!name;
+        if $name.is-pseudo-package
+            ?? nqp::istype($name.first-part, RakuAST::Name::Part::Empty) && $name.base-name.is-empty && $name.has-colonpairs
+            !! ! $name.is-package-lookup && ! $name.is-indirect-lookup && ! self.is-resolved
+        {
             self.add-sorry:
                 $resolver.build-exception: 'X::NoSuchSymbol', :symbol($!name.canonicalize);
         }

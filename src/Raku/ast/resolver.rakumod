@@ -173,7 +173,7 @@ class RakuAST::Resolver {
             $name  := $sigil ~ $name if $sigil;
             $found := self.resolve-lexical($name)
         }
-        else {
+        elsif !$Rname.is-empty {
             # All package name installations happen via the symbol table as
             # BEGIN-time effects, so chase it down as if it were a constant.
             $found := self.resolve-name-constant($Rname, :$sigil)

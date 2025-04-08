@@ -44,6 +44,10 @@ class RakuAST::Name
         self.IMPL-WRAP-LIST($!parts)
     }
 
+    method first-part() {
+        $!parts[0]
+    }
+
     method last-part() {
         $!parts[nqp::elems($!parts) - 1]
     }
@@ -318,7 +322,6 @@ class RakuAST::Name
         my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         my $result;
         if $*IMPL-COMPILE-DYNAMICALLY && $!parts[0].name eq 'CORE' {
-            nqp::shift($!parts); #FIXME don't modify please
             my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
             my $package := Perl6::Metamodel::ModuleHOW.new_type(:name('CORE'));
             my $found-ctx := $context.setting;

@@ -132,7 +132,7 @@ class RakuAST::Circumfix::ArrayComposer
                 RakuAST::Exception::TooComplex.new.throw unless nqp::can($_.expression, 'literal-value');
                 nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
             }
-            '[' ~ nqp::join('; ', @parts) ~ ']'
+            @parts ?? '[' ~ nqp::join('; ', @parts) ~ ']' !! '<>'
         }
     }
 

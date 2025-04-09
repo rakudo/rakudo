@@ -10,7 +10,7 @@ See L<S06/"Macros">.
 
 =end pod
 
-plan 3;
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 # L<S06/Macros>
 macro four () { quasi { 2+2 } }

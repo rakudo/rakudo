@@ -1,6 +1,7 @@
 use Test;
 use experimental :macros;
-plan 12;
+
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 # Just to avoid tedium, the macros in this file are
 # named after Santa's reindeers.

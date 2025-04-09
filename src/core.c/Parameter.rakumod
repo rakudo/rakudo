@@ -657,8 +657,8 @@ multi sub infix:<eqv>(Parameter:D $a, Parameter:D $b) {
     # different flags
     return False
       if nqp::isne_i(
-        nqp::getattr($a,Parameter,'$!flags'),
-        nqp::getattr($b,Parameter,'$!flags')
+        nqp::getattr_i($a,Parameter,'$!flags'),
+        nqp::getattr_i($b,Parameter,'$!flags')
       );
 
     # only pass if both subsignatures are defined and equivalent

@@ -998,7 +998,7 @@ class RakuAST::VarDeclaration::Simple
             my $meta := self.meta-object;
             my $target := RakuAST::TraitTarget::Variable.new(
                 self.name,
-                nqp::getattr(self, RakuAST::Declaration, '$!scope'),
+                nqp::getattr_s(self, RakuAST::Declaration, '$!scope'),
                 $meta,
                 $!block.stubbed-meta-object,
                 Mu

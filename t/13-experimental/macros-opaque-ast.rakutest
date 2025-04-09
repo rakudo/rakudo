@@ -10,6 +10,7 @@ See L<S06/"Macros">.
 
 =end pod
 
+BEGIN plan :skip-all('RakuAST macros will subercede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
 plan 3;
 
 # L<S06/Macros>

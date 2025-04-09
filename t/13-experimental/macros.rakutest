@@ -1,6 +1,7 @@
 use Test;
 use experimental :macros;
 
+BEGIN plan :skip-all('RakuAST macros will subercede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
 plan 6;
 
 # Test that we get the values we expect from WHY.contents, WHY.leading,

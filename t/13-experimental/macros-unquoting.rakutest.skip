@@ -1,6 +1,7 @@
 use Test;
 use experimental :macros;
-plan 5;
+
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 # editorial note:
 # most macros in this file have been named after 20th-century physicists.

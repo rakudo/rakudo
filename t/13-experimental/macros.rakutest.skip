@@ -1,7 +1,7 @@
 use Test;
 use experimental :macros;
 
-plan 6;
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 # Test that we get the values we expect from WHY.contents, WHY.leading,
 # WHY.trailing, and that WHY.WHEREFORE is the appropriate thing

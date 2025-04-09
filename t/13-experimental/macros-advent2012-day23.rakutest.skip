@@ -2,7 +2,7 @@
 use Test;
 use experimental :macros;
 
-plan 2;
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 sub capture-said($code) {
     my $output;

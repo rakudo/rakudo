@@ -3,7 +3,7 @@ use experimental :macros;
 
 #L<S06/"Macros">
 
-plan 2;
+plan :skip-all => "RakuAST macros supercede the macros described in these tests";
 
 # https://github.com/Raku/old-issue-tracker/issues/2952
 lives-ok
@@ -12,6 +12,8 @@ lives-ok
 
 # https://github.com/Raku/old-issue-tracker/issues/2951
 {
+#    skip-rest "RakuAST macros supercede the macros described in these tests";
+
     try EVAL 'macro ma { die 1 }; ma';
     is $!, 1, "die-ing inside a macro dies normally.";
 }

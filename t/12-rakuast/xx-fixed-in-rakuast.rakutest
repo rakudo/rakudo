@@ -553,7 +553,6 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
     f :foo(  'a'  ne 'd');
     f foo => 'a'  ne 'd';
-    todo "passes positional instead of named", 2 unless %*ENV<RAKUDO_RAKUAST>;
     f :foo(  'a' !eq 'd');
     f foo => 'a' !eq 'd';
 }

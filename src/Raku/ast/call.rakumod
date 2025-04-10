@@ -405,7 +405,7 @@ class RakuAST::Call::Name
 
                         self.add-sorry(
                             $resolver.build-exception: 'X::TypeCheck::Argument',
-                                :objname($!name.canonicalize),
+                                :objname($name),
                                 :$signature,
                                 :arguments(@arg_names),
                                 :$protoguilt,
@@ -817,7 +817,6 @@ class RakuAST::Call::Method
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $name := $!name.canonicalize;
         my %returnish := nqp::hash(
             'return', 1,
             'return-rw', 1,
@@ -826,7 +825,7 @@ class RakuAST::Call::Method
             'nextwith', 1,
             'EVAL', 1,
             'EVALFILE', 1);
-        if nqp::existskey(%returnish, $name) {
+        if nqp::existskey(%returnish, $!name.canonicalize) {
             my $routine := $resolver.find-attach-target('routine');
             if $routine {
                 $routine.set-may-use-return(True);
@@ -1099,6 +1098,8 @@ class RakuAST::Call::PrivateMethod
 class RakuAST::Call::MetaMethod
   is RakuAST::Call::Methodish
 {
+    # Not a RakuAST::Name like the other RakuAST::Call::* classes, because metamethod
+    # names can only be simple identifiers. Not multiple parts and no colonpairs.
     has str $.name;
 
     method new(str :$name!, RakuAST::ArgList :$args) {
@@ -1159,7 +1160,6 @@ class RakuAST::Call::VarMethod
             self.set-resolution($resolved);
         }
 
-        my $name := $!name.canonicalize;
         my %returnish := nqp::hash(
             'return', 1,
             'return-rw', 1,
@@ -1168,7 +1168,7 @@ class RakuAST::Call::VarMethod
             'nextwith', 1,
             'EVAL', 1,
             'EVALFILE', 1);
-        if nqp::existskey(%returnish, $name) {
+        if nqp::existskey(%returnish, $!name.canonicalize) {
             my $routine := $resolver.find-attach-target('routine');
             if $routine {
                 $routine.set-may-use-return(True);
@@ -1207,7 +1207,6 @@ class RakuAST::Call::VarMethod
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name       := $!name.canonicalize;
         my $dispatcher := self.dispatcher;
 
         my $call := $dispatcher

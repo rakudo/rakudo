@@ -3,7 +3,7 @@ use experimental :macros;
 
 #L<S06/"Macros">
 
-BEGIN plan :skip-all('RakuAST macros will subercede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
+BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
 plan 2;
 
 # https://github.com/Raku/old-issue-tracker/issues/2952

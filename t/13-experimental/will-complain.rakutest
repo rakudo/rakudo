@@ -2,7 +2,6 @@ use experimental :will-complain;
 
 use Test;
 
-BEGIN plan :skip-all('RakuAST macros will subercede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
 plan 8;
 
 subtest "Enum" => {

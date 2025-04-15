@@ -3,7 +3,6 @@ use experimental :pack;
 
 # L<S32::Str/Str/"=item pack">
 
-BEGIN plan :skip-all('RakuAST macros will subercede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
 plan 43;
 
 {

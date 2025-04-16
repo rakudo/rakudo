@@ -216,6 +216,7 @@ plan 105;
 # ???
 # https://github.com/rakudo/rakudo/issues/4925
 {
+    todo "Fails in legacy grammar";
     lives-ok { Q|class A { class A::B { ... }; class A::B { has $.c } }|.AST.EVAL },
         "stubbed classes that belong to parent package cause no issues when stubbed and defined within parent package scope";
 }

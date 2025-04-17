@@ -530,7 +530,7 @@ my class Array { # declared in BOOTSTRAP
     method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
           nqp::islt_i($pos, 0),
-          self!INDEX_OOR($pos),
+          INDEX-OOR($pos),
           nqp::if(
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::if(
@@ -607,7 +607,7 @@ my class Array { # declared in BOOTSTRAP
                  nqp::decont(assignee)
                )
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee)
-          !! self!INDEX_OOR($pos)
+          !! INDEX-OOR($pos)
     }
 
     method !ASSIGN_POS_SLOW_PATH(Array:D: int $pos, Mu \assignee) is raw {
@@ -672,7 +672,7 @@ my class Array { # declared in BOOTSTRAP
     multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          self!INDEX_OOR($pos),
+          INDEX-OOR($pos),
           nqp::stmts(  # should refer to uint candidate when that inlines
             nqp::if(
               nqp::isconcrete(
@@ -742,7 +742,7 @@ my class Array { # declared in BOOTSTRAP
     multi method DELETE-POS(Array:D: Int:D $pos) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          self!INDEX_OOR($pos),
+          INDEX-OOR($pos),
           nqp::if(  # should refer to the uint candidate when that inlines
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::stmts(
@@ -773,7 +773,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method !INDEX_OOR($pos) {
+    my sub INDEX-OOR($pos) {
       X::OutOfRange.new(
           :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
       ).Failure

@@ -84,22 +84,18 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
           '10.9',  'Mavericks',
           '10.10', 'Yosemite',
           '10.11', 'El Capitan',
-          '10.12', 'Sierra',
-          '10.13', 'High Sierra',
-          '10.14', 'Mojave',
-          '10.15', 'Catalina',
-          '11',    'Big Sur',
-          '12',    'Monterey',
-          '13',    'Ventura',
-          '14',    'Sonoma',
-          '15',    'Sequoia',
         );
 
-        my ($major, $minor) = $version.split(".").head(2);
-        my str $key = $major eq '10' ?? "$major.$minor" !! $major;
-        if nqp::atkey($names,$key) -> $nick {
-            $desc := $nick;
-        }
+        # Obtain the description from the HTML version of the license
+        # that is shown to users when the system is set up.  Versions up
+        # to El Capitan where labeled OSX with unknown variations to the
+        # license agreement, so we try those first from a static list.
+        $desc := nqp::ifnull(
+          nqp::atkey($names,$version),
+          Q|/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.html|.IO.slurp.match(
+            /"SOFTWARE LICENSE AGREEMENT FOR macOS " <( <-[<]>+/
+          ).Str
+        );
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
         my $lookup := kv2Map('/etc/os-release'.IO.slurp.subst(:g,'"'),'=');

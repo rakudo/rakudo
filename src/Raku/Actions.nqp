@@ -2087,12 +2087,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method colonpair($/) {
         my $key-str := ~$*KEY;
         if $key-str {
-            my $key := $*LITERALS.intern-str($key-str);
+            my $literals := $*LITERALS;
+            my $key := $literals.intern-str($key-str);
             self.attach: $/, $<num>
               ?? Nodify('ColonPair', 'Number').new(
                    key   => $key,
                    value => Nodify('IntLiteral').new(
-                     $*LITERALS.intern-int(~$<num>)
+                     $literals.intern-int(~$<num>)
                    )
                  )
               !! $<coloncircumfix>

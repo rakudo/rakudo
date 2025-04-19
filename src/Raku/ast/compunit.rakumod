@@ -677,10 +677,17 @@ class RakuAST::LiteralBuilder {
     has int $!has-cached-rat;
     has Mu $!cached-complex;
     has int $!has-cached-complex;
+    has Mu $!interned-int;
+    has Mu $!interned-num;
+    has Mu $!interned-str;
 
     method new(RakuAST::Resolver :$resolver) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!resolver', $resolver) if $resolver;
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-int', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-num', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-str', nqp::hash);
+
         $obj
     }
 
@@ -690,13 +697,34 @@ class RakuAST::LiteralBuilder {
 
     # Build an Int constant and intern it.
     method intern-int(str $chars, int $base?, Mu $error-reporter?) {
-        # TODO interning
-        self.build-int($chars, $base // 10, $error-reporter)
+        my constant ZERO := nqp::box_i(0, Int);
+        my constant ONE := nqp::box_i(1, Int);
+        my constant TWO := nqp::box_i(2, Int);
+        my constant THREE := nqp::box_i(3, Int);
+        my constant FOUR := nqp::box_i(4, Int);
+        my constant FIVE := nqp::box_i(5, Int);
+
+        # very common int for fast path.
+        return ZERO if $chars eq '0';
+        return ONE if $chars eq '1';
+        return TWO if $chars eq '2';
+        return THREE if $chars eq '3';
+        return FOUR if $chars eq '4';
+        return FIVE if $chars eq '5';
+
+        # a bit slow path
+        my $interned-int := $!interned-int;
+        return nqp::atkey($interned-int, $chars) if nqp::existskey($interned-int, $chars);
+
+        my $result := self.build-int($chars, $base // 10, $error-reporter);
+        nqp::bindkey($interned-int, $chars, $result);
+        $result
     }
 
     # Build an Int constant, but do not intern it.
     method build-int(str $source, int $base, Mu $error-reporter?) {
         my $res := nqp::radix_I($base, $source, 0, 2, Int);
+
         unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($source)) {
             $error-reporter ??
                 $error-reporter()
@@ -710,8 +738,22 @@ class RakuAST::LiteralBuilder {
 
     # Build a Num constant and intern it.
     method intern-num(str $chars) {
-        # TODO interning
-        self.build-num($chars)
+        my constant INF := nqp::box_n(nqp::numify('Inf'), Num);
+        my constant N_1E0 := nqp::box_n(nqp::numify('1e0'), Num);
+        my constant N_0E0 := nqp::box_n(nqp::numify('0e0'), Num);
+
+        # very common num for fast path.
+        return INF if $chars eq 'Inf';
+        return N_1E0 if $chars eq '1e0';
+        return N_0E0 if $chars eq '0e0';
+
+        # a bit slow path
+        my $interned-num := $!interned-num;
+        return nqp::atkey($interned-num, $chars) if nqp::existskey($interned-num, $chars);
+
+        my $result := nqp::box_n(nqp::numify($chars), Num);
+        nqp::bindkey($interned-num, $chars, $result);
+        $result
     }
 
     # Build a Num constant, but do not intern it.
@@ -724,8 +766,11 @@ class RakuAST::LiteralBuilder {
 
     # Build a Str constant and intern it.
     method intern-str(str $chars) {
-        # TODO interning
-        self.build-str($chars)
+        my $interned-str := $!interned-str;
+        return nqp::atkey($interned-str, $chars) if nqp::existskey($interned-str, $chars);
+        my $result := self.build-str($chars);
+        nqp::bindkey($interned-str, $chars, $result) if nqp::elems($interned-str) < 65536;
+        $result
     }
 
     # Build a Str constant, but do not intern it.

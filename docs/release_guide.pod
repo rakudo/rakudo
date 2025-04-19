@@ -104,6 +104,10 @@ Generally, any kind of breakage in modules is unwanted, but there are
 exceptions. Submit Pull Requests to anything that is affected and file
 rakudo tickets for all unwanted changes in Rakudo behavior.
 
+Currently the C<Red> module is unable to be tested by Blin - please
+build and test this with Rakudo HEAD close to release day to verify
+no issues.
+
 =item *
 
 During the month leading up to the release, it's a good idea to keep
@@ -392,7 +396,8 @@ NQP and Rakudo Github release, refer to MoarVM release guide for the details abo
 
 The script will look like it failed entirely, but this is due to the artifacts upload; verify that the release
 was created, and then do the attachment of artifacts manually for both NQP and Rakudo. Note that if the NQP
-release fails to create for some reason, you can create it by hand on github.
+release fails to create for some reason, you can create it by hand on github. Note - this seems
+to always fail, not just with the file upload.
 
 Copy the announce into the github release description field for Rakudo.
 
@@ -411,7 +416,7 @@ release artifacts.
 =item 8.
 
 Don’t send out any announcements until the files are actually available
-per step 8 above.
+per step 6 above.
 
 Copy the release announcement file to the C<rakudo.org> repository into
 C<post/announce-rakudo-release-20XX.XX.md>.

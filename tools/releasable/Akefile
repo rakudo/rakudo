@@ -28,7 +28,7 @@ my $ANTIFLAP = 3;
 # TODO automatically use local paths if possible
 my $MOAR-REPO   = ‘git@github.com:MoarVM/MoarVM.git’;
 my $MOAR-PATH   = ‘moar’.IO;
-my $NQP-REPO    = ‘git@github.com:perl6/nqp.git’;
+my $NQP-REPO    = ‘git@github.com:Raku/nqp.git’;
 my $NQP-PATH    = ‘nqp’.IO;
 my $RAKUDO-REPO = ‘git@github.com:rakudo/rakudo.git’;
 my $RAKUDO-PATH = ‘rakudo’.IO;
@@ -551,7 +551,7 @@ task ‘wikipedia’, { # Step ⓴ (rakudo release guide)
     #my $pass = run(:out, ‘pass’, ‘Wikipedia’).out.lines.head;
     my $pass = ‘…’; # TODO
     my $x = %(
-        agent       => ‘MediaWiki::Bot 3.0.0 (https://github.com/perl6/whateverable)’,
+        agent       => ‘MediaWiki::Bot 3.0.0 (https://github.com/Raku/whateverable)’,
         assert      => ‘user’,
         protocol    => ‘https’,
         host        => ‘en.wikipedia.org’,

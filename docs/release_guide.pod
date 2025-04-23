@@ -17,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2025-04-19   Rakudo #182 (Coke)
+  2025-05-17   Rakudo #183 (Coke)
 
 (More planned dates can be generated with F<tools/release-dates.raku>).
 

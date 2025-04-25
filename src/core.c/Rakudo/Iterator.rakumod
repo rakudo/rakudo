@@ -6063,7 +6063,7 @@ my class Rakudo::IterateMoreWithoutPhasers does Rakudo::SlippyIterator {
 my class Rakudo::IterateMoreWithPhasers does Rakudo::SlippyIterator {
     has     &!block;
     has     $!source;
-    has     $!count;
+    has int $!count;
     has     $!label;
     has     $!value-buffer;
     has int $!did-init;
@@ -6076,7 +6076,7 @@ my class Rakudo::IterateMoreWithPhasers does Rakudo::SlippyIterator {
         nqp::bindattr($iter, self, '$!slipper', nqp::null);
         nqp::bindattr($iter, self, '&!block', &block);
         nqp::bindattr($iter, self, '$!source', $source);
-        nqp::bindattr($iter, self, '$!count', $count);
+        nqp::bindattr_i($iter, self, '$!count', $count);
         nqp::bindattr($iter, self, '$!label', nqp::decont($label));
         $iter
     }
@@ -6166,7 +6166,7 @@ my class Rakudo::IterateMoreWithPhasers does Rakudo::SlippyIterator {
                                IterationEnd
                              )
                           && nqp::not_i(nqp::eqaddr(  # an empty Slip
-                               $source.push-exactly($!value-buffer, $!count),
+                               $source.push-exactly($!value-buffer, $count),
                                IterationEnd
                              )),
                         ($redo = 1)                   # process these values

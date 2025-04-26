@@ -467,6 +467,7 @@ task ‘rakudo-post-test’, { # still Step ⓯ (rakudo release guide)
 }
 
 task ‘rakudo-archive’, { # Step ⓮ (rakudo release guide)
+    run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout master>;
     run :cwd($RAKUDO-PATH), <make release>, “VERSION=$version-rakudo”;
     die ‘No tarball created’ unless $rakudo-archive.IO.e;
     True

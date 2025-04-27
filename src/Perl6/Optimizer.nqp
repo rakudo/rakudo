@@ -3685,9 +3685,23 @@ class Perl6::Optimizer {
       }
       elsif self.op_eq_core($metaop, '&METAOP_NEGATE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var);
-        return QAST::Op.new: :op<call>, :name('&prefix:<!>'),
-                QAST::Op.new: :op<call>, :name($metaop[0].name),
-                    $op[1], $op[2];
+
+        return nqp::not_i(nqp::isnull($metaop[0]))
+            && nqp::not_i(nqp::isnull(my $raku-comp := nqp::getcomp('Raku')))
+            && nqp::not_i(nqp::isnull(my $revision := nqp::findmethod($raku-comp, 'language_revision')))
+            && nqp::islt_i(2, $revision($raku-comp))
+            && nqp::not_i(nqp::isnull(my $op-name := $metaop[0].name))
+            && nqp::not_i(nqp::isnull(my $op-symbol := $!symbols.find_symbol([$op-name])))
+            && nqp::istype($op-symbol, (my $Routine := $!symbols.find_symbol(['Routine'])))
+            && (my $op-props := nqp::getattr($op-symbol, $Routine, '$!op_props'))
+            && $op-props.commutative
+          ??
+            QAST::Op.new(:op<call>, :name($metaop[0].name),
+              QAST::WVal.new(value => $!symbols.find_in_setting("False")),
+              QAST::Op.new(:op<call>, :name($metaop[0].name), $op[1], $op[2]))
+          !!
+            QAST::Op.new(:op<call>, :name('&prefix:<!>'),
+              QAST::Op.new(:op<call>, :name($metaop[0].name), $op[1], $op[2]));
       }
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)

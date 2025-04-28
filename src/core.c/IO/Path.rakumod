@@ -614,14 +614,17 @@ my class IO::Path is Cool does IO {
           !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
     }
 
+    constant fallback-slurp-size = 0x100000;
+
     # slurp contents of low level handle
-    sub slurp-PIO(Mu \PIO, :$size = 0x100000) is raw {
+    sub slurp-PIO(Mu \PIO, :$size = fallback-slurp-size) is raw {
         my \slurp-size = $size;
         nqp::readfh(PIO,(my $blob := nqp::create(buf8.^pun)),slurp-size);
 
-        # if the size is set to the default value, then
+        # if the size is set to the fallback value, then
+        # run the old path...
         # enough to read entire buffer, assume there's more
-        if slurp-size == 0x100000 && nqp::iseq_i(nqp::elems($blob),slurp-size) {
+        if slurp-size == fallback-slurp-size && nqp::iseq_i(nqp::elems($blob),slurp-size) {
             nqp::while(
               nqp::elems(
                 nqp::readfh(PIO,(my $part := nqp::create(buf8.^pun)),slurp-size)
@@ -661,25 +664,28 @@ my class IO::Path is Cool does IO {
 
     proto method slurp() {*}
     multi method slurp(IO::Path:D: :$bin!) {
+        my $size = max try self.s, fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? $bin
             ?? slurp-stdin-bin()
             !! slurp-stdin-with-encoding('utf8')
           !! $bin
-            ?? slurp-path-bin(self.absolute,self.s)
-            !! slurp-path-with-encoding(self.absolute,'utf8',self.s)
+            ?? slurp-path-bin(self.absolute,$size)
+            !! slurp-path-with-encoding(self.absolute,'utf8',$size)
     }
     multi method slurp(IO::Path:D: :$enc!) {
+        my $size = max try self.s, fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding(
                Rakudo::Internals.NORMALIZE_ENCODING($enc))
           !! slurp-path-with-encoding(self.absolute,
-               Rakudo::Internals.NORMALIZE_ENCODING($enc),self.s)
+               Rakudo::Internals.NORMALIZE_ENCODING($enc),$size)
     }
     multi method slurp(IO::Path:D:) {
+        my $size = max try self.s, fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding('utf8')
-          !! slurp-path-with-encoding(self.absolute,'utf8',self.s)
+          !! slurp-path-with-encoding(self.absolute,'utf8',$size)
     }
 
     # spurt data to given path and file mode

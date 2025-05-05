@@ -337,7 +337,7 @@ class CompUnit::RepositoryRegistry {
         require "$bin";
     }
 
-    method head() { # mostly usefull for access from NQP
+    method head() { # mostly useful for access from NQP
         $*REPO
     }
 

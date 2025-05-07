@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 105;
+plan 106;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -701,6 +701,23 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     lives-ok { Q|my %a = 1 => True; $answer = True && %a<1>:exists|.EVAL },
             'adverbs to hashes do not accidentally get passed to infixes';
     ok $answer, 'adverbs to hashes with infixes work as expected';
+}
+
+# https://github.com/rakudo/rakudo/issues/5874#issue-3037890302
+# Using eval-lives-ok because otherwise, non-RakuAST versions will just die 
+# without running any tests in this file
+{
+    todo "Having a submethod that accesses an attribute dies, even if never called"
+        unless %*ENV<RAKUDO_RAKUAST>;
+    eval-lives-ok(q[{
+        role A {
+            has $.a = 1;
+            submethod m1() {
+                say $.a;
+            }
+        };
+        my $c = A.new();
+    }], "Submethods can access attributes");
 }
 
 # vim: expandtab shiftwidth=4

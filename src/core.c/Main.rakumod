@@ -74,7 +74,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         sub thevalue(\a) {
             my \core-a   := try CORE::(a);
             my \global-a := try GLOBAL::(a);
-            my \value-a  := try ::(a);
+            my \value-a  := try %caller-my{a} // ::(a);
             my \type := value-a === core-a && !(global-a === core-a) && !(global-a === Nil)
               ?? global-a
               !! value-a;

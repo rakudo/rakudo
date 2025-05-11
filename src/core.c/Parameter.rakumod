@@ -35,23 +35,6 @@ my class Parameter { # declared in BOOTSTRAP
         Metamodel::DefiniteHOW.new_type(:base_type(::($type)), :$definite)
     }
 
-    sub str-to-type(Str:D $type, Int:D $flags is rw --> Mu) {
-        if $type.ends-with(Q/:D/) {
-            $flags +|= nqp::const::SIG_ELEM_DEFINED_ONLY;
-            definitize-type($type.chop(2), True)
-        }
-        elsif $type.ends-with(Q/:U/) {
-            $flags +|= nqp::const::SIG_ELEM_UNDEFINED_ONLY;
-            definitize-type($type.chop(2), False)
-        }
-        elsif $type.ends-with(Q/:_/) {
-            ::($type.chop(2))
-        }
-        else {
-            ::($type)
-        }
-    }
-
     submethod BUILD(
         Parameter:D:
         Str:D  :$name           is copy = "",
@@ -140,27 +123,7 @@ my class Parameter { # declared in BOOTSTRAP
 
         if %args.EXISTS-KEY('type') {
             my $type := %args.AT-KEY('type');
-            if $type.DEFINITE {
-                if nqp::istype($type,Str) {
-                    if $type.ends-with(Q/)/) {
-                        my $start = $type.index(Q/(/);
-                        my $constraint-type :=
-                          str-to-type($type.substr($start + 1, *-1), my $);
-                        my $target-type :=
-                          str-to-type($type.substr(0, $start), $flags);
-                        $!type := Metamodel::CoercionHOW.new_type($target-type, $constraint-type);
-                    }
-                    else {
-                        $!type := str-to-type($type, $flags)
-                    }
-                }
-                else {
-                    $!type := $type.WHAT;
-                }
-            }
-            else {
-                $!type := $type;
-            }
+            $!type := $type.DEFINITE ?? $type.WHAT !! $type;
         }
         else {
             $!type := Any;

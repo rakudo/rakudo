@@ -1212,16 +1212,29 @@ class RakuAST::Parameter
         }
 
         if $!type {
-            my $archetypes := $!type.compile-time-value.HOW.archetypes;
+            my $param-type := $!type.compile-time-value;
+            my $archetypes := $param-type.HOW.archetypes;
             unless $archetypes.nominalish
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive
             {
                 self.add-sorry:
-                    $resolver.build-exception: 'X::Parameter::BadType', type => $!type.compile-time-value;
+                    $resolver.build-exception: 'X::Parameter::BadType', type => $param-type;
+            }
+
+            # Improve error messages around subsets used with named parameters lacking a valid default
+            if $!names
+            && nqp::istype($param-type.HOW, Perl6::Metamodel::SubsetHOW)
+            && ! (self.is-declared-required || $!default) {
+                self.add-worry:
+                    $resolver.build-exception:  'X::Parameter::Named::SubsetTypeWithoutDefault',
+                                                :parameter(nqp::join(" ", $!names)),
+                                                :subset($param-type);
             }
         }
+
+
 
         # True/False parse as type
         if $!type && $!type.is-known-to-be(Bool) && nqp::isconcrete($!type.meta-object) {

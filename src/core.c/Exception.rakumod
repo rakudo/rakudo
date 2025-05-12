@@ -1536,6 +1536,15 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
+my class X::Parameter::Named::TypeIsSubsetWithoutDefault does X::Comp {
+    has $.parameter is required;
+    has $.subset is required;
+    method message() {
+        "Optional named parameter '$.parameter' with subset type {$.subset.^name} needs a valid default value\n"
+        ~ " or else it will throw exceptions when a value is absent from the callsite"
+    }
+}
+
 my role X::BadType {
     has Mu $.type;
     method action() {...}

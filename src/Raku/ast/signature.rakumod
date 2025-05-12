@@ -111,6 +111,27 @@ class RakuAST::Signature
                         }
                         %seen{$name} := 1;
                     }
+
+                    unless $_.is-declared-required || nqp::eqaddr($_.type, RakuAST::Type) {
+                        my $param-type := $_.type.meta-object;
+                        my $param-default := $_.default;
+                        if nqp::istype($param-type.HOW, Perl6::Metamodel::SubsetHOW) {
+                            if ! nqp::eqaddr($param-default, RakuAST::Expression) {
+                                if $param-default.has-compile-time-value
+                                && ! nqp::istype((my $default-value := $param-default.maybe-compile-time-value), $param-type) {
+                                    self.add-worry: $resolver.build-exception:  'X::Parameter::Default::TypeCheck',
+                                                                                :got($default-value),
+                                                                                :expected($param-type);
+                                }
+                            }
+                            else {
+                                my $debug-name := nqp::join(" ", $names);
+                                self.add-worry: $resolver.build-exception:  'X::Parameter::Named::TypeIsSubsetWithoutDefault',
+                                                                            :parameter($debug-name),
+                                                                            :subset($param-type);
+                            }
+                        }
+                    }
                 }
                 for $_.IMPL-UNWRAP-LIST($_.type-captures) -> $capture {
                     my $name := $capture.lexical-name;

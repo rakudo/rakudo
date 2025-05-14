@@ -130,7 +130,9 @@ my class Thread {
         "Thread<$.id>($.name)"
     }
     multi method gist(Thread:D:) {
-        "Thread #$.id" ~ ($!name ne '<anon>' ?? " ($!name)" !! '')
+        my str $gist = "Thread #$.id";
+        $gist ~= " ($!name)" if $!name ne '<anon>';
+        $!app_lifetime ?? $gist !! "Immortal $gist"
     }
 
     method yield(Thread:U: --> Nil) {

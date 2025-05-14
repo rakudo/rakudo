@@ -7,6 +7,10 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         CompUnit::RepositoryRegistry.register-name($!name, self);
     }
 
+    method config() is implementation-detail {
+        $!parent.config
+    }
+
     method short-id(--> Str:D) { 'staging' }
 
     method path-spec(CompUnit::Repository::Staging:D: --> Str:D) {

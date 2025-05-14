@@ -543,6 +543,14 @@ my class IO::Path is Cool does IO {
         nqp::link($.absolute, $name.absolute);
     }
 
+    method readlink(IO::Path:D: $CWD? --> IO::Path:D) {
+        nqp::istype((my $islink := self.l),Failure)
+          ?? $islink
+          !! $islink
+            ?? self.new(nqp::readlink(self.relative), :CWD($CWD // self.parent))
+            !! self
+    }
+
     method mkdir(IO::Path:D: Int() $mode = 0o777) {
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!os-path), :$mode, os-error => .Str);

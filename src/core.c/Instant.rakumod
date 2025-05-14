@@ -15,9 +15,7 @@ my class Instant is Cool does Real {
     }
 
     method from-posix-nanos(Instant:U: Int:D $nanos --> Instant:D) {
-        my $posix = $nanos / 1000000000;
-        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
-          (Rakudo::Internals.tai-from-posix($posix,0) * 1000000000).Int)
+        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',$nanos)
     }
 
     method to-nanos(--> Int:D) {

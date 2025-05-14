@@ -2093,7 +2093,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               ?? Nodify('ColonPair', 'Number').new(
                    key   => $key,
                    value => Nodify('IntLiteral').new(
-                     $literals.intern-int(~$<num>)
+                     $literals.intern-Int(~$<num>)
                    )
                  )
               !! $<coloncircumfix>
@@ -2138,7 +2138,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<index> {
             self.attach: $/,
               Nodify('Var','PositionalCapture').new(
-                $*LITERALS.intern-int(~$<index>)
+                $*LITERALS.intern-Int(~$<index>)
               );
         }
         elsif $<postcircumfix> {
@@ -2251,7 +2251,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                  )
               !! $name eq '$?LINE'
                 ?? Nodify('Var','Compiler','Line').new(
-                     $*LITERALS.intern-int($origin-source.original-line($/.from))
+                     $*LITERALS.intern-Int($origin-source.original-line($/.from))
                    )
                 !! $name eq '$?LANG'
                   ?? Nodify('Var', 'Compiler', 'Lang').new($/)
@@ -2931,7 +2931,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Ⅼ
             if !$de || $de == 1 {
                 $attachee := Nodify('IntLiteral').new(
-                  $*LITERALS.intern-int(($*NEGATE_VALUE ?? '-' !! '') ~ $nu)
+                  $*LITERALS.intern-Int($*NEGATE_VALUE ?? "-$nu" !! $nu)
                 );
             }
 
@@ -2940,8 +2940,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $LITERALS := $*LITERALS;
                 $attachee := Nodify('RatLiteral').new(
                   $LITERALS.intern-rat(
-                    $LITERALS.intern-int(($*NEGATE_VALUE ?? '-' !! '') ~ $nu),
-                    $LITERALS.intern-int($de)
+                    $LITERALS.intern-Int($*NEGATE_VALUE ?? "-$nu" !! $nu),
+                    $LITERALS.intern-Int($de)
                   )
                 );
             }
@@ -2961,27 +2961,35 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method decint($/) {
-        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 10, -> {
-            $/.panic("'$/' is not a valid number")
-        }
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          10,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
     }
 
     method hexint($/) {
-        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 16, -> {
-            $/.panic("'$/' is not a valid number")
-        }
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          16,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
     }
 
     method octint($/) {
-        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 8, -> {
-            $/.panic("'$/' is not a valid number")
-        }
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          8,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
     }
 
     method binint($/) {
-        make $*LITERALS.intern-int: ($*NEGATE_VALUE ?? '-' !! '') ~ $/, 2, -> {
-            $/.panic("'$/' is not a valid number")
-        }
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          2,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
     }
 
     method integer($/) { make $<VALUE>.ast }
@@ -3023,13 +3031,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $<bracket> {
             $ast := Nodify('Term','RadixNumber').new:
-              :radix($literals.intern-int(~$<radix>)),
+              :radix($literals.intern-Int(~$<radix>)),
               :value($<bracket>.ast),
               :multi-part;
         }
         elsif $<circumfix> {
             $ast := Nodify('Term','RadixNumber').new:
-              :radix($literals.intern-int(~$<radix>)),
+              :radix($literals.intern-Int(~$<radix>)),
               :value($<circumfix>.ast);
         }
 
@@ -3257,7 +3265,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('ColonPair','Number').new(
               key   => $key,
               value => Nodify('IntLiteral').new(
-                         $*LITERALS.intern-int(~$<num>)
+                         $*LITERALS.intern-Int(~$<num>)
                        )
              )
           !! $<circumfix>
@@ -4248,7 +4256,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         else {
             my $LITERALS := $*LITERALS;
             my $min := $<min>
-              ?? $LITERALS.build-int(~$<min>, 10)
+              ?? $LITERALS.intern-Int(~$<min>)
               !! $LITERALS.int-type;
 
             my $max := $<max>;
@@ -4256,7 +4264,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
               ?? $min
               !! $max eq '*'
                 ?? $LITERALS.int-type
-                !! $LITERALS.build-int(~$max, 10);
+                !! $LITERALS.intern-Int(~$max);
 
             $ast := Nodify('Regex','Quantifier','Range').new(
               excludes-min => $<from> eq '^',

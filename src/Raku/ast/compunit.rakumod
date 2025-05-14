@@ -695,42 +695,42 @@ class RakuAST::LiteralBuilder {
         nqp::bindattr(self, RakuAST::LiteralBuilder, '$!resolver', $resolver);
     }
 
-    # Build an Int constant and intern it.
-    method intern-int(str $chars, int $base?, Mu $error-reporter?) {
-        my constant ZERO := nqp::box_i(0, Int);
-        my constant ONE := nqp::box_i(1, Int);
-        my constant TWO := nqp::box_i(2, Int);
-        my constant THREE := nqp::box_i(3, Int);
-        my constant FOUR := nqp::box_i(4, Int);
-        my constant FIVE := nqp::box_i(5, Int);
+    # Build a decimal Int constant and intern it
+    method intern-Int(str $source) {
+        my $lookup := $!interned-int;
 
-        # very common int for fast path.
-        return ZERO if $chars eq '0';
-        return ONE if $chars eq '1';
-        return TWO if $chars eq '2';
-        return THREE if $chars eq '3';
-        return FOUR if $chars eq '4';
-        return FIVE if $chars eq '5';
+        # Logic to reliably convert a string in a base to n Int
+        my sub build-Int() {
+            my $res := nqp::radix_I(10,$source,0,2,Int);
+            nqp::atpos($res,2) == nqp::chars($source)
+              ?? nqp::atpos($res, 0)
+              !! nqp::die("'$source' is not a valid number")
+        }
 
-        # a bit slow path
-        my $interned-int := $!interned-int;
-        return nqp::atkey($interned-int, $chars) if nqp::existskey($interned-int, $chars);
-
-        my $result := self.build-int($chars, $base // 10, $error-reporter);
-        nqp::bindkey($interned-int, $chars, $result);
-        $result
+        nqp::ifnull(
+          nqp::atkey($lookup,$source),
+          nqp::bindkey($lookup,$source,build-Int())
+        )
     }
 
-    # Build an Int constant, but do not intern it.
-    method build-int(str $source, int $base, Mu $error-reporter?) {
-        my $res := nqp::radix_I($base, $source, 0, 2, Int);
+    # Build an Int constant by any base and intern it
+    method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
+        my $res := nqp::radix_I($base,$source,0,2,Int);
 
-        unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($source)) {
-            $error-reporter ??
-                $error-reporter()
-                !! nqp::die("'$source' is not a valid number");
+        # Sucessfully converted to Int
+        if nqp::atpos($res,2) == nqp::chars($source) {
+            my $key := nqp::stringify(nqp::atpos($res,0));
+            nqp::ifnull(
+              nqp::atkey($!interned-int,$key),
+              nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))
+            )
         }
-        nqp::atpos($res, 0)
+        elsif $error-reporter {
+            $error-reporter();
+        }
+        else {
+            nqp::die("'$source' is not a valid number")
+        }
     }
 
     # Gets the type object used for Int objects
@@ -793,11 +793,11 @@ class RakuAST::LiteralBuilder {
                 $parti := $whole-part;
             }
             else {
-                $parti := self.intern-int($whole-part);
+                $parti := self.intern-Int($whole-part);
             }
         }
         else {
-            $parti := self.intern-int('0');
+            $parti := self.intern-Int('0');
         }
 
         # Now deal with the fractional part; this may also come as an Int
@@ -813,7 +813,7 @@ class RakuAST::LiteralBuilder {
             $parti := nqp::add_I($parti, $partf[0], Int);
             $partf := $base;
         } else {
-            $partf := self.intern-int('1');
+            $partf := self.intern-Int('1');
         }
 
         self.build-rat($parti, $partf)

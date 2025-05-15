@@ -2949,11 +2949,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # ∞ or other floating point value
         else {
+            my str $value := $<uinf> ?? "Inf" !! ~$/;
             $attachee := Nodify('NumLiteral').new(
-              $*LITERALS.intern-num(($*NEGATE_VALUE ?? '-' !! '') ~ ($<uinf>
-                ?? "Inf"  # ∞
-                !! ~$/    # other floating point value
-            ))
+              $*LITERALS.intern-Num($*NEGATE_VALUE ?? "-$value" !! $value)
             );
         }
 
@@ -3003,7 +3001,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method decimal-number($/) {
         if $<escale> { # wants a Num
-            self.attach: $/, Nodify('NumLiteral').new($*LITERALS.intern-num(($*NEGATE_VALUE ?? '-' !! '') ~ $/));
+            self.attach: $/, Nodify('NumLiteral').new(
+              $*LITERALS.intern-Num(($*NEGATE_VALUE ?? '-' !! '') ~ $/)
+            );
         }
         else { # wants a Rat
             my $rat;

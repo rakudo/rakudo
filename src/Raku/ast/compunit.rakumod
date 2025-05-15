@@ -737,28 +737,13 @@ class RakuAST::LiteralBuilder {
     method int-type() { Int }
 
     # Build a Num constant and intern it.
-    method intern-num(str $chars) {
-        my constant INF := nqp::box_n(nqp::numify('Inf'), Num);
-        my constant N_1E0 := nqp::box_n(nqp::numify('1e0'), Num);
-        my constant N_0E0 := nqp::box_n(nqp::numify('0e0'), Num);
-
-        # very common num for fast path.
-        return INF if $chars eq 'Inf';
-        return N_1E0 if $chars eq '1e0';
-        return N_0E0 if $chars eq '0e0';
-
-        # a bit slow path
-        my $interned-num := $!interned-num;
-        return nqp::atkey($interned-num, $chars) if nqp::existskey($interned-num, $chars);
-
-        my $result := nqp::box_n(nqp::numify($chars), Num);
-        nqp::bindkey($interned-num, $chars, $result);
-        $result
-    }
-
-    # Build a Num constant, but do not intern it.
-    method build-num(str $chars) {
-        nqp::box_n(nqp::numify($chars), Num)
+    method intern-Num(str $source) {
+        nqp::ifnull(
+          nqp::atkey($!interned-num,$source),
+          nqp::bindkey($!interned-num,$source,
+            nqp::box_n(nqp::numify($source),Num)
+          )
+        )
     }
 
     # Gets the type object used for Num objects

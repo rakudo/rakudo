@@ -1919,7 +1919,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<fatarrow>($/) {
         self.attach: $/, Nodify('FatArrow').new:
-          key   => $*LITERALS.intern-str(~$<key>),
+          key   => $*LITERALS.intern-Str(~$<key>),
           value => $<val>.ast
     }
 
@@ -2088,7 +2088,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $key-str := ~$*KEY;
         if $key-str {
             my $literals := $*LITERALS;
-            my $key := $literals.intern-str($key-str);
+            my $key := $literals.intern-Str($key-str);
             self.attach: $/, $<num>
               ?? Nodify('ColonPair', 'Number').new(
                    key   => $key,
@@ -2247,7 +2247,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $origin-source := $*ORIGIN-SOURCE;
             $ast := $name eq '$?FILE'
               ?? Nodify('Var','Compiler','File').new(
-                   $*LITERALS.intern-str($origin-source.original-file)
+                   $*LITERALS.intern-Str($origin-source.original-file)
                  )
               !! $name eq '$?LINE'
                 ?? Nodify('Var','Compiler','Line').new(
@@ -3260,7 +3260,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method quotepair($/) {
-        my $key := $*LITERALS.intern-str(~$*KEY);
+        my $key := $*LITERALS.intern-Str(~$*KEY);
         self.attach: $/, $<num>
           ?? Nodify('ColonPair','Number').new(
               key   => $key,
@@ -4054,7 +4054,7 @@ Please use $worry.";
                 # a real AST, but collected string so far
                 elsif $sofar {
                     @segments.push:
-                      $StrLiteral.new($LITERALS.intern-str($sofar));
+                      $StrLiteral.new($LITERALS.intern-Str($sofar));
                     $sofar := '';
                     @segments.push($ast);
                 }
@@ -4073,7 +4073,7 @@ Please use $worry.";
 
         # make sure we have at least an empty string in segments
         @segments.push(
-          $StrLiteral.new($LITERALS.intern-str($sofar))
+          $StrLiteral.new($LITERALS.intern-Str($sofar))
         ) if $sofar || !@segments;
 
         self.attach: $/, Nodify(
@@ -4102,7 +4102,7 @@ Please use $worry.";
           # In heredocs, we spit out a QAST::SVal here to prevent newlines
           # being taken literally and affecting the dedent.
           ?? Nodify('Heredoc','InterpolatedWhiteSpace').new(
-               $*LITERALS.intern-str($string)
+               $*LITERALS.intern-Str($string)
              )
           !! $string
     }

@@ -736,7 +736,7 @@ class RakuAST::LiteralBuilder {
     # Gets the type object used for Int objects
     method int-type() { Int }
 
-    # Build a Num constant and intern it.
+    # Build a Num constant and intern it
     method intern-Num(str $source) {
         nqp::ifnull(
           nqp::atkey($!interned-num,$source),
@@ -750,17 +750,20 @@ class RakuAST::LiteralBuilder {
     method num-type() { Num }
 
     # Build a Str constant and intern it.
-    method intern-str(str $chars) {
-        my $interned-str := $!interned-str;
-        return nqp::atkey($interned-str, $chars) if nqp::existskey($interned-str, $chars);
-        my $result := self.build-str($chars);
-        nqp::bindkey($interned-str, $chars, $result) if nqp::elems($interned-str) < 65536;
-        $result
-    }
+    method intern-Str(str $source) {
+        my $lookup := $!interned-str;
 
-    # Build a Str constant, but do not intern it.
-    method build-str(str $chars) {
-        nqp::box_s($chars, Str)
+        my sub build-and-intern-Str() {
+            my $Str := nqp::box_s($source, Str);
+            nqp::elems($lookup) < 65536
+              ?? nqp::bindkey($lookup,$source,$Str)
+              !! $Str
+        }
+
+        nqp::ifnull(
+          nqp::atkey($lookup,$source),
+          build-and-intern-Str()
+        )
     }
 
     # Build a Rat constant from whole.fraction and intern it.

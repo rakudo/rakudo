@@ -116,7 +116,7 @@ class RakuAST::Signature
                         my $param-type := $_.type.meta-object;
                         my $param-default := $_.default;
                         if nqp::istype($param-type.HOW, Perl6::Metamodel::SubsetHOW) {
-                            if ! nqp::eqaddr($param-default, RakuAST::Expression) {
+                            if $param-default =:= RakuAST::Expression {
                                 if $param-default.has-compile-time-value
                                 && ! nqp::istype((my $default-value := $param-default.maybe-compile-time-value), $param-type) {
                                     self.add-worry: $resolver.build-exception:  'X::Parameter::Default::TypeCheck',

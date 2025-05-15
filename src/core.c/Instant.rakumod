@@ -127,14 +127,14 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
 
 sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
 
-# 37 is $initial-offset from Rakudo::Internals + # of years
-# that have had leap seconds so far. Will need to be incremented
-# when new leap seconds occur.
+my int $current-offset-nanos = Rakudo::Internals.current-offset-nanos;
+
 sub term:<now>(--> Instant:D) {
-    # FIXME: During a leap second, the returned value is one
-    # second greater than it should be.
-    my int constant \tai-offset-nanos = 37 * 1000000000;
-    Instant.from-posix-nanos(nqp::add_i(nqp::time,tai-offset-nanos))
+    # A posix time in the second preceeding a positive leap second,
+    # represents two seconds in UTC time.  This ambiguity is currently
+    # resolved by returning the leap second.
+
+    Instant.from-posix-nanos( nqp::add_i(nqp::time, $current-offset-nanos))
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {

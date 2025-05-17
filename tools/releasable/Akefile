@@ -483,19 +483,20 @@ task ‘rakudo-extract’, {
 sub custom-env() {
     my %env = %*ENV;
     # TODO does it have to be absolute?
-    %env<PATH> = $RAKUDO-PATH.add(‘install/bin’).absolute
+    %env<PATH> = $RAKUDO-PATH.absolute
                  ~ ‘:’ ~ %env<PATH>;
-    %env<PATH> = $RAKUDO-PATH.add(‘install/share/perl6/site/bin’).absolute
+    %env<PATH> = $RAKUDO-PATH.add(‘gen/build_rakudo_home/site/bin’).absolute
                  ~ ‘:’ ~ %env<PATH>;
     %env<TEST_JOBS> = $THREADS;
     return %env;
 }
 
 task ‘rakudo-inline-perl5’, { # Step ⓬ (rakudo release guide)
+    run :cwd($RAKUDO-PATH), 'rakudo-m', 'tools/build/install-core-dist.raku',
+      $RAKUDO-PATH.add(‘gen/build_rakudo_home/core’).absolute;
     run :cwd($RAKUDO-PATH), <git clone>, ‘https://github.com/ugexe/zef’;
     my %env = custom-env;
-    run :cwd($RAKUDO-PATH.add: ‘zef’), :%env, <perl6 -I. bin/zef install .>;
-    run :cwd($RAKUDO-PATH), :%env, <zef install Inline::Perl5>;
+    run :cwd($RAKUDO-PATH.add: ‘zef’), :%env, <rakudo-m -I. bin/zef install Inline::Perl5>;
     True
 }
 

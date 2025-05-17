@@ -1,3 +1,24 @@
+New in 2025.05:
+
++ Improvements:
+    + Some attribute access consistency changes (#5844) [b527cefc]
+    + Allow MAIN args to reference imported names [28a1cdca][3e15093f]
+    + Immortal threads now gist as such [3b4a3358]
+
++ Additions:
+    + Initial stab at implementing IO::Path::readlink [f17a2dee]
+
++ Fixes:
+    + MoarVM GC bugfix for special unwinds (such as LEAVE phasers) [8d8f7316]
+    + Remove type specification by name in Parameter constructor [11be008b]
+
++ Internal:
+    + Release Engineering improvements in docs, tooling [298fed53][cd4c360a][227f04b2]
+
++ RakuAST Development:
+    + RakuAST: Implement interning of literals [2236c802][56d327d0][1758c96f][60803fae]
+    + Testing that a submethod can access an attribute [f453670f]
+
 New in 2025.04:
 
 + Improvements:

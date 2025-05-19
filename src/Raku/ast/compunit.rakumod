@@ -717,9 +717,9 @@ class RakuAST::LiteralBuilder {
     method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
         my $res := nqp::radix_I($base,$source,0,2,Int);
 
-        # Sucessfully converted to Int
+        # Successfully converted to Int
         if nqp::atpos($res,2) == nqp::chars($source) {
-            my $key := nqp::stringify(nqp::atpos($res,0));
+            my $key := $base == 10 ?? $source !! "$base:$source";
             nqp::ifnull(
               nqp::atkey($!interned-int,$key),
               nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))

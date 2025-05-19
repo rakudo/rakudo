@@ -342,7 +342,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         nqp::unless(nqp::isconcrete($!walker), ($!walker := CtxWalker.new(self)));
         return 0 if $!walker.exhausted;
 
-        my Mu $mode := nqp::getattr(self, PseudoStash6c, '$!mode');
+        my int $mode = nqp::getattr_i(self, PseudoStash6c, '$!mode');
         my Mu $found := 0;
         nqp::while(
             ((my $ctx-info := $!walker.next-ctx) && !$found),

@@ -2975,7 +2975,7 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
           ?? $!value.Str
           !! $!value.raku;
         my $val = "Cannot assign a literal of type $.valuetype ($value) to
-        a { "native" if $.native } variable of type $vartype. You can declare
+        a { "native" if $.native } variable ($.varname) of type $vartype. You can declare
         the variable to be of type $.suggestiontype, or try to coerce the
         value with $value.$conversionmethod or $conversionmethod\($value\)";
         try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;

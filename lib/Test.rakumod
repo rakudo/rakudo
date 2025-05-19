@@ -641,7 +641,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
                         my $got is default(Nil) = $ex."$k"();
-                        my $ok = $got ~~ $v,;
+                        my $ok = $got ~~ $v;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
                             _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.raku)

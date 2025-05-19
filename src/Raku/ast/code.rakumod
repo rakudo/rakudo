@@ -2397,35 +2397,44 @@ class RakuAST::Sub
             $has-post-constraints := 1 if $_.constraint_list;
         }
 
-        my @seen-accepts;
-        for $proto.dispatchees {
-            last if $_.can("default");
-            next if $_ =:= $meta;
+        # If there is a revision gated proto, we don't want to worry about throwing
+        # re-declaration exceptions. Otherwise, crawl the candidates and ensure that
+        # none of them double up.
+        #
+        # TODO: Make this handle the case of clashing revision gated candidates
+        # TODO: rather than simply ignore the check for revision gating as is
+        # TODO: currently done.
+        if !(nqp::can($proto, 'REQUIRED-REVISION') && $proto.REQUIRED-REVISION) {
+            my @seen-accepts;
+            for $proto.dispatchees {
+                last if $_.can("default");
+                next if $_ =:= $meta;
 
-            my $other-signature := $_.signature;
-            next unless $signature.arity == $other-signature.arity;
+                my $other-signature := $_.signature;
+                next unless $signature.arity == $other-signature.arity;
 
-            my $other-has-post-constraints;
-            for self.IMPL-UNWRAP-LIST($other-signature.params) {
-                $other-has-post-constraints := 1 if $_.constraint_list
-            }
-
-            @seen-accepts.push($_)
-                if !($has-post-constraints || $other-has-post-constraints)
-                        && (try $other-signature.ACCEPTS($signature) && try $signature.ACCEPTS($other-signature));
-
-            if @seen-accepts > 0 {
-                my %args;
-                if my $origin := self.origin {
-                    my $origin-match := self.origin.as-match;
-                    %args<filename>  := $origin-match.file;
-                    %args<line>      := $origin-match.line
+                my $other-has-post-constraints;
+                for self.IMPL-UNWRAP-LIST($other-signature.params) {
+                    $other-has-post-constraints := 1 if $_.constraint_list
                 }
-                self.add-worry: $resolver.build-exception:
-                        'X::Redeclaration::Multi',
-                        :symbol(self.name.canonicalize),
-                        :ambiguous(@seen-accepts),
-                        |%args;
+
+                @seen-accepts.push($_)
+                    if !($has-post-constraints || $other-has-post-constraints)
+                            && (try $other-signature.ACCEPTS($signature) && try $signature.ACCEPTS($other-signature));
+
+                if @seen-accepts > 0 {
+                    my %args;
+                    if my $origin := self.origin {
+                        my $origin-match := self.origin.as-match;
+                        %args<filename>   := $origin-match.file;
+                        %args<line> := $origin-match.line
+                    }
+                    self.add-worry: $resolver.build-exception:
+                            'X::Redeclaration::Multi',
+                            :symbol(self.name.canonicalize),
+                            :ambiguous(@seen-accepts),
+                            |%args;
+                }
             }
         }
     }

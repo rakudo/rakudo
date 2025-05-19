@@ -134,7 +134,12 @@ class RakuAST::Package
             }
         }
         elsif $!name {
-            my $resolved := $resolver.resolve-name-constant($!name, :current-scope-only(self.scope eq 'my'));
+            my $full-name := self.IMPL-FULL-NAME($resolver);
+            # First try to find it using the fully qualified name
+            my $resolved := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
+            # If not found try locally using just the declared name
+            $resolved := $resolver.resolve-name-constant($!name, :current-scope-only)
+                unless nqp::isconcrete($resolved);
             if $resolved {
                 my $meta := $resolved.compile-time-value;
                 my $how  := $meta.HOW;
@@ -164,6 +169,18 @@ class RakuAST::Package
         $package
     }
 
+    method IMPL-FULL-NAME($resolver) {
+        my $name := $!name;
+        my $current := $resolver.current-package;
+        my $full-name := nqp::eqaddr($current,$resolver.get-global)
+            ?? $name.is-global-lookup ?? $name.without-first-part !! $name
+            !! $name.qualified-with(
+                RakuAST::Name.from-identifier-parts(
+                    |nqp::split('::', $current.HOW.name($current))
+                )
+            );
+    }
+
     method ensure-installed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!installed {
             nqp::bindattr(self, RakuAST::Package, '$!installed', True);
@@ -174,14 +191,7 @@ class RakuAST::Package
             my $name := $!name;
             if $name && !$name.is-empty && !$name.is-anonymous {
                 my $type-object := self.stubbed-meta-object;
-                my $current     := $resolver.current-package;
-                my $full-name   := nqp::eqaddr($current,$resolver.get-global)
-                  ?? $name.is-global-lookup ?? $name.without-first-part !! $name
-                  !! $name.qualified-with(
-                       RakuAST::Name.from-identifier-parts(
-                         |nqp::split('::', $current.HOW.name($current))
-                        )
-                     );
+                my $full-name := self.IMPL-FULL-NAME($resolver);
                 $type-object.HOW.set_name(
                     $type-object,
                     $full-name.canonicalize(:colonpairs(0))

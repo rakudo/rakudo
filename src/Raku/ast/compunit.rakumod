@@ -677,10 +677,17 @@ class RakuAST::LiteralBuilder {
     has int $!has-cached-rat;
     has Mu $!cached-complex;
     has int $!has-cached-complex;
+    has Mu $!interned-int;
+    has Mu $!interned-num;
+    has Mu $!interned-str;
 
     method new(RakuAST::Resolver :$resolver) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!resolver', $resolver) if $resolver;
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-int', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-num', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-str', nqp::hash);
+
         $obj
     }
 
@@ -688,49 +695,75 @@ class RakuAST::LiteralBuilder {
         nqp::bindattr(self, RakuAST::LiteralBuilder, '$!resolver', $resolver);
     }
 
-    # Build an Int constant and intern it.
-    method intern-int(str $chars, int $base?, Mu $error-reporter?) {
-        # TODO interning
-        self.build-int($chars, $base // 10, $error-reporter)
+    # Build a decimal Int constant and intern it
+    method intern-Int(str $source) {
+        my $lookup := $!interned-int;
+
+        # Logic to reliably convert a string in a base to n Int
+        my sub build-Int() {
+            my $res := nqp::radix_I(10,$source,0,2,Int);
+            nqp::atpos($res,2) == nqp::chars($source)
+              ?? nqp::atpos($res, 0)
+              !! nqp::die("'$source' is not a valid number")
+        }
+
+        nqp::ifnull(
+          nqp::atkey($lookup,$source),
+          nqp::bindkey($lookup,$source,build-Int())
+        )
     }
 
-    # Build an Int constant, but do not intern it.
-    method build-int(str $source, int $base, Mu $error-reporter?) {
-        my $res := nqp::radix_I($base, $source, 0, 2, Int);
-        unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($source)) {
-            $error-reporter ??
-                $error-reporter()
-                !! nqp::die("'$source' is not a valid number");
+    # Build an Int constant by any base and intern it
+    method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
+        my $res := nqp::radix_I($base,$source,0,2,Int);
+
+        # Sucessfully converted to Int
+        if nqp::atpos($res,2) == nqp::chars($source) {
+            my $key := nqp::stringify(nqp::atpos($res,0));
+            nqp::ifnull(
+              nqp::atkey($!interned-int,$key),
+              nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))
+            )
         }
-        nqp::atpos($res, 0)
+        elsif $error-reporter {
+            $error-reporter();
+        }
+        else {
+            nqp::die("'$source' is not a valid number")
+        }
     }
 
     # Gets the type object used for Int objects
     method int-type() { Int }
 
-    # Build a Num constant and intern it.
-    method intern-num(str $chars) {
-        # TODO interning
-        self.build-num($chars)
-    }
-
-    # Build a Num constant, but do not intern it.
-    method build-num(str $chars) {
-        nqp::box_n(nqp::numify($chars), Num)
+    # Build a Num constant and intern it
+    method intern-Num(str $source) {
+        nqp::ifnull(
+          nqp::atkey($!interned-num,$source),
+          nqp::bindkey($!interned-num,$source,
+            nqp::box_n(nqp::numify($source),Num)
+          )
+        )
     }
 
     # Gets the type object used for Num objects
     method num-type() { Num }
 
     # Build a Str constant and intern it.
-    method intern-str(str $chars) {
-        # TODO interning
-        self.build-str($chars)
-    }
+    method intern-Str(str $source) {
+        my $lookup := $!interned-str;
 
-    # Build a Str constant, but do not intern it.
-    method build-str(str $chars) {
-        nqp::box_s($chars, Str)
+        my sub build-and-intern-Str() {
+            my $Str := nqp::box_s($source, Str);
+            nqp::elems($lookup) < 65536
+              ?? nqp::bindkey($lookup,$source,$Str)
+              !! $Str
+        }
+
+        nqp::ifnull(
+          nqp::atkey($lookup,$source),
+          build-and-intern-Str()
+        )
     }
 
     # Build a Rat constant from whole.fraction and intern it.
@@ -748,11 +781,11 @@ class RakuAST::LiteralBuilder {
                 $parti := $whole-part;
             }
             else {
-                $parti := self.intern-int($whole-part);
+                $parti := self.intern-Int($whole-part);
             }
         }
         else {
-            $parti := self.intern-int('0');
+            $parti := self.intern-Int('0');
         }
 
         # Now deal with the fractional part; this may also come as an Int
@@ -768,7 +801,7 @@ class RakuAST::LiteralBuilder {
             $parti := nqp::add_I($parti, $partf[0], Int);
             $partf := $base;
         } else {
-            $partf := self.intern-int('1');
+            $partf := self.intern-Int('1');
         }
 
         self.build-rat($parti, $partf)

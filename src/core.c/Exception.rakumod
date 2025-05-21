@@ -903,11 +903,8 @@ my role X::Comp is Exception {
         }
     }
 
-    method at-line(*@src-lines, :$filename is copy) {
+    method at-line(*@lines, :$filename is copy) {
         my $fn = $.directive-filename // $.filename;
-
-        my @lines = @src-lines.grep(Int:D);
-        return "at line <anon>" unless @lines;
 
         # If $filename is specified and is different from $fn then the message is about a "long" location crossing a
         # #line directive. Most typical it would be an unclosed brace or a quote starting before the directive.

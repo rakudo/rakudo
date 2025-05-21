@@ -3481,6 +3481,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $parameter.set-signature-constraint($signature);
         }
+
+        self.SET-NODE-ORIGIN($/, $parameter);
+
         # Leave the exact time of Parameter's BEGIN to the signature
         make $parameter;
     }

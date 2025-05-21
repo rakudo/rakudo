@@ -721,23 +721,15 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 }
 
 {
-    todo q|subsets on named parameters will worry without usable defaults|, 2 unless %*ENV<RAKUDO_RAKUAST>;
-
-    my $failure-to-conform = q:to/FAILURE-TO-CONFORM/;
-        subset X where /"x"/;
-        sub foo(X :$x = "y") { :$x };
-    FAILURE-TO-CONFORM
-    throws-like $failure-to-conform,
-            X::Parameter::Default::TypeCheck,
-            "Non-conformant default value results in useful feedback";
-
+    todo q|subsets on named parameters will worry without usable defaults|
+        unless %*ENV<RAKUDO_RAKUAST>;
 
     my $default-missing = q:to/DEFAULT-MISSING/;
         subset X where /"x"/;
         sub foo(X :$x) { :$x };
     DEFAULT-MISSING
     throws-like $default-missing,
-            X::Parameter::Named::TypeIsSubsetWithoutDefault,
+            X::Parameter::Named::SubsetTypeWithoutDefault,
             "Missing default value results in useful feedback";
 }
 

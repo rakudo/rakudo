@@ -725,12 +725,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         unless %*ENV<RAKUDO_RAKUAST>;
 
     my $default-missing = q:to/DEFAULT-MISSING/;
+        use fatal;
         subset X where /"x"/;
         sub foo(X :$x) { :$x };
     DEFAULT-MISSING
     throws-like $default-missing,
-            X::Parameter::Named::SubsetTypeWithoutDefault,
-            "Missing default value results in useful feedback";
+                X::Parameter::Named::SubsetTypeWithoutDefault,
+                "Missing default value results in useful feedback";
 }
 
 # https://irclogs.raku.org/raku-dev/2025-05-22.html#09:32

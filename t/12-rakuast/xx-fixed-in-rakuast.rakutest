@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 107;
+plan 108;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -731,6 +731,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     throws-like $default-missing,
             X::Parameter::Named::SubsetTypeWithoutDefault,
             "Missing default value results in useful feedback";
+}
+
+# https://irclogs.raku.org/raku-dev/2025-05-22.html#09:32
+{
+    is-deeply (run $*EXECUTABLE, '-e', 'dd infix:<,>(42)', :err).err.slurp,
+      "(42,)\n",
+      'no special quasting for infix:<,>(1)';
 }
 
 # vim: expandtab shiftwidth=4

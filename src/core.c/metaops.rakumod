@@ -476,47 +476,26 @@ multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     my class TriangleList does Iterator {
         has $!operator;
         has $!iterator;
-        has $!result;
         has $!args;
 
         method SET-SELF($operator, \values) {
-            my $iterator := values.iterator;
-            my $value    := $iterator.pull-one;
-            if nqp::eqaddr($value,IterationEnd) {
-                Rakudo::Iterator.Empty
-            }
-            else {
-                $!operator := $operator;
-                $!iterator := $iterator;
-                nqp::push(
-                  ($!args   := nqp::create(IterationBuffer)),
-                  ($!result := $operator($value))
-                );
-                self
-            }
+            $!iterator := values.iterator;
+            $!operator := $operator<>;
+            $!args     := nqp::create(IterationBuffer);
+            self
         }
 
         method pull-one() {
-            my $result := $!result;
-
             my $value := $!iterator.pull-one;
-            $!result := nqp::if(
-              nqp::eqaddr($value,IterationEnd),
-              IterationEnd,
-              nqp::stmts(
-                nqp::push($!args,$value),
-                nqp::if(
-                  nqp::eqaddr(
-                    ($value := $!operator(|$!args.List)),
-                    Empty
-                  ),
-                  IterationEnd,
-                  $value
-                )
-              )
-            );
-
-            $result
+            if nqp::eqaddr($value,IterationEnd) {
+                IterationEnd
+            }
+            else {
+                nqp::push($!args,$value);
+                nqp::eqaddr(($value := $!operator(|$!args.List)),Empty)
+                  ?? IterationEnd
+                  !! $value
+            }
         }
 
         method is-lazy() { $!iterator.is-lazy }

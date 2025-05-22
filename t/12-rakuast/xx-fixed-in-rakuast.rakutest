@@ -735,6 +735,8 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://irclogs.raku.org/raku-dev/2025-05-22.html#09:32
 {
+    todo "improper QASTing of infix:<,>(42) to just 42"
+        unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (run $*EXECUTABLE, '-e', 'dd infix:<,>(42)', :err).err.slurp,
       "(42,)\n",
       'no special quasting for infix:<,>(1)';

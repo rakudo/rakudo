@@ -375,6 +375,12 @@ release artifacts.
 
 =item 9.
 
+Notify the docs team (#raku-doc on IRC) that they can now create their documentation
+checklist for the release. (Eventually we want the documentation changes to go live 
+with the release, not be started immediately after.)
+
+=item 10.
+
 Don’t send out any announcements until the files are actually available
 per step 8 above.
 
@@ -391,11 +397,11 @@ Run this to get rakudo.org to pickup the changes:
 
 ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
 
-=item 10.
+=item 11.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 11.
+=item 12.
 
 You’re done! Celebrate with the appropriate amount of fun.
 

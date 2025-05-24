@@ -63,6 +63,16 @@ role Raku::Common {
         $key eq 'D' || $key eq 'U' || $key eq '_'
     }
 
+    # Control special functionality associated with rx adverbs, also in
+    # natural slangs
+    method adverb-rx2str-control(str $key) {
+        my str $translated := self.adverb-rx2str($key);
+        if $translated eq 's' {
+            try $*WHITESPACE-OK := 1;
+        }
+        $translated
+    }
+
     # Helper method to see whether the string of the given node does not
     # have any (hidden) synthetics.  Go over each character in the string
     # and check $ch.chr eq $ch.ord.chr to fail any matches that have
@@ -4827,7 +4837,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             for $<quotepair> {
                 my $ast := $_.ast;
-                $ast.set-key(self.adverb-rx2str($ast.key));
+                $ast.set-key(self.adverb-rx2str-control($ast.key));
             }
         }
     }
@@ -6511,7 +6521,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*MODIFIER;
         {
             $*NEGATED := $<n>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
-            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str(~$<modifier>);
+            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str-control(~$<modifier>);
         }
     }
 

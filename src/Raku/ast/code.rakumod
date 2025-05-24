@@ -1371,14 +1371,14 @@ class RakuAST::Block
         if $!fresh-exception {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
         }
-        self.IMPL-WRAP-LIST(@implicit)
+        @implicit
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
-        ])
+        ]
     }
 
     method IMPL-FATALIZE() {
@@ -1713,10 +1713,10 @@ class RakuAST::PointyBlock
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
-        ])
+        ]
     }
 
     method IMPL-FATALIZE() {
@@ -1876,10 +1876,10 @@ class RakuAST::Routine
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
-        ])
+        ]
     }
 
     method IMPL-FATALIZE() {
@@ -2025,11 +2025,11 @@ class RakuAST::Routine
                         :scope<my>,
                         :name(self.name),
                         :signature(RakuAST::Signature.new(
-                            :parameters(self.IMPL-WRAP-LIST([
+                            :parameters([
                                 RakuAST::Parameter.new(
                                     :slurpy(RakuAST::Parameter::Slurpy::Capture),
                                 )
-                            ])),
+                            ]),
                         )),
                         :body(RakuAST::OnlyStar.new),
                         :multiness<proto>,
@@ -2114,7 +2114,7 @@ class RakuAST::Routine
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Routine.new()) if $!need-routine-variable;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Cursor.new()); #TODO maybe we can rule out cases where we don't need it
-        self.IMPL-WRAP-LIST(@declarations)
+        @declarations
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -2852,7 +2852,7 @@ class RakuAST::RegexDeclaration
         ];
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Routine.new())
             if nqp::getattr(self, RakuAST::Routine, '$!need-routine-variable');
-        self.IMPL-WRAP-LIST(@declarations)
+        @declarations
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
@@ -2975,7 +2975,7 @@ class RakuAST::QuotedMatchConstruct
             }
         }
         nqp::bindattr(self, RakuAST::QuotedMatchConstruct, '$!adverbs',
-            self.IMPL-WRAP-LIST(@checked-adverbs));
+            @checked-adverbs);
         Nil
     }
 
@@ -3082,13 +3082,13 @@ class RakuAST::QuotedRegex
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('$_'),
             RakuAST::Var::Lexical.new('$/'),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
                 'Rakudo', 'Internals', 'RegexBoolification6cMarker'
             ))
-        ])
+        ]
     }
 
     method IMPL-IS-IMMEDIATE-MATCH-ADVERB(str $norm-adverb) {
@@ -3229,11 +3229,11 @@ class RakuAST::Substitution
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('$_'),
             RakuAST::Var::Lexical.new('$/'),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional')),
-        ])
+        ]
     }
 
     method IMPL-IS-SUBST-MATCH-ADVERB(str $norm-adverb) {
@@ -3492,10 +3492,10 @@ class RakuAST::Transliteration
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('StrDistance')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -3618,9 +3618,9 @@ class RakuAST::CurryThunk
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('WhateverCode'))
-        ])
+        ]
     }
 
     method IMPL-NUM-PARAMS() {
@@ -3657,10 +3657,10 @@ class RakuAST::BlockThunk
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::VarDeclaration::Implicit::BlockTopic.new:
                 parameter => self.signature ?? False !! True
-        ]);
+        ];
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {

@@ -569,7 +569,7 @@ class RakuAST::ImplicitDeclarations
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-declarations and handle the caching themselves.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST(nqp::list())
+        []
     }
 
     # Get a list of the implicit declarations.
@@ -955,16 +955,16 @@ class RakuAST::ImplicitLookups
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-lookups and handle the caching themselves.
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST(nqp::list())
+        []
     }
 
     # Get a list of the implicit lookups.
     method get-implicit-lookups() {
-        nqp::isconcrete(self)
+        self.IMPL-WRAP-LIST(nqp::isconcrete(self)
             ?? $!implicit-lookups-cache //
                 nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
                     self.PRODUCE-IMPLICIT-LOOKUPS())
-            !! self.IMPL-WRAP-LIST([])
+            !! [])
     }
 
     # Drive the implicit lookups to their begin time.

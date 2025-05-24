@@ -115,9 +115,9 @@ class RakuAST::Trait
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical::Constant.new('&trait_mod:<' ~ self.IMPL-TRAIT-NAME() ~ '>')
-        ])
+        ]
     }
 
     # Checks if this trait has been applied already.

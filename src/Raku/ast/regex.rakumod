@@ -410,9 +410,9 @@ class RakuAST::Regex::CapturingGroup
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::VarDeclaration::Implicit::RegexCapture.new,
-        ])
+        ]
     }
 
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -430,7 +430,7 @@ class RakuAST::Regex::CapturingGroup
         self.IMPL-LINK-META-OBJECT($context, $block);
         QAST::Stmts.new(
             $block,
-            self.get-implicit-declarations().AT-POS(0).IMPL-BIND-QAST($context,
+            self.get-implicit-declarations()[0].IMPL-BIND-QAST($context,
                 self.IMPL-CLOSURE-QAST($context) ),
         )
     }
@@ -440,7 +440,7 @@ class RakuAST::Regex::CapturingGroup
         nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
         QAST::Regex.new(
             :rxtype('subrule'), :subtype('capture'),
-            QAST::NodeList.new(self.get-implicit-declarations().AT-POS(0).IMPL-LOOKUP-QAST($context)),
+            QAST::NodeList.new(self.get-implicit-declarations()[0].IMPL-LOOKUP-QAST($context)),
             $body-qast
         )
     }
@@ -1010,9 +1010,9 @@ class RakuAST::Regex::Interpolation
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-        ])
+        ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1058,7 +1058,7 @@ class RakuAST::Regex::Interpolation
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new(
                     :op<callmethod>, :name<new>,
-                   self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+                   self.get-implicit-lookups[0].IMPL-TO-QAST($context)
                 )
     }
 
@@ -1150,17 +1150,17 @@ class RakuAST::Regex::Assertion::Named
         # A call like <foo> will look for <&foo> and only then do <.foo>
         # (but in both cases it captures).
         if $!capturing && $!name.is-identifier {
-            self.IMPL-WRAP-LIST: [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
+            [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
         }
         else {
             if $!name.is-identifier || $!name.is-indirect-lookup && !$!name.is-multi-part {
-                self.IMPL-WRAP-LIST: []
+                []
             }
             else {
                 my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
                 my @package-parts := nqp::slice(@parts, 0, nqp::elems(@parts) - 2);
                 my $package-name := RakuAST::Name.new(|@package-parts);
-                self.IMPL-WRAP-LIST: [RakuAST::Type::Simple.new($package-name)]
+                [RakuAST::Type::Simple.new($package-name)]
             }
         }
     }
@@ -1179,11 +1179,11 @@ class RakuAST::Regex::Assertion::Named
             else {
                 my $lookups := self.get-implicit-lookups;
                 my $qast;
-                if $lookups.elems && (my $lookup := $lookups.AT-POS(0)).is-resolved
+                if nqp::elems($lookups) && (my $lookup := $lookups[0]).is-resolved
                     && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
                     && nqp::istype($resolution.compile-time-value, Regex)
                 {
-                    my $var-qast := $lookups.AT-POS(0).IMPL-TO-QAST($context);
+                    my $var-qast := $lookups[0].IMPL-TO-QAST($context);
                     $var-qast.annotate('coderef', $resolution.compile-time-value);
                     $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
                         QAST::NodeList.new: $var-qast;
@@ -1213,7 +1213,7 @@ class RakuAST::Regex::Assertion::Named
             $sub-name.set-colonpairs(@pairs);
 
             my $lookups := self.get-implicit-lookups;
-            my $package := $lookups.AT-POS(0).meta-object;
+            my $package := $lookups[0].meta-object;
             $context.ensure-sc($package);
             my $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
                 QAST::NodeList.new:
@@ -1445,9 +1445,9 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-        ])
+        ]
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
@@ -1456,7 +1456,7 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
           %mods,
           self.IMPL-REGEX-BLOCK-CALL($context, $!block),
           $!sequential,
-          self.get-implicit-lookups.AT-POS(0)
+          self.get-implicit-lookups[0]
         )
     }
 
@@ -1485,9 +1485,9 @@ class RakuAST::Regex::Assertion::InterpolatedVar
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-        ])
+        ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1503,7 +1503,7 @@ class RakuAST::Regex::Assertion::InterpolatedVar
           %mods,
           $!var.IMPL-TO-QAST($context),
           $!sequential,
-          self.get-implicit-lookups.AT-POS(0)
+          self.get-implicit-lookups[0]
         )
     }
 

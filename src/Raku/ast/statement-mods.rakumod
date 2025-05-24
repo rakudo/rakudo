@@ -27,9 +27,9 @@ class RakuAST::StatementModifier::Condition
   is RakuAST::ImplicitLookups
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))
-        ])
+        ]
     }
 
     method IMPL-EMPTY(RakuAST::IMPL::QASTContext $context) {
@@ -216,10 +216,10 @@ class RakuAST::StatementModifier::WhileUntil
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
-        ])
+        ]
     }
 
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block) {

@@ -35,10 +35,12 @@ class RakuAST::Expression
         nqp::findmethod(RakuAST::Node, 'apply-sink')(self, $is-sunk);
     }
 
-    method add-sunk-worry(RakuAST::Resolver $resolver, $what) {
-        my $payload := "Useless use of $what in sink context";
-        $payload := $payload ~ " (use Nil instead to suppress this warning)" if $!okifnil;
-        self.add-worry: $resolver.build-exception: 'X::AdHoc', :$payload;
+    method add-sunk-worry(RakuAST::Resolver $resolver, str $what) {
+        if $what ne '==>' && $what ne '<==' {
+            my $payload := "Useless use of $what in sink context";
+            $payload := $payload ~ " (use Nil instead to suppress this warning)" if $!okifnil;
+            self.add-worry: $resolver.build-exception: 'X::AdHoc', :$payload;
+        }
     }
 
     method dump-extras(int $indent) {

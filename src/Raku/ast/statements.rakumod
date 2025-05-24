@@ -34,9 +34,9 @@ class RakuAST::Label
     method lexical-name() { $!name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Label')),
-        ])
+        ]
     }
 
     method PRODUCE-META-OBJECT() {
@@ -319,10 +319,10 @@ class RakuAST::StatementList
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
@@ -474,9 +474,9 @@ class RakuAST::SemiList
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('&infix:<,>'),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -527,9 +527,9 @@ class RakuAST::StatementSequence
   is RakuAST::Contextualizable
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('&infix:<,>'),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -563,9 +563,9 @@ class RakuAST::ProducesNil
   is RakuAST::ImplicitLookups
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -855,7 +855,7 @@ class RakuAST::Statement::IfWith
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST: $!else
+        $!else
             ?? []
             !! [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))]
     }
@@ -996,9 +996,9 @@ class RakuAST::Statement::Unless
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1050,9 +1050,9 @@ class RakuAST::Statement::Without
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1135,10 +1135,10 @@ class RakuAST::Statement::Loop
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
-        ])
+        ]
     }
 
     method IMPL-DISCARD-RESULT() {
@@ -1477,9 +1477,9 @@ class RakuAST::Statement::When
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('$_'),
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1978,9 +1978,9 @@ class RakuAST::Statement::Import
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
-        ])
+        ]
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2037,7 +2037,7 @@ class RakuAST::Statement::Require
         my @lookups;
         nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')));
         nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')));
-        self.IMPL-WRAP-LIST(@lookups)
+        @lookups
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2064,7 +2064,7 @@ class RakuAST::Statement::Require
         }
 
         if $!module-name && !$!module-name.is-indirect-lookup() {
-            my $top := $!module-name.parts.AT-POS(0);
+            my $top := self.IMPL-UNWRAP-LIST($!module-name.parts)[0];
             my $resolved := $resolver.resolve-name(RakuAST::Name.new($top));
             nqp::bindattr(self, RakuAST::Statement::Require, '$!existing-lookup', $resolved);
 

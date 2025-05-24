@@ -332,9 +332,9 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Variable')),
-        ])
+        ]
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -398,12 +398,12 @@ class RakuAST::VarDeclaration::Constant
 
     method lexical-name()   { $!name }
     method default-scope()  { 'our'   }
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+    method allowed-scopes() { ['my', 'our'] }
     method is-simple-lexical-declaration() { True }
     method needs-sink-call() { False }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             self.sigil eq '@'
                 ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional'))
                 !! self.sigil eq '%'
@@ -414,7 +414,7 @@ class RakuAST::VarDeclaration::Constant
                             ?? $!type
                             !! nqp::null,
 
-        ])
+        ]
     }
 
     method visit-children(Code $visitor) {
@@ -760,7 +760,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
+        ['my', 'state', 'our', 'has', 'HAS']
     }
 
     method is-lexical() {
@@ -903,7 +903,7 @@ class RakuAST::VarDeclaration::Simple
         }
 
         # Apply any traits.
-        self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
+        self.set-traits(@late-traits);
 
         if self.is-attribute {
             if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {
@@ -1217,7 +1217,7 @@ class RakuAST::VarDeclaration::Simple
             )
         );
 
-        self.IMPL-WRAP-LIST(@lookups)
+        @lookups
     }
 
     method IMPL-SIGIL-TYPE() {
@@ -1646,7 +1646,7 @@ class RakuAST::VarDeclaration::Signature
     }
 
     method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
+        ['my', 'state', 'our', 'has', 'HAS']
     }
 
     method is-simple-lexical-declaration() {
@@ -1675,7 +1675,7 @@ class RakuAST::VarDeclaration::Signature
         if $scope eq 'has' || $scope eq 'HAS' {
             @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
         }
-        self.IMPL-WRAP-LIST(@lookups)
+        @lookups
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1870,7 +1870,7 @@ class RakuAST::VarDeclaration::Anonymous
     }
 
     method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'state'])
+        ['my', 'state']
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2053,7 +2053,7 @@ class RakuAST::VarDeclaration::Term
 
     method default-scope() { 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+    method allowed-scopes() { ['my'] }
 
     method needs-sink-call() { False }
 
@@ -2429,10 +2429,9 @@ class RakuAST::VarDeclaration::Implicit::State
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := $!init-to-zero ?? [
+        $!init-to-zero ?? [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int'))
         ] !! [];
-        self.IMPL-WRAP-LIST(@lookups)
     }
 
     method PRODUCE-META-OBJECT() {

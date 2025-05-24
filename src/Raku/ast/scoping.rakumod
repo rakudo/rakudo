@@ -569,7 +569,7 @@ class RakuAST::ImplicitDeclarations
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-declarations and handle the caching themselves.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST(nqp::list())
+        []
     }
 
     # Get a list of the implicit declarations.
@@ -612,7 +612,7 @@ class RakuAST::Declaration::External
 
     method default-scope() { 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+    method allowed-scopes() { ['my'] }
 
     method generate-lookup() {
         my $lookup := RakuAST::Var::Lexical.new($!lexical-name);
@@ -862,7 +862,7 @@ class RakuAST::Declaration::ResolvedConstant
 
     method default-scope() { 'package' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['package']) }
+    method allowed-scopes() { ['package'] }
 
     method IMPL-CAN-INTERPRET() {
         True
@@ -955,7 +955,7 @@ class RakuAST::ImplicitLookups
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-lookups and handle the caching themselves.
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST(nqp::list())
+        []
     }
 
     # Get a list of the implicit lookups.
@@ -964,7 +964,7 @@ class RakuAST::ImplicitLookups
             ?? $!implicit-lookups-cache //
                 nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
                     self.PRODUCE-IMPLICIT-LOOKUPS())
-            !! self.IMPL-WRAP-LIST([])
+            !! []
     }
 
     # Drive the implicit lookups to their begin time.

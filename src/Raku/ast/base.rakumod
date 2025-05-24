@@ -262,7 +262,7 @@ class RakuAST::Node {
         while @visit-queue {
             nqp::shift(@visit-queue).visit-children($collector);
         }
-        self.IMPL-WRAP-LIST(@result)
+        @result
     }
 
     # Recursively walks the tree finding nodes of the specified type that are
@@ -299,7 +299,7 @@ class RakuAST::Node {
         while @visit-queue {
             nqp::shift(@visit-queue).visit-children($collector);
         }
-        self.IMPL-WRAP-LIST(@result)
+        @result
     }
 
     # Visit the AST starting at the current node. Call the callback for each

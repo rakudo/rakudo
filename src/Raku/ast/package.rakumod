@@ -72,7 +72,7 @@ class RakuAST::Package
     method dba()         { "package"             }
     method default-how() { Metamodel::PackageHOW }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['augment', 'my', 'our', 'unit']) }
+    method allowed-scopes() { ['augment', 'my', 'our', 'unit'] }
     method default-scope()       { 'our' }
     method can-have-methods()    { False }
     method can-have-attributes() { False }
@@ -158,7 +158,7 @@ class RakuAST::Package
         nqp::bindattr(self, RakuAST::Package, '$!compiler-services', RakuAST::CompilerServices.new(self, $resolver, $context));
     }
 
-    method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
+    method attach-target-names() { ['package', 'also'] }
 
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
         $type-object := self.stubbed-meta-object if nqp::eqaddr($type-object, Mu);
@@ -250,7 +250,7 @@ class RakuAST::Package
         { # Should be replaced by now
             self.add-sorry:
                 $resolver.build-exception: 'X::Package::Stubbed',
-                    packages => self.IMPL-WRAP-LIST([$!name.canonicalize]);
+                    packages => [$!name.canonicalize];
         }
 
         if self.is-resolved && $!repr {
@@ -505,7 +505,7 @@ class RakuAST::Role
 
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
-    method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
+    method attach-target-names() { ['package', 'also', 'generics-pad'] }
 
     method replace-body(RakuAST::Code $role-body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization

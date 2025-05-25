@@ -1997,7 +1997,7 @@ class RakuAST::Statement::Import
             !! Nil;
 
         my $module := self.resolution.compile-time-value;
-        my $CompUnitHandle := self.get-implicit-lookups().AT-POS(0).compile-time-value;
+        my $CompUnitHandle := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].compile-time-value;
         my $handle := $CompUnitHandle.from-unit($module.WHO);
         self.IMPL-IMPORT($resolver, $handle, $arglist, :module($!module-name.canonicalize));
         self.IMPL-IMPORT-EXPORTHOW($resolver, $handle);
@@ -2103,9 +2103,9 @@ class RakuAST::Statement::Require
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups := self.get-implicit-lookups;
-        my $depspec  := $lookups.AT-POS(0).compile-time-value;
-        my $registry := $lookups.AT-POS(1).compile-time-value;
+        my $lookups  := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $depspec  := $lookups[0].compile-time-value;
+        my $registry := $lookups[1].compile-time-value;
 
         my $compunit-qast;
         my $file;

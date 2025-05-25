@@ -430,7 +430,7 @@ class RakuAST::Regex::CapturingGroup
         self.IMPL-LINK-META-OBJECT($context, $block);
         QAST::Stmts.new(
             $block,
-            self.get-implicit-declarations()[0].IMPL-BIND-QAST($context,
+            self.IMPL-UNWRAP-LIST(self.get-implicit-declarations())[0].IMPL-BIND-QAST($context,
                 self.IMPL-CLOSURE-QAST($context) ),
         )
     }
@@ -440,7 +440,7 @@ class RakuAST::Regex::CapturingGroup
         nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
         QAST::Regex.new(
             :rxtype('subrule'), :subtype('capture'),
-            QAST::NodeList.new(self.get-implicit-declarations()[0].IMPL-LOOKUP-QAST($context)),
+            QAST::NodeList.new(self.IMPL-UNWRAP-LIST(self.get-implicit-declarations())[0].IMPL-LOOKUP-QAST($context)),
             $body-qast
         )
     }
@@ -1058,7 +1058,7 @@ class RakuAST::Regex::Interpolation
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new(
                     :op<callmethod>, :name<new>,
-                   self.get-implicit-lookups[0].IMPL-TO-QAST($context)
+                   self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
                 )
     }
 
@@ -1177,7 +1177,7 @@ class RakuAST::Regex::Assertion::Named
                 nqp::die('Can only use <sym> token in a proto regex');
             }
             else {
-                my $lookups := self.get-implicit-lookups;
+                my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                 my $qast;
                 if nqp::elems($lookups) && (my $lookup := $lookups[0]).is-resolved
                     && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
@@ -1212,7 +1212,7 @@ class RakuAST::Regex::Assertion::Named
             my $sub-name := RakuAST::Name.new($sub);
             $sub-name.set-colonpairs(@pairs);
 
-            my $lookups := self.get-implicit-lookups;
+            my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $package := $lookups[0].meta-object;
             $context.ensure-sc($package);
             my $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
@@ -1456,7 +1456,7 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
           %mods,
           self.IMPL-REGEX-BLOCK-CALL($context, $!block),
           $!sequential,
-          self.get-implicit-lookups[0]
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0]
         )
     }
 
@@ -1503,7 +1503,7 @@ class RakuAST::Regex::Assertion::InterpolatedVar
           %mods,
           $!var.IMPL-TO-QAST($context),
           $!sequential,
-          self.get-implicit-lookups[0]
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0]
         )
     }
 

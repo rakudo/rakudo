@@ -1211,7 +1211,7 @@ class RakuAST::MetaInfix
   is RakuAST::CheckTime
 {
     method IMPL-HOP-INFIX() {
-        self.get-implicit-lookups()[0].resolution.compile-time-value()(
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
             self.infix.IMPL-HOP-INFIX
         )
     }
@@ -1601,7 +1601,7 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-HOP-INFIX() {
-        my $lookups := self.get-implicit-lookups;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         $lookups[0].resolution.compile-time-value()(
             self.infix.IMPL-OPERATOR,
             $lookups[1].resolution.compile-time-value,
@@ -1693,7 +1693,7 @@ class RakuAST::MetaInfix::Zip
     }
 
     method IMPL-HOP-INFIX() {
-        my $lookups := self.get-implicit-lookups;
+        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         $lookups[0].resolution.compile-time-value()(
             self.infix.IMPL-OPERATOR,
             $lookups[1].resolution.compile-time-value,
@@ -1800,7 +1800,7 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-HOP-INFIX() {
-        self.get-implicit-lookups()[0].resolution.compile-time-value()(
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
             self.infix.resolution.compile-time-value,
             :dwim-left($!dwim-left),
             :dwim-right($!dwim-right)
@@ -2512,7 +2512,7 @@ class RakuAST::MetaPrefix::Hyper
     }
 
     method IMPL-HOP-INFIX() {
-        self.get-implicit-lookups()[0].resolution.compile-time-value()(
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
             self.prefix.IMPL-HOP-PREFIX
         )
     }
@@ -3213,7 +3213,7 @@ class RakuAST::MetaPostfix::Hyper
     }
 
     method IMPL-HOP-INFIX() {
-        self.get-implicit-lookups()[0].resolution.compile-time-value()(
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
             self.postfix.IMPL-HOP-POSTFIX
         )
     }

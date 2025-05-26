@@ -252,7 +252,7 @@ class RakuAST::Infixish
         }
     }
 
-    method can-be-sunk() {
+    method is-pure() {
         True
     }
 
@@ -328,8 +328,17 @@ class RakuAST::Infix
         SC{$!operator} // False
     }
 
-    method can-be-sunk() {
-        $!operator ne ':=' && $!operator ne '⚛=' && $!operator ne '~~' && $!operator ne 'does'
+    method is-pure() {
+        my constant NP := nqp::hash(
+          ':=',   False,
+          '~~',   False,
+          'does', False,
+          '⚛=',   False,
+          '⚛+=',  False,
+          '⚛-=',  False,
+          '⚛−=',  False,
+        );
+        nqp::atkey(NP,$!operator) // True
     }
 
     method IMPL-OPERATOR() {
@@ -799,7 +808,7 @@ class RakuAST::Feed
         $obj
     }
 
-    method can-be-sunk() { False }
+    method is-pure() { False }
 
     method PERFORM-BEGIN(Resolver $resolver, Context $context) {
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
@@ -1120,9 +1129,7 @@ class RakuAST::Assignment
         }
     }
 
-    method can-be-sunk() {
-        False
-    }
+    method is-pure() { False }
 }
 
 # A bracketed infix.
@@ -1285,9 +1292,7 @@ class RakuAST::MetaInfix::Assign
 
     method reducer-name() { $!infix.reducer-name }
 
-    method can-be-sunk() {
-        False
-    }
+    method is-pure() { False }
 
     method IMPL-IS-TEST() {
         my $basesym := self.infix.operator;
@@ -2099,7 +2104,7 @@ class RakuAST::ApplyInfix
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.infix.can-be-sunk && self.sunk && !self.infix.short-circuit;
+            if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
 
         True
     }
@@ -2126,9 +2131,7 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
     }
 
-    method needs-sink-call() {
-        $!infix.can-be-sunk
-    }
+    method needs-sink-call() { $!infix.is-pure }
 
     method IMPL-CAN-INTERPRET() {
         $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
@@ -2244,7 +2247,7 @@ class RakuAST::ApplyListInfix
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.infix.can-be-sunk && self.sunk && !self.infix.short-circuit;
+            if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -2386,9 +2389,7 @@ class RakuAST::Prefixish
         }
     }
 
-    method can-be-sunk() {
-        True
-    }
+    method is-pure() { True }
 
     method IMPL-OPERATOR() {
         nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
@@ -2430,8 +2431,14 @@ class RakuAST::Prefix
         OperatorProperties.prefix($!operator)
     }
 
-    method can-be-sunk() {
-        $!operator ne '--' && $!operator ne '++' && $!operator ne '--⚛' && $!operator ne '++⚛'
+    method is-pure() {
+        my constant NP := nqp::hash(
+          '--',  False,
+          '++',  False,
+          '--⚛', False,
+          '++⚛', False,
+        );
+        nqp::atkey(NP,$!operator) // True
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2585,7 +2592,7 @@ class RakuAST::ApplyPrefix
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.prefix.can-be-sunk && self.sunk;
+            if self.prefix.is-pure && self.sunk;
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

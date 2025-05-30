@@ -377,7 +377,7 @@ class RakuAST::Type::Capture
 
     method default-scope() { 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+    method allowed-scopes() { ['my'] }
 
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::GenericHOW.new_type(
@@ -585,7 +585,7 @@ class RakuAST::Type::Enum
 
     method default-scope() { 'our' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['anon', 'my', 'our']) }
+    method allowed-scopes() { ['anon', 'my', 'our'] }
 
     method dba() { 'enum' }
 
@@ -619,11 +619,11 @@ class RakuAST::Type::Enum
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Stringy')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Numeric'))
-        ])
+        ]
     }
 
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
@@ -886,7 +886,7 @@ class RakuAST::Type::Subset
 
     method default-scope() { 'our' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+    method allowed-scopes() { ['my', 'our'] }
 
     method dba() { 'subset' }
 

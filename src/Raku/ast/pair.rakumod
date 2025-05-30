@@ -31,9 +31,9 @@ class RakuAST::FatArrow
     method named-arg-value() { $!value }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -118,9 +118,9 @@ class RakuAST::ColonPair
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-        ])
+        ]
     }
 
     method IMPL-CREATE-PAIR(Str $key, Mu $value) {
@@ -203,9 +203,9 @@ class RakuAST::ColonPair::True
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair'))
-        ])
+        ]
     }
 
     method value() {
@@ -249,9 +249,9 @@ class RakuAST::ColonPair::False
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair'))
-        ])
+        ]
     }
 
     method value() {

@@ -169,9 +169,9 @@ class RakuAST::Signature
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Compiler::Lookup.new('$?CLASS')
-        ])
+        ]
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -827,7 +827,7 @@ class RakuAST::Parameter
         for @lookups {
             nqp::push(@types, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($_)));
         }
-        self.IMPL-WRAP-LIST(@types)
+        @types
     }
 
     method IMPL-DEFAULT-RW() {
@@ -2086,7 +2086,7 @@ class RakuAST::ParameterTarget::Var
 
     method default-scope() { self.twigil eq '!' ?? 'has' !! 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
+    method allowed-scopes() { ['my', 'our', 'has', 'HAS'] }
 
     method visit-children(Code $visitor) {
         $visitor($!attribute) if $!attribute;
@@ -2209,7 +2209,7 @@ class RakuAST::ParameterTarget::Term
 
     method default-scope() { 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+    method allowed-scopes() { ['my'] }
 
     method visit-children(Code $visitor) {
         $visitor($!name);

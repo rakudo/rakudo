@@ -189,9 +189,9 @@ class RakuAST::Term::TopicCall
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('$_'),
-        ])
+        ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -201,7 +201,7 @@ class RakuAST::Term::TopicCall
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $postfix-ast := $!call.IMPL-POSTFIX-QAST(
           $context,
-          self.get-implicit-lookups.AT-POS(0).resolution.IMPL-LOOKUP-QAST($context)
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.IMPL-LOOKUP-QAST($context)
         );
         nqp::istype($!call, RakuAST::Call::Methodish)
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
@@ -443,10 +443,10 @@ class RakuAST::Term::Reduce
     method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('&infix:<,>'),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
-        ])
+        ]
     }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -472,7 +472,7 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-HOP-INFIX() {
-        my &reducer := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
+        my &reducer := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
         $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 
@@ -496,7 +496,7 @@ class RakuAST::Term::Reduce
             # Form a List of the argumnets and pass it to the reducer
             # TODO thunk case
             my $name :=
-              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
             my $form-list := QAST::Op.new(:op('call'), :$name);
             $!args.IMPL-ADD-QAST-ARGS($context, $form-list);
             QAST::Op.new( :op<call>, $form-meta, $form-list )

@@ -27,7 +27,7 @@ my class Num does Real { # declared in BOOTSTRAP
 
     method Int(Num:D:) {
         nqp::isnanorinf(nqp::unbox_n(self))
-          ?? X::Numeric::CannotConvert.new(:source(self), :target(Int)).fail
+          ?? X::Numeric::CannotConvert.new(:source(self), :target(Int)).Failure
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
@@ -378,7 +378,7 @@ multi sub infix:</>(Num:D $a, Num:D $b) {
 multi sub infix:</>(num $a, num $b --> num) {
     $b
       ?? nqp::div_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+      !! X::Numeric::DivideByZero.new(:using</>, :numerator($a)).Failure
 }
 
 multi sub infix:<%>(Num:D $a, Num:D $b) {
@@ -389,7 +389,7 @@ multi sub infix:<%>(Num:D $a, Num:D $b) {
 multi sub infix:<%>(num $a, num $b --> num) {
     $b
       ?? nqp::mod_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using<%>, :numerator($a))
+      !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
@@ -403,7 +403,7 @@ multi sub infix:<**>(num $a, num $b --> num) {
     nqp::pow_n($a, $b)
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
-        !! fail X::Numeric::Underflow.new
+        !! X::Numeric::Underflow.new.Failure
 }
 
 # Here we sort NaN in with string "NaN"

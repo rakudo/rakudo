@@ -90,7 +90,8 @@ my class IO::Socket::INET does IO::Socket {
 
     # Fail if no valid parameters are passed
     multi method new() {
-        'Nothing given for new socket to connect or bind to. Invalid arguments to .new?'.Failure
+        fail "Nothing given for new socket to connect or bind to. "
+            ~ "Invalid arguments to .new?";
     }
 
     method !initialize(Mu $PIO is raw) {

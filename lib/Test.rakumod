@@ -1,7 +1,7 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2022 The Perl Foundation.
+# Copyright (C) 2007 - 2025 Yet Another Society
 
 # settable from outside
 my int $raku_test_times =

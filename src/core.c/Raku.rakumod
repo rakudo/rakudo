@@ -4,7 +4,7 @@ class Raku does Systemic {
     submethod TWEAK(--> Nil) {
         # https://github.com/rakudo/rakudo/issues/3436
         nqp::bind($!name,'Raku');
-        nqp::bind($!auth,'The Perl Foundation');
+        nqp::bind($!auth,'Yet Another Society');
         nqp::bind($!version,nqp::getcomp('Raku').language_version.Version);
     }
 

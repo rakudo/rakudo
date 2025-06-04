@@ -290,7 +290,7 @@ my class Backtrace {
             CATCH {
                 default {
                     return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
-                        ~ "Please report this as a bug (mail to rakudobug@perl.org)\n",
+                        ~ "Please report this as a bug (mail to rakudobug@raku.org)\n",
                         ~ "and re-run with the --ll-exception command line option\n"
                         ~ "to get more information about your error>";
                 }

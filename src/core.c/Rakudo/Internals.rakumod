@@ -602,12 +602,12 @@ my class Rakudo::Internals {
                 ~ '.new(:shape'
                 ~ nqp::decont(self.shape).raku
                 ~ ', '
-                ~ self!perl(nqp::create(Array), self.shape)
+                ~ self!raku(nqp::create(Array), self.shape)
                 ~ ')'
                 ~ (nqp::iscont(SELF) ?? '.item' !! '')
             })
         }
-        method !perl(@path, @dims) {
+        method !raku(@path, @dims) {
             if @dims.elems == 1 {
                  '[' ~
                     (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).raku }).join(', ') ~
@@ -617,7 +617,7 @@ my class Rakudo::Internals {
             else {
                 my @nextdims = @dims[1..^@dims.elems];
                 '[' x (@path.elems > 0) ~
-                    (^@dims[0]).map({ self!perl((flat @path, $_), @nextdims) }).join(', ') ~
+                    (^@dims[0]).map({ self!raku((flat @path, $_), @nextdims) }).join(', ') ~
                     ',' x (@dims[0] == 1) ~
                 ']' x (@path.elems > 0)
             }

@@ -320,19 +320,19 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
 
     multi method raku(::?CLASS:D \SELF:) {
         SELF.rakuseen('Hash', {
-            my $TKey-perl   := TKey.raku;
-            my $TValue-perl := TValue.raku;
-            $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
+            my $TKey-raku   := TKey.raku;
+            my $TValue-raku := TValue.raku;
+            $TKey-raku eq 'Any' && $TValue-raku eq 'Mu'
               ?? ( '$(' x nqp::iscont(SELF)
                     ~ ':{' ~ SELF.sort.map({.raku}).join(', ') ~ '}'
                     ~ ')' x nqp::iscont(SELF)
                  )
               !! '$' x nqp::iscont(SELF)
                  ~ (self.elems
-                      ?? "(my $TValue-perl %\{$TKey-perl\} = {
+                      ?? "(my $TValue-raku %\{$TKey-raku\} = {
                             self.sort.map({.raku}).join(', ')
                          })"
-                      !! "(my $TValue-perl %\{$TKey-perl\})"
+                      !! "(my $TValue-raku %\{$TKey-raku\})"
                  )
         })
     }

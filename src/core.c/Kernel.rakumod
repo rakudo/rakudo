@@ -206,6 +206,15 @@ class Kernel does Systemic {
           ))
         )
     }
+
+    multi method raku(Kernel:D:) {
+        self.^name
+          ~ '.new('
+          ~ <name version hardware arch bits release desc signature>.map({
+                "$_ => " ~ self."$_"().raku
+            }).join(", ")
+          ~ ')'
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {

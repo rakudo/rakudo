@@ -161,11 +161,11 @@ class RakuAST::StatementPrefix::Try
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
             RakuAST::Var::Lexical.new('$!'),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Failure')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -420,9 +420,9 @@ class RakuAST::StatementPrefix::Once
         my $state-name := QAST::Node.unique('once_');
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Once, '$!state-name', $state-name);
 
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::VarDeclaration::Implicit::State.new($state-name)
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -447,10 +447,10 @@ class RakuAST::StatementPrefix::Start
     method type() { "start" }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -562,9 +562,9 @@ class RakuAST::StatementPrefix::Phaser::Sinky
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

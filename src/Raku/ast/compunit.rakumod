@@ -369,7 +369,7 @@ class RakuAST::CompUnit
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
                 'CompUnit', 'RepositoryRegistry',
             )),
@@ -378,7 +378,7 @@ class RakuAST::CompUnit
                 'X', 'Comp', 'BeginTime'
             )),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&COMP_EXCEPTION')),
-        ])
+        ]
     }
 
     method IMPL-FATALIZE {
@@ -433,7 +433,7 @@ class RakuAST::CompUnit
             name => '!EVAL_MARKER', value => 1
         )) if $!is-eval;
 
-        self.IMPL-WRAP-LIST(@decls)
+        @decls
     }
 
     method IMPL-TO-QAST-COMP-UNIT(*%options) {

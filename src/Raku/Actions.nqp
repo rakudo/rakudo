@@ -2126,9 +2126,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $<capvar>
           ?? self.attach($/, Nodify('Var', 'NamedCapture').new(
                Nodify('QuotedString').new(
-                 :segments(Nodify('QuotedString').IMPL-WRAP-LIST([
-                   Nodify('StrLiteral').new(~$<desigilname>)
-                 ]))
+                 :segments([Nodify('StrLiteral').new(~$<desigilname>)])
                )
              ))
           !! self.simple-variable($/);
@@ -2152,9 +2150,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $name := Nodify('Name').from-identifier('infix');
             $name.add-colonpair(
                 Nodify('QuotedString').new(
-                    :segments($name.IMPL-WRAP-LIST([
-                        Nodify('StrLiteral').new(~$<infixish>)
-                    ]))
+                    :segments([Nodify('StrLiteral').new(~$<infixish>)])
                 )
             );
             self.compile-variable-access($/, '&', '', $name);

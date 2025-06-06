@@ -294,10 +294,10 @@ class RakuAST::Var::Attribute
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Term::Self.new,
             RakuAST::Var::Compiler::Lookup.new('$?CLASS'),
-        ])
+        ]
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::Impl::QASTContext $context) {
@@ -400,7 +400,7 @@ class RakuAST::Var::Attribute::Public
     }
 
     method args() {
-        $!expression.operand.postfix.args
+        self.IMPL-WRAP-LIST($!expression.operand.postfix.args)
     }
 
     method creates-block() {
@@ -552,9 +552,9 @@ class RakuAST::Var::Compiler::Resources
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('Distribution', 'Resources')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -587,9 +587,9 @@ class RakuAST::Var::Compiler::Distribution
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Repository', 'Distribution')),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -669,10 +669,10 @@ class RakuAST::Var::PositionalCapture
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('&postcircumfix:<[ ]>'),
             RakuAST::Var::Lexical.new('$/'),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -702,10 +702,10 @@ class RakuAST::Var::NamedCapture
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
             RakuAST::Var::Lexical.new('$/'),
-        ])
+        ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -836,9 +836,9 @@ class RakuAST::Var::Slang
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Slang')),
-        ])
+        ]
     }
 
     method sigil() { '$' }

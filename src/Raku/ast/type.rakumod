@@ -619,11 +619,11 @@ class RakuAST::Type::Enum
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Stringy')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Numeric'))
-        ])
+        ]
     }
 
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {

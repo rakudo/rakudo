@@ -216,7 +216,7 @@ class RakuAST::QuotedString
                 }
             }
         }
-        self.IMPL-WRAP-LIST(@needed)
+        @needed
     }
 
     method type-name() { 'string' }

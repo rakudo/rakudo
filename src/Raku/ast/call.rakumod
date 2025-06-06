@@ -397,11 +397,10 @@ class RakuAST::Call::Name
                         }
 
                         my $protoguilt := @ct_result_multi && $ct_result == -1 ?? True !! False;
-                        my $signature := self.IMPL-WRAP-LIST(
+                        my $signature :=
                             nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && !$protoguilt
                                 ?? self.IMPL-MULTI-SIG-LIST($routine)
-                                !! [try $routine.signature.gist]
-                        );
+                                !! [try $routine.signature.gist];
 
                         self.add-sorry(
                             $resolver.build-exception: 'X::TypeCheck::Argument',
@@ -637,7 +636,7 @@ class RakuAST::Call::Method
                     RakuAST::Type::Simple.new: RakuAST::Name.new: |@parts;
             }
         }
-        self.IMPL-WRAP-LIST(@lookups)
+        @lookups
     }
 
     method IMPL-SPECIAL-OP(str $name) {
@@ -1030,9 +1029,9 @@ class RakuAST::Call::PrivateMethod
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Lexical::Constant.new('::?CLASS'),
-        ]);
+        ]
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
@@ -1312,11 +1311,11 @@ class RakuAST::Stub
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier-parts('X','StubCode')
             )
-        ])
+        ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -169,9 +169,9 @@ class RakuAST::Signature
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
+        [
             RakuAST::Var::Compiler::Lookup.new('$?CLASS')
-        ])
+        ]
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -827,7 +827,7 @@ class RakuAST::Parameter
         for @lookups {
             nqp::push(@types, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($_)));
         }
-        self.IMPL-WRAP-LIST(@types)
+        @types
     }
 
     method IMPL-DEFAULT-RW() {

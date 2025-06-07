@@ -493,7 +493,7 @@ class RakuAST::Call::Name
 
     method IMPL-CAN-INTERPRET() {
         (
-            $!name.is-identifier && self.is-resolved
+            $!name.is-identifier && $!name.canonicalize ne 'EVAL' && self.is-resolved
                 && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
         )
         && self.args.IMPL-CAN-INTERPRET
@@ -782,7 +782,7 @@ class RakuAST::Call::Method
         $call
     }
 
-    method IMPL-CAN-INTERPRET() { $!name.is-identifier && self.args.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() { $!name.is-identifier && $!name.canonicalize ne 'EVAL' && self.args.IMPL-CAN-INTERPRET }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();

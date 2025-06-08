@@ -407,16 +407,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Create a compilation unit.
         my $comp-unit-name := nqp::sha1($*ORIGIN-SOURCE.original-file ~ $/.target);
 
+        # Initialize source and checksum for the compunit
+        my $source   := $*OMIT-SOURCE ?? Nil !! $/.orig;
+        my $checksum := nqp::sha1($/.orig);
+
         # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
         if $is-EVAL {
             $*CU := Nodify('CompUnit').new(
               :comp-unit-name($comp-unit-name ~ next-id),  # uniqify
               :$setting-name,
+              :$source,
+              :$checksum,
               :eval,
               :outer-cu($*OUTER-CU),
               :$language-revision,
               :setting($*R.setting),
-              :source($/.orig),
               :resolver($RESOLVER),
             );
         }
@@ -426,8 +431,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*CU := Nodify('CompUnit').new(
               :$comp-unit-name,
               :$setting-name,
+              :$source,
+              :$checksum,
               :setting($*R.setting),
-              :source($/.orig),
               :global-package-how($package-how),
               :precompilation-mode(%OPTIONS<precomp>),
               :$export-package,

@@ -28,6 +28,8 @@ else {
     $comp.addstage('optimize', :after<ast>);
 }
 
+my $*OMIT-SOURCE := nqp::getenvhash()<RAKUDO_OMIT_SOURCE>;
+
 # Add extra command line options.
 my @clo := $comp.commandline_options();
 @clo.push('parsetrace');

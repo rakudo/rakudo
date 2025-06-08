@@ -416,6 +416,13 @@ class RakuAST::CompUnit
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
 
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+          name  => '$?FILE',
+          value => $*LITERALS
+                     ?? $*LITERALS.intern-Str($*ORIGIN-SOURCE.original-file)
+                     !! '<unknown>'
+        ));
+
         add(RakuAST::VarDeclaration::Implicit::Cursor.new());
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(

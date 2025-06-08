@@ -2241,25 +2241,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $twigil eq '?' {
             my $origin-source := $*ORIGIN-SOURCE;
-            $ast := $name eq '$?FILE'
-              ?? Nodify('Var','Compiler','File').new(
-                   $*LITERALS.intern-Str($origin-source.original-file)
+            $ast := $name eq '$?LINE'
+              ?? Nodify('Var','Compiler','Line').new(
+                   $*LITERALS.intern-Int($origin-source.original-line($/.from))
                  )
-              !! $name eq '$?LINE'
-                ?? Nodify('Var','Compiler','Line').new(
-                     $*LITERALS.intern-Int($origin-source.original-line($/.from))
-                   )
-                !! $name eq '$?LANG'
-                  ?? Nodify('Var', 'Compiler', 'Lang').new($/)
-                  !! $name eq '&?BLOCK'
-                    ?? Nodify('Var','Compiler','Block').new
-                    !! $name eq '&?ROUTINE'
-                      ?? Nodify('Var','Compiler','Routine').new
-                      !! $name eq '%?RESOURCES'
-                        ?? Nodify('Var', 'Compiler', 'Resources').new
-                        !! $name eq '$?DISTRIBUTION'
-                          ?? Nodify('Var', 'Compiler', 'Distribution').new
-                          !! Nodify('Var','Compiler','Lookup').new($name);
+              !! $name eq '$?LANG'
+                ?? Nodify('Var', 'Compiler', 'Lang').new($/)
+                !! $name eq '&?BLOCK'
+                  ?? Nodify('Var','Compiler','Block').new
+                  !! $name eq '&?ROUTINE'
+                    ?? Nodify('Var','Compiler','Routine').new
+                    !! $name eq '%?RESOURCES'
+                      ?? Nodify('Var', 'Compiler', 'Resources').new
+                      !! $name eq '$?DISTRIBUTION'
+                        ?? Nodify('Var', 'Compiler', 'Distribution').new
+                        !! Nodify('Var','Compiler','Lookup').new($name);
         }
         elsif $twigil eq '^' {
             $ast := Nodify('VarDeclaration','Placeholder','Positional').new(

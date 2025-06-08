@@ -400,7 +400,7 @@ class RakuAST::Var::Attribute::Public
     }
 
     method args() {
-        self.IMPL-WRAP-LIST($!expression.operand.postfix.args)
+        $!expression.operand.postfix.args
     }
 
     method creates-block() {

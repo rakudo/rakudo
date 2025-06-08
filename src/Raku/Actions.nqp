@@ -416,6 +416,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :outer-cu($*OUTER-CU),
               :$language-revision,
               :setting($*R.setting),
+              :source($/.orig),
               :resolver($RESOLVER),
             );
         }
@@ -426,6 +427,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :$comp-unit-name,
               :$setting-name,
               :setting($*R.setting),
+              :source($/.orig),
               :global-package-how($package-how),
               :precompilation-mode(%OPTIONS<precomp>),
               :$export-package,

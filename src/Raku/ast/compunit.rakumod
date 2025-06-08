@@ -13,6 +13,7 @@ class RakuAST::CompUnit
     has RakuAST::Block $.mainline;
     has Str $.comp-unit-name;
     has Str $.setting-name;
+    has Str $.source;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
     has Mu $!sc;
     has int $!is-sunk;
@@ -39,6 +40,7 @@ class RakuAST::CompUnit
 
     method new(          Str :$comp-unit-name!,
                          Str :$setting-name,
+                         Str :$source,
                          Mu  :$setting,
                         Bool :$eval,
                           Mu :$global-package-how,
@@ -61,6 +63,8 @@ class RakuAST::CompUnit
           $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name',
           $setting-name // Str);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!source',
+          $source =:= NQPMu ?? Nil !! $source);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval',
           $eval ?? $outer-cu ?? 2 !! 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
@@ -415,6 +419,18 @@ class RakuAST::CompUnit
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
+
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+          name  => '$?SOURCE',
+          value => nqp::atkey(nqp::getenvhash(),'RAKUDO_OMIT_SOURCE')
+                     ?? Nil
+                     !! $!source
+        ));
+
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+          name  => '$?CHECKSUM',
+          value => $!source && nqp::sha1($!source)
+        ));
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name  => '$?FILE',

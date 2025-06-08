@@ -82,7 +82,7 @@ augment class Rakudo::Internals {
                     # anyway, we'll not worry about this case for now.
                     #
                     # --- or at least that was the the idea before we fixed
-                    # that bug: https://colabti.org/irclogger/irclogger_log/perl6?date=2016-12-07#l1192
+                    # that bug: https://irclogs.raku.org/perl6/2016-12-07.html#15:40
                     # and tried removing the `with` in 58cdfd8, but then the error
                     # `No such method 'consume-all-chars' for invocant of type 'Any`
                     # started popping up on Proc::Async tests, so...

@@ -4629,7 +4629,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # If the sub is in the form of something:<blah>, then we assume
             # the user is trying to define a custom op for an unknown category
             # We also reserve something:sym<blah> form for future use
-            # (see https://colabti.org/irclogger/irclogger_log/perl6?date=2017-01-25#l1011)
+            # (see https://irclogs.raku.org/perl6/2017-01-25.html#17:27-0002)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
             self.typed_panic(

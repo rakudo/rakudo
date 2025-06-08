@@ -57,7 +57,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         nqp::while(
           nqp::elems($parts),
           # unsure why old code removed all `"`, but keeping code same
-          # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-15#l240
+          # https://irclogs.raku.org/perl6-dev/2017-05-15.html#16:59
           nqp::if(
             ($_ := nqp::join('',nqp::split('"',nqp::shift($parts)))),
             nqp::push($buffer,$_)

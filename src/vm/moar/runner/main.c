@@ -37,7 +37,7 @@ enum {
     OPT_DEBUGPORT,
 
     OPT_RAKUDO_HOME,
-#ifndef _WIN32
+#ifdef MVM_DO_PTY_OURSELF
     OPT_PTY_SPAWN_HELPER,
 #endif
 };
@@ -75,7 +75,7 @@ static int parse_flag(const char *arg)
         return OPT_DEBUGPORT;
     else if (starts_with(arg, "--rakudo-home="))
         return OPT_RAKUDO_HOME;
-#ifndef _WIN32
+#ifdef MVM_DO_PTY_OURSELF
     else if (starts_with(arg, "--pty-spawn-helper="))
         return OPT_PTY_SPAWN_HELPER;
 #endif
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
                 option_rakudo_home = argv[argi] + strlen("--rakudo-home=");
                 break;
 
-#ifndef _WIN32
+#ifdef MVM_DO_PTY_OURSELF
             case OPT_PTY_SPAWN_HELPER: {
                 char *prog = argv[argi] + strlen("--pty-spawn-helper=");
                 char **args = calloc(argc - argi + 1, sizeof(char *));

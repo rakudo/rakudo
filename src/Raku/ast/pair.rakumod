@@ -152,7 +152,7 @@ class RakuAST::ColonPair
 # Stacked colonpairs, e.g. :a:b:c which should really be a list of colonpairs
 # that gets interpolated into the surrounding list (e.g. arglist)
 class RakuAST::ColonPairs
-    is RakuAST::Node
+    is RakuAST::Term
 {
     has Mu $.colonpairs;
 
@@ -174,7 +174,7 @@ class RakuAST::ColonPairs
         $obj
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(:op<call>, :name<&infix:<,>>);
         for self.colonpairs {
             $qast.push($_.IMPL-EXPR-QAST($context))

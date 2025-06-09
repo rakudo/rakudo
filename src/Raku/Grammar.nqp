@@ -6301,6 +6301,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     token do-nibbling {
         :my int $from := self.pos;
         :my int $to   := $from;
+        :my $orig     := self.orig;
         :my @NIBBLES;
         [
           <!stopper>
@@ -6310,24 +6311,26 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
                <stopper>
                {
                    my $c := $/;
-                   $to   := $<starter>[-1].from;
-                   nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+                   my $starter := $<starter>.pop;
+                   $to   := $starter.from;
+                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
                      if $from != $to;
 
-                   nqp::push(@NIBBLES,$<starter>[-1].Str);
-                   nqp::push(@NIBBLES,$<nibbler>[-1]);
-                   nqp::push(@NIBBLES,$<stopper>[-1].Str);
+                   nqp::push(@NIBBLES,$starter.Str);
+                   nqp::push(@NIBBLES,$<nibbler>.pop);
+                   nqp::push(@NIBBLES,$<stopper>.pop.Str);
 
                    $from := $to := $c.pos;
                }
             || <escape>
                {
-                   my $c := $/;
-                   $to   := $<escape>[-1].from;
-                   nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+                   my $c      := $/;
+                   my $escape := $<escape>.pop;
+                   $to        := $escape.from;
+                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
                      if $from != $to;
 
-                   nqp::push(@NIBBLES,$<escape>[-1]);
+                   nqp::push(@NIBBLES,$escape);
 
                    $from := $to := $c.pos;
                }
@@ -6338,7 +6341,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             my $c := $/;
             $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+            nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
               if $from != $to || !@NIBBLES;
             @*NIBBLES := @NIBBLES;
         }

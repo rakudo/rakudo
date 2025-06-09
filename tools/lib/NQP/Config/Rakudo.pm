@@ -424,6 +424,9 @@ sub configure_moar_backend {
           . $self->c_escape_string( $config->{static_rakudo_home} )
           . $qchar;
     }
+    $nqp_config->{do_pty_ourself_define} = $nqp_config->{'moar::do_pty_ourself'}
+                                         ? '-DMVM_DO_PTY_OURSELF'
+                                         : '';
 
     # Strip rpath from ldflags so we can set it differently ourself.
     $nqp_config->{ldflags} = $nqp_config->{'moar::ldflags'};

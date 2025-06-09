@@ -840,6 +840,8 @@ class RakuAST::Resolver::EVAL
         $clone
     }
 
+    method suggest-routines(str $name) { [] }  # for now
+
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {
         $!scopes.push($scope);

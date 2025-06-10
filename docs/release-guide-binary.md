@@ -39,6 +39,8 @@ Do that for all three release archives and the MSI file.
 
     scp -P2222 rakudo-moar-2020.01-01-* rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/rakudo/
 
+- Ping timo on IRC or via mail so that he doesn't forget to make the new version of rakudo available on Compiler-Explorer.
+
 Manual build
 ============
 

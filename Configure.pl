@@ -108,7 +108,8 @@ MAIN: {
         'roast-repo=s',   'expand=s',
         'out=s',          'set-var=s@',
         'silent-build!',  'raku-alias!',
-        'force-rebuild!', 'git-reference=s'
+        'force-rebuild!', 'git-reference=s',
+        'compiler=s'
       )
       or do {
         print_help();
@@ -145,6 +146,8 @@ MAIN: {
     $cfg->gen_nqp;
     $cfg->configure_active_backends;
 
+    $cfg->configure_c_compiler;
+
     $cfg->clean_old_p6_libs;
 
     $cfg->expand_template;
@@ -178,6 +181,19 @@ MAIN: {
 
 #  Print some help text.
 sub print_help {
+    my $c_compiler_opt;
+
+    if ($cfg->is_win) {
+        $c_compiler_opt = <<"C_COMP";
+   --compiler=cl,gcc   On Windows specify the C compiler to use to compile the
+                       script wrapper template. Defaults to the Moar compiler
+                       or cl.
+C_COMP
+    }
+    else {
+        $c_compiler_opt = "";
+    }
+
     print <<"END";
 Configure.pl - $lang Configure
 
@@ -243,7 +259,7 @@ General Options:
                        Sets a config_variable to "value". Can be used multiple
                        times.
    --no-silent-build   Don't echo commands in Makefile target receipt.
-
+$c_compiler_opt
 Please note that the --gen-moar and --gen-nqp options are there for convenience
 only and will actually immediately - at Configure time - compile and install
 moar and nqp respectively. They will live under the path given to --prefix,

@@ -2556,17 +2556,19 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
     method name() { '$=rakudoc' }
 
     method fetch-blocks(RakuAST::StatementList $statement-list) {
+        my $RAKUDOC := $*RAKUDOC;  # lexicals are faster
+
         for nqp::getattr(
           $statement-list,RakuAST::StatementList,'$!statements'
         ) {
             if nqp::istype($_,RakuAST::Doc::Block) {
-                nqp::push($*RAKUDOC,$_);
+                nqp::push($RAKUDOC,$_);
             }
             elsif nqp::istype($_,RakuAST::Statement::Expression) {
                 my $expression := $_.expression;
                 if nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
                   && $expression.WHY {
-                    nqp::push($*RAKUDOC,$expression);
+                    nqp::push($RAKUDOC,$expression);
                 }
             }
             elsif nqp::istype($_,RakuAST::Blockoid) {

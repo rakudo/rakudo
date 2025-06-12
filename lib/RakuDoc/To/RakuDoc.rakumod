@@ -22,24 +22,40 @@ unit class RakuDoc::To::RakuDoc;
 
 #- render ----------------------------------------------------------------------
 
-method render(@ast) {
+multi method render(RakuAST::CompUnit:D $ast) {
+    self.render($ast.statement-list.statements)
+}
+
+multi method render(RakuAST::StatementList:D $ast) {
+    self.render($ast.statements)
+}
+
+multi method render(@ast) {
     my $*SPACES = "";
     my %*SEEN;
     self!inspect(@ast)
 }
 
 method !inspect(@ast) {
-    @ast.map({
-        if $_ ~~ RakuAST::Doc::Declarator {
+
+    sub handle($_) {
+        when RakuAST::Statement::Expression {
+            handle(.expression)
+        }
+        when RakuAST::Doc::Declarator {
             self!render(.WHEREFORE, $_)
         }
-        elsif $_ ~~ RakuAST::Doc {
+        when RakuAST::Doc {
             .DEPARSE
         }
-        elsif .WHY -> $WHY {
-            self!render($_, $WHY)
+        default {
+            if .WHY -> $WHY {
+                self!render($_, $WHY)
+            }
         }
-    }).join.chomp
+    }
+
+    @ast.map(&handle).join.chomp
 }
 
 method !render($_, $WHY) {

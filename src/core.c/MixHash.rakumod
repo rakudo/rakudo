@@ -2,7 +2,9 @@ my class MixHash does Mixy {
 
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
-        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
+        what.^set_name(
+          nqp::concat(base.^name,'[') ~ nqp::concat(type.^name,']')
+        );
         what
     }
 

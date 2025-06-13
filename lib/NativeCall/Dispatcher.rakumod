@@ -1,3 +1,5 @@
+use v6.e.PREVIEW;
+
 use NativeCall::Types;
 
 use nqp;
@@ -35,9 +37,9 @@ my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
 
 # Set up actual dispatcher and its context
 my $do := nqp::getattr(&raku-nativecall-deproxy, Code, '$!do');
-nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::forceouterctx($do, nqp::getattr(MY::, CORE::v6c::PseudoStash, '$!ctx'));
 my $do-resume := nqp::getattr(&raku-nativecall-deproxy-resume, Code, '$!do');
-nqp::forceouterctx($do-resume, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::forceouterctx($do-resume, nqp::getattr(MY::, CORE::v6c::PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 
 #- raku-nativecall -------------------------------------------------------------
@@ -105,7 +107,7 @@ my sub raku-nativecall(Mu $capture is raw) {
 
 # Set up actual dispatcher and its context
 $do := nqp::getattr(&raku-nativecall, Code, '$!do');
-nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::forceouterctx($do, nqp::getattr(MY::, CORE::v6c::PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall', $do);
 
 #- raku-nativecall-core --------------------------------------------------------
@@ -232,7 +234,7 @@ my sub raku-nativecall-core(Mu $capture is raw) {
 
 # Set up actual dispatcher and its context
 $do := nqp::getattr(&raku-nativecall-core, Code, '$!do');
-nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::forceouterctx($do, nqp::getattr(MY::, CORE::v6c::PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-core', $do);
 
 # vim: expandtab shiftwidth=4

@@ -278,7 +278,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? ~$<version>
           !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
         if $version {
-            my $major := nqp::radix(10, $<version><vnum>[0], 0, 0)[0];
+            my $major := nqp::radix(10, nqp::substr($version,1), 0, 0)[0];
             unless $major == 6 {
                 $/.typed-panic: 'X::Language::Unsupported', :$version;
             }

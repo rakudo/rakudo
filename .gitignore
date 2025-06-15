@@ -18,6 +18,7 @@ Makefile
 *.bundle
 *~
 .*.swp
+*.bak
 *.patch
 *.pdb
 *.res
@@ -134,3 +135,4 @@ node_modules/*
 rakudo-m-early-build
 rakudo-js-build
 rakudo-j-build
+win-runner.exe-tmpl

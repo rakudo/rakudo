@@ -40,7 +40,7 @@ my $REPO := PROCESS::<$REPO> := Staging.new(
     :next-repo(
         # Make CompUnit::Repository::Staging available to precomp processes
         CompUnit::Repository::Installation.new(
-            :$prefix
+            :$prefix,
             :next-repo(CompUnit::RepositoryRegistry.repository-for-name('core')),
         )
     ),

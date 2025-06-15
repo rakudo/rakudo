@@ -128,7 +128,9 @@
 
 # --- Utility targets ---
 
-@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(RAKUDO_DEBUG)@ @bpm(ALL_TARGETS)@
+@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(RAKUDO_DEBUG)@ @bpm(ALL_TARGETS)@ @if(platform==windows win-runner.exe-tmpl)@
+	$(NOECHO)$(MKPATH) @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@
+@if(platform==windows 	$(NOECHO)$(CP) win-runner.exe-tmpl @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@@if(platform!=windows 	$(NOECHO)$(CP) @nfp(src/runner/posix-runner-tmpl)@ @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@
 
 @backend_prefix@-test: @backend_prefix@-coretest
 
@@ -245,6 +247,7 @@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/templates)@
 
 @backend_prefix@-install-pre:: @bpm(RUNNER)@ @backend_prefix@-install-dirs
 
@@ -260,7 +263,7 @@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.raku)@@ @bpm(RUNNER)@
 	@echo(+++ Preparing installation)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@  @nfpq($(PREFIX)/bin)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
 	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(install-core-dist.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 
 @backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post

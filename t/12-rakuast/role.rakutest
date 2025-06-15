@@ -3,9 +3,6 @@ use Test;
 
 plan 6;
 
-skip-rest("programmatically built roles are severely broken at the moment");
-=finish
-
 my $ast;
 my $deparsed;
 my $raku;
@@ -74,7 +71,8 @@ my role A {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+#    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+    for 'Str', $deparsed -> $type, $it {
         my $role := EVAL($it);
         is $role.^name, 'A', "$type: role gets correct name";
         my $none := $role.new;
@@ -191,7 +189,8 @@ my role D[$a = 42] {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+#    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+    for 'Str', $deparsed -> $type, $it {
         my $role := EVAL($it);
         is $role.^name, 'D', "$type: role gets correct name";
         is-deeply $role.^roles, (), "$type: can we see the roles it does";
@@ -263,7 +262,8 @@ my role E[::T = Str] {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+#    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+    for 'Str', $deparsed -> $type, $it {
         my $role := EVAL($it);
         is $role.^name, 'E', "$type: role gets correct name";
         is-deeply $role.^roles, (), "$type: can we see the roles it does";

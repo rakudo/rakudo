@@ -144,10 +144,9 @@ sub make-mapper2ast(str $name, @operands) {
     my $stmts := @operands
       ?? RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::VarDeclaration::Simple.new(
+             expression => RakuAST::VarDeclaration::Constant.new(
                scope       => "my",
-               sigil       => "\%",
-               desigilname => RakuAST::Name.from-identifier("mapping"),
+               name        => "\%mapping",
                initializer => RakuAST::Initializer::Assign.new(
                  RakuAST::ApplyListInfix.new(
                    infix    => RakuAST::Infix.new(","),
@@ -311,10 +310,9 @@ sub make-mapper2str(str $name, @operands) {
     my $stmts := @operands
       ?? RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::VarDeclaration::Simple.new(
+             expression => RakuAST::VarDeclaration::Constant.new(
                scope       => "my",
-               sigil       => "\%",
-               desigilname => RakuAST::Name.from-identifier("mapping"),
+               name        => "\%mapping",
                initializer => RakuAST::Initializer::Assign.new(
                  RakuAST::ApplyListInfix.new(
                    infix    => RakuAST::Infix.new(","),
@@ -491,10 +489,9 @@ my sub deparsify($language, %hash) is export {
 
         # Set up the constant hash
         $statements.add-statement: RakuAST::Statement::Expression.new(
-          expression => RakuAST::VarDeclaration::Simple.new(
+          expression => RakuAST::VarDeclaration::Constant.new(
             scope       => "my",
-            sigil       => "\%",
-            desigilname => RakuAST::Name.from-identifier("xlation"),
+            name        => "\%xlation",
             initializer => RakuAST::Initializer::Assign.new(
               RakuAST::ApplyListInfix.new(
                 infix    => RakuAST::Infix.new(","),
@@ -1069,6 +1066,7 @@ core-take           take
 core-take-rw        take-rw
 core-tc             tc
 core-tclc           tclc
+core-temp           temp
 core-throws-like    throws-like
 core-todo           todo
 core-trans          trans
@@ -1460,14 +1458,22 @@ system-MAIN         MAIN
 system-TWEAK        TWEAK
 system-UPGRADE-RAT  UPGRADE-RAT
 
-# KEY      TRANSLATION
-term-nano  nano
-term-now   now
-term-pi    pi
-term-rand  rand
-term-self  self
-term-tau   tau
-term-time  time
+# KEY         TRANSLATION
+term-Broken   Broken
+term-False    False
+term-Kept     Kept
+term-Less     Less
+term-More     More
+term-nano     nano
+term-now      now
+term-pi       pi
+term-Planned  Planned
+term-rand     rand
+term-Same     Same
+term-self     self
+term-tau      tau
+term-time     time
+term-True     True
 
 # KEY                           TRANSLATION
 trait-is-built                  built

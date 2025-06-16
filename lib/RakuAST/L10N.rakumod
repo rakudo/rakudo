@@ -467,7 +467,7 @@ my sub slangify($language, %hash) is export {
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Role.new(
       name => RakuAST::Name.from-identifier-parts('L10N',$language),
-      body => RakuAST::Block.new(
+      body => RakuAST::RoleBody.new(
         body => RakuAST::Blockoid.new($statements)
       )
     )
@@ -540,7 +540,7 @@ my sub deparsify($language, %hash) is export {
 
     # Add method doing the actual mapping, basically:
     #
-    # my role NL is export {
+    # my role $language is export {
     #     my method xsyn(str $prefix, str $key) {
     #         $body
     #     }
@@ -551,7 +551,7 @@ my sub deparsify($language, %hash) is export {
         name => RakuAST::Name.from-identifier-parts(
                   'RakuAST','Deparse','L10N',$language
                 ),
-        body => RakuAST::Block.new(
+        body => RakuAST::RoleBody.new(
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(

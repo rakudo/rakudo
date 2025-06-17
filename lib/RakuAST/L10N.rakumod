@@ -12,9 +12,9 @@ use v6.*;
 
 # Known groups of translation
 my constant %known-groups = <
-  adverb-pc adverb-q adverb-rx block constraint core infix meta modifier
-  multi named package phaser pragma prefix quote-lang routine scope
-  stmt-prefix system term traitmod trait-is typer use
+  adverb-pc adverb-q adverb-rx block constraint core enum infix meta
+  modifier multi named package phaser pragma prefix quote-lang routine
+  scope stmt-prefix system term traitmod trait-is typer use
 >.map({ $_ => 1 });
 my constant %sub-groups = <core named>.map({ $_ => 1 });
 
@@ -389,6 +389,7 @@ my sub slangify($language, %hash) is export {
     my @adverb-rx;
     my @core;
     my @named;
+    my @enum;
     my @pragma;
     my @quote-lang;
     my @system;
@@ -657,7 +658,7 @@ DEFAULT
           $executor,
           Q:to/LOCALIZED/.subst("#LANGUAGE#",$language),
 %*ENV<RAKUDO_RAKUAST> = 1;
-%*ENV<RAKUDO_OPT>     = 'ML10N::#LANGUAGE#';
+%*ENV<RAKUDO_OPT>     = '-ML10N::#LANGUAGE#';
 LOCALIZED
           Q:to/DEFAULT/;
 #!/usr/bin/env raku
@@ -1132,6 +1133,24 @@ core-words     words
 # KEY     TRANSLATION
 core-zip  zip
 
+# KEY                   TRANSLATION
+enum-BigEndian          BigEndian
+enum-Broken             Broken
+enum-False              False
+enum-FileChanged        FileChanged
+enum-FileRenamed        FileRenamed
+enum-Kept               Kept
+enum-Less               Less
+enum-LittleEndian       LittleEndian
+enum-More               More
+enum-NativeEndian       NativeEndian
+enum-Planned            Planned
+enum-Same               Same
+enum-SeekFromBeginning  SeekFromBeginning
+enum-SeekFromCurrent    SeekFromCurrent
+enum-SeekFromEnd        SeekFromEnd
+enum-True               True
+
 # KEY             TRANSLATION
 infix-(cont)      (cont)
 infix-(elem)      (elem)
@@ -1486,21 +1505,13 @@ system-TWEAK        TWEAK
 system-UPGRADE-RAT  UPGRADE-RAT
 
 # KEY         TRANSLATION
-term-Broken   Broken
-term-False    False
-term-Kept     Kept
-term-Less     Less
-term-More     More
 term-nano     nano
 term-now      now
 term-pi       pi
-term-Planned  Planned
 term-rand     rand
-term-Same     Same
 term-self     self
 term-tau      tau
 term-time     time
-term-True     True
 
 # KEY                           TRANSLATION
 trait-is-built                  built

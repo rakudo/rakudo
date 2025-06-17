@@ -926,6 +926,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token constraint-where { where}
 
+    token enum-BigEndian         { BigEndian}
+    token enum-Broken            { Broken}
+    token enum-False             { False}
+    token enum-FileChanged       { FileChanged}
+    token enum-FileRenamed       { FileRenamed}
+    token enum-Kept              { Kept}
+    token enum-Less              { Less}
+    token enum-LittleEndian      { LittleEndian}
+    token enum-More              { More}
+    token enum-NativeEndian      { NativeEndian}
+    token enum-Planned           { Planned}
+    token enum-Same              { Same}
+    token enum-SeekFromBeginning { SeekFromBeginning}
+    token enum-SeekFromCurrent   { SeekFromCurrent}
+    token enum-SeekFromEnd       { SeekFromEnd}
+    token enum-True              { True}
+
     token infix-after      { after}
     token infix-and        { and}
     token infix-andthen    { andthen}
@@ -3298,6 +3315,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         'WHAT', 2, 'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2, 'any', 2,
         'all', 2, 'none', 2, 'one', 2, 'set', 2, 'bag', 2, 'tclc', 2, 'wordcase', 2, 'put', 2,
     );
+
+    token term:sym<enum> {
+            <enum-BigEndian> | <enum-Broken> | <enum-False>
+          | <enum-FileChanged> | <enum-FileRenamed> | <enum-Kept>
+          | <enum-Less> | <enum-LittleEndian> | <enum-More>
+          | <enum-NativeEndian> | <enum-Planned> | <enum-Same>
+          | <enum-SeekFromBeginning> | <enum-SeekFromCurrent>
+          | <enum-SeekFromEnd> | <enum-True>
+    }
 
     token term:sym<name> {
         :my $*IS-TYPE;

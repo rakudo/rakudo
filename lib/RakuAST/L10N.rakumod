@@ -647,13 +647,38 @@ DEFAULT
 
 # vim: expandtab shiftwidth=4
 DEFAULT
+
+
+    # take the first file in the "bin" directory as the target for the
+    # localized executor.  After that, make sure it is executable
+    my $executor := $root.sibling("bin").dir.head;
+    write-file
+      $executor,
+      Q:to/LOCALIZED/.subst("#LANGUAGE#",$language),
+%*ENV<RAKUDO_RAKUAST> = 1;
+%*ENV<RAKUDO_OPT>     = 'ML10N::#LANGUAGE#';
+LOCALIZED
+      Q:to/DEFAULT/;
+#!/usr/bin/env raku
+
+# Executor for the ___ localization of the Raku Programming Language
+
+#- start of generated part of localization
+#- end of generated part of localization
+
+my $proc := run $*EXECUTABLE, @*ARGS;
+exit $proc.exitcode;
+
+# vim: expandtab shiftwidth=4
+DEFAULT
+    $executor.chmod(0o755);
 }
 
 sub write-file(IO() $io, Str:D $src, Str:D $default) {
 
     # slurp the whole file and set up writing to it
     mkdir $io.parent;
-    my @lines = ($io.e ?? $io !! $default).lines;
+    my @lines = ($io.e && $io.s ?? $io !! $default).lines;
 
     # for all the lines in the source that don't need special handling
     my $*OUT = $io.open(:w);

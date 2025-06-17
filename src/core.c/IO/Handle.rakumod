@@ -3,7 +3,7 @@ my class IO::Handle {
     has $!PIO;
     has $!mode;
     has $.chomp is rw = Bool::True;
-    has $.nl-in = ["\x0A", "\r\n"];
+    has $.nl-in is rw = ("\x0A", "\r\n");
     has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
     has Encoding::Decoder $!decoder;

@@ -3197,6 +3197,7 @@ class RakuAST::MetaPostfix::Hyper
   is RakuAST::Postfixish
   is RakuAST::ImplicitLookups
   is RakuAST::CheckTime
+  is RakuAST::WhateverApplicable
 {
     has RakuAST::Postfixish $.postfix;
 
@@ -3221,6 +3222,10 @@ class RakuAST::MetaPostfix::Hyper
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER_POSTFIX')),
         ]
     }
+
+    method IMPL-CURRIES { $!postfix.IMPL-CURRIES }
+
+    method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS { $!postfix.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS }
 
     method IMPL-HOP-INFIX() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(

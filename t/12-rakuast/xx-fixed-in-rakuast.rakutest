@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 108;
+plan 109;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -741,6 +741,12 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is-deeply (run $*EXECUTABLE, '-e', 'dd infix:<,>(42)', :err).err.slurp,
       "(42,)\n",
       'no special quasting for infix:<,>(1)';
+}
+
+{
+    todo q|ensure that hyper operators prime as expected|
+        unless %*ENV<RAKUDO_RAKUAST>;
+    ok *>>.fmt("%02x")(42) eq "2a";
 }
 
 # vim: expandtab shiftwidth=4

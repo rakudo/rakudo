@@ -114,7 +114,7 @@ class RakuAST::Term::Name
 }
 
 # Core enums
-class RakuAST::Enum
+class RakuAST::Term::Enum
   is RakuAST::Term::Name
 {
     method IMPL-IS-CONSTANT() { True }
@@ -122,12 +122,12 @@ class RakuAST::Enum
 
 # True
 class RakuAST::Term::True {
-    method new() { RakuAST::Enum.from-identifier("True") }
+    method new() { RakuAST::Term::Enum.from-identifier("True") }
 }
 
 # False
 class RakuAST::Term::False {
-    method new() { RakuAST::Enum.from-identifier("False") }
+    method new() { RakuAST::Term::Enum.from-identifier("False") }
 }
 
 # The self term for getting the current invocant

@@ -938,7 +938,7 @@ CODE
             else {
                 my $value    := .value;
                 my $deparsed := self.deparse($value);
-                if nqp::istype($value,RakuAST::Enum) {
+                if nqp::istype($value,RakuAST::Term::Enum) {
                     my $name := $value.name.canonicalize;
                     $name eq 'True'
                       ?? ":$key"
@@ -1088,13 +1088,6 @@ CODE
 
     multi method deparse(RakuAST::DottyInfix::CallAssign:D $ --> Str:D) {
         $.dotty-infix-call-assign
-    }
-
-#- Enum ------------------------------------------------------------------------
-
-    multi method deparse(RakuAST::Enum:D $ast --> Str:D) {
-        my str $name = $ast.name.canonicalize;
-        self.hsyn("enum-$name", self.xsyn('enum', $name))
     }
 
 #- F ---------------------------------------------------------------------------
@@ -2510,6 +2503,11 @@ CODE
 
     multi method deparse(RakuAST::Term::EmptySet:D $ --> Str:D) {
         $.term-empty-set
+    }
+
+    multi method deparse(RakuAST::Term::Enum:D $ast --> Str:D) {
+        my str $name = $ast.name.canonicalize;
+        self.hsyn("enum-$name", self.xsyn('enum', $name))
     }
 
     multi method deparse(RakuAST::Term::HyperWhatever:D $ --> Str:D) {

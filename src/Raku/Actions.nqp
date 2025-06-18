@@ -2030,12 +2030,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<enum>($/) {
-        self.attach($/, Nodify('Term', 'Name').new(
-          RakuAST::Name.from-identifier(
-            # The only key in the hash of the match object contains the
-            # core's enum name, prefixed by "enum-"
-            nqp::substr(nqp::iterkey_s(nqp::shift(nqp::iterator($/.hash))),5)
-          )
+        # The only key in the hash of the match object contains the
+        # core's enum name, prefixed by "enum-"
+        self.attach($/, Nodify('Enum').from-identifier(
+          nqp::substr(nqp::iterkey_s(nqp::shift(nqp::iterator($/.hash))),5)
         ));
     }
 

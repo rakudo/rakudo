@@ -1083,6 +1083,13 @@ CODE
         $.dotty-infix-call-assign
     }
 
+#- Enum ------------------------------------------------------------------------
+
+    multi method deparse(RakuAST::Enum:D $ast --> Str:D) {
+        my str $name = $ast.name.canonicalize;
+        self.hsyn("enum-$name", self.xsyn('enum', $name))
+    }
+
 #- F ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::FakeSignature:D $ast --> Str:D) {

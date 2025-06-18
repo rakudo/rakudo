@@ -15,6 +15,10 @@ class RakuAST::Term::Name
         $obj
     }
 
+    method from-identifier(str $name) {
+        self.new(RakuAST::Name.from-identifier($name))
+    }
+
     method has-compile-time-value() {
         self.is-resolved && self.resolution.has-compile-time-value
     }
@@ -109,22 +113,21 @@ class RakuAST::Term::Name
     }
 }
 
+# Core enums
+class RakuAST::Enum
+  is RakuAST::Term::Name
+{
+    method IMPL-IS-CONSTANT() { True }
+}
+
 # True
 class RakuAST::Term::True {
-    method new() {
-        RakuAST::Term::Name.new(RakuAST::Name.from-identifier("True"))
-    }
-
-    method IMPL-IS-CONSTANT() { True }
+    method new() { RakuAST::Enum.from-identifier("True") }
 }
 
 # False
 class RakuAST::Term::False {
-    method new() {
-        RakuAST::Term::Name.new(RakuAST::Name.from-identifier("False"))
-    }
-
-    method IMPL-IS-CONSTANT() { True }
+    method new() { RakuAST::Enum.from-identifier("False") }
 }
 
 # The self term for getting the current invocant

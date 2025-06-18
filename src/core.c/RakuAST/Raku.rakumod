@@ -476,6 +476,9 @@ augment class RakuAST::Node {
 
 #- E ---------------------------------------------------------------------------
 
+    multi method raku(RakuAST::Enum:D: --> Str:D) {
+        self.^name ~ ".from-identifier('" ~ self.name.canonicalize ~ "')"
+    }
     multi method raku(RakuAST::Expression:U: --> '') { }
 
 #- F ---------------------------------------------------------------------------

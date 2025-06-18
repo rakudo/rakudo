@@ -336,6 +336,7 @@ subset captures      of Str:D where *.starts-with("capture-");
 subset constraints   of Str:D where *.starts-with("constraint-");
 subset cores         of Str:D where *.starts-with("core-");
 subset docs          of Str:D where *.starts-with("doc-");
+subset enums         of Str:D where *.starts-with("enum-");
 subset infixes       of Str:D where *.starts-with("infix-");
 subset markups       of Str:D where *.starts-with("markup-");
 subset metas         of Str:D where *.starts-with("meta-");
@@ -356,6 +357,7 @@ subset scopes        of Str:D where *.starts-with("scope-");
 subset smileys       of Str:D where *.starts-with("smiley-");
 subset stmt-prefixes of Str:D where *.starts-with("stmt-prefix-");
 subset systems       of Str:D where *.starts-with("system-");
+subset terms         of Str:D where *.starts-with("term-");
 subset ternaries     of Str:D where *.starts-with("ternary-");
 subset trait-ises    of Str:D where *.starts-with("trait-is-");
 subset traitmods     of Str:D where *.starts-with("traitmod-");
@@ -507,6 +509,7 @@ my constant %default = <
   constraint-    magenta
   core-          yellow
   doc-           blue
+  enum-          cyan
   infix-         yellow
   invocant       cyan
   label          yellow
@@ -539,6 +542,7 @@ my constant %default = <
   stmt-prefix-   magenta
   stub           none
   system-        none
+  term-          cyan
   ternary-       yellow
   trait-is-      magenta
   traitmod-      magenta
@@ -966,6 +970,10 @@ Any core subroutine / method, such as C<say>, C<put>, C<take>, etc.
 
 Any declarator documentation, aka the text after C<#|> or C<#=>.
 
+=item docs
+
+Any C<enum>, such as C<True>, C<False>, C<More>, etc.
+
 =item infixes
 
 Any infix operator, such as C<+>, C<->, C<eq>, etc.
@@ -1068,6 +1076,10 @@ A code stub: C<...>, C<!!!>, C<???>.
 
 Methods that have a special meaning in Raku, such as C<TWEAK>, C<BUILD>,
 C<DESTROY>, etc.
+
+=item terms
+
+Any terms such as C<time>, C<nano>, etc.
 
 =item ternaries
 

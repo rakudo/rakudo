@@ -17,6 +17,7 @@
 #   constraint-xxx      type of constraint applied ("where")
 #   core-xxx            all core functions ("say","bag","set","put", etc.)
 #   doc-xxx             declator doc (leading, trailing)
+#   enum-xxx            enums (True,False,Same, etc.)
 #   infix-xxx           any infix operator ("eq","==", etc.)
 #   invocant            self
 #   label               any label (FOO:)

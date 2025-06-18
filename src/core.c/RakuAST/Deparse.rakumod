@@ -936,12 +936,19 @@ CODE
             }
 
             else {
-                my $deparsed := self.deparse(.value);
-                $deparsed eq 'True'
-                  ?? ":$key"
-                  !! $deparsed eq 'False'
-                    ?? ":!$key"
-                    !! ":$key$deparsed"
+                my $value    := .value;
+                my $deparsed := self.deparse($value);
+                if nqp::istype($value,RakuAST::Enum) {
+                    my $name := $value.name.canonicalize;
+                    $name eq 'True'
+                      ?? ":$key"
+                      !! $name eq 'False'
+                        ?? ":!$key"
+                        !! ":$key$deparsed"
+                }
+                else {
+                    ":$key$deparsed"
+                }
             }
         }
 

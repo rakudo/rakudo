@@ -371,6 +371,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 @final-version := @vparts;
             }
 
+            # In an EVAL we're not allowed to upgrade from e.g. 6.d to 6.e,
+            # at least for now: maybe later we can allow this for all language
+            # levels that are supported by the runtime
+            if $is-EVAL && nqp::atpos(@final-version,0) > $language-revision {
+                nqp::die("Cannot up language revision $language-revision to "
+                  ~ nqp::atpos(@final-version,0)
+                  ~ " in an EVAL"
+                );
+            }
+
             $HLL-COMPILER.set_language_version(@final-version);
             $language-revision := @final-version[0];
             $HLL-COMPILER.set_language_revision: $language-revision;

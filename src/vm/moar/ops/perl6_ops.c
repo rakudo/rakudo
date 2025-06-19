@@ -141,6 +141,24 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject   *fake = GET_REG(tc, 2).o;
     MVMObject   *code = GET_REG(tc, 4).o;
 
+    if (!IS_CONCRETE(fake) || REPR(fake)->ID != MVM_REPR_ID_MVMCode) {
+        MVM_exception_throw_adhoc(tc,
+            "p6invokeunder first argument has to be a concrete MVMCode, got a %s %s (type %s)",
+            IS_CONCRETE(fake) ? "concrete" : "type object",
+            REPR(fake)->name,
+            MVM_6model_get_debug_name(tc, fake)
+        );
+    }
+
+    if (!IS_CONCRETE(code) || REPR(code)->ID != MVM_REPR_ID_MVMCode) {
+        MVM_exception_throw_adhoc(tc,
+            "p6invokeunder second argument has to be a concrete MVMCode, got a %s %s (type %s)",
+            IS_CONCRETE(code) ? "concrete" : "type object",
+            REPR(code)->name,
+            MVM_6model_get_debug_name(tc, code)
+        );
+    }
+
     /* Invoke the fake frame; note this doesn't return to the interpreter, so
      * we can do hackery after it. */
     tc->cur_frame->return_address = *(tc->interp_cur_op) + 6;

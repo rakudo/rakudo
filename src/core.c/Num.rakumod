@@ -581,6 +581,9 @@ multi sub atanh(num $x) {
 
 multi sub floor(  num $a --> num) { nqp::floor_n($a) }
 multi sub ceiling(num $a --> num) { nqp::ceil_n($a)  }
-multi sub sqrt(   num $a --> num) { nqp::sqrt_n($a)  }
+
+multi sub sqrt(num $a) {
+    nqp::islt_n($a,0e0) ?? $a.sqrt !! nqp::sqrt_n($a)
+}
 
 # vim: expandtab shiftwidth=4

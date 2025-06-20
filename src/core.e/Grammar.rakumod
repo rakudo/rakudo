@@ -60,7 +60,10 @@ my class Grammar is Match {
 
     method parse(\target, :$rule, :$args, Mu :$actions, :$filename) {
         my $*LINEPOSCACHE;
-        my $grammar := self.new(:orig(target), |%_).set_actions($actions);
+        my $grammar := self.new(:orig(target), |%_);
+        $grammar.set_actions($actions)
+          unless nqp::eqaddr(nqp::decont($actions),Mu);
+
         nqp::if(
           (my $cursor := nqp::if(
           $rule,
@@ -91,7 +94,10 @@ my class Grammar is Match {
     }
 
     method subparse(\target, :$rule = 'TOP', :$args, :$actions) {
-        my $grammar := self.new(:orig(target), |%_).set_actions($actions);
+        my $grammar := self.new(:orig(target), |%_);
+        $grammar.set_actions($actions)
+          unless nqp::eqaddr(nqp::decont($actions),Mu);
+
         $args
           ?? $grammar."$rule"(|$args.Capture).Match::MATCH
           !! $grammar."$rule"().Match::MATCH

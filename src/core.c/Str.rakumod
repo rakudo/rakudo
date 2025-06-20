@@ -3899,12 +3899,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::push_s($line,$word);
                 $width = $width + 1 + $visible-width;
             }
-
-            # double space after . or ?
-            if $word.ends-with('.') || $word.ends-with('?') {
-                nqp::push_s($line,"");
-                ++$width;
-            }
         }
 
         nqp::pop_s($line) if nqp::elems($line) && nqp::atpos_s($line,-1) eq "";

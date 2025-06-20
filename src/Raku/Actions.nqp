@@ -276,7 +276,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Seen a -use vxxx- statement
         my $version := $<version>
           ?? ~$<version>
-          !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
+          !! $is-EVAL
+            ?? ""
+            !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
         if $version {
             my $major := nqp::radix(10, nqp::substr($version,1), 0, 0)[0];
             unless $major == 6 {

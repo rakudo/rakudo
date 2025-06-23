@@ -4429,7 +4429,8 @@ nqp::register('raku-boolify', -> $capture {
 # Coerce by target method name. I.e. $value.TargetType.
 my $coerce-by-type-method := nqp::getstaticcode(
   -> $coercion, $value, $method, $nominal_target, $target_type {
-    nqp::istype((my $coerced_value := $method($value)), $target_type)
+    my $coerced_value := nqp::decont($method($value));
+    nqp::istype($coerced_value, $target_type)
       || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
       ?? $coerced_value
       !! nqp::how($coercion)."!invalid_coercion"(
@@ -4443,10 +4444,9 @@ my $coerce-by-type-method := nqp::getstaticcode(
 my $coerce-indirect-method := nqp::getstaticcode(
   -> $coercion, $value, $method, $nominal_target, $target_type {
     my $*COERCION-TYPE := $coercion;
-    nqp::istype(
-      (my $coerced_value := $method($nominal_target, $value)),
-      $target_type
-    ) || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
+    my $coerced_value  := nqp::decont($method($nominal_target, $value));
+    nqp::istype($coerced_value, $target_type)
+      || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
       ?? $coerced_value
       !! nqp::how($coercion)."!invalid_coercion"(
            $value, $method.name, $coerced_value

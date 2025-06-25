@@ -434,11 +434,21 @@ class RakuAST::CompUnit
           value => $!checksum
         ));
 
+        my sub relative-source-filename() {
+            if $*LITERALS {
+                my str $file := $*ORIGIN-SOURCE.original-file;
+                my str $cwd  := nqp::cwd();
+                $*LITERALS.intern-Str(nqp::eqat($file,$cwd,0)
+                  ?? nqp::substr($file,nqp::chars($cwd) + 1)
+                  !! $file
+                )
+            }
+            else {
+                '<unknown>'
+            }
+        }
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name  => '$?FILE',
-          value => $*LITERALS
-                     ?? $*LITERALS.intern-Str($*ORIGIN-SOURCE.original-file)
-                     !! '<unknown>'
+          name  => '$?FILE', value => relative-source-filename()
         ));
 
         add(RakuAST::VarDeclaration::Implicit::Cursor.new());

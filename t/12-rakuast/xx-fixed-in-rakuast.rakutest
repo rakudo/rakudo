@@ -449,7 +449,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/3786
 {
-    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dispatch error"; # unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply
       (try 'my class C { has $.sig = :(); }; C.new.sig'.EVAL),
       :(), 'can have a signature as a default for an attribute';
@@ -464,7 +464,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub b(\b --> uint64) is raw {
         my uint64 $ = nqp::bitand_I(b, 0xffffffffffffffff, Int)
     }
-    todo "becomes signed", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "becomes signed", 2; # unless %*ENV<RAKUDO_RAKUAST>;
     is a(18446744073709551615), 18446744073709551615, 'uint ok';
     is b(18446744073709551615), 18446744073709551615, 'uint64 ok';
 }
@@ -586,7 +586,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     multi foo(Hash:D) { "yes" };
     multi foo(Value(Any:D)) { "no" };
 
-    todo "dispatch error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dispatch error"; # unless %*ENV<RAKUDO_RAKUAST>;
     is (try foo { :foo }), "yes", "dispatch worked ok";
 }
 

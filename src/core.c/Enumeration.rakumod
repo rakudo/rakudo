@@ -81,6 +81,8 @@ my role Enumeration {
              )
           !! self
     }
+
+    method clone(::?CLASS:) { self }
 }
 
 # Methods that we also have if the base type of an enumeration is

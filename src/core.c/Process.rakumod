@@ -49,7 +49,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
-    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('Raku').user-progname;
+    PROCESS::<$PROGRAM-NAME> = nqp::getcomp('Raku').user-progname;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {

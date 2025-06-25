@@ -1,12 +1,3 @@
-# The RakuAST::L10N module provides takes a name and hash, and produces the
-# RakuAST tree for a role that can be mixed into the main grammar
-# to support that localization of the Raku Programming Language.
-#
-# use RakuAST::L10N;
-# my %xlation = …;  # create hash with translation
-# my $slang    = slangify($lang, %xlation);   # role for grammar mixin
-# my $deparser = deparsify($lang, %xlation);  # role for deparsing
-
 # always use highest version of Raku
 use v6.*;
 
@@ -18,23 +9,61 @@ my constant %known-groups = <
 >.map({ $_ => 1 });
 my constant %sub-groups = <core named>.map({ $_ => 1 });
 
+# Set up core settings
+my @core = CHECK $=finish.lines.map: { .words.Slip unless .starts-with("#") }
+
+#- fresh-translation-file ------------------------------------------------------
+# Produce a fresh translation file
+my sub fresh-translation-file(IO::Path:D $io) is export {
+    my str @lines = $=finish.lines.map: {
+        if .starts-with("#") {
+            $_ if .starts-with("# KEY" | "# vim")
+        }
+        else {
+            $_ ?? "#$_" !! ""
+        }
+    }
+
+    $io.spurt(qq:to/HEADER/ ~ @lines.join("\n"))
+# This file contains the $io.basename() localization of the
+# Raku Programming Language.
+#
+# CONTRIBUTORS: 
+#
+# See https://github.com/Raku-L10N/L10N/ for more information
+HEADER
+}
+
+#- read-hash -------------------------------------------------------------------
+my proto sub read-hash(|) is export {*}
+
+# Produce the "bare" core translations
+my multi sub read-hash() { %(flat @core) }
+
 # Produce all words on non-commented lines of given IO as a Slip
 sub io2words(IO::Path:D $io) {
     $io.lines.map: { .words.Slip unless .starts-with("#") }
 }
 
-# Set up core settings
-my @core = CHECK $=finish.lines.map: { .words.Slip unless .starts-with("#") }
+# Read translation hash from given file (with path as string)
+my multi sub read-hash(Str:D $path, :$core) { read-hash($path.IO, :$core) }
 
 # Read translation hash from given file (as IO object)
-sub read-hash(IO::Path:D $io, :$core) is export {
+my multi sub read-hash(IO::Path:D $io, :$core) {
     $core
       ?? %(flat @core, io2words($io))
       !! %(io2words($io))
 }
 
+#- missing-translations --------------------------------------------------------
+# Return a sorted list of keys that do not have a translation for a given IO
+my sub missing-translations(IO::Path:D $io) is export {
+    (read-hash() (-) read-hash($io)).keys.sort
+}
+
+#- write-hash ------------------------------------------------------------------
 # Write out the localization of the given hash to the given file (as IO object)
-sub write-hash(IO::Path:D $io, %mapping) is export {
+my sub write-hash(IO::Path:D $io, %mapping) is export {
 
     # Return the group for the given key
     my %groups;
@@ -122,6 +151,7 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
     $io.spurt(@lines.join);
 }
 
+#- make-mapper2ast -------------------------------------------------------------
 # Return the AST for translation lookup logic, basically:
 #
 # method $name {
@@ -295,6 +325,7 @@ sub make-mapper2ast(str $name, @operands) {
     )
 }
 
+#- make-mapper2str -------------------------------------------------------------
 # Return the str translation lookup logic, basically:
 #
 # method $name(str $key) {
@@ -305,7 +336,7 @@ sub make-mapper2ast(str $name, @operands) {
 # if there are any operands, otherwise:
 #
 # method $name(str $key) { $key }
-
+#
 sub make-mapper2str(str $name, @operands) {
     my $stmts := @operands
       ?? RakuAST::StatementList.new(
@@ -363,6 +394,7 @@ sub make-mapper2str(str $name, @operands) {
     )
 }
 
+#- slangify --------------------------------------------------------------------
 # Append a given key and value to the given array if the value is different
 # from the key
 sub accept(str $key, str $value, @array) {
@@ -472,6 +504,7 @@ my sub slangify($language, %hash) is export {
     )
 }
 
+#- deparsify -------------------------------------------------------------------
 # Return the RakuAST of a role with the given name from the given translation
 # hash to be used to create a slang.
 my sub deparsify($language, %hash) is export {
@@ -589,6 +622,7 @@ my sub deparsify($language, %hash) is export {
     $statements
 }
 
+#- update-module ---------------------------------------------------------------
 # Values for generating source files
 my $generator := $*PROGRAM-NAME;
 my $generated := DateTime.now.gist.subst(/\.\d+/,'');
@@ -596,7 +630,7 @@ my $start     := '#- start of generated part of localization';
 my $end       := '#- end of generated part of localization';
 
 # For all available localizations
-sub update-module(
+my sub update-module(
    IO() $io,
   Str:D $language = $io.basename,
    IO() $root     = "lib"
@@ -650,7 +684,7 @@ DEFAULT
 DEFAULT
 
     # Take the first file in the "bin" directory.  If there is one, take
-    # that as the target for the # localized executor.  After that, make
+    # that as the target for the localized executor.  After that, make
     # sure it is executable
     my $bin := $root.sibling("bin");
     if $bin.d && $bin.dir.head -> $executor {
@@ -677,6 +711,7 @@ DEFAULT
     }
 }
 
+#- write-file ------------------------------------------------------------------
 sub write-file(IO() $io, Str:D $src, Str:D $default) {
 
     # slurp the whole file and set up writing to it
@@ -735,6 +770,7 @@ sub write-file(IO() $io, Str:D $src, Str:D $default) {
 #   block        syntax involving a block
 #   core         sub/method names that are part of the Raku core
 #   constraint   related to (ad-hoc) constraints
+#   enum         core enums (True, False, Less, More, etc.)
 #   infix        infix operators consisting of alphanumeric characters
 #   meta         meta-operator prefixes ('R','X','Z')
 #   modifier     statement modifier syntax

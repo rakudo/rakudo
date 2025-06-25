@@ -3197,7 +3197,6 @@ class RakuAST::MetaPostfix::Hyper
   is RakuAST::Postfixish
   is RakuAST::ImplicitLookups
   is RakuAST::CheckTime
-  is RakuAST::WhateverApplicable
 {
     has RakuAST::Postfixish $.postfix;
 

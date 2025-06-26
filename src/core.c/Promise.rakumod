@@ -254,7 +254,8 @@ my class Promise does Awaitable {
         }
     }
 
-    method andthen(Promise:D: &code, :$synchronous) {
+    proto method andthen(|) is revision-gated('6c') { * }
+    multi method andthen(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -278,14 +279,39 @@ my class Promise does Awaitable {
                                $synchronous)
         }
     }
+    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6e') {
+        nqp::lock($!lock);
+        if $!status == Broken {
+            nqp::unlock($!lock);
+            self.WHAT.broken($!result)
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            $synchronous
+                    ?? code(self)
+                    !! self.WHAT.start( { code($!result) }, :$!scheduler);
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN( $then-p,
+                    $vow,
+                    { $!status == Kept
+                            ?? do { my $*PROMISE := $then-p; $vow.keep(code($!result)) }
+                            !! $vow.break($!result) },
+                    $synchronous)
+        }
+    }
 
-    method orelse(Promise:D: &code, :$synchronous) {
+    proto method orelse(|) is revision-gated('6c') { * }
+    multi method orelse(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
             $synchronous
-                ?? code(self)
-                !! self.WHAT.start( { code(self) }, :$!scheduler);
+                    ?? code(self)
+                    !! self.WHAT.start( { code(self) }, :$!scheduler);
         }
         elsif $!status == Kept {
             # Already have the result, start immediately.
@@ -296,11 +322,35 @@ my class Promise does Awaitable {
             my $then-p := self.new(:$!scheduler);
             my $vow := $then-p.vow;
             self!PLANNED-THEN( $then-p,
-                               $vow,
-                               { $!status == Kept
-                                   ?? $vow.keep($!result)
-                                   !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
-                               $synchronous)
+                    $vow,
+                    { $!status == Kept
+                            ?? $vow.keep($!result)
+                            !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
+                    $synchronous)
+        }
+    }
+    multi method orelse(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
+        nqp::lock($!lock);
+        if $!status == Broken {
+            nqp::unlock($!lock);
+            $synchronous
+                    ?? code(self.cause)
+                    !! self.WHAT.start( { code(self.cause) }, :$!scheduler);
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            self.WHAT.kept($!result);
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN( $then-p,
+                    $vow,
+                    { $!status == Kept
+                            ?? $vow.keep($!result)
+                            !! do { my $*PROMISE := $then-p; $vow.keep(code(self.cause)) } },
+                    $synchronous)
         }
     }
 

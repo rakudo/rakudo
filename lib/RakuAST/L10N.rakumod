@@ -687,14 +687,15 @@ DEFAULT
     # that as the target for the localized executor.  After that, make
     # sure it is executable
     my $bin := $root.sibling("bin");
-    if $bin.d && $bin.dir.head -> $executor {
-        write-file
-          $executor,
-          Q:to/LOCALIZED/.subst("#LANGUAGE#",$language),
+    if $bin.d {
+        for $bin.dir -> $executor {
+            write-file
+              $executor,
+              Q:to/LOCALIZED/.subst("#LANGUAGE#",$language),
 %*ENV<RAKUDO_RAKUAST> = 1;
 %*ENV<RAKUDO_OPT>     = '-ML10N::#LANGUAGE#';
 LOCALIZED
-          Q:to/DEFAULT/;
+              Q:to/DEFAULT/;
 #!/usr/bin/env raku
 
 # Executor for the ___ localization of the Raku Programming Language
@@ -707,7 +708,8 @@ exit $proc.exitcode;
 
 # vim: expandtab shiftwidth=4
 DEFAULT
-        $executor.chmod(0o755);
+            $executor.chmod(0o755);
+        }
     }
 }
 

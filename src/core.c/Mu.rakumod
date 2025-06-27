@@ -830,9 +830,8 @@ my class Mu { # declared in BOOTSTRAP
     }
     multi method Stringy(Mu:D $:) { self.Str }
 
-    my sub read-only-container(Mu $a) is raw { $a }
     method item(Mu \item:) is raw {
-        nqp::iscont(item) ?? item !! read-only-container(item)
+        nqp::iscont(item) ?? item !! (my $ = item)
     }
 
     proto method say(|) {*}

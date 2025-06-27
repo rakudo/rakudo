@@ -254,7 +254,7 @@ my class Promise does Awaitable {
         }
     }
 
-    proto method andthen(|) is revision-gated('6c') { * }
+    proto method andthen(|) is revision-gated('6.c') { * }
     multi method andthen(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
@@ -279,7 +279,7 @@ my class Promise does Awaitable {
                                $synchronous)
         }
     }
-    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6e') {
+    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -304,7 +304,7 @@ my class Promise does Awaitable {
         }
     }
 
-    proto method orelse(|) is revision-gated('6c') { * }
+    proto method orelse(|) is revision-gated('6.c') { * }
     multi method orelse(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {

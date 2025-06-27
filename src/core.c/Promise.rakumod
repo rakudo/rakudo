@@ -288,20 +288,14 @@ my class Promise does Awaitable {
         elsif $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
+            my \final-result := code($!result);
             $synchronous
-                    ?? do {
-                        my \final-result := code($!result);
-                        nqp::istype(final-result, Awaitable)
-                            ?? $*AWAITER.await(final-result)
-                            !! final-result
-                    }
-                    !! do {
-                        my \final-result := code($!result);
-                        nqp::istype(final-result, Awaitable)
-                            ?? self.WHAT.start( { $*AWAITER.await(final-result) }, :$!scheduler)
-                            !! self.WHAT.start( { final-result }, :$!scheduler)
-                    }
-
+                    ?? nqp::istype(final-result, Awaitable)
+                        ?? $*AWAITER.await(final-result)
+                        !! final-result
+                    !! nqp::istype(final-result, Awaitable)
+                        ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)
+                        !! self.WHAT.start({ final-result }, :$!scheduler)
         }
         else {
             my $then-p := self.new(:$!scheduler);
@@ -313,7 +307,7 @@ my class Promise does Awaitable {
                                 my $*PROMISE := $then-p;
                                 my \final-result := code($!result);
                                 nqp::istype(final-result, Awaitable)
-                                    ?? $vow.keep( $*AWAITER.await(final-result) );
+                                    ?? $vow.keep($*AWAITER.await(final-result))
                                     !! $vow.keep(final-result)
                             }
                             !! $vow.break($!result) },
@@ -350,9 +344,14 @@ my class Promise does Awaitable {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
+            my \final-result := code(self.cause);
             $synchronous
-                    ?? code(self.cause)
-                    !! self.WHAT.start( { code(self.cause) }, :$!scheduler);
+                    ?? nqp::istype(final-result, Awaitable)
+                        ?? $*AWAITER.await(final-result)
+                        !! final-result
+                    !! nqp::istype(final-result, Awaitable)
+                        ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)
+                        !! self.WHAT.start({ final-result }, :$!scheduler);
         }
         elsif $!status == Kept {
             # Already have the result, start immediately.
@@ -366,7 +365,14 @@ my class Promise does Awaitable {
                     $vow,
                     { $!status == Kept
                             ?? $vow.keep($!result)
-                            !! do { my $*PROMISE := $then-p; $vow.keep(code(self.cause)) } },
+                            !! do {
+                                my $*PROMISE := $then-p;
+                                my \final-result := code(self.cause);
+                                nqp::istype(final-result, Awaitable)
+                                    ?? $vow.keep($*AWAITER.await(final-result))
+                                    !! $vow.keep(final-result)
+                            }
+                    },
                     $synchronous)
         }
     }

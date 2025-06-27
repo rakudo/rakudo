@@ -321,8 +321,8 @@ my class Promise does Awaitable {
         if $!status == Broken {
             nqp::unlock($!lock);
             $synchronous
-                    ?? code(self)
-                    !! self.WHAT.start( { code(self) }, :$!scheduler);
+                ?? code(self)
+                !! self.WHAT.start( { code(self) }, :$!scheduler);
         }
         elsif $!status == Kept {
             # Already have the result, start immediately.

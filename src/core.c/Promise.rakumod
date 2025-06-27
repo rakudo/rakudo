@@ -333,11 +333,11 @@ my class Promise does Awaitable {
             my $then-p := self.new(:$!scheduler);
             my $vow := $then-p.vow;
             self!PLANNED-THEN( $then-p,
-                    $vow,
-                    { $!status == Kept
-                            ?? $vow.keep($!result)
-                            !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
-                    $synchronous)
+                               $vow,
+                               { $!status == Kept
+                                    ?? $vow.keep($!result)
+                                    !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
+                               $synchronous)
         }
     }
     multi method orelse(Promise:D: &code, :$synchronous) is revision-gated('6.e') {

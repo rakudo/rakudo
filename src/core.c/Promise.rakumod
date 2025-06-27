@@ -335,8 +335,8 @@ my class Promise does Awaitable {
             self!PLANNED-THEN( $then-p,
                                $vow,
                                { $!status == Kept
-                                    ?? $vow.keep($!result)
-                                    !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
+                                   ?? $vow.keep($!result)
+                                   !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
                                $synchronous)
         }
     }

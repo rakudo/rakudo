@@ -289,8 +289,19 @@ my class Promise does Awaitable {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
             $synchronous
-                    ?? code(self)
-                    !! self.WHAT.start( { code($!result) }, :$!scheduler);
+                    ?? do {
+                        my \final-result := code($!result);
+                        nqp::istype(final-result, Awaitable)
+                            ?? $*AWAITER.await(final-result)
+                            !! final-result
+                    }
+                    !! do {
+                        my \final-result := code($!result);
+                        nqp::istype(final-result, Awaitable)
+                            ?? self.WHAT.start( { $*AWAITER.await(final-result) }, :$!scheduler)
+                            !! self.WHAT.start( { final-result }, :$!scheduler)
+                    }
+
         }
         else {
             my $then-p := self.new(:$!scheduler);
@@ -298,7 +309,13 @@ my class Promise does Awaitable {
             self!PLANNED-THEN( $then-p,
                     $vow,
                     { $!status == Kept
-                            ?? do { my $*PROMISE := $then-p; $vow.keep(code($!result)) }
+                            ?? do {
+                                my $*PROMISE := $then-p;
+                                my \final-result := code($!result);
+                                nqp::istype(final-result, Awaitable)
+                                    ?? $vow.keep( $*AWAITER.await(final-result) );
+                                    !! $vow.keep(final-result)
+                            }
                             !! $vow.break($!result) },
                     $synchronous)
         }

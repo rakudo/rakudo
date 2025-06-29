@@ -412,7 +412,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
                     ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 when 'relative' {
-                    "<abs-slash>"
+                    "<abs>"
                     ~ self.config<wrapper-rakudo-dir>.IO.add("rakudo$be$ext")
                 }
                 default { # 'path'

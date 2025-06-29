@@ -207,6 +207,22 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     return $name;
                 }
             }
+            # Exact script name not found in PATH.
+            # Now try finding a wrapper/script combo. We install those in
+            # CURIs.
+            if $base.ends-with('.raku') {
+                my $wrapper-base =  $base.chop(5);
+                $wrapper-base ~= '.exe' if Rakudo::Internals.IS-WIN;
+                for $SPEC.path() -> $elem {
+                    my $file = $SPEC.catpath($vol, $elem, $base).IO;
+                    my $wrapper-file = $SPEC.catpath($vol, $elem, $wrapper-base).IO;
+                    if $wrapper-file.x && $wrapper-file.f && $file.f {
+                        return $wrapper-base if $SPEC.canonpath($elem) eq $dir;
+                        # Shadowed command found in earlier PATH element
+                        return $name;
+                    }
+                }
+            }
             # Not in PATH
             $name;
         }

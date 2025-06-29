@@ -90,12 +90,15 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         # that is shown to users when the system is set up.  Versions up
         # to El Capitan where labeled OSX with unknown variations to the
         # license agreement, so we try those first from a static list.
-        $desc := nqp::ifnull(
-          nqp::atkey($names,$version),
-          Q|/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.html|.IO.slurp.match(
-            /"SOFTWARE LICENSE AGREEMENT FOR macOS " <( <-[<]>+/
-          ).Str
-        );
+        if $names{$version}:exists {
+            $desc := $names{$version};
+        }
+        else {
+            my $license = Q|/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.html|.IO.slurp;
+            if $license ~~ /"SOFTWARE LICENSE AGREEMENT FOR macOS " <( <-[<]>+/ {
+                $desc = $/.Str;
+            }
+        }
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
         my $lookup := kv2Map('/etc/os-release'.IO.slurp.subst(:g,'"'),'=');

@@ -92,9 +92,9 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         # license agreement, so we try those first from a static list.
         $desc := nqp::ifnull(
           nqp::atkey($names,$version),
-          Q|/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.html|.IO.slurp.match(
+          (Q|/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.html|.IO.slurp.match(
             /"SOFTWARE LICENSE AGREEMENT FOR macOS " <( <-[<]>+/
-          ).Str
+          ) // "<unknown>").Str
         );
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {

@@ -525,7 +525,7 @@ my class DateTime does Dateish {
     }
 
     method modified-julian-date(DateTime:D: --> Real:D) {
-        self.daycount + self.day-fraction
+        .daycount + .day-fraction with self.utc
     }
 
     method julian-date(DateTime:D: --> Real:D) {

@@ -291,7 +291,7 @@ my class Promise does Awaitable {
             my \final-result := code($!result);
             $synchronous
                     ?? nqp::istype(final-result, Awaitable)
-                        ?? $*AWAITER.await(final-result)
+                        ?? self.then({ final-result }, :synchronous)
                         !! final-result
                     !! nqp::istype(final-result, Awaitable)
                         ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)
@@ -347,7 +347,7 @@ my class Promise does Awaitable {
             my \final-result := code(self.cause);
             $synchronous
                     ?? nqp::istype(final-result, Awaitable)
-                        ?? $*AWAITER.await(final-result)
+                        ?? self.then({ final-result }, :synchronous)
                         !! final-result
                     !! nqp::istype(final-result, Awaitable)
                         ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)

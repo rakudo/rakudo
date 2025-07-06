@@ -300,14 +300,17 @@ my class Promise does Awaitable {
         else {
             my $then-p := self.new(:$!scheduler);
             my $vow := $then-p.vow;
-            self!PLANNED-THEN( $then-p,
+            self!PLANNED-THEN(
+                    $then-p,
                     $vow,
                     { $!status == Kept
                             ?? do {
                                 my $*PROMISE := $then-p;
                                 my \final-result := code($!result);
                                 nqp::istype(final-result, Awaitable)
-                                    ?? $vow.keep($*AWAITER.await(final-result))
+                                    ?? $synchronous
+                                        ?? $vow.keep(self.then({ final-result }, :synchronous))
+                                        !! $vow.keep($*AWAITER.await(final-result))
                                     !! $vow.keep(final-result)
                             }
                             !! $vow.break($!result) },
@@ -361,7 +364,8 @@ my class Promise does Awaitable {
         else {
             my $then-p := self.new(:$!scheduler);
             my $vow := $then-p.vow;
-            self!PLANNED-THEN( $then-p,
+            self!PLANNED-THEN(
+                    $then-p,
                     $vow,
                     { $!status == Kept
                             ?? $vow.keep($!result)
@@ -369,8 +373,10 @@ my class Promise does Awaitable {
                                 my $*PROMISE := $then-p;
                                 my \final-result := code(self.cause);
                                 nqp::istype(final-result, Awaitable)
-                                    ?? $vow.keep($*AWAITER.await(final-result))
-                                    !! $vow.keep(final-result)
+                                    ?? $synchronous
+                                        ?? $vow.keep(self.then({ final-result }, :synchronous))
+                                        !! $vow.keep($*AWAITER.await(final-result))
+                                !! $vow.keep(final-result)
                             }
                     },
                     $synchronous)

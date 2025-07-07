@@ -254,7 +254,8 @@ my class Promise does Awaitable {
         }
     }
 
-    method andthen(Promise:D: &code, :$synchronous) {
+    proto method andthen(|) is revision-gated('6.c') { * }
+    multi method andthen(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -278,8 +279,47 @@ my class Promise does Awaitable {
                                $synchronous)
         }
     }
+    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
+        nqp::lock($!lock);
+        if $!status == Broken {
+            nqp::unlock($!lock);
+            self.WHAT.broken($!result)
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            my \final-result := code($!result);
+            $synchronous
+                    ?? nqp::istype(final-result, Awaitable)
+                        ?? self.then({ final-result }, :synchronous)
+                        !! final-result
+                    !! nqp::istype(final-result, Awaitable)
+                        ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)
+                        !! self.WHAT.start({ final-result }, :$!scheduler)
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN(
+                    $then-p,
+                    $vow,
+                    { $!status == Kept
+                            ?? do {
+                                my $*PROMISE := $then-p;
+                                my \final-result := code($!result);
+                                nqp::istype(final-result, Awaitable)
+                                    ?? $synchronous
+                                        ?? $vow.keep(self.then({ final-result }, :synchronous))
+                                        !! $vow.keep($*AWAITER.await(final-result))
+                                    !! $vow.keep(final-result)
+                            }
+                            !! $vow.break($!result) },
+                    $synchronous)
+        }
+    }
 
-    method orelse(Promise:D: &code, :$synchronous) {
+    proto method orelse(|) is revision-gated('6.c') { * }
+    multi method orelse(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -301,6 +341,45 @@ my class Promise does Awaitable {
                                    ?? $vow.keep($!result)
                                    !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
                                $synchronous)
+        }
+    }
+    multi method orelse(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
+        nqp::lock($!lock);
+        if $!status == Broken {
+            nqp::unlock($!lock);
+            my \final-result := code(self.cause);
+            $synchronous
+                    ?? nqp::istype(final-result, Awaitable)
+                        ?? self.then({ final-result }, :synchronous)
+                        !! final-result
+                    !! nqp::istype(final-result, Awaitable)
+                        ?? self.WHAT.start({ $*AWAITER.await(final-result) }, :$!scheduler)
+                        !! self.WHAT.start({ final-result }, :$!scheduler);
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            self.WHAT.kept($!result);
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN(
+                    $then-p,
+                    $vow,
+                    { $!status == Kept
+                            ?? $vow.keep($!result)
+                            !! do {
+                                my $*PROMISE := $then-p;
+                                my \final-result := code(self.cause);
+                                nqp::istype(final-result, Awaitable)
+                                    ?? $synchronous
+                                        ?? $vow.keep(self.then({ final-result }, :synchronous))
+                                        !! $vow.keep($*AWAITER.await(final-result))
+                                !! $vow.keep(final-result)
+                            }
+                    },
+                    $synchronous)
         }
     }
 

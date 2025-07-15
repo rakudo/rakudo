@@ -1,7 +1,3 @@
-use Perl6::Grammar;
-use Perl6::Actions;
-use Raku::Grammar;
-use Raku::Actions;
 use Perl6::Compiler;
 use Perl6::SysConfig;
 
@@ -16,14 +12,33 @@ nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-confi
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');
 if nqp::getenvhash()<RAKUDO_RAKUAST> {
-    $comp.parsegrammar(Raku::Grammar);
-    $comp.parseactions(Raku::Actions);
+    my $loader := nqp::getcurhllsym('ModuleLoader');
+
+    my $RakuGrammarModule := $loader.load_module("Raku::Grammar");
+    my $RakuActionsModule := $loader.load_module("Raku::Actions");
+
+    my $globalish := $RakuGrammarModule<GLOBALish>.WHO;
+
+    $comp.parsegrammar($globalish<Raku>.WHO<Grammar>);
+    $comp.parseactions($globalish<Raku>.WHO<Actions>);
+
+    # Make Raku grammar / actions visible to HLL
+    nqp::bindhllsym('Raku', 'Grammar', $globalish<Raku>.WHO<Grammar>);
+    nqp::bindhllsym('Raku', 'Actions', $globalish<Raku>.WHO<Actions>);
+
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('qast', :after<ast>);
 }
 else {
-    $comp.parsegrammar(Perl6::Grammar);
-    $comp.parseactions(Perl6::Actions);
+    my $loader := nqp::getcurhllsym('ModuleLoader');
+    my $Perl6GrammarModule := $loader.load_module("Perl6::Grammar");
+    my $Perl6ActionsModule := $loader.load_module("Perl6::Actions");
+
+    my $globalish := $Perl6GrammarModule<GLOBALish>.WHO;
+
+    $comp.parsegrammar($globalish<Perl6>.WHO<Grammar>);
+    $comp.parseactions($globalish<Perl6>.WHO<Actions>);
+
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('optimize', :after<ast>);
 }
@@ -47,10 +62,6 @@ my @clo := $comp.commandline_options();
 #?if js
 @clo.push('beautify');
 #?endif
-
-# Make Raku grammar / actions visible to HLL
-nqp::bindhllsym('Raku', 'Grammar', Raku::Grammar);
-nqp::bindhllsym('Raku', 'Actions', Raku::Actions);
 
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('Raku', '@END_PHASERS', []);

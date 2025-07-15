@@ -2,8 +2,11 @@ use v6.e.PREVIEW;
 
 # just needed until Raku::Actions/Raku::DEPARSE become default
 use nqp;
-my constant RakuGrammar = nqp::gethllsym('Raku','Grammar');
-my constant RakuActions = nqp::gethllsym('Raku','Actions');
+use Raku::Grammar:from<NQP>;
+use Raku::Actions:from<NQP>;
+
+my constant RakuGrammar = Raku::Grammar;
+my constant RakuActions = Raku::Actions;
 my constant RakuDEPARSE = nqp::gethllsym('Raku','DEPARSE');
 
 my constant cleaner = / <-[-]>+ $/;

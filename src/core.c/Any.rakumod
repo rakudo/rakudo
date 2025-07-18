@@ -513,18 +513,10 @@ multi sub postfix:<-->(Mu:D $a is rw) { my $b = $a; $a = $a.pred; $b }
 multi sub postfix:<-->(Mu:U $a is rw) { $a = -1; 0 }
 
 proto sub pick($, |) {*}
-multi sub pick($n, +values) {
-    !values && $n ~~ Iterable
-      ?? $n.pick
-      !! values.pick($n)
-}
+multi sub pick($n, +values) { values.pick($n) }
 
 proto sub roll($, |) {*}
-multi sub roll($n, +values) {
-    !values && $n ~~ Iterable
-      ?? $n.roll
-      !! values.roll($n)
-}
+multi sub roll($n, +values) { values.roll($n) }
 
 proto sub keys($, *%) {*}
 multi sub keys($x) { $x.keys }

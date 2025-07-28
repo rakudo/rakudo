@@ -1554,7 +1554,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
         [
         || <!{ $*IN_REDUCE }> {
-            $/.panic("Unexpected block in infix position (missing statement control word before the expression?)");
+            $/.panic("Unexpected block in infix position (missing statement control word before the expression? Or did you forget a semi-colon?)");
         }
         || <!>
         ]

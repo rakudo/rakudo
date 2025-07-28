@@ -3277,7 +3277,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         [
         || <!{ $*IN_REDUCE }> {
-            $/.panic("Unexpected block in infix position (missing statement control word before the expression?)");
+            $/.panic("Unexpected block in infix position (missing statement control word before the expression? Or did you forget a semi-colon?)");
         }
         || <!>
         ]

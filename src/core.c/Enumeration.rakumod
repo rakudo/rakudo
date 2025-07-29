@@ -14,7 +14,7 @@ my role Enumeration {
     method pair(::?CLASS:D:) { $!key => $!value }
 
     multi method gist(::?CLASS:D:) { $!key                     }
-    multi method raku(::?CLASS:D:) { self.^name ~ '::' ~ $!key }
+    multi method raku(::?CLASS:D $self:) { "$self.^name()::<$!key>" }
 
     multi method pick(::?CLASS:U:)       { self.^enum_value_list.pick     }
     multi method pick(::?CLASS:U: \n)    { self.^enum_value_list.pick(n)  }

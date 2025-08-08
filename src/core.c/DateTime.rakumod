@@ -719,6 +719,20 @@ my class DateTime does Dateish {
           ~ ')'
     }
 
+    multi method WHICH(DateTime:D:) {
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,DateTime),
+              'DateTime|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            nqp::unbox_s(self.Str)
+          ),
+          ValueObjAt
+        )
+    }
+
     multi method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 

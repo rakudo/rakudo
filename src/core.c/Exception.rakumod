@@ -2031,7 +2031,11 @@ my class X::Syntax::Pod::BeginWithDirective does X::Syntax does X::Pod {
 
 my class X::Syntax::Confused does X::Syntax {
     has $.reason = 'Confused';
-    method message() { $.reason }
+    method message() {
+        $.post.starts-with("≫")
+          ?? "$.reason (did you mean '»' or '>>'?)"
+          !! $.reason
+    }
 }
 
 my class X::Syntax::Malformed does X::Syntax {

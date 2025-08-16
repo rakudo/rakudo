@@ -334,18 +334,6 @@ class CompUnit::Repository::FileSystem
         $_ = @!extensions.map(-> $ext { $_{$ext} }).first(*.defined)
             for %provides.values;
 
-        # The .pm file extension can also match perl modules. We should encourage users
-        # to stop using it for their raku code so we don't waste cycles sha1ing their
-        # source code or attempt to precompile them.
-        if %provides.values.grep(*.ends-with('.pm')) {
-            DEPRECATED(
-                "the .rakumod extension for raku modules, or include a META6.json file that explicitly declares each raku module file",
-                :what(".pm file extension in raku library path"),
-                :file(self.path-spec),
-                :line(0),
-            );
-        }
-
         Distribution::Hash.new(:$prefix, %(
           name      => ~$!prefix,  # must make up a name when using -Ilib
           ver       => '*',

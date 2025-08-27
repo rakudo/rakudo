@@ -3460,19 +3460,18 @@ class Perl6::Optimizer {
 
         # if we got a native int/num, we can rewrite into nqp ops
         if nqp::istype($var,QAST::Var) && ($var.scope eq 'lexicalref' || $var.scope eq 'attributeref')
-        && ((my $primspec := nqp::objprimspec($var.returns)) == nqp::const::BIND_VAL_INT || $primspec == nqp::const::BIND_VAL_UINT
+        && ((my $primspec := nqp::objprimspec($var.returns)) == nqp::const::BIND_VAL_INT
           || $primspec == nqp::const::BIND_VAL_NUM || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
         {
             my $returns := $var.returns;
             my $is-dec := nqp::eqat($op.name, '--', -3);
 
-            if $primspec == nqp::const::BIND_VAL_INT || $primspec == nqp::const::BIND_VAL_UINT {
-                my $assign := $primspec == nqp::const::BIND_VAL_INT ?? 'assign_i' !! 'assign_u';
+            if $primspec == nqp::const::BIND_VAL_INT {
                 $!block_var_stack.do('unregister_call');
                 my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
-                    return QAST::Op.new: :op($assign), :$node, :$returns, $var,
+                    return QAST::Op.new: :op<assign_i>, :$node, :$returns, $var,
                       QAST::Op.new: :op($is-dec ?? 'sub_i' !! 'add_i'),
                         :$returns, $var, $one
                 }
@@ -3481,7 +3480,7 @@ class Perl6::Optimizer {
                     # do the reverse operation than to use a temp var
                     return QAST::Op.new: :op($is-dec ?? 'add_i' !! 'sub_i'),
                           :$node, :$returns,
-                        QAST::Op.new(:op($assign), :$returns, $var,
+                        QAST::Op.new(:op<assign_i>, :$returns, $var,
                           QAST::Op.new: :op($is-dec ?? 'sub_i' !! 'add_i'),
                            :$returns, $var, $one),
                         $one

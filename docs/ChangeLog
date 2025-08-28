@@ -1,3 +1,18 @@
+New in 2025.08:
+
++ Improvements:
+    + Make DateTime.(modified-)julian-date take timezone into account (#5886) [5a1f7013]
+    + Elaborate a bit on possible error reason [133f44c8]
+    + Change enum's raku method to return valid code (#5936) [5e8d7f65]
+    + Make DateTime a value type (#5933) [15a2a9b1]
+    + Make confused error message less confused [f5648294]
+
++ Additions:
+
++ Fixes:
+
++ Internal:
+
 New in 2025.06.1:
 
 + Improvements:

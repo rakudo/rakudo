@@ -17,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2025-08-28   Rakudo #185 (jdv)
+  2025-09-27   Rakudo #186 (Coke)
 
 (More planned dates can be generated with F<tools/release-dates.raku>).
 
@@ -606,6 +606,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2025-05-17   Rakudo #183 "2025.05"           (jdv)
   2025-06-27   Rakudo #184 "2025.06"           (jdv)
   2025-06-30   2025.06.1                       (jdv)
+  2025-08-28   Rakudo #185 "2025.08"           (jdv)
 
 =head1 COPYRIGHT
 

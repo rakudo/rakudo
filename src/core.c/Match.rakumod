@@ -394,7 +394,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         for self.Match::caps {
             $r ~= $s ~ (.key // '?') ~ ' ' ~ &?ROUTINE(.value, $d + 1);
         }
-        $d == 0 ?? $r.chomp !! $r;
+        $d == 0 ?? $r.chomp !! $r
     }
 
     method replace-with(Match:D: Str() $replacement --> Str:D) {

@@ -553,9 +553,17 @@ do {
             CATCH {
                 default { say ."$method"() }
             }
-            nqp::can($value,$method)
-              and say $value."$method"()
-              or say "(low-level object `$value.^name()`)";
+            if nqp::can($value,$method) {
+                if nqp::istype($value,List) && $value.are(Match) {
+                    say ."$method"() for $value<>;
+                }
+                else {
+                    say $value."$method"();
+                }
+            }
+            else {
+                say "(low-level object `$value.^name()`)";
+            }
         }
 
         method history-file(--> Str:D) {

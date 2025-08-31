@@ -1313,6 +1313,9 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method are(Any:U:) { self }
     multi method are(Any:D:) {
         my $iterator := self.iterator;
+        X::Cannot::Lazy.new(:action<infer type on>).throw
+          if $iterator.is-lazy;
+
         nqp::if(
           nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
           Nil,                                            # nothing to check
@@ -1364,6 +1367,8 @@ Consider using a block if any of these are necessary for your mapping code."
         unless nqp::eqaddr(nqp::decont($type),Mu) {
             my int $i;
             my $iterator := self.iterator;
+            return X::Cannot::Lazy.new(:action<infer type on>).Failure
+              if $iterator.is-lazy;
 
             nqp::until(
               nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),

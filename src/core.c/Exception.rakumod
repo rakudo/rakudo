@@ -2845,7 +2845,7 @@ my class X::TypeCheck is Exception {
         nqp::eqaddr($!got.WHAT, $!expected.WHAT)
           ?? $raku
           !! nqp::can($!got.HOW, 'name')
-            ?? "$!got.^name() ($raku)"
+            ?? "$!got.^name()"
             !! $raku
     }
     method expectedn() {
@@ -2880,6 +2880,11 @@ my class X::TypeCheck is Exception {
             # but we don't know what $!got is and it may not have an `of` method
             elsif $!got.^can('of') && $!got.of =:= Mu {
                 $msg ~= ". You have to pass an explicitly typed array, not one that just might happen to contain elements of the correct type.";
+            }
+        }
+        if $!expected ~~ Associative {
+            if $!got.^can('of') && $!got.of =:= Mu {
+                $msg ~= ". You have to pass an explicitly typed hash, not one that just might happen to contain elements of the correct type."
             }
         }
         $msg.naive-word-wrapper

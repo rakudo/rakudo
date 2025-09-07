@@ -404,6 +404,8 @@ augment class Str {
           $needle, $pos, :ignorecase($smartcase && $needle!lowercase-only), |%_
         )
     }
+
+    method spurt(Str:D: IO() $io) { $io.spurt(self) }
 }
 
 #-------------------------------------------------------------------------------

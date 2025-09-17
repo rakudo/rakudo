@@ -251,7 +251,6 @@ class RakuAST::Code
     }
 
     method IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
-
         my $visit-block;
         my $visit-children;
 
@@ -372,20 +371,10 @@ class RakuAST::Code
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
-        $wrapper[0].push(QAST::Var.new(
-            :name('$_'), :scope('lexical'),
-            :decl('contvar'), :value(Mu)
-        ));
-        $wrapper[0].push(QAST::Var.new(
-            :name('$/'), :scope('lexical'),
-            :decl('contvar'), :value(Nil)
-        ));
-        my $package := $!resolver.current-package;
-        $context.ensure-sc($package);
-        $wrapper[0].push(QAST::Var.new(
-            :name('$?PACKAGE'), :scope('lexical'),
-            :decl('static'), :value($package)
-        ));
+        my $CompUnit := $resolver.find-attach-target("compunit");
+        for $CompUnit.PRODUCE-IMPLICIT-DECLARATIONS {
+            $wrapper[0].push($_.IMPL-QAST-DECL($context)) if $_.can("IMPL-QAST-DECL")
+        }
 
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
             if nqp::istype($_, RakuAST::CompileTimeValue) {

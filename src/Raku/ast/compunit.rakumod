@@ -468,6 +468,10 @@ class RakuAST::CompUnit
             name => '!EVAL_MARKER', value => 1
         )) if $!is-eval;
 
+        add($!finish) if $!finish-content;
+        add($!data) if $!data-content;
+        add($!pod) if $!pod-content;
+
         @decls
     }
 

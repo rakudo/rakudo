@@ -251,7 +251,6 @@ class RakuAST::Code
     }
 
     method IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
-
         my $visit-block;
         my $visit-children;
 
@@ -372,20 +371,38 @@ class RakuAST::Code
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
-        $wrapper[0].push(QAST::Var.new(
-            :name('$_'), :scope('lexical'),
-            :decl('contvar'), :value(Mu)
-        ));
-        $wrapper[0].push(QAST::Var.new(
-            :name('$/'), :scope('lexical'),
-            :decl('contvar'), :value(Nil)
-        ));
+
         my $package := $!resolver.current-package;
         $context.ensure-sc($package);
-        $wrapper[0].push(QAST::Var.new(
-            :name('$?PACKAGE'), :scope('lexical'),
-            :decl('static'), :value($package)
-        ));
+
+        my $comp-unit := $resolver.find-attach-target("compunit");
+        # When $comp-unit.is-eval, all required declarations will be included in QAST when
+        # ForeignCode::EVAL calls RakuAST::CompUnit::IMPL-TO-QAST-COMP-UNIT.
+        # Other forms of dynamic compilation (notably, CHECK) need to be able to access
+        # all UNIT level lexicals.
+        if ! $comp-unit.is-eval && nqp::elems(my @decls := $comp-unit.PRODUCE-IMPLICIT-DECLARATIONS // []) {
+            for @decls {
+                if nqp::istype($_, RakuAST::VarDeclaration::Implicit) {
+                    # CompUnit's generated $?PACKAGE points to the generated GLOBAL, so we update it here.
+                    # (Otherwise all sorts of subtle side effects occur with eg `use experimental :pack`)
+                    $_.set-value($package) if $_.lexical-name eq '$?PACKAGE';
+                    $wrapper[0].push($_.IMPL-QAST-DECL($context))
+                }
+            }
+        } else {
+            $wrapper[0].push(QAST::Var.new(
+                :name('$_'), :scope('lexical'),
+                :decl('contvar'), :value(Mu)
+            ));
+            $wrapper[0].push(QAST::Var.new(
+                :name('$/'), :scope('lexical'),
+                :decl('contvar'), :value(Nil)
+            ));
+            $wrapper[0].push(QAST::Var.new(
+                :name('$?PACKAGE'), :scope('lexical'),
+                :decl('static'), :value($package)
+            ));
+        }
 
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
             if nqp::istype($_, RakuAST::CompileTimeValue) {
@@ -400,14 +417,14 @@ class RakuAST::Code
 
         self.IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK($resolver, $context, $wrapper);
 
-        my $compunit := QAST::CompUnit.new(
+        my $qast-compunit := QAST::CompUnit.new(
             :hll('Raku'),
             :sc($context.sc()),
             :compilation_mode(0),
             $wrapper
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
-        my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
+        my $precomp := $comp.compile($qast-compunit, :from<qast>, :compunit_ok(1));
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

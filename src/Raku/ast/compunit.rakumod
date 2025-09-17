@@ -404,10 +404,19 @@ class RakuAST::CompUnit
         }
         else {
             my $global := RakuAST::Package.new(
-              how  => $!global-package-how,
-              name => RakuAST::Name.from-identifier('GLOBAL')
+                how  => $!global-package-how,
+                name => RakuAST::Name.from-identifier('GLOBAL')
             );
             $global.meta-object; # Ensure GLOBAL is composed right away
+
+            # For non-eval dynamic compilation at CHECK time, we need to produce these in a
+            # specific order: $_, $/, $?PACKAGE
+            # After that, we can add the rest.
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                name => '$?PACKAGE', value => $global.compile-time-value
+            ));
 
             add($global);
             add(RakuAST::VarDeclaration::Implicit::Constant.new(
@@ -416,12 +425,12 @@ class RakuAST::CompUnit
             add(RakuAST::VarDeclaration::Implicit::Constant.new(
               name => 'EXPORT', value => $!export-package
             )) unless nqp::eqaddr($!export-package,Mu);
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-              name => '$?PACKAGE', value => $global.compile-time-value
-            ));
-            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
-            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
+
+            add($!finish) if $!finish-content;
+            add($!data) if $!data-content;
+            add($!pod) if $!pod-content;
         }
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
@@ -653,7 +662,9 @@ class RakuAST::CompUnit
 
     method generated-global() {
         nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
-        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value
+        # GLOBALish is installed as the fourth entry in PRODUCE-IMPLICIT-DECLARATIONS
+        # due to the structural expectations of dynamic compilation fixups
+        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[3].compile-time-value
     }
 
     method visit-children(Code $visitor) {

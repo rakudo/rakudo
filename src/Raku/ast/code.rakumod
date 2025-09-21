@@ -369,47 +369,42 @@ class RakuAST::Code
         $visit-block($block);
     }
 
-#    method PRODUCE-IMPLICIT-LOOKUPS {
-#        [ ]
-#    }
-
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
 
-        my $package := $!resolver.current-package;
+        my $package := $resolver.current-package;
         $context.ensure-sc($package);
 
+        $wrapper[0].push(QAST::Var.new(
+            :name('$_'), :scope('lexical'),
+            :decl('contvar'), :value(Mu)
+        ));
+        $wrapper[0].push(QAST::Var.new(
+            :name('$/'), :scope('lexical'),
+            :decl('contvar'), :value(Nil)
+        ));
+        $wrapper[0].push(QAST::Var.new(
+            :name('$?PACKAGE'), :scope('lexical'),
+            :decl('static'), :value($package)
+        ));
+
         my $CompUnit := $resolver.find-attach-target("compunit");
-        $wrapper[0].push(QAST::Var.new(
-                :name('$_'), :scope('lexical'),
-                :decl('contvar'), :value(Mu)
-                ));
-        $wrapper[0].push(QAST::Var.new(
-                :name('$/'), :scope('lexical'),
-                :decl('contvar'), :value(Nil)
-                ));
-        $wrapper[0].push(QAST::Var.new(
-                :name('$?PACKAGE'), :scope('lexical'),
-                :decl('static'), :value($package)
-                ));
 
-
-#            $CompUnit.check($resolver);
-        unless $CompUnit.is-eval || $!resolver.find-attach-target("compunit").is-eval || nqp::istype($resolver, RakuAST::Resolver::EVAL) { 
-            for $CompUnit.PRODUCE-IMPLICIT-DECLARATIONS {
+#        unless $CompUnit.is-eval
+#        || $!resolver.find-attach-target("compunit").is-eval
+#        || nqp::istype($resolver, RakuAST::Resolver::EVAL)
+#        || nqp::istype($!resolver, RakuAST::Resolver::EVAL) {
+            for $CompUnit.PRODUCE-IMPLICIT-DECLARATIONS // [] {
                 if $_.can("IMPL-QAST-DECL") {   # $?PACKAGE can not 'lexical-name', so we only need to guard for $_ and $/
                     if $_.can('lexical-name') && (my $name := $_.lexical-name) && $name ne '$_' && $name ne '$/' && $name ne '$?PACKAGE' {
-                        $_.PERFORM-BEGIN($resolver, $context) if $_.can('PERFORM-BEGIN');
-                        $_.PERFORM-CHECK($resolver, $context) if $_.can('PERFORM-CHECK');
+#                        $_.PERFORM-BEGIN($resolver, $context) if $_.can('PERFORM-BEGIN');
+#                        $_.PERFORM-CHECK($resolver, $context) if $_.can('PERFORM-CHECK');
                         $wrapper[0].push($_.IMPL-QAST-DECL($context))
                     }
                 }
             }
-        }
-
-
-
+#        }
 
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
             if nqp::istype($_, RakuAST::CompileTimeValue) {

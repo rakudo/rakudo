@@ -668,12 +668,12 @@ class RakuAST::CompUnit
     method visit-children(Code $visitor) {
         $visitor($!mainline);
         $visitor($!statement-list);
-#        if $!is-eval {
+        unless $!is-eval {
             $visitor($!pod)     if $!pod;
             $visitor($!data)    if $!data;
             $visitor($!finish)  if $!finish;
-#        }
-        $visitor($!rakudoc) if $!rakudoc;
+            $visitor($!rakudoc) if $!rakudoc;
+        }
     }
 }
 

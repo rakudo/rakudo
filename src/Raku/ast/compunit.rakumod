@@ -395,7 +395,10 @@ class RakuAST::CompUnit
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @decls;
-        my sub add(Mu $add) { nqp::push(@decls,$add) }
+        my sub add(Mu $add, :$add-to-scope = True) {
+            nqp::push(@decls,$add);
+#            self.add-generated-lexical-declaration($add) if $add-to-scope
+        }
 
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
@@ -409,16 +412,16 @@ class RakuAST::CompUnit
             );
             $global.meta-object; # Ensure GLOBAL is composed right away
 
-            add($global);
+            add($global, :add-to-scope(False));
             add(RakuAST::VarDeclaration::Implicit::Constant.new(
               name => 'GLOBALish', value => $global.compile-time-value
-            ));
+            ), :add-to-scope(False));
             add(RakuAST::VarDeclaration::Implicit::Constant.new(
               name => 'EXPORT', value => $!export-package
-            )) unless nqp::eqaddr($!export-package,Mu);
+            ), :add-to-scope(False)) unless nqp::eqaddr($!export-package,Mu);
             add(RakuAST::VarDeclaration::Implicit::Constant.new(
               name => '$?PACKAGE', value => $global.compile-time-value
-            ));
+            ), :add-to-scope(False));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
@@ -468,9 +471,11 @@ class RakuAST::CompUnit
             name => '!EVAL_MARKER', value => 1
         )) if $!is-eval;
 
-        add($!finish) if $!finish-content;
-        add($!data) if $!data-content;
-        add($!pod) if $!pod-content;
+#        unless $!is-eval {
+            add($!finish) if $!finish-content;
+            add($!data) if $!data-content;
+            add($!pod) if $!pod-content;
+#        }
 
         @decls
     }
@@ -663,9 +668,11 @@ class RakuAST::CompUnit
     method visit-children(Code $visitor) {
         $visitor($!mainline);
         $visitor($!statement-list);
-        $visitor($!pod)     if $!pod;
-        $visitor($!data)    if $!data;
-        $visitor($!finish)  if $!finish;
+#        if $!is-eval {
+            $visitor($!pod)     if $!pod;
+            $visitor($!data)    if $!data;
+            $visitor($!finish)  if $!finish;
+#        }
         $visitor($!rakudoc) if $!rakudoc;
     }
 }

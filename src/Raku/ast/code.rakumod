@@ -378,8 +378,10 @@ class RakuAST::Code
         my $comp-unit := $resolver.find-attach-target("compunit");
         # When $comp-unit.is-eval, all required declarations will be included in QAST when
         # ForeignCode::EVAL calls RakuAST::CompUnit::IMPL-TO-QAST-COMP-UNIT.
-        # Other forms of dynamic compilation (notably, CHECK) need to be able to access
-        # all UNIT level lexicals.
+        # Other forms of dynamic compilation (CHECK, most notably) need to manually add the
+        # $comp-unit's implicit declarations to the QAST pre-amble. This is in order for CHECK-time
+        # lexical lookups into UNIT::<*> to resolve even as the $comp-unit is still in the
+        # process of compiling.
         if ! $comp-unit.is-eval && nqp::elems(my @decls := $comp-unit.PRODUCE-IMPLICIT-DECLARATIONS // []) {
             for @decls {
                 if nqp::istype($_, RakuAST::VarDeclaration::Implicit) {

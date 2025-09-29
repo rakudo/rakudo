@@ -664,7 +664,7 @@ my class IO::Path is Cool does IO {
 
     proto method slurp() {*}
     multi method slurp(IO::Path:D: :$bin!) {
-        my $size = ((try self.s) // 0), fallback-slurp-size;
+        my $size = ((try self.s) // 0) max fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? $bin
             ?? slurp-stdin-bin()
@@ -674,7 +674,7 @@ my class IO::Path is Cool does IO {
             !! slurp-path-with-encoding(self.absolute,'utf8',$size)
     }
     multi method slurp(IO::Path:D: :$enc!) {
-        my $size = max try self.s, fallback-slurp-size;
+        my $size = ((try self.s) // 0) max fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding(
                Rakudo::Internals.NORMALIZE_ENCODING($enc))
@@ -682,7 +682,7 @@ my class IO::Path is Cool does IO {
                Rakudo::Internals.NORMALIZE_ENCODING($enc),$size)
     }
     multi method slurp(IO::Path:D:) {
-        my $size = max try self.s, fallback-slurp-size;
+        my $size = ((try self.s) // 0) max fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding('utf8')
           !! slurp-path-with-encoding(self.absolute,'utf8',$size)

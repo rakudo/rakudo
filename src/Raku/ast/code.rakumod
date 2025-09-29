@@ -152,7 +152,12 @@ class RakuAST::Code
             unless $precomp {
                 $compiler-thunk();
             }
-            unless nqp::isnull($code-obj) {
+            # In v6.e we emit a SORRY when a CurryThunk is applied to an attribute that is missing either an initializer
+            # or the is required trait.
+            # This guard is to avoid an un-necessary invocation of the CurryThunk with an Any value, since the SORRY is
+            # just around the corner.
+            unless nqp::isnull($code-obj)
+            || (nqp::istype(self, RakuAST::CurryThunk) && nqp::elems(@pos) == 1 && nqp::istype(@pos[0], self.get-implicit-lookups[1])) {
                 return $code-obj(|@pos, |%named);
             }
         });
@@ -3638,7 +3643,8 @@ class RakuAST::CurryThunk
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('WhateverCode'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('WhateverCode')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Any'))
         ]
     }
 

@@ -664,7 +664,7 @@ my class IO::Path is Cool does IO {
 
     proto method slurp() {*}
     multi method slurp(IO::Path:D: :$bin!) {
-        my $size = max try self.s, fallback-slurp-size;
+        my $size = ((try self.s) // 0), fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? $bin
             ?? slurp-stdin-bin()

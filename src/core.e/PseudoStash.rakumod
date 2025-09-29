@@ -73,7 +73,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                 my Mu $ctx := nqp::ctxcallerskipthunks(
                   nqp::getattr(nqp::decont($cur), PseudoStash6c, '$!ctx'))),
               Nil,
-              PseudoStash.NEW-PACKAGE( :$ctx, :mode(PRECISE_SCOPE), :name<CALLER> ))
+              PseudoStash.NEW-PACKAGE( :$ctx, :mode(PRECISE_SCOPE +| REQUIRE_DYNAMIC), :name<CALLER> ))
         },
         'OUTER', sub ($cur) is raw {
             my Mu $ctx := nqp::ctxouterskipthunks(

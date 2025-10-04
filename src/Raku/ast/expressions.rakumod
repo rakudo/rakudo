@@ -846,10 +846,23 @@ class RakuAST::Feed
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if nqp::istype($stage, QAST::Op) && $stage.op eq 'call' {
-                # It's a call. Stick a call to the current supplier in
-                # as its last argument.
-                $stage.push(QAST::Op.new( :op('call'), $result ));
+            if nqp::istype($stage, QAST::Op) {
+                if $stage.op eq 'call' {
+                    # It's a call. Stick a call to the current supplier in
+                    # as its last argument.
+                    $stage.push(QAST::Op.new( :op('call'), $result ));
+                }
+                elsif $stage.op eq 'hllize'
+                && nqp::istype($stage[0], QAST::Op)
+                && $stage[0].op eq 'callmethod' {
+                    # It's an indirect method call of the form foo-method($obj:)
+                    # Append the call that produces the result as the argument to the
+                    # indirect method call...
+                    $stage[0].push: QAST::Op.new: :op<call>, $result;
+                    # ... and wrap the entire indirect method call with a block
+		    # for the next stage to call
+                    $stage[0] := QAST::Op.new: :op<call>, QAST::Block.new: $stage[0];
+                }
             }
             elsif nqp::istype($stage, QAST::Var) {
                 # It's a variable. We need code that gets the results, pushes

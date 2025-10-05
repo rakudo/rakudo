@@ -3690,11 +3690,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.obsvar: '$?'>
     }
 
-    token special-variable:sym<$]> {
-        <.sym> {} <!before \w | '('>
-        <.obsvar: '$]'>
-    }
-
     regex special-variable:sym<${ }> {
         <sigil>
         '{'

@@ -474,8 +474,22 @@ class RakuAST::Type::Parameterized
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];
-            my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
-            $ptype.HOW.parameterize($ptype, |@pos, |%named)
+            my $ptype := self.base-type.compile-time-value;
+            my $phow  := $ptype.HOW;
+
+            # There are cases where the type is actually incapable of
+            # parameterization, at which point we pass it back unmodified.
+            if nqp::istype($phow, Perl6::Metamodel::ClassHOW) {
+                nqp::can($phow, 'parameterize')
+                    ?? $phow.parameterize($ptype, |@pos, |%named)
+                    !! $ptype
+            } else {
+                nqp::can($phow, 'parameterize')
+                    ?? $phow.parameterize($ptype, |@pos, |%named)
+                    !! nqp::istype($phow, Perl6::Metamodel::DefiniteHOW)
+                        ?? $phow.nominalize($ptype)
+                        !! $ptype
+            }
         }
         else {
             my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
@@ -498,7 +512,7 @@ class RakuAST::Type::Parameterized
                     unless nqp::elems(@literals) == $arg-count {
                         nqp::die('Not all RakuAST::QuotedString objects have literal values');
                     }
-                    my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
+                    my $ptype := self.base-type.compile-time-value;
                     $ptype.HOW.parameterize($ptype, |@literals);
                 }
             }

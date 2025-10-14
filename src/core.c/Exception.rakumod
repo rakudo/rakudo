@@ -2845,7 +2845,9 @@ my class X::TypeCheck is Exception {
         nqp::eqaddr($!got.WHAT, $!expected.WHAT)
           ?? $raku
           !! nqp::can($!got.HOW, 'name')
-            ?? "$!got.^name()"
+            ?? nqp::istype($!expected,Associative)
+              ?? "$!got.^name()"
+              !! "$!got.^name() ($raku)"
             !! $raku
     }
     method expectedn() {

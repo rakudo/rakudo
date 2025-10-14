@@ -1245,6 +1245,10 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
+    multi method raku(RakuAST::Var::Compiler::Routine:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Var::Dynamic:D: --> Str:D) {
         self!positional(self.name)
     }

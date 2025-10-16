@@ -2030,9 +2030,9 @@ CODE
         }
 
         # no parameters with declarator doc
-        else {
-            @parts.push(self.parenthesize($signature))
-              if $signature.parameters-initialized;
+        elsif $signature.parameters-initialized {
+            my $sigstr := self.parenthesize($signature);
+            @parts.push($sigstr) unless $sigstr eq '()';
         }
 
         if $ast.traits.map({self.deparse($_)}).join(' ') -> $traits {

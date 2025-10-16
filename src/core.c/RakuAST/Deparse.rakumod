@@ -1238,15 +1238,17 @@ CODE
         my str $declarator = $ast.declarator;
         @parts.push(self.syn-package($declarator));
 
-        my str $name = self.deparse($ast.name);
-        if $ast.parameterization -> $signature {
-            @parts.push((my $deparsed := self.deparse($signature))
-              ?? $name ~ '[' ~ $deparsed ~ ']'
-              !! $name
-            );
-        }
-        else {
-            @parts.push($name);
+        if $ast.name -> $astname {
+            my str $name = self.deparse($astname);
+            if $ast.parameterization -> $signature {
+                @parts.push((my $deparsed := self.deparse($signature))
+                  ?? $name ~ '[' ~ $deparsed ~ ']'
+                  !! $name
+                );
+            }
+            else {
+                @parts.push($name);
+            }
         }
 
         if $ast.traits -> @traits {

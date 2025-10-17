@@ -2043,6 +2043,8 @@ CODE
 
         if $ast.WHY -> $WHY {
             @parts.push('{');
+            # https://github.com/rakudo/rakudo/issues/5978
+            my $*DELIMITER = ' ';  # a ";" here would spoil things
             @parts = self.add-any-docs(@parts.join(' '), $WHY);
             @parts.push($*INDENT);
         }

@@ -603,7 +603,7 @@ subtest 'Simple regex with declarator pod' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 #| leading comment
-my regex foo { #= trailing comment
+my regex foo {  #= trailing comment
 bar }, $=pod
 CODE
 

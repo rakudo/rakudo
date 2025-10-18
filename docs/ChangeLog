@@ -1,3 +1,29 @@
+New in 2025.10:
++ RakuAST:
+    + Make UNIT implicits available to dynamic code [4d7234ca]
+    + Doc clarification of fix for #5855 [47746a84]
+    + Fix indirect methods with feed operators [f6180a31]
+    + Remove special handling of '$]' [21dd9921]
+    + fix gisting of &?ROUTINE [c9714bf9]
+    + don't show signature on regex/rule/token [483307f7]
+    + fix deparsing of nameless package-like constructs [0b5bb196]
+    + fix deparsing of rule/token/with leading doc [726c0e8b]
+
++ Improvements:
+    + Make the REPL show lists of Matches better [d6dda7eb]
+    + RakuAST - Make UNIT implicits available to dynamic code [4d7234ca]
+    + RakuAST: Doc clarification of fix for #5855 (R#5855) [47746a84]
+
++ Additions:
+    + Add exit-ok to Test module [7192f67a]
+
++ Fixes:
+    + Fix Hash return type error message to match Array behavior [a988e79f]
+    + Bump NQP to get uint JIT fix [4307ec01]
+    + 6.e - Fix overly permissive lookup into CALLER [5147b67f]
+    + Make sure .are doesn't infiniloop on lazy lists [49354d04]
+    + Restore mention of value in typecheck error [1ac895f1]
+
 New in 2025.08:
 
 + Improvements:

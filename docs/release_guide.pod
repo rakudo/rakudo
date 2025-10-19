@@ -221,7 +221,7 @@ Add the ChangeLog material from the wiki to the top of C<docs/ChangeLog>.
 Create the release commit (remember to look at previous for the special format)
 and push the release branch up.  This has to be done before the ake commands run
 as they update the remote. Be sure to include the deliberately ignored commits here
-for the releaseable bot.
+for the C<releasable> bot.
 
 =item 5.
 
@@ -355,14 +355,14 @@ wouldn't be in your local). When merging, do NOT squash the commit.
 
 =item *
 
-Use the L<Github release|https://github.com/rakudo/rakudo/blob/main/tools/releasable/github-release.p6> script to create
-NQP and Rakudo Github release, refer to MoarVM release guide for the details about artifacts attachment.
+Use the C<./github-release> script to create NQP and Rakudo Github releases.
+Refer to MoarVM release guide for the details about artifacts attachment.
 
 The script will look like it failed, but this is due to the artifacts upload; verify that the release
 was created, and then do the attachment of artifacts manually for both NQP and Rakudo. Note that if the NQP
 release fails to create for some reason, you can create it by hand on github.
 
-Copy the announce into the github release description field for Rakudo.
+In the UI, copy the announce into the github release description field for Rakudo.
 
 See previous releases for any details.
 

@@ -342,8 +342,8 @@ Next, push the commits to NQP and Rakudo:
 
 This step also tries to upload tarballs, but this fails. You can run this step manually:
 
-    scp -P 222 nqp/nqp-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
-    scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
+    scp -P 222 nqp/nqp-2021.10.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
+    scp -P 222 rakudo/rakudo-2021.10.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
 
 Uploading requires ssh access to a file server.  If you require access, open an issue on the
 L<infra repository|https://github.com/raku/infra>.
@@ -355,16 +355,13 @@ wouldn't be in your local). When merging, do NOT squash the commit.
 
 =item *
 
-Use the C<./github-release> script to create NQP and Rakudo Github releases.
-Refer to MoarVM release guide for the details about artifacts attachment.
+Use the C<./github-release> script to create both NQP and Rakudo Github releases.
+Refer to MoarVM release guide for the details about artifacts attachment. Assuming
+you have an appropriate github token in the given file, you can update the sample
+release # here and run:
 
-The script will look like it failed, but this is due to the artifacts upload; verify that the release
-was created, and then do the attachment of artifacts manually for both NQP and Rakudo. Note that if the NQP
-release fails to create for some reason, you can create it by hand on github.
-
-In the UI, copy the announce into the github release description field for Rakudo.
-
-See previous releases for any details.
+    ./github-release --asset=rakudo/rakudo-2021.10.tar.gz --asset=rakudo/rakudo-2021.10.tar.gz.asc --repo=rakudo/rakudo --tag=2021.10 --token=$(cat ~/.ghtoken-raku-release) --announcement=rakudo/docs/announce/2025.10.md
+    ./github-release --asset=nqp/nqp-2021.10.tar.gz --asset=nqp/nqp-2021.10.tar.gz.asc --repo=raku/nqp --tag=2021.10 --token=$(cat ~/.ghtoken-raku-release)
 
 =item 8.
 

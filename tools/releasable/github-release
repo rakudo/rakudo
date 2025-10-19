@@ -16,7 +16,7 @@ die “Asset file $_ does not exist” unless .IO.e for @$assets;
 my $url-prefix = ‘https://api.github.com/repos’;
 my $headers = [
     User-Agent => ‘Rakudo release automation’,
-    Authorization => “token $token”,
+    Authorization => “Bearer $token”,
     X-Github-Api-Version => '2022-11-28',
     Accept => 'application/vnd.github+json'
 ];
@@ -56,7 +56,11 @@ sub upload-asset($url is copy, IO() $path) {
     $url ~= ‘?name=’ ~ $path.basename; # TODO urlencode
     my $content-type = run(:out, <file --mime-type -b -->, $path).out.slurp.chomp;
     my $body = $path.slurp: :bin;
-    my $resp = await Cro::HTTP::Client.post: $url, :$headers,
+
+    my $upload-headers = $headers;
+    append $upload-headers, [Content-Length => $path.s];
+
+    my $resp = await Cro::HTTP::Client.post: $url, :$upload-headers,
                                              :$body, :$content-type;
 
     return await $resp.body

@@ -57,7 +57,7 @@ sub upload-asset($url is copy, IO() $path) {
     my $content-type = run(:out, <file --mime-type -b -->, $path).out.slurp.chomp;
     my $body = $path.slurp: :bin;
 
-    my $upload-headers = $headers;
+    my $upload-headers = $headers.clone;
     append $upload-headers, [Content-Length => $path.s];
 
     my $resp = await Cro::HTTP::Client.post: $url, :headers($upload-headers),

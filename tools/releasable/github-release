@@ -15,7 +15,7 @@ die “Asset file $_ does not exist” unless .IO.e for @$assets;
 
 my $url-prefix = ‘https://api.github.com/repos’;
 my $headers = [
-    User-Agent => ‘Rakudo Perl 6 release automation’,
+    User-Agent => ‘Rakudo release automation’,
     Authorization => “token $token”,
 ];
 

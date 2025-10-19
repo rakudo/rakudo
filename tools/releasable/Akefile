@@ -20,7 +20,12 @@
 
 use File::Directory::Tree;
 
-my $THREADS  = 7;
+unless %*ENV<TEST_JOBS> {
+    my $cores = $*KERNEL.cpu-cores;
+    $cores-- if $cores > 1;
+    %*ENV<TEST_JOBS> =$cores;
+}
+my $THREADS = %*ENV<TEST_JOBS>;
 
 my $WIKIPEDIA-NAME = %*ENV<WIKIPEDIA-NAME>; # currently not used
 my $ANTIFLAP = 3;
@@ -436,7 +441,6 @@ sub rakudo-build($path) {
 
 sub rakudo-test($path, :$checkout-roast=True) {
     my %env = %*ENV;
-    %env<TEST_JOBS> = $THREADS;
     antiflap-run :cwd($path), :%env, <make test>;
     if $checkout-roast {
         run :cwd($path), :%env, <make spectest_update>; # ensure roast checkout
@@ -487,7 +491,6 @@ sub custom-env() {
                  ~ ‘:’ ~ %env<PATH>;
     %env<PATH> = $RAKUDO-PATH.add(‘gen/build_rakudo_home/site/bin’).absolute
                  ~ ‘:’ ~ %env<PATH>;
-    %env<TEST_JOBS> = $THREADS;
     return %env;
 }
 

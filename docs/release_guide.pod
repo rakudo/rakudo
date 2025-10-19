@@ -232,11 +232,9 @@ is green. It is also a good idea to look for JVM issues at this point.
 
 =item 6.
 
-While it is possible to make a release by hands, nowadays most steps
-are handled using the C<Akefile> script.
-
 Ensure you have a working Raku with C<Ake> module installed, go to
-the directory to do a release:
+the directory to do a release. All the steps are setup as individual
+C<ake> steps.
 
     cd rakudo/tools/releasable
 
@@ -261,7 +259,7 @@ This means that:
 - Other than C<6.c> and C<6.d> errata roast branches it will be tested
   against master branch of roast
 
-- Branch to get Rakudo from is C<release-2021.10>
+- Branch to get Rakudo from is, e.g.: C<release-2021.10>
 
 - NQP branch is set to C<main>
 
@@ -315,17 +313,20 @@ errata branches.
 
 =item *
 
-Once this is done, create the artifact and test it afterwards.  You can look at
-the resulting artifact unpacked in the C<temp/rakudo-test/$rel-branch-name>
-directory, run C<./install/bin/raku --version> and ensure mentioned version is
-correct.  Note that rakudo-post-test deletes the rakudo-test dir so must check
-version beforehand.
+Once this is done, create the artifact...
 
-  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-archive
-  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-extract
-  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-build
-  (check version aka ./temp/rakudo-test/$rel-branch-name/install/bin/raku --version)
-  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-test
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-archive
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-extract
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-build
+
+... And test it afterwards. You can manually verify the build worked and shows the correct version with:
+
+    ./temp/rakudo-test/$rel-branch-name/install/bin/raku --version
+
+Now you can test the built version. Note that this deletes the directory, so after this step you will be
+unable to rerun the previous command.
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-test
 
 =item *
 
@@ -345,19 +346,19 @@ This step also tries to upload tarballs, but this fails. You can run this step m
     scp -P 222 rakudo/rakudo-2023.12.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
 
 Uploading requires ssh access to a file server.  If you require access, open an issue on the
-[infra repository](https://github.com/raku/infra).
+L<infra repository|https://github.com/raku/infra>.
 
 =item *
 
 Create PR and merge on remote (github) because ake puts commits there (that
-wouldn't be in your local).
+wouldn't be in your local). When merging, do NOT squash the commit.
 
 =item *
 
 Use the L<Github release|https://github.com/rakudo/rakudo/blob/main/tools/releasable/github-release.p6> script to create
 NQP and Rakudo Github release, refer to MoarVM release guide for the details about artifacts attachment.
 
-The script will look like it failed entirely, but this is due to the artifacts upload; verify that the release
+The script will look like it failed, but this is due to the artifacts upload; verify that the release
 was created, and then do the attachment of artifacts manually for both NQP and Rakudo. Note that if the NQP
 release fails to create for some reason, you can create it by hand on github.
 
@@ -388,14 +389,14 @@ Copy the release announcement file to the C<rakudo.org> repository into
 C<post/announce-rakudo-release-20XX.XX.md>.
 Change the heading to look as follows:
 
-  %% title: Announce: Rakudo compiler, Release #151 (2021.10)
-  %% date: 2020-06-19
+    %% title: Announce: Rakudo compiler, Release #151 (2021.10)
+    %% date: 2020-06-19
 
 Commit and push the change to GitHub.
 
 Run this to get rakudo.org to pickup the changes:
 
-ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
+    ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
 
 =item 11.
 

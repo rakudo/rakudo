@@ -174,13 +174,13 @@ task ‘nqp-push’, { # Step ??? (nqp release guide)
     True
 }
 
-task ‘rakudo-push-check’, { # Step ??? (rakudo release guide)
+task ‘rakudo-push-check’, {
     run :cwd($RAKUDO-PATH), <git push --dry-run origin>, $branch-rakudo;
     run :cwd($RAKUDO-PATH), <git push --dry-run origin>, $version-rakudo;
     True
 }
 
-task ‘rakudo-push’, { # Step ??? (rakudo release guide)
+task ‘rakudo-push’, {
     run :cwd($RAKUDO-PATH), <git push origin>, $branch-rakudo;
     run :cwd($RAKUDO-PATH), <git push origin>, $version-rakudo;
     True
@@ -193,7 +193,7 @@ task ‘nqp-upload’, { # Step ❽ (nqp release guide)
     True
 }
 
-task ‘rakudo-upload’, { # Step ⓲ (rakudo release guide)
+task ‘rakudo-upload’, {
     for @tarball-distributors {
         run ‘scp’, “-P{$_[0]}”, $rakudo-archive, “{$rakudo-archive}.asc”,
             “{$rakudo-archive}.checksums.txt”, “{$_[1]}/rakudo/”
@@ -322,7 +322,7 @@ task ‘nqp-sign’, { # Step ❼ (nqp release guide)
 ########## Rakudo ##########
 
 # TODO ↓ kinda useless
-task ‘rakudo-manual-check’, { # Step ❶ (rakudo release guide)
+task ‘rakudo-manual-check’, {
     say ‘If it's not too late:’;
     say ‘  + Remind people of the upcoming release’;
     say ‘  + Invite people to update the ChangeLog file’;
@@ -337,15 +337,15 @@ task ‘rakudo-manual-check’, { # Step ❶ (rakudo release guide)
     # TODO more?
 }
 
-task ‘rakudo-leap-seconds’, { # Step ❷ (rakudo release guide)
+task ‘rakudo-leap-seconds’, {
     ; # TODO
 }
 
-task ‘rakudo-changelog’, { # Step ❸ (rakudo release guide)
+task ‘rakudo-changelog’, {
     ; # TODO nothing here, just ask the bot?
 }
 
-task ‘rakudo-announcement’, { # Step ❹ (rakudo release guide)
+task ‘rakudo-announcement’, {
     my $announcement-path = “$RAKUDO-PATH/docs/announce/$version-rakudo.md”;
     die ‘No release announcement found’ if not $announcement-path.IO.e;
 
@@ -370,21 +370,21 @@ task ‘rakudo-announcement’, { # Step ❹ (rakudo release guide)
     “The next release of Rakudo (#{$release-id + 1}), is tentatively scheduled for 2017-08-19.”
 }
 
-task ‘rakudo-release-guide’, { # Step ❺ (rakudo release guide)
+task ‘rakudo-release-guide’, {
     ; # TODO ?
 }
 
-task ‘rakudo-ensure-moarvm’, { # Step ❻ (rakudo release guide)
+task ‘rakudo-ensure-moarvm’, {
     ; # TODO
     # Practically this is not needed because
     # NQP stuff won't proceed without MoarVM tag
 }
 
-task ‘rakudo-nqp’, { # Step ❼ (rakudo release guide)
+task ‘rakudo-nqp’, {
     ;# TODO just depend on nqp targets?
 }
 
-task ‘rakudo-bump-nqp’, sub ($?) { # Step ❽ (rakudo release guide)
+task ‘rakudo-bump-nqp’, sub ($?) {
     if $version-nqp eq trim-trailing slurp “$RAKUDO-PATH/tools/templates/NQP_REVISION” {
         note “NQP version is already bumped to $version-nqp”;
         return
@@ -409,7 +409,7 @@ task ‘rakudo-bump-nqp’, sub ($?) { # Step ❽ (rakudo release guide)
     True
 }
 
-task ‘rakudo-bump’, { # Step ❾ (rakudo release guide)
+task ‘rakudo-bump’, {
     spurt “$RAKUDO-PATH/VERSION”, “$version-rakudo\n”;
     run <git commit -m>, “[release] Bump VERSION to $version-rakudo”,
         ‘--’, ‘VERSION’, :cwd($RAKUDO-PATH);
@@ -417,7 +417,6 @@ task ‘rakudo-bump’, { # Step ❾ (rakudo release guide)
     True
 }
 
-# Step ❿ (rakudo release guide)
 task ‘rakudo-status’, {
     ; # This step is useless, move on
 }
@@ -434,6 +433,7 @@ sub rakudo-build($path) {
     True
 }
 
+# run 'make test' and setup t/spec directory for later
 sub rakudo-test($path, :$checkout-roast=True) {
     my %env = %*ENV;
     %env<TEST_JOBS> = $THREADS;
@@ -442,23 +442,22 @@ sub rakudo-test($path, :$checkout-roast=True) {
         run :cwd($path), :%env, <make spectest_update>; # ensure roast checkout
         run :cwd($path.add: ‘t/spec’), <git checkout>, $branch-roast;
     }
-    antiflap-run :cwd($path), :%env, <make spectest>;
     True
 }
 
-task ‘rakudo-build’, { # Step ⓫ (rakudo release guide)
+task ‘rakudo-build’, {
     rakudo-build $RAKUDO-PATH
 }
-task ‘rakudo-test’, { # still Step # Step ⓫ (rakudo release guide)
+task ‘rakudo-test’, {
     rakudo-test  $RAKUDO-PATH
 }
-task ‘rakudo-post-build’ => ‘rakudo-extract’, { # Step ⓯ (rakudo release guide)
+task ‘rakudo-post-build’ => ‘rakudo-extract’, {
     my $path = $rakudo-test-dir.add: “rakudo-$version-rakudo”;
     die ‘No rakudo for post-build/post-test found’ unless $path.d;
     rakudo-build $path;
     True
 }
-task ‘rakudo-post-test’, { # still Step ⓯ (rakudo release guide)
+task ‘rakudo-post-test’, {
     my $path = $rakudo-test-dir.add: “rakudo-$version-rakudo”;
     die ‘No rakudo for post-build/post-test found’ unless $path.d;
     rakudo-test  $path, :!checkout-roast;
@@ -466,7 +465,7 @@ task ‘rakudo-post-test’, { # still Step ⓯ (rakudo release guide)
     True
 }
 
-task ‘rakudo-archive’, { # Step ⓮ (rakudo release guide)
+task ‘rakudo-archive’, {
     run :cwd($RAKUDO-PATH), <make release>, “VERSION=$version-rakudo”;
     die ‘No tarball created’ unless $rakudo-archive.IO.e;
     True
@@ -491,7 +490,7 @@ sub custom-env() {
     return %env;
 }
 
-task ‘rakudo-inline-perl5’, { # Step ⓬ (rakudo release guide)
+task ‘rakudo-inline-perl5’, {
     run :cwd($RAKUDO-PATH), 'rakudo-m', 'tools/build/install-core-dist.raku',
       $RAKUDO-PATH.add(‘gen/build_rakudo_home/core’).absolute;
     run :cwd($RAKUDO-PATH), <git clone>, ‘https://github.com/ugexe/zef’;
@@ -500,16 +499,14 @@ task ‘rakudo-inline-perl5’, { # Step ⓬ (rakudo release guide)
     True
 }
 
-task ‘rakudo-stress’, { # Step ⓭ (rakudo release guide)
-    # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
+task ‘rakudo-stress’, {
     my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout>, $branch-roast;
     antiflap-run :cwd($RAKUDO-PATH), :%env, <make stresstest>; # test latest language spec
     True
 }
 
-task ‘rakudo-stress-errata’, { # Step ⓭ (rakudo release guide)
-    # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
+task ‘rakudo-stress-errata’, {
     note ‘Ignore missing file warnings:’;
     my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout 6.c-errata>;
@@ -519,13 +516,13 @@ task ‘rakudo-stress-errata’, { # Step ⓭ (rakudo release guide)
     True
 }
 
-task ‘rakudo-tag’, { # Step ⓰ (rakudo release guide)
+task ‘rakudo-tag’, {
     run :cwd($RAKUDO-PATH), <git tag --sign --annotate>,
         ‘-m’, “Tag release $version-rakudo”, $version-rakudo;
     True
 }
 
-task ‘rakudo-sign’, { # Step ⓱ (rakudo release guide)
+task ‘rakudo-sign’, {
     my $sig-file = $rakudo-archive ~ ‘.checksums.txt’;
     my $unsigned-sig-file = $sig-file ~ '.unsigned';
 
@@ -542,11 +539,11 @@ task ‘rakudo-sign’, { # Step ⓱ (rakudo release guide)
     True
 }
 
-task ‘email’, { # Step ⓳ (rakudo release guide)
+task ‘email’, {
     ; # TODO
 }
 
-task ‘wikipedia’, { # Step ⓴ (rakudo release guide)
+task ‘wikipedia’, {
 #`｢    use Inline::Perl5;
     use MediaWiki::Bot:from<Perl5>;
     #my $pass = run(:out, ‘pass’, ‘Wikipedia’).out.lines.head;
@@ -596,7 +593,7 @@ task ‘wikipedia’, { # Step ⓴ (rakudo release guide)
     True
 }
 
-task ‘rakudo-done’, { # Step ⓴❶ (rakudo release guide)
+task ‘rakudo-done’, {
     say ‘You're done! Celebrate with the appropriate amount of fun.’
 }
 

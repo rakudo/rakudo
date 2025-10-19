@@ -433,6 +433,7 @@ sub rakudo-build($path) {
     True
 }
 
+# run 'make test' and setup t/spec directory for later
 sub rakudo-test($path, :$checkout-roast=True) {
     my %env = %*ENV;
     %env<TEST_JOBS> = $THREADS;
@@ -441,7 +442,6 @@ sub rakudo-test($path, :$checkout-roast=True) {
         run :cwd($path), :%env, <make spectest_update>; # ensure roast checkout
         run :cwd($path.add: ‘t/spec’), <git checkout>, $branch-roast;
     }
-    antiflap-run :cwd($path), :%env, <make spectest>;
     True
 }
 
@@ -500,7 +500,6 @@ task ‘rakudo-inline-perl5’, {
 }
 
 task ‘rakudo-stress’, {
-    # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
     my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout>, $branch-roast;
     antiflap-run :cwd($RAKUDO-PATH), :%env, <make stresstest>; # test latest language spec
@@ -508,7 +507,6 @@ task ‘rakudo-stress’, {
 }
 
 task ‘rakudo-stress-errata’, {
-    # TODO we run rakudo-test and then rakudo-stress (rakudo-test not needed)
     note ‘Ignore missing file warnings:’;
     my %env = custom-env;
     run :cwd($RAKUDO-PATH.add: ‘t/spec’), <git checkout 6.c-errata>;

@@ -60,7 +60,7 @@ sub upload-asset($url is copy, IO() $path) {
     my $upload-headers = $headers;
     append $upload-headers, [Content-Length => $path.s];
 
-    my $resp = await Cro::HTTP::Client.post: $url, :$upload-headers,
+    my $resp = await Cro::HTTP::Client.post: $url, :headers($upload-headers),
                                              :$body, :$content-type;
 
     return await $resp.body

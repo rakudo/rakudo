@@ -28,7 +28,7 @@ unless %*ENV<TEST_JOBS> {
 my $THREADS = %*ENV<TEST_JOBS>;
 
 my $WIKIPEDIA-NAME = %*ENV<WIKIPEDIA-NAME>; # currently not used
-my $ANTIFLAP = 3;
+my $ANTIFLAP = 2;
 
 # TODO automatically use local paths if possible
 my $MOAR-REPO   = ‘git@github.com:MoarVM/MoarVM.git’;

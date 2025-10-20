@@ -1,4 +1,5 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
+
 use Cro::HTTP::Client;
 
 unit sub MAIN(
@@ -14,8 +15,10 @@ die “Asset file $_ does not exist” unless .IO.e for @$assets;
 
 my $url-prefix = ‘https://api.github.com/repos’;
 my $headers = [
-    User-Agent => ‘Rakudo Perl 6 release automation’,
-    Authorization => “token $token”,
+    User-Agent => ‘Rakudo release automation’,
+    Authorization => “Bearer $token”,
+    X-Github-Api-Version => '2022-11-28',
+    Accept => 'application/vnd.github+json'
 ];
 
 sub get-release($tag) {
@@ -53,7 +56,11 @@ sub upload-asset($url is copy, IO() $path) {
     $url ~= ‘?name=’ ~ $path.basename; # TODO urlencode
     my $content-type = run(:out, <file --mime-type -b -->, $path).out.slurp.chomp;
     my $body = $path.slurp: :bin;
-    my $resp = await Cro::HTTP::Client.post: $url, :$headers,
+
+    my $upload-headers = $headers.clone;
+    append $upload-headers, [Content-Length => $path.s];
+
+    my $resp = await Cro::HTTP::Client.post: $url, :headers($upload-headers),
                                              :$body, :$content-type;
 
     return await $resp.body

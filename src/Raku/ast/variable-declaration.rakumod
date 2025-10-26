@@ -250,7 +250,7 @@ class RakuAST::ContainerCreator {
 
         # Form container descriptor.
 
-        $default := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) if self.type;
+        $default := $of if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
                 nqp::eqaddr($of, Mu)
@@ -2028,7 +2028,7 @@ class RakuAST::VarDeclaration::Term
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $invocant := nqp::defined($!type)
-            ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($!type.meta-object)
+            ?? $!type.meta-object
             !! Mu;
         $context.ensure-sc($invocant);
         my $invocant-qast := QAST::WVal.new(:value($invocant));

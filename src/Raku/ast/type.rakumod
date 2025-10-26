@@ -55,14 +55,11 @@ class RakuAST::Type
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         my $v-how := $v.HOW;
-        !$v-how.archetypes($v).coercive
-            && (nqp::can($v-how, 'language_revision')
-                    ?? $v-how.language_revision($v) < 3
-                    !! nqp::getcomp('Raku').language_revision < 3)
+        (nqp::can($v-how, 'language_revision')
+                ?? $v-how.language_revision($v) < 3
+                !! nqp::getcomp('Raku').language_revision < 3)
             ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
-            !! ($v-how.archetypes($v).nominalizable
-                ?? $v-how.nominalize($v)
-                !! $v)
+            !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
     }
 
     method is-native() { False }

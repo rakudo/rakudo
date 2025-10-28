@@ -1309,7 +1309,10 @@ class RakuAST::Block
                             Bool :$exception,
                             Bool :$may-have-signature,
         RakuAST::Doc::Declarator :$WHY,
-              RakuAST::Signature :$signature # ignored, just for compatability with Routine
+              # ignored, just for compatability with Routine
+              RakuAST::Signature :$signature,
+              # ignored for now, see #5997
+                             str :$multiness
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);

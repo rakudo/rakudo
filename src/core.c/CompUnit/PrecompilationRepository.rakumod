@@ -45,6 +45,37 @@ class CompUnit::PrecompilationRepository::Default
     my constant $compiler-id =
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
+    # If $loaded{$key} has a Promise in it, await it. If it's broken, try
+    # again, return the result if it's kept. If there's nothing there at
+    # the moment, install a Promise and return it. Otherwise, return what's
+    # in the spot.
+    # :no-install is for places where we just want to see if there's anything,
+    # but don't want to install a Promise that we will create something.
+    method !get-already-loaded($key, :$no-install) {
+      my $promise;
+      my $result := $loaded-lock.protect: {
+        nqp::existskey($loaded, $key)
+          ?? nqp::atkey($loaded, $key)
+          !! $no-install ?? Nil !! nqp::bindkey($loaded, $key, ($promise := Promise.new));
+      }
+      return $promise with $promise;
+      if $result ~~ Promise {
+        CATCH {
+          default {
+            return self!get-already-loaded($key, :$no-install);
+          }
+        }
+
+        $!RMD("waiting for other thread to finish loading $key") if $!RMD;
+        my $awaited = await $result;
+
+        return $awaited;
+      }
+      else {
+        $result
+      }
+    }
+
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
       IO::Path:D :$source = $dependency.src.IO,
@@ -56,7 +87,7 @@ class CompUnit::PrecompilationRepository::Default
         $!RMD("try-load source at $source") if $!RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
-        return $_ if $_ := $loaded-lock.protect: { nqp::atkey($loaded,$id.Str) };
+        return $_ if $_ := self!get-already-loaded($id.Str, :no-install);
 
         my ($handle, $checksum) = (
             self.may-precomp and (
@@ -278,7 +309,10 @@ Need to re-check dependencies.")
       CompUnit::PrecompilationStore :@precomp-stores =
         Array[CompUnit::PrecompilationStore].new($.store),
     ) {
-        return $_ if $_ := $loaded-lock.protect: { nqp::atkey($loaded,$id.Str) };
+        my $already := self!get-already-loaded($id.Str);
+        if $already !~~ Promise {
+          return $already;
+        }
 
         if self!load-file(@precomp-stores, $id) -> $unit {
             if (not $since or $unit.modified > $since)
@@ -289,7 +323,8 @@ Need to re-check dependencies.")
                 my $precomped := self!load-handle-for-path($unit);
                 $unit.close;
                 $loaded-lock.protect: {
-                    nqp::bindkey($loaded,$id.Str,$precomped)
+                  nqp::bindkey($loaded, $id.Str, $precomped);
+                  $already.keep($precomped);
                 }
                 ($precomped, $unit-checksum)
             }
@@ -303,11 +338,21 @@ Need to re-check dependencies.")
                 }, expected: $checksum")
                   if $!RMD;
 
+                $loaded-lock.protect: {
+                  nqp::deletekey($loaded, $id.Str);
+                  $already.break();
+                }
+
                 $unit.close;
                 "Outdated precompiled $unit".Failure
             }
         }
         else {
+            $loaded-lock.protect: {
+              nqp::deletekey($loaded, $id.Str);
+              $already.break();
+            }
+
             Nil
         }
     }

@@ -503,7 +503,7 @@ my class Junction { # declared in BOOTSTRAP
 }
 
 proto sub any(|) is pure {*}
-#multi sub any(@values) { @values.any }  # this breaks S02-literals/radix.t
+multi sub any(@values) { @values.any }
 multi sub any(+values) {  values.any }
 
 proto sub all(|) is pure {*}

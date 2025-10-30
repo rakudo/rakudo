@@ -19,7 +19,7 @@ my class IO::Socket::Async {
     method new() {
         die "Cannot create an asynchronous socket directly; please use\n" ~
             "IO::Socket::Async.connect, IO::Socket::Async.listen,\n" ~
-            "IO::Socket::Async.udp, or IO::Socket::Async.udp-bind";
+            "IO::Socket::Async.udp, or IO::Socket::Async.bind-udp";
     }
 
     method print(IO::Socket::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {

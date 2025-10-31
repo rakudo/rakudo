@@ -1,6 +1,6 @@
 # A class to perform hyper operations of the form left op right
 
-class Hyper {
+class Hyper is implementation-detail {
     has $.operator is built(:bind);  # for some reason this cant be &.operator
     has int8 $.dwim-left;   # left side wont end
     has int8 $.dwim-right;  # right side wont end

@@ -150,8 +150,9 @@ my sub param_hash_for(Parameter $p) {
 
     elsif nqp::istype($type,Callable) {
         nqp::bindkey($result, 'type', nqp::unbox_s(type_code_for($type)));
-        my $info := param_list_for($p.sub_signature);
-        nqp::unshift($info, return_hash_for($p.sub_signature, :with-typeobj));
+        my $variadic;
+        my $info := param_list_for($p.sub_signature, $variadic);
+        nqp::unshift($info, return_hash_for($p.sub_signature, $variadic, :with-typeobj));
         nqp::bindkey($result, 'callback_args', $info);
     }
 
@@ -163,7 +164,7 @@ my sub param_hash_for(Parameter $p) {
 }
 
 # Builds the list of parameter information for a callback argument.
-my sub param_list_for(Signature $signature, &r?) {
+my sub param_list_for(Signature $signature, $variadic is rw, &r?) {
     my $params   := nqp::getattr($signature.params,List,'$!reified');
     my int $elems = nqp::elems($params);
 
@@ -171,6 +172,13 @@ my sub param_list_for(Signature $signature, &r?) {
     --$elems
       if nqp::istype(&r,Method)
       && nqp::atpos($params,$elems - 1).name eq '%_';
+
+    # not sending vararg slurpy **@asdf
+    my $last-param = nqp::atpos($params,$elems - 1);
+    if $last-param.slurpy && nqp::istype($last-param.type, Positional) {
+        $variadic = True;
+        --$elems;
+    }
 
     # build list
     my $result := nqp::setelems(nqp::list,$elems);
@@ -189,6 +197,7 @@ my sub param_list_for(Signature $signature, &r?) {
 # Builds a hash of type information for the specified return type.
 my sub return_hash_for(
   Signature $s,
+            $variadic,
             &r?,
            :$with-typeobj,
            :$entry-point,
@@ -210,6 +219,7 @@ my sub return_hash_for(
     nqp::bindkey(
       $result, 'resolve_lib_name', nqp::getattr(nqp::decont($resolve-libname), Code, '$!do')
     ) if $resolve-libname;
+    nqp::bindkey($result, 'variadic', nqp::unbox_i(1)) if $variadic;
 
     if nqp::istype($returns,Str) {
         my $enc := &r.?native_call_encoded // 'utf8';
@@ -309,6 +319,7 @@ our role Native[
     has int      $!any-optionals;
     has int      $!any-callbacks;
     has str      $!name;
+    has Bool     $!variadic;
 
     method CUSTOM-DISPATCHER(--> str) { 'raku-nativecall' }
 
@@ -341,7 +352,7 @@ our role Native[
             my $signature := $routine.signature;
             my $params := nqp::getattr($signature.params, List, '$!reified');
 
-            my Mu $arg_info := param_list_for($signature, $routine);
+            my Mu $arg_info := param_list_for($signature, $!variadic, $routine);
             my str $conv     = self.?native_call_convention || '';
 
             $!rettype := nqp::decont(map_return_type($routine.returns))
@@ -367,12 +378,13 @@ our role Native[
               ($libname && nqp::istype($libname,Distribution::Resource))
                 ?? return_hash_for(
                      $signature,
+                     $!variadic,
                      $routine,
                      :$!entry-point,
                      :&resolve-libname,
                      :resolve-libname-arg($libname),
                    )
-                !! return_hash_for($signature, $routine, :$!entry-point)
+                !! return_hash_for($signature, $!variadic, $routine, :$!entry-point)
             );
         }
     }
@@ -570,7 +582,10 @@ our sub check_routine_sanity(Routine $routine) is export(:TEST) {
         #Buf are Uninstantiable, make this buggy
         #FIXME, it's to handle case of class A { sub foo(A) is native) },
         # the type is not complete
-        elsif nqp::not_i(nqp::istype($type,Blob)) && !$type.^can('gist') {
+        elsif nqp::not_i(nqp::istype($type,Blob)) &&
+        # **@slurpy errors on .^can as well
+           !$param.slurpy &&
+           !$type.^can('gist') {
         }
 
         elsif nqp::not_i(validnctype($type)) {

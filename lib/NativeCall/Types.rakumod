@@ -33,6 +33,19 @@ CArray, CPointer, CStruct, CPPStruct and CUnion, not: $name
 MESSAGE
 }
 
+#- Exceptions ------------------------------------------------------------------
+my class X::TooManyVarArgs is Exception {
+    has $!num;
+    method message {
+        "Can at most process 64 arguments in a variadic native function. Received $!num args.";
+    }
+}
+my class X::PointerToOutsideVarArg is Exception {
+    method message {
+        "Cannot use Pointer.to for non variadic arguments. Use 'is rw' on the parameter instead.";
+    }
+}
+
 #- representations -------------------------------------------------------------
 our role ExplicitlyManagedString { has $.cstr is rw }
 
@@ -48,6 +61,12 @@ our native bool      is Int is ctype<bool>                 is repr<P6int> { }
 
 #- Pointer----------------------------------------------------------------------
 # Expose a Pointer class for working with raw pointers.
+class VarArgPointerSentinel {
+    has $!target;
+    method set($thing is rw) {
+        $!target := $thing;
+    }
+}
 our class Pointer is repr<CPointer> {
     method of() { void }
 
@@ -75,6 +94,22 @@ our class Pointer is repr<CPointer> {
         self
           ?? nativecast(void, ptr)
           !! "Can't dereference a Null Pointer".Failure
+    }
+
+    method to(::?CLASS:U: $thing is rw) {
+        if   nqp::istype($thing, Int)
+          || nqp::istype($thing, Num)
+          || nqp::istype($thing, Bool)
+          || $thing === Str
+          || $thing === void
+          || nqp::existskey($ok-REPRs, $thing.REPR) {
+            my $v = VarArgPointerSentinel.new;
+            $v.set: $thing;
+            $v
+        }
+        else {
+            wrong-type('pointer', $thing);
+        }
     }
 
     multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }

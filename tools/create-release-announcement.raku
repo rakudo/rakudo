@@ -47,10 +47,6 @@ get back to us. Questions, comments, suggestions for improvements, cool
 discoveries, incredible hacks, or any other feedback – get in touch with
 us through (the above-mentioned) mailing list or IRC channel. Enjoy!
 
-Please note that recent releases have known issues running on the JVM.
-We are working to get the JVM backend working again but do not yet have
-an estimated delivery date.
-
 [^1]: See <https://raku.org/>
 END_TEMPLATE
 

@@ -113,14 +113,21 @@ class CompUnit::Repository::FileSystem
             my $*DISTRIBUTION  = $_;
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $source-handle  = $_.content($_.meta<provides>{$name});
-            my $precomp-handle = $precomp.try-load(
-                CompUnit::PrecompilationDependency::File.new(
-                    :$id,
-                    :src($source-handle.path.absolute),
-                    :$spec,
-                ),
-                :@precomp-stores,
-            );
+
+            my $precomp-handle = do {
+                CATCH {
+                    $spec-promise.break: $_; .rethrow
+                }
+
+                $precomp.try-load(
+                    CompUnit::PrecompilationDependency::File.new(
+                        :$id,
+                        :src($source-handle.path.absolute),
+                        :$spec,
+                    ),
+                    :@precomp-stores,
+                );
+            }
 
             $!loaded-lock.protect: {
                 CATCH { $spec-promise.break: $_; .rethrow }

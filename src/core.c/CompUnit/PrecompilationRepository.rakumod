@@ -249,9 +249,17 @@ Need to re-check dependencies.")
         $loaded-lock.protect: {
             for $dependencies.List -> $dependency-precomp {
                 my str $key = $dependency-precomp.id.Str;
-                nqp::bindkey($loaded,$key,
-                  self!load-handle-for-path($dependency-precomp)
-                ) unless nqp::existskey($loaded,$key);
+
+                my $loaded-dep := self!get-already-loaded($key);
+
+                # If we've promised to load this file, load it.
+                # Otherwise the dependency precomp has already been
+                # loaded and we can just go on.
+                if $loaded-dep ~~ Promise {
+                  my $loaded-handle := self!load-handle-for-path($dependency-precomp);
+                  $loaded-dep.keep($loaded-handle);
+                  nqp::bindkey($loaded, $key, $loaded-handle);
+                }
 
                 $dependency-precomp.close;
             }

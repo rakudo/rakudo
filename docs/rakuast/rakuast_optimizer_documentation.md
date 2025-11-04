@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-The RakuAST optimizer is a key component in the Rakudo compiler responsible for static program optimization, located in the `src/Raku/ast/optimizer.rakumod` file. This optimizer runs after the initial compilation phases, assuming lexpads are immutable, declarations are complete, and multi candidates are fixed. The optimizer's goal is to improve the execution efficiency and performance of Raku programs through various static analysis and transformation techniques.
+The RakuAST optimizer is a key component in the Rakudo compiler responsible for static program optimization, located in the `src/Raku/Optimizer.nqp` file. This optimizer runs after the initial compilation phases, assuming lexpads are immutable, declarations are complete, and multi candidates are fixed. The optimizer's goal is to improve the execution efficiency and performance of Raku programs through various static analysis and transformation techniques.
 
 ## 2. Optimizer Architecture
 
@@ -29,7 +29,6 @@ class RakuAST::Optimizer {
     # ...
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### RakuAST::Optimizer::Symbols
 
@@ -50,7 +49,6 @@ class RakuAST::Optimizer::Symbols {
     # ...
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### RakuAST::Optimizer::BlockVarOptimizer
 
@@ -95,7 +93,6 @@ method visit_var($var) {
     # ...
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### 3.1.2 Type Optimization
 
@@ -112,7 +109,6 @@ if $!level >= 3 {
     }
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### 3.1.3 Scope Lowering
 
@@ -132,7 +128,6 @@ method lexical_vars_to_locals($block, $lowered_away_lexical, $can_lower_topic) {
     }
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### 3.1.4 Dead Variable Elimination
 
@@ -145,7 +140,6 @@ if $!level >= 4 && self.is_dead_variable($var) {
     return QAST::Op.new(:op<null>);
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 ### 3.2 Constant Optimization
 
@@ -158,7 +152,6 @@ The optimizer evaluates constant expressions at compile time, reducing runtime c
 my $folded := self.constant_fold_enhanced($op, $optype);
 return $folded if $folded;
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### 3.2.2 Constant Merging and Sharing
 
@@ -180,7 +173,6 @@ if nqp::istype($const, QAST::SVal) {
     # ...
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 ### 3.3 Function Optimization
 
@@ -205,7 +197,6 @@ method visit_call($call, :$block_structure = False) {
     $call
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 ### 3.4 Operator Optimization
 
@@ -236,7 +227,6 @@ if $!level >= 2 && nqp::istype($want[0], QAST::BVal) {
     }
 }
 ```
-<mcfile name="optimizer.rakumod" path="e:\OpenSource\Rakudo\src\Raku\ast\optimizer.rakumod"></mcfile>
 
 #### 3.5.2 Loop Optimization
 

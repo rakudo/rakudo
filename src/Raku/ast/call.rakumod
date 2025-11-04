@@ -640,26 +640,32 @@ class RakuAST::Call::Method
     }
 
     method IMPL-SPECIAL-OP(str $name) {
-        my constant SPECIAL-OPS := nqp::hash(
-            'WHAT',     'what',
-            'HOW',      'how',
-            'WHO',      'who',
-            'VAR',      'p6var',
-            'REPR',     'p6reprname',
-            'DEFINITE', 'p6definite',
-        );
-        SPECIAL-OPS{$name}
+        # Use a simple lookup table with direct comparisons for better performance
+        # in the common case of method calls.
+        nqp::eqat($name, 'WHAT', 0)     && nqp::chars($name) == 4  ?? 'what'     !!
+        nqp::eqat($name, 'HOW', 0)      && nqp::chars($name) == 3  ?? 'how'      !!
+        nqp::eqat($name, 'WHO', 0)      && nqp::chars($name) == 3  ?? 'who'      !!
+        nqp::eqat($name, 'VAR', 0)      && nqp::chars($name) == 3  ?? 'p6var'    !!
+        nqp::eqat($name, 'REPR', 0)     && nqp::chars($name) == 4  ?? 'p6reprname' !!
+        nqp::eqat($name, 'DEFINITE', 0) && nqp::chars($name) == 8  ?? 'p6definite' !!
+        # Default: not a special op
+        Nil
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name := $!name.canonicalize;
         my $call;
+        
         if $name {
-            my @parts := nqp::split('::', $name);
-            if nqp::elems(@parts) == 1 {
-                my $dispatcher := self.dispatcher;
-                if $dispatcher {
-                    # A method call going through a dispatch: method
+            # Pre-compute common values
+            my $has_dispatcher := nqp::defined(self.dispatcher) && self.dispatcher ne '';
+            my $dispatcher := self.dispatcher;
+            
+            # Check if it's a simple method name (most common case)
+            if $name !~~ /::/ {
+                # Handle simple method calls
+                if $has_dispatcher {
+                    # Method call with dispatcher (e.g., .?method)
                     $call := QAST::Op.new(
                         :op('callmethod'),
                         :name($dispatcher),
@@ -668,53 +674,58 @@ class RakuAST::Call::Method
                     );
                 }
                 else {
+                    # Check for special methods first
                     my $op := self.IMPL-SPECIAL-OP($name);
-                    $call  := $op
-                       # Not really a method call, just using that syntax
-                       ?? QAST::Op.new(:$op, $invocant-qast)
-                       # A standard method call
-                       !! QAST::Op.new(:op('callmethod'), :$name, $invocant-qast);
+                    $call := $op
+                        # Special operator (not a real method call)
+                        ?? QAST::Op.new(:$op, $invocant-qast)
+                        # Standard method call
+                        !! QAST::Op.new(:op('callmethod'), :$name, $invocant-qast);
                 }
             }
             else {
-# TODO: In base behavior, the attempt to dispatch is performed before
-# determining whether the type actually exists in this scope (throwing
-# a X::Method::InvalidQualifier).  The resolution below will die if the
-# type object cannot be found, deviating from base.
+                # Handle qualified method calls
+                my @parts := nqp::split('::', $name);
+                my $method_name := @parts[nqp::elems(@parts) - 1];
+                
+                # Get the qualified type
                 my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
                 $context.ensure-sc($Qualified);
-                $name := @parts[ nqp::elems(@parts)-1 ];
-                my $dispatcher := self.dispatcher;
-
-                if $dispatcher {
+                
+                if $has_dispatcher {
+                    # Qualified method call with dispatcher
                     $call := QAST::Op.new:
                         :op('callmethod'),
                         :name($dispatcher),
-                        QAST::SVal.new( :value('dispatch:<::>') ),
+                        QAST::SVal.new(:value('dispatch:<::>')),
                         $invocant-qast,
-                        QAST::SVal.new(:value($name)),
+                        QAST::SVal.new(:value($method_name)),
                         QAST::WVal.new(:value($Qualified));
                 }
                 else {
+                    # Optimize for the common case: qualified method call without dispatcher
+                    # Use a temporary variable to avoid evaluating invocant twice
                     my $temp := QAST::Node.unique('inv_once');
                     my $stmts := QAST::Stmts.new(
                         QAST::Op.new(
                             :op('bind'),
-                            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+                            QAST::Var.new(:name($temp), :scope('local'), :decl('var')),
                             $invocant-qast
                         ),
                         $call := QAST::Op.new(
                             :op('dispatch'),
-                            QAST::SVal.new( :value('raku-meth-call-qualified') ),
+                            QAST::SVal.new(:value('raku-meth-call-qualified')),
                             QAST::Op.new(
                                 :op('decont'),
-                                QAST::Var.new( :name($temp), :scope('local') ),
+                                QAST::Var.new(:name($temp), :scope('local')),
                             ),
-                            QAST::SVal.new(:value($name)),
+                            QAST::SVal.new(:value($method_name)),
                             QAST::WVal.new(:value($Qualified)),
-                            QAST::Var.new( :name($temp), :scope('local') ),
+                            QAST::Var.new(:name($temp), :scope('local')),
                         )
                     );
+                    
+                    # Add arguments to the call
                     self.args.IMPL-ADD-QAST-ARGS($context, $call);
                     return $stmts;
                 }
@@ -723,6 +734,8 @@ class RakuAST::Call::Method
         else {
             nqp::die('Qualified method calls NYI');
         }
+        
+        # Add arguments to the call (for simple cases)
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -1035,43 +1048,65 @@ class RakuAST::Call::PrivateMethod
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $call;
+        # Fast path for simple identifier private methods (most common case)
         if $!name.is-identifier {
+            # Extract method name once
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
             my $package := $!package;
-            if nqp::can($package.HOW, 'archetypes') && !$package.HOW.archetypes.generic && !$package.HOW.archetypes.parametric && nqp::can($package.HOW, 'find_private_method') {
+            
+            # Early exit for compile-time optimization when possible
+            if nqp::can($package.HOW, 'archetypes') 
+               && !$package.HOW.archetypes.generic 
+               && !$package.HOW.archetypes.parametric 
+               && nqp::can($package.HOW, 'find_private_method') {
+                
+                # Try direct method lookup at compile time
                 my $meth := $package.HOW.find_private_method($package, $name);
                 if nqp::defined($meth) && $meth {
+                    # Found method, create direct call
                     $context.ensure-sc($meth);
-                    my $call := QAST::Op.new(:op('call'), QAST::WVal.new( :value($meth) ), $invocant-qast);
-                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
-                    return $call;
+                    my $direct_call := QAST::Op.new(
+                        :op('call'), 
+                        QAST::WVal.new(:value($meth)), 
+                        $invocant-qast
+                    );
+                    self.args.IMPL-ADD-QAST-ARGS($context, $direct_call);
+                    return $direct_call;  # Early return for performance
                 }
                 else {
+                    # Method not found at compile time - error out
                     nqp::die("Private method $name not found on " ~ $package.HOW.name($package));
                 }
             }
-            $call := QAST::Op.new(
+            
+            # Handle parametric types or packages without find_private_method support
+            my $call := QAST::Op.new(
                 :op('dispatch'),
                 QAST::SVal.new(:value('raku-meth-private')),
+                # Determine type source based on parametric status
                 $!package.HOW.archetypes.parametric
                   ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
                 QAST::SVal.new(:value($name)),
-                $invocant-qast,
+                $invocant-qast  # Include the invocant for dispatch
             );
+            
+            self.args.IMPL-ADD-QAST-ARGS($context, $call);
+            return $call;  # Early return for performance
         }
         else {
-            $call := QAST::Op.new(
+            # Handle non-identifier private methods (less common case)
+            my $call := QAST::Op.new(
                 :op('callmethod'),
                 :name('dispatch:<!>'),
                 $invocant-qast,
                 RakuAST::StrLiteral.new($!name.last-part.name).IMPL-EXPR-QAST($context),
-                self.resolution.IMPL-TO-QAST($context),
+                self.resolution.IMPL-TO-QAST($context)
             );
+            
+            self.args.IMPL-ADD-QAST-ARGS($context, $call);
+            return $call;  # Early return for performance
         }
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        $call
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {

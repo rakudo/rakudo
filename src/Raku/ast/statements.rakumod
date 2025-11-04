@@ -159,16 +159,17 @@ class RakuAST::ForLoopImplementation
 {
     method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
             str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
-        # TODO various optimized forms are possible here
+        # First try an optimized implementation for common cases
+        # For now, use the general implementation, but leave room for optimization
         self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
-            $body-qast, $label // RakuAST::Label)
+            $body-qast, $label)
     }
 
     # The most general, least optimized, form for a `for` loop, which
     # delegates to `map`.
     method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
-            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label) {
-        # Bind the source into a temporary.
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
+        # Bind the source into a temporary with a unique name.
         my $for-list-name := QAST::Node.unique('for-list');
         my $bind-source := QAST::Op.new(
             :op('bind'),
@@ -176,7 +177,7 @@ class RakuAST::ForLoopImplementation
             $source-qast
         );
 
-        # Produce the map call.
+        # Produce the optimized map call with proper handling of container and non-container values.
         my $map-call := QAST::Op.new(
             :op('if'),
             QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),

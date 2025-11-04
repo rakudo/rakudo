@@ -48,7 +48,10 @@ class RakuAST::Node {
     # Builds the exception thrown when this cannot be bound to, but someone
     # tries to do so anyway.
     method build-bind-exception(RakuAST::Resolver $resolver) {
-        $resolver.build-exception: 'X::Bind'
+        my $node-type := self.HOW.name(self);
+        my $node-desc := self.origin ?? self.origin.Str !! "$node-type node";
+        $resolver.build-exception: 'X::Bind',
+            :payload("Cannot bind to $node-desc (of type $node-type)")
     }
 
     method set-origin(RakuAST::Origin $origin) {
@@ -249,9 +252,13 @@ class RakuAST::Node {
         my int $have-stopper := !nqp::eqaddr($stopper, Mu);
         my @visit-queue := [self];
         my @result;
+        
+        # Pre-check if we need to apply a condition filter
+        my int $has-condition := nqp::isconcrete($condition);
+        
         my $collector := sub collector($node) {
             if nqp::istype($node, $type) {
-                unless $condition && !$condition($node) {
+                unless $has-condition && !$condition($node) {
                     nqp::push(@result, $node);
                 }
             }
@@ -259,6 +266,7 @@ class RakuAST::Node {
                 nqp::push(@visit-queue, $node);
             }
         }
+        
         while @visit-queue {
             nqp::shift(@visit-queue).visit-children($collector);
         }
@@ -273,31 +281,41 @@ class RakuAST::Node {
     # Note: this is more expensive than find-nodes due to calling $stopper on
     #       each node, instead of doing a simple type check.
     method find-nodes-exclusive(Mu $type, Code :$condition, Code :$stopper) {
-        # Walk the tree searching for matching nodes.;
+        # Walk the tree searching for matching nodes.
         my @visit-queue := [self];
         my @result;
-        my $collector := sub collector($node) {
-            if nqp::isconcrete($stopper) {
+        
+        # Pre-check if we need to apply a condition filter
+        my int $has-condition := nqp::isconcrete($condition);
+        my int $has-stopper := nqp::isconcrete($stopper);
+        
+        if $has-stopper {
+            my $collector := sub collector($node) {
                 my $do-stop := $stopper($node);
                 if nqp::istype($node, $type) && !$do-stop {
-                    unless $condition && !$condition($node) {
+                    unless $has-condition && !$condition($node) {
                         nqp::push(@result, $node);
                     }
                 }
                 unless $do-stop {
                     nqp::push(@visit-queue, $node)
                 }
-            } else {
+            };
+            while @visit-queue {
+                nqp::shift(@visit-queue).visit-children($collector);
+            }
+        } else {
+            my $collector := sub collector($node) {
                 if nqp::istype($node, $type) {
-                    unless $condition && !$condition($node) {
+                    unless $has-condition && !$condition($node) {
                         nqp::push(@result, $node);
                     }
                 }
                 nqp::push(@visit-queue, $node);
+            };
+            while @visit-queue {
+                nqp::shift(@visit-queue).visit-children($collector);
             }
-        }
-        while @visit-queue {
-            nqp::shift(@visit-queue).visit-children($collector);
         }
         self.IMPL-WRAP-LIST(@result)
     }
@@ -496,24 +514,35 @@ class RakuAST::Node {
         # Due to these classes being pieced together at compile time we can't
         # reach the sorted_hash sub in the NQP setting, so it's copied here.
         my @keys;
-        for $hash {
-            nqp::push(@keys, $_.key);
-        }
+        
+        # Optimize the key collection process
+        my int $elems := nqp::elems($hash);
+        if $elems > 0 {
+            # Pre-allocate array for better performance with large hashes
+            nqp::setelems(@keys, $elems);
+            my int $i := 0;
+            for $hash {
+                @keys[$i++] := $_.key;
+            }
+            
+            # Only sort if we have more than one key
+            if $elems > 1 {
+                # Heap sort implementation
+                my int $start := $elems / 2 - 1;
+                while $start >= 0 {
+                    self.IMPL-SIFT-DOWN(@keys, $start, $elems - 1);
+                    $start := $start - 1;
+                }
 
-        my int $count := +@keys;
-        my int $start := $count / 2 - 1;
-        while $start >= 0 {
-            self.IMPL-SIFT-DOWN(@keys, $start, $count - 1);
-            $start := $start - 1;
-        }
-
-        my int $end := +@keys - 1;
-        while $end > 0 {
-            my str $swap := @keys[$end];
-            @keys[$end] := @keys[0];
-            @keys[0] := $swap;
-            $end := $end - 1;
-            self.IMPL-SIFT-DOWN(@keys, 0, $end);
+                my int $end := $elems - 1;
+                while $end > 0 {
+                    my str $swap := @keys[$end];
+                    @keys[$end] := @keys[0];
+                    @keys[0] := $swap;
+                    $end := $end - 1;
+                    self.IMPL-SIFT-DOWN(@keys, 0, $end);
+                }
+            }
         }
 
         return @keys;
@@ -522,21 +551,30 @@ class RakuAST::Node {
     method IMPL-SIFT-DOWN(Mu $a, int $start, int $end) {
         my @a := $a;
         my int $root := $start;
+        my int $child;
+        my int $swap;
+        my str $tmp;
 
-        while 2*$root + 1 <= $end {
-            my $child := 2*$root + 1;
-            my $swap := $root;
+        # Use a loop that minimizes array accesses and comparisons
+        while (2*$root + 1) <= $end {
+            $child := 2*$root + 1;
+            $swap := $root;
 
+            # Find the largest of the root, left child, and right child
             if @a[$swap] gt @a[$child] {
                 $swap := $child;
             }
             if $child + 1 <= $end && @a[$swap] ge @a[$child + 1] {
                 $swap := $child + 1;
             }
+            
+            # If root is already the largest, we're done
             if $swap == $root {
                 return;
-            } else {
-                my str $tmp := @a[$root];
+            } 
+            # Otherwise, swap and continue sifting down
+            else {
+                $tmp := @a[$root];
                 @a[$root] := @a[$swap];
                 @a[$swap] := $tmp;
                 $root := $swap;

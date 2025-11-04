@@ -115,9 +115,10 @@ class RakuAST::Code
 
     method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        unless ($!qast-block) {
-            self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
-        }
+        
+        self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression)
+            unless $!qast-block;
+
         $!qast-block
     }
 

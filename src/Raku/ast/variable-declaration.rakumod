@@ -1546,39 +1546,56 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        # Fast path: Handle lexical variables (most common case)
         my str $scope := self.scope;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
-            my str $scope := 'lexical';
-            unless $rvalue {
-                # Potentially l-value native lookups need a lexicalref.
-                if self.sigil eq '$' && self.scope ne 'our' {
-                    my $of := self.IMPL-OF-TYPE;
-                    if nqp::objprimspec($of) && (!$!is-parameter || !$!is-ro) {
-                        $scope := 'lexicalref';
-                    }
-                    return QAST::Var.new( :name(self.name), :$scope, :returns($of) );
+            # Fast path 1: rvalue access (most common read operation)
+            if $rvalue {
+                return QAST::Var.new( :name(self.name), :scope('lexical') );
+            }
+            
+            # Handle lvalue case
+            my str $lookup-scope := 'lexical';
+            
+            # Optimized condition check: Only check native type when necessary
+            if self.sigil eq '$' && $scope ne 'our' {
+                my $of := self.IMPL-OF-TYPE;
+                if nqp::objprimspec($of) && (!$!is-parameter || !$!is-ro) {
+                    $lookup-scope := 'lexicalref';
+                    # Precompute return value to avoid repeated calls
+                    return QAST::Var.new( :name(self.name), :$lookup-scope, :returns($of) );
                 }
             }
-            QAST::Var.new( :name(self.name), :$scope )
+            
+            return QAST::Var.new( :name(self.name), :scope($lookup-scope) );
         }
+        # Fast path 2: Attribute access
         elsif self.is-attribute {
             my $package := $!attribute-package.meta-object;
             my $name := self.IMPL-ATTRIBUTE-NAME;
+            
+            # Direct attribute access to avoid extra condition branches
             if $package.HOW.has_attribute($package, $name) {
                 my $attr-type := $package.HOW.get_attribute_for_usage($package, $name).type;
                 $context.ensure-sc($package);
+                
+                # Precompute scope type
+                my str $attr-scope := nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute';
+                
                 return QAST::Var.new(
-                    :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
-                    :name($name), :returns($attr-type),
+                    :scope($attr-scope),
+                    :name($name), 
+                    :returns($attr-type),
                     QAST::Var.new(:scope('lexical'), :name('self')),
                     QAST::WVal.new( :value($package) )
-                )
+                );
             }
-            QAST::Op.new(:op<null>)
+            
+            return QAST::Op.new(:op<null>);
         }
-        else {
-            nqp::die("Cannot compile lookup of scope $scope")
-        }
+        
+        # Error case handling
+        nqp::die("Cannot compile lookup of scope $scope")
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {

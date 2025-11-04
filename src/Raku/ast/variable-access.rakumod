@@ -175,7 +175,7 @@ class RakuAST::Var::Dynamic
     method postdeclaration-exception-name() { 'X::Dynamic::Postdeclaration' }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        unless self-is-resolved {
+        unless self.is-resolved {
             my $resolved := $resolver.resolve-lexical($!name, :current-scope-only);
             if $resolved {
                 self.set-resolution($resolved);
@@ -189,23 +189,38 @@ class RakuAST::Var::Dynamic
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # If it's resolved in the current scope, just a lexical access.
+        # Fast path: If resolved in current scope, perform direct lexical access (most common case)
         if self.is-resolved {
             my $name := self.resolution.lexical-name;
-            QAST::Var.new( :$name, :scope<lexical> )
+            return QAST::Var.new( :$name, :scope<lexical> );
         }
-        else {
-            my $with-star := QAST::SVal.new( :value($!name) );
-            my $without-star := QAST::SVal.new( :value(nqp::replace($!name, 1, 1, '')) );
+        
+        # Dynamic variable lookup path: Try direct lookup first, fallback to fallback mechanism if failed
+        my $name := $!name;
+        my $with-star := QAST::SVal.new( :value($name) );
+        
+        # Optimization: Skip replace operation if it's standard dynamic variable format (e.g. $*VAR)
+        my $without-star;
+        if nqp::substr($name, 1, 1) eq '*' {
+            # Remove first two characters (sigil and twigil) to get the base name
+            $without-star := QAST::SVal.new( :value(nqp::substr($name, 2)) );
+        } else {
+            $without-star := QAST::SVal.new( :value(nqp::replace($name, 1, 1, '')) );
+        }
+        
+        # Build lookup QAST node
+        return QAST::Op.new(
+            :op('ifnull'),
+            # Try to get dynamic variable directly first
+            QAST::Op.new( :op('getlexdyn'), $with-star ),
+            # Call fallback function on failure
             QAST::Op.new(
-                :op('ifnull'),
-                QAST::Op.new( :op('getlexdyn'), $with-star),
-                QAST::Op.new(
-                    :op('callstatic'), :name('&DYNAMIC-FALLBACK'),
-                    $with-star, $without-star
-                )
+                :op('callstatic'), 
+                :name('&DYNAMIC-FALLBACK'),
+                $with-star, 
+                $without-star
             )
-        }
+        );
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
@@ -774,32 +789,60 @@ class RakuAST::Var::Package
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $sigil := $!sigil;
         if $!name.is-simple {
-            if $!name.is-pseudo-package {
-                $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);
-            }
-            else {
-                my @parts := $!name.IMPL-LOOKUP-PARTS;
-                my $final := @parts[nqp::elems(@parts) - 1];
-                my $result;
-                if self.is-resolved {
-                    my $name := self.resolution.lexical-name;
-                    nqp::shift(@parts);
-                    $result := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
-                        ?? QAST::WVal.new(:value(self.resolution.compile-time-value))
-                        !! QAST::Var.new(:$name, :scope<lexical>);
-                }
-                else {
-                    $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
-                }
-                for @parts {
-                    $result := QAST::Op.new( :op('who'), $result );
-                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
-                }
-                $result
-            }
+            $!name.is-pseudo-package 
+                ?? $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil)
+                !! self.IMPL-QAST-SIMPLE-PACKAGE-LOOKUP($context, $sigil)
         }
         else {
             $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :$sigil)
+        }
+    }
+    
+    # Helper method to handle simple package lookups
+    method IMPL-QAST-SIMPLE-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str $sigil) {
+        # Performance optimized version: reduce loop overhead and add fast paths
+        my @parts := $!name.IMPL-LOOKUP-PARTS;
+        my int $parts-count := nqp::elems(@parts);
+        
+        # Fast path: if no parts, return GLOBAL directly
+        if $parts-count == 0 {
+            return QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+        }
+        
+        # Initialize lookup result
+        my $result := self.IMPL-QAST-INITIAL-RESOLUTION(@parts);
+        
+        # Fast path: if no remaining parts after resolution, return result directly
+        my int $remaining-count := nqp::elems(@parts);
+        if $remaining-count == 0 {
+            return $result;
+        }
+        
+        # Process remaining parts with optimized loop
+        my $final := @parts[$remaining-count - 1];
+        
+        for 0..^$remaining-count -> int $i {
+            my $part := nqp::atpos(@parts, $i);
+            # Optimization: avoid repeatedly creating QAST::Op nodes
+            $result := QAST::Op.new( :op('who'), $result );
+            # Optimization: precompute if it's the final part
+            $result := $part.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $part =:= $final, :$sigil);
+        }
+        
+        return $result;
+    }
+    
+    # Initialize the lookup result based on resolution status
+    method IMPL-QAST-INITIAL-RESOLUTION(@parts is rw) {
+        if self.is-resolved {
+            my $name := self.resolution.lexical-name;
+            nqp::shift(@parts); # Remove the first part as it's already resolved
+            return nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                ?? QAST::WVal.new(:value(self.resolution.compile-time-value))
+                !! QAST::Var.new(:$name, :scope<lexical>);
+        }
+        else {
+            return QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
         }
     }
 

@@ -1078,6 +1078,71 @@ my class Mu { # declared in BOOTSTRAP
         SELF.^can($name)
     }
 
+    method !clone-with-twiddles(%twiddles) {
+        my $twiddles := nqp::getattr(%twiddles,Map,'$!storage');
+
+        for self.^attributes.flat -> $attr {
+            my str $name = $attr.name;
+
+            # Native attribute
+            if nqp::objprimspec($attr.type) -> int $primspec {
+
+                # Needs twiddling
+                if $attr.has_accessor {
+                    my str $acc_name = nqp::substr($name,2);
+
+                    if nqp::existskey($twiddles,$acc_name) {
+                        my $package := $attr.package;
+                        my $value   :=
+                          nqp::decont(nqp::atkey($twiddles,$acc_name));
+
+                        # Native assign value
+                        $primspec == nqp::const::BIND_VAL_INT
+                          ?? nqp::bindattr_i(self,$package,$name,$value)
+                          !! $primspec == nqp::const::BIND_VAL_STR
+                            ?? nqp::bindattr_s(self,$package,$name,$value)
+                            !! $primspec == nqp::const::BIND_VAL_NUM
+                              ?? nqp::bindattr_n(self,$package,$name,$value)
+                              !! die "Unknown primspec in twiddling: $primspec";
+                    }
+                }
+            }
+
+            # Opaque attribute
+            else {
+                my $package := $attr.package;
+
+                # Clone container if there is one
+                nqp::bindattr(self,$package,$name,
+                  nqp::clone_nd(nqp::getattr(self,$package,$name))
+                );
+
+                # Assign given value if possible
+                if $attr.has_accessor {
+                    my str $acc_name = nqp::substr($name,2);
+
+                    nqp::getattr(self,$package,$name) = nqp::decont(
+                      nqp::atkey($twiddles,$acc_name)
+                    ) if nqp::existskey($twiddles,$acc_name);
+                }
+            }
+        }
+        self
+    }
+
+    method !just-clone() {
+        for self.^attributes.flat -> $attr {
+            unless nqp::objprimspec($attr.type) {
+                my $name     := $attr.name;
+                my $package  := $attr.package;
+                my $attr_val := nqp::getattr(self,$package,$name);
+                nqp::bindattr(self,$package,$name,nqp::clone_nd($attr_val))
+                  if nqp::iscont($attr_val);
+            }
+        }
+        self
+    }
+
     proto method clone (|) {*}
     multi method clone(Mu:U:) {
         %_
@@ -1085,35 +1150,9 @@ my class Mu { # declared in BOOTSTRAP
           !! self
     }
     multi method clone(Mu:D: *%twiddles) {
-        my $cloned := nqp::clone(self);
-        if %twiddles.elems {
-            for self.^attributes.flat -> $attr {
-                my $name    := $attr.name;
-                my $package := $attr.package;
-
-                nqp::bindattr($cloned, $package, $name,
-                  nqp::clone_nd(nqp::getattr($cloned, $package, $name))
-                ) unless nqp::objprimspec($attr.type);
-
-                my $acc_name := substr($name,2);
-                nqp::getattr($cloned, $package, $name) =
-                  nqp::decont(%twiddles{$acc_name})
-                  if $attr.has_accessor && %twiddles.EXISTS-KEY($acc_name);
-            }
-        }
-        else {
-            for self.^attributes.flat -> $attr {
-                unless nqp::objprimspec($attr.type) {
-                    my $name     := $attr.name;
-                    my $package  := $attr.package;
-                    my $attr_val := nqp::getattr($cloned, $package, $name);
-                    nqp::bindattr($cloned,
-                      $package, $name, nqp::clone_nd($attr_val))
-                        if nqp::iscont($attr_val);
-                }
-            }
-        }
-        $cloned
+        %twiddles
+          ?? nqp::clone(self)!clone-with-twiddles(%twiddles)
+          !! nqp::clone(self)!just-clone
     }
 
     method Capture() {

@@ -108,13 +108,13 @@ class RakuAST::Optimizer::Symbols {
     }
     
     # Symbol lookup methods
-    method find_in_setting($name) {
-        unless %!SETTING_CACHE{$name} {
+    method find_in_setting($symbol) {
+        unless %!SETTING_CACHE{$symbol} {
             my $compunit := @!block_stack[0];
             my $W := $compunit.ann('W');
-            %!SETTING_CACHE{$name} := $W.?find($name) || nqp::null();
+            %!SETTING_CACHE{$symbol} := $W.?find($symbol) || nqp::null();
         }
-        %!SETTING_CACHE{$name}
+        %!SETTING_CACHE{$symbol}
     }
     
     method find_symbol($path) {
@@ -127,7 +127,7 @@ class RakuAST::Optimizer::Symbols {
         for @!block_stack.reverse -> $block {
             if $block.symtable(){$name} {
                 return $block.symtable(){$name}{value};
-
+            }
         }
         nqp::null();
     }
@@ -321,6 +321,52 @@ class RakuAST::Optimizer::BlockVarOptimizer {
             }
         }
         return @esc;
+    }
+    
+    # Track local caches created for outer references
+    has %!local_caches;
+    has int $!in_hot_loop = 0;
+    
+    # Method to get variable usage count
+    method get_usage_count($name) {
+        my $count := 0;
+        if %!usages_flat{$name} {
+            $count := +%!usages_flat{$name};
+        }
+        return $count;
+    }
+    
+    # Check if a local cache exists for a variable
+    method has_local_cache($name) {
+        nqp::existskey(%!local_caches, $name);
+    }
+    
+    # Mark a variable as having a local cache
+    method mark_local_cache($name) {
+        %!local_caches{$name} := 1;
+    }
+    
+    # Check if we're in a hot loop
+    method is_in_hot_loop() {
+        $!in_hot_loop > 0;
+    }
+    
+    # Set hot loop status
+    method set_hot_loop($value) {
+        $!in_hot_loop := $value ?? $!in_hot_loop + 1 !! $!in_hot_loop - 1;
+    }
+    
+    # Method to prepend a statement to the current block
+    method prepend_to_current_block($block, $statement) {
+        my $body := $block[1];
+        if $body && nqp::istype($body, QAST::Stmts) {
+            my @new_children;
+            @new_children.push($statement);
+            for $body.list() -> $child {
+                @new_children.push($child);
+            }
+            $body.set_children(@new_children);
+        }
     }
     
     # Optimization methods
@@ -695,8 +741,15 @@ class RakuAST::Optimizer {
             return self.visit_bind($node, :$block_structure);
         }
         
-        # Default case: visit children and return the node
+        # Default case: visit children
         self.visit_children($node, :block_structure($block_structure));
+        
+        # Apply dead code elimination for complex nodes at higher optimization levels
+        # Apply to statement lists and blocks which are common sources of dead code
+        if ($!level >= 2 && (nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Block))) {
+            return self.dead_code_elimination($node);
+        }
+        
         $node
     }
     
@@ -1388,7 +1441,7 @@ class RakuAST::Optimizer {
         }
         
         # Apply enhanced constant folding with short-circuit evaluation
-        my $folded := self.constant_fold_enhanced($op, $optype);
+        my $folded := self.constant_fold($op, $optype);
         return $folded if $folded;
         
         # Apply operator-specific optimizations
@@ -1399,9 +1452,11 @@ class RakuAST::Optimizer {
         my $call_optimized := self.optimize_method_call($op, $optype, $opname);
         return $call_optimized if $call_optimized;
         
-        # Apply dead code elimination
-        my $dead_code := self.eliminate_dead_code($op, $optype);
-        return $dead_code if $dead_code;
+        # Apply dead code elimination with our new implementation
+        if $!level >= 2 && ($optype eq 'if' || $optype eq 'unless' || $optype eq 'for' || $optype eq 'while' || $optype eq 'until') {
+            my $dead_code := self.dead_code_elimination($op);
+            return $dead_code if !nqp::eqaddr($dead_code, $op);
+        }
         
         # Apply loop optimizations
         my $loop_optimized := self.optimize_loops($op);
@@ -1428,87 +1483,6 @@ class RakuAST::Optimizer {
         }
         
         nqp::null() # No optimization applied
-    }
-    
-    # Enhanced constant folding with short-circuit evaluation
-    method constant_fold_enhanced($op, $optype) {
-        # Integer operations
-        if $optype eq 'add_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            my $result := QAST::IVal.new(:value($op[0].value + $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        elsif $optype eq 'sub_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            my $result := QAST::IVal.new(:value($op[0].value - $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        elsif $optype eq 'mul_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            my $result := QAST::IVal.new(:value($op[0].value * $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        elsif $optype eq 'div_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) && $op[1].value != 0 {
-            my $result := QAST::IVal.new(:value($op[0].value / $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        elsif $optype eq 'mod_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) && $op[1].value != 0 {
-            my $result := QAST::IVal.new(:value($op[0].value % $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        
-        # Num operations
-        elsif $optype eq 'add_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) {
-            my $result := QAST::NVal.new(:value($op[0].value + $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        elsif $optype eq 'sub_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) {
-            my $result := QAST::NVal.new(:value($op[0].value - $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        
-        # Boolean operations with short-circuit evaluation
-        elsif $optype eq '&&' || $optype eq 'and' {
-            # Short-circuit AND: if first operand is false, whole expression is false
-            if nqp::istype($op[0], QAST::BVal) && !$op[0].value {
-                my $result := QAST::BVal.new(:value(False));
-                self.log_optimization('short_circuit', $op, $result);
-                return $result;
-            }
-            # If first operand is true, result is second operand
-            elsif nqp::istype($op[0], QAST::BVal) && $op[0].value {
-                return $op[1]; # No need to clone, will be handled by visitor
-            }
-        }
-        elsif $optype eq '||' || $optype eq 'or' {
-            # Short-circuit OR: if first operand is true, whole expression is true
-            if nqp::istype($op[0], QAST::BVal) && $op[0].value {
-                my $result := QAST::BVal.new(:value(True));
-                self.log_optimization('short_circuit', $op, $result);
-                return $result;
-            }
-            # If first operand is false, result is second operand
-            elsif nqp::istype($op[0], QAST::BVal) && !$op[0].value {
-                return $op[1]; # No need to clone, will be handled by visitor
-            }
-        }
-        
-        # Equality operations with constants
-        elsif ($optype eq 'eq' || $optype eq '==') && 
-              ((nqp::istype($op[0], QAST::SVal) && nqp::istype($op[1], QAST::SVal)) ||
-               (nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal)) ||
-               (nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal))) {
-            my $result := QAST::BVal.new(:value($op[0].value == $op[1].value));
-            self.log_optimization('const_fold', $op, $result);
-            return $result;
-        }
-        
-        # Call the original constant_fold method for other cases
-        return self.constant_fold($op, $optype);
     }
     
     # Apply algebraic simplifications
@@ -1617,69 +1591,6 @@ class RakuAST::Optimizer {
         }
         
         nqp::null()
-    }
-    
-    # Enhanced constant folding for various operations
-    method constant_fold($op, $optype) {
-        # Integer operations
-        if $optype eq 'add_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::IVal.new(:value($op[0].value + $op[1].value));
-        }
-        elsif $optype eq 'sub_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::IVal.new(:value($op[0].value - $op[1].value));
-        }
-        elsif $optype eq 'mul_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::IVal.new(:value($op[0].value * $op[1].value));
-        }
-        elsif $optype eq 'div_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) && $op[1].value != 0 {
-            return QAST::IVal.new(:value($op[0].value / $op[1].value));
-        }
-        elsif $optype eq 'mod_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) && $op[1].value != 0 {
-            return QAST::IVal.new(:value($op[0].value % $op[1].value));
-        }
-        
-        # Num operations
-        elsif $optype eq 'add_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) {
-            return QAST::NVal.new(:value($op[0].value + $op[1].value));
-        }
-        elsif $optype eq 'sub_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) {
-            return QAST::NVal.new(:value($op[0].value - $op[1].value));
-        }
-        elsif $optype eq 'mul_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) {
-            return QAST::NVal.new(:value($op[0].value * $op[1].value));
-        }
-        elsif $optype eq 'div_n' && nqp::istype($op[0], QAST::NVal) && nqp::istype($op[1], QAST::NVal) && $op[1].value != 0 {
-            return QAST::NVal.new(:value($op[0].value / $op[1].value));
-        }
-        
-        # String operations
-        elsif $optype eq 'concat_s' && nqp::istype($op[0], QAST::SVal) && nqp::istype($op[1], QAST::SVal) {
-            return QAST::SVal.new(:value($op[0].value ~ $op[1].value));
-        }
-        
-        # Boolean operations
-        elsif $optype eq 'and_b' && nqp::istype($op[0], QAST::BVal) && nqp::istype($op[1], QAST::BVal) {
-            return QAST::BVal.new(:value($op[0].value && $op[1].value));
-        }
-        elsif $optype eq 'or_b' && nqp::istype($op[0], QAST::BVal) && nqp::istype($op[1], QAST::BVal) {
-            return QAST::BVal.new(:value($op[0].value || $op[1].value));
-        }
-        elsif $optype eq 'not_b' && nqp::istype($op[0], QAST::BVal) {
-            return QAST::BVal.new(:value(!$op[0].value));
-        }
-        
-        # Comparison operations
-        elsif $optype eq 'eq_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::BVal.new(:value($op[0].value == $op[1].value));
-        }
-        elsif $optype eq 'lt_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::BVal.new(:value($op[0].value < $op[1].value));
-        }
-        elsif $optype eq 'gt_i' && nqp::istype($op[0], QAST::IVal) && nqp::istype($op[1], QAST::IVal) {
-            return QAST::BVal.new(:value($op[0].value > $op[1].value));
-        }
-        
-        nqp::null() # No constant folding applied
     }
     
     # Optimize specific operators with identity and absorption properties
@@ -5309,17 +5220,189 @@ class RakuAST::Optimizer {
     # Apply type-specific optimizations
     method apply_type_optimization($var, $type) {
         # Implement type-specific optimizations based on the variable's type
-        # This is a placeholder for more sophisticated type-based optimizations
-        if $type && $type ~~ /int/ {
-            # Integer-specific optimizations could go here
+        return nqp::null() unless $type;
+        
+        # Check if we're in a high enough optimization level
+        return nqp::null() unless $!level >= 3;
+        
+        # Safely apply type annotations regardless of variable scope
+        my $type_hint := nqp::null();
+        
+        # Integer-specific optimizations
+        if nqp::existskey($type.WHAT.HOW, 'PRIM_TYPE') && nqp::objprimspec($type) == nqp::const::BIND_VAL_INT ||
+           $type.DEFINITE && $type.WHAT.^name eq 'Int' ||
+           nqp::istype($type, Str) && $type ~~ /^int(\d+)?$/ {
+            $type_hint := 'int';
+            
+            # For integer variables, add type hints to help JIT optimizer
+            $var.annotate('type_hint', $type_hint);
+            $var.annotate('optimize_for', 'integer');
+            
+            # For integer operations, add additional optimizations
+            if nqp::istype($var, QAST::Op) {
+                # Add operation-specific optimizations
+                given $var.op {
+                    when 'add', 'sub', 'mul' {
+                        $var.annotate('optimized_arithmetic', 1);
+                    }
+                    when 'div' {
+                        $var.annotate('optimized_integer_division', 1);
+                    }
+                    when 'bit_and', 'bit_or', 'bit_xor' {
+                        $var.annotate('optimized_bitwise', 1);
+                    }
+                }
+            }
         }
-        return nqp::null();
+        # Float/Num optimizations
+        elsif nqp::existskey($type.WHAT.HOW, 'PRIM_TYPE') && nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM ||
+              $type.DEFINITE && $type.WHAT.^name eq 'Num' ||
+              nqp::istype($type, Str) && $type ~~ /^(num|float)(\d+)?$/ {
+            $type_hint := 'num';
+            $var.annotate('type_hint', $type_hint);
+            $var.annotate('optimize_for', 'number');
+            
+            if nqp::istype($var, QAST::Op) {
+                given $var.op {
+                    when 'add', 'sub', 'mul', 'div' {
+                        $var.annotate('optimized_float_arithmetic', 1);
+                    }
+                }
+            }
+        }
+        # Str optimizations
+        elsif $type.DEFINITE && $type.WHAT.^name eq 'Str' ||
+              nqp::istype($type, Str) && $type ~~ /^str(ing)?$/ {
+            $type_hint := 'str';
+            $var.annotate('type_hint', $type_hint);
+            $var.annotate('optimize_for', 'string');
+            
+            if nqp::istype($var, QAST::Op) {
+                given $var.op {
+                    when 'concat', 'substr', 'chr' {
+                        $var.annotate('optimized_string_op', 1);
+                    }
+                }
+            }
+        }
+        # Bool optimizations
+        elsif $type.DEFINITE && $type.WHAT.^name eq 'Bool' ||
+              nqp::istype($type, Str) && $type ~~ /^bool(ean)?$/ {
+            $type_hint := 'bool';
+            $var.annotate('type_hint', $type_hint);
+            $var.annotate('optimize_for', 'boolean');
+            
+            if nqp::istype($var, QAST::Op) {
+                given $var.op {
+                    when 'if', 'and', 'or', 'not' {
+                        $var.annotate('optimized_boolean_op', 1);
+                    }
+                }
+            }
+        }
+        # Handle known types from the symbols system
+        else {
+            # Safely check symbols without relying on specific methods
+            try {
+                if $!symbols && $!symbols.DEFINITE {
+                    # Check for common types through string comparison as fallback
+                    my $type_name := $type.DEFINITE ?? $type.WHAT.^name !! Str($type);
+                    
+                    # Handle container types
+                    if $type_name eq 'Array' || $type_name eq 'List' || $type_name eq 'Positional' {
+                        $var.annotate('optimize_for', 'collection');
+                        $var.annotate('container_type', $type_name);
+                    }
+                    elsif $type_name eq 'Hash' || $type_name eq 'Map' || $type_name eq 'Associative' {
+                        $var.annotate('optimize_for', 'associative');
+                        $var.annotate('container_type', $type_name);
+                    }
+                    # Add type-specific method call optimizations
+                    if nqp::istype($var, QAST::Call) && $var.name {
+                        $var.annotate('method_call_optimized', 1);
+                        $var.annotate('target_type', $type_name);
+                    }
+                }
+            }
+        }
+        
+        # Add general type optimization annotation
+        $var.annotate('type_optimized', 1);
+        
+        return nqp::null(); # Return null to indicate no replacement
     }
     
     # Optimize outer references
     method optimize_outer_reference($var) {
-        # Placeholder for outer reference optimization logic
-        return nqp::null();
+        # Only optimize at higher optimization levels
+        return nqp::null() unless $!level >= 2;
+        
+        # Only optimize lexical outer references
+        return nqp::null() unless $var.scope eq 'lexical';
+        
+        # Get the variable name
+        my $name := $var.name;
+        return nqp::null() unless $name;
+        
+        # Get the current block from symbols
+        my $current_block := nqp::null();
+        if $!symbols && $!symbols.responds-to('current_block') {
+            $current_block := $!symbols.current_block();
+        }
+        return nqp::null() unless $current_block; # Can't optimize without a block
+        
+        # Safely get usage count
+        my $usage_count := 0;
+        my $has_cache := False;
+        my $in_hot_loop := False;
+        
+        if $!block_var_stack && $!block_var_stack.top {
+            my $top := $!block_var_stack.top;
+            if $top.can('get_usage_count') {
+                $usage_count := $top.get_usage_count($name);
+            }
+            if $top.can('has_local_cache') {
+                $has_cache := $top.has_local_cache($name);
+            }
+            if $top.can('is_in_hot_loop') {
+                $in_hot_loop := $top.is_in_hot_loop();
+            }
+        }
+        
+        # Determine if we should cache this outer reference
+        my $should_cache := 
+            !$has_cache && 
+            ($usage_count >= 2 || $in_hot_loop || $!level >= 3);
+        
+        # Early return if no caching needed
+        unless $should_cache {
+            # For level 3 optimization, still add an optimization hint
+            if $!level >= 3 {
+                $var.annotate('optimized_outer_ref', 1);
+            }
+            return nqp::null();
+        }
+        
+        # Create a unique local variable name
+        my $local_name := "_cached_outer_" ~ $name.substr(1);
+        
+        # Create a binding op to cache the outer reference
+        my $cache_op := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new(:name($local_name), :scope('local'), :decl('var')),
+            QAST::Var.new(:name($name), :scope('lexical'))
+        );
+        
+        # Safely add the cache op to the current block
+        if $!block_var_stack && $!block_var_stack.top && $!block_var_stack.top.can('prepend_to_current_block') {
+            $!block_var_stack.top.prepend_to_current_block($current_block, $cache_op);
+            $!block_var_stack.top.mark_local_cache($name);
+            
+            # Return a reference to the local cache variable
+            return QAST::Var.new(:name($local_name), :scope('local'));
+        }
+        
+        return nqp::null(); # No optimization applicable
     }
     
     # Check if a variable is dead (not used after definition)
@@ -7213,7 +7296,9 @@ class RakuAST::Optimizer {
     
     # Check if a type is a numeric type
     method is_numeric_type($type) {
-        return $type eq 'Int' || $type eq 'Num' || $type eq 'Rat' || $type eq 'Complex';
+        return $type eq 'Int' || $type eq 'Num' || $type eq 'Rat' || 
+               $type eq 'Complex' || $type eq 'num' || $type eq 'int' ||
+               ($type && $type.DEFINITE && nqp::istype($type, Numeric));
     }
     
     # Use inferred types to optimize operations
@@ -7248,13 +7333,21 @@ class RakuAST::Optimizer {
         # Process children first (bottom-up approach)
         if nqp::can($node, 'list') {
             my @children := $node.list();
+            my int $children_optimized := 0;
+            
             for @children.kv -> $i, $child {
                 if $child {
                     my $optimized_child := self.apply_type_optimizations($child);
                     if !nqp::eqaddr($optimized_child, $child) {
                         $node[$i] := $optimized_child;
+                        $children_optimized := 1;
                     }
                 }
+            }
+            
+            # If children were optimized, refresh the node's type information
+            if $children_optimized {
+                self.refresh_node_type($node);
             }
         }
         
@@ -7264,12 +7357,29 @@ class RakuAST::Optimizer {
                 # Optimize operations based on operand types
                 my $optimized := self.optimize_typed_operation($node);
                 if $optimized {
+                    # Copy annotations from original node to optimized node
+                    self.copy_annotations($node, $optimized);
                     return $optimized;
+                }
+                
+                # Apply constant folding after type optimization
+                my $folded := self.fold_constants($node);
+                if $folded && !nqp::eqaddr($folded, $node) {
+                    return $folded;
                 }
             }
             when QAST::Call {
                 # Optimize method calls for known types
                 my $optimized := self.optimize_typed_method_call($node);
+                if $optimized {
+                    # Copy annotations from original node to optimized node
+                    self.copy_annotations($node, $optimized);
+                    return $optimized;
+                }
+            }
+            when QAST::Var {
+                # Apply variable-specific optimizations
+                my $optimized := self.optimize_variable($node);
                 if $optimized {
                     return $optimized;
                 }
@@ -7279,14 +7389,169 @@ class RakuAST::Optimizer {
         return $node;
     }
     
+    # Helper method to refresh node type after children changes
+    method refresh_node_type($node) {
+        # Remove cached type information so it gets recalculated
+        $node.unannotate('type_hint');
+        # Force type recalculation
+        my $new_type := self.get_node_type($node);
+        if $new_type ne 'Any' {
+            $node.annotate('type_hint', $new_type);
+        }
+    }
+    
+    # Helper method to copy annotations from one node to another
+    method copy_annotations($source, $target) {
+        if $source.can('annotations') && $target.can('annotations') {
+            my %ann := $source.annotations();
+            for %ann.kv -> $key, $value {
+                $target.annotate($key, $value);
+            }
+        }
+    }
+    
+    # Optimize variable references based on type information
+    method optimize_variable($var) {
+        # Apply type-specific variable optimizations
+        my $type := self.get_node_type($var);
+        return self.apply_type_optimization($var, $type);
+    }
+    
+    # Simple constant folding for operations with known values
+    method fold_constants($op) {
+        # Only fold at higher optimization levels
+        return nqp::null() unless $!level >= 3;
+        
+        # Check if all operands are constants
+        my @args := $op.list();
+        my int $all_constants := 1;
+        
+        for @args -> $arg {
+            unless nqp::istype($arg, QAST::IVal) || nqp::istype($arg, QAST::NVal) || 
+                   nqp::istype($arg, QAST::SVal) || nqp::istype($arg, QAST::BVal) {
+                $all_constants := 0;
+                last;
+            }
+        }
+        
+        # If not all operands are constants, skip folding
+        unless $all_constants {
+            return nqp::null();
+        }
+        
+        # Try to fold simple binary operations
+        if nqp::elems(@args) == 2 {
+            my $op_name := $op.op;
+            my $left := @args[0];
+            my $right := @args[1];
+            
+            # Integer operations
+            if nqp::istype($left, QAST::IVal) && nqp::istype($right, QAST::IVal) {
+                my int $lval := $left.value;
+                my int $rval := $right.value;
+                
+                given $op_name {
+                    when 'add', 'add_i' {
+                        return QAST::IVal.new(:value($lval + $rval));
+                    }
+                    when 'sub', 'sub_i' {
+                        return QAST::IVal.new(:value($lval - $rval));
+                    }
+                    when 'mul', 'mul_i' {
+                        return QAST::IVal.new(:value($lval * $rval));
+                    }
+                    when 'div', 'div_i' {
+                        # Integer division in Raku produces Rat, but we'll use Int for folding
+                        return QAST::IVal.new(:value($lval / $rval)) if $rval != 0;
+                    }
+                    when 'mod', 'mod_i' {
+                        return QAST::IVal.new(:value($lval % $rval)) if $rval != 0;
+                    }
+                    when '==', 'eq_i' {
+                        return QAST::BVal.new(:value($lval == $rval));
+                    }
+                    when '!=', 'ne_i' {
+                        return QAST::BVal.new(:value($lval != $rval));
+                    }
+                    when '<', 'lt_i' {
+                        return QAST::BVal.new(:value($lval < $rval));
+                    }
+                    when '<=', 'le_i' {
+                        return QAST::BVal.new(:value($lval <= $rval));
+                    }
+                    when '>', 'gt_i' {
+                        return QAST::BVal.new(:value($lval > $rval));
+                    }
+                    when '>=', 'ge_i' {
+                        return QAST::BVal.new(:value($lval >= $rval));
+                    }
+                }
+            }
+        }
+        
+        nqp::null()
+    
     # Optimize operations based on operand types
     method optimize_typed_operation($op) {
+        return nqp::null() unless $op;
+        
         my $op_name := $op.op;
+        my @args := $op.list();
+        my int $args_count := nqp::elems(@args);
+        
+        # Handle unary operations
+        if $args_count == 1 {
+            my $arg_type := self.get_node_type(@args[0]);
+            
+            given $op_name {
+                when 'abs' {
+                    if $arg_type eq 'Int' || $arg_type eq 'int' {
+                        return QAST::Op.new(:op<abs_i>, @args[0]);
+                    }
+                    elsif self.is_numeric_type($arg_type) {
+                        return QAST::Op.new(:op<abs_n>, @args[0]);
+                    }
+                }
+                when 'sqrt' {
+                    if self.is_numeric_type($arg_type) {
+                        return QAST::Op.new(:op<sqrt_n>, @args[0]);
+                    }
+                }
+                when 'not' {
+                    if $arg_type eq 'Bool' || $arg_type eq 'bool' {
+                        return QAST::Op.new(:op<not>, @args[0]);
+                    }
+                }
+                when 'uc', 'lc', 'trim' {
+                    if $arg_type eq 'Str' || $arg_type eq 'str' {
+                        $op.annotate('string_operation', 1);
+                    }
+                }
+            }
+            
+            # Optimize container operations
+            if self.types_compatible($arg_type, 'Positional') || self.types_compatible($arg_type, 'Associative') {
+                given $op_name {
+                    when 'not' {
+                        # !$array or !$hash can be optimized to $array.elems == 0
+                        return QAST::Op.new(:op<==>, 
+                            QAST::Call.new(:name<elems>, @args[0]),
+                            QAST::IVal.new(:value(0)));
+                    }
+                    when 'bool' {
+                        # $array.Bool or $hash.Bool can be optimized to $array.elems > 0
+                        return QAST::Op.new(:op<>>, 
+                            QAST::Call.new(:name<elems>, @args[0]),
+                            QAST::IVal.new(:value(0)));
+                    }
+                }
+            }
+        }
         
         # Handle binary operations
-        if nqp::elems($op.list()) == 2 {
-            my $left := $op[0];
-            my $right := $op[1];
+        if $args_count == 2 {
+            my $left := @args[0];
+            my $right := @args[1];
             
             # Get operand types
             my $left_type := self.get_node_type($left);
@@ -7301,18 +7566,71 @@ class RakuAST::Optimizer {
             }
             
             # Specialize string operations
-            if $left_type eq 'Str' && $right_type eq 'Str' {
-                my $specialized := self.specialize_string_operation($op);
-                if $specialized {
-                    return $specialized;
+            if $left_type eq 'Str' || $left_type eq 'str' {
+                if $right_type eq 'Str' || $right_type eq 'str' {
+                    my $specialized := self.specialize_string_operation($op);
+                    if $specialized {
+                        return $specialized;
+                    }
+                }
+                # String operations with integers (like substr, index)
+                elsif $right_type eq 'Int' || $right_type eq 'int' {
+                    given $op_name {
+                        when 'substr' {
+                            return QAST::Op.new(:op<substr_s>, $left, $right);
+                        }
+                        when 'index' {
+                            return QAST::Op.new(:op<index_s>, $left, $right);
+                        }
+                    }
+                }
+            }
+            
+            # Container operations optimization
+            if self.types_compatible($left_type, 'Positional') {
+                if $right_type eq 'Int' || $right_type eq 'int' {
+                    given $op_name {
+                        when 'atkey', '[]' {
+                            return QAST::Op.new(:op<at_pos>, $left, $right);
+                        }
+                        when 'existskey' {
+                            return QAST::Op.new(:op<exists_pos>, $left, $right);
+                        }
+                    }
+                }
+            }
+            elsif self.types_compatible($left_type, 'Associative') {
+                if $right_type eq 'Str' || $right_type eq 'str' {
+                    given $op_name {
+                        when 'atkey', '[]' {
+                            return QAST::Op.new(:op<at_key_s>, $left, $right);
+                        }
+                        when 'existskey' {
+                            return QAST::Op.new(:op<exists_key_s>, $left, $right);
+                        }
+                    }
                 }
             }
             
             # Eliminate redundant type checks for known types
-            if $op_name eq 'isa' || $op_name eq '~~' {
+            if $op_name eq 'isa' || $op_name eq '~~' || $op_name eq '!~~' {
                 my $optimized := self.eliminate_redundant_type_check($op, $left_type);
                 if $optimized {
                     return $optimized;
+                }
+            }
+            
+            # Equality optimizations
+            if nqp::exists(['==', 'eq', 'eq_i', 'eq_n', 'eq_s'], $op_name) {
+                # x == x optimization
+                if nqp::eqaddr($left, $right) {
+                    return QAST::BVal.new(:value(True));
+                }
+            }
+            elsif nqp::exists(['!=', 'ne', 'ne_i', 'ne_n', 'ne_s'], $op_name) {
+                # x != x optimization
+                if nqp::eqaddr($left, $right) {
+                    return QAST::BVal.new(:value(False));
                 }
             }
         }
@@ -7322,38 +7640,101 @@ class RakuAST::Optimizer {
     
     # Specialize numeric operations for better performance
     method specialize_numeric_operation($op, $left_type, $right_type) {
+        return nqp::null() unless $op;
+        
         my $op_name := $op.op;
+        my $left := $op[0];
+        my $right := $op[1];
+        
+        # Handle primitive type aliases
+        $left_type := 'Int' if $left_type eq 'int';
+        $right_type := 'Int' if $right_type eq 'int';
+        $left_type := 'Num' if $left_type eq 'num';
+        $right_type := 'Num' if $right_type eq 'num';
         
         # For integer-only operations, we can use faster integer ops
         if $left_type eq 'Int' && $right_type eq 'Int' {
             given $op_name {
-                when 'add' { return QAST::Op.new(:op<add_i>, $op[0], $op[1]) }
-                when 'sub' { return QAST::Op.new(:op<sub_i>, $op[0], $op[1]) }
-                when 'mul' { return QAST::Op.new(:op<mul_i>, $op[0], $op[1]) }
-                when 'div' { return QAST::Op.new(:op<div_i>, $op[0], $op[1]) }
-                when 'mod' { return QAST::Op.new(:op<mod_i>, $op[0], $op[1]) }
-                when '=='  { return QAST::Op.new(:op<eq_i>, $op[0], $op[1]) }
-                when '!='  { return QAST::Op.new(:op<ne_i>, $op[0], $op[1]) }
-                when '<'   { return QAST::Op.new(:op<lt_i>, $op[0], $op[1]) }
-                when '<='  { return QAST::Op.new(:op<le_i>, $op[0], $op[1]) }
-                when '>'   { return QAST::Op.new(:op<gt_i>, $op[0], $op[1]) }
-                when '>='  { return QAST::Op.new(:op<ge_i>, $op[0], $op[1]) }
+                when 'add' { return QAST::Op.new(:op<add_i>, $left, $right) }
+                when 'sub' { return QAST::Op.new(:op<sub_i>, $left, $right) }
+                when 'mul' { return QAST::Op.new(:op<mul_i>, $left, $right) }
+                when 'div' { return QAST::Op.new(:op<div_i>, $left, $right) }
+                when 'mod' { return QAST::Op.new(:op<mod_i>, $left, $right) }
+                when '=='  { return QAST::Op.new(:op<eq_i>, $left, $right) }
+                when '!='  { return QAST::Op.new(:op<ne_i>, $left, $right) }
+                when '<'   { return QAST::Op.new(:op<lt_i>, $left, $right) }
+                when '<='  { return QAST::Op.new(:op<le_i>, $left, $right) }
+                when '>'   { return QAST::Op.new(:op<gt_i>, $left, $right) }
+                when '>='  { return QAST::Op.new(:op<ge_i>, $left, $right) }
+                # Bitwise operations
+                when 'bitwise-and' { return QAST::Op.new(:op<bit_and_i>, $left, $right) }
+                when 'bitwise-or'  { return QAST::Op.new(:op<bit_or_i>, $left, $right) }
+                when 'bitwise-xor' { return QAST::Op.new(:op<bit_xor_i>, $left, $right) }
+                when 'shift-left'  { return QAST::Op.new(:op<shl_i>, $left, $right) }
+                when 'shift-right' { return QAST::Op.new(:op<shr_i>, $left, $right) }
+                # Power operation
+                when '**'  { return QAST::Op.new(:op<pow_i>, $left, $right) }
+            }
+            
+            # Constant optimizations for integer operations
+            if nqp::istype($right, QAST::IVal) {
+                my int $rval := $right.value;
+                
+                given $op_name {
+                    when 'add' {
+                        if $rval == 0 { return $left }  # x + 0 = x
+                    }
+                    when 'sub' {
+                        if $rval == 0 { return $left }  # x - 0 = x
+                    }
+                    when 'mul' {
+                        if $rval == 0 { return QAST::IVal.new(:value(0)) }  # x * 0 = 0
+                        elsif $rval == 1 { return $left }  # x * 1 = x
+                    }
+                    when 'div' {
+                        if $rval == 1 { return $left }  # x / 1 = x
+                    }
+                }
             }
         }
         
         # For floating-point operations
-        elsif (self.is_numeric_type($left_type) && self.is_numeric_type($right_type)) {
+        elsif self.is_numeric_type($left_type) && self.is_numeric_type($right_type) {
             given $op_name {
-                when 'add' { return QAST::Op.new(:op<add_n>, $op[0], $op[1]) }
-                when 'sub' { return QAST::Op.new(:op<sub_n>, $op[0], $op[1]) }
-                when 'mul' { return QAST::Op.new(:op<mul_n>, $op[0], $op[1]) }
-                when 'div' { return QAST::Op.new(:op<div_n>, $op[0], $op[1]) }
-                when '=='  { return QAST::Op.new(:op<eq_n>, $op[0], $op[1]) }
-                when '!='  { return QAST::Op.new(:op<ne_n>, $op[0], $op[1]) }
-                when '<'   { return QAST::Op.new(:op<lt_n>, $op[0], $op[1]) }
-                when '<='  { return QAST::Op.new(:op<le_n>, $op[0], $op[1]) }
-                when '>'   { return QAST::Op.new(:op<gt_n>, $op[0], $op[1]) }
-                when '>='  { return QAST::Op.new(:op<ge_n>, $op[0], $op[1]) }
+                when 'add' { return QAST::Op.new(:op<add_n>, $left, $right) }
+                when 'sub' { return QAST::Op.new(:op<sub_n>, $left, $right) }
+                when 'mul' { return QAST::Op.new(:op<mul_n>, $left, $right) }
+                when 'div' { return QAST::Op.new(:op<div_n>, $left, $right) }
+                when 'mod' { return QAST::Op.new(:op<mod_n>, $left, $right) }
+                when '=='  { return QAST::Op.new(:op<eq_n>, $left, $right) }
+                when '!='  { return QAST::Op.new(:op<ne_n>, $left, $right) }
+                when '<'   { return QAST::Op.new(:op<lt_n>, $left, $right) }
+                when '<='  { return QAST::Op.new(:op<le_n>, $left, $right) }
+                when '>'   { return QAST::Op.new(:op<gt_n>, $left, $right) }
+                when '>='  { return QAST::Op.new(:op<ge_n>, $left, $right) }
+                # Power operation
+                when '**'  { return QAST::Op.new(:op<pow_n>, $left, $right) }
+            }
+            
+            # Constant optimizations for float operations
+            if nqp::istype($right, QAST::NVal) || nqp::istype($right, QAST::IVal) {
+                my num $rval := nqp::istype($right, QAST::IVal) ?? $right.value !! $right.value;
+                
+                given $op_name {
+                    when 'add' {
+                        if $rval == 0e0 { return $left }  # x + 0.0 = x
+                    }
+                    when 'sub' {
+                        if $rval == 0e0 { return $left }  # x - 0.0 = x
+                    }
+                    when 'mul' {
+                        if $rval == 0e0 { return QAST::NVal.new(:value(0e0)) }  # x * 0.0 = 0.0
+                        elsif $rval == 1e0 { return $left }  # x * 1.0 = x
+                    }
+                    when 'div' {
+                        if $rval == 1e0 { return $left }  # x / 1.0 = x
+                    }
+                }
             }
         }
         
@@ -7435,10 +7816,20 @@ class RakuAST::Optimizer {
     
     # Inline common methods for performance
     method inline_common_method($type, $meth_name, $call) {
+        return nqp::null() unless $call;
+        
         my @args := $call.list();
         my $invocant := @args[0];
         
+        # Handle primitive type aliases
+        $type := 'Int' if $type eq 'int';
+        $type := 'Num' if $type eq 'num';
+        $type := 'Str' if $type eq 'str';
+        $type := 'Bool' if $type eq 'bool';
+        
+        # Check for common method inlining across types
         given $type {
+            # Integer methods
             when 'Int' {
                 given $meth_name {
                     when 'abs' {
@@ -7446,11 +7837,57 @@ class RakuAST::Optimizer {
                         return QAST::Op.new(:op<abs_i>, $invocant);
                     }
                     when 'sqrt' {
-                        # Inline square root for Int (converts to float)
-                        return QAST::Op.new(:op<sqrt_n>, QAST::Op.new(:op<convert_i_n>, $invocant));
+                        # Inline square root for Int
+                        return QAST::Op.new(:op<sqrt_n>, $invocant);
+                    }
+                    when 'Str' {
+                        # Inline string conversion
+                        return QAST::Op.new(:op<str>, $invocant);
+                    }
+                    when 'Num' {
+                        # Inline numeric conversion
+                        return QAST::Op.new(:op<num>, $invocant);
+                    }
+                    when 'Bool' {
+                        # Inline boolean conversion (non-zero is true)
+                        return QAST::Op.new(:op<ne_i>, $invocant, QAST::IVal.new(:value(0)));
+                    }
+                    when 'succ' {
+                        # Inline successor
+                        return QAST::Op.new(:op<add_i>, $invocant, QAST::IVal.new(:value(1)));
+                    }
+                    when 'pred' {
+                        # Inline predecessor
+                        return QAST::Op.new(:op<sub_i>, $invocant, QAST::IVal.new(:value(1)));
                     }
                 }
             }
+            # Numeric methods
+            when 'Num', 'Rat' {
+                given $meth_name {
+                    when 'abs' {
+                        # Inline absolute value for numeric
+                        return QAST::Op.new(:op<abs_n>, $invocant);
+                    }
+                    when 'sqrt' {
+                        # Inline square root for numeric
+                        return QAST::Op.new(:op<sqrt_n>, $invocant);
+                    }
+                    when 'Int' {
+                        # Inline integer conversion
+                        return QAST::Op.new(:op<int>, $invocant);
+                    }
+                    when 'Str' {
+                        # Inline string conversion
+                        return QAST::Op.new(:op<str>, $invocant);
+                    }
+                    when 'Bool' {
+                        # Inline boolean conversion (non-zero is true)
+                        return QAST::Op.new(:op<ne_n>, $invocant, QAST::NVal.new(:value(0e0)));
+                    }
+                }
+            }
+            # String methods
             when 'Str' {
                 given $meth_name {
                     when 'chars' {
@@ -7469,9 +7906,68 @@ class RakuAST::Optimizer {
                         # Inline trim operation
                         return QAST::Op.new(:op<trim_s>, $invocant);
                     }
+                    when 'Str' {
+                        # Identity operation
+                        return $invocant;
+                    }
+                    when 'Bool' {
+                        # Non-empty string is true
+                        return QAST::Op.new(:op<ne_i>, 
+                            QAST::Op.new(:op<chars_s>, $invocant), 
+                            QAST::IVal.new(:value(0)));
+                    }
+                    when 'substr' {
+                        # Inline substring with one or two arguments
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<substr_s>, $invocant, @args[1]);
+                        }
+                        elsif nqp::elems(@args) == 3 {
+                            return QAST::Op.new(:op<substr_s>, $invocant, @args[1], @args[2]);
+                        }
+                    }
+                    when 'index' {
+                        # Inline index method
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<index_s>, $invocant, @args[1]);
+                        }
+                    }
+                    when 'contains' {
+                        # Inline contains method
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<ne_i>, 
+                                QAST::Op.new(:op<index_s>, $invocant, @args[1]),
+                                QAST::Op.new(:op<int>, QAST::NVal.new(:value(-1e0))));
+                        }
+                    }
                 }
             }
-            when 'Array' {
+            # Boolean methods
+            when 'Bool' {
+                given $meth_name {
+                    when 'not' {
+                        # Inline logical not
+                        return QAST::Op.new(:op<not>, $invocant);
+                    }
+                    when 'Bool' {
+                        # Identity operation
+                        return $invocant;
+                    }
+                    when 'Str' {
+                        # Inline string conversion
+                        return QAST::Op.new(:op<if>, $invocant,
+                            QAST::SVal.new(:value<True>),
+                            QAST::SVal.new(:value<False>));
+                    }
+                    when 'Int' {
+                        # Inline integer conversion
+                        return QAST::Op.new(:op<if>, $invocant,
+                            QAST::IVal.new(:value(1)),
+                            QAST::IVal.new(:value(0)));
+                    }
+                }
+            }
+            # Array and Positional methods
+            when 'Array', 'List' {
                 given $meth_name {
                     when 'elems' {
                         # Inline array length
@@ -7486,6 +7982,67 @@ class RakuAST::Optimizer {
                     when 'pop' {
                         # Inline array pop
                         return QAST::Op.new(:op<pop_a>, $invocant);
+                    }
+                    when 'shift' {
+                        # Inline array shift
+                        return QAST::Op.new(:op<shift_a>, $invocant);
+                    }
+                    when 'unshift' {
+                        # Inline array unshift
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<unshift_a>, $invocant, @args[1]);
+                        }
+                    }
+                    when 'Bool' {
+                        # Non-empty array is true
+                        return QAST::Op.new(:op<ne_i>, 
+                            QAST::Op.new(:op<elems_a>, $invocant), 
+                            QAST::IVal.new(:value(0)));
+                    }
+                    when 'AT-POS' {
+                        # Inline positional access
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<at_pos>, $invocant, @args[1]);
+                        }
+                    }
+                    when 'EXISTS-POS' {
+                        # Inline positional existence check
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<exists_pos>, $invocant, @args[1]);
+                        }
+                    }
+                }
+            }
+            # Hash and Associative methods
+            when 'Hash', 'Map' {
+                given $meth_name {
+                    when 'elems' {
+                        # Inline hash length
+                        return QAST::Op.new(:op<elems_h>, $invocant);
+                    }
+                    when 'Bool' {
+                        # Non-empty hash is true
+                        return QAST::Op.new(:op<ne_i>, 
+                            QAST::Op.new(:op<elems_h>, $invocant), 
+                            QAST::IVal.new(:value(0)));
+                    }
+                    when 'AT-KEY' {
+                        # Inline key access
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<at_key_s>, $invocant, @args[1]);
+                        }
+                    }
+                    when 'EXISTS-KEY' {
+                        # Inline key existence check
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<exists_key_s>, $invocant, @args[1]);
+                        }
+                    }
+                    when 'DELETE-KEY' {
+                        # Inline key deletion
+                        if nqp::elems(@args) == 2 {
+                            return QAST::Op.new(:op<delete_key_s>, $invocant, @args[1]);
+                        }
                     }
                 }
             }
@@ -7509,12 +8066,29 @@ class RakuAST::Optimizer {
     
     # Get the type of a node from the type environment
     method get_node_type($node) {
-        if nqp::istype($node, QAST::Var) && $node.scope eq 'lexical' {
+        return 'Any' unless $node;
+        
+        # First check for type annotations on the node itself
+        if $node.annotate('type_hint') -> $hint {
+            return $hint;
+        }
+        
+        # Check lexical variables in type environment
+        if nqp::istype($node, QAST::Var) {
             my $var_name := $node.name;
-            if $!type_environment{$var_name}:exists {
+            if $node.scope eq 'lexical' && $!type_environment{$var_name}:exists {
+                return $!type_environment{$var_name};
+            }
+            # Handle local variables
+            elsif $node.scope eq 'local' && $!type_environment{$var_name}:exists {
+                return $!type_environment{$var_name};
+            }
+            # Handle parameters
+            elsif $node.scope eq 'param' && $!type_environment{$var_name}:exists {
                 return $!type_environment{$var_name};
             }
         }
+        # Handle constant values
         elsif nqp::istype($node, QAST::IVal) {
             return 'Int';
         }
@@ -7527,22 +8101,129 @@ class RakuAST::Optimizer {
         elsif nqp::istype($node, QAST::BVal) {
             return 'Bool';
         }
+        # Handle operations with known type results
+        elsif nqp::istype($node, QAST::Op) {
+            my $op_name := $node.op;
+            
+            # Type inference for binary operations
+            if nqp::elems($node.list()) == 2 {
+                my $left_type := self.get_node_type($node[0]);
+                my $right_type := self.get_node_type($node[1]);
+                
+                # Numeric operations on numeric types produce numeric results
+                if self.is_numeric_type($left_type) && self.is_numeric_type($right_type) {
+                    # Determine the result type based on operands
+                    if $left_type eq 'Int' && $right_type eq 'Int' {
+                        # Integer division produces Rat in Raku
+                        if $op_name eq 'div' || $op_name eq 'div_i' {
+                            return 'Rat';
+                        }
+                        return 'Int';
+                    }
+                    else {
+                        return 'Num';
+                    }
+                }
+                # String operations on strings produce strings
+                elsif $left_type eq 'Str' && $right_type eq 'Str' {
+                    return 'Str';
+                }
+                # Comparison operations produce Bool
+                elsif nqp::exists(['==', '!=', '<', '<=', '>', '>=', 'eq', 'ne', 'lt', 'le', 'gt', 'ge', '~~', '!~~'], $op_name) {
+                    return 'Bool';
+                }
+            }
+            # Unary operations
+            elsif nqp::elems($node.list()) == 1 {
+                my $arg_type := self.get_node_type($node[0]);
+                
+                given $op_name {
+                    when 'not' { return 'Bool' }
+                    when 'abs', 'abs_i', 'abs_n' { return $arg_type }
+                    when 'uc', 'lc', 'trim' { return 'Str' }
+                    when 'sqrt', 'sqrt_n' { return 'Num' }
+                }
+            }
+        }
+        # Handle method calls with known return types
+        elsif nqp::istype($node, QAST::Call) && $node.name {
+            my $meth_name := $node.name;
+            if $node[0] {
+                my $invocant_type := self.get_node_type($node[0]);
+                
+                # Known return types for common methods
+                my %return_types := (
+                    'Int' => {
+                        'abs' => 'Int',
+                        'sqrt' => 'Num',
+                        'Str' => 'Str',
+                    },
+                    'Str' => {
+                        'chars' => 'Int',
+                        'uc' => 'Str',
+                        'lc' => 'Str',
+                        'trim' => 'Str',
+                        'substr' => 'Str',
+                    },
+                    'Array' => {
+                        'elems' => 'Int',
+                        'Str' => 'Str',
+                    },
+                    'Hash' => {
+                        'elems' => 'Int',
+                    },
+                );
+                
+                if %return_types{$invocant_type}:exists && %return_types{$invocant_type}{$meth_name}:exists {
+                    return %return_types{$invocant_type}{$meth_name};
+                }
+            }
+        }
         
         'Any'
     }
     
     # Check if a type is a subtype of another
     method is_subtype($subtype, $supertype) {
-        # Simple subtype relationships
+        # Return false if either type is undefined
+        return False unless $subtype && $supertype;
+        
+        # Identity check
+        if $subtype eq $supertype {
+            return True;
+        }
+        
+        # More comprehensive subtype relationships
         my %subtypes := (
-            'Int'     => ('Num', 'Cool', 'Any'),
-            'Num'     => ('Cool', 'Any'),
-            'Str'     => ('Cool', 'Any'),
-            'Bool'    => ('Int', 'Num', 'Cool', 'Any'),
+            'Int'     => ('Num', 'Cool', 'Any', 'Mu'),
+            'Num'     => ('Real', 'Cool', 'Any', 'Mu'),
+            'Rat'     => ('Real', 'Num', 'Cool', 'Any', 'Mu'),
+            'Complex' => ('Cool', 'Any', 'Mu'),
+            'Str'     => ('Cool', 'Any', 'Mu'),
+            'Bool'    => ('Int', 'Num', 'Real', 'Cool', 'Any', 'Mu'),
+            'Array'   => ('Positional', 'Cool', 'Any', 'Mu'),
+            'List'    => ('Positional', 'Cool', 'Any', 'Mu'),
+            'Hash'    => ('Associative', 'Cool', 'Any', 'Mu'),
+            'Map'     => ('Associative', 'Cool', 'Any', 'Mu'),
         );
         
+        # Check direct subtype relationships
         if %subtypes{$subtype}:exists {
             return nqp::exists(%subtypes{$subtype}, $supertype);
+        }
+        
+        # Check primitive aliases
+        if $subtype eq 'int' && $supertype eq 'Int' | 'Num' | 'Cool' | 'Any' | 'Mu' {
+            return True;
+        }
+        if $subtype eq 'num' && $supertype eq 'Num' | 'Cool' | 'Any' | 'Mu' {
+            return True;
+        }
+        if $subtype eq 'str' && $supertype eq 'Str' | 'Cool' | 'Any' | 'Mu' {
+            return True;
+        }
+        if $subtype eq 'bool' && $supertype eq 'Bool' | 'Int' | 'Num' | 'Cool' | 'Any' | 'Mu' {
+            return True;
         }
         
         False
@@ -7550,14 +8231,47 @@ class RakuAST::Optimizer {
     
     # Check if two types are compatible
     method types_compatible($type1, $type2) {
-        # If either type is Any, they are compatible
-        if $type1 eq 'Any' || $type2 eq 'Any' {
+        # If either type is undefined, consider them compatible
+        return True unless $type1 && $type2;
+        
+        # If either type is Any or Mu, they are compatible with everything
+        if $type1 eq 'Any' || $type2 eq 'Any' || $type1 eq 'Mu' || $type2 eq 'Mu' {
             return True;
         }
         
         # If one is a subtype of the other
-        return self.is_subtype($type1, $type2) || self.is_subtype($type2, $type1);
-    }
+        if self.is_subtype($type1, $type2) || self.is_subtype($type2, $type1) {
+            return True;
+        }
+        
+        # Check for numeric compatibility
+        if self.is_numeric_type($type1) && self.is_numeric_type($type2) {
+            return True;
+        }
+        
+        # Check for string compatibility
+        if ($type1 eq 'Str' || $type1 eq 'str') && ($type2 eq 'Str' || $type2 eq 'str') {
+            return True;
+        }
+        
+        # Check for boolean compatibility
+        if ($type1 eq 'Bool' || $type1 eq 'bool') && ($type2 eq 'Bool' || $type2 eq 'bool') {
+            return True;
+        }
+        
+        # Check for container compatibility
+        my %container_groups := (
+            'Positional' => ('Array', 'List', 'Positional'),
+            'Associative' => ('Hash', 'Map', 'Associative'),
+        );
+        
+        for %container_groups.kv -> $group, @types {
+            if nqp::exists(@types, $type1) && nqp::exists(@types, $type2) {
+                return True;
+            }
+        }
+        
+        False
     
     # Constant propagation optimization
     method constant_propagation($node) {
@@ -7947,7 +8661,59 @@ class RakuAST::Optimizer {
     
     # Add missing constant_fold method that's called in optimize_op
     method constant_fold($op, $optype) {
-        # Simple constant folding implementation
+        # First try to handle specific operations that benefit from direct optimization
+        # 1. Handle boolean short-circuit operations
+        if ($optype eq '&&' || $optype eq 'and') {
+            # Short-circuit AND: if first operand is false, whole expression is false
+            if self.is_constant_node($op[0]) {
+                my $val := self.get_constant_value($op[0]);
+                if !$val.DEFINITE || !$val.Bool {
+                    my $result := QAST::BVal.new(:value(False));
+                    self.log_optimization('short_circuit', $op, $result);
+                    return $result;
+                }
+                # If first operand is true, result is second operand
+                return $op[1]; # No need to clone, will be handled by visitor
+            }
+        }
+        elsif ($optype eq '||' || $optype eq 'or') {
+            # Short-circuit OR: if first operand is true, whole expression is true
+            if self.is_constant_node($op[0]) {
+                my $val := self.get_constant_value($op[0]);
+                if $val.DEFINITE && $val.Bool {
+                    my $result := QAST::BVal.new(:value(True));
+                    self.log_optimization('short_circuit', $op, $result);
+                    return $result;
+                }
+                # If first operand is false, result is second operand
+                return $op[1]; # No need to clone, will be handled by visitor
+            }
+        }
+        
+        # 2. For conditional branches, optimize based on constant conditions
+        if $optype eq 'if' || $optype eq 'unless' {
+            my $cond := $op[0];
+            if self.is_constant_node($cond) {
+                my $cond_val := self.get_constant_value($cond);
+                my $bool_cond := $cond_val.DEFINITE && $cond_val.Bool;
+                
+                # For 'if', if condition is always true, return the then branch
+                if ($optype eq 'if' && $bool_cond) || ($optype eq 'unless' && !$bool_cond) {
+                    my $result := nqp::elems($op.list()) >= 2 ?? $op[1] !! QAST::Stmts.new();
+                    self.log_optimization('cond_constant_true', $op, $result);
+                    return $result;
+                }
+                # For 'if', if condition is always false, return the else branch or empty
+                elsif ($optype eq 'if' && !$bool_cond) || ($optype eq 'unless' && $bool_cond) {
+                    my $result := nqp::elems($op.list()) >= 3 ?? $op[2] !! QAST::Stmts.new();
+                    self.log_optimization('cond_constant_false', $op, $result);
+                    return $result;
+                }
+            }
+            return nqp::null(); # No optimization possible for this condition
+        }
+        
+        # 3. General case: use our enhanced constant evaluation system
         if nqp::elems($op.list()) >= 1 {
             # Check if all operands are constant
             my $all_constant := True;
@@ -7966,28 +8732,38 @@ class RakuAST::Optimizer {
             if $all_constant {
                 my $result := self.evaluate_operation($optype, @values);
                 if $result !=== nqp::null() {
-                    return self.create_constant_node($result);
+                    my $const_node := self.create_constant_node($result);
+                    self.log_optimization('const_fold', $op, $const_node);
+                    return $const_node;
                 }
             }
         }
         
-        # Special case for logical operations with constant conditions
-        if $optype eq 'if' || $optype eq 'unless' {
-            my $cond := $op[0];
-            if self.is_constant_node($cond) {
-                my $cond_val := self.get_constant_value($cond);
-                
-                # For 'if', if condition is always true, return the then branch
-                if ($optype eq 'if' && $cond_val) || ($optype eq 'unless' && !$cond_val) {
-                    return $op[1];
-                }
-                # For 'if', if condition is always false, return the else branch or null
-                elsif ($optype eq 'if' && !$cond_val) || ($optype eq 'unless' && $cond_val) {
-                    return nqp::elems($op.list()) > 2 ?? $op[2] !! QAST::Op.new(:op<null>);
-                }
-            }
+        # 4. Handle some special cases for string operations
+        if $optype eq 'concat_s' && nqp::istype($op[0], QAST::SVal) && nqp::istype($op[1], QAST::SVal) {
+            my $result := QAST::SVal.new(:value($op[0].value ~ $op[1].value));
+            self.log_optimization('const_fold', $op, $result);
+            return $result;
         }
         
+        # 5. Handle boolean operations
+        if $optype eq 'and_b' && nqp::istype($op[0], QAST::BVal) && nqp::istype($op[1], QAST::BVal) {
+            my $result := QAST::BVal.new(:value($op[0].value && $op[1].value));
+            self.log_optimization('const_fold', $op, $result);
+            return $result;
+        }
+        elsif $optype eq 'or_b' && nqp::istype($op[0], QAST::BVal) && nqp::istype($op[1], QAST::BVal) {
+            my $result := QAST::BVal.new(:value($op[0].value || $op[1].value));
+            self.log_optimization('const_fold', $op, $result);
+            return $result;
+        }
+        elsif $optype eq 'not_b' && nqp::istype($op[0], QAST::BVal) {
+            my $result := QAST::BVal.new(:value(!$op[0].value));
+            self.log_optimization('const_fold', $op, $result);
+            return $result;
+        }
+        
+        # No optimization possible
         nqp::null()
     }
     
@@ -7999,13 +8775,36 @@ class RakuAST::Optimizer {
     
     # Helper methods for constant propagation and dead code elimination
     method is_constant_node($node) {
-        nqp::istype($node, QAST::IVal) ||
-        nqp::istype($node, QAST::NVal) ||
-        nqp::istype($node, QAST::SVal) ||
-        nqp::istype($node, QAST::BVal)
+        # Basic constant node types
+        return 1 if nqp::istype($node, QAST::IVal);
+        return 1 if nqp::istype($node, QAST::NVal);
+        return 1 if nqp::istype($node, QAST::SVal);
+        return 1 if nqp::istype($node, QAST::BVal);
+        
+        # Check for annotated constant nodes
+        return 1 if $node && $node.has_annotation('constant_value');
+        
+        # Check for constant references to lexicals with known values
+        if nqp::istype($node, QAST::Var) && $node.scope eq 'lexical' {
+            return $node.has_annotation('constant_value');
+        }
+        
+        # Check for simple operations with all constant operands
+        if nqp::istype($node, QAST::Op) {
+            for $node.list() -> $op {
+                if !self.is_constant_node($op) {
+                    return 0;
+                }
+            }
+            # All operands are constant, this could be evaluated
+            return 1;
+        }
+        
+        0
     }
     
     method get_constant_value($node) {
+        # Handle basic constant types
         if nqp::istype($node, QAST::IVal) {
             return $node.value;
         } elsif nqp::istype($node, QAST::NVal) {
@@ -8015,6 +8814,25 @@ class RakuAST::Optimizer {
         } elsif nqp::istype($node, QAST::BVal) {
             return $node.value;
         }
+        
+        # Handle annotated constant nodes
+        if $node && $node.has_annotation('constant_value') {
+            return $node.annotation('constant_value');
+        }
+        
+        # For operations with all constant operands, evaluate them
+        if nqp::istype($node, QAST::Op) {
+            my @values;
+            for $node.list() -> $op {
+                my $val := self.get_constant_value($op);
+                if $val === nqp::null() {
+                    return nqp::null();
+                }
+                @values.push($val);
+            }
+            return self.evaluate_operation($node.op, @values);
+        }
+        
         nqp::null()
     }
     
@@ -8024,30 +8842,306 @@ class RakuAST::Optimizer {
             when Num     { return QAST::NVal.new(:value($value)) }
             when Str     { return QAST::SVal.new(:value($value)) }
             when Bool    { return QAST::BVal.new(:value($value)) }
+            when Any     { 
+                # For more complex types, we can't create a simple constant node
+                # But we can annotate a node to indicate it has a constant value
+                my $node := QAST::Op.new(:op<identity>);
+                $node.annotate('constant_value', $value);
+                return $node;
+            }
         }
         nqp::null()
     }
     
     method evaluate_operation($op, @values) {
-        given $op {
-            when 'add' { return @values[0] + @values[1] }
-            when 'sub' { return @values[0] - @values[1] }
-            when 'mul' { return @values[0] * @values[1] }
-            when 'div' { return @values[0] / @values[1] }
-            when 'mod' { return @values[0] % @values[1] }
-            when 'eq'  { return @values[0] eq @values[1] }
-            when 'ne'  { return @values[0] ne @values[1] }
-            when '=='  { return @values[0] == @values[1] }
-            when '!='  { return @values[0] != @values[1] }
-            when '<'   { return @values[0] < @values[1] }
-            when '<='  { return @values[0] <= @values[1] }
-            when '>'   { return @values[0] > @values[1] }
-            when '>='  { return @values[0] >= @values[1] }
-            when '&&'  { return @values[0] && @values[1] }
-            when '||'  { return @values[0] || @values[1] }
-            when '!'   { return !@values[0] }
+        # Handle unary operations
+        if nqp::elems(@values) == 1 {
+            my $val := @values[0];
+            given $op {
+                when '!'          { return !$val }
+                when 'not'        { return !$val }
+                when 'abs'        { return abs($val) }
+                when 'sqrt'       { return sqrt($val) }
+                when 'log'        { return log($val) }
+                when 'sin'        { return sin($val) }
+                when 'cos'        { return cos($val) }
+                when 'uc'         { return $val.uc if nqp::istype($val, Str) }
+                when 'lc'         { return $val.lc if nqp::istype($val, Str) }
+                when 'trim'       { return $val.trim if nqp::istype($val, Str) }
+                when 'chars'      { return $val.chars if nqp::istype($val, Str) }
+                when 'Bool'       { return $val.Bool }
+                when 'Int'        { return $val.Int }
+                when 'Num'        { return $val.Num }
+                when 'Str'        { return $val.Str }
+                when 'succ'       { return $val.succ }
+                when 'pred'       { return $val.pred }
+                when 'bitwise-neg' { return +^$val if nqp::istype($val, Int) }
+            }
         }
+        
+        # Handle binary operations
+        elsif nqp::elems(@values) == 2 {
+            my $val1 := @values[0];
+            my $val2 := @values[1];
+            
+            given $op {
+                # Arithmetic operations
+                when 'add'         { return $val1 + $val2 }
+                when 'sub'         { return $val1 - $val2 }
+                when 'mul'         { return $val1 * $val2 }
+                when 'div'         { return $val1 / $val2 }
+                when 'mod'         { return $val1 % $val2 }
+                when '**'          { return $val1 ** $val2 }
+                
+                # Comparison operations
+                when 'eq'          { return $val1 eq $val2 }
+                when 'ne'          { return $val1 ne $val2 }
+                when '=='          { return $val1 == $val2 }
+                when '!='          { return $val1 != $val2 }
+                when '<'           { return $val1 < $val2 }
+                when '<='          { return $val1 <= $val2 }
+                when '>'           { return $val1 > $val2 }
+                when '>='          { return $val1 >= $val2 }
+                
+                # Logical operations
+                when '&&'          { return $val1 && $val2 }
+                when '||'          { return $val1 || $val2 }
+                when '^^'          { return ($val1 && !$val2) || (!$val1 && $val2) }
+                
+                # String operations
+                when 'concat'      { return $val1 ~ $val2 }
+                when 'substr'      { return substr($val1, $val2) if nqp::istype($val1, Str) && nqp::istype($val2, Int) }
+                when 'index'       { return index($val1, $val2) if nqp::istype($val1, Str) && nqp::istype($val2, Str) }
+                
+                # Bitwise operations
+                when 'bitwise-and' { return $val1 +& $val2 if nqp::istype($val1, Int) && nqp::istype($val2, Int) }
+                when 'bitwise-or'  { return $val1 +| $val2 if nqp::istype($val1, Int) && nqp::istype($val2, Int) }
+                when 'bitwise-xor' { return $val1 +^ $val2 if nqp::istype($val1, Int) && nqp::istype($val2, Int) }
+                when 'shift-left'  { return $val1 +< $val2 if nqp::istype($val1, Int) && nqp::istype($val2, Int) }
+                when 'shift-right' { return $val1 +> $val2 if nqp::istype($val1, Int) && nqp::istype($val2, Int) }
+                
+                # Container operations for known sizes
+                when 'elems'       { return $val1.elems if nqp::can($val1, 'elems') }
+            }
+        }
+        
         nqp::null()
+    }
+    
+    # Perform dead code elimination
+    method dead_code_elimination($node) {
+        # Only apply at higher optimization levels
+        if $!level < 2 {
+            return $node;
+        }
+        
+        # Create a working copy of the node
+        my $optimized := self.clone_node($node);
+        
+        # Apply dead code elimination
+        $optimized := self.dce_helper($optimized);
+        
+        # If any optimizations were applied, return the optimized node
+        if !nqp::eqaddr($optimized, $node) {
+            self.log_optimization('dead_code_elimination', $node);
+            return $optimized;
+        }
+        
+        return $node;
+    }
+    
+    # Helper method for dead code elimination
+    method dce_helper($node) {
+        # Skip null nodes
+        if !$node {
+            return $node;
+        }
+        
+        # Process nodes based on their type
+        given $node {
+            when QAST::Stmts {
+                # Process each statement and remove unreachable code
+                my $new_stmts := QAST::Stmts.new();
+                my $modified := False;
+                my $reached_end := False;
+                
+                for $node.list() -> $stmt {
+                    # Skip processing if we've already reached an unreachable point
+                    if $reached_end {
+                        $modified := True;
+                        next;
+                    }
+                    
+                    # Process the statement
+                    my $optimized_stmt := self.dce_helper($stmt);
+                    
+                    # If the optimized statement is different, mark as modified
+                    if !nqp::eqaddr($optimized_stmt, $stmt) {
+                        $modified := True;
+                    }
+                    
+                    # Add the statement if it's not null
+                    if $optimized_stmt {
+                        $new_stmts.push($optimized_stmt);
+                        
+                        # Check if this statement is terminating
+                        if self.is_terminating_statement($optimized_stmt) {
+                            $reached_end := True;
+                        }
+                    } else {
+                        $modified := True;
+                    }
+                }
+                
+                if $modified {
+                    return $new_stmts;
+                }
+            }
+            
+            when QAST::Op {
+                # Handle conditional statements with constant conditions
+                if $node.op eq 'if' || $node.op eq 'unless' {
+                    my $condition := $node[0];
+                    
+                    # Check if the condition is a constant boolean
+                    if nqp::istype($condition, QAST::BVal) {
+                        my $cond_value := $condition.value;
+                        
+                        # For 'unless', invert the condition
+                        if $node.op eq 'unless' {
+                            $cond_value := !$cond_value;
+                        }
+                        
+                        # If condition is always true, keep the then branch
+                        if $cond_value {
+                            if nqp::elems($node.list()) >= 2 {
+                                return self.dce_helper($node[1]);
+                            } else {
+                                return QAST::Stmts.new();  # Empty statement list
+                            }
+                        }
+                        # If condition is always false, keep the else branch (if exists)
+                        else {
+                            if nqp::elems($node.list()) >= 3 {
+                                return self.dce_helper($node[2]);
+                            } else {
+                                return QAST::Stmts.new();  # Empty statement list
+                            }
+                        }
+                    }
+                }
+                
+                # Process children of the operation
+                my $modified := False;
+                for $node.list().kv -> $i, $child {
+                    my $optimized_child := self.dce_helper($child);
+                    if !nqp::eqaddr($optimized_child, $child) {
+                        $node[$i] := $optimized_child;
+                        $modified := True;
+                    }
+                }
+                
+                if $modified {
+                    return $node;
+                }
+            }
+            
+            when QAST::Bind {
+                # Remove redundant assignments to the same variable
+                if $node.scope eq 'lexical' {
+                    my $var_name := $node.name;
+                    my $value := $node[0];
+                    
+                    # If assigning a variable to itself
+                    if nqp::istype($value, QAST::Var) && $value.scope eq 'lexical' && $value.name eq $var_name {
+                        return QAST::Stmts.new();  # Remove the assignment
+                    }
+                }
+                
+                # Process the value
+                my $optimized_value := self.dce_helper($node[0]);
+                if !nqp::eqaddr($optimized_value, $node[0]) {
+                    $node[0] := $optimized_value;
+                    return $node;
+                }
+            }
+        }
+        
+        # For other node types, recursively process children
+        if nqp::can($node, 'list') {
+            my $modified := False;
+            for $node.list().kv -> $i, $child {
+                if $child {
+                    my $optimized_child := self.dce_helper($child);
+                    if !nqp::eqaddr($optimized_child, $child) {
+                        $node[$i] := $optimized_child;
+                        $modified := True;
+                    }
+                }
+            }
+            
+            if $modified {
+                return $node;
+            }
+        }
+        
+        # Return the original node if no changes were made
+        return $node;
+    }
+    
+    # Check if a statement is terminating (no code after it will be executed)
+    method is_terminating_statement($node) {
+        return 0 unless $node;
+        
+        # Check for annotated terminating statements
+        if $node.has_annotation('is_terminating') {
+            return 1;
+        }
+        
+        # Check for explicit terminating operations
+        if nqp::istype($node, QAST::Op) {
+            my $op_name := $node.op;
+            
+            # Direct terminating operations
+            if nqp::exists(['return', 'leave', 'last', 'next', 'redo', 'exit', 'die', 'fail'], $op_name) {
+                return 1;
+            }
+            
+            # Check for calls that are known to not return
+            if ($op_name eq 'call' || $op_name eq 'invoke') && $node.has_annotation('never_returns') {
+                return 1;
+            }
+            
+            # Check for if/unless with all terminating branches
+            if $op_name eq 'if' || $op_name eq 'unless' {
+                my @branches;
+                if nqp::elems($node.list()) >= 2 {
+                    @branches.push($node[1]);  # Then branch
+                }
+                if nqp::elems($node.list()) >= 3 {
+                    @branches.push($node[2]);  # Else branch
+                }
+                
+                # All branches must be terminating
+                for @branches -> $branch {
+                    if !self.is_terminating_statement($branch) {
+                        return 0;
+                    }
+                }
+                
+                return +@branches > 0;  # If there are branches and all are terminating
+            }
+        }
+        
+        # Check for blocks with terminating last statement
+        if nqp::istype($node, QAST::Block) && $node.body {
+            my @body_nodes := $node.body.list();
+            if nqp::elems(@body_nodes) > 0 {
+                return self.is_terminating_statement(@body_nodes[*-1]);
+            }
+        }
+        
+        0
     }
     
     method is_termination_statement($stmt) {

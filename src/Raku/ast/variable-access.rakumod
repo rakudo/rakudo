@@ -175,7 +175,7 @@ class RakuAST::Var::Dynamic
     method postdeclaration-exception-name() { 'X::Dynamic::Postdeclaration' }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        unless self-is-resolved {
+        unless self.is-resolved {
             my $resolved := $resolver.resolve-lexical($!name, :current-scope-only);
             if $resolved {
                 self.set-resolution($resolved);

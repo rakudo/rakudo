@@ -442,6 +442,42 @@ class RakuAST::StatementList
             ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
             !! $result
     }
+
+    # Infer the return type of the statement list
+    method infer-return-type(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Get non-empty code statements
+        my @statements := self.IMPL-NON-EMPTY-CODE-STATEMENTS;
+        my $n := nqp::elems(@statements);
+
+        # Return Nil type if there are no statements or the list is sunk
+        if $n == 0 || $!is-sunk {
+            return self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        }
+
+        # Get the last statement
+        my $last-statement := @statements[$n - 1];
+
+        # Return Nil type if the last statement discards its result
+        if $last-statement.IMPL-DISCARD-RESULT {
+            return self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        }
+
+        # If the last statement is an expression statement, try to infer its expression's type
+        if nqp::istype($last-statement, RakuAST::Statement::Expression) {
+            my $expression := $last-statement.expression;
+            # Check if the expression has an infer-type method
+            if $expression.can('infer-type') {
+                return $expression.infer-type($resolver, $context);
+            }
+            # If the expression has a compile-time value, we can get its type directly
+            elsif $expression.can('compile-time-value') && $expression.compile-time-value.isa(RakuAST::Type) {
+                return $expression.compile-time-value;
+            }
+        }
+
+        # Default to Any type (cannot infer specific type)
+        return RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Any'));
+    }
 }
 
 # A semilist is a semicolon-separted list of statements, but used for the

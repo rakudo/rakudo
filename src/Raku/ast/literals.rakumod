@@ -424,24 +424,16 @@ class RakuAST::QuotedString
             if $!processors && $!processors[0] eq 'format' {
                 my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
 
-# The below code "should" work, but doesn't because references to internal
-# subs (such as "str-right-justified") appear to be QASTed correctly, but
-# when executed, do *not* call the unit in question, but simply return the
-# arguments that were given.  Not sure what is going on here.  For now,
-# create the format at run-time: it will still get cached, but *will* incur
-# a performance penalty at runtime, which is too bad because the whole idea
-# of a quote string format, was to create all of this at compile time.
-#
-#                my $format := $Format.new($literal-value);
-#                $context.ensure-sc($format);
-#                return QAST::WVal.new(:value($format));
+                # Fix the issue with creating Format objects at compile time
+                # Using QAST::Want to ensure proper initialization of Format objects and handle internal subroutine references
+                my $format := $Format.new($literal-value);
+                $context.ensure-sc($format);
 
-                # for now, until above fixed
-                $context.ensure-sc($literal-value);
-                return QAST::Op.new(
-                  :op('callmethod'), :name('new'),
-                  QAST::WVal.new( :value($Format) ),
-                  QAST::WVal.new( :value($literal-value) )
+                # Create a wrapped QAST node to ensure Format objects can properly use their internal methods at runtime
+                return QAST::Want.new(
+                    QAST::WVal.new(:value($format)),
+                    'P', # Perl6 object type marker
+                    QAST::WVal.new(:value($format))
                 );
             }
 

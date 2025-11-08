@@ -4815,6 +4815,9 @@ my class array is Cool does Iterable does Positional {
     multi method set-shape(Whatever) is raw {
         nqp::create(self.WHAT)
     }
+    multi method set-shape(Range:D $range) is raw {
+        die "Setting a shape with a Range not allowed: $range.raku()";
+    }
     multi method set-shape(\shape) is raw {
         self.set-shape(shape.List)
     }

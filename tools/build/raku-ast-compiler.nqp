@@ -407,6 +407,8 @@ sub emit-package($package) {
 }
 
 sub emit-method($package, $method) {
+    my str $bodystr := $method.body.Str;
+
     my @parameters := $method.parameters;
     my @params-in;
     my @params-desc := ["$package, '', 0, 0"];
@@ -421,7 +423,11 @@ sub emit-method($package, $method) {
         @params-desc.push("$type, '$param-name', " ~ ($_.named ?? '1, ' !! '0, ') ~
             ($_.optional ?? '1' !! '0'));
         unless $_.raw {
-            @params-decont.push("$param-name := nqp::decont($param-name);");
+            # If we don't mention the parameter anywhere in the code,
+            # no need to decont it!
+            if nqp::index($bodystr, $param-name) != -1 {
+                @params-decont.push("$param-name := nqp::decont($param-name);");
+            }
         }
     }
     my $params-in := nqp::join("", @params-in);
@@ -429,11 +435,52 @@ sub emit-method($package, $method) {
 
     my $name := $method.name;
     say("    add-method($package, '$name', [$params-desc], anon sub $name (\$SELF_CONT$params-in) \{");
-    say("        my \$SELF := nqp::decont(\$SELF_CONT);");
+
+    # If we don't use the $SELF variable anywhere in the body, don't create it
+    if nqp::index($bodystr, '$SELF') != -1 {
+        say("        my \$SELF := nqp::decont(\$SELF_CONT);");
+    }
+
     for @params-decont {
         say("        $_");
     }
+
     say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
-    say("        " ~ $method.body);
+
+    # Cheekily save some chars by leaving out lines that are only spaces
+    # and similar wastes of tiny amounts of text
+
+    # If the first char in our $bodystr is whitespace, find the
+    # first nowhitespace and cut everything before that off.
+    my int $first-nonwhite :=
+        nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $bodystr, 0)
+            ?? nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $bodystr,
+                           0, nqp::chars($bodystr))
+            !! -1;
+    if $first-nonwhite != -1 {
+        $bodystr := nqp::substr($bodystr, $first-nonwhite, nqp::chars($bodystr) - 1);
+    }
+
+    # From the end of the bodystr, remove all whitespace until we hit the very
+    # last nonwhitespace.
+    my int $endpos := nqp::chars($bodystr) - 1;
+    my int $orig-endpos := $endpos;
+    while nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $bodystr, $endpos) {
+        $endpos--;
+    }
+    if $endpos != nqp::chars($bodystr) - 1 {
+        $bodystr := nqp::substr($bodystr, 0, $endpos + 1);
+    }
+
+    # Very importantly, don't b0rk the #? magic comments,
+    # they seem to need to go right at the first character in a line.
+    # We must not indent them!
+    if nqp::eqat($bodystr, "#?", 0) {
+        say($bodystr);
+    }
+    else {
+        say("        " ~ $bodystr);
+    }
+
     say("    });");
 }

@@ -15,7 +15,7 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
                 Manufacturer="The Raku Community"
                 Description="Installs Rakudo $(var.VERSION)"
                 Keywords="Raku, Rakudo"
-                Comments="(c) 2021 The Raku Community" />
+                Comments="(c) 2025 The Raku Community" />
         
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
 
@@ -218,6 +218,7 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
         <WixVariable Id="WixUIDialogBmp" Value="$(var.INSTALLER_ASSET_FILE_DIR)\dialog.bmp" />
         <WixVariable Id="WixUILicenseRtf" Value="$(var.INSTALLER_ASSET_FILE_DIR)\License.rtf" />
         
+        <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="For the PATH changes to take effect everywhere it's necessary to do a reboot. So if you want to use Raku in a terminal right now, do a reboot first. - Happy hacking!" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Display README (It really does contain helpful information.)" />
         <Property Id="WixShellExecTarget" Value="[#README.txt]" />
         <CustomAction Id="LaunchReadme" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />

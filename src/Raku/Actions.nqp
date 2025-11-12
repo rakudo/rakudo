@@ -1874,10 +1874,122 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           Nodify('Circumfix','ArrayComposer').new($<semilist>.ast)
     }
 
+    # Applies the block or hash disambiguation algorithm, to determine
+    # whether a circumfix:<{ }> should compile as a block or a hash.
+    # Takes the AST and return that if it should compile as a block
+    # (because that is already assumed to be compiled as a block).
+    # Otherwise, returns an instance of RakuAST::Circumfix::HashComposer.
+    # Also takes an int flag indicating whether an object hash should
+    # be created if it should be a hash.  If that flag is set and it
+    # looks like a block, a false value will be returnd, allowing the
+    # caller to issue a panic.
+    sub block-or-hash($ast, int $object-hash) {
+        my @statements := $ast.body.statement-list.code-statements;
+        my int $num-statements := nqp::elems(@statements);
+
+        # Empty block is always an empty hash composer
+        if $num-statements == 0 {
+            return RakuAST::Circumfix::HashComposer.new(:$object-hash)
+        }
+
+        # Multiple statements is always a block
+        elsif $num-statements > 1 {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # Not a statement always means block
+        my $statement := @statements[0];
+        unless nqp::istype($statement, RakuAST::Statement::Expression) {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # If it's a comma list, then obtain the first element. Otherwise,
+        # we have the thing to test already.
+        my $expression := $statement.expression;
+        my int $is-comma := nqp::istype($expression, RakuAST::ApplyListInfix)
+          && nqp::istype($expression.infix, RakuAST::Infix)
+          && $expression.infix.operator eq ',';
+        my $test := $is-comma
+            ?? $ast.IMPL-UNWRAP-LIST($expression.operands)[0]
+            !! $expression;
+
+        # A fatarrow is ok
+        if nqp::istype($test,RakuAST::FatArrow) {
+        }
+        # A colonpair is ok
+        elsif nqp::istype($test,RakuAST::ColonPair) {
+        }
+        # A hash sigil'd variable is ok
+        elsif nqp::istype($test,RakuAST::Var) && $test.sigil eq '%' {
+        }
+        # Some kind of infix may be ok
+        elsif nqp::istype($test,RakuAST::ApplyInfix) {
+
+            # Get the proper infix to check
+            my $infix := $test.infix;
+            if nqp::istype($infix,RakuAST::Infix) {
+            }
+            elsif nqp::istype($infix,RakuAST::MetaInfix::Reverse) {
+                $infix := $infix.infix;
+            }
+
+            # It's a block as no valid infix found
+            else {
+                return $object-hash ?? Nil !! $ast
+            }
+
+            # It's a block if not a fat arrow
+            unless $infix.operator eq '=>' {
+                return $object-hash ?? Nil !! $ast
+            }
+        }
+
+        # It's a block as nothing recognizable
+        else {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # Looks like a hash, but check for declarations or $_ usage.
+        my int $seen-decl-or-topic;
+        $expression.visit: -> $node {
+            # Don't walk into other scopes
+            if nqp::istype($node, RakuAST::LexicalScope) {
+                0
+            }
+            # If it's a declaration, it blocks; walk no futher
+            elsif nqp::istype($node, RakuAST::Declaration) {
+                $seen-decl-or-topic := 1;
+                0
+            }
+            # If it's a usage of the topic, it also blocks; walk no further
+            elsif nqp::istype($node, RakuAST::Var::Lexical)
+              && $node.name eq '$_'
+              || nqp::istype($node, RakuAST::Term::TopicCall) {
+                $seen-decl-or-topic := 1;
+                0
+            }
+            # Otherwise, keep looking
+            else {
+                1
+            }
+        }
+        $seen-decl-or-topic
+          ?? $object-hash
+            ?? Nil
+            !! $ast
+          !! RakuAST::Circumfix::HashComposer.new($expression, :$object-hash)
+    }
+
     method circumfix:sym<{ }>($/) {
-        $<pointy-block><blockoid><you_are_here>
-            ?? make $<pointy-block><blockoid><you_are_here>.ast
-            !! self.attach($/, $<pointy-block>.ast.block-or-hash(:object-hash($*OBJECT-HASH || 0)))
+        if $<pointy-block><blockoid><you_are_here> -> $here {
+            make $here.ast;
+        }
+        elsif block-or-hash($<pointy-block>.ast, $*OBJECT-HASH || 0) -> $it {
+            self.attach($/, $it)
+        }
+        else {
+            $/.panic("Not allowed to create a block with a colon prefix");
+        }
     }
 
     method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }

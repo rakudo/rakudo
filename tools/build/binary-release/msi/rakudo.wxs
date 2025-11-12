@@ -167,7 +167,8 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
                 <Shortcut Id="REPLShortcut"
                         Name="Rakudo REPL"
                         Description="The Rakudo REPL"
-                        Target="[INSTALLDIR]bin\raku"
+                        Target="[POWERSHELLEXE]"
+                        Arguments='-File "[INSTALLDIR]scripts\rakudo_repl.ps1"'
                         WorkingDirectory="INSTALLDIR"
                         Icon="RakudoIcon" />
                 <Shortcut Id="READMEShortcut"
@@ -203,7 +204,6 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
         <!--Features-->
         <Feature Id="ProductFeature" Level="1" Title="Rakudo $(var.VERSION)">
             <ComponentGroupRef Id="FileComponents" />
-            <ComponentGroupRef Id="AssetComponents" />
             
             <ComponentRef Id="RakudoShortcuts" />
             <ComponentRef Id="RakudoPath" />

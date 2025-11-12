@@ -1165,7 +1165,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LEFTSIGIL;              # sigil of LHS for item vs list assignment
         my $*IN-META := '';          # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;         # attempting to parse an [op] construct
-        my $*IN_TABLE := 0;          # > 0 if inside a =table
+        my $*IN-TABLE := 0;          # > 0 if inside a =table
         my %*QUOTE-LANGS;            # quote language cache
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
@@ -5779,7 +5779,7 @@ Rakudo significantly on *every* run."
 
         # fetch column and any configuration
         '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
-        { $/.panic("=column outside of table") unless $*IN_TABLE }
+        { $/.panic("=column outside of table") unless $*IN-TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5793,7 +5793,7 @@ Rakudo significantly on *every* run."
 
         # fetch row and any configuration
         '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
-        { $/.panic("=row outside of table") unless $*IN_TABLE }
+        { $/.panic("=row outside of table") unless $*IN-TABLE }
 
         # should now be at end of line
         <.doc-newline>
@@ -5896,11 +5896,11 @@ Rakudo significantly on *every* run."
 
         {
             my str $root := ~$<type><root>;
-            if $root eq 'table' {
-                $*IN_TABLE++;
+            if $root eq 'table' || $root eq 'numtable' {
+                $*IN-TABLE++;
             }
             elsif $root eq 'cell' {
-                $/.panic("=begin cell outside of table") unless $*IN_TABLE;
+                $/.panic("=begin cell outside of table") unless $*IN-TABLE;
             }
         }
 
@@ -5929,7 +5929,10 @@ Rakudo significantly on *every* run."
               )}
         ]
 
-        { $*IN_TABLE-- if ~$<type><root> eq 'table' }
+        {
+            my str $root := ~$<type><root>;
+            $*IN-TABLE-- if $root eq 'table' || $root eq 'numtable';
+        }
     }
 
     token doc-block:sym<for> {
@@ -5962,7 +5965,7 @@ Rakudo significantly on *every* run."
         # cells not allowed outside table
         {
             $/.panic("=for cell outside of table")
-              if ~$<type><root> eq 'cell' && !$*IN_TABLE;
+              if ~$<type><root> eq 'cell' && !$*IN-TABLE;
         }
 
         # fetch any configuration
@@ -5990,7 +5993,7 @@ Rakudo significantly on *every* run."
         # cells not allowed outside table
         {
             $/.panic("=cell outside of table")
-              if ~$<type><root> eq 'cell' && !$*IN_TABLE;
+              if ~$<type><root> eq 'cell' && !$*IN-TABLE;
         }
 
         # the rest of the line is considered content

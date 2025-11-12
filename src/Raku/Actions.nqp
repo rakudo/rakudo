@@ -2435,7 +2435,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method contextualizer($/) {
-        self.contextualizer-for-sigil($/, ~$<sigil>, $<coercee>.ast);
+        my str $sigil := ~$<sigil>;
+        $sigil eq '&'
+          ?? $/.panic("Cannot contextualize '$sigil'")
+          !! self.contextualizer-for-sigil($/, $sigil, $<coercee>.ast);
     }
 
     method contextualizer-for-sigil($/, $sigil, $target) {

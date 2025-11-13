@@ -112,11 +112,14 @@ nqp::register('raku-nativecall', $do);
 #- raku-nativecall-core --------------------------------------------------------
 
 my sub raku-nativecall-core(Mu $capture is raw) {
-    my $callee := nqp::captureposarg($capture, 0);
-    my $params := nqp::getattr($callee.signature.params, List, '$!reified');
+    my $callee      := nqp::captureposarg($capture, 0);
+    my $params      := nqp::getattr($callee.signature.params, List, '$!reified');
+    my $param-elems := nqp::elems($params);
 
     my Mu $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
     my int $pos-args = nqp::captureposelems($args);
+    my Bool $variadic;
+    my Int $variadic-rw-bitfield = 0;
     my int $i;
 
     # Helper sub to replace the i-th positional argument with a value
@@ -149,24 +152,56 @@ my sub raku-nativecall-core(Mu $capture is raw) {
         );
     }
 
+    if $pos-args > 64 {
+        # Since the Moar code to process the variadic-rw-bitfield can currently
+        # only process uint64 (bitint is NYI), we are limited to 64 args.
+        X::TooManyVarArgs.new(:num($pos-args)).throw
+    }
+
     while $i < $pos-args {
 
         # If it should be passed read only, and it's an object...
         unless nqp::captureposprimspec($args, $i) {
 
+            # With variadic C functions / a **@vararg slurpy parameter, the
+            # $params list ends early.
+            my $param;
+            unless $variadic {
+                $param := nqp::atpos($params, $i);
+                # Detect the **@vararg param. If found the var args start and
+                # we have to work without params from now on.
+                if $param.slurpy && nqp::istype($param.type, Positional) {
+                    $variadic = True;
+                }
+            }
+
             # If it's in a Scalar container...
-            my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
-            nqp::guard('type', $Targ);
-            nqp::guard('concreteness', $Targ);
+            my $Tvalue := nqp::track('arg', $args, nqp::unbox_i($i));
+            nqp::guard('type', $Tvalue);
+            nqp::guard('concreteness', $Tvalue);
 
             my $arg    := nqp::captureposarg($args, $i);
-            my $Tvalue := $Targ;
             my int $cstr;
+
+            # If it's a vararg that should be passed as Pointer, remove the
+            # sentinel wrapper and set the respective bit in the bit field.
+            if nqp::istype_nd($arg, NativeCall::Types::VarArgPointerSentinel) {
+                if $variadic {
+                    set-arg-i-value(
+                      $Tvalue := nqp::track('attr', $Tvalue, NativeCall::Types::VarArgPointerSentinel, '$!target')
+                    );
+                    $arg := nqp::captureposarg($args, $i);
+                    $variadic-rw-bitfield +|= 1 +< $i;
+                }
+                else {
+                    X::PointerToOutsideVarArg.new.throw
+                }
+            }
 
             # Read it from the container and pass it decontainerized.
             if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Scalar) {
                 set-arg-i-value(
-                  $Tvalue := nqp::track('attr', $Targ, Scalar, '$!value')
+                  $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value')
                 );
                 $arg := nqp::decont($arg);
             }
@@ -195,29 +230,55 @@ my sub raku-nativecall-core(Mu $capture is raw) {
                 }
             }
 
-            # Done with argument checkinng, check on the associated parameter
-            my $param := nqp::atpos($params, $i);
-            unless nqp::isrwcont($arg) || $param.rw {
-                my $type := $param.type;
+            if $variadic {
+                if !nqp::isrwcont($arg) {
+                    if nqp::istype($arg, Int) || nqp::reprname($arg) eq 'CPointer' {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-int', $Tvalue))
+                          !! set-arg-i-zero;
+                    }
+                    elsif nqp::istype($arg, Str) && nqp::not_i($cstr) {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-str', $Tvalue))
+                          !! set-arg-i-zero;
+                    }
+                    elsif nqp::istype($arg, Num) {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-num', $Tvalue))
+                          !! set-arg-i-NaN;
+                    }
+                }
+            }
+            else {
+                # Done with argument checking, check on the associated parameter
+                unless nqp::isrwcont($arg) || $param.rw {
+                    my $type := $param.type;
 
-                if nqp::istype($type, Int) || $type.REPR eq 'CPointer' {
-                    nqp::isconcrete_nd($arg)
-                      ?? set-arg-i-value(nqp::track('unbox-int', $Tvalue))
-                      !! set-arg-i-zero;
-                }
-                elsif nqp::istype($type, Str) && nqp::not_i($cstr) {
-                    nqp::isconcrete_nd($arg)
-                      ?? set-arg-i-value(nqp::track('unbox-str', $Tvalue))
-                      !! set-arg-i-zero;
-                }
-                elsif nqp::istype($type, Num) {
-                    nqp::isconcrete_nd($arg)
-                      ?? set-arg-i-value(nqp::track('unbox-num', $Tvalue))
-                      !! set-arg-i-NaN;
+                    if nqp::istype($type, Int) || $type.REPR eq 'CPointer' {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-int', $Tvalue))
+                          !! set-arg-i-zero;
+                    }
+                    elsif nqp::istype($type, Str) && nqp::not_i($cstr) {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-str', $Tvalue))
+                          !! set-arg-i-zero;
+                    }
+                    elsif nqp::istype($type, Num) {
+                        nqp::isconcrete_nd($arg)
+                          ?? set-arg-i-value(nqp::track('unbox-num', $Tvalue))
+                          !! set-arg-i-NaN;
+                    }
                 }
             }
         }
         ++$i;
+    }
+
+    if $variadic {
+        $args := nqp::syscall('dispatcher-insert-arg-literal-obj',
+          $args, nqp::unbox_i($pos-args), nqp::decont($variadic-rw-bitfield)
+        );
     }
 
     nqp::delegate('boot-foreign-code',

@@ -175,6 +175,10 @@ int wmain(int argc, wchar_t *argv[]) {
 
     // Find config
     file_handle = fopen(my_path, L"r");
+    if (!file_handle) {
+        fprintf(stderr, "EXEC_RUNNER_WRAPPER: Couldn't open executable file for reading. Aborting.\n");
+        return failure_exit;
+    }
     long config_offset = find_config(file_handle);
     fseek(file_handle, config_offset, SEEK_SET);
 

@@ -5,7 +5,7 @@ function activate_buildtools() {
     Write-Host "                 ========================================="
     Write-Host ""
 
-    $cims = Get-CimInstance MSFT_VSInstance
+    $cims = Get-CimInstance MSFT_VSInstance -Namespace root/cimv2/vs
     $chosen_cim = $null
     foreach ($cim in $cims) {
         $install_location = $cim.InstallLocation
@@ -76,9 +76,18 @@ function add_to_path() {
     }
 }
 
+function enable_utf8() {
+    Write-Host "                              Enabling UTF-8"
+    Write-Host "                             ================"
+    Write-Host ""
+    $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+    Write-Host "Done."
+}
+
 
 activate_buildtools
 add_to_path
+enable_utf8
 
 Write-Host @'
 

@@ -3,8 +3,7 @@ Rakudo
 
 Rakudo is a compiler and runtime for the Raku programming language.
 
-This package includes the Rakudo compiler and runtime itself and the Zef module
-installer.
+This package includes the Rakudo compiler and the module installer Zef.
 
 
 The Start Menu Shortcuts
@@ -13,11 +12,13 @@ The Start Menu Shortcuts
 You'll find the following Shortcuts in the Start Menu `Rakudo` folder
 
 - Rakudo enabled PowerShell and CMD consoles
-    These consoles have the Rakudo executables folders added to the PATH so you
-    can directly use the `raku.exe`, `rakuw.exe` and `zef.bat` commands. If you
-    chose to modify your path during installation, these shortcuts do nothing
-    special, as all PowerShell and CMD consoles will have the respective folders
-    in their PATH already.
+    These consoles
+    - set up the PATH variable to contain BOTH paths necessary to directly call
+      `raku` and Raku scripts such as `zef`,
+    - search for a C build toolchain and if found activate it, so installing
+      modules which compile some C code works and
+    - change the codepage to UTF-8 so input and output of unicode characters
+      doesn't break.
 - Rakudo REPL
     Short for `Read Eval Print Loop`. A Rakudo interactive command interpreter.
     Useful for easily experimenting with Raku.
@@ -34,10 +35,9 @@ You'll find the following Shortcuts in the Start Menu `Rakudo` folder
 Running Raku
 ============
 
-If you chose to set the PATH variable during install or use one of the Rakudo
-enabled PowerShell or CMD shortcuts you can directly use the `raku.exe` and
-`rakuw.exe` commands. Otherwise you need to type the full path of the respective
-executable.
+If you chose to set the PATH variable during install or use the
+`Rakudo Powershell` or `Rakudo CMD` start menu entries you can directly use the
+`raku.exe` and `rakuw.exe` commands.
 
 To run a Raku program, open a command prompt and type
 
@@ -53,7 +53,7 @@ Installing modules
 
 To install Raku modules you can use the Zef module installer.
 
-    raku.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
+    zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available even
 when moving this package.
@@ -64,28 +64,15 @@ Native code modules
 
 To install modules that require a compiler toolchain, you need to have the
 Microsoft Visual C compiler installed. The freely available
-Microsoft BuildTools contain that compiler. You can use the installer script
-
-    C:\path\to\this\folder\scripts\vs_build_tools_install_assistant.ps1
-
-to guide you through the installation.
+Microsoft BuildTools contain that compiler. There is a start menu entry to
+start a CLI based wizard to guide you through the installation.
 
 Alternatively you can install the BuildTools manually. They can be downloaded
 [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
 You'll need to select the `C++ build tools` and recommended components.
 
 The compiler is only usable in a special Build Tools CMD / PowerShell window.
-
-To make use of the Build Tools in Rakudo using CMD:
-- start a CMD window using
-    Start Menu -> Visual Studio 2019 ->
-    x86 / x64 Native Tools Command Prompt for VS 2019
-- Execute `C:\path\to\this\folder\scripts\set-env.bat`
-
-To make use of the Build Tools in Rakudo using PowerShell:
-- start a PowerShell window using
-    Start Menu -> Visual Studio 2019 -> Developer PowerShell for VS 2019
-- Execute `C:\path\to\this\folder\scripts\set-env.ps1`
+The start menu entries `Rakudo Powershell` and `Rakudo CMD` provide for this.
 
 
 Non-console applications
@@ -179,7 +166,7 @@ for more information.
 License
 =======
 
-Rakudo is Copyright © 2008-2022, The Perl Foundation. Rakudo is distributed
+Rakudo is Copyright © 2008-2025, The Raku Foundation. Rakudo is distributed
 under the terms of the Artistic License 2.0. For more details, see the full
 text of the license in the file LICENSE.
 

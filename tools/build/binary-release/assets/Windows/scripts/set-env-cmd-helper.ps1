@@ -6,7 +6,7 @@ function activate_buildtools() {
     $cmds += "ECHO                  =========================================`n"
     $cmds += "ECHO.`n"
 
-    $cims = Get-CimInstance MSFT_VSInstance
+    $cims = Get-CimInstance MSFT_VSInstance -Namespace root/cimv2/vs
     $chosen_cim = $null
     foreach ($cim in $cims) {
         $install_location = $cim.InstallLocation
@@ -32,7 +32,7 @@ function activate_buildtools() {
 
     $setup = Get-ChildItem -Path $install_location -Filter VsDevCmd.bat -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-Not $setup) {
-        $cmds += "ECHO The PowerShell setup module wasn't found.`n"
+        $cmds += "ECHO The CMD setup module wasn't found.`n"
         return
     }
     $setup = $setup.FullName
@@ -78,11 +78,23 @@ function add_to_path() {
     else {
         $cmds += "ECHO Paths already set. Nothing to do.`n"
     }
+    $cmds += "ECHO.`n"
+    return $cmds
+}
+
+
+function enable_utf8() {
+    $cmds += "ECHO                              Enabling UTF-8`n"
+    $cmds += "ECHO                             ================`n"
+    $cmds += "ECHO.`n"
+    $cmds += "chcp 65001`n"
+    $cmds += "ECHO Done.`n"
     return $cmds
 }
 
 $cmds += activate_buildtools
 $cmds += add_to_path
+$cmds += enable_utf8
 $cmds += @'
 ECHO.
 ECHO ================================================================================

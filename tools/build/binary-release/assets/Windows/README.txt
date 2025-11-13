@@ -1,20 +1,43 @@
 Rakudo
 ======
 
-This is a pre-built package of Rakudo, a Raku compiler.
+Rakudo is a compiler and runtime for the Raku programming language.
 
 This package includes the Rakudo compiler and the module installer Zef.
 
+Contents
+========
 
-Running Raku
-============
+- Set-Env
+- Running Raku
+- Installing Modules
+    - Native Code Modules
+- PATH
+- Preventing Garbled Text Output
+- Non-Console Applications
+- Changes
+- Where to Get Help or Answers to Questions
+- Reporting Bugs
+- Submitting Patches
 
-To run a Raku program, open a command prompt and type
 
-    C:\path\to\this\folder\bin\raku.exe my_script.raku
+Set-Env
+=======
 
-To add the relevant paths to your environment so you don't have to type the
-full path execute the following script in CMD:
+This package provides a script to set up a terminal window to work nicely with
+Raku. It
+
+- sets up the PATH variable to contain BOTH paths necessary to directly call
+  `raku` and Raku scripts such as `zef`,
+- searches for a C build toolchain and if found activates it, so installing
+  modules which compile some C code works and
+- changes the codepage to UTF-8 so input and output of unicode characters
+  doesn't break.
+
+See the following sections for a deeper explanation why all of this is
+necessary and how to do it manually.
+
+To run `set-env` execute the following in CMD:
 
     C:\path\to\this\folder\scripts\set-env.bat
 
@@ -22,23 +45,32 @@ or when using Powershell (note the dot at the beginning):
 
     . C:\path\to\this\folder\scripts\set-env.ps1
 
-To start an interactive Raku environment call `raku` without an argument
+
+Running Raku
+============
+
+Once your terminal is set up you can start an interactive Raku environment by
+typing
 
     raku.exe
 
+To run a Raku script type
 
-Installing modules
+    raku.exe my_script.raku
+
+
+Installing Modules
 ==================
 
 To install Raku modules you can use the Zef module installer.
 
-    raku.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
+    zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available
 even when moving this package.
 
 
-Native code modules
+Native Code Modules
 -------------------
 
 To install modules that require a compiler toolchain, you need to have the
@@ -50,25 +82,91 @@ Microsoft BuildTools contain that compiler. You can use the installer script
 to guide you through the installation.
 
 Alternatively you can install the BuildTools manually. They can be downloaded
-[here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
+[here](https://aka.ms/vs/stable/vs_BuildTools.exe).
 You'll need to select the `C++ build tools` and recommended components.
 
 The compiler is only usable in a special Build Tools CMD / PowerShell window.
+Once the BuildTools  are installed you should see new entries in the start
+menu:
 
-To make use of the Build Tools in Rakudo using CMD:
-- start a CMD window using
-    Start Menu -> Visual Studio 2019 ->
-    x86 / x64 Native Tools Command Prompt for VS 2019
-- Execute `C:\path\to\this\folder\scripts\set-env.bat`
+Start Menu -> Visual Studio 20XX -> x64 Native Tools Command Prompt for VS
 
-To make use of the Build Tools in Rakudo using PowerShell:
-- start a PowerShell window using
-    Start Menu -> Visual Studio 2019 -> Developer PowerShell for VS 2019
-- Execute `C:\path\to\this\folder\scripts\set-env.ps1`
+The `set-env` script automatically sets up the terminal for BuildTools as well.
 
 
-Non-console applications
-------------------------
+PATH
+====
+
+THERE IS MORE THAN ONE FOLDER YOU NEED TO ADD TO YOUR PATH!
+
+`raku` and it's associated programs are located in the `bin\` subfolder.
+Installed Raku scripts, including `zef`, are located in the
+`share\perl6\site\bin\` subfolder. So both need to be in your PATH.
+
+
+Preventing Garbled Text Output
+==============================
+
+<boring-but-important>
+
+First a bit of background. Windows supports two types of text encoding that
+applications can choose from.
+
+The ancient `Codepage based` approach - texts are made up of 8-bit bytes. The
+configured codepage determines how to decode those bytes. Different languages
+bring their own codepages with the characters they need.
+
+Later came the newer `Unicode based` approach - texts are made up of 16-bit
+shorts, no codepages are necessary anymore as the characters of most languages
+fit into those 16 bits. The approach is still a bit limited as a lot more, but
+not all unicode characters fit into those 16 bits. For that and many other
+reasons, UTF-8 came to be. That's an 8-bit based encoding where characters can,
+but don't need to use more than one byte. Most modern applications use UTF-8.
+On Windows UTF-8 based applications are once again codepage based, but use a
+special Codepage - 65001 - that represents UTF-8.
+
+The default codepage is sadly not 65001, but some other codepage depending on
+the language of Windows. This is so as to not break compatibility with ancient
+applications using that other codepage.
+
+When using a UTF-8 application with a wrong codepage, the text output you see
+is garbled. Raku is such a UTF-8 application. Thus when using Raku in a console
+window with a non-UTF-8 codepage input and output of Unicode characters will
+break.
+
+</boring-but-important>
+
+So how to solve this?
+
+In a CMD window execute `chcp 65001` to set the codepage. You have to execute
+this every time you open a new CMD window.
+
+In a Powershell window execute
+
+    $OutputEncoding = [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+
+to set the codepage. Once again you have to do this every time you open a new
+window. To do that automatically, add the above line to your Powershell profile.
+
+It's also possible to configure the UTF-8 codepage globally in Windows, but that's
+a beta feature and breaks backward compatibility with a few legacy command line
+applications. In the Windows System Settings navigate here:
+
+Settings
+  --> Time & language
+  --> Language & region
+  --> Administrative language settings
+  --> Change system locale
+
+Then check `Beta: Use Unicode UTF-8 for worldwide language support` and restart
+the computer.
+
+Last but not least, the `set-env.ps1` and `set-env.bat` scripts perform the
+respective commands automatically.
+
+
+Non-Console Applications
+========================
 
 On Windows programs are compiled to either be _console_ applications or
 _non-console_ applications. _Console_ applications always open a console
@@ -103,7 +201,7 @@ Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
 
-Where to get help or answers to questions
+Where to Get Help or Answers to Questions
 =========================================
 
 There are several mailing lists, IRC channels, and wikis available with help
@@ -127,13 +225,13 @@ Questions about NQP can also be posted to the #raku IRC channel.
 For questions about MoarVM, you can join #moarvm on Libera.
 
 
-Reporting bugs
+Reporting Bugs
 ==============
 
 See https://rakudo.org/issue-trackers
 
 
-Submitting patches
+Submitting Patches
 ==================
 
 If you have a patch that fixes a bug or adds a new feature, please create a
@@ -146,7 +244,7 @@ for more information.
 License
 =======
 
-Rakudo is Copyright © 2008-2022, The Perl Foundation. Rakudo is distributed
+Rakudo is Copyright © 2008-2025, The Raku Foundation. Rakudo is distributed
 under the terms of the Artistic License 2.0. For more details, see the full
 text of the license in the file LICENSE.
 

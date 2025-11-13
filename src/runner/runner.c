@@ -1,3 +1,9 @@
+/* This file contains the code for the executable runner template. The
+ * executable is the basis for the script wrappers on Windows that Rakudo
+ * generates for all scripts it installs. On Linux a simple shell wrapper
+ * is used instead. So `share/perl6/site/bin/zef.exe` will be an instance of
+ * this code.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -175,6 +181,10 @@ int wmain(int argc, wchar_t *argv[]) {
 
     // Find config
     file_handle = fopen(my_path, L"r");
+    if (!file_handle) {
+        fprintf(stderr, "EXEC_RUNNER_WRAPPER: Couldn't open executable file for reading. Aborting.\n");
+        return failure_exit;
+    }
     long config_offset = find_config(file_handle);
     fseek(file_handle, config_offset, SEEK_SET);
 

@@ -9,7 +9,7 @@ $wix_dir = [Environment]::GetEnvironmentVariable('WIX', 'Machine') + "bin"
 $work_rakudo_release_dir = "$work_dir\rakudo_release_files"
 
 Remove-Item -ErrorAction Ignore -Recurse $work_rakudo_release_dir
-Copy-Item -Path $rakudo_release_dir -Destination $work_rakudo_release_dir –Recurse
+Copy-Item -Path $rakudo_release_dir -Destination $work_rakudo_release_dir -Recurse
 Remove-Item "$work_rakudo_release_dir\README.txt"
 Copy-Item -Path "$asset_dir\*" -Exclude "scripts" -Destination $work_rakudo_release_dir
 Copy-Item -Path "$asset_dir\scripts\*" -Destination "$work_rakudo_release_dir\scripts"

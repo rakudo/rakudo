@@ -1,6 +1,7 @@
 use NQPP6QRegex;
 use QRegex;
 use Perl6::Optimizer;
+use RakuAST::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
     has @!language_version;  # Default language revision, 1 stands for v6.c
@@ -263,6 +264,13 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method qast($rakuast, *%adverbs) {
+        # Apply RakuAST optimizations.
+        if %adverbs<optimize> ne 'off' && nqp::existskey(%*ENV, 'RAKUDO_RAKUAST') {
+            # Create optimizer instance and apply optimizations
+            $rakuast := RakuAST::Optimizer.new.optimize($rakuast, |%adverbs);
+        }
+        
+        # Convert to QAST compilation unit
         my $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
         $rakuast.cleanup();
         $comp_unit;

@@ -1285,6 +1285,8 @@ class RakuAST::Block
   is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Blockoid $.body;
+    # Save resolver reference for later use in type checking
+    has RakuAST::Resolver $!resolver;
 
     # Should this block have an implicit topic, in the absence of a (perhaps
     # placeholder) signature?
@@ -1418,6 +1420,8 @@ class RakuAST::Block
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Save resolver reference
+        nqp::bindattr(self, RakuAST::Block, '$!resolver', $resolver);
         $!body.to-begin-time($resolver, $context); # In case it's the default we created in the ctor.
 
         # Make sure that our placeholder signature has resolutions performed,
@@ -1496,8 +1500,46 @@ class RakuAST::Block
         Nil
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
-            RakuAST::Expression :$expression) {
+    # Infer the return type of the code block
+    method infer-return-type(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Return Any type if there's no body or body is OnlyStar (used only for proto declarations)
+        unless $!body && !nqp::istype($!body, RakuAST::OnlyStar) {
+            return RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Any'));
+        }
+
+        # If the body has an infer-return-type method, call it to infer the return type
+        if nqp::can($!body, 'infer-return-type') {
+            return $!body.infer-return-type($resolver, $context);
+        }
+
+        # Default to Any type (cannot infer specific type)
+        return RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Any'));
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype, RakuAST::Expression :$expression) {
+        # Perform compile-time return type inference and checking
+        my $inferred-type := self.infer-return-type($!resolver, $context);
+
+        # Check if the return type in the signature is compatible with the inferred type
+        if self.signature {
+            my $return-type := self.signature.return-type;
+            if $return-type && $inferred-type.can('is-known-to-be-type') && $return-type.can('is-known-to-be-type') {
+                # For Any type, it can accept any type of return value
+                my $is-any := $return-type ~~ RakuAST::Type::Simple && $return-type.name.canonicalize eq 'Any';
+
+                # Modify parameter order: now use $return-type to check if $inferred-type is compatible
+                # This better aligns with the semantics of the type system
+                unless $is-any || $return-type.is-known-to-be-type($inferred-type, $!resolver) {
+                    # If not compatible, add warning or error
+                    self.add-sorry: $!resolver.build-exception(
+                        'X::TypeCheck::Return',
+                        :expected($return-type),
+                        :got($inferred-type)
+                    );
+                }
+            }
+        }
+
         self.IMPL-MAYBE-FATALIZE-QAST(
             self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context,

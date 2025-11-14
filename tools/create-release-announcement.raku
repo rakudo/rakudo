@@ -35,7 +35,7 @@ on IRC (#raku on Libera), the Discord, or the
 <perl6-compiler@perl.org> mailing list.
 
 Additionally, we invite you to make a donation to The Raku Foundation
-to sponsor Raku development: <https://donate.rakufoundation.org/>
+to sponsor Raku development: <https://rakufoundation.org/donate>
 (put “Raku Core Development Fund” in the ‘Purpose’ text field)
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».

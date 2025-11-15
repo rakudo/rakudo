@@ -1,3 +1,28 @@
+New in 2025.11:
+
++ Improvements:
+    + MoarVM now uses rapidhash v3 [74bbe190]
+    + Give any() a @foo candidate for performance [b92e33cc]
+    + Allow native attributes to be twiddled with .clone [78a43bc2]
+    + Improve the Windows first time experience [5ddbdb98][5438dea2][3d21d069][221cf2c8][ac97ef20]
+
++ Fixes:
+    + Fix typo in error message: `udp-bind` -> `bind-udp` [40380963]
+    + Don't allow a Range in an array shape specification (#6013) [f7ce946e]
+
++ RakuAST:
+    + fix =table checks for numbered tables [71170603][0121b338]
+    + allow ::Block.new() to take :$multiness [44bb652d]
+    + Fix some bugs found by TRAE IDE [690b7f07]
+    + don't allow :{ } if it's a block [c1d8805e]
+    + don't allow &( ) contextualizer [dd78e653]
+
++ Internal:
+    + Resolve potential NP references [2785bfe9][a58018a2][e2c55717]
+    + update NQP/MoarVM pre-release [7106759e]
+    + Mark Hyper class as an implementation detail [89dff65d]
+    + Release engineering cleanups [6a9e284f][4a043ba5][e90f70e3][efba5598][393a34ad][b1eca4bc][1e483e1f][1741ccdf][61429b0c][147791df][bf0488e2][c06cf642][74927a8d][a69582ea][632378cb][95c56c2f][ffeb4260][bebd4a0f][e1b3f927][bb515e4a][6fe6c5f0][f6126111][0949e869][40b4e11b][211197cb]
+
 New in 2025.10:
 + RakuAST:
     + Make UNIT implicits available to dynamic code [4d7234ca]

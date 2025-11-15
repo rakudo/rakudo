@@ -225,7 +225,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.contains($needle.Str, $pos.Int)
     }
     multi method contains(Cool:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos)
+        self.Str.contains($needle, $pos.Int)
     }
 
     proto method indices(|) {*}

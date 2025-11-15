@@ -40,9 +40,6 @@ to sponsor Raku development: <https://rakufoundation.org/donate>
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 
-A list of the other planned release dates is available in the
-“docs/release_guide.pod” file.
-
 The development team appreciates feedback! If you’re using Rakudo, do
 get back to us. Questions, comments, suggestions for improvements, cool
 discoveries, incredible hacks, or any other feedback are welcome

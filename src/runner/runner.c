@@ -383,7 +383,7 @@ int wmain(int argc, wchar_t *argv[]) {
         &pi);            // ProcessInformation
 
     if (!success) {
-        fwprintf(stderr, L"EXEC_RUNNER_WRAPPER: Failed to execute %s. Error code: %ld\n", program, GetLastError());
+        fwprintf(stderr, L"EXEC_RUNNER_WRAPPER: Failed to execute %s. Error code: %ld\n", program_encoded, GetLastError());
         return failure_exit;
     }
 

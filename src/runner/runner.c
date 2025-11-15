@@ -339,14 +339,11 @@ int wmain(int argc, wchar_t *argv[]) {
 
     free(my_path);
 
-    // Encode program name
-    size_t arg_size = argvQuote(program, NULL);
-    wchar_t *program_encoded = calloc(arg_size, sizeof(wchar_t));
-    argvQuote(program, program_encoded);
     
     // Put command line string together
     // Size of the final command line string:
     // cmd_line_size = size of each argument + one space each - the last space + the trailing \0
+    size_t arg_size;
     size_t cmd_line_size = 0;
     wchar_t *cmd_line = NULL;
     // -1 because we must ignore the last element, a NULL.
@@ -360,7 +357,6 @@ int wmain(int argc, wchar_t *argv[]) {
         cmd_line_size += arg_size;
         cmd_line[cmd_line_size - 1] = L' ';
     }
-    free(program);
     free(exec_argv);
     cmd_line[cmd_line_size - 1] = 0;
 
@@ -371,7 +367,7 @@ int wmain(int argc, wchar_t *argv[]) {
     ZeroMemory(&pi, sizeof(pi));
 
     BOOL success = CreateProcessW(
-        program_encoded, // ApplicationName
+        program,         // ApplicationName
         cmd_line,        // CommandLine
         NULL,            // ProcessAttributes
         NULL,            // ThreadAttributes
@@ -383,9 +379,10 @@ int wmain(int argc, wchar_t *argv[]) {
         &pi);            // ProcessInformation
 
     if (!success) {
-        fwprintf(stderr, L"EXEC_RUNNER_WRAPPER: Failed to execute %s. Error code: %ld\n", program_encoded, GetLastError());
+        fwprintf(stderr, L"EXEC_RUNNER_WRAPPER: Failed to execute %s. Error code: %ld\n", program, GetLastError());
         return failure_exit;
     }
+    free(program);
 
     // I guess processes only signal when they are done. So no need to check the return value.
     WaitForSingleObject(pi.hProcess, INFINITE);

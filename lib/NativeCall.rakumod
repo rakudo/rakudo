@@ -174,10 +174,12 @@ my sub param_list_for(Signature $signature, $variadic is rw, &r?) {
       && nqp::atpos($params,$elems - 1).name eq '%_';
 
     # not sending vararg slurpy **@asdf
-    my $last-param = nqp::atpos($params,$elems - 1);
-    if $last-param.slurpy && nqp::istype($last-param.type, Positional) {
-        $variadic = True;
-        --$elems;
+    if $elems {
+        my $last-param = nqp::atpos($params,$elems - 1);
+        if $last-param.slurpy && nqp::istype($last-param.type, Positional) {
+            $variadic = True;
+            --$elems;
+        }
     }
 
     # build list

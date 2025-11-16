@@ -331,6 +331,7 @@ class RakuAST::Infix
     method is-pure() {
         my constant NP := nqp::hash(
           ':=',   False,
+          '≔',    False,
           '~~',   False,
           'does', False,
           '⚛=',   False,
@@ -401,6 +402,7 @@ class RakuAST::Infix
             '^…^'   , 0,
             '='     , 0,
             ':='    , 0,
+            '≔'     , 0,
             '&&'    , 0,
             '||'    , 0,
             '~~'    , 1,
@@ -420,7 +422,7 @@ class RakuAST::Infix
         # Hash value is negation flag
         my constant OP-SMARTMATCH := nqp::hash( '~~', 0, '!~~', 1 );
         my str $op := $!operator;
-        if $op eq ':=' {
+        if $op eq ':=' || $op eq '≔' {
             if $left.can-be-bound-to {
                 $left.IMPL-BIND-QAST($context, $right.IMPL-TO-QAST($context))
             }
@@ -2042,7 +2044,8 @@ class RakuAST::ApplyInfix
                 my $sigil := (try $left.sigil) // '';
                 if $sigil eq '$' || $sigil eq '@' {
                     self.add-worry:
-                      $resolver.build-exception: 'X::AdHoc',
+                      $resolver.build-exception:
+                        'X::AdHoc',
                         payload => "Using $operator on a "
                           ~ ($sigil eq '$' ?? 'scalar' !! 'array')
                           ~ " is probably NOT what you want, as it will create\n"
@@ -2054,30 +2057,51 @@ class RakuAST::ApplyInfix
         elsif nqp::istype($infix, RakuAST::MetaInfix::Reverse) && nqp::istype($infix.infix, RakuAST::Infix) {
             if nqp::existskey(%worrisome-range, $infix.infix.operator) && nqp::istype($left, RakuAST::ApplyPrefix) {
                 if $left.prefix.operator eq '|' {
-                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "apply a Slip flattener to", precursor => 1;
+                    self.add-worry:
+                      $resolver.build-exception:
+                        'X::Worry::Precedence::Range',
+                        action    => "apply a Slip flattener to",
+                        precursor => 1;
                 }
                 if $left.prefix.operator eq '~' {
-                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "stringify", precursor => 1;
+                    self.add-worry:
+                      $resolver.build-exception:
+                        'X::Worry::Precedence::Range',
+                        action    => "stringify",
+                        precursor => 1;
                 }
             }
         }
 
         # a "normal" infix op
         elsif nqp::istype($infix, RakuAST::Infix) {
-            if $infix.operator eq ':=' && !$left.can-be-bound-to {
+            my str $infix-op := $infix.operator;
+            if ($infix-op eq ':=' || $infix-op eq '≔') && !$left.can-be-bound-to {
                 self.add-sorry: $left.build-bind-exception($resolver);
             }
 
-            if $infix.operator eq '~~' && $left.IMPL-CURRIED {
-                self.add-worry: $resolver.build-exception: 'X::WhateverCode::SmartMatch::LHS';
+            if $infix-op eq '~~' && $left.IMPL-CURRIED {
+                self.add-worry:
+                  $resolver.build-exception:
+                    'X::WhateverCode::SmartMatch::LHS';
             }
 
-            if nqp::existskey(%worrisome-range, $infix.operator) && nqp::istype($left, RakuAST::ApplyPrefix) {
-                if $left.prefix.operator eq '|' {
-                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "apply a Slip flattener to", precursor => 1;
+            if nqp::existskey(%worrisome-range, $infix-op)
+              && nqp::istype($left, RakuAST::ApplyPrefix) {
+                my $prefix-op := $left.prefix.operator;
+                if $prefix-op eq '|' {
+                    self.add-worry:
+                      $resolver.build-exception:
+                        'X::Worry::Precedence::Range',
+                        action    => "apply a Slip flattener to",
+                        precursor => 1;
                 }
-                if $left.prefix.operator eq '~' {
-                    self.add-worry: $resolver.build-exception: 'X::Worry::Precedence::Range', , action => "stringify", precursor => 1;
+                if $prefix-op eq '~' {
+                    self.add-worry:
+                      $resolver.build-exception:
+                        'X::Worry::Precedence::Range',
+                        action    => "stringify",
+                        precursor => 1;
                 }
             }
 
@@ -2097,8 +2121,10 @@ class RakuAST::ApplyInfix
                         if !nqp::istype($value, $type)
                           && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
                             self.add-sorry:
-                              $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                                :vartype($type), :$value;
+                              $resolver.build-exception:
+                                'X::Syntax::Number::LiteralType',
+                                :vartype($type),
+                                :$value;
                         }
                     }
                 }
@@ -2109,8 +2135,9 @@ class RakuAST::ApplyInfix
                     && nqp::objprimspec($target.declaration.return-type)
                 {
                     self.add-sorry:
-                        $resolver.build-exception: 'X::Assignment::RO::Comp',
-                            :variable(self.left.name);
+                      $resolver.build-exception:
+                        'X::Assignment::RO::Comp',
+                        :variable(self.left.name);
                 }
             }
         }

@@ -2738,7 +2738,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<.=> { <.sym> }
 
     # Assignment infixes
-    token infix:sym<:=>  { <sym> }
+    token infix:sym<:=>  { ':=' | '≔' }
     token infix:sym<::=> { <sym> <.NYI: '"::="'> }
 
     # Iffy multiplicative infixes

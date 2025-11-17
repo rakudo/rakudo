@@ -4,12 +4,17 @@ use NativeCall;
 use Test;
 use nqp;
 
-plan 13;
+plan 14;
 
 compile_test_lib('26-varargs');
 
+{
 sub va1(int32, **@varargs) returns int32 is native('./26-varargs') { * }
 ok va1(0, 1), 'Can pass plain ints';
+
+my $a1 = 1;
+ok va1(0, $a1), 'Can pass Int';
+}
 
 {
 sub va2(int32, **@varargs) returns int32 is native('./26-varargs') { * }

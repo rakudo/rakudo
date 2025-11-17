@@ -4891,11 +4891,66 @@ BEGIN {
             @!named-capture-names  := nqp::list_s;
             @!named-capture-counts := nqp::list_i;
 
+            my &sorted_keys := sub ($hash) {
+                my @keys := nqp::list_s();
+                my $iter := nqp::iterator($hash);
+                nqp::while(
+                  $iter,
+                  nqp::push_s(@keys,nqp::iterkey_s(nqp::shift($iter)))
+                );
+
+                sub sift_down(int $start, int $end) {
+                    my int $root := $start;
+                    my int $child;
+                    my int $swap;
+
+                    while 2*$root + 1 <= $end {
+                        $child := 2*$root + 1;
+                        $swap := nqp::atpos_s(@keys, $root) gt nqp::atpos_s(@keys, $child)
+                          ?? $child
+                          !! $root;
+
+                        $swap := $child + 1
+                          if $child + 1 <= $end
+                          && nqp::atpos_s(@keys, $swap) ge nqp::atpos_s(@keys, $child + 1);
+
+                        if $swap == $root { return }
+
+                        my str $tmp := nqp::atpos_s(@keys, $root);
+                        nqp::bindpos_s(@keys, $root, nqp::atpos_s(@keys, $swap));
+                        nqp::bindpos_s(@keys, $swap, $tmp);
+                        $root := $swap;
+                    }
+                }
+
+                my int $count := +@keys;
+                if $count > 2 {
+                    my int $start := $count / 2;
+                    my int $end := $count - 1;
+                    while --$start >= 0 {
+                        sift_down($start, $end);
+                    }
+
+                    while $end {
+                        my str $swap := nqp::atpos_s(@keys, $end);
+                        nqp::bindpos_s(@keys, $end, nqp::atpos_s(@keys, 0));
+                        nqp::bindpos_s(@keys, 0, $swap);
+                        sift_down(0, --$end);
+                    }
+                }
+                elsif $count == 2 && nqp::atpos_s(@keys, 0) lt nqp::atpos_s(@keys, 1) {
+                    nqp::push_s(@keys, nqp::shift_s(@keys));
+                }
+
+                @keys
+            }
+
+
             # Go over the captures and build up the data structure.
-            for %capnames {
-                my str $name := nqp::iterkey_s($_);
+            for &sorted_keys(%capnames) -> str $name {
                 if $name ne '' {
-                    my int $count := nqp::iterval($_);
+                    # my int $count := nqp::iterval($_);
+                    my int $count := %capnames{$name};
 
                     # Positional
                     if nqp::ord($name) != 36 && nqp::ord($name) < 58 {

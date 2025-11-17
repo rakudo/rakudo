@@ -1026,6 +1026,10 @@ my class Rakudo::Internals {
         #END leap-second-posix
     );
 
+    method current-offset-nanos() {
+          nqp::add_i( $elems, $initial-offset) * 1000000000
+    }
+
     method is-leap-second-date(\date) {
         nqp::hllbool(
           nqp::stmts(

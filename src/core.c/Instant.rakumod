@@ -127,14 +127,12 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
 
 sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
 
-my int $current-offset-nanos = Rakudo::Internals.current-offset-nanos;
-
 sub term:<now>(--> Instant:D) {
     # A posix time in the second preceeding a positive leap second,
     # represents two seconds in UTC time.  This ambiguity is currently
     # resolved by returning the leap second.
 
-    Instant.from-posix-nanos( nqp::add_i(nqp::time, $current-offset-nanos))
+    Instant.from-posix-nanos( nqp::add_i(nqp::time, Rakudo::Internals.current-offset-nanos))
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {

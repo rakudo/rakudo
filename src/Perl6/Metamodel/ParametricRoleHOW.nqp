@@ -119,7 +119,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $checkee := nqp::decont($checkee);
 
         nqp::eqaddr($checkee, $target.WHAT)
-          || ($!in_group && nqp::eqaddr($checkee, $!group))
+          # checking whether the $!group is of the type $checkee allows for inline definitions of transitive roles
+          || ($!in_group && nqp::istype($!group, $checkee))  # this will do an nqp::eqaddr($!group, $checkee) check
           || self.checkee_eqaddr_list($checkee, self.pretending_to_be)
           || self.checkee_istype_list($checkee, self.roles_to_compose)
           || self.type_check_parents($target, $checkee)

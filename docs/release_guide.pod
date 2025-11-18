@@ -202,7 +202,6 @@ to use it:
 
     raku tools/create-release-announcement.raku > docs/announce/YYYY.MM.md
     git add docs
-    git commit docs
 
 Ensure dates of current and next releases are correct.  Note that there seems to
 be a bug where the next release date in the generated announce is wrong but the
@@ -218,10 +217,10 @@ Add the ChangeLog material from the wiki to the top of C<docs/ChangeLog>.
 
 =item *
 
-Create the release commit (remember to look at previous for the special format)
-and push the release branch up.  This has to be done before the ake commands run
-as they update the remote. Be sure to include the deliberately ignored commits here
-for the C<releasable> bot.
+Create the release commit (remember to look at previous for the special format,
+e.g. https://github.com/rakudo/rakudo/commit/8545a055) and push the release branch up.
+This has to be done before the ake commands run as they update the remote.
+Be sure to include the deliberately ignored commits here for the C<releasable> bot.
 
 =item 5.
 
@@ -323,7 +322,7 @@ Once this is done, create the artifact...
 
 ... And test it afterwards. You can manually verify the build worked and shows the correct version with:
 
-    ./temp/rakudo-test/$rel-branch-name/install/bin/raku --version
+    ./temp/rakudo-test/rakudo-$version/install/bin/raku --version
 
 Now you can test the built version. Note that this deletes the directory, so after this step you will be
 unable to rerun the previous command.
@@ -376,7 +375,7 @@ release artifacts.
 =item 9.
 
 Notify the docs team (#raku-doc on IRC) that they can now create their documentation
-checklist for the release. (Eventually we want the documentation changes to go live 
+checklist for the release. (Eventually we want the documentation changes to go live
 with the release, not be started immediately after.)
 
 =item 10.

@@ -302,7 +302,7 @@ and, by default, also executes the compiled code.
   -I path              adds the path to the module search path
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
-  --optimize=level     use the given level of optimization (0..3)
+  --optimize=level     use the given level of optimization (off, 0..3)
   --rakudo-home=path   Override the path of the Rakudo runtime files
   -o, --output=name    specify name of output file
   -v, --version        display version information

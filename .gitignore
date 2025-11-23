@@ -136,3 +136,4 @@ rakudo-m-early-build
 rakudo-js-build
 rakudo-j-build
 win-runner.exe-tmpl
+.idea/

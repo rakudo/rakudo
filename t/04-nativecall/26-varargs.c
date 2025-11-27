@@ -51,7 +51,7 @@ DLLEXPORT int va3(int a0, ...)
 {
     va_list args;
     va_start(args, a0);
-    char *a1 = va_arg(args, char*);
+    signed char *a1 = va_arg(args, signed char*);
     short *a2 = va_arg(args, short*);
     int *a3 = va_arg(args, int*);
     long *a4 = va_arg(args, long*);

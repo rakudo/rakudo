@@ -1501,6 +1501,27 @@ class RakuAST::Resolver::Compile
 
         return @suggestions;
     }
+
+    # Helper method to check if a type is known to be a subtype of another at compile time
+    method is-known-to-be(Mu $inferred-type, Mu $expected-type, Mu $resolver?) {
+        # If either type is not available at compile time, we can't do static checking
+        return False if nqp::isnull($inferred-type) || nqp::isnull($expected-type);
+
+        # If they're the same type, they're compatible
+        return True if $inferred-type.WHAT =:= $expected-type.WHAT;
+
+        # Handle Any type - everything is compatible with Any
+        return True if $expected-type =:= Any;
+
+        # Check if the inferred type is a subtype of the expected type
+        try {
+            return nqp::istype($inferred-type, $expected-type) if nqp::can($inferred-type, 'isa');
+            return $inferred-type ~~ $expected-type;
+        }
+
+        # If we can't determine the relationship, return False to be safe
+        return False;
+    }
 }
 
 #-------------------------------------------------------------------------------

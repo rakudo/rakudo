@@ -7,13 +7,92 @@ class RakuAST::Type
     # (provided as the type object, not as another RakuAST node).
     method is-known-to-be(Mu $type) {
         nqp::die('Expected a type object') if nqp::isconcrete($type);
+
+        # Handle resolved lookup nodes
         if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) {
                 return nqp::istype($resolution.compile-time-value, $type);
             }
         }
+
+        # Handle parameterized types
+        elsif nqp::istype(self, RakuAST::Type::Parameterized) {
+            # Check if the base type is known
+            return self.base-type.is-known-to-be($type);
+        }
+
+        # Handle definedness constrained types
+        elsif nqp::istype(self, RakuAST::Type::Definedness) {
+            # Definedness constraints don't change the inheritance relationship of the base type
+            return self.base-type.is-known-to-be($type);
+        }
+
+        # Handle subset types
+        elsif nqp::istype(self, RakuAST::Type::Subset) && self.is-resolved {
+            my $meta-object := self.meta-object;
+            return nqp::istype($meta-object, $type);
+        }
+
+        # Handle type captures
+        elsif nqp::istype(self, RakuAST::Type::Capture) {
+            # Type captures are generic types, logic can be enhanced here
+            return nqp::istype(self.meta-object, $type);
+        }
+
+        # Handle other interpretable types
+        elsif self.IMPL-CAN-INTERPRET {
+            my $interpreted := self.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            return nqp::istype($interpreted, $type);
+        }
+
         0
+    }
+
+    # Version that accepts another RakuAST::Type object as parameter
+    method is-known-to-be-type(RakuAST::Type $type, RakuAST::Resolver $resolver) {
+        # This method checks if $type is a subtype or compatible with self
+        # self is the declared return type, $type is the inferred type
+
+        # First handle comparison of simple type names
+        if nqp::istype(self, RakuAST::Type::Simple) && nqp::istype($type, RakuAST::Type::Simple) {
+            my $return-type-name := self.name.Str;
+            my $inferred-type-name := $type.name.Str;
+
+            # Identical type names - always compatible
+            if $return-type-name eq $inferred-type-name {
+                return True;
+            }
+
+            # Any can accept any type
+            if $return-type-name eq 'Any' {
+                return True;
+            }
+
+            # Special handling for Int and Num relationship (Int is a subtype of Num)
+            if $return-type-name eq 'Num' && $inferred-type-name eq 'Int' {
+                return True;
+            }
+        }
+
+        # If both types are interpretable, try to interpret and compare them
+        if self.IMPL-CAN-INTERPRET && $type.IMPL-CAN-INTERPRET {
+            try {
+                my $return-type-interpreted := self.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+                my $inferred-type-interpreted := $type.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+
+                # Check type inheritance - whether the inferred type is a subtype of the return type
+                return nqp::istype($inferred-type-interpreted, $return-type-interpreted);
+            }
+        }
+
+        # Handle definedness constraints
+        if nqp::istype(self, RakuAST::Type::Definedness) {
+            return self.base-type.is-known-to-be-type($type, $resolver);
+        }
+
+        # Default to incompatible
+        False
     }
     method is-known-to-be-exactly(Mu $type) {
         nqp::die('Expected a type object') if nqp::isconcrete($type);

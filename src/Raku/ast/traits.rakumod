@@ -36,6 +36,16 @@ class RakuAST::TraitTarget {
         self.IMPL-WRAP-LIST(nqp::islist($traits) ?? $traits !! [])
     }
 
+    method traits-include-is-generic() {
+        my int $has-is-generic := 0;
+        for self.IMPL-UNWRAP-LIST(self.traits) -> $trait {
+            last if $has-is-generic := nqp::istype($trait,RakuAST::Trait::Is)
+                                    && $trait.type
+                                    && $trait.type.meta-object.HOW.archetypes.generic
+        }
+        $has-is-generic
+    }
+
     method add-trait-sorries() {
         if $!sorries {
             self.add-sorry($_) for $!sorries;

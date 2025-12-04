@@ -9,16 +9,16 @@
 # allow you test the speed of property lookups.
 use v6;
 use Test;
-# Below is the text taken from PropertyAliases-9.0.0.txt from the Unicode site's zip file
+# Below is the text taken from PropertyAliases-17.0.0.txt from the Unicode site's zip file
 my $property-aliases-string = Q:to/🐧/;
-# PropertyAliases-10.0.0.txt
-# Date: 2017-02-14, 04:26:16 GMT
-# © 2017 Unicode®, Inc.
+# PropertyAliases-17.0.0.txt
+# Date: 2025-04-25, 14:00:52 GMT
+# © 2025 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
-# For terms of use, see http://www.unicode.org/terms_of_use.html
+# For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
 # Unicode Character Database
-#   For documentation, see http://www.unicode.org/reports/tr44/
+#   For documentation, see https://www.unicode.org/reports/tr44/
 #
 # This file contains aliases for properties used in the UCD.
 # These names can be used for XML formats of UCD data, for regular-expression
@@ -31,9 +31,14 @@ my $property-aliases-string = Q:to/🐧/;
 #
 # Each line has two or more fields, separated by semicolons.
 #
-# First Field: The first field is an abbreviated name for the property.
+# First Field: The first field is the short name for the property.
+# It is typically an abbreviation, but in a number of cases it is simply
+# a duplicate of the "long name" in the second field.
+# For Unihan database tags, the short name is actually a longer string than
+# the tag specified in the second field.
 #
-# Second Field: The second field is a long name
+# Second Field: The second field is the long name for the property,
+# typically the formal name used in documentation about the property.
 #
 # The above are the preferred aliases. Other aliases may be listed in additional fields.
 #
@@ -56,7 +61,11 @@ my $property-aliases-string = Q:to/🐧/;
 #
 # The combination of property value and property name is, however, unique.
 #
-# For more information, see UTS #18: Unicode Regular Expressions
+# For more information, see:
+# - UAX #44, Unicode Character Database;
+# - UAX #38, Unicode Han Database (Unihan);
+# - UAX #57, Unicode Egyptian Hieroglyph Database (Unikemet);
+# - UTS #18, Unicode Regular Expressions.
 # ================================================
 
 
@@ -71,12 +80,16 @@ nv                       ; Numeric_Value
 # ================================================
 # String Properties
 # ================================================
+bmg                      ; Bidi_Mirroring_Glyph
+bpb                      ; Bidi_Paired_Bracket
 cf                       ; Case_Folding
 cjkCompatibilityVariant  ; kCompatibilityVariant
 dm                       ; Decomposition_Mapping
+EqUIdeo                  ; Equivalent_Unified_Ideograph
 FC_NFKC                  ; FC_NFKC_Closure
 lc                       ; Lowercase_Mapping
 NFKC_CF                  ; NFKC_Casefold
+NFKC_SCF                 ; NFKC_Simple_Casefold
 scf                      ; Simple_Case_Folding         ; sfc
 slc                      ; Simple_Lowercase_Mapping
 stc                      ; Simple_Titlecase_Mapping
@@ -87,8 +100,6 @@ uc                       ; Uppercase_Mapping
 # ================================================
 # Miscellaneous Properties
 # ================================================
-bmg                      ; Bidi_Mirroring_Glyph
-bpb                      ; Bidi_Paired_Bracket
 cjkIICore                ; kIICore
 cjkIRG_GSource           ; kIRG_GSource
 cjkIRG_HSource           ; kIRG_HSource
@@ -96,12 +107,22 @@ cjkIRG_JSource           ; kIRG_JSource
 cjkIRG_KPSource          ; kIRG_KPSource
 cjkIRG_KSource           ; kIRG_KSource
 cjkIRG_MSource           ; kIRG_MSource
+cjkIRG_SSource           ; kIRG_SSource
 cjkIRG_TSource           ; kIRG_TSource
+cjkIRG_UKSource          ; kIRG_UKSource
 cjkIRG_USource           ; kIRG_USource
 cjkIRG_VSource           ; kIRG_VSource
+cjkMandarin              ; kMandarin
 cjkRSUnicode             ; kRSUnicode                  ; Unicode_Radical_Stroke; URS
+cjkTotalStrokes          ; kTotalStrokes
+cjkUnihanCore2020        ; kUnihanCore2020
 isc                      ; ISO_Comment
 JSN                      ; Jamo_Short_Name
+kEH_Cat                  ; kEH_Cat
+kEH_Desc                 ; kEH_Desc
+kEH_HG                   ; kEH_HG
+kEH_IFAO                 ; kEH_IFAO
+kEH_JSesh                ; kEH_JSesh
 na                       ; Name
 na1                      ; Unicode_1_Name
 Name_Alias               ; Name_Alias
@@ -125,6 +146,7 @@ ea                       ; East_Asian_Width
 gc                       ; General_Category
 GCB                      ; Grapheme_Cluster_Break
 hst                      ; Hangul_Syllable_Type
+InCB                     ; Indic_Conjunct_Break
 InPC                     ; Indic_Positional_Category
 InSC                     ; Indic_Syllabic_Category
 jg                       ; Joining_Group
@@ -160,21 +182,33 @@ Dash                     ; Dash
 Dep                      ; Deprecated
 DI                       ; Default_Ignorable_Code_Point
 Dia                      ; Diacritic
+EBase                    ; Emoji_Modifier_Base
+EComp                    ; Emoji_Component
+EMod                     ; Emoji_Modifier
+Emoji                    ; Emoji
+EPres                    ; Emoji_Presentation
 Ext                      ; Extender
+ExtPict                  ; Extended_Pictographic
 Gr_Base                  ; Grapheme_Base
 Gr_Ext                   ; Grapheme_Extend
 Gr_Link                  ; Grapheme_Link
 Hex                      ; Hex_Digit
 Hyphen                   ; Hyphen
+ID_Compat_Math_Continue  ; ID_Compat_Math_Continue
+ID_Compat_Math_Start     ; ID_Compat_Math_Start
 IDC                      ; ID_Continue
 Ideo                     ; Ideographic
 IDS                      ; ID_Start
 IDSB                     ; IDS_Binary_Operator
 IDST                     ; IDS_Trinary_Operator
+IDSU                     ; IDS_Unary_Operator
 Join_C                   ; Join_Control
+kEH_NoMirror             ; kEH_NoMirror
+kEH_NoRotate             ; kEH_NoRotate
 LOE                      ; Logical_Order_Exception
 Lower                    ; Lowercase
 Math                     ; Math
+MCM                      ; Modifier_Combining_Mark
 NChar                    ; Noncharacter_Code_Point
 OAlpha                   ; Other_Alphabetic
 ODI                      ; Other_Default_Ignorable_Code_Point
@@ -205,7 +239,7 @@ XO_NFKC                  ; Expands_On_NFKC
 XO_NFKD                  ; Expands_On_NFKD
 
 # ================================================
-# Total:    120
+# Total:    145
 
 # EOF
 🐧
@@ -265,7 +299,7 @@ sub print-line (Str:D $str, Bool :$flush?) {
 sub create-Str-code {
     my @allowed-types = 'uc', 'lc', 'tc', 'na', 'B', 'S', 'nv', 'bmg';
     my %hash = get-uni-props;
-    say $base-indent, '## The code below was generated by tools/build/makeUNIPROP.p6';
+    say $base-indent, '## The code below was generated by tools/build/makeUNIPROP.raku';
     say $base-indent, 'my $name2pref := nqp::hash(';
     # These Emoji properties are not in the UCD, but are officially a spec of the Unicode Org
     # These may or may not currently have short names. When/if they do, we should add these to the hash

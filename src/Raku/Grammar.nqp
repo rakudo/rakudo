@@ -4288,7 +4288,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token type-declarator:sym<constant> {
         :my $*IN-DECL := 'constant';
-        <.sym>
+        <.scope-constant>
         <.kok>
         [
           | '\\'?

@@ -72,7 +72,7 @@ class RakuAST::Package
     method dba()         { "package"             }
     method default-how() { Metamodel::PackageHOW }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['augment', 'my', 'our', 'unit']) }
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['anon', 'augment', 'my', 'our', 'unit']) }
     method default-scope()       { 'our' }
     method can-have-methods()    { False }
     method can-have-attributes() { False }

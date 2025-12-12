@@ -286,6 +286,10 @@ my class Num does Real { # declared in BOOTSTRAP
     method UPGRADE-RAT(\nu, \de) is raw {
         nqp::p6box_n(nqp::div_In(nu,de))  # downgrade to float
     }
+
+    method divzero() is implementation-detail {
+        X::Numeric::DivideByZero.new(:using</>, :numerator(self)).Failure
+    }
 }
 
 my constant tau = 6.28318_53071_79586_476e0;
@@ -371,35 +375,29 @@ multi sub infix:<*>(int $a, num $b --> num) { nqp::mul_n($a, $b) }
 multi sub infix:<*>(num $a, int $b --> num) { nqp::mul_n($a, $b) }
 
 multi sub infix:</>(Num:D $a, Num:D $b) {
-    $b
-      ?? nqp::p6box_n(nqp::div_n($a,$b))
-      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+    nqp::iseq_n($b,0e0) ?? $a.divzero !!  nqp::p6box_n(nqp::div_n($a,$b))
 }
-multi sub infix:</>(num $a, num $b --> num) {
-    $b
-      ?? nqp::div_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+multi sub infix:</>(num $a, num $b) {
+    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::div_n($a, $b)
 }
-multi sub infix:</>(num $a, int $b --> num) {
-    $b
-      ?? nqp::div_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+multi sub infix:</>(num $a, int $b) {
+    nqp::iseq_i($b,0) ?? $a.divzero !! nqp::div_n($a, $b)
 }
-multi sub infix:</>(int $a, num $b --> num) {
-    $b
-      ?? nqp::div_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+multi sub infix:</>(int $a, num $b) {
+    nqp::iseq_n($b,0) ?? $a.divzero !! nqp::div_n($a, $b)
 }
 
 multi sub infix:<%>(Num:D $a, Num:D $b) {
-    $b
-      ?? nqp::p6box_n(nqp::mod_n($a,$b))
-      !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
+    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::p6box_n(nqp::mod_n($a,$b))
 }
-multi sub infix:<%>(num $a, num $b --> num) {
-    $b
-      ?? nqp::mod_n($a, $b)
-      !! fail X::Numeric::DivideByZero.new(:using<%>, :numerator($a))
+multi sub infix:<%>(num $a, num $b) {
+    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
+}
+multi sub infix:<%>(num $a, int $b) {
+    nqp::iseq_i($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
+}
+multi sub infix:<%>(int $a, num $b) {
+    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
@@ -409,11 +407,11 @@ multi sub infix:<**>(Num:D $a, Num:D $b) {
         ?? 0e0
         !! X::Numeric::Underflow.new.Failure
 }
-multi sub infix:<**>(num $a, num $b --> num) {
+multi sub infix:<**>(num $a, num $b) {
     nqp::pow_n($a, $b)
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
-        !! fail X::Numeric::Underflow.new
+        !! X::Numeric::Underflow.new.Failure
 }
 
 # Here we sort NaN in with string "NaN"

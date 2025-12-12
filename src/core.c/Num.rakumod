@@ -352,30 +352,40 @@ multi sub abs(num   $a --> num)   { nqp::abs_n($a)               }
 multi sub infix:<+>(Num:D $a, Num:D $b) {
     nqp::p6box_n(nqp::add_n($a,$b))
 }
-multi sub infix:<+>(num $a, num $b --> num) {
-    nqp::add_n($a, $b)
-}
+multi sub infix:<+>(num $a, num $b --> num) { nqp::add_n($a, $b) }
+multi sub infix:<+>(int $a, num $b --> num) { nqp::add_n($a, $b) }
+multi sub infix:<+>(num $a, int $b --> num) { nqp::add_n($a, $b) }
 
 multi sub infix:<->(Num:D $a, Num:D $b) {
     nqp::p6box_n(nqp::sub_n($a,$b))
 }
-multi sub infix:<->(num $a, num $b --> num) {
-    nqp::sub_n($a, $b)
-}
+multi sub infix:<->(num $a, num $b --> num) { nqp::sub_n($a, $b) }
+multi sub infix:<->(int $a, num $b --> num) { nqp::sub_n($a, $b) }
+multi sub infix:<->(num $a, int $b --> num) { nqp::sub_n($a, $b) }
 
 multi sub infix:<*>(Num:D $a, Num:D $b) {
     nqp::p6box_n(nqp::mul_n($a,$b))
 }
-multi sub infix:<*>(num $a, num $b --> num) {
-    nqp::mul_n($a, $b)
-}
+multi sub infix:<*>(num $a, num $b --> num) { nqp::mul_n($a, $b) }
+multi sub infix:<*>(int $a, num $b --> num) { nqp::mul_n($a, $b) }
+multi sub infix:<*>(num $a, int $b --> num) { nqp::mul_n($a, $b) }
 
 multi sub infix:</>(Num:D $a, Num:D $b) {
     $b
       ?? nqp::p6box_n(nqp::div_n($a,$b))
-      !! X::Numeric::DivideByZero.new(:using</>, :numerator($a)).Failure
+      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
 }
 multi sub infix:</>(num $a, num $b --> num) {
+    $b
+      ?? nqp::div_n($a, $b)
+      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+}
+multi sub infix:</>(num $a, int $b --> num) {
+    $b
+      ?? nqp::div_n($a, $b)
+      !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))
+}
+multi sub infix:</>(int $a, num $b --> num) {
     $b
       ?? nqp::div_n($a, $b)
       !! fail X::Numeric::DivideByZero.new(:using</>, :numerator($a))

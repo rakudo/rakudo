@@ -384,7 +384,7 @@ multi sub infix:</>(num $a, int $b) {
     nqp::iseq_i($b,0) ?? $a.divzero !! nqp::div_n($a, $b)
 }
 multi sub infix:</>(int $a, num $b) {
-    nqp::iseq_n($b,0) ?? $a.divzero !! nqp::div_n($a, $b)
+    nqp::iseq_n($b,0e0) ?? nqp::coerce_in($a).divzero !! nqp::div_n($a, $b)
 }
 
 multi sub infix:<%>(Num:D $a, Num:D $b) {
@@ -394,10 +394,10 @@ multi sub infix:<%>(num $a, num $b) {
     nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
 }
 multi sub infix:<%>(num $a, int $b) {
-    nqp::iseq_i($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
+    nqp::iseq_i($b,0) ?? $a.divzero !! nqp::mod_n($a,$b)
 }
 multi sub infix:<%>(int $a, num $b) {
-    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
+    nqp::iseq_n($b,0e0) ?? nqp::coerce_in($a).divzero !! nqp::mod_n($a,$b)
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)

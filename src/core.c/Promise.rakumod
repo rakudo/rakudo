@@ -235,7 +235,17 @@ my class Promise does Awaitable {
         then-promise
     }
 
-    method then(Promise:D: &code, :$synchronous) {
+    proto method then(|) { * }
+    multi method then(Promise:D: :&if-kept!, :&if-broken!, :$synchronous) {
+        self.if-broken(&if-broken, :$synchronous).if-kept(&if-kept, :$synchronous)
+    }
+    multi method then(Promise:D: :&if-kept!, :$synchronous) {
+        self.if-kept(&if-kept, :$synchronous)
+    }
+    multi method then(Promise:D: :&if-broken!, :$synchronous) {
+        self.if-broken(&if-broken, :$synchronous)
+    }
+    multi method then(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
@@ -287,7 +297,13 @@ my class Promise does Awaitable {
                                $synchronous)
         }
     }
-    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
+    multi method andthen(Promise:D: &code, :$synchronous) is revision-gated('6.e')
+        is DEPRECATED("Promise.andthen is deprecated. Please use Promise.if-kept")
+    {
+        self.if-kept: &code, :$synchronous
+    }
+
+     method if-kept(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -327,7 +343,9 @@ my class Promise does Awaitable {
     }
 
     proto method orelse(|) is revision-gated('6.c') { * }
-    multi method orelse(Promise:D: &code, :$synchronous) {
+    multi method orelse(Promise:D: &code, :$synchronous)
+        is DEPRECATED("Promise.orelse is deprecated. Please use Promise.if-broken")
+    {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -351,7 +369,13 @@ my class Promise does Awaitable {
                                $synchronous)
         }
     }
-    multi method orelse(Promise:D: &code, :$synchronous) is revision-gated('6.e') {
+    multi method orelse(Promise:D: &code, :$synchronous) is revision-gated('6.e')
+        is DEPRECATED("Promise.andthen is deprecated. Please use Promise.if-kept")
+    {
+        self.if-broken: &code, :$synchronous
+    }
+
+    method if-broken(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);

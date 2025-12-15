@@ -5744,7 +5744,7 @@ Rakudo significantly on *every* run."
     # directives that may not be used as block names
     token rakudoc-directives {
         [
-        alias | begin | column | config | end | finish | for | place | row
+        alias | begin | column | config | end | finish | for | place | restart | row
         ] >>
     }
 
@@ -5839,6 +5839,20 @@ Rakudo significantly on *every* run."
         [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
         # fetch any configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =restart
+    token doc-block:sym<restart> {
+
+        ^^ $<margin>=[ \h* ] '=restart'
+
+        [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
+
+        # fetch any restart configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line

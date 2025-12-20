@@ -104,10 +104,11 @@ my class Junction { # declared in BOOTSTRAP
         my int $i = -1;
         my int $seen;
         nqp::while(
-          nqp::islt_i(++$i,nqp::elems(eigenstates))
-            && nqp::isfalse(nqp::atpos(eigenstates,$i).defined)
-            && nqp::not_i($seen++),
-          nqp::null
+          nqp::islt_i(++$i,nqp::elems(eigenstates)) && nqp::islt_i($seen,2),
+          nqp::if(
+            nqp::atpos(eigenstates,$i).defined,
+            ++$seen
+          )
         );
         nqp::hllbool(nqp::iseq_i($seen,1))
     }

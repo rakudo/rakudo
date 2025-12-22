@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 10;
+plan 11;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -149,4 +149,9 @@ is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter 
 
 is Parameter.new(:name('$a'), :type(Int), :optional).perl, 'Int $a?', 'Parameter takes by-name parameters itself';
 
+subtest 'Temporal', {
+    my $posix = 915148800.999_999_999_999_9;
+    todo 'Needs more time or expertise';
+    is Instant.from-posix-nanos( ($posix * 10**9).Int ), Instant.from-posix( $posix), '.from-posix-nanos vs .from-posix';
+}
 # vim: expandtab shiftwidth=4

@@ -290,6 +290,9 @@ my class Num does Real { # declared in BOOTSTRAP
     method divzero() is implementation-detail {
         X::Numeric::DivideByZero.new(:using</>, :numerator(self)).Failure
     }
+    method modzero() is implementation-detail {
+        X::Numeric::DivideByZero.new(:using<%>, :numerator(self)).Failure
+    }
 }
 
 my constant tau = 6.28318_53071_79586_476e0;
@@ -388,16 +391,16 @@ multi sub infix:</>(int $a, num $b) {
 }
 
 multi sub infix:<%>(Num:D $a, Num:D $b) {
-    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::p6box_n(nqp::mod_n($a,$b))
+    nqp::iseq_n($b,0e0) ?? $a.modzero !! nqp::p6box_n(nqp::mod_n($a,$b))
 }
 multi sub infix:<%>(num $a, num $b) {
-    nqp::iseq_n($b,0e0) ?? $a.divzero !! nqp::mod_n($a,$b)
+    nqp::iseq_n($b,0e0) ?? $a.modzero !! nqp::mod_n($a,$b)
 }
 multi sub infix:<%>(num $a, int $b) {
-    nqp::iseq_i($b,0) ?? $a.divzero !! nqp::mod_n($a,$b)
+    nqp::iseq_i($b,0) ?? $a.modzero !! nqp::mod_n($a,$b)
 }
 multi sub infix:<%>(int $a, num $b) {
-    nqp::iseq_n($b,0e0) ?? nqp::coerce_in($a).divzero !! nqp::mod_n($a,$b)
+    nqp::iseq_n($b,0e0) ?? nqp::coerce_in($a).modzero !! nqp::mod_n($a,$b)
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)

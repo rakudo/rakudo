@@ -67,19 +67,11 @@ sub MAIN(@ARGS) {
 sub MAIN(*@ARGS) {
 #?endif
     # Enter the compiler.
-    my %defaults;
-    if nqp::existskey(nqp::getenvhash, 'RAKUDO_OPT') {
-        my @env-args := nqp::split(" ", nqp::getenvhash<RAKUDO_OPT>);
-        my $p := HLL::CommandLine::Parser.new($comp.commandline_options);
-        $p.add-stopper('-e');
-        $p.stop-after-first-arg;
-        my $res := $p.parse(@env-args);
-        if $res {
-            %defaults := $res.options;
-        }
+    if nqp::getenvhash<RAKUDO_OPT> -> $opts {
+        nqp::splice(@ARGS,nqp::split(" ",$opts),1,0);
     }
     my $*STACK-ID := 0;
-    $comp.command_line(@ARGS, :encoding('utf8'), |%defaults);
+    $comp.command_line(@ARGS, :encoding('utf8'));
 
     # do all the necessary actions at the end, if any
     if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {

@@ -777,6 +777,7 @@ my class Range is Cool does Iterable does Positional {
     multi method min(:$k!)  { $k ?? 0 !! $!min                 }
     multi method min(:$kv!) { $kv ?? (0,$!min) !! $!min        }
     multi method min(:$p!)  { $p ?? Pair.new(0,$!min) !! $!min }
+    multi method min(:&by!) { self.List.min(:&by)              }
 
     proto method max(|) {*}
     multi method max() { $!max }
@@ -789,6 +790,7 @@ my class Range is Cool does Iterable does Positional {
     multi method max(:$p!) {
         $p ?? Pair.new((try self.end) // Inf,$!max) !! $!max
     }
+    multi method max(:&by!) { self.List.max(:&by) }
 
     multi method minmax(Range:D:) {
         $!is-int
@@ -797,6 +799,7 @@ my class Range is Cool does Iterable does Positional {
             ?? "Cannot return minmax on Range with excluded ends".Failure
             !! ($!min,$!max)
     }
+    multi method minmax(:&by!) { self.List.minmax(:&by) }
 }
 
 augment class Range {

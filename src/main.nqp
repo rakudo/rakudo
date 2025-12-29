@@ -70,13 +70,39 @@ sub MAIN(*@ARGS) {
 
     # Check standard options specified
     if nqp::getenvhash<RAKUDO_OPT> -> $opts {
-        my @opts := nqp::split(" ",$opts);
+        my @raw-opts := nqp::split(" ",$opts);
 
         # Check if RAKUDO_OPT is disabled: if so, simply remove the options
         for @ARGS {
             if $_ eq '--disable-rakudo-opt' {
-                @opts := ();
+                @raw-opts := ();
                 last;
+            }
+        }
+
+        # Simple chopper of last char
+        my sub chop(str $it) { nqp::substr($it,0,nqp::chars($it) - 1) }
+
+        # Converts any raw-opts to actual opts, handling "\ " expansion
+        # in arguments.
+        my @opts;
+        while @raw-opts {
+            my $arg := nqp::shift(@raw-opts);
+
+            # Needs expanding
+            if nqp::eqat($arg,'\\',-1) && @raw-opts {
+                my str $final := chop($arg);
+                $arg := nqp::shift(@raw-opts);
+                while nqp::eqat($arg,'\\',-1) && @raw-opts {
+                    $final := $final ~ " " ~ chop($arg);
+                    $arg   := nqp::shift(@raw-opts);
+                }
+                nqp::push(@opts,$final ~ " " ~ $arg);
+            }
+
+            # Nothing special
+            else {
+                nqp::push(@opts,$arg);
             }
         }
 

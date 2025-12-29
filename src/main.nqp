@@ -42,6 +42,7 @@ my @clo := $comp.commandline_options();
 @clo.push('I=s');
 @clo.push('M=s');
 @clo.push('rakudo-home=s');
+@clo.push('disable-rakudo-opt');
 
 #?if js
 @clo.push('beautify');
@@ -66,10 +67,55 @@ sub MAIN(@ARGS) {
 #?if js
 sub MAIN(*@ARGS) {
 #?endif
-    # Enter the compiler.
+
+    # Check standard options specified
     if nqp::getenvhash<RAKUDO_OPT> -> $opts {
-        nqp::splice(@ARGS,nqp::split(" ",$opts),1,0);
+        my @opts := nqp::split(" ",$opts);
+
+        # Check if RAKUDO_OPT is disabled: if so, simply remove the options
+        for @ARGS {
+            if $_ eq '--disable-rakudo-opt' {
+                @opts := ();
+                last;
+            }
+        }
+
+        # Check all of the specified options
+        my @ok;
+        while @opts {
+            my $flag := nqp::shift(@opts);
+            my int $ok;
+
+            # Test the allowed ones that may take an argument
+            for <
+              -I -M --optimize --rakudo-home --debug-port --repl-mode
+              --profile --profile-compile --profile-kind --profile-stage
+            > {
+                if nqp::eqat($flag,$_,0) {
+                    nqp::push(@ok,$flag);
+                    nqp::push(@ok,nqp::shift(@opts)) if $flag eq $_ && @opts;
+                    $ok := 1;
+                    last;
+                }
+            }
+
+            # Test the allowed ones that do not take an argument
+            for <--stagestats --ll-exception --full-cleanup --debug-suspend> {
+                if $_ eq $flag {
+                    nqp::push(@ok,$flag);
+                    $ok := 1;
+                    last;
+                }
+            }
+            unless $ok {
+                nqp::say("Not allowed to use '$flag' as an argument in RAKUDO_OPT");
+                nqp::exit(1);
+            }
+        }
+        nqp::splice(@ARGS,@ok,1,0);
     }
+
+    # Enter the compiler.
     my $*STACK-ID := 0;
     $comp.command_line(@ARGS, :encoding('utf8'));
 

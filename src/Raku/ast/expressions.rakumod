@@ -804,6 +804,9 @@ class RakuAST::Feed
   is RakuAST::Infix
   is RakuAST::BeginTime
 {
+    # We will need this
+    has RakuAST::Resolver $!resolver;
+
     method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
@@ -812,13 +815,48 @@ class RakuAST::Feed
 
     method is-pure() { False }
 
-    method PERFORM-BEGIN(Resolver $resolver, Context $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
         if $operator eq "==>>" || $operator eq "<<==" {
             self.add-sorry:
               $resolver.build-exception: 'X::Comp::NYI',
                 :feature($operator ~ " feed operator");
         }
+        nqp::bindattr(self, RakuAST::Feed, '$!resolver', $resolver);
+    }
+
+    # $operands should be an array of RakuAST::Expressions that we will proceed to thunk. $adverbs is ignored.
+    method IMPL-LIST-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context, Mu $operands, Mu $adverbs) {
+        my @stages;
+        my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
+        if $operator eq "==>" {
+            for $operands {
+                @stages.push: $_;
+            }
+        } else {  # "<<==" and "==>>" are NYI
+            for $operands {
+                @stages.unshift: $_;
+            }
+        }
+
+        my $stmts := QAST::Stmts.new;
+        my $result := @stages.shift;
+        my $input := @stages.pop;
+        my $input-thunk := RakuAST::BlockThunk.new: :expression($input);
+        $input.wrap-with-thunk($input-thunk);
+        $input-thunk.to-begin-time($!resolver, $context);
+        $stmts.push: $input-thunk.IMPL-THUNK-VALUE-QAST($context);
+        for @stages -> $stage {
+            my $result-thunk := RakuAST::BlockThunk.new: :expression($result);
+            $result.wrap-with-thunk($result-thunk);
+            $result-thunk.to-begin-time($!resolver, $context);
+            $stmts.push: $result-thunk.IMPL-THUNK-VALUE-QAST($context);
+            $result := $stage;
+        }
+        my $call := RakuAST::Call::Term.new: args => RakuAST::ArgList.new: $input;
+        $stmts.push: $call.IMPL-POSTFIX-QAST: $context,  $result.IMPL-THUNK-VALUE-QAST($context);
+
+        $stmts
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -2223,16 +2261,23 @@ class RakuAST::ApplyListInfix
     method operator() { $!infix }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $can-compile := nqp::can($!infix,'IMPL-LIST-INFIX-COMPILE');
         my @operands;
+        my @adverbs; # only for use with IMPL-LIST-INFIX-COMPILE
         for $!operands {
-            @operands.push($_.IMPL-TO-QAST($context));
+            @operands.push($can-compile ?? $_ !! $_.IMPL-TO-QAST($context));
         }
         for $!adverbs {
-            my $arg := $_.IMPL-VALUE-QAST($context);
-            $arg.named($_.named-arg-name);
-            @operands.push($arg);
+            if $can-compile {
+                @adverbs.push($_)
+            } else {
+                my $arg := $_.IMPL-VALUE-QAST($context);
+                $arg.named($_.named-arg-name);
+                @operands.push($arg);
+            }
         }
-        $!infix.IMPL-LIST-INFIX-QAST: $context, @operands;
+        $can-compile ?? $!infix.IMPL-LIST-INFIX-COMPILE($context, @operands, @adverbs)
+                     !! $!infix.IMPL-LIST-INFIX-QAST($context, @operands);
     }
 
     method visit-children(Code $visitor) {

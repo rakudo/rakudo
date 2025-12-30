@@ -3501,6 +3501,26 @@ class RakuAST::SubstitutionReplacementThunk
     }
 }
 
+class RakuAST::FeedThunk
+  is RakuAST::ExpressionThunk
+{
+    has Mu $!parameter;
+
+    method new($parameter) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::FeedThunk, '$!parameter', $parameter);
+        $obj
+    }
+
+    method thunk-kind() {
+        'Feed thunk'
+    }
+
+    method IMPL-THUNK-SIGNATURE() {
+        RakuAST::Signature.new(parameters => self.IMPL-WRAP-LIST([$!parameter]))
+    }
+}
+
 # Thunk for a curried Whatever expression.
 class RakuAST::CurryThunk
   is RakuAST::ExpressionThunk

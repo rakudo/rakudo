@@ -544,6 +544,9 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+multi sub exit-ok(|c) is export is DEPRECATED("exits-ok") {
+    exits-ok(|c)
+}
 multi sub exits-ok(
         &code,
   Int:D $exit = 0,

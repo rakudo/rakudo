@@ -247,17 +247,14 @@ class RakuAST::LegacyPodify {
         # These need code of its own, as the new grammar only collects
         # and does not do any interpretation
         my str $type  = $ast.type;
-        my str $level = $ast.level;
-        unless $level {
-            return self.podify-table($ast)
-              if $type eq 'table' | 'numtable';
-            return self.podify-verbatim($ast, $type)
-              if $type eq 'code' | 'input' | 'output';
-            return self.podify-implicit-code($ast)
-              if $type eq 'implicit-code';
-            return self.podify-defn($ast)
-              if $type eq 'defn' | 'numdefn';
-        }
+        return self.podify-table($ast)
+          if $type eq 'table' | 'numtable';
+        return self.podify-verbatim($ast, $type)
+          if $type eq 'code' | 'input' | 'output';
+        return self.podify-implicit-code($ast)
+          if $type eq 'implicit-code';
+        return self.podify-defn($ast)
+          if $type eq 'defn' | 'numdefn';
 
         # no more special casing
         my $config   := $ast.resolved-config;
@@ -273,6 +270,7 @@ class RakuAST::LegacyPodify {
         }).List;
 
         if $type {
+            my str $level = $ast.level;
             if $type eq 'item' | 'head' {
                 ($type eq 'item' ?? Pod::Item !! Pod::Heading).new(
                   :level($level ?? $level.Int !! 1), :$config, :$contents

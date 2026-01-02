@@ -774,7 +774,7 @@ augment class RakuAST::Doc::Block {
 
     # return True if a legacy, visual type of table
     method visual-table(RakuAST::Doc::Block:D:) {
-        $!type eq 'table'
+        $!type eq 'table' | 'numtable'
           && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
     }
 
@@ -901,7 +901,7 @@ augment class RakuAST::Doc::Block {
             ) for @paragraphs;
         }
 
-        elsif $type eq 'table' {
+        elsif $type eq 'table' | 'numtable' {
             if nqp::istype(@paragraphs.head,Str) {
                 $block!interpret-as-table(@paragraphs);
             }

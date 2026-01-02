@@ -250,7 +250,7 @@ class RakuAST::LegacyPodify {
         my str $level = $ast.level;
         unless $level {
             return self.podify-table($ast)
-              if $type eq 'table';
+              if $type eq 'table' | 'numtable';
             return self.podify-verbatim($ast, $type)
               if $type eq 'code' | 'input' | 'output';
             return self.podify-implicit-code($ast)

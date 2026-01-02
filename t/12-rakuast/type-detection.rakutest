@@ -1,0 +1,137 @@
+use Test;
+
+plan 6;
+
+# Test 1: Basic return type inference and compile-time type checking
+subtest "Basic return type inference" => {
+    plan 2;
+    
+    my $source = q:to/END/;
+    sub returns-int() returns Int {
+        42
+    }
+    say returns-int();
+    END
+    
+    lives-ok { EVAL $source }, "Function with correct return type should compile";
+    
+    my $source-bad = q:to/END/;
+    sub returns-int-bad() returns Int {
+        "string"
+    }
+    END
+    
+    dies-ok { EVAL $source-bad }, "Function with incorrect return type should fail at compile time";
+}
+
+# Test 2: Type compatibility checks
+subtest "Type compatibility checks" => {
+    plan 2;
+    
+    # Integer is compatible with Num
+    my $source = q:to/END/;
+    sub returns-num() returns Num {
+        42
+    }
+    say returns-num();
+    END
+    
+    lives-ok { EVAL $source }, "Subtype should be compatible with supertype";
+    
+    # String is not compatible with Int
+    my $source-bad = q:to/END/;
+    sub returns-int-bad() returns Int {
+        "42"
+    }
+    END
+    
+    dies-ok { EVAL $source-bad }, "Incompatible types should fail compilation";
+}
+
+# Test 3: Block return type checking
+subtest "Block return type checking" => {
+    plan 2;
+    
+    my $source = q:to/END/;
+    my Int $result = do {
+        42
+    };
+    say $result;
+    END
+    
+    lives-ok { EVAL $source }, "Block returning correct type should compile";
+    
+    my $source-bad = q:to/END/;
+    my Int $result = do {
+        "string"
+    };
+    END
+    
+    dies-ok { EVAL $source-bad }, "Block returning incorrect type should fail at compile time";
+}
+
+# Test 4: Multi-line function with return type checking
+subtest "Multi-line function return type checking" => {
+    plan 2;
+    
+    my $source = q:to/END/;
+    sub complex-func() returns Str {
+        my $a = 10;
+        my $b = 20;
+        "Result: " ~ ($a + $b)
+    }
+    say complex-func();
+    END
+    
+    lives-ok { EVAL $source }, "Multi-line function with correct return type should compile";
+    
+    my $source-bad = q:to/END/;
+    sub complex-func-bad() returns Str {
+        my $a = 10;
+        my $b = 20;
+        $a + $b  # Returns Int, not Str
+    }
+    END
+    
+    dies-ok { EVAL $source-bad }, "Multi-line function with incorrect return type should fail compilation";
+}
+
+# Test 5: Return type with Any
+subtest "Return type with Any" => {
+    plan 1;
+    
+    my $source = q:to/END/;
+    sub returns-any() returns Any {
+        "This should work"
+    }
+    say returns-any();
+    END
+    
+    lives-ok { EVAL $source }, "Function returning Any should accept any type";
+}
+
+# Test 6: Type checking with defined return values
+subtest "Type checking with defined return values" => {
+    plan 2;
+    
+    my $source = q:to/END/;
+    sub returns-defined() returns Str {
+        return "defined string";
+    }
+    say returns-defined();
+    END
+    
+    lives-ok { EVAL $source }, "Function with explicit return should compile";
+    
+    my $source-bad = q:to/END/;
+    sub returns-undefined() returns Str {
+        return 42;  # Wrong type
+    }
+    END
+    
+    dies-ok { EVAL $source-bad }, "Function with explicit return of wrong type should fail";
+}
+
+# Note: Some of these tests might not catch all issues immediately,
+# depending on how extensively the compile-time type checking is implemented.
+# As the implementation improves, these tests will help verify the functionality.

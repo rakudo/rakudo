@@ -478,6 +478,11 @@ Need to re-check dependencies.")
             $*ERR.flush;
         }
 
+        # Any arguments in RAKUDO_OPT have already wound up in the @ARGS
+        # so remove it here now, so we don't repeat the arguments in it
+        # when we restart ourselves to do a precompilation.
+        nqp::deletekey($env,'RAKUDO_OPT');
+
         my $out := nqp::list_s;
         my $err := nqp::list_s;
         my $status;

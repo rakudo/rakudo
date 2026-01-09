@@ -332,29 +332,29 @@ class Perl6::Metamodel::ParametricRoleHOW
         if nqp::isnull($type_env) {
             my int $i;
             while $i < $m {
-                my str $ins := nqp::atpos(@ins_list, $i);
-                nqp::bindkey(
-                  $ctx,
-                  $ins,
-                  $type_env.cache(nqp::getlexrel($ctx, $ins))
-                );
-                ++$i;
-            }
-            $type_env
-        }
-        else {
-            my int $i;
-            while $i < $m {
                 my str $ins     := nqp::atpos(@ins_list, $i);
                 my     $generic := nqp::getlexrel($ctx, $ins);
                 nqp::bindkey(
-                  $ctx,
-                  $ins,
-                  $generic.HOW.instantiate_generic($generic, $type_env)
+                    $ctx,
+                    $ins,
+                    $generic.HOW.instantiate_generic($generic, $type_env)
                 );
                 ++$i;
             }
             $ctx
+        }
+        else {
+            my int $i;
+            while $i < $m {
+                my str $ins := nqp::atpos(@ins_list, $i);
+                nqp::bindkey(
+                    $ctx,
+                    $ins,
+                    $type_env.cache(nqp::getlexrel($ctx, $ins))
+                );
+                ++$i;
+            }
+            $type_env
         }
     }
 

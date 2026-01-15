@@ -6,7 +6,7 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
             Manufacturer="The Raku Community"
             Name="Rakudo $(var.VERSION)"
             UpgradeCode="08B7EB05-7EAC-4B60-9F5B-AF6E367FE0FD"
-            Version="1.0.0">
+            Version="$(var.VERSION)">
 
         <Package Compressed="yes"
                 InstallerVersion="400"

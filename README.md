@@ -2,7 +2,7 @@
 
 This is Rakudo, a Raku Programming Language compiler for the MoarVM, JVM and Javascript virtual machines.
 
-Rakudo is Copyright © 2008-2025, The Raku Foundation. Rakudo
+Rakudo is Copyright © 2008-2026, The Raku Foundation. Rakudo
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 

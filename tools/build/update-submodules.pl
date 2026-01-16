@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright (C) 2009-2022 The Perl Foundation
+# Copyright (C) 2009-2026 The Perl Foundation
 
 use 5.10.1;
 use strict;

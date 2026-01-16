@@ -15,7 +15,7 @@ xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
                 Manufacturer="The Raku Community"
                 Description="Installs Rakudo $(var.VERSION)"
                 Keywords="Raku, Rakudo"
-                Comments="(c) 2025 The Raku Community" />
+                Comments="(c) 2026 The Raku Community" />
         
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
 

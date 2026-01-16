@@ -612,7 +612,7 @@ Previous releases were bundled as part of monthly Parrot releases.
 
 =head1 COPYRIGHT
 
-Copyright © 2009-2025, The Raku Foundation.
+Copyright © 2009-2026, The Raku Foundation.
 
 =cut
 

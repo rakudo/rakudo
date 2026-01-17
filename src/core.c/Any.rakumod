@@ -675,10 +675,10 @@ sub dd(|c) {  # is implementation-detail
         note .raku for %named.sort: { .key }
     }
     elsif $*CU -> $CU { # assume that we are in a CHECK phaser, show the tree
-        my @stmts = $CU.statement-list.statements;
-        @stmts.pop;   # too early to do .head(*-1)
-        .say for @stmts;
-        exit;
+        if $CU.statement-list.statements -> @stmts {
+            .say for @stmts.skip;
+            exit;
+        }
     }
     else { # tell where we are
         note .name

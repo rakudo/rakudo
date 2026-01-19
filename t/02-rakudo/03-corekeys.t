@@ -22,6 +22,7 @@ my @allowed =
       Q{&COMP_EXCEPTION},
       Q{CORE-SETTING-REV},
       Q{&CREATE_RATIONAL_FROM_INTS},
+      Q{&DEFINITE},
       Q{&DEPRECATED},
       Q{&DIVIDE_NUMBERS},
       Q{&DUMP},

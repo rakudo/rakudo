@@ -122,12 +122,13 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
 }
 
 # XXX Wants to be macros when we have them.
-only sub HOW (Mu \x)  { x.HOW   }
-only sub VAR (Mu \x)  { x.VAR   }
-only sub WHAT(Mu \x)  { x.WHAT  }
-only sub WHERE(Mu \x) { x.WHERE }
-only sub WHICH(Mu \x) { x.WHICH }
-only sub WHO(Mu \x)   { x.WHO   }
+only sub HOW(     Mu \x) { x.HOW      }
+only sub VAR(     Mu \x) { x.VAR      }
+only sub WHAT(    Mu \x) { x.WHAT     }
+only sub WHERE(   Mu \x) { x.WHERE    }
+only sub WHICH(   Mu \x) { x.WHICH    }
+only sub WHO(     Mu \x) { x.WHO      }
+only sub DEFINITE(Mu \x) { x.DEFINITE }
 
 proto sub infix:<...>(|) {*}
 multi sub infix:<...>(\a, Mu \b) {

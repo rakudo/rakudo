@@ -10,7 +10,10 @@ sub non-implementation(\base, \matcher) {
       .map( *.value.name )
 }
 
-my @UPPER = <DYNAMIC-FALLBACK EVAL EVALFILE HOW NYI RUN-MAIN VAR WHAT WHERE WHICH WHO>;
+my @UPPER = <
+  DEFINITE DYNAMIC-FALLBACK EVAL EVALFILE HOW NYI RUN-MAIN VAR WHAT
+  WHERE WHICH WHO
+>;
 
 my @lower = <<
   abs acos acosec acosech acosh acotan acotanh all any append

@@ -67,6 +67,7 @@ my %allowed = (
     Q{&QX},
     Q{&REACT},
     Q{&REACT-ONE-WHENEVER},
+    Q{&REPR},
     Q{&REQUIRE_IMPORT},
     Q{&RETURN-LIST},
     Q{&RUN-MAIN},

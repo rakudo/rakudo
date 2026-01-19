@@ -644,6 +644,7 @@ class RakuAST::Call::Method
             'WHAT',     'what',
             'HOW',      'how',
             'WHO',      'who',
+            'WHERE',    'where',
             'VAR',      'p6var',
             'REPR',     'p6reprname',
             'DEFINITE', 'p6definite',

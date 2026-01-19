@@ -6326,6 +6326,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 whine_if_args($/, $past, $name);
                 $past.op('who');
             }
+            elsif $name eq 'WHERE' {
+                whine_if_args($/, $past, $name);
+                $past.op('where');
+            }
             elsif $name eq 'VAR' {
                 whine_if_args($/, $past, $name);
                 $past.op('p6var');

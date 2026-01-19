@@ -4053,10 +4053,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method doc-block:sym<restart>($/) {
+    method doc-block:sym<counter>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             self.doc-origin: $/, Nodify('Doc','Block').from-config:
-              :directive, :margin(~$<margin>), :type<restart>,
+              :directive, :margin(~$<margin>), :type<counter>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
         }
     }

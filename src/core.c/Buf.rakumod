@@ -1740,11 +1740,8 @@ multi sub infix:<cmp>(Blob:D $a, Blob:D $b) { ORDER($a.COMPARE($b)) }
 multi sub infix:<eq> (Blob:D $a, Blob:D $b --> Bool:D) {
     nqp::hllbool(nqp::eqaddr($a,$b) || $a.SAME($b))
 }
-multi sub infix:<ne> (Blob:D $a, Blob:D $b --> Bool:D) {
-    nqp::hllbool(
-      nqp::not_i(nqp::eqaddr($a,$b) || $a.SAME($b))
-    )
-}
+#multi sub infix:<ne> (Blob:D $a, Blob:D $b --> Bool:D) {
+#   ---> moved to core_epilogue.rakumod
 multi sub infix:<lt> (Blob:D $a, Blob:D $b) {
     nqp::hllbool(nqp::iseq_i($a.COMPARE($b),-1))
 }

@@ -77,6 +77,11 @@ my proto sub rakudoc2text(|) is export {
     }
 }
 
+# make sure we only look at the statements of a compunit
+my multi sub rakudoc2text(RakuAST::CompUnit:D $cu --> Str:D) {
+    rakudoc2text($cu.statement-list)
+}
+
 # basically make sure Cool stuff that crept in doesn't bomb
 my multi sub rakudoc2text(Str:D $string --> Str:D) { $string   }
 my multi sub rakudoc2text(Cool:D $cool  --> Str:D) { $cool.Str }

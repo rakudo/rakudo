@@ -1,3 +1,36 @@
+New in 2026.01:
+
++ Improvements:
+    + Remove meaningless command-line argument "parsetrace" [cff551c8]
+    + Add infix + - / * candidates for mixed int / num [1b46f713]
+    + Make -MSIL cleaner by excluding any core BBs [c7e41bd8]
+    + Test .from-posix versus .from-posix-nanos [f95aefad]
+    + Add profiling opts (from NQP) [6f087b06]
+    + Treat .WHERE as a macro, just as .HOW and friends [a0a198dd]
+    + Give "macro" DEFINITE same treatment as WHO and friends [62927745]
+    + Give "macro" REPR same treatment as WHO and friends [971b2fa4]
+
++ Fixes:
+    + Fix roast test failure caused by 1b46f7135b7776e779 [fbb967b3]
+    + Rename Test's exit-ok to exits-ok [24e6ff34]
+    + MoarVM alignment fix for GCC 15.1/OpenSuse Leap 16 [fb0142fe]
+    + Fix an inverted logic scenerio for $type_env [3babcc69]
+
++ Additions:
+
++ RakuAST:
+    + Fixup handling of =numtable [fcc0e185]
+    + Allow for =table3 and friends in podification [f3ada07f]
+    + Prevent execution error if no RakuAST [d1a33cd7]
+    + Rename =restart to =counter [dc33497f]
+    + Make rakudoc2text also take a ::CompUnit [81ea8224]
+
++ Internal:
+    + MSI: Use $(var.VERSION) For Product Version Instead Of Hardcoded "1.0.0"
+      [a9e53a05]
+    + Update Copyrights To 2026 [e0797921][33652f14][6f69b3aa][fce89c25]
+      [52995edb][c7e8ffb6][39d5610b][c4efa5f1][422e44d0][8676d9b4][5e10741c]
+
 New in 2025.12:
 + Improvements:
     + Improve help message wrt --optimize [04a36dd1]

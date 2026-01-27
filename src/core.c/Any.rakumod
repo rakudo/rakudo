@@ -674,6 +674,12 @@ sub dd(|c) {  # is implementation-detail
     elsif c.hash -> %named {
         note .raku for %named.sort: { .key }
     }
+    elsif $*CU && $*CU.statement-list.statements -> @statements {
+        .say for @statements.grep: {
+            !try .expression ~~ RakuAST::StatementPrefix::Phaser::Check
+        }
+        exit;
+    }
     else { # tell where we are
         note .name
           ?? "{lc .^name} {.name}{.signature.gist}"

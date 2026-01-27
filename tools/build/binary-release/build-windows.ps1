@@ -70,4 +70,16 @@ Compress-Archive -Path $FILE_NAME -DestinationPath ..\rakudo-win.zip
 
 echo "========= Trigger the MSI build"
 $buildMSIScript = (Join-Path -Path $repoPath -ChildPath "\tools\build\binary-release\msi\build-msi.ps1")
-& $buildMSIScript ${Env:VERSION} $FILE_NAME ..\rakudo-win.msi
+
+# The product version must not be greater than 256. Thus we reformat the version: 2026.01 (rev 01) -> 26.1.1
+# Without this adaption the following error occurs:
+# error CNDL0242 : Invalid product version '2026.01'. Product version must have a major version less than 256, a minor version less than 256, and a build version less than 65536.
+$comps = $Env:VERSION.split(".")
+$comps += $Env:REVISION
+$comps = ForEach ($comp in $comps) {
+    $comp.trimstart("0")
+}
+$product_version = $comps -join "."
+$product_version = $product_version.substring(2)
+
+& $buildMSIScript ${Env:VERSION} $product_version $FILE_NAME ..\rakudo-win.msi

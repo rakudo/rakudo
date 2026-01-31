@@ -639,7 +639,7 @@ my class IO::Handle {
         my str $error-state = !$shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_RO)
                                 ?? "Cannot create a non-shared lock on a read-only file handle"
                                 !! $shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_WO)
-                                    ?? "Cannote create a shared lock on a write-only file handle"
+                                    ?? "Cannot create a shared lock on a write-only file handle"
                                     !! "";
         if $error-state {
             fail X::IO::Lock.new: :os-error($error-state),

@@ -125,17 +125,17 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method samecase($, *%) {*}
     multi method samecase(Cool:D: Cool:D $pattern) {
-        self.Str.samecase($pattern)
+        self.Str.samecase($pattern.Str)
     }
 
     proto method samemark($, *%) {*}
     multi method samemark(Cool:D: Cool:D $pattern) {
-        self.Str.samemark($pattern)
+        self.Str.samemark($pattern.Str)
     }
 
     proto method samespace($, *%) is implementation-detail {*}
     multi method samespace(Cool:D: Cool:D $pattern) {
-        self.Str.samespace($pattern)
+        self.Str.samespace($pattern.Str)
     }
 
     proto method starts-with(|) {*}
@@ -225,7 +225,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.contains($needle.Str, $pos.Int)
     }
     multi method contains(Cool:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos)
+        self.Str.contains($needle, $pos.Int)
     }
 
     proto method indices(|) {*}

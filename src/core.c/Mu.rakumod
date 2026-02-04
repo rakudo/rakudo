@@ -1072,7 +1072,7 @@ my class Mu { # declared in BOOTSTRAP
         False
     }
 
-    method does(Mu \SELF: Mu $type) {
+    method does(Mu \SELF: Mu $type --> Bool:D) {
         nqp::hllbool(nqp::istype(SELF, $type.WHAT))
     }
 

@@ -637,9 +637,9 @@ my class IO::Handle {
         # Pre-filter guaranteed failures and provide clear explanations for them
         my int $open-mode = nqp::syscall("handle-open-mode", $!PIO);
         my str $error-state = !$shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_RO)
-                                ?? "Cannot create a non-shared lock on a read-only file handle"
+                                ?? "Cannot create a non-shared lock on a read-only filehandle"
                                 !! $shared && nqp::iseq_i($open-mode, nqp::const::OPEN_MODE_WO)
-                                    ?? "Cannote create a shared lock on a write-only file handle"
+                                    ?? "Cannot create a shared lock on a write-only filehandle"
                                     !! "";
         if $error-state {
             fail X::IO::Lock.new: :os-error($error-state),

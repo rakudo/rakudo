@@ -5235,6 +5235,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @redecl;
         my $block := $world.cur_lexpad();
         my $index := -1;
+        my $last_type := $world.find_symbol: ['Mu'];
         unless nqp::elems(@values) {
             my $term := $<term>.Str;
             $term := nqp::substr($term,1,nqp::chars($term) - 2);
@@ -5297,8 +5298,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 );
             }
 
+            if nqp::istype($cur_value, $last_type) {
+                $last_type := $cur_value.WHAT;
+            }
+            else {
+                $world.throw($/, 'X::Comp::TypeCheck',
+                  expected  => $last_type,
+                  got       => $cur_value,
+                  operation => 'enum '
+                    ~ $type_obj.HOW.name($type_obj)
+                    ~ "::$cur_key definition"
+                );
+            }
+
             # Create and install value.
-            my $val_obj := $world.create_enum_value($type_obj, $cur_key, $cur_value, $index := $index + 1);
+            my $val_obj := $world.create_enum_value($type_obj, $cur_key, $cur_value, ++$index);
             $cur_key    := nqp::unbox_s($cur_key);
             $world.install_package_symbol_unchecked($type_obj, $cur_key, $val_obj);
             if $block.symbol($cur_key) {

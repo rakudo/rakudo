@@ -766,12 +766,27 @@ class RakuAST::Type::Enum
         my %meta-stash := $resolver.IMPL-STASH-HASH($meta);
         my %package-stash := $resolver.IMPL-STASH-HASH($!current-package);
         my int $index;
+        my $last-type := Mu;
         for @values -> $pair {
             my $key   := $pair[0];
             my $value := $pair[1];
 
-            if !nqp::defined($value) {
-                nqp::die("Using a type object as a value for an enum not yet implemented. Sorry.");
+            unless nqp::defined($value) {
+                $resolver.build-exception('X::NYI',
+                  feature => "Using a type object as a value for an enum"
+                ).throw;
+            }
+
+            if nqp::istype($value, $last-type) {
+                $last-type := $value.WHAT;
+            }
+            else {
+                $resolver.build-exception('X::Comp::TypeCheck',
+                  expected  => $last-type,
+                  got       => $value,
+                  operation =>
+                    'enum ' ~ $meta.HOW.name($meta) ~ "::$key definition"
+                ).throw;
             }
 
             my $val-meta := nqp::rebless(nqp::clone($value), $meta);

@@ -192,6 +192,16 @@ multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
     $*KERNEL.hostname
 }
 
+augment class Mu {
+    proto method perl(|) {*}
+    multi method perl(Mu \SELF: |c) is DEPRECATED("raku") { SELF.raku(|c) }
+    # although technically not a documented method, some module authors have
+    # used this in the ecosystem.
+    method perlseen(Mu \SELF: |c) is DEPRECATED("rakuseen") {
+        SELF.rakuseen(|c)
+    }
+}
+
 augment class Cool {
 
     # Methods that are DEPRECATED are moved here and augmented into the classes

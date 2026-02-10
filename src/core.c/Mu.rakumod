@@ -9,12 +9,6 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    proto method perl(|) {*}
-    multi method perl(Mu \SELF: |c) { SELF.raku(|c) }
-    # although technically not a documented method, some module authors have
-    # used this in the ecosystem.
-    method perlseen(Mu \SELF: |c) { SELF.rakuseen(|c) }
-
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Mu \topic) {
         nqp::hllbool(nqp::istype(topic, self))

@@ -2090,6 +2090,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #-------------------------------------------------------------------------------
 # .split and associated logic
 
+    multi method split(Str:D: Regex:D $needle, $limit, :$end! --> Seq:D) {
+        self!split-enz($needle, $limit, $end)
+    }
+
+    multi method split(Str:D: Str() $needle, $limit, :$end! --> Seq:D) {
+        self!split-enz($needle, $limit, $end)
+    }
+
+    method !split-enz($needle, $limit, $end) {
+        if !$end || nqp::istype($limit,Whatever) || $limit == Inf {
+            self.split($needle, |%_)
+        }
+        else {
+            my $steps = $limit - 1;
+            my @parts = self.split($needle, |%_, :v);
+            my @result;
+            while @parts > 1 && $steps-- {
+                @result.unshift(@parts.pop);
+                @parts.pop;
+            }
+            (@parts.join, |@result).Seq
+        }
+    }
+
     multi method split(Str:D: Regex:D $regex, $limit = Whatever;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
 

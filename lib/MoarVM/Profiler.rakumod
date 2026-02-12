@@ -519,7 +519,7 @@ class MoarVM::Profiler {
 
         self
     }
-    method new(@raw) { self.CREATE!SET-SELF(@raw) }
+    method new(@raw) { nqp::create(self)!SET-SELF(@raw) }
 
     method types_by_name() {
         %!types_by_name
@@ -649,7 +649,7 @@ class MoarVM::Profiler {
     }
 
     method average(*@profiles --> MoarVM::Profiler:D) {
-        self.CREATE!average(@profiles)
+        nqp::create(self)!average(@profiles)
     }
 
     method average_profile(&code, :$times = 5 --> MoarVM::Profiler:D) {

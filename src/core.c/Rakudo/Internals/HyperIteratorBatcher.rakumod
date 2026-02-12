@@ -1,6 +1,6 @@
 # Batches values sourced from an iterator, producing a work batch from them.
 my class Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBatcher {
-    my constant NO_LOOKAHEAD = Mu.CREATE;
+    my constant NO_LOOKAHEAD = nqp::create(Mu);
     has Iterator $!iterator;
     has $!lookahead;
     has int $!seq-num;

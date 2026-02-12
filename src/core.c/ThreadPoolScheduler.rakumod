@@ -307,7 +307,7 @@ my class ThreadPoolScheduler does Scheduler {
         has Queue $.queue;
 
         submethod TWEAK(:$!scheduler!) {
-            my $queue := $!queue := Queue.CREATE;
+            my $queue := $!queue := nqp::create(Queue);
             $!thread = Thread.start(:app_lifetime, :name<AffinityWorker>, {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
                 loop {

@@ -12,7 +12,7 @@ class Rakudo::Supply {
         has $.run-async-lock;
 
         method new(:&emit!, :&done!, :&quit!) {
-            self.CREATE!SET-SELF(&emit, &done, &quit)
+            nqp::create(self)!SET-SELF(&emit, &done, &quit)
         }
 
         method !SET-SELF(&emit, &done, &quit) {
@@ -219,7 +219,7 @@ class Rakudo::Supply {
         has $.active;
 
         method new(:&emit!, :&done!, :&quit!) {
-            self.CREATE!SET-SELF(&emit, &done, &quit)
+            nqp::create(self)!SET-SELF(&emit, &done, &quit)
         }
 
         method !SET-SELF(&emit, &done, &quit) {

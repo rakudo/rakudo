@@ -18,7 +18,7 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
         $!batches.fail($e);
     }
 
-    my constant EMPTY_BUFFER = IterationBuffer.CREATE;
+    my constant EMPTY_BUFFER = nqp::create(IterationBuffer);
     has IterationBuffer $!current-items = EMPTY_BUFFER;
     method pull-one() {
         until nqp::elems(nqp::decont($!current-items)) { # Handles empty batches

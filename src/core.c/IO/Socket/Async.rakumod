@@ -69,7 +69,7 @@ my class IO::Socket::Async {
         has $!udp;
 
         method new(Mu :$VMIO!, :$scheduler!, :$buf!, :$close-promise!, :$udp!) {
-            self.CREATE!SET-SELF($VMIO, $scheduler, $buf, $close-promise, $udp)
+            nqp::create(self)!SET-SELF($VMIO, $scheduler, $buf, $close-promise, $udp)
         }
 
         method !SET-SELF(Mu $!VMIO, $!scheduler, $!buf, $!close-promise, $!udp) { self }
@@ -253,7 +253,7 @@ my class IO::Socket::Async {
         has $!scheduler;
 
         method new(:$host!, :$port!, :$backlog!, :$encoding!, :$scheduler!) {
-            self.CREATE!SET-SELF($host, $port, $backlog, $encoding, $scheduler)
+            nqp::create(self)!SET-SELF($host, $port, $backlog, $encoding, $scheduler)
         }
 
         method !SET-SELF($!host, $!port, $!backlog, $!encoding, $!scheduler) { self }
@@ -349,7 +349,7 @@ my class IO::Socket::Async {
         has $!scheduler;
 
         method new(:$path!, :$backlog!, :$encoding!, :$scheduler!) {
-            self.CREATE!SET-SELF($path, $backlog, $encoding, $scheduler)
+            nqp::create(self)!SET-SELF($path, $backlog, $encoding, $scheduler)
         }
 
         method !SET-SELF($!path, $!backlog, $!encoding, $!scheduler) { self }

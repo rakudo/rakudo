@@ -46,7 +46,7 @@ my class Rakudo::Internals::ReactAwaitable does Awaitable {
     has $!handle;
 
     method new($handle) {
-        self.CREATE!set-handle($handle)
+        nqp::create(self)!set-handle($handle)
     }
     method !set-handle($handle) {
         $!handle = $handle;
@@ -59,7 +59,7 @@ my class Rakudo::Internals::ReactAwaitHandle does Awaitable::Handle {
     has &!react-block;
 
     method not-ready(&react-block) {
-        self.CREATE!set-react-block(&react-block)
+        nqp::create(self)!set-react-block(&react-block)
     }
     method !set-react-block(&react-block) {
         &!react-block = &react-block;
@@ -77,7 +77,7 @@ my class Rakudo::Internals::ReactOneWheneverAwaitHandle does Awaitable::Handle {
     has &!react-block;
 
     method not-ready(&react-block) {
-        self.CREATE!set-react-block(&react-block)
+        nqp::create(self)!set-react-block(&react-block)
     }
     method !set-react-block(&react-block) {
         &!react-block = &react-block;

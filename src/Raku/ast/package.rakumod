@@ -720,6 +720,9 @@ class RakuAST::Class
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
 
+    # Needed for adding to the role's list of generic lexicals
+    method lexical-name() { nqp::getattr(self,RakuAST::Package,'$!name').canonicalize }
+
     method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         # create POPULATE method if there's something to create,
         # otherwise put in a generic fallback POPULATE that doesn't
@@ -740,6 +743,18 @@ class RakuAST::Class
             }
         }
         $type
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Package,'PERFORM-BEGIN')(self,$resolver,$context);
+        # Conceptually this could go inside of 'ensure-installed', however we may only find out
+        # about being generic after traits are applied.
+        if self.scope eq 'my'   # This narrows it down considerably, as roles can only have my-scope classes
+        && (my $role := $resolver.find-attach-target("generics-pad"))
+        && self.traits-include-is-generic
+        {
+            $role.IMPL-ADD-GENERIC-LEXICAL(self)
+        }
     }
 }
 

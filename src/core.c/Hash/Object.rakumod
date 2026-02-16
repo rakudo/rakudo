@@ -1,15 +1,15 @@
-my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
-  does Associative[TValue] {
+my role Hash::Object[::CORE'Hash'Object'TValue, ::CORE'Hash'Object'TKey, ::CORE'Hash'Object'TDefault = CORE'Hash'Object'TValue]
+  does Associative[CORE'Hash'Object'TValue] {
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {
         nqp::p6bindattrinvres(
           nqp::create(self),Hash,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TDefault))
+          ContainerDescriptor.new(:of(CORE'Hash'Object'TValue), :default(CORE'Hash'Object'TDefault))
         )
     }
-    method keyof () { TKey }
-    method AT-KEY(::?CLASS:D: TKey \key) is raw {
+    method keyof () { CORE'Hash'Object'TKey }
+    method AT-KEY(::?CLASS:D: CORE'Hash'Object'TKey \key) is raw {
         my \storage := nqp::getattr(self, Map, '$!storage');
         my str $which = nqp::unbox_s(key.WHICH);
         nqp::existskey(storage,$which)
@@ -22,7 +22,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
              )
     }
 
-    method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
+    method STORE_AT_KEY(::?CLASS:D: CORE'Hash'Object'TKey \key, Mu \value --> Nil) {
         nqp::istype(key,Failure)
           ?? key.throw
           !! nqp::bindkey(
@@ -50,7 +50,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         );
     }
 
-    method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
+    method ASSIGN-KEY(::?CLASS:D: CORE'Hash'Object'TKey \key, Mu \assignval) is raw {
         key.throw if nqp::istype(key,Failure);
 
         my \storage  := nqp::getattr(self, Map, '$!storage');
@@ -69,7 +69,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         )
     }
 
-    method BIND-KEY(TKey \key, TValue \value) is raw {
+    method BIND-KEY(CORE'Hash'Object'TKey \key, CORE'Hash'Object'TValue \value) is raw {
         nqp::istype(key,Failure)
           ?? key.throw
           !! nqp::getattr(
@@ -83,7 +83,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
              )
     }
 
-    method EXISTS-KEY(TKey \key) {
+    method EXISTS-KEY(CORE'Hash'Object'TKey \key) {
         nqp::istype(key,Failure)
           ?? key.throw
           !! nqp::hllbool(
@@ -91,7 +91,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
              )
     }
 
-    method DELETE-KEY(TKey \key) {
+    method DELETE-KEY(CORE'Hash'Object'TKey \key) {
         key.throw if nqp::istype(key,Failure);
 
         nqp::if(
@@ -302,14 +302,14 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     method is-generic {
         nqp::hllbool(
             callsame()
-            || TValue.^archetypes.generic
-            || TKey.^archetypes.generic )
+            || CORE'Hash'Object'TValue.^archetypes.generic
+            || CORE'Hash'Object'TKey.^archetypes.generic )
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
         self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
-            type-environment.instantiate(TValue),
-            type-environment.instantiate(TKey)
+            type-environment.instantiate(CORE'Hash'Object'TValue),
+            type-environment.instantiate(CORE'Hash'Object'TKey)
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
@@ -320,8 +320,8 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
 
     multi method raku(::?CLASS:D \SELF:) {
         SELF.rakuseen('Hash', {
-            my $TKey-raku   := TKey.raku;
-            my $TValue-raku := TValue.raku;
+            my $TKey-raku   := CORE'Hash'Object'TKey.raku;
+            my $TValue-raku := CORE'Hash'Object'TValue.raku;
             $TKey-raku eq 'Any' && $TValue-raku eq 'Mu'
               ?? ( '$(' x nqp::iscont(SELF)
                     ~ ':{' ~ SELF.sort.map({.raku}).join(', ') ~ '}'

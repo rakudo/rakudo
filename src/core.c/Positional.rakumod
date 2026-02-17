@@ -1,5 +1,5 @@
-my role Positional[::T = Mu] {
-    method of() { T }
+my role Positional[::CORE'Positional'TValue = Mu] {
+    method of() { CORE'Positional'TValue }
 
 # These methods must be implemented by any object performing the Positional
 # role.  The reason this is not actually activated, is that there are some

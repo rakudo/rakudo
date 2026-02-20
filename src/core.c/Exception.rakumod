@@ -266,6 +266,9 @@ my class X::Method::NotFound is Exception {
         elsif $.method eq 'last' {
             %suggestions<tail> = 0;
         }
+        elsif $.method eq 'Uni' && $.typename eq 'Str' {
+            %suggestions{$_} = 0 for <NFC NFD NFKC NFKD>;
+        }
 
         my sub code-name(Mu $meth) {
             # KnowHOW `methods` method returns a hash. Respectively, iteration over .^methods gives us Pairs.

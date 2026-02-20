@@ -25,7 +25,9 @@ my class RakuAST::LanguageVersion is RakuAST::Node {
 
     method new(Version:D $version) { self.bless: :$version }
 
-    method raku() { self.^name ~ ".new($!version.gist())" }
+    multi method raku(RakuAST::LanguageVersion:D:) {
+        self.^name ~ ".new($!version.gist())"
+    }
 }
 
 #- Actions ---------------------------------------------------------------------

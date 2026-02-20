@@ -91,7 +91,7 @@ my class Hash::Ordered is Hash {
         )
     }
 
-    method raku(Hash::Ordered:D:) {
+    multi method raku(Hash::Ordered:D:) {
         self.^name
           ~ '.new(('
           ~ self.Hash::raku.substr(1, *-1)

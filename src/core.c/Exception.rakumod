@@ -156,6 +156,14 @@ my class X::AdHoc is Exception {
     has $.payload is default(Nil) = "Unexplained error";
 
     my role SlurpySentry { }
+    method TWEAK(:$no-backtrace) {
+        if $no-backtrace {
+            self does my role no-backtrace {
+                method backtrace()    { Nil  }
+                method no-backtrace() { True }
+            }
+        }
+    }
 
     method message() {
         # Remove spaces for die(*@msg)/fail(*@msg) forms
@@ -603,6 +611,9 @@ do {
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
                 $err.print($e.Str);
+            }
+            elsif $e.?no-backtrace {
+                $err.say($e.Str);
             }
             else {
                 $err.say("===SORRY!===");

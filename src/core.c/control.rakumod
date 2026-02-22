@@ -249,10 +249,10 @@ multi sub die(--> Nil) {
 multi sub die(Exception:U $e --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $e.^name)).throw;
 }
-multi sub die($payload --> Nil) {
+multi sub die($payload, :$no-backtrace --> Nil) {
     $payload ~~ Exception
       ?? $payload.throw
-      !! X::AdHoc.new(:$payload).throw
+      !! X::AdHoc.new(:$payload, :$no-backtrace).throw
 }
 multi sub die(|cap ( *@msg ) --> Nil) {
     X::AdHoc.from-slurpy(|cap).throw

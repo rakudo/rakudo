@@ -156,11 +156,11 @@ my class X::AdHoc is Exception {
     has $.payload is default(Nil) = "Unexplained error";
 
     my role SlurpySentry { }
-    method TWEAK(:$no-backtrace) {
-        if $no-backtrace {
-            self does my role no-backtrace {
-                method backtrace()    { Nil  }
-                method no-backtrace() { True }
+    method TWEAK(:$without-backtrace) {
+        if $without-backtrace {
+            self does my role without-backtrace {
+                method backtrace()         { Nil  }
+                method without-backtrace() { True }
             }
         }
     }
@@ -612,7 +612,7 @@ do {
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
                 $err.print($e.Str);
             }
-            elsif $e.?no-backtrace {
+            elsif $e.?without-backtrace {
                 $err.say($e.Str);
             }
             else {

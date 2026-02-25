@@ -2094,7 +2094,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self!split-enz($needle, $limit, $end)
     }
 
-    multi method split(Str:D: Str() $needle, $limit, :$end! --> Seq:D) {
+    multi method split(Str:D: Str(Cool) $needle, $limit, :$end! --> Seq:D) {
         self!split-enz($needle, $limit, $end)
     }
 

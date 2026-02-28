@@ -1,3 +1,29 @@
+New in 2026.02:
+
++ Improvements:
+    + Simplify handing of RAKUDO_OPT environment variable [759e583f]
+    + Add :by support to Range.min/max/minmax[9b0dfbc6]
+    + Give enum A (a => 3.14, b => 6) a better error message [5e183241]
+    + Micro-opt self.CREATE -> nqp::create(self) [6acaa900]
+    + Suggest NFC, NFD, NFKC, NFKD when trying to do "foo".Uni [35428451]
+    + Make some only method raku multi on instantiated invocant [7f39c4bb]
+
++ Fixes:
+    + fix Windows MSI build [ff829b87]
+    + Enforce deprecation of .perl [33f68d2c]
+    + Give Mu.does a return type constraint [85871dc9]
+    + Make error reporting more resilient wrt warnings [eeb97aca]
+
++ Additions:
+
++ RakuAST:
+    + Revert/Cleanup some previous RakuAST commits: [6e474f82][d71d63d5]
+    + give enum A (a => 3.14, b => 6) a better error message [b7a4e1a9]
+    + fix for "add bare dd CHECK functionality (4fad427)" [1d155e52]
+    + Default unnamed packages to `anon` scope instead of `our` [47d8befa]
+
++ Internal:
+
 New in 2026.01:
 
 + Improvements:

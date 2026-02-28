@@ -1,10 +1,12 @@
-my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TValue] {
+my role Hash::Typed[::CORE'Hash'Typed'TValue, ::CORE'Hash'Typed'TKey, ::CORE'Hash'Typed'TDefault = CORE'Hash'Typed'TValue]
+    does Associative[CORE'Hash'Typed'TValue, CORE'Hash'Typed'TKey]
+{
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {
         nqp::p6bindattrinvres(
           nqp::create(self),Hash,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TDefault))
+          ContainerDescriptor.new(:of(CORE'Hash'Typed'TValue), :default(CORE'Hash'Typed'TDefault))
         )
     }
 
@@ -24,7 +26,7 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
         )
     }
 
-    method BIND-KEY(Mu \key, TValue \value) is raw {
+    method BIND-KEY(Mu \key, CORE'Hash'Typed'TValue \value) is raw {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           key.Str,
@@ -33,11 +35,11 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
     }
 
     method is-generic {
-        nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic))
+        nqp::hllbool(callsame() || nqp::istrue(CORE'Hash'Typed'TValue.^archetypes.generic))
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
-        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(TValue)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(CORE'Hash'Typed'TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
         my \ins-hash = self.INSTANTIATE-GENERIC(type-environment);
@@ -49,10 +51,10 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
         SELF.rakuseen('Hash', {
             '$' x nqp::iscont(SELF)  # self is always deconted
             ~ (self.elems
-               ?? "(my {TValue.raku} % = {
+               ?? "(my {CORE'Hash'Typed'TValue.raku} % = {
                     self.sort.map({.raku}).join(', ')
                    })"
-               !! "(my {TValue.raku} %)"
+               !! "(my {CORE'Hash'Typed'TValue.raku} %)"
               )
         })
     }

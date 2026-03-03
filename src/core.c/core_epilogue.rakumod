@@ -94,6 +94,32 @@ BEGIN {
     }
 }
 
+## From Stringy.rakumod
+proto sub infix:<ne>(Mu $?, Mu $?, *%) is pure {*}
+multi sub infix:<ne>(    --> Bool::True) { }
+multi sub infix:<ne>(Any --> Bool::True) { }
+#multi sub infix:<ne>(Mu \a, Mu \b) is revision-gated("6.c") { not a eq b }
+#multi sub infix:<ne>(Mu \a, Mu \b) is revision-gated("6.e") { (a eq b) eq False }
+multi sub infix:<ne>(Mu \a, Mu \b) { (a eq b) eq False }
+#multi sub infix:<ne>(\a, \b) is revision-gated("6.c") { a.Stringy ne b.Stringy }
+#multi sub infix:<ne>(\a, \b) is revision-gated("6.e") { (a.Stringy eq b.Stringy) eq False }
+multi sub infix:<ne>(\a, \b) { (a.Stringy eq b.Stringy) eq False }
+
+## From Str.rakumod
+multi sub infix:<ne>(Str:D $a, Str:D $b --> Bool:D) {
+  nqp::hllbool(nqp::isne_s(nqp::unbox_s($a),nqp::unbox_s($b)))
+}
+multi sub infix:<ne>(str $a, str $b --> Bool:D) {
+  nqp::hllbool(nqp::isne_s($a, $b))
+}
+## From Buf.rakumod
+multi sub infix:<ne> (Blob:D $a, Blob:D $b --> Bool:D) {
+  nqp::hllbool(
+          nqp::not_i(nqp::eqaddr($a,$b) || $a.SAME($b))
+  )
+}
+&infix:<ne>.set_op_props();
+
 # Required for use in the optimizer
 nqp::bindhllsym('Raku', 'Mu:U', Mu:U);
 

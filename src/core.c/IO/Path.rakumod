@@ -622,36 +622,82 @@ my class IO::Path is Cool does IO {
           !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
     }
 
-    constant fallback-slurp-size = 0x100000;
 
-    # slurp contents of low level handle
-    sub slurp-PIO(Mu \PIO, :$size = fallback-slurp-size) is raw {
-        my \slurp-size = $size;
-        nqp::readfh(PIO,(my $blob := nqp::create(buf8.^pun)),slurp-size);
+    # Initial size for slurping a file
+    my int $slurp-size = 0x00100000;
 
-        # if the size is set to the fallback value, then
-        # run the old path...
-        # enough to read entire buffer, assume there's more
-        if slurp-size == fallback-slurp-size && nqp::iseq_i(nqp::elems($blob),slurp-size) {
-            nqp::while(
-              nqp::elems(
-                nqp::readfh(PIO,(my $part := nqp::create(buf8.^pun)),slurp-size)
-              ),
-              $blob.append($part)
-            );
-        }
+    # Maximum size for slurping with nqp::readfh.  This apparently takes
+    # a signed 32bit int and only accepts positive values.  This would
+    # make 0xffffffff the largest value, but that would cause all sorts
+    # of overhead because it's not a multiple of the block size.  So
+    # use a value that for sure is a multiple of the block size.
+    my int $max-size = 0x070000000;
+
+    # Slurp contents of low level handle.  If the initial slurp size is
+    # completely used, ask the OS for the size of the file.  If that is
+    # known, slurp directly for that number of bytes.  If that failed
+    # or is more than what can be read in one go, take the slow path
+    method !slurp-PIO(Mu \PIO is raw) {
+        my $blob := nqp::readfh(PIO,nqp::create(buf8.^pun),$slurp-size);
+
+        nqp::if(
+          nqp::iseq_i(nqp::elems($blob),$slurp-size),             # all read?
+          nqp::splice(                                            # no
+            $blob,
+            nqp::if(
+              nqp::istype((my $s := self.s),Failure)              # size unknown
+                || (my int $size = $s - $slurp-size) > $max-size, # too large
+              slurp-PIO-uncertain(PIO, $max-size),                # slow path
+              nqp::readfh(PIO,nqp::create(buf8.^pun),$size)       # read rest
+            ),
+            nqp::elems($blob),
+            0
+          ),
+          $blob                                                   # all read!
+        )
+    }
+
+    # Logic for reading from a PIO that cannot tell how many bytes
+    # can be read from it
+    sub slurp-PIO-uncertain(Mu \PIO is raw, int $size) {
+        my $cbuf8 := buf8.^pun;
+        my $blob;
+
+        nqp::while(
+          nqp::stmts(
+            (my $part := nqp::readfh(PIO,nqp::create($cbuf8),$size)),
+            nqp::if(
+              nqp::isconcrete($blob),
+              nqp::splice($blob,$part,nqp::elems($blob),0),
+              ($blob := $part)
+            ),
+            nqp::iseq_i(nqp::elems($part),$size)
+          ),
+          nqp::null
+        );
         $blob
     }
 
-    # slurp STDIN in binary mode
-    sub slurp-stdin-bin() is raw { slurp-PIO(nqp::getstdin) }
-
     # slurp given path in binary mode
-    sub slurp-path-bin(str $path, int $size) is raw {
+    method !slurp-path-bin(str $path) is raw {
         my $PIO  := nqp::open($path,'r');
-        my $blob := slurp-PIO($PIO, :$size);
+        my $blob := self!slurp-PIO($PIO);
         nqp::closefh($PIO);
         $blob
+    }
+
+    # slurp given path with given normalized encoding
+    method !slurp-path-with-encoding(str $path, str $encoding) {
+        CATCH { return $_.Failure }
+
+        nqp::elems(my $blob := self!slurp-path-bin($path))
+          ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
+          !! ""
+    }
+
+    # slurp STDIN in binary mode
+    sub slurp-stdin-bin() is raw {
+        slurp-PIO-uncertain(nqp::getstdin, $slurp-size)
     }
 
     # slurp STDIN with given normalized encoding
@@ -661,39 +707,27 @@ my class IO::Path is Cool does IO {
         )
     }
 
-    # slurp given path with given normalized encoding
-    sub slurp-path-with-encoding(str $path, str $encoding, int $size) {
-        CATCH { return $_.Failure }
-
-        nqp::elems(my $blob := slurp-path-bin($path, $size))
-          ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
-          !! ""
-    }
-
     proto method slurp() {*}
     multi method slurp(IO::Path:D: :$bin!) {
-        my $size = ((try self.s) // 0) max fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? $bin
             ?? slurp-stdin-bin()
             !! slurp-stdin-with-encoding('utf8')
           !! $bin
-            ?? slurp-path-bin(self.absolute,$size)
-            !! slurp-path-with-encoding(self.absolute,'utf8',$size)
+            ?? self!slurp-path-bin(self.absolute)
+            !! self!slurp-path-with-encoding(self.absolute,'utf8')
     }
     multi method slurp(IO::Path:D: :$enc!) {
-        my $size = ((try self.s) // 0) max fallback-slurp-size;
+        my $encoding := Rakudo::Internals.NORMALIZE_ENCODING($enc);
+
         nqp::iseq_s($!path,"-")
-          ?? slurp-stdin-with-encoding(
-               Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          !! slurp-path-with-encoding(self.absolute,
-               Rakudo::Internals.NORMALIZE_ENCODING($enc),$size)
+          ?? slurp-stdin-with-encoding($encoding)
+          !! self!slurp-path-with-encoding(self.absolute, $encoding)
     }
     multi method slurp(IO::Path:D:) {
-        my $size = ((try self.s) // 0) max fallback-slurp-size;
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding('utf8')
-          !! slurp-path-with-encoding(self.absolute,'utf8',$size)
+          !! self!slurp-path-with-encoding(self.absolute,'utf8')
     }
 
     # spurt data to given path and file mode

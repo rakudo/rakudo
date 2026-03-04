@@ -688,11 +688,13 @@ my class IO::Path is Cool does IO {
 
     # slurp given path with given normalized encoding
     method !slurp-path-with-encoding(str $path, str $encoding) {
-        CATCH { return $_.Failure }
-
-        nqp::elems(my $blob := self!slurp-path-bin($path))
-          ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
-          !! ""
+        nqp::istype(
+          (my $blob := self!slurp-path-bin(
+            $path
+          ).decode-with-valid-encoding($encoding)),
+          Failure
+        ) ?? $blob
+          !! nqp::join("\n",nqp::split("\r\n",$blob))
     }
 
     # slurp STDIN in binary mode
@@ -702,9 +704,11 @@ my class IO::Path is Cool does IO {
 
     # slurp STDIN with given normalized encoding
     sub slurp-stdin-with-encoding(str $encoding) {
-        nqp::join("\n",
-          nqp::split("\r\n",nqp::decode(slurp-stdin-bin,$encoding))
-        )
+        nqp::istype(
+          (my $blob := slurp-stdin-bin.decode-with-valid-encoding($encoding)),
+          Failure
+        ) ?? $blob
+          !! nqp::join("\n",nqp::split("\r\n",$blob))
     }
 
     proto method slurp() {*}

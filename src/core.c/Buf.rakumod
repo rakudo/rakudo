@@ -639,25 +639,61 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         X::Buf::AsStr.new(object => self, method => 'Stringy' ).throw
     }
 
+    # On some OSes this is apparently the largest number of graphemes
+    # that can be exist in a string or that can be decoded
+    my constant INT_MAX32 = 0x07fffffff;
+
+    # Helper method for undecodeable blobs, assuming that decoding
+    # empty blobs doesn't happen very often so that also uses this
+    # slow path
+    method !no-decode() {
+        nqp::elems(self)
+          ?? ('Too many bytes to decode: '
+               ~ nqp::elems(self)
+               ~ ' is more than '
+               ~ INT_MAX32
+             ).Failure
+          !! ""
+    }
+
+    # Fast path for a valid encoding
+    method decode-with-valid-encoding(str $encoding) is implementation-detail {
+        nqp::elems(self) && nqp::isle_i(nqp::elems(self),INT_MAX32)
+          ?? nqp::decode(self,$encoding)
+          !! self!no-decode
+    }
+
     proto method decode(|) {*}
     multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
-        nqp::p6box_s(
-          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding))
-        )
+        nqp::elems(self) && nqp::isle_i(nqp::elems(self),INT_MAX32)
+          ?? nqp::p6box_s(
+               nqp::decode(self,Rakudo::Internals.NORMALIZE_ENCODING($encoding))
+             )
+          !! self!no-decode
     }
 #?if !jvm
-    multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
-        nqp::p6box_s(
-          nqp::decoderepconf(self,
-            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
-            $replacement.defined ?? $replacement !! nqp::null_s(),
-            $strict ?? 0 !! 1))
+    multi method decode(
+      Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False
+    ) {
+        nqp::elems(self) && nqp::isle_i(nqp::elems(self),INT_MAX32)
+          ?? nqp::p6box_s(
+               nqp::decoderepconf(self,
+                 Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+                 $replacement.defined ?? $replacement !! nqp::null_s(),
+                 $strict ?? 0 !! 1
+               )
+             )
+          !! self!no-decode
     }
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
-        nqp::p6box_s(
-          nqp::decodeconf(self,
-            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
-            $strict ?? 0 !! 1))
+        nqp::elems(self) && nqp::isle_i(nqp::elems(self),INT_MAX32)
+          ?? nqp::p6box_s(
+               nqp::decodeconf(self,
+                 Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+                 $strict ?? 0 !! 1
+               )
+             )
+          !! self!no-decode
     }
 #?endif
 #?if jvm

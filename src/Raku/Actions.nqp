@@ -4014,28 +4014,33 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method doc-block:sym<column>($/) {
+    # helper method for simple directives
+    method add-as-directive($/, $type) {
         unless $*FROM-SEEN{$/.from}++ {
             self.doc-origin: $/, Nodify('Doc','Block').new:
-              :directive, :margin(~$<margin>), :type<column>,
+              :directive, :margin(~$<margin>), :$type,
               :config(self.extract-config($/))
         }
+    }
+
+    method doc-block:sym<column>($/) {
+        self.add-as-directive($/, 'column');
+    }
+
+    method doc-block:sym<counter>($/) {
+        self.add-as-directive($/, 'counter');
+    }
+
+    method doc-block:sym<document>($/) {
+        self.add-as-directive($/, 'counter');
     }
 
     method doc-block:sym<row>($/) {
-        unless $*FROM-SEEN{$/.from}++ {
-            self.doc-origin: $/, Nodify('Doc','Block').new:
-              :directive, :margin(~$<margin>), :type<row>,
-              :config(self.extract-config($/))
-        }
+        self.add-as-directive($/, 'row');
     }
 
     method doc-block:sym<place>($/) {
-        unless $*FROM-SEEN{$/.from}++ {
-            self.doc-origin: $/, Nodify('Doc','Block').new:
-              :directive, :margin(~$<margin>), :type<place>,
-              :config(self.extract-config($/))
-        }
+        self.add-as-directive($/, 'place');
     }
 
     method doc-block:sym<formula>($/) {
@@ -4051,14 +4056,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         unless $*FROM-SEEN{$/.from}++ {
             self.doc-origin: $/, Nodify('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<config>,
-              :config(self.extract-config($/)), :key(~$<doc-identifier>)
-        }
-    }
-
-    method doc-block:sym<counter>($/) {
-        unless $*FROM-SEEN{$/.from}++ {
-            self.doc-origin: $/, Nodify('Doc','Block').from-config:
-              :directive, :margin(~$<margin>), :type<counter>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
         }
     }

@@ -5744,7 +5744,7 @@ Rakudo significantly on *every* run."
     # directives that may not be used as block names
     token rakudoc-directives {
         [
-        alias | begin | column | config | counter | end | finish | for | place | row
+          alias  | begin | column | config | counter | document | end | finish | for | place | row
         ] >>
     }
 
@@ -5853,6 +5853,20 @@ Rakudo significantly on *every* run."
         [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
         # fetch any counter configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =document
+    token doc-block:sym<document> {
+
+        ^^ $<margin>=[ \h* ] '=document'
+
+        [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
+
+        # fetch any document configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line

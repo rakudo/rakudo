@@ -42,6 +42,19 @@ my class CallFrame {
         NYI('Callframe.callframe').throw;
     }
 
+    method language-revision(CallFrame:D:) {
+        my $ctx := nqp::getattr($!my,Map,'$!storage');
+        nqp::until(
+          nqp::isnull($ctx)
+            || nqp::existskey(nqp::ctxlexpad($ctx),'$?LANGUAGE-REVISION'),
+          $ctx := nqp::ctxouterskipthunks($ctx)
+        );
+
+        nqp::isnull($ctx)
+          ?? Nil
+          !! nqp::atkey(nqp::ctxlexpad($ctx),'$?LANGUAGE-REVISION')
+    }
+
     multi method gist(CallFrame:D:) {
         nqp::atkey($!annotations,'file')
           ~ ' at line '

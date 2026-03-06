@@ -21,6 +21,17 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
+    # Return the CallFrame of the real client of any core code
+    method client-callframe() {
+        my int $index;
+        while callframe(++$index) -> $callframe {
+            return $callframe
+              if !$callframe.file.starts-with('SETTING::' | 'core#');
+        }
+
+        Nil
+    }
+
     method compare-as-Int(&op, \a, \b) is implementation-detail {
         nqp::istype((my $a := a.Numeric),Failure)
           ?? $a

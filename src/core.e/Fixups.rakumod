@@ -1,7 +1,7 @@
 # This file contains fixups to existing core classes by means of augmentation
 # for language level 6.e.
 
-#-------------------------------------------------------------------------------
+#- Mu --------------------------------------------------------------------------
 augment class Mu {
 
     # introducing .Callable($method)
@@ -15,7 +15,7 @@ augment class Mu {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Any -------------------------------------------------------------------------
 augment class Any {
 
     # introducing snip
@@ -49,7 +49,7 @@ augment class Any {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Bag -------------------------------------------------------------------------
 augment class Bag {
 
     # add support for Format formats
@@ -59,7 +59,7 @@ augment class Bag {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- BagHash ---------------------------------------------------------------------
 augment class BagHash {
 
     # add support for Format formats
@@ -69,7 +69,7 @@ augment class BagHash {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Complex ---------------------------------------------------------------------
 augment class Complex {
 
     # handle sign correctly
@@ -78,13 +78,13 @@ augment class Complex {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Cool ------------------------------------------------------------------------
 augment class Cool {
     proto method nomark(|) {*}
     multi method nomark(Cool:D:) { self.Str.nomark }
 }
 
-#-------------------------------------------------------------------------------
+#- Date ------------------------------------------------------------------------
 augment class Date {
     multi method DateTime(Date:D:
       :$timezone = $*TZ
@@ -93,7 +93,7 @@ augment class Date {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Instant ---------------------------------------------------------------------
 augment class Instant {
     multi method DateTime(Instant:D:
       :$timezone = $*TZ
@@ -102,7 +102,7 @@ augment class Instant {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Int -------------------------------------------------------------------------
 augment class Int {
 
     # handle negative sqrts being Complex
@@ -136,7 +136,7 @@ augment class Int {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- IO::Path --------------------------------------------------------------------
 augment class IO::Path {
     method stem(IO::Path:D: $parts = * --> Str:D) {
         my str $basename = self.basename;
@@ -152,7 +152,7 @@ augment class IO::Path {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- List ------------------------------------------------------------------------
 augment class List {
 
     # add support for Format formats
@@ -163,7 +163,7 @@ augment class List {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Map -------------------------------------------------------------------------
 augment class Map {
 
     # add support for Format formats
@@ -173,7 +173,7 @@ augment class Map {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Mix -------------------------------------------------------------------------
 augment class Mix {
 
     # add support for Format formats
@@ -183,7 +183,7 @@ augment class Mix {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- MixHash ---------------------------------------------------------------------
 augment class MixHash {
 
     # add support for Format formats
@@ -193,7 +193,7 @@ augment class MixHash {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Num -------------------------------------------------------------------------
 augment class Num {
 
     # handle negative logs being Complex
@@ -217,7 +217,7 @@ augment class Num {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Pair ------------------------------------------------------------------------
 augment class Pair {
 
     # add support for Format formats
@@ -226,7 +226,7 @@ augment class Pair {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Range -----------------------------------------------------------------------
 augment class Range {
 
     # See https://github.com/rakudo/rakudo/issues/2238
@@ -248,7 +248,7 @@ augment class Range {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Seq -------------------------------------------------------------------------
 augment class Seq {
 
     # add support for Format formats
@@ -259,7 +259,7 @@ augment class Seq {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Set -------------------------------------------------------------------------
 augment class Set {
 
     # Add support for Format formats.   Note that the invocant is marked
@@ -272,7 +272,7 @@ augment class Set {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- SetHash ---------------------------------------------------------------------
 augment class SetHash {
 
     # add support for Format formats
@@ -282,7 +282,7 @@ augment class SetHash {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Str -------------------------------------------------------------------------
 augment class Str {
 
     # introduce rotor-like capabilities to comb
@@ -406,7 +406,7 @@ augment class Str {
     }
 }
 
-#-------------------------------------------------------------------------------
+#- Supply ----------------------------------------------------------------------
 augment class Supply {
 
     # introducing snip
@@ -444,8 +444,7 @@ augment class Supply {
     }
 }
 
-#-------------------------------------------------------------------------------
-
+#- infix ~ ---------------------------------------------------------------------
 # Revision-gated can not be made to work: adding it to the proto in the
 # core epilogue makes building the setting infiniloop
 multi sub infix:<~>(Blob:D $a, Blob:D $b) is default {
@@ -459,5 +458,35 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) is default {
     nqp::splice($res, $adc, 0, $alen);
     nqp::splice($res, $bdc, $alen, $blen);
 }
+
+#- infix div -------------------------------------------------------------------
+proto sub infix:<div>($, $, *%) is pure  {*}
+multi sub infix:<div>(Int:D $a, Int:D $b --> Int:D) {
+    $b
+      ?? nqp::div_I($a,$b,Int)
+      !! X::Numeric::DivideByZero.new(:using<div>, :numerator($a)).Failure
+}
+
+# relies on opcode or hardware to detect division by 0
+multi sub infix:<div>( int $a,  int $b --> int)  { nqp::div_i($a, $b) }
+multi sub infix:<div>( int $a, uint $b --> int)  { nqp::div_i($a, $b) }
+multi sub infix:<div>(uint $a,  int $b --> int)  { nqp::div_i($a, $b) }
+multi sub infix:<div>(uint $a, uint $b --> uint) { nqp::div_i($a, $b) }
+
+#- infix mod -------------------------------------------------------------------
+# NOTE: According to the spec, infix:<mod> is "Not coercive,
+# so fails on differing types."  Thus no casts here.
+proto sub infix:<mod>($, $, *%) is pure {*}
+multi sub infix:<mod>(Int:D $a, Int:D $b --> Int:D) {
+    $b
+      ?? nqp::sub_I($a,nqp::mul_I(nqp::div_I($a,$b,Int),$b,Int),Int)
+      !! X::Numeric::DivideByZero.new(:using<mod>, :numerator($a)).Failure
+}
+
+# relies on opcode or hardware to detect division by 0
+multi sub infix:<mod>( int $a,  int $b --> int)  { nqp::mod_i($a, $b) }
+multi sub infix:<mod>( int $a, uint $b --> int)  { nqp::mod_i($a, $b) }
+multi sub infix:<mod>(uint $a,  int $b --> int)  { nqp::mod_i($a, $b) }
+multi sub infix:<mod>(uint $a, uint $b --> uint) { nqp::mod_i($a, $b) }
 
 # vim: expandtab shiftwidth=4

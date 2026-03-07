@@ -51,8 +51,15 @@ my class CallFrame {
         );
 
         nqp::isnull($ctx)
-          ?? Nil
+          ?? 0
           !! nqp::atkey(nqp::ctxlexpad($ctx),'$?LANGUAGE-REVISION')
+    }
+
+    # helper method for "-".IO deprecation
+    method deprecate-IO-dash(str $what) is implementation-detail {
+        DEPRECATED('$*IN or $*OUT', :$what,
+          :file(self.file), :line(self.line)
+        ) if self.language-revision == 2;
     }
 
     multi method gist(CallFrame:D:) {

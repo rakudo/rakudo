@@ -32,6 +32,10 @@ my class Rakudo::Internals {
         Nil
     }
 
+    method client-language-revision() {
+        self.client-callframe.language-revision // 0
+    }
+
     method compare-as-Int(&op, \a, \b) is implementation-detail {
         nqp::istype((my $a := a.Numeric),Failure)
           ?? $a

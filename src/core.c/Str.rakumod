@@ -33,7 +33,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my &POPULATE := Match.^lookup("MATCH" );  # populate Match object
 
-    multi method IO(Str:D:) { IO::Path.new(self) }
+    multi method IO(Str:D:) {
+        self eq "-"
+          ?? IO::Path.from-dash('"-".IO', %_)
+          !! IO::Path.new(self)
+    }
 
     multi method WHY('Life, the Universe and Everything': --> 42) { }
 

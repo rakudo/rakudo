@@ -65,6 +65,11 @@ my class IO::CatHandle is IO::Handle {
                 $!active-handle = open($handle);
             }
         }
+        elsif $handle eq "-" {
+            $!active-handle = open(IO::Path.from-dash(
+              '$*ARGFILES containing a "-"'
+            ))
+        }
         else {
             $!active-handle = open($handle.IO);
         }

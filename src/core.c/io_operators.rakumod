@@ -161,7 +161,13 @@ multi sub dir(Mu :$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
 multi sub dir(          ) { IO::Path.new($*SPEC.curdir).dir         }
 
 proto sub open($, |) {*}
-multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
+multi sub open("-", |c) {
+    .deprecate-IO-dash('open("-")')
+      with Rakudo::Internals.client-callframe;
+
+    IO::Handle.new(:path<->, :no-dash-check).open(|c)
+}
+multi sub open($path, |c) { IO::Handle.new(:$path).open(|c) }
 
 proto sub lines($?, $?, *%) {*}
 multi sub lines(*%_) {

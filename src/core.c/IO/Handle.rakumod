@@ -10,10 +10,15 @@ my class IO::Handle {
     has Encoding::Encoder $!encoder;
     has int $!out-buffer;
 
-    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
+    submethod TWEAK (:$encoding, :$bin, IO() :$!path, :$no-dash-check) {
         $bin
           ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
-          !! ($!encoding = $encoding || 'utf8')
+          !! ($!encoding = $encoding || 'utf8');
+
+        if $!path && $!path eq '-' && !$no-dash-check {
+            .deprecate-IO-dash('IO::Handle.new(:path("-"))')
+              with Rakudo::Internals.client-callframe;
+        }
     }
 
 #?if moar
@@ -97,7 +102,8 @@ my class IO::Handle {
                                                                              'ro')))))))));
 
         nqp::if(
-          nqp::iseq_s($!path.Str, '-'),
+          nqp::iseq_s($!path.Str, '-')
+            && Rakudo::Internals.client-language-revision < 3,
           nqp::if(
             nqp::iseq_s($mode, 'ro'),
             nqp::if(

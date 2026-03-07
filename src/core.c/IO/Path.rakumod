@@ -33,7 +33,22 @@ my class IO::Path is Cool does IO {
         self
     }
 
+    method from-dash(
+      str $what, %nameds?
+    ) is implementation-detail is hidden-from-backtrace {
+
+        .deprecate-IO-dash($what)
+          with Rakudo::Internals.client-callframe;
+
+        nqp::create(self)!SET-SELF(
+          "-", %nameds<SPEC> // $*SPEC, (%nameds<CWD> // $*CWD).Str
+        )
+    }
+
     proto method new(|) {*}
+    multi method new(IO::Path: "-" --> IO::Path:D) {
+        self.from-dash('IO::Path.new("-")', %_)
+    }
     multi method new(IO::Path:
       Str:D $path, :$CWD!, IO::Spec :$SPEC = $*SPEC
     --> IO::Path:D) {
@@ -209,7 +224,10 @@ my class IO::Path is Cool does IO {
     }
 
     multi method IO() { self }
-    method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
+
+    method open(IO::Path:D: |c) {
+        IO::Handle.new(:path(self), :no-dash-check).open(|c)
+    }
 
 #?if moar
     method watch(IO::Path:D:) {
@@ -714,6 +732,7 @@ my class IO::Path is Cool does IO {
     proto method slurp() {*}
     multi method slurp(IO::Path:D: :$bin!) {
         nqp::iseq_s($!path,"-")
+          && Rakudo::Internals.client-language-revision < 3
           ?? $bin
             ?? slurp-stdin-bin()
             !! slurp-stdin-with-encoding('utf8')
@@ -725,11 +744,13 @@ my class IO::Path is Cool does IO {
         my $encoding := Rakudo::Internals.NORMALIZE_ENCODING($enc);
 
         nqp::iseq_s($!path,"-")
+          && Rakudo::Internals.client-language-revision < 3
           ?? slurp-stdin-with-encoding($encoding)
           !! self!slurp-path-with-encoding(self.absolute, $encoding)
     }
     multi method slurp(IO::Path:D:) {
         nqp::iseq_s($!path,"-")
+          && Rakudo::Internals.client-language-revision < 3
           ?? slurp-stdin-with-encoding('utf8')
           !! self!slurp-path-with-encoding(self.absolute,'utf8')
     }

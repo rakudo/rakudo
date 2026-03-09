@@ -696,63 +696,39 @@ my class IO::Path is Cool does IO {
         $blob
     }
 
-    # slurp given path in binary mode
-    method !slurp-path-bin(str $path) is raw {
-        my $PIO  := nqp::open($path,'r');
-        my $blob := self!slurp-PIO($PIO);
-        nqp::closefh($PIO);
-        $blob
-    }
-
-    # slurp given path with given normalized encoding
-    method !slurp-path-with-encoding(str $path, str $encoding) {
-        nqp::istype(
-          (my $blob := self!slurp-path-bin(
-            $path
-          ).decode-with-valid-encoding($encoding)),
-          Failure
-        ) ?? $blob
-          !! nqp::join("\n",nqp::split("\r\n",$blob))
-    }
-
-    # slurp STDIN in binary mode
-    sub slurp-stdin-bin() is raw {
-        slurp-PIO-uncertain(nqp::getstdin, $slurp-size)
-    }
-
-    # slurp STDIN with given normalized encoding
-    sub slurp-stdin-with-encoding(str $encoding) {
-        nqp::istype(
-          (my $blob := slurp-stdin-bin.decode-with-valid-encoding($encoding)),
-          Failure
-        ) ?? $blob
-          !! nqp::join("\n",nqp::split("\r\n",$blob))
-    }
-
     proto method slurp() {*}
-    multi method slurp(IO::Path:D: :$bin!) {
-        nqp::iseq_s($!path,"-")
-          && Rakudo::Internals.client-language-revision < 3
-          ?? $bin
-            ?? slurp-stdin-bin()
-            !! slurp-stdin-with-encoding('utf8')
-          !! $bin
-            ?? self!slurp-path-bin(self.absolute)
-            !! self!slurp-path-with-encoding(self.absolute,'utf8')
-    }
-    multi method slurp(IO::Path:D: :$enc!) {
-        my $encoding := Rakudo::Internals.NORMALIZE_ENCODING($enc);
+    multi method slurp(IO::Path:D: :$bin, :$enc) {
+        my $blob;
 
-        nqp::iseq_s($!path,"-")
-          && Rakudo::Internals.client-language-revision < 3
-          ?? slurp-stdin-with-encoding($encoding)
-          !! self!slurp-path-with-encoding(self.absolute, $encoding)
-    }
-    multi method slurp(IO::Path:D:) {
-        nqp::iseq_s($!path,"-")
-          && Rakudo::Internals.client-language-revision < 3
-          ?? slurp-stdin-with-encoding('utf8')
-          !! self!slurp-path-with-encoding(self.absolute,'utf8')
+        # Treating "-" as an indication of STDIN?
+        if nqp::iseq_s($!path,"-")
+          && Rakudo::Internals.client-language-revision < 3 {
+            $blob := slurp-PIO-uncertain(nqp::getstdin, $slurp-size);
+        }
+
+        # Reading from path
+        else {
+            my $PIO := nqp::open(self.absolute,'r');
+            $blob   := self!slurp-PIO($PIO);
+            nqp::closefh($PIO);
+        }
+
+        # Wants a blob
+        if $bin {
+            $blob
+        }
+
+        # Need to have it decoded
+        else {
+            my $decoded := $blob.decode-with-valid-encoding(
+              $enc
+                ?? Rakudo::Internals.NORMALIZE_ENCODING($enc)
+                !! 'utf8'
+            );
+            nqp::istype($decoded,Failure)
+              ?? $decoded
+              !! nqp::join("\n",nqp::split("\r\n",$decoded))
+        }
     }
 
     # spurt data to given path and file mode

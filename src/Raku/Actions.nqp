@@ -4032,7 +4032,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method doc-block:sym<document>($/) {
-        self.add-as-directive($/, 'counter');
+        self.add-as-directive($/, 'document');
     }
 
     method doc-block:sym<row>($/) {

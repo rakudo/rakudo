@@ -35,13 +35,13 @@ my class Thread {
       Str()  :$!name         = "<anon>"
       --> Nil
     ) {
-        constant THREAD_ERROR = 'Could not create a new Thread: ';
+        my constant THREAD-ERROR = 'Could not create a new Thread: ';
         CATCH {
             when X::AdHoc {
-                .payload.starts-with(THREAD_ERROR)
+                .payload.starts-with(THREAD-ERROR)
                   ?? X::Exhausted.new(
                        :what<thread>,
-                       :reason(.payload.substr(THREAD_ERROR.chars))
+                       :reason(.payload.substr(THREAD-ERROR.chars))
                      ).throw
                   !! .rethrow
             }

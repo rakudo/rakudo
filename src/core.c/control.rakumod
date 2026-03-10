@@ -269,8 +269,8 @@ multi sub warn(*@msg) {
 }
 multi sub warn(Junction:D $j) { $j.THREAD: &warn }
 
-constant Inf = nqp::p6box_n(nqp::inf());
-constant NaN = nqp::p6box_n(nqp::nan());
+my constant Inf = nqp::p6box_n(nqp::inf());
+my constant NaN = nqp::p6box_n(nqp::nan());
 
 # For some reason, we cannot move this to Rakudo::Internals as a class
 # method, because then the return value is always HLLized :-(

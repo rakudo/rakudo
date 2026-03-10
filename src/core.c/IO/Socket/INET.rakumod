@@ -1,8 +1,6 @@
 my class IO::Socket::INET does IO::Socket {
-    my module PIO {
-        constant MIN_PORT = 0;
-        constant MAX_PORT = 65_535; # RFC 793: TCP/UDP port limit
-    }
+    my constant PIO-MIN-PORT = 0;
+    my constant PIO-MAX-PORT = 65_535; # RFC 793: TCP/UDP port limit
 
     has ProtocolFamily:D $.family = PF_UNSPEC;
     has SocketType:D     $.type   = SOCK_STREAM;
@@ -29,8 +27,8 @@ my class IO::Socket::INET does IO::Socket {
             }
         }
 
-        fail "Invalid port $port.gist(). Must be {PIO::MIN_PORT}..{PIO::MAX_PORT}"
-            unless $port.defined and PIO::MIN_PORT <= $port <= PIO::MAX_PORT;
+        fail "Invalid port $port.gist(). Must be {PIO-MIN-PORT}..{PIO-MAX-PORT}"
+            unless $port.defined and PIO-MIN-PORT <= $port <= PIO-MAX-PORT;
 
         return ($host, $port);
     }

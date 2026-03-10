@@ -356,7 +356,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty {
                     my $why = $param.WHY.contents; # Use first defined
                     if $param.default -> $d {
-                          constant MAXCHARS = 20;
+                          my constant MAXCHARS = 20;
                           # $middle is for long integers and other argument types
                           # that are better split in the middle.
                           if ( my $def = $d() ).defined {

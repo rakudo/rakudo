@@ -4803,7 +4803,7 @@ my class array is Cool does Iterable does Positional {
     }
 
     # poor man's 3x4 matrix
-    constant typedim2role := nqp::list(nqp::null,
+    my constant typedim2role := nqp::list(nqp::null,
       nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
       nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
       nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),

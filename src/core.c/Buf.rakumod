@@ -936,10 +936,10 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 }
 
-constant blob8 = Blob[uint8];
-constant blob16 = Blob[uint16];
-constant blob32 = Blob[uint32];
-constant blob64 = Blob[uint64];
+my constant blob8 = Blob[uint8];
+my constant blob16 = Blob[uint16];
+my constant blob32 = Blob[uint32];
+my constant blob64 = Blob[uint64];
 
 my class utf8 does Blob[uint8] is repr('VMArray') {
     method encoding(--> "utf-8") { }
@@ -1449,10 +1449,10 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 }
 
-constant buf8  = Buf[uint8];
-constant buf16 = Buf[uint16];
-constant buf32 = Buf[uint32];
-constant buf64 = Buf[uint64];
+my constant buf8  = Buf[uint8];
+my constant buf16 = Buf[uint16];
+my constant buf32 = Buf[uint32];
+my constant buf64 = Buf[uint64];
 
 multi sub prefix:<~>(Blob:D \a) {
     X::Buf::AsStr.new(object => a, method => '~' ).throw

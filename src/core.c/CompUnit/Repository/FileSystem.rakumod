@@ -12,7 +12,7 @@ class CompUnit::Repository::FileSystem
     has $!precomp-store;
     has $!distribution;
     has $!files-prefix;
-    has @.extensions = <rakumod pm6 pm>;
+    has @.extensions;
 
     method TWEAK(--> Nil) {
         $!loaded-lock := Lock.new;
@@ -20,8 +20,13 @@ class CompUnit::Repository::FileSystem
         $!seen := nqp::hash;
 
         # turn ".rakumod .pm6" into ".rakumod", ".pm6"
-        # for e.g. file#extensions<.rakumod .pm6>#lib
-        @!extensions = @!extensions.words;
+        # for handling e.g. file#extensions<.rakumod .pm6>#lib
+        if @!extensions {
+            @!extensions := @!extensions.words.List;
+        }
+        else {
+            @!extensions := <rakumod pm6 pm>;
+        }
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match

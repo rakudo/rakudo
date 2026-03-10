@@ -397,7 +397,7 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method lexical-name()   { $!name }
-    method default-scope()  { 'my'   }
+    method default-scope()  { 'our'   }
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
     method needs-sink-call() { False }

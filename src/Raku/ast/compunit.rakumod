@@ -435,12 +435,12 @@ class RakuAST::CompUnit
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name  => '$?SOURCE',
-          value => $!source
+          value => nqp::hllizefor($!source, 'Raku')
         ));
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name  => '$?CHECKSUM',
-          value => $!checksum
+          value => nqp::hllizefor($!checksum, 'Raku')
         ));
 
         my sub relative-source-filename() {

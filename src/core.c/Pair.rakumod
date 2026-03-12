@@ -69,7 +69,14 @@ my class Pair does Associative {
     }
 
     method Pair() { self }
-    method Capture { Capture.from-args(:$!key, :$!value) }
+    method Capture {
+        nqp::p6bindattrinvres(
+          nqp::create(Capture),
+          Capture,
+          '%!hash',
+          nqp::hash('key',$!key,'value',$!value)
+        )
+    }
     method antipair(Pair:D:) { self.new($!value,$!key) }
     method freeze(Pair:D:) { $!value := nqp::decont($!value) }
 

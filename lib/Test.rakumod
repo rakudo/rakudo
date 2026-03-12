@@ -407,9 +407,17 @@ sub skip-rest($reason = '<unknown>') is export {
     $time_before = nqp::time;
 }
 
-multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
-multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
-multi sub subtest(&subtests, $desc = '') is export {
+proto sub subtest(|) is export {*}
+multi sub subtest(*%_ where *.elems == 1) {
+    subtest(.value, .key) with %_.pairs.head
+}
+multi sub subtest(Pair $what) {
+    subtest($what.value,$what.key)
+}
+multi sub subtest($desc, &subtests) {
+    subtest(&subtests,$desc)
+}
+multi sub subtest(&subtests, $desc = '') {
     _diag "Subtest" ~ ($desc ?? ": " ~ $desc !! ''), :force-informative;
     my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();

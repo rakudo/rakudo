@@ -1,4 +1,4 @@
-my role Array::Typed[::TValue] does Positional[TValue] {
+my role Array::Typed[::CORE'Array'Typed'TValue] does Positional[CORE'Array'Typed'TValue] {
 
     proto method new(|) {*}
     multi method new(:$shape!) {
@@ -40,7 +40,7 @@ my role Array::Typed[::TValue] does Positional[TValue] {
 
     sub set-descriptor(\list) is raw {
         nqp::bindattr(list,Array,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TValue))
+          ContainerDescriptor.new(:of(CORE'Array'Typed'TValue), :default(CORE'Array'Typed'TValue))
         );
         list
     }
@@ -54,7 +54,7 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     proto method BIND-POS(|) {*}
 
     # these BIND-POSses are identical to Array's, except for bindval
-    multi method BIND-POS(Array:D: uint $pos, TValue \bindval) is raw {
+    multi method BIND-POS(Array:D: uint $pos, CORE'Array'Typed'TValue \bindval) is raw {
         nqp::if(
           nqp::isconcrete(
             my $reified := nqp::getattr(self,List,'$!reified')
@@ -72,7 +72,7 @@ my role Array::Typed[::TValue] does Positional[TValue] {
         nqp::bindpos($reified,$pos,bindval)
     }
     # because this is a very hot path, we copied the code from the int candidate
-    multi method BIND-POS(Array:D: Int:D $pos, TValue \bindval) is raw {
+    multi method BIND-POS(Array:D: Int:D $pos, CORE'Array'Typed'TValue \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           self!out-of-range($pos),
@@ -97,10 +97,10 @@ my role Array::Typed[::TValue] does Positional[TValue] {
         )
     }
 
-    method is-generic { nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic)) }
+    method is-generic { nqp::hllbool(callsame() || nqp::istrue(CORE'Array'Typed'TValue.^archetypes.generic)) }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(TValue)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(CORE'Array'Typed'TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
         my \ins-arr = self.WHAT.INSTANTIATE-GENERIC(type-environment);
@@ -109,7 +109,7 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     }
 
     multi method raku(::?CLASS:D:) {
-        my $type := (try TValue.raku) // nqp::getattr(self,Array,'$!descriptor').of.^name;
+        my $type := (try CORE'Array'Typed'TValue.raku) // nqp::getattr(self,Array,'$!descriptor').of.^name;
         my $raku := self.map({
             nqp::isconcrete($_) ?? .raku(:arglist) !! $type
         }).join(', ');

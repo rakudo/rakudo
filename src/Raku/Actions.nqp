@@ -2878,6 +2878,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             @traits.push($_.ast) for $<trait>;
         }
 
+        %args<default-scope> :=
+          $*HLL-COMPILER.language_revision < 3 ?? 'our' !! 'my';
+
         my $decl := Nodify('VarDeclaration','Constant').new(|%args);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);

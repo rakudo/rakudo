@@ -373,6 +373,7 @@ class RakuAST::VarDeclaration::Constant
   is RakuAST::Term
 {
     has str                      $.name;
+    has str                      $.default-scope;
     has RakuAST::Initializer     $.initializer;
     has RakuAST::Type            $.type;
     has Mu                       $!value;
@@ -380,6 +381,7 @@ class RakuAST::VarDeclaration::Constant
 
     method new(
       str           :$scope,
+      str           :$default-scope,
       RakuAST::Type :$type,
       str           :$name!,
       RakuAST::Initializer :$initializer!,
@@ -387,6 +389,7 @@ class RakuAST::VarDeclaration::Constant
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!default-scope',$default-scope // 'my');
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -397,7 +400,7 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method lexical-name()   { $!name }
-    method default-scope()  { 'our'   }
+    method default-scope()  { $!default-scope }
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
     method needs-sink-call() { False }

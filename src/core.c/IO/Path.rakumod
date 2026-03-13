@@ -697,7 +697,7 @@ my class IO::Path is Cool does IO {
     }
 
     proto method slurp() {*}
-    multi method slurp(IO::Path:D: :$bin, :$enc) {
+    multi method slurp(IO::Path:D: :$bin, :$enc, :$translate-nl = True) {
         my $blob;
 
         # Treating "-" as an indication of STDIN?
@@ -725,7 +725,7 @@ my class IO::Path is Cool does IO {
                 ?? Rakudo::Internals.NORMALIZE_ENCODING($enc)
                 !! 'utf8'
             );
-            nqp::istype($decoded,Failure)
+            nqp::istype($decoded,Failure) || !$translate-nl
               ?? $decoded
               !! nqp::join("\n",nqp::split("\r\n",$decoded))
         }

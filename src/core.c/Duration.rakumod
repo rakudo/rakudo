@@ -1,6 +1,6 @@
 my class Duration is Cool does Real {
+    # A linear count of nano-seconds
     has Int $.tai is default(0);
-      # A linear count of seconds.
 
     # Make sure the Duration interface works on Inf/NaN
     my role add-tai { method tai() { self } }

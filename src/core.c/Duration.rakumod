@@ -10,7 +10,9 @@ my class Duration is Cool does Real {
     multi method new(Duration: \value --> Duration:D) {
         nqp::istype((my \tai := value.Rat),Failure)
           ?? tai.throw
-          !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai * 1000000000)
+          !! nqp::p6bindattrinvres(
+               nqp::create(Duration),Duration,'$!tai',tai * 1000000000
+             )
     }
 
     method tai(Duration:D: --> Rat:D) {
@@ -25,14 +27,18 @@ my class Duration is Cool does Real {
         $!tai.Int
     }
 
-    method Bridge(Duration:   --> Num:D) { self.defined ?? self.tai.Num !! self.Real::Bridge }
+    method Bridge(Duration:   --> Num:D) {
+        self.defined ?? self.tai.Num !! self.Real::Bridge
+    }
     method Num   (Duration:D: --> Num:D) { self.tai.Num    }
     method Rat   (Duration:D: --> Rat:D) { self.tai        }
     method narrow(Duration:D:          ) { self.tai.narrow }
 
     multi method Str(Duration:D: --> Str:D) { ~self.tai }
 
-    multi method raku(Duration:D: --> Str:D) { "Duration.new({($!tai / 1000000000).raku})" }
+    multi method raku(Duration:D: --> Str:D) {
+        "Duration.new($.tai.raku())"
+    }
 }
 
 multi sub prefix:<->(Duration:D $a --> Duration:D) {
@@ -40,20 +46,20 @@ multi sub prefix:<->(Duration:D $a --> Duration:D) {
 }
 
 multi sub infix:<+>(Duration:D $a, Real $b --> Duration:D) {
-    Duration.new: $a.tai + $b;
+    Duration.from-posix-nanos: $a.to-nanos + ($b * 1000000000).Int;
 }
 multi sub infix:<+>(Real $a, Duration:D $b --> Duration:D) {
-    Duration.new: $a + $b.tai;
+    Duration.from-posix-nanos: ($a * 1000000000).Int + $b.to-nanos;
 }
 multi sub infix:<+>(Duration:D $a, Duration:D $b --> Duration:D) {
-    Duration.new: $a.tai + $b.tai;
+    Duration.from-posix-nanos: $a.to-nanos + $b.to-nanos
 }
 
 multi sub infix:<->(Duration:D $a, Real $b --> Duration:D) {
-    Duration.new: $a.tai - $b;
+    Duration.from-posix-nanos: $a.to-nanos - ($b * 1000000000).Int
 }
 multi sub infix:<->(Duration:D $a, Duration:D $b --> Duration:D) {
-    Duration.new: $a.tai - $b.tai;
+    Duration.from-posix-nanos: $a.to-nanos - $b.to-nanos
 }
 
 multi sub infix:<%>(Duration:D $a, Real $b --> Duration:D) {

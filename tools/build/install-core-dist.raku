@@ -13,6 +13,7 @@ my %provides =
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
+    "heap-snapshot"                 => "lib/heap-snapshot.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
     "RakuDoc::To::RakuDoc"          => "lib/RakuDoc/To/RakuDoc.rakumod",

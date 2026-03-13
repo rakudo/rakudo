@@ -450,7 +450,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         if $short-dir.e {
             for $short-dir.dir -> $dir {
                 $dir.add($dist-id).unlink;
-                $dir.rmdir unless $dir.dir.elems;  # dir-with-entries PR 4848
+                $dir.rmdir unless $dir.dir-with-entries;
             }
         }
 

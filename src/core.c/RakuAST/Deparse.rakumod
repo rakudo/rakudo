@@ -1998,7 +1998,8 @@ CODE
     }
 
     multi method deparse(RakuAST::Regex::Statement:D $ast --> Str:D) {
-        ':' ~ self.deparse($ast.statement).chomp
+        my $deparsed := self.deparse($ast.statement).chomp;
+        ':' ~ ($deparsed.ends-with(';') ?? $deparsed !! $deparsed ~ '; ')
     }
 
 #- Regex::W --------------------------------------------------------------------

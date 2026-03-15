@@ -1505,4 +1505,44 @@ augment class RakuAST::Postfix::Power {
     }
 }
 
+augment class RakuAST::Grammar {
+
+    # Check general sanity of the grammar
+    method check-sanity() {
+        my $grammar := self.meta-object;
+
+        my %bad;
+        self.map: -> $node {
+            if nqp::istype($node,RakuAST::Regex::Assertion::Named) {
+                if $node.name.simple-identifier -> $name {
+                    unless nqp::isconcrete($grammar.^find_method($name)) {
+                        my int $i;
+                        nqp::while(
+                          (my $parent := $node.parent(++$i))
+                            && nqp::not_i(nqp::istype(
+                                 $parent,RakuAST::RegexDeclaration
+                               )),
+                          nqp::null
+                        );
+
+                        if $parent
+                          && $parent.name.simple-identifier -> $regex {
+                            %bad{
+                              "$parent.declarator() $regex (at $node.fileline())"
+                            }.push($name);
+                        }
+                    }
+                }
+            }
+        }
+
+        if %bad {
+            my @bad = %bad.sort(*.key).map: {
+                "\n  in $_.key(): $_.value()"
+            }
+            die "Unresolved references found in grammar $grammar.^name():@bad.join()"
+        }
+    }
+}
+
 # vim: expandtab shiftwidth=4

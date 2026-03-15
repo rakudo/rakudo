@@ -748,12 +748,22 @@ class RakuAST::Class
 
 class RakuAST::Grammar
   is RakuAST::Class
+  is RakuAST::CheckTime
 {
     method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }
 
     method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         self.meta-object; # Ensure it's composed
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver          $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $sanity-check := self.HOW.find_method(self,"check-sanity");
+        $sanity-check(self) if $sanity-check;
+        True
     }
 }
 

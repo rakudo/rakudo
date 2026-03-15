@@ -186,6 +186,17 @@ augment class RakuAST::Node {
             Nil
         }
     }
+
+    method fileline() {
+        with self.origin -> $origin {
+            with $origin.source -> $source {
+                my $from := $origin.from;
+                return "$source.file-of-pos($from):$source.line-of-pos($from)";
+            }
+        }
+
+        ""
+    }
 }
 
 my class RakuAST::Doc::LegacyRow is RakuAST::Node {

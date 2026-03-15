@@ -2475,10 +2475,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast.set-is-stub(1);
         }
         else {
-            $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
-            $ast.body.IMPL-BEGIN($*R, $*CU.context); # Have body Sub declare its implicits before we cache them
-            $ast.to-begin-time($*R, $*CU.context);
-            $ast.IMPL-COMPOSE($*CU.context);
+            $ast.replace-body(
+              $body.ast,
+              $<signature> ?? $<signature>.ast !! Mu
+            );
+
+            # Have body Sub declare its implicits before we cache them
+            my $R       := $*R;
+            my $context := $*CU.context;
+            $ast.body.IMPL-BEGIN($R, $context);
+            $ast.to-begin-time($R, $context);
+            $ast.IMPL-COMPOSE($context);
         }
 
         self.attach: $/, $ast;

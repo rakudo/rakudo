@@ -4025,7 +4025,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method add-as-directive($/, $type) {
         unless $*FROM-SEEN{$/.from}++ {
             self.doc-origin: $/, Nodify('Doc','Block').new:
-              :directive, :margin(~$<margin>), :$type,
+              :abreviated, :directive, :margin(~$<margin>), :$type,
               :config(self.extract-config($/))
         }
     }

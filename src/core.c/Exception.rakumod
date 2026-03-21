@@ -2024,6 +2024,14 @@ my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
     }
 }
 
+my class X::Syntax::Pod::DirectiveWithLevel {
+    has $.directive;
+    has $.level;
+    method message() {
+        "Cannot have a level ('$.level') with directive '=$.directive'"
+    }
+}
+
 my class X::Syntax::Pod::BeginWithDirective does X::Syntax does X::Pod {
     has $.directive;
     has $.for = 'begin';

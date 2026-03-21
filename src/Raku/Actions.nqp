@@ -3998,7 +3998,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         +($<type><level> // '0')
     }
 
+    sub directive-no-level($/, $level, $directive) {
+        $/.typed-panic(
+          'X::Syntax::Pod::DirectiveWithLevel', :$directive, :$level
+        )
+    }
+
     method doc-block:sym<finish>($/) {
+        if ~$<level> -> $level {
+            directive-no-level($/, $level, 'finish');
+        }
+
         $*CU.replace-finish-content(~$<finish>) if $*CU;
     }
 
@@ -4008,6 +4018,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<alias>($/) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'alias');
+            }
+
             my @paragraphs := nqp::list(~$<first>);
             if $<line> {
                 for $<line> {
@@ -4024,6 +4038,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # helper method for simple directives
     method add-as-directive($/, $type) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, $type);
+            }
+
             self.doc-origin: $/, Nodify('Doc','Block').new:
               :abbreviated, :directive, :margin(~$<margin>), :$type,
               :config(self.extract-config($/))
@@ -4048,6 +4066,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<counter>($/) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'counter');
+            }
+
             self.doc-origin: $/, Nodify('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<counter>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
@@ -4056,6 +4078,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<formula>($/) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'formula');
+            }
+
             my @paragraphs := nqp::list(~$<formula>);
             self.doc-origin: $/, Nodify('Doc','Block').new:
               :abbreviated, :margin(~$<margin>), :type<formula>,
@@ -4065,6 +4091,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'config');
+            }
+
             self.doc-origin: $/, Nodify('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<config>,
               :config(self.extract-config($/)), :key(~$<doc-identifier>)
@@ -4073,8 +4103,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<verbatim>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            my $config := self.extract-config($/);
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, ~$<type>);
+            }
 
+            my $config := self.extract-config($/);
             my @paragraphs;
             if $<lines> {
                 my $text := ~$<lines>;
@@ -4088,8 +4121,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<begin>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            my $SEEN := $*SEEN;
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'begin');
+            }
 
+            my $SEEN   := $*SEEN;
             my $config := self.extract-config($/);
             my $type   := self.extract-type($/);
             my $level  := self.extract-level($/);
@@ -4116,6 +4152,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<for>($/) {
         unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'for');
+            }
+
             my $config := self.extract-config($/);
             my $type   := self.extract-type($/);
             my $level  := self.extract-level($/);

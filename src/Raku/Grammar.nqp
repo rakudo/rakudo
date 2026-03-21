@@ -5743,16 +5743,16 @@ Rakudo significantly on *every* run."
 
     # directives that may not be used as block names
     token rakudoc-directives {
-        [
+        [ [
           alias  | begin | column | config | counter | document | end | finish | for | place | row
-        ] >>
+        ] \d* ] >>
     }
 
     proto token doc-block {*}
 
     # handle =finish
     token doc-block:sym<finish> {
-        ^^ \h* '=finish' <doc-newline> $<finish> = .*
+        ^^ \h* '=finish' $<level>=\d* <doc-newline> $<finish> = .*
     }
 
     # handle =alias
@@ -5763,7 +5763,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # fetch lemma as first line
-        '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
+        '=alias' $<level>=\d* \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
 
         { $width := $<first>.from - $<margin>.to - 1 }
         [\n $<margin> '='   " " ** {$width}   $<line>=\N+]*
@@ -5778,7 +5778,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # fetch column and any configuration
-        '=column' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        '=column' $<level>=\d* [ [\n $<margin> '=']? \h+ <colonpair> ]*
         { $/.panic("=column outside of table") unless $*IN-TABLE }
 
         # should now be at end of line
@@ -5792,7 +5792,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # fetch row and any configuration
-        '=row' [ [\n $<margin> '=']? \h+ <colonpair> ]*
+        '=row' $<level>=\d* [ [\n $<margin> '=']? \h+ <colonpair> ]*
         { $/.panic("=row outside of table") unless $*IN-TABLE }
 
         # should now be at end of line
@@ -5806,7 +5806,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # needs a schema
-        '=place' \s+ $<uri>=[ \w+ ':' \S+ ]
+        '=place' $<level>=\d* \s+ $<uri>=[ \w+ ':' \S+ ]
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
@@ -5822,7 +5822,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # needs an actual formula
-        '=formula' \s+ $<formula>=<-[ \v : ]>+
+        '=formula' $<level>=\d* \s+ $<formula>=<-[ \v : ]>+
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
@@ -5834,7 +5834,7 @@ Rakudo significantly on *every* run."
     # handle =config
     token doc-block:sym<config> {
 
-        ^^ $<margin>=[ \h* ] '=config'
+        ^^ $<margin>=[ \h* ] '=config' $<level>=\d*
 
         [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
@@ -5848,7 +5848,7 @@ Rakudo significantly on *every* run."
     # handle =counter
     token doc-block:sym<counter> {
 
-        ^^ $<margin>=[ \h* ] '=counter'
+        ^^ $<margin>=[ \h* ] '=counter' $<level>=\d*
 
         [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
@@ -5862,7 +5862,7 @@ Rakudo significantly on *every* run."
     # handle =document
     token doc-block:sym<document> {
 
-        ^^ $<margin>=[ \h* ] '=document'
+        ^^ $<margin>=[ \h* ] '=document' $<level>=\d*
 
         [\h+ $<doc-identifier>=[ <.doc-identifier> | '*' ] ]?
 
@@ -5880,7 +5880,8 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # start of 'begin comment' block
-        '=begin' \h+ $<type>=[ comment | code | data | input | output ]
+        '=begin' $<level>=\d*
+        \h+ $<type>=[ comment | code | data | input | output ]
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
@@ -5902,7 +5903,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # start of 'begin' doc block should have type on same line
-        '=begin'
+        '=begin' $<level>=\d*
         [ <?doc-newline>
           <.typed-panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?
@@ -5969,7 +5970,7 @@ Rakudo significantly on *every* run."
         ^^ $<margin>=[ \h* ]
 
         # start of a 'for' doc block should have type on same line
-        '=for'
+        '=for' $<level>=\d*
         [ <?doc-newline>
           <.typed-panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?

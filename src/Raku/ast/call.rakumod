@@ -728,7 +728,7 @@ class RakuAST::Call::Method
         $call
     }
 
-    method can-be-used-with-hyper() { !self.macroish }
+    method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := $!name.canonicalize;

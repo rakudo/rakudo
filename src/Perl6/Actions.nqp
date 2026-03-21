@@ -1353,6 +1353,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             statementlist_with_handlers($/)
         );
 
+        $world.install_lexical_symbol($unit, '$?SOURCE', $*OMIT-SOURCE
+            ?? $world.find_single_symbol_in_setting('Nil')
+            !! nqp::hllizefor($/.orig, 'Raku'));
+        $world.install_lexical_symbol($unit, '$?CHECKSUM',
+            nqp::hllizefor(nqp::sha1($/.orig), 'Raku'));
+
         # Errors/warnings in sinking pass should ignore highwater mark.
         $/.'!clear_highwater'();
 

@@ -1261,11 +1261,15 @@ class RakuAST::Resolver::Compile
         return 0 if $alen == 0 || $blen == 0;
 
         my sub changecost(str $ac, str $bc) {
-            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
-            return 0 if $ac eq $bc;
-            return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
-            return 0.5 if issigil($ac) && issigil($bc);
-            1;
+            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 }
+
+            $ac eq $bc
+              ?? 0
+              !! nqp::fc($ac) eq nqp::fc($bc)
+                ?? 0.1
+                !! issigil($ac) && issigil($bc)
+                  ?? 0.5
+                  !! 1
         }
 
         my sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
@@ -1276,10 +1280,7 @@ class RakuAST::Resolver::Compile
             # if either cursor reached the end of the respective string,
             # the result is the remaining length of the other string.
             my sub check(int $pos1, int $len1, int $pos2, int $len2) {
-                if $pos2 == $len2 {
-                    return $len1 - $pos1;
-                }
-                -1;
+                $pos2 == $len2 ?? $len1 - $pos1 !! -1
             }
 
             my int $check := check($apos, $alen, $bpos, $blen);

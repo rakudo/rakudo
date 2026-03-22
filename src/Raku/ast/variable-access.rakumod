@@ -629,6 +629,13 @@ class RakuAST::Var::Compiler::Lookup
         if $resolved {
             self.set-resolution($resolved);
         }
+        else {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Undeclared',
+                symbol          => $!name,
+                is-compile-time => 1,
+                suggestions     => $resolver.suggest-lexicals($!name);
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

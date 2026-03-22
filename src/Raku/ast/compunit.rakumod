@@ -433,15 +433,17 @@ class RakuAST::CompUnit
             add($!pod) if $!pod-content;
         }
 
-        add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name  => '$?SOURCE',
-          value => nqp::hllizefor($!source, 'Raku')
-        ));
+        if $!language-revision gt "d" {
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name  => '$?SOURCE',
+              value => nqp::hllizefor($!source, 'Raku')
+            ));
 
-        add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name  => '$?CHECKSUM',
-          value => nqp::hllizefor($!checksum, 'Raku')
-        ));
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name  => '$?CHECKSUM',
+              value => nqp::hllizefor($!checksum, 'Raku')
+            ));
+        }
 
         my sub relative-source-filename() {
             if $*LITERALS {

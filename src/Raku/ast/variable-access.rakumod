@@ -633,8 +633,14 @@ class RakuAST::Var::Compiler::Lookup
             self.add-sorry:
               $resolver.build-exception: 'X::Undeclared',
                 symbol          => $!name,
-                is-compile-time => 1,
-                suggestions     => $resolver.suggest-lexicals($!name);
+# This appears to tickle an issue with some resolvers, resulting in
+# hard to trace:
+#   lang-call cannot invoke object of type 'VMNull' belonging to no language
+# and
+#   Cannot invoke object of type 'NQPMu'
+# errors.  So don't try to come up with suggestions for now
+#                suggestions     => $resolver.suggest-lexicals($!name),
+                is-compile-time => 1;
         }
     }
 

@@ -841,6 +841,7 @@ class RakuAST::Resolver::EVAL
     }
 
     method suggest-routines(str $name) { [] }  # for now
+    method suggest-lexicals(str $name) { [] }  # for now
 
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {

@@ -1887,7 +1887,7 @@ my class X::Role::Instantiation is Exception does X::Wrapper {
     has $.role;
     method message() {
         "Could not instantiate role '" ~ $!role.^name ~ "'"
-            ~ (self!is-raku-exception ?? " because it is died" ~ self!exception-name-message !! "")
+            ~ (self!is-raku-exception ?? " because it died" ~ self!exception-name-message !! "")
             ~ self!wrappee-message(:details)
     }
 }

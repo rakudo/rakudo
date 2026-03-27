@@ -70,14 +70,33 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
+
+    # Check signature of caller Routine for definite value being returned
+    my sub check-signature(Mu $value, str $method) {
+        my int $index = 2;
+        nqp::until(
+          nqp::isnull(my $cf := callframe($index))
+            || nqp::istype((my $callable := $cf.code),Routine),
+          ++$index
+        );
+
+        die "Cannot return $value.raku() with $method when return value $_.raku() is already specified in the signature of $callable.raku.subst(/ "(" .* /)".naive-word-wrapper
+          with $callable.signature.returns;
+    }
     method return-rw(Mu \SELF: |) {  # same code as control.rakumod's return-rw
+        check-signature(SELF, '.return-rw');
+
         my $list := RETURN-LIST(nqp::p6argvmarray());
         nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
         $list;
     }
-    method return(|) {  # same code as control.rakumod's return
+    method return(Mu $SELF: |) {  # same code as control.rakumod's return
+        check-signature($SELF, '.return');
+
         my $list := RETURN-LIST(nqp::p6argvmarray());
-        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list));
+        nqp::throwpayloadlexcaller(
+          nqp::const::CONTROL_RETURN, nqp::p6recont_ro($list)
+        );
         $list;
     }
 

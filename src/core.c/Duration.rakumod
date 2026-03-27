@@ -1,18 +1,29 @@
 my class Duration is Cool does Real {
-    has Real $.tai is default(0);
-      # A linear count of seconds.
+    # A linear count of nano-seconds
+    has Int $.tai is default(0);
+
+    # Make sure the Duration interface works on Inf/NaN
+    my role add-tai { method tai() { self } }
 
     multi method new(Duration: Rat:D \tai --> Duration:D) {
         nqp::p6bindattrinvres(
-          nqp::create(Duration),Duration,'$!tai',nqp::decont(tai) * 1000000000
+          nqp::create(Duration),
+          Duration,
+          '$!tai',
+          (nqp::decont(tai) * 1000000000).Int
         )
     }
+    multi method new(Duration: Num:D \value) {
+        nqp::isnanorinf(nqp::decont(value))
+          ?? nqp::decont(value.Rat) but add-tai
+          !! nqp::istype((my \tai := (value * 1000000000).Int),Failure)
+            ?? tai.throw
+            !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+    }
     multi method new(Duration: \value --> Duration:D) {
-        nqp::istype((my \tai := value.Rat),Failure)
+        nqp::istype((my \tai := (value * 1000000000).Int),Failure)
           ?? tai.throw
-          !! nqp::p6bindattrinvres(
-               nqp::create(Duration),Duration,'$!tai',tai * 1000000000
-             )
+          !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
     }
 
     method tai(Duration:D: --> Rat:D) {
@@ -23,18 +34,16 @@ my class Duration is Cool does Real {
         nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$nanos)
     }
 
-    method to-nanos(--> Int:D) {
-        $!tai.Int
-    }
+    method to-nanos(--> Int:D) { $!tai }
 
     method Bridge(Duration:   --> Num:D) {
         self.defined ?? self.tai.Num !! self.Real::Bridge
     }
     method Num   (Duration:D: --> Num:D) { self.tai.Num    }
-    method Rat   (Duration:D: --> Rat:D) { self.tai        }
+    method Rat   (Duration:D: --> Rat:D) { self.tai.Rat    }
     method narrow(Duration:D:          ) { self.tai.narrow }
 
-    multi method Str(Duration:D: --> Str:D) { ~self.tai }
+    multi method Str(Duration:D: --> Str:D) { self.tai.Str }
 
     multi method raku(Duration:D: --> Str:D) {
         "Duration.new($.tai.raku())"

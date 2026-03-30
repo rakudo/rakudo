@@ -303,7 +303,11 @@ my class X::Method::NotFound is Exception {
                   if $method_candidate.^name eq 'Submethod'  # a submethod
                   && !$invocant_methods{$method_name};       # unknown method
 
-                if $.method eq $method_name {
+                if $.method.chars > 5
+                  && $method_name.contains($.method.fc, :i, :m) {
+                    %suggestions{$method_name} = 0;
+                }
+                elsif $.method eq $method_name {
                     $found-types.set($method_candidate.package.^name());
                 }
                 elsif nqp::istype(type, Failure) {

@@ -10,6 +10,11 @@ my class Grammar is Match {
           ?? $grammar."$rule"(|$args.Capture)
           !! $grammar."$rule"();
 
+        unless nqp::istype($cursor,Match) {
+            my $type := self.^find_method($rule).^name;
+            die "$type '$rule' returned a $cursor.^name() object ($cursor.gist()) rather than a Match object";
+        }
+
         my int $chars = $orig.chars;  # must be HLL, $orig can be Cool
         nqp::while(
           $cursor

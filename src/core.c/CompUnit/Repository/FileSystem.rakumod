@@ -25,7 +25,9 @@ class CompUnit::Repository::FileSystem
             @!extensions := @!extensions.words.List;
         }
         else {
-            @!extensions := <rakumod pm6 pm>;
+            @!extensions := nqp::getcomp('Raku').language_revision < 3
+              ?? <rakumod pm6 pm>
+              !! <rakumod pm6>
         }
     }
 

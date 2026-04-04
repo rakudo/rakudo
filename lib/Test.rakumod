@@ -561,13 +561,11 @@ multi sub exits-ok(
   Str:D $desc = "Checking for exit($exit)"
 ) is export {
     my $got;
-    my $seen;
+    my $seen = False;
     my &*EXIT = { $seen = True; $got = $_ }
     $time_after = nqp::time;
     code();
-    my $ok = $seen
-      ?? proclaim($got == $exit, "Was the exit code $exit?")
-      !! proclaim(False, "Code did not exit, no exit value to check");
+    my $ok = proclaim($seen && $got == $exit, $desc);
     $time_before = nqp::time;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }

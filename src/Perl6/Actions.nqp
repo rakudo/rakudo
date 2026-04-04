@@ -2516,6 +2516,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', wanted($<blorst>.ast,'POST').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<CLOSE>($/) { make $*W.add_phaser($/, 'CLOSE', unwanted($<blorst>.ast,'CLOSE').ann('code_object')); }
 
+    method statement_prefix:sym<TEMP>($/) {
+        $/.worry("The TEMP phaser will never be implemented.\nPlease remove to prevent breakage in future language versions.");
+    }
+
     method statement_prefix:sym<DOC>($/)   {
         if %*COMPILING<%?OPTIONS><doc> {
             make $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), wanted($<blorst>.ast,'DOC').ann('past_block'));

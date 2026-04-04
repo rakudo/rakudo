@@ -1101,7 +1101,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<NEXT>($/)  { self.SP-phaser($/, 'Next')  }
     method statement-prefix:sym<QUIT>($/)  { self.SP-phaser($/, 'Quit')  }
     method statement-prefix:sym<UNDO>($/)  { self.SP-phaser($/, 'Undo')  }
-    method statement-prefix:sym<TEMP>($/)  { self.SP-phaser($/, 'Temp')  }
 
     # BEGIN phaser needs to be executed *now* and produce a value
     method statement-prefix:sym<BEGIN>($/) {
@@ -1122,6 +1121,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify(
           'StatementPrefix', 'Phaser', 'Post'
         ).new($<blorst>.ast, ~$<blorst>);
+    }
+
+    method statement-prefix:sym<TEMP>($/) {
+        self.SP-phaser($/, 'Temp');
+        $/.worry("The TEMP phaser will never be implemented.\nPlease remove to prevent breakage in future language versions.");
     }
 
     # DOC phaser only works if so activated on command line

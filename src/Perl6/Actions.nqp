@@ -5523,7 +5523,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $world.throw($/, ['X', 'Redeclaration'], symbol => $name);
             }
 
-            $world.install_package($/, [$name], ($*SCOPE || 'our'),
+            my $scope := $*SCOPE
+              || (nqp::getcomp('Raku').language_revision < 3 ?? 'our' !! 'my');
+            $world.install_package($/, [$name], $scope,
                 'constant', $/.package, $cur_pad, $value);
         }
         for $<trait> {

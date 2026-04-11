@@ -822,6 +822,8 @@ my @allowed =
         Q{$¢},
         Q{&comb},
         Q{&infix:<~>},
+        Q{&infix:<div>},
+        Q{&infix:<mod>},
         Q{&last},
         Q{&next},
         Q{&postcircumfix:<[; ]>},

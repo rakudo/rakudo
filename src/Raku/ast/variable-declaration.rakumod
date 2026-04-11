@@ -1774,10 +1774,14 @@ class RakuAST::VarDeclaration::Signature
                 }
                 elsif $_.type {
                     # Anonymous typed parameter (e.g. Int or Any:D) in a
-                    # list declaration. Create a placeholder container so
-                    # it consumes the RHS value at this position.
+                    # list declaration. Create a typed placeholder container
+                    # so it consumes and type-checks the RHS value at this
+                    # position.
+                    my $of := $_.type.meta-object;
+                    my $desc := ContainerDescriptor.new(:$of, :default($of), :name('anon'));
+                    $context.ensure-sc($desc);
                     $value-list.push: QAST::Op.new(
-                        :op('p6scalarfromdesc'), QAST::Op.new(:op('null'))
+                        :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
                     );
                 }
             }

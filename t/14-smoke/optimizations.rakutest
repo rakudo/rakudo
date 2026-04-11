@@ -1,0 +1,5 @@
+use Test;
+
+plan 1;
+
+ok <a b c>.all ~~ Str:D, '#6109 - makefile template broke windows optimization path for smartmatch';

@@ -3664,8 +3664,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 else {
                     my $world := $*W;
                     $world.handle_OFTYPE_for_pragma($/,'parameters');
+                    my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
+                    if @value_type && $_<defined_only> {
+                        @value_type[0] := $world.create_definite_type(
+                            $world.resolve_mo($/, 'definite'),
+                            @value_type[0], 1);
+                    }
+                    elsif @value_type && $_<undefined_only> {
+                        @value_type[0] := $world.create_definite_type(
+                            $world.resolve_mo($/, 'definite'),
+                            @value_type[0], 0);
+                    }
                     my %cont_info := $world.container_type_info($/, :$post,
-                      $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
+                      $_<sigil> || '$', @value_type, []);
                     $list.push($world.build_container_past(
                       %cont_info,
                       $world.create_container_descriptor(

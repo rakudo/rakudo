@@ -1769,7 +1769,21 @@ class RakuAST::VarDeclaration::Signature
 
             for @params {
                 nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-                $value-list.push: $_.target.IMPL-LOOKUP-QAST($context) if $_.target;
+                if $_.target {
+                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                }
+                elsif $_.type {
+                    # Anonymous typed parameter (e.g. Int or Any:D) in a
+                    # list declaration. Create a typed placeholder container
+                    # so it consumes and type-checks the RHS value at this
+                    # position.
+                    my $of := $_.type.meta-object;
+                    my $desc := ContainerDescriptor.new(:$of, :default($of), :name('anon'));
+                    $context.ensure-sc($desc);
+                    $value-list.push: QAST::Op.new(
+                        :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
+                    );
+                }
             }
             if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                 my $init-qast := $!initializer.IMPL-TO-QAST($context);

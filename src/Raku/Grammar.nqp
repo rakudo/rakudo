@@ -5353,15 +5353,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token terminator:sym<]> { <?[\]]> }
     token terminator:sym<}> { <?[}]> }
     token terminator:sym<ang> { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
-    token terminator:sym<if>     { 'if'     <.kok> }
-    token terminator:sym<unless> { 'unless' <.kok> }
-    token terminator:sym<while>  { 'while'  <.kok> }
-    token terminator:sym<until>  { 'until'  <.kok> }
-    token terminator:sym<for>    { 'for'    <.kok> }
-    token terminator:sym<given>  { 'given'  <.kok> }
-    token terminator:sym<when>   { 'when'   <.kok> }
-    token terminator:sym<with>   { 'with'   <.kok> }
-    token terminator:sym<without> { 'without' <.kok> }
+    token terminator:sym<if>     { <.modifier-if>      <.kok> }
+    token terminator:sym<unless> { <.modifier-unless>  <.kok> }
+    token terminator:sym<while>  { <.modifier-while>   <.kok> }
+    token terminator:sym<until>  { <.modifier-until>   <.kok> }
+    token terminator:sym<for>    { <.modifier-for>     <.kok> }
+    token terminator:sym<given>  { <.modifier-given>   <.kok> }
+    token terminator:sym<when>   { <.modifier-when>    <.kok> }
+    token terminator:sym<with>   { <.modifier-with>    <.kok> }
+    token terminator:sym<without> { <.modifier-without> <.kok> }
     token terminator:sym<arrow>  { '-->' }
 
     token stdstopper {

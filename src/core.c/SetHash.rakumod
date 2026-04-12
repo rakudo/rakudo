@@ -273,8 +273,12 @@ my class SetHash does Setty {
                       nqp::bindattr(self,::?CLASS,'$!elems',
                         nqp::create(Rakudo::Internals::IterationSet))
                     ),
-                    Rakudo::QuantHash.BIND-TO-TYPED-SET(
-                      $!elems, nqp::decont(k), self.keyof
+                    nqp::if(
+                      self.keyof.^archetypes.coercive,
+                      Rakudo::QuantHash.COERCE-AND-BIND-TO-TYPED-SET(
+                        $!elems, nqp::decont(k), self.keyof),
+                      Rakudo::QuantHash.BIND-TO-TYPED-SET(
+                        $!elems, nqp::decont(k), self.keyof)
                     )
                   ),
                   $!elems && nqp::deletekey($!elems,k.WHICH)

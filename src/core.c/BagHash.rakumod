@@ -64,18 +64,29 @@ my class BagHash does Baggy {
                     ),
                     nqp::if(
                       $value > 0,               # new
-                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
-                        $!elems, $which, k, nqp::decont($value), type
+                      nqp::if(
+                        type.^archetypes.coercive,
+                        Rakudo::QuantHash.COERCE-AND-BIND-TO-TYPED-BAG(
+                          $!elems, $which, k, nqp::decont($value), type),
+                        Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                          $!elems, $which, k, nqp::decont($value), type)
                       )
                     )
                   ),
                   nqp::if(                      # no hash allocated yet
                     $value > 0,
-                    Rakudo::QuantHash.BIND-TO-TYPED-BAG(
-                      nqp::bindattr(self,BagHash,'$!elems',
-                        nqp::create(Rakudo::Internals::IterationSet)
-                      ),
-                      k.WHICH, k, nqp::decont($value), type
+                    nqp::if(
+                      type.^archetypes.coercive,
+                      Rakudo::QuantHash.COERCE-AND-BIND-TO-TYPED-BAG(
+                        nqp::bindattr(self,BagHash,'$!elems',
+                          nqp::create(Rakudo::Internals::IterationSet)
+                        ),
+                        k.WHICH, k, nqp::decont($value), type),
+                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
+                        nqp::bindattr(self,BagHash,'$!elems',
+                          nqp::create(Rakudo::Internals::IterationSet)
+                        ),
+                        k.WHICH, k, nqp::decont($value), type)
                     )
                   )
                 )

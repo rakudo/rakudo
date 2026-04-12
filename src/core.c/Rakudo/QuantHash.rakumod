@@ -280,14 +280,35 @@ my class Rakudo::QuantHash {
              ).throw
     }
 
+    # same as BIND-TO-TYPED-SET but coerces value before binding
+    method COERCE-AND-BIND-TO-TYPED-SET(
+      \elems, Mu \value, Mu \type
+    --> Nil) {
+        nqp::if(
+          nqp::istype(value,type),
+          nqp::stmts(
+            (my \stored := type.^coerce(value)),
+            nqp::bindkey(elems,stored.WHICH,stored)
+          ),
+          X::TypeCheck::Binding.new(
+            got      => value,
+            expected => type
+          ).throw
+        )
+    }
+
     # add to given IterationSet with setty semantics the values of iterator
     method ADD-ITERATOR-TO-SET(\elems,Mu \iterator, Mu \type) {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr(
             (my \pulled := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
-          self.BIND-TO-TYPED-SET(elems, pulled, type)
+          nqp::if($coercive,
+            self.COERCE-AND-BIND-TO-TYPED-SET(elems, pulled, type),
+            self.BIND-TO-TYPED-SET(elems, pulled, type)
+          )
         );
         elems
     }
@@ -295,6 +316,7 @@ my class Rakudo::QuantHash {
     # Add to IterationSet with setty semantics the values of the given
     # iterator while checking for Pairs (only include if value is trueish)
     method ADD-PAIRS-TO-SET(\elems,Mu \iterator, Mu \type) {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr(
             (my \pulled := nqp::decont(iterator.pull-one)),
@@ -304,11 +326,17 @@ my class Rakudo::QuantHash {
             nqp::istype(pulled,Pair),
             nqp::if(
               nqp::getattr(pulled,Pair,'$!value'),
-              self.BIND-TO-TYPED-SET(
-                elems, nqp::getattr(pulled,Pair,'$!key'), type
+              nqp::if($coercive,
+                self.COERCE-AND-BIND-TO-TYPED-SET(
+                  elems, nqp::getattr(pulled,Pair,'$!key'), type),
+                self.BIND-TO-TYPED-SET(
+                  elems, nqp::getattr(pulled,Pair,'$!key'), type)
               )
             ),
-            self.BIND-TO-TYPED-SET(elems, pulled, type)
+            nqp::if($coercive,
+              self.COERCE-AND-BIND-TO-TYPED-SET(elems, pulled, type),
+              self.BIND-TO-TYPED-SET(elems, pulled, type)
+            )
           )
         );
         elems
@@ -573,23 +601,43 @@ my class Rakudo::QuantHash {
              ).throw
     }
 
+    # same as BIND-TO-TYPED-BAG but coerces object before binding
+    method COERCE-AND-BIND-TO-TYPED-BAG(
+      \elems, Mu \which, Mu \object, Int:D \value, Mu \type
+    --> Nil) {
+        nqp::if(
+          nqp::istype(object,type),
+          nqp::stmts(
+            (my \stored := type.^coerce(object)),
+            nqp::bindkey(elems,stored.WHICH,Pair.new(stored,value))
+          ),
+          X::TypeCheck::Binding.new(
+            got      => object,
+            expected => type
+          ).throw
+        )
+    }
+
     method ADD-ITERATOR-TO-BAG(\elems, Mu \iterator, Mu \type) {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr(
-            (my \pulled := nqp::decont(iterator.pull-one)),
+            (my \raw := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
           nqp::stmts(
+            nqp::unless(
+              nqp::istype(raw,type),
+              X::TypeCheck::Binding.new(
+                got      => raw,
+                expected => type
+              ).throw
+            ),
+            (my \pulled :=
+              nqp::if($coercive,type.^coerce(raw),raw)),
             (my $pair := nqp::ifnull(
               nqp::atkey(elems,(my \which := pulled.WHICH)),
-              nqp::if(
-                nqp::istype(pulled,type),
-                nqp::bindkey(elems,which,Pair.new(pulled,0)),
-                X::TypeCheck::Binding.new(
-                  got      => pulled,
-                  expected => type
-                ).throw
-              )
+              nqp::bindkey(elems,which,Pair.new(pulled,0))
             )),
             nqp::bindattr($pair,Pair,'$!value',
               nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
@@ -772,6 +820,7 @@ my class Rakudo::QuantHash {
     # Add to given IterationSet with baggy semantics the values of the given
     # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-BAG(\elems, Mu \iterator, Mu \type) {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr(
             (my $pulled := nqp::decont(iterator.pull-one)),
@@ -787,41 +836,58 @@ my class Rakudo::QuantHash {
               ),
               nqp::if(             # is a (coerced) Int
                 $value > 0,
-                nqp::if(           # and a positive one at that
-                  nqp::existskey(
-                    elems,
-                    (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                nqp::stmts(        # and a positive one at that
+                  (my $key := nqp::getattr($pulled,Pair,'$!key')),
+                  nqp::unless(
+                    nqp::istype($key,type),
+                    X::TypeCheck::Binding.new(
+                      got      => $key,
+                      expected => type
+                    ).throw
                   ),
-                  nqp::stmts(      # seen before, add value
-                    (my $pair := nqp::atkey(elems,$which)),
-                    nqp::bindattr(
-                      $pair,
-                      Pair,
-                      '$!value',
-                      nqp::getattr($pair,Pair,'$!value') + $value
+                  nqp::if($coercive,($key := type.^coerce($key))),
+                  nqp::if(
+                    nqp::existskey(
+                      elems,
+                      (my $which := $key.WHICH)
+                    ),
+                    nqp::stmts(      # seen before, add value
+                      (my $pair := nqp::atkey(elems,$which)),
+                      nqp::bindattr(
+                        $pair,
+                        Pair,
+                        '$!value',
+                        nqp::getattr($pair,Pair,'$!value') + $value
+                      )
+                    ),
+                    nqp::bindkey(    # new, create new Pair
+                      elems,$which,Pair.new($key,$value)
                     )
-                  ),
-                  self.BIND-TO-TYPED-BAG(    # new, create new Pair
-                    elems,
-                    $which,
-                    nqp::getattr($pulled,Pair,'$!key'),
-                    $value,
-                    type
                   )
                 )
               ),
               $value.throw         # value cannot be made Int, so throw
             ),
-            nqp::if(               # not a Pair
-              ($pair := nqp::atkey(elems,($which := $pulled.WHICH))),
-              nqp::bindattr(     # seen before, so increment
-                $pair,
-                Pair,
-                '$!value',
-                nqp::getattr($pair,Pair,'$!value') + 1
+            nqp::stmts(            # not a Pair
+              nqp::unless(
+                nqp::istype($pulled,type),
+                X::TypeCheck::Binding.new(
+                  got      => $pulled,
+                  expected => type
+                ).throw
               ),
-              self.BIND-TO-TYPED-BAG(    # new, create new Pair
-                elems, $which, $pulled, 1, type
+              nqp::if($coercive,($pulled := type.^coerce($pulled))),
+              nqp::if(
+                ($pair := nqp::atkey(elems,($which := $pulled.WHICH))),
+                nqp::bindattr(     # seen before, so increment
+                  $pair,
+                  Pair,
+                  '$!value',
+                  nqp::getattr($pair,Pair,'$!value') + 1
+                ),
+                nqp::bindkey(      # new, create new Pair
+                  elems,$which,Pair.new($pulled,1)
+                )
               )
             )
           )
@@ -835,12 +901,16 @@ my class Rakudo::QuantHash {
     method ADD-OBJECTS-VALUES-TO-BAG(
       \elems, Mu \objects, Mu \values, Mu \type
     ) is raw {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
           nqp::if(
             (my \value := values.pull-one.Int) > 0,
-            self.BIND-TO-TYPED-BAG(    # new, create new Pair
-              elems, object.WHICH, object, value, type
+            nqp::if($coercive,
+              self.COERCE-AND-BIND-TO-TYPED-BAG(
+                elems, object.WHICH, object, value, type),
+              self.BIND-TO-TYPED-BAG(
+                elems, object.WHICH, object, value, type)
             )
           )
         );
@@ -1197,9 +1267,27 @@ my class Rakudo::QuantHash {
              ).throw
     }
 
+    # same as BIND-TO-TYPED-MIX but coerces object before binding
+    method COERCE-AND-BIND-TO-TYPED-MIX(
+      \elems, Mu \which, Mu \object, Real:D \value, Mu \type
+    --> Nil) {
+        nqp::if(
+          nqp::istype(object,type),
+          nqp::stmts(
+            (my \stored := type.^coerce(object)),
+            nqp::bindkey(elems,stored.WHICH,Pair.new(stored,value))
+          ),
+          X::TypeCheck::Binding.new(
+            got      => object,
+            expected => type
+          ).throw
+        )
+    }
+
     # Add to given IterationSet with mixy semantics the values of the given
     # iterator while checking for Pairs with numeric values.
     method ADD-PAIRS-TO-MIX(\elems, Mu \iterator, Mu \type) is raw {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr(
             (my $pulled := nqp::decont(iterator.pull-one)),
@@ -1222,10 +1310,19 @@ my class Rakudo::QuantHash {
                     nqp::istype(($value := $value.Real),Real),
                     $value.throw   # not a Real value, so throw Failure
                   ),
+                  (my $key := nqp::getattr($pulled,Pair,'$!key')),
+                  nqp::unless(
+                    nqp::istype($key,type),
+                    X::TypeCheck::Binding.new(
+                      got      => $key,
+                      expected => type
+                    ).throw
+                  ),
+                  nqp::if($coercive,($key := type.^coerce($key))),
                   nqp::if(         # valid Real value
                     nqp::existskey(
                       elems,
-                      (my $which := nqp::getattr($pulled,Pair,'$!key').WHICH)
+                      (my $which := $key.WHICH)
                     ),
                     nqp::if( # seen before, add value
                       ($value := nqp::getattr(
@@ -1236,25 +1333,33 @@ my class Rakudo::QuantHash {
                       nqp::bindattr($pair,Pair,'$!value',$value),  # non-zero
                       nqp::deletekey(elems,$which)                 # zero
                     ),
-                    self.BIND-TO-TYPED-MIX(  # new, create new Pair
-                      elems, $which,
-                      nqp::getattr($pulled,Pair,'$!key'),
-                      $value,type
+                    nqp::bindkey(  # new, create new Pair
+                      elems,$which,Pair.new($key,$value)
                     )
                   )
                 )
               )
             ),
-            nqp::if(               # not a Pair
-              ($pair := nqp::atkey(elems,($which := $pulled.WHICH))),
-              nqp::bindattr(     # seen before, so increment
-                $pair,
-                Pair,
-                '$!value',
-                nqp::getattr($pair,Pair,'$!value') + 1
+            nqp::stmts(            # not a Pair
+              nqp::unless(
+                nqp::istype($pulled,type),
+                X::TypeCheck::Binding.new(
+                  got      => $pulled,
+                  expected => type
+                ).throw
               ),
-              self.BIND-TO-TYPED-MIX(  # new, create new Pair
-                elems, $which, $pulled, 1, type
+              nqp::if($coercive,($pulled := type.^coerce($pulled))),
+              nqp::if(
+                ($pair := nqp::atkey(elems,($which := $pulled.WHICH))),
+                nqp::bindattr(     # seen before, so increment
+                  $pair,
+                  Pair,
+                  '$!value',
+                  nqp::getattr($pair,Pair,'$!value') + 1
+                ),
+                nqp::bindkey(      # new, create new Pair
+                  elems,$which,Pair.new($pulled,1)
+                )
               )
             )
           )
@@ -1268,6 +1373,7 @@ my class Rakudo::QuantHash {
     method ADD-OBJECTS-VALUES-TO-MIX(
       \elems, Mu \objects, Mu \values, Mu \type
     ) is raw {
+        my int $coercive = type.^archetypes.coercive;
         nqp::until(
           nqp::eqaddr((my \object := objects.pull-one),IterationEnd),
           nqp::if(
@@ -1282,8 +1388,11 @@ my class Rakudo::QuantHash {
               nqp::istype(nqp::bind(value,value.Real),Real),
               nqp::if(
                 value,
-                self.BIND-TO-TYPED-MIX(
-                  elems, object.WHICH, object, value, type
+                nqp::if($coercive,
+                  self.COERCE-AND-BIND-TO-TYPED-MIX(
+                    elems, object.WHICH, object, value, type),
+                  self.BIND-TO-TYPED-MIX(
+                    elems, object.WHICH, object, value, type)
                 )
               ),
               value.throw

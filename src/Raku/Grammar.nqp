@@ -4657,6 +4657,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote:sym</ /> {
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        :my $*WHITESPACE-OK := 0;
         '/'
         <nibble(self.quote-lang(self.Regex, '/', '/'))>
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
@@ -4666,6 +4667,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-rx>
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>

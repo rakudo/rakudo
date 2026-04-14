@@ -3,8 +3,7 @@ my role QuantHash does Associative {
     method keyof() { Mu }
 
     method SET-SELF(QuantHash:D: \elems) is implementation-detail {
-        nqp::bindattr(self,::?CLASS,'$!elems',elems)
-          if nqp::elems(elems);
+        nqp::bindattr(self,::?CLASS,'$!elems',elems) if nqp::elems(elems);
         self
     }
 
@@ -44,6 +43,12 @@ my role QuantHash does Associative {
     method hash() { ... }
     method Hash() { ... }
     method Map()  { ... }
+
+    # Objectifier logic for unparameterized quanthashes
+    method OBJECTIFIER() is implementation-detail { -> Mu \value { value } }
+
+    # WHICH logic for unparameterized quanthashes
+    method WHICHIFY(Mu \value) is implementation-detail { value.WHICH }
 }
 
 my role QuantHash::KeyOf[::CONSTRAINT] {
@@ -51,6 +56,17 @@ my role QuantHash::KeyOf[::CONSTRAINT] {
     method is-generic { CONSTRAINT.^archetypes.generic }
     method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
         self.^parameterize: type-environment.instantiate(CONSTRAINT)
+    }
+
+    # Create the Callable for checking the type of a key value and
+    # potentially coerce the value.  Callable is expected to throw
+    # on a typecheck failure or a failure to coerce
+    my &OBJECTIFIER := Rakudo::QuantHash.MAKE-OBJECTIFIER(CONSTRAINT);
+    method OBJECTIFIER() is implementation-detail { &OBJECTIFIER }
+
+    # Convert value to WHICH string to be used in the IterationSet
+    method WHICHIFY(Mu \value) is implementation-detail {
+        OBJECTIFIER(value).WHICH
     }
 }
 

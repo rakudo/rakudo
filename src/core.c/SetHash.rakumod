@@ -1,4 +1,17 @@
 my class SetHash does Setty {
+    has &!objectifier;
+
+    # Handle special setup of empty SetHash (which doesn't call SET-SELF
+    # by default)
+    multi method new(SetHash: --> SetHash:D) {
+        my $self := nqp::create(self);
+        nqp::p6bindattrinvres($self,SetHash,'&!objectifier',$self.OBJECTIFIER)
+    }
+
+    method SET-SELF(SetHash:D: \elems) {
+        nqp::p6bindattrinvres(self,SetHash,'&!objectifier',self.OBJECTIFIER);
+        self.QuantHash::SET-SELF(elems)
+    }
 
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
@@ -261,26 +274,28 @@ my class SetHash does Setty {
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {
-              nqp::hllbool($!elems ?? nqp::existskey($!elems,k.WHICH) !! 0)
+              nqp::hllbool($!elems
+                ?? nqp::existskey($!elems,self.WHICHIFY(k))
+                !! 0
+              )
           },
           STORE => -> $, $value {
-              nqp::stmts(
-                nqp::if(
-                  $value,
-                  nqp::stmts(
-                    nqp::unless(
-                      $!elems,
-                      nqp::bindattr(self,::?CLASS,'$!elems',
-                        nqp::create(Rakudo::Internals::IterationSet))
-                    ),
-                    Rakudo::QuantHash.BIND-TO-TYPED-SET(
-                      $!elems, nqp::decont(k), self.keyof
-                    )
+              nqp::if(
+                $value,
+                nqp::stmts(
+                  nqp::unless(
+                    $!elems,
+                    nqp::bindattr(self,SetHash,'$!elems',
+                      nqp::create(Rakudo::Internals::IterationSet))
                   ),
-                  $!elems && nqp::deletekey($!elems,k.WHICH)
+                  nqp::stmts(
+                    (my $object := &!objectifier(nqp::decont(k))),
+                    nqp::bindkey($!elems,$object.WHICH,$object)
+                  )
                 ),
-                $value.Bool
-              )
+                $!elems && nqp::deletekey($!elems,self.WHICHIFY(k))
+              );
+              $value.Bool   # must be HLL
           }
         )
     }
@@ -288,7 +303,7 @@ my class SetHash does Setty {
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
         nqp::hllbool(
           nqp::if(
-            $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+            $!elems && nqp::existskey($!elems,(my $which := self.WHICHIFY(k))),
             nqp::stmts(
               nqp::deletekey($!elems,$which),
               1

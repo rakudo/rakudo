@@ -6,6 +6,24 @@ my class Rakudo::QuantHash {
     # a Pair with the value 0
     my $p0 := nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
 
+    # Create the Callable for checking the type of a key value and
+    # potentially coerce the value.  Callable is expected to throw
+    # on a typecheck failure or a failure to coerce
+    method MAKE-OBJECTIFIER(Mu \type) {
+        nqp::eqaddr(type,Mu)
+          ?? -> Mu \value { value }                  # no check needed
+          !! type.^archetypes.coercive
+            ?? -> Mu \value { type.^coerce(value) }  # actually coerce
+            !! -> Mu \value {                        # just typecheck
+                   nqp::istype(value,type)
+                     ?? value
+                     !! X::TypeCheck::Binding.new(
+                          got      => value,
+                          expected => type
+                        ).throw
+                  }
+    }
+
     # Specialized role for .kv methods on QuantHashes: copied methods
     # from Quanty because of visibility issues wrt to $!elems and $!iter :-(
     our role Quanty-kv does Iterator {
@@ -270,45 +288,47 @@ my class Rakudo::QuantHash {
         $elems
     }
 
-    # bind the given value to the given IterationSet, check for given type
-    method BIND-TO-TYPED-SET(\elems, Mu \value, Mu \type --> Nil) {
-        nqp::istype(value,type)
-          ?? nqp::bindkey(elems,value.WHICH,value)
-          !! X::TypeCheck::Binding.new(
-               got      => value,
-               expected => type
-             ).throw
-    }
-
     # add to given IterationSet with setty semantics the values of iterator
-    method ADD-ITERATOR-TO-SET(\elems,Mu \iterator, Mu \type) {
+    method ADD-ITERATOR-TO-SET(\elems, Mu \iterator, Mu \type) {
+        my &objectifier := self.MAKE-OBJECTIFIER(type);
+
         nqp::until(
           nqp::eqaddr(
-            (my \pulled := nqp::decont(iterator.pull-one)),
+            (my $value := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
-          self.BIND-TO-TYPED-SET(elems, pulled, type)
+          nqp::stmts(
+            (my $object := objectifier($value)),
+            nqp::bindkey(elems,$object.WHICH,$object)
+          )
         );
         elems
     }
 
     # Add to IterationSet with setty semantics the values of the given
     # iterator while checking for Pairs (only include if value is trueish)
-    method ADD-PAIRS-TO-SET(\elems,Mu \iterator, Mu \type) {
+    method ADD-PAIRS-TO-SET(\elems, Mu \iterator, Mu \type) {
+        my &objectifier := self.MAKE-OBJECTIFIER(type);
+        my $object;
+
         nqp::until(
           nqp::eqaddr(
-            (my \pulled := nqp::decont(iterator.pull-one)),
+            (my $value := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
           nqp::if(
-            nqp::istype(pulled,Pair),
+            nqp::istype($value,Pair),
             nqp::if(
-              nqp::getattr(pulled,Pair,'$!value'),
-              self.BIND-TO-TYPED-SET(
-                elems, nqp::getattr(pulled,Pair,'$!key'), type
+              nqp::getattr($value,Pair,'$!value'),
+              nqp::stmts(
+                ($object := objectifier(nqp::getattr($value,Pair,'$!key'))),
+                nqp::bindkey(elems,$object.WHICH,$object)
               )
             ),
-            self.BIND-TO-TYPED-SET(elems, pulled, type)
+            nqp::stmts(
+              ($object := objectifier($value)),
+              nqp::bindkey(elems,$object.WHICH,$object)
+            )
           )
         );
         elems

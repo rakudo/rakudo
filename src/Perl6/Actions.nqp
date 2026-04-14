@@ -3127,13 +3127,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
-            # Contextualize based on sigil.
+            # Contextualize based on sigil. Mark so assignment can strip
+            # this wrapper (see assign_op); otherwise .item would wrap a
+            # non-rw accessor result in a throwaway Scalar, silently
+            # swallowing `$.foo = ...`. See rakudo/rakudo#5908 and #6113.
             $past := QAST::Op.new(
                 :op('callmethod'),
                 :name($sigil eq '@' ?? 'list' !!
                       $sigil eq '%' ?? 'hash' !!
                       'item'),
                 $past);
+            $past.annotate('public-attr-contextualizer', 1);
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
@@ -7910,6 +7914,16 @@ Did you mean a call like '"
         my $var_sigil;
         $lhs_ast := WANTED($lhs_ast,'assign_op/lhs');
         $rhs_ast := wanted($rhs_ast,'assign_op/rhs');
+
+        # `$.foo = ...` wraps the accessor call in a sigil contextualizer
+        # (.item/.list/.hash). In rvalue position that's correct; in lvalue
+        # position it produces a throwaway container that silently swallows
+        # the assignment. Strip the wrap so assignment lands on the bare
+        # accessor and properly errors for non-rw attributes.
+        if nqp::istype($lhs_ast, QAST::Op)
+          && $lhs_ast.ann('public-attr-contextualizer') {
+            $lhs_ast := $lhs_ast[0];
+        }
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
             if $var_sigil eq '%' {

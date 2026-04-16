@@ -24,7 +24,7 @@ my role Setty does QuantHash {
           nqp::stmts(
             nqp::bindkey(
               (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              value.WHICH,
+              self.WHICHIFY(value),
               nqp::decont(value)
             ),
             nqp::create(self).SET-SELF($elems)

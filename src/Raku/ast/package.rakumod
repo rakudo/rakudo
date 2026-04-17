@@ -773,8 +773,8 @@ class RakuAST::Grammar
 class RakuAST::Module
   is RakuAST::Package
 {
-    method declarator()  { "module"           }
-    method default-how() { Metamodel::KnowHOW }
+    method declarator()  { "module"              }
+    method default-how() { Metamodel::ModuleHOW  }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.meta-object-as-lexicals($resolver, 'PACKAGE');

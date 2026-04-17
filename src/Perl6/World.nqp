@@ -1648,10 +1648,19 @@ class Perl6::World is HLL::World {
         my $longname := $package =:= $*GLOBALish ?? '' !! $package.HOW.name($package);
         if +@parts {
             try {
-                $cur_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
-                $cur_lex := 0;
-                $create_scope := 'our';
-                $longname := $longname ?? $longname ~ '::' ~ @parts.shift() !! @parts.shift();
+                my $resolved_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
+                # Check if resolving would install over the current
+                # package. E.g. module Foo::Bar { class Foo::Bar { } }
+                # the resolver finds outer Foo, whose Bar entry is the
+                # current module. The intent is Foo::Bar::Foo::Bar.
+                unless +@parts == 1
+                  && nqp::existskey($resolved_pkg.WHO, $name)
+                  && ($resolved_pkg.WHO){$name} =:= $package {
+                    $cur_pkg := $resolved_pkg;
+                    $cur_lex := 0;
+                    $create_scope := 'our';
+                    $longname := $longname ?? $longname ~ '::' ~ @parts.shift() !! @parts.shift();
+                }
             }
         }
 

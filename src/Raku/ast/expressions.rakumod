@@ -2014,10 +2014,7 @@ class RakuAST::ApplyInfix
     method operator() { $!infix }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if self.IMPL-SHOULD-CURRY {
-            my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
-            self.IMPL-CURRY($args).to-begin-time($resolver, $context);
-        }
+        self.IMPL-MAYBE-CURRY($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
     }

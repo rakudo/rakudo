@@ -1798,7 +1798,7 @@ class RakuAST::ModuleLoading {
 
             my $existing := nqp::isconcrete($declarand.compile-time-value)
                 ?? Nil
-                !! $resolver.resolve-lexical-constant($key);
+                !! $resolver.resolve-lexical-constant($key, :current-scope-only);
             if $existing {
                 $existing.merge($declarand, :$resolver) unless $existing.compile-time-value =:= $declarand.compile-time-value;
             }

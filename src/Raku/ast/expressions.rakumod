@@ -104,12 +104,6 @@ class RakuAST::Expression
         $!thunks
     }
 
-    method IMPL-CURRY(@params) {
-        my $thunk := RakuAST::CurryThunk.new(self.origin ?? self.origin.Str !! self.DEPARSE, @params);
-        self.wrap-with-thunk($thunk);
-        $thunk
-    }
-
     method IMPL-CURRIED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
@@ -1850,14 +1844,28 @@ class RakuAST::MetaInfix::Hyper
 class RakuAST::WhateverApplicable
 {
     has int $!must-not-curry;
+    has int $!hyperwhatever;
 
     method IMPL-MUST-NOT-CURRY() {
         nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-curry', 1);
     }
 
+    method IMPL-CURRY(@params) {
+        my $expr := self.origin ?? self.origin.Str !! self.DEPARSE;
+        my $thunk := $!hyperwhatever
+            ?? RakuAST::HyperCurryThunk.new($expr, @params)
+            !! RakuAST::CurryThunk.new($expr, @params);
+        self.wrap-with-thunk($thunk);
+        $thunk
+    }
+
     method IMPL-MAYBE-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.IMPL-SHOULD-CURRY {
             my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
+            if $!hyperwhatever && nqp::elems($args) > 1 {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::HyperWhatever::Multiple';
+            }
             self.IMPL-CURRY($args).to-begin-time($resolver, $context);
         }
     }
@@ -1874,6 +1882,7 @@ class RakuAST::WhateverApplicable
         if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
             for self.IMPL-UNWRAP-LIST(self.operands) {
                 return True if nqp::istype($_, RakuAST::Term::Whatever)
+                            || nqp::istype($_, RakuAST::Term::HyperWhatever)
             }
         }
         if nqp::bitand_i(self.operator.IMPL-CURRIES, 2) {
@@ -1891,8 +1900,11 @@ class RakuAST::WhateverApplicable
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
-            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
-                @operands[$index] := RakuAST::WhateverCode::Argument.new if nqp::istype($_, RakuAST::Term::Whatever);
+            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1)
+            && (nqp::istype($_, RakuAST::Term::Whatever) || nqp::istype($_, RakuAST::Term::HyperWhatever)) {
+                nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!hyperwhatever', 1)
+                    if nqp::istype($_, RakuAST::Term::HyperWhatever);
+                @operands[$index] := RakuAST::WhateverCode::Argument.new;
             }
 
             # If we can curry WhateverCodes, uncurry them first, i.e. move the thunk up to this node
@@ -1941,7 +1953,8 @@ class RakuAST::WhateverApplicable
         return False unless nqp::bitand_i(self.operator.IMPL-CURRIES, 1);
         return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
         for self.IMPL-UNWRAP-LIST(self.operands) {
-            return True if nqp::istype($_, RakuAST::Term::Whatever);
+            return True if nqp::istype($_, RakuAST::Term::Whatever)
+                        || nqp::istype($_, RakuAST::Term::HyperWhatever);
             return True if nqp::istype($_, RakuAST::WhateverCode::Argument);
         }
         False
@@ -2014,10 +2027,7 @@ class RakuAST::ApplyInfix
     method operator() { $!infix }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if self.IMPL-SHOULD-CURRY {
-            my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
-            self.IMPL-CURRY($args).to-begin-time($resolver, $context);
-        }
+        self.IMPL-MAYBE-CURRY($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
     }

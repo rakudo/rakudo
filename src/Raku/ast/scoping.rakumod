@@ -1027,6 +1027,24 @@ class RakuAST::PackageInstaller {
             my $first := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
+            # Check if the resolution would lead us to install over the
+            # current package. This happens when e.g. class Foo::Bar is
+            # declared inside module Foo::Bar: the resolver finds the
+            # outer Foo package and its Bar stash entry is the current
+            # module, but the intent is Foo::Bar::Foo::Bar.
+            if $resolved {
+                my $check := self.IMPL-UNWRAP-LIST($resolved);
+                my $check-target := $check[0];
+                my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
+                if !nqp::elems($check-remaining) {
+                    my %check-stash := $resolver.IMPL-STASH-HASH($check-target);
+                    if nqp::existskey(%check-stash, $final)
+                      && %check-stash{$final} =:= $current-package {
+                        $resolved := NQPMu;
+                    }
+                }
+            }
+
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];

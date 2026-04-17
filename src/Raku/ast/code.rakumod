@@ -3557,6 +3557,16 @@ class RakuAST::CurryThunk
     }
 }
 
+class RakuAST::HyperCurryThunk
+  is RakuAST::CurryThunk
+{
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-CLOSURE-QAST($context);
+        $qast.annotate('thunked', 1);
+        QAST::Op.new(:op<call>, :name<&HYPERWHATEVER>, $qast)
+    }
+}
+
 class RakuAST::BlockThunk
   is RakuAST::ExpressionThunk
   is RakuAST::ImplicitDeclarations

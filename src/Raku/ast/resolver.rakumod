@@ -552,37 +552,44 @@ class RakuAST::Resolver {
             # Successfully resolved. Maka sure it is an X::Comp.
             my $type := $type-res.compile-time-value;
             my $XComp := $XComp-res.compile-time-value;
-            unless nqp::istype($type, $XComp) {
-                $type := $type.HOW.mixin($type, $XComp);
-            }
 
-            # Ensure that the options are Raku types.
-            for %opts -> $p {
-                if nqp::islist($p.value) {
-                    my @a := [];
-                    for $p.value {
-                        nqp::push(@a, nqp::hllizefor($_, 'Raku'));
+            # During CORE.setting compilation, the resolved type may be a
+            # forward-declared stub that isn't composed yet. Mixing X::Comp
+            # into an uncomposed type would fail, so bail out to the
+            # BOOTException fallback below.
+            if nqp::can($type.HOW, 'is_composed') && $type.HOW.is_composed($type)
+              && (!nqp::can($type.HOW, 'repr_composed') || $type.HOW.repr_composed($type)) {
+                unless nqp::istype($type, $XComp) {
+                    $type := $type.HOW.mixin($type, $XComp);
+                }
+
+                # Ensure that the options are Raku types.
+                for %opts -> $p {
+                    if nqp::islist($p.value) {
+                        my @a := [];
+                        for $p.value {
+                            nqp::push(@a, nqp::hllizefor($_, 'Raku'));
+                        }
+                        %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
                     }
-                    %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
+                    else {
+                        %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
+                    }
                 }
-                else {
-                    %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
-                }
-            }
 
-            # Construct the exception object and return it.
-            %opts<is-compile-time> := True;
-            $type.new(|%opts)
-        }
-        else {
-            # Could not find exception type, so build a fake (typically happens
-            # during CORE.setting compilation).
-            my $message := $type-name;
-            for %opts {
-                $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+                # Construct the exception object and return it.
+                %opts<is-compile-time> := True;
+                return $type.new(|%opts);
             }
-            RakuAST::BOOTException.new($message, %opts);
         }
+
+        # Could not find or use exception type, so build a fake
+        # (typically happens during CORE.setting compilation).
+        my $message := $type-name;
+        for %opts {
+            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+        }
+        RakuAST::BOOTException.new($message, %opts);
     }
 
     method convert-exception(Mu $ex) {

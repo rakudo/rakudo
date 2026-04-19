@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 15;
 
 my $ast;
 my $deparsed;
@@ -676,6 +676,70 @@ CODE
         my $class := EVAL($it);
         is $class.^name, 'Goo', "$type: unit scoped class is returned";
         is-deeply $class.goo, 42, "$type: Calling .goo works";
+    }
+}
+
+subtest 'Multi-part class name matching enclosing package does not redeclare (rakudo#5854)' => {
+    for 'AST', 'Str', 'Raku' -> $type {
+        my $mod = "GH5854$type";
+
+        # module GH5854$type::Outer { class GH5854$type::Outer { method x { 42 } } }
+        ast RakuAST::Module.new(
+          scope => 'our',
+          name  => RakuAST::Name.from-identifier-parts($mod, 'Outer'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Class.new(
+                    scope => 'our',
+                    name  => RakuAST::Name.from-identifier-parts($mod, 'Outer'),
+                    body  => RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::Method.new(
+                              name => RakuAST::Name.from-identifier('x'),
+                              body => RakuAST::Blockoid.new(
+                                RakuAST::StatementList.new(
+                                  RakuAST::Statement::Expression.new(
+                                    expression => RakuAST::IntLiteral.new(42)
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, qq:to/CODE/.chomp, 'deparse';
+module $mod\::Outer \{
+    class $mod\::Outer \{
+        method x \{
+            42
+        \}
+    \}
+\}
+CODE
+
+        my $module := $type eq 'AST'
+          ?? EVAL($ast)
+          !! $type eq 'Str'
+            ?? EVAL($deparsed)
+            !! EVAL(EVAL $raku);
+        is $module.HOW.^name, 'Perl6::Metamodel::ModuleHOW',
+          "$type: enclosing module is not overwritten";
+        my $class := $module.WHO{$mod}.WHO<Outer>;
+        is $class.HOW.^name, 'Perl6::Metamodel::ClassHOW',
+          "$type: inner class is installed with full nested name";
+        is $class.x, 42,
+          "$type: inner class method is callable";
     }
 }
 

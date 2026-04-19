@@ -419,6 +419,16 @@ class RakuAST::Var::Attribute::Public
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-EXPR-QAST($context)
     }
+
+    # In lvalue position (e.g. `$.foo = 42`), peel the outer hllize and
+    # the sigil contextualizer off $!expression's compiled QAST so the
+    # assignment lands on the bare `self.<attr>` method call. Without
+    # this, .item wraps a non-rw accessor result in a throwaway Scalar
+    # container, silently swallowing the assignment.
+    # See rakudo/rakudo#5908 and #6113.
+    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
+        $qast[0][0]
+    }
 }
 
 # The base for special compiler variables ($?FOO).

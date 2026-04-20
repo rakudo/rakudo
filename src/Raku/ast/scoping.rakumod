@@ -1027,12 +1027,15 @@ class RakuAST::PackageInstaller {
             my $first := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
-            # Check if the resolution would lead us to install over the
-            # current package. This happens when e.g. class Foo::Bar is
-            # declared inside module Foo::Bar: the resolver finds the
-            # outer Foo package and its Bar stash entry is the current
-            # module, but the intent is Foo::Bar::Foo::Bar.
-            if $resolved {
+            # In 6.e and later, detect when the resolved path would
+            # install over the enclosing package (e.g. class Foo::Bar
+            # declared inside module Foo::Bar) and clear $resolved so
+            # the else branch creates intermediate stubs under the
+            # current package, producing Foo::Bar::Foo::Bar.
+            # In 6.d and earlier, let $resolved stand so the legacy
+            # silent-replace path below does the ModuleHOW steal_WHO
+            # overwrite, matching the traditional grammar.
+            if $resolved && nqp::getcomp('Raku').language_revision >= 3 {
                 my $check := self.IMPL-UNWRAP-LIST($resolved);
                 my $check-target := $check[0];
                 my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
@@ -1104,7 +1107,19 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
-                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier || $orig-scope eq 'my' {
+                # On 6.d and earlier, allow the specific legacy pattern
+                # where a declaration silently replaces its enclosing
+                # module (`module Foo::Bar { class Foo::Bar { } }`),
+                # matching the traditional grammar. Other ModuleHOW
+                # collisions stay strict (pre-PR #6122 RakuAST
+                # behavior). On 6.e the enclosing-package case is
+                # handled by the nested-install path above, so this
+                # branch is only reached for non-enclosing collisions.
+                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW)
+                  || (nqp::getcomp('Raku').language_revision < 3
+                      && nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::ModuleHOW)
+                      && %stash{$final} =:= $current-package)
+                  || $name.is-identifier || $orig-scope eq 'my' {
                     nqp::setwho($type-object, %stash{$final}.WHO);
                 }
                 else {

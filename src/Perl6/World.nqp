@@ -1649,13 +1649,19 @@ class Perl6::World is HLL::World {
         if +@parts {
             try {
                 my $resolved_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
-                # Check if resolving would install over the current
-                # package. E.g. module Foo::Bar { class Foo::Bar { } }
-                # the resolver finds outer Foo, whose Bar entry is the
-                # current module. The intent is Foo::Bar::Foo::Bar.
-                unless +@parts == 1
-                  && nqp::existskey($resolved_pkg.WHO, $name)
-                  && ($resolved_pkg.WHO){$name} =:= $package {
+                # In 6.e and later, detect when installing would land on
+                # the enclosing package (e.g. `class Foo::Bar` inside
+                # `module Foo::Bar`) and keep the remaining name parts so
+                # the chase loop nests the declaration as
+                # Foo::Bar::Foo::Bar. In 6.d and earlier, preserve the
+                # legacy silent-replace behavior where the new package
+                # simply overwrites the module in the outer stash via
+                # steal_WHO below.
+                my $use-nested := nqp::getcomp('Raku').language_revision >= 3
+                    && +@parts == 1
+                    && nqp::existskey($resolved_pkg.WHO, $name)
+                    && ($resolved_pkg.WHO){$name} =:= $package;
+                unless $use-nested {
                     $cur_pkg := $resolved_pkg;
                     $cur_lex := 0;
                     $create_scope := 'our';

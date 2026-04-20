@@ -1,10 +1,23 @@
 my role QuantHash does Associative {
 
+    multi method new(QuantHash:_:) { self.WHAT.SETUP }
+
     method keyof() { Mu }
 
-    method SET-SELF(QuantHash:D: \elems) is implementation-detail {
-        nqp::bindattr(self,::?CLASS,'$!elems',elems) if nqp::elems(elems);
-        self
+    proto method SETUP(|) is implementation-detail {*}
+    multi method SETUP(QuantHash:U:) {
+        self.SETUP(nqp::create(Rakudo::Internals::IterationSet))
+    }
+    multi method SETUP(QuantHash:U: \elems) {
+        nqp::create(self).SETUP(elems)
+    }
+    multi method SETUP(QuantHash:D:) {
+        nqp::p6bindattrinvres(
+          self,::?CLASS,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
+        )
+    }
+    multi method SETUP(QuantHash:D: \elems) {
+        nqp::p6bindattrinvres(self,::?CLASS,'$!elems',nqp::decont(elems))
     }
 
     # provide a proto for QuantHashes from here

@@ -8,8 +8,8 @@ multi sub infix:<(&)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my $araw := $a.RAW-HASH) && nqp::elems($araw)
-        && (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+      nqp::elems(my $araw := $a.RAW-HASH)
+        && nqp::elems(my $braw := $b.RAW-HASH),
       nqp::stmts(                              # both have elems
         nqp::if(
           nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -30,12 +30,12 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
             nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
           )
         ),
-        nqp::create($a.WHAT).SET-SELF($elems)
+        $a.WHAT.SETUP($elems)
       ),
       nqp::if(                                 # one/neither has elems
         nqp::istype($a,Set),
-        nqp::if(nqp::eqaddr($a.WHAT,Set), set(), nqp::create($a.WHAT)),
-        nqp::create(SetHash)
+        nqp::if(nqp::eqaddr($a.WHAT,Set), set(), $a.SETUP),
+        SetHash.SETUP
       )
     )
 }
@@ -114,7 +114,7 @@ multi sub infix:<(&)>(Map:D \a, Map:D \b) {
                 $elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
             )
           ),
-          nqp::create(Set).SET-SELF($elems)
+          Set.SETUP($elems)
         ),
         set()                                # one/neither has elems
       )

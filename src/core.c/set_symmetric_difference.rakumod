@@ -8,9 +8,9 @@ multi sub infix:<(^)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -31,7 +31,7 @@ multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF($elems)
+          $a.WHAT.SETUP($elems)
         ),
         $a                                     # b empty, so a
       ),
@@ -45,9 +45,9 @@ multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Baggy (^) $b }
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -88,15 +88,15 @@ multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
               )
             )
           ),
-          nqp::create($a.WHAT).SET-SELF($elems)
+          $a.WHAT.SETUP($elems)
         ),
-        nqp::create($a.WHAT).SET-SELF(        # b empty, so a
+        $a.WHAT.SETUP(                        # b empty, so a
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(araw)
         )
       ),
       nqp::if(
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
-        nqp::create($a.WHAT).SET-SELF(        # a empty, so b
+        nqp::elems(my \raw := $b.RAW-HASH),
+        $a.WHAT.SETUP(                        # a empty, so b
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(raw)
         ),
         $a                                    # a and b empty
@@ -109,9 +109,9 @@ multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
 multi sub infix:<(^)>(Baggy:D $a, Mixy:D  $b) { $a.Mixy (^) $b }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -152,7 +152,7 @@ multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF($elems)
+          $a.WHAT.SETUP($elems)
         ),
         $a                                     # b empty, so a
       ),
@@ -202,9 +202,9 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
               )
             )
           ),
-          nqp::create(Set).SET-SELF(elems)        # done
+          Set.SETUP(elems)                        # done
         ),
-        nqp::create(Set).SET-SELF(elems)          # nothing right, so make left
+        Set.SETUP(elems)                          # nothing right, so make left
       ),
       b.Set                                       # nothing left, coerce right
     )
@@ -428,7 +428,7 @@ multi sub infix:<(^)>(+@p) {   # also Any
             nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
-        nqp::create($type).SET-SELF(elems)
+        $type.SETUP(elems)
       )
     )
 }

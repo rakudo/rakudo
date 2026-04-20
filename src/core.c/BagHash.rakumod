@@ -12,7 +12,7 @@ my class BagHash does Baggy {
     multi method STORE(BagHash:D: Any:D \keys --> BagHash:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
-          !! self.SET-SELF(
+          !! self.SETUP(
                Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
@@ -21,7 +21,7 @@ my class BagHash does Baggy {
              )
     }
     multi method STORE(BagHash:D: \objects, \values --> BagHash:D) {
-        self.SET-SELF(
+        self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
@@ -35,8 +35,7 @@ my class BagHash does Baggy {
         Proxy.new(
           FETCH => {
               nqp::if(
-                nqp::istrue($!elems)
-                  && nqp::existskey($!elems,(my $which := k.WHICH)),
+                nqp::existskey($!elems,(my str $which = k.WHICH)),
                 nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
                 # 0 because the value of the condition is returned
               )
@@ -45,37 +44,25 @@ my class BagHash does Baggy {
               nqp::if(
                 nqp::istype($value,Failure),    # https://github.com/Raku/old-issue-tracker/issues/5567
                 $value.throw,
-                nqp::if(
-                  $!elems,
-                  nqp::if(                      # allocated hash
-                    nqp::existskey($!elems,(my $which := k.WHICH)),
-                    nqp::if(                    # existing element
-                      $value > 0,
-                      nqp::bindattr(
-                        nqp::atkey($!elems,$which),
-                        Pair,
-                        '$!value',
-                        nqp::decont($value)
-                      ),
-                      nqp::stmts(
-                        nqp::deletekey($!elems,$which),
-                        0
-                      )
+                nqp::if(                      # allocated hash
+                  nqp::existskey($!elems,(my str $which = k.WHICH)),
+                  nqp::if(                    # existing element
+                    $value > 0,
+                    nqp::bindattr(
+                      nqp::atkey($!elems,$which),
+                      Pair,
+                      '$!value',
+                      nqp::decont($value)
                     ),
-                    nqp::if(
-                      $value > 0,               # new
-                      Rakudo::QuantHash.BIND-TO-TYPED-BAG(
-                        $!elems, $which, k, nqp::decont($value), type
-                      )
+                    nqp::stmts(
+                      nqp::deletekey($!elems,$which),
+                      0
                     )
                   ),
-                  nqp::if(                      # no hash allocated yet
-                    $value > 0,
+                  nqp::if(
+                    $value > 0,               # new
                     Rakudo::QuantHash.BIND-TO-TYPED-BAG(
-                      nqp::bindattr(self,BagHash,'$!elems',
-                        nqp::create(Rakudo::Internals::IterationSet)
-                      ),
-                      k.WHICH, k, nqp::decont($value), type
+                      $!elems, $which, k, nqp::decont($value), type
                     )
                   )
                 )
@@ -112,7 +99,7 @@ my class BagHash does Baggy {
     multi method raku(BagHash:D \SELF: --> Str:D) {
         SELF.rakuseen: self.^name, {
             nqp::if(
-              $!elems && nqp::elems($!elems),
+              nqp::elems($!elems),
               nqp::stmts(
                 (my \pairs := nqp::join(',',
                   Rakudo::QuantHash.RAW-VALUES-MAP(self, {
@@ -144,28 +131,23 @@ my class BagHash does Baggy {
 
 #--- coercion methods
     multi method Bag(BagHash:D: :view($)!) is implementation-detail {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Bag).SET-SELF($!elems)
+        nqp::elems($!elems)
+          ?? nqp::create(Bag).SETUP($!elems)
           !! bag()
     }
     multi method Bag(BagHash:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Bag).SET-SELF(                # not empty
-               Rakudo::QuantHash.BAGGY-CLONE($!elems)  # need deep copy
-             )
-          !! bag()                                     # empty
+        nqp::elems($!elems)
+          ?? Bag.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! bag()
     }
     multi method BagHash(BagHash:D:) { self }
     multi method Mix(BagHash:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Mix).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems))
+        nqp::elems($!elems)
+          ?? Mix.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
           !! mix()
     }
     multi method MixHash(BagHash:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(MixHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(MixHash)
+        MixHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
 
     multi method Setty(BagHash:U:) { SetHash      }
@@ -176,9 +158,7 @@ my class BagHash does Baggy {
     multi method Mixy (BagHash:D:) { self.MixHash }
 
     method clone() {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(self).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(self)
+        self.WHAT.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
 
 #--- iterator methods
@@ -325,7 +305,7 @@ my class BagHash does Baggy {
 
 #---- selection methods
     multi method grab(BagHash:D:) {
-        $!elems && nqp::elems($!elems)
+        nqp::elems($!elems)
           ?? Rakudo::QuantHash.BAG-GRAB($!elems,self.total)
           !! Nil
     }
@@ -336,7 +316,6 @@ my class BagHash does Baggy {
     multi method grab(BagHash:D: $count) {
         Seq.new(nqp::if(
           (my $todo = Rakudo::QuantHash.TODO($count))
-            && $!elems
             && nqp::elems($!elems),
           nqp::stmts(
             (my Int $total = self.total),
@@ -358,9 +337,6 @@ my class BagHash does Baggy {
 
 #--- convenience methods
     method add(BagHash:D: \to-add --> Nil) {
-        nqp::bindattr(
-          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
-        ) unless $!elems;
         Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
           $!elems, to-add.iterator, self.keyof
         );
@@ -369,7 +345,7 @@ my class BagHash does Baggy {
     method remove(BagHash:D: \to-remove --> Nil) {
         Rakudo::QuantHash.SUB-ITERATOR-FROM-BAG(
           $!elems, to-remove.iterator
-        ) if $!elems;
+        )
     }
 }
 

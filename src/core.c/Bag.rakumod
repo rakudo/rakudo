@@ -41,12 +41,12 @@ my class Bag does Baggy {
     multi method STORE(Bag:D: Any:D \keys, :INITIALIZE($)! --> Bag:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
-          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+          !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
     }
     multi method STORE(Bag:D: \objects, \values, :INITIALIZE($)! --> Bag:D) {
-        self.SET-SELF(
+        self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
@@ -87,7 +87,7 @@ my class Bag does Baggy {
 
     multi method raku(Bag:D: --> Str:D) {
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my \pairs := nqp::join(',',
               Rakudo::QuantHash.RAW-VALUES-MAP(self, {
@@ -123,21 +123,13 @@ my class Bag does Baggy {
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
     multi method BagHash(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(BagHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(BagHash)
+        BagHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
     multi method Mix(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Mix).SET-SELF($!elems)
-          !! mix()
+        nqp::elems($!elems) ?? Mix.SETUP($!elems) !! mix()
     }
     multi method MixHash(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(MixHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(MixHash)
+        MixHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
 
     multi method Setty(Bag:U:) { Set      }

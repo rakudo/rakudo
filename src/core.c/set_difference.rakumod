@@ -10,17 +10,17 @@ multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
 
 multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
-    (my $araw := $a.RAW-HASH) && nqp::elems($araw)
-      && (my $braw := $b.RAW-HASH) && nqp::elems($braw)
-      ?? nqp::create($a.WHAT).SET-SELF(             # both have elems
+    nqp::elems(my $araw := $a.RAW-HASH)
+      && nqp::elems(my $braw := $b.RAW-HASH)
+      ?? $a.WHAT.SETUP(                             # both have elems
            Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
          )
       !! $a                                         # no elems in a or b
 }
 multi sub infix:<(-)>(Setty:D $a, Map:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::create($a.WHAT).SET-SELF(                      # elems in a
+      nqp::elems(my \araw := $a.RAW-HASH),
+      $a.WHAT.SETUP(                                      # elems in a
         nqp::if(
           nqp::elems(my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage')),
           Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, b),    # both have elems
@@ -35,8 +35,8 @@ multi sub infix:<(-)>(Setty:D $a, Iterable:D \b) {
       (my $iterator := b.iterator).is-lazy,
       Set.fail-iterator-cannot-be-lazy('set difference'),
       nqp::if(
-        (my $raw := $a.RAW-HASH) && nqp::elems($raw),
-        nqp::create($a.WHAT).SET-SELF(                    # elems in b
+        nqp::elems(my $raw := $a.RAW-HASH),
+        $a.WHAT.SETUP(                                    # elems in b
           Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
         ),
         $a                                                # no elems in b
@@ -220,7 +220,7 @@ multi sub infix:<(-)>(+@p) {   # also Any
             nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
-        nqp::create($type).SET-SELF($elems)
+        $type.SETUP($elems)
       )
     )
 }

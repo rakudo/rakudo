@@ -35,7 +35,7 @@ my role Mixy does Baggy  {
               !! nqp::deletekey($elems,$key)
         }
 
-        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$clone)
+        $type.SETUP($clone)
     }
 
     multi method kxxv(Mixy:D:) {
@@ -103,7 +103,7 @@ my role Mixy does Baggy  {
     method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
         (my \iterator := @pairs.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::create(self).SET-SELF(
+          !! self.WHAT.SETUP(
                Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
@@ -113,7 +113,7 @@ my role Mixy does Baggy  {
     }
 
 #--- coercion methods
-   sub SETIFY(\mixy, \type) {
+   sub SETIFY(\type, \mixy) {
         nqp::if(
           (my \raw := mixy.RAW-HASH) && nqp::elems(raw),
           nqp::stmts(
@@ -131,19 +131,19 @@ my role Mixy does Baggy  {
                 )
               )
             ),
-            nqp::create(type).SET-SELF(elems)
+            type.SETUP(elems)
           ),
           nqp::if(
             nqp::eqaddr(type,Set),
             set(),
-            nqp::create(type)
+            type.SETUP
           )
         )
     }
-    multi method Set(Mixy:D:)     { SETIFY(self,Set)     }
-    multi method SetHash(Mixy:D:) { SETIFY(self,SetHash) }
+    multi method Set(Mixy:D:)     { SETIFY(Set,     self) }
+    multi method SetHash(Mixy:D:) { SETIFY(SetHash, self) }
 
-    sub BAGGIFY(\mixy, \type) {
+    sub BAGGIFY(\type, \mixy) {
         nqp::if(
           (my \raw := mixy.RAW-HASH) && nqp::elems(raw),
           nqp::stmts(                               # something to coerce
@@ -164,18 +164,18 @@ my role Mixy does Baggy  {
                 nqp::deletekey(elems,nqp::iterkey_s(iter))
               )
             ),
-            nqp::create(type).SET-SELF(elems),
+            type.SETUP(elems),
           ),
           nqp::if(                                  # nothing to coerce
             nqp::istype(type,Bag),
             bag(),
-            nqp::create(BagHash)
+            BagHash.SETUP
           )
         )
     }
 
-    multi method Bag(Baggy:D:)     { BAGGIFY(self, Bag)     }
-    multi method BagHash(Baggy:D:) { BAGGIFY(self, BagHash) }
+    multi method Bag(Baggy:D:)     { BAGGIFY(Bag,     self) }
+    multi method BagHash(Baggy:D:) { BAGGIFY(BagHash, self) }
 }
 
 # vim: expandtab shiftwidth=4

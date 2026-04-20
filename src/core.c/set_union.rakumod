@@ -8,9 +8,9 @@ multi sub infix:<(|)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -22,12 +22,12 @@ multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
               nqp::iterval(iter)
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)    # make it a Set(Hash)
+          $a.WHAT.SETUP(elems)                    # make it a Set(Hash)
         ),
         $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::elems(my \raw := $b.RAW-HASH),
         nqp::if(                                  # but second
           nqp::istype($a,Set),$b.Set,$b.SetHash
         ),
@@ -40,9 +40,9 @@ multi sub infix:<(|)>(Setty:D $a, Baggy:D $b) { $a.Baggy (|) $b }
 
 multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -63,12 +63,12 @@ multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
               nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)    # make it a Mix(Hash)
+          $a.WHAT.SETUP(elems)                    # make it a Mix(Hash)
         ),
         $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::elems(my \raw := $b.RAW-HASH),
         nqp::if(                                  # but second
           nqp::istype($a,Mix),$b.Mix,$b.MixHash
         ),
@@ -83,9 +83,9 @@ multi sub infix:<(|)>(Mixy:D $a, Setty:D $b) { $a (|) $b.Mix }
 multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (|) $b }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                    # first has elems
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                               # second has elems
           (my \elems := nqp::clone(araw)),
           (my \iter := nqp::iterator(braw)),
@@ -108,12 +108,12 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
               nqp::bindkey(elems,key,nqp::atkey(braw,key))
             )
           ),
-          nqp::create($a.WHAT).SET-SELF(elems)    # make it a Bag
+         $a.WHAT.SETUP(elems)                     # make it a Bag
         ),
         $a                                        # no second, so first
       ),
       nqp::if(                                    # no first
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::elems(my \raw := $b.RAW-HASH),
         nqp::if(                                  # but second
           nqp::istype($a,Bag),$b.Bag,$b.BagHash
         ),
@@ -124,7 +124,7 @@ multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
 multi sub infix:<(|)>(Baggy:D $a, Setty:D $b) { $a (|) $b.Bag }
 
 multi sub infix:<(|)>(Map:D \a, Map:D \b) {
-    nqp::create(Set).SET-SELF(
+    Set.SETUP(
       Rakudo::QuantHash.ADD-MAP-TO-SET(
         Rakudo::QuantHash.COERCE-MAP-TO-SET(a),
         b
@@ -136,7 +136,7 @@ multi sub infix:<(|)>(Iterable:D \a, Iterable:D \b) {
     (my $aiterator := a.flat.iterator).is-lazy
       || (my $biterator := b.flat.iterator).is-lazy
       ?? Any.fail-iterator-cannot-be-lazy('union', 'set')
-      !! nqp::create(Set).SET-SELF(
+      !! Set.SETUP(
            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),

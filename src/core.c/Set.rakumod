@@ -111,11 +111,7 @@ my class Set does Setty {
 #--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::p6bindattrinvres(
-               nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
-             )
-          !! nqp::create(SetHash)
+        SetHash.SETUP(nqp::clone($!elems))
     }
 
     multi method Setty(Set:U:) { Set      }
@@ -129,14 +125,14 @@ my class Set does Setty {
     multi method STORE(Set:D: Any:D \keys, :INITIALIZE($)! --> Set:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
-          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+          !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),
                iterator,
                self.keyof
              ))
     }
     multi method STORE(Set:D: \objects, \bools, :INITIALIZE($)! --> Set:D) {
-        self.SET-SELF(
+        self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
@@ -146,10 +142,7 @@ my class Set does Setty {
     }
 
     multi method AT-KEY(Set:D: Mu \k) {
-        nqp::hllbool($!elems
-          ?? nqp::existskey($!elems,self.WHICHIFY(k))
-          !! 0
-        )
+        nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
     }
     multi method ASSIGN-KEY(Set:D: \k,\v) {
         X::Assignment::RO.new(value => self).throw;

@@ -12,9 +12,9 @@ multi sub infix:<<(<)>>(Setty:D $a, Setty:D $b --> Bool:D) {
       nqp::eqaddr($a,$b),
       False,                    # X is never a true subset of itself
       nqp::if(
-        (my $braw := $b.RAW-HASH) && nqp::elems($braw),
+        nqp::elems(my $braw := $b.RAW-HASH),
         nqp::if(
-          (my $araw := $a.RAW-HASH) && nqp::elems($araw),
+          nqp::elems(my $araw := $a.RAW-HASH),
           nqp::if(
             nqp::islt_i(nqp::elems($araw),nqp::elems($braw))
               && (my $iter := nqp::iterator($araw)),
@@ -58,9 +58,10 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
       False,                    # never proper subset of self
 
       nqp::if(                  # different objects
-        (my \araw := $a.RAW-HASH) && (my \iter := nqp::iterator(araw)),
+        nqp::elems(my \araw := $a.RAW-HASH)
+          && (my \iter := nqp::iterator(araw)),
         nqp::if(                # elements on left
-          (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+          nqp::elems(my \braw := $b.RAW-HASH),
           nqp::if(              # elements on both sides
             nqp::isle_i(nqp::elems(araw),nqp::elems(braw)),
             nqp::stmts(         # equal number of elements on either side
@@ -95,8 +96,8 @@ multi sub infix:<<(<)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
           ),
           False                 # keys on left, no keys on right
         ),
-        nqp::hllbool(            # no keys on left
-          (my \raw := $b.RAW-HASH) ?? nqp::elems(raw) !! 0
+        nqp::hllbool(           # no keys on left
+          nqp::elems(my \raw := $b.RAW-HASH)
         )
       )
     )

@@ -80,11 +80,9 @@ my role Iterable {
           ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             ))
-            ?? nqp::create(type).SET-SELF(elems)
-            !! nqp::eqaddr(type,Mix)
-              ?? mix()
-              !! nqp::create(type)
+             )) || nqp::eqaddr(type,MixHash)
+            ?? type.SETUP(elems)
+            !! mix()
     }
     multi method Mix(Iterable:D:)     { self!MIXIFY(Mix)     }
     multi method MixHash(Iterable:D:) { self!MIXIFY(MixHash) }
@@ -94,11 +92,9 @@ my role Iterable {
           ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             ))
-            ?? nqp::create(type).SET-SELF(elems)
-            !! nqp::eqaddr(type,Bag)
-              ?? bag()
-              !! nqp::create(type)
+             )) || nqp::eqaddr(type,BagHash)
+            ?? type.SETUP(elems)
+            !! bag()
     }
     multi method Bag(Iterable:D:)     { self!BAGGIFY(Bag)     }
     multi method BagHash(Iterable:D:) { self!BAGGIFY(BagHash) }
@@ -108,11 +104,9 @@ my role Iterable {
           ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             ))
-            ?? nqp::create(type).SET-SELF($elems)
-            !! nqp::eqaddr(type,Set)
-              ?? set()
-              !! nqp::create(type)
+             )) || nqp::eqaddr(type,SetHash)
+            ?? type.SETUP($elems)
+            !! set()
     }
     multi method Set(Iterable:D:)     { self!SETIFY(Set)     }
     multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }

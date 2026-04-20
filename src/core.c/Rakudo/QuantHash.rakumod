@@ -33,7 +33,7 @@ my class Rakudo::QuantHash {
 
         method !SET-SELF(\quanthash) {
             nqp::if(
-              ($!elems := quanthash.RAW-HASH) && nqp::elems($!elems),
+              nqp::elems($!elems := quanthash.RAW-HASH),
               nqp::stmts(
                 ($!iter := nqp::iterator($!elems)),
                 self
@@ -199,13 +199,11 @@ my class Rakudo::QuantHash {
 
     # Create intersection of 2 Baggies, default to given type (Bag|Mix)
     method INTERSECT-BAGGIES(\a,\b,\type) {
-        my $object := nqp::create(
-          nqp::istype(type,Mix) ?? a.WHAT.Mixy !! a.WHAT.Baggy
-        );
+        my $class := nqp::istype(type,Mix) ?? a.WHAT.Mixy !! a.WHAT.Baggy;
 
         nqp::if(
-          (my $araw := a.RAW-HASH) && nqp::elems($araw)
-            && (my $braw := b.RAW-HASH) && nqp::elems($braw),
+          nqp::elems(my $araw := a.RAW-HASH)
+            && nqp::elems(my $braw := b.RAW-HASH),
           nqp::stmts(                        # both have elems
             nqp::if(
               nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
@@ -242,9 +240,9 @@ my class Rakudo::QuantHash {
                 )
               )
             ),
-            $object.SET-SELF($elems)
+            $class.SETUP($elems)
           ),
-          $object                            # one/neither has elems
+          $class.SETUP                       # one/neither has elems
         )
     }
 
@@ -1005,7 +1003,7 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(a.WHAT).SET-SELF(
+            a.WHAT.SETUP(
               nqp::if(
                 nqp::istype(b,Setty),
                 self.SUB-SETTY-FROM-BAG($araw, $braw),
@@ -1710,7 +1708,7 @@ my class Rakudo::QuantHash {
           (my $araw := a.RAW-HASH) && nqp::elems($araw),
           nqp::if(
             (my $braw := b.RAW-HASH) && nqp::elems($braw),
-            nqp::create(a.WHAT).SET-SELF(
+            a.WHAT.SETUP(
               self.SUB-QUANTHASH-FROM-MIX($araw, $braw, nqp::istype(b,Setty)),
             ),
             a
@@ -1719,7 +1717,7 @@ my class Rakudo::QuantHash {
             nqp::istype(b,Failure),
             b.throw,
             nqp::if(
-              ($braw := b.RAW-HASH) && nqp::elems($braw),
+              nqp::elems($braw := b.RAW-HASH),
               nqp::stmts(
                 (my $elems := nqp::clone($braw)),
                 (my $iter  := nqp::iterator($braw)),
@@ -1736,7 +1734,7 @@ my class Rakudo::QuantHash {
                     )
                   )
                 ),
-                nqp::create(a.WHAT).SET-SELF($elems)
+                a.WHAT.SETUP($elems)
               ),
               a
             )

@@ -10,14 +10,12 @@ multi sub infix:<(+)>(MixHash:D $a)   { $a.Mix }
 
 multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                         # elems on left
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
+        nqp::elems(my \braw := $b.RAW-HASH),
         nqp::stmts(                                    # elems on both sides
           (my \elems := Rakudo::QuantHash.SET-BAGGIFY(araw)),
-          nqp::create(
-            nqp::if( nqp::istype($b,Mixy),$a.WHAT.Mixy,$a.WHAT.Baggy)
-          ).SET-SELF(
+          nqp::if(nqp::istype($b,Mixy),$a.WHAT.Mixy,$a.WHAT.Baggy).SETUP(
             nqp::if(
               nqp::istype($b,Mixy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
@@ -40,12 +38,10 @@ multi sub infix:<(+)>(Setty:D $a, QuantHash:D $b) {
 }
 multi sub infix:<(+)>(Setty:D $a, Map:D \b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                         # elems on left
         nqp::elems(nqp::getattr(nqp::decont(b),Map,'$!storage')),
-        nqp::create(
-          nqp::if(nqp::istype($a,Set),Bag,BagHash)
-        ).SET-SELF(                                    # elems on both sides
+        nqp::if(nqp::istype($a,Set),Bag,BagHash).SETUP(# elems on both sides
           Rakudo::QuantHash.ADD-MAP-TO-BAG(
             Rakudo::QuantHash.SET-BAGGIFY(araw), b
           )
@@ -57,12 +53,12 @@ multi sub infix:<(+)>(Setty:D $a, Map:D \b) {
 }
 multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                         # elems on left
         (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                                    # elems on both sides
           (my \elems := Rakudo::QuantHash.BAGGY-CLONE(araw)),
-          nqp::create($a.WHAT).SET-SELF(
+          $a.WHAT.SETUP(
             nqp::if(
               nqp::istype($b,Baggy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
@@ -78,18 +74,16 @@ multi sub infix:<(+)>(Mixy:D $a, QuantHash:D $b) {
 
 multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
     nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+      nqp::elems(my \araw := $a.RAW-HASH),
       nqp::if(                                         # elems on left
         (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                                    # elems on both sides
           (my \elems := Rakudo::QuantHash.BAGGY-CLONE(araw)),
-          nqp::create(
-            nqp::if(
-              nqp::istype($b,Mixy),
-              nqp::if(nqp::istype($a,Bag),Mix,MixHash),
-              nqp::if(nqp::istype($a,Bag),$a.WHAT,BagHash)
-            )
-          ).SET-SELF(
+          nqp::if(
+            nqp::istype($b,Mixy),
+            nqp::if(nqp::istype($a,Bag),Mix,MixHash),
+            nqp::if(nqp::istype($a,Bag),$a.WHAT,BagHash)
+          ).SETUP(
             nqp::if(
               nqp::istype($b,Mixy),
               Rakudo::QuantHash.ADD-MIX-TO-MIX(elems, braw),
@@ -116,7 +110,7 @@ multi sub infix:<(+)>(Map:D \a, Map:D \b) {
       nqp::elems(nqp::getattr(nqp::decont(a),Map,'$!storage')),
       nqp::if(                                         # elems on left
         nqp::elems(nqp::getattr(nqp::decont(b),Map,'$!storage')),
-        nqp::create(Bag).SET-SELF(                     # elems on both sides
+        Bag.SETUP(                                     # elems on both sides
           Rakudo::QuantHash.ADD-MAP-TO-BAG(
             Rakudo::QuantHash.COERCE-MAP-TO-BAG(a), b
           )
@@ -128,7 +122,7 @@ multi sub infix:<(+)>(Map:D \a, Map:D \b) {
 }
 
 multi sub infix:<(+)>(Iterable:D \a, Iterable:D \b) {
-    nqp::create(Bag).SET-SELF(
+    Bag.SETUP(
       Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
         Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
           nqp::create(Rakudo::Internals::IterationSet),

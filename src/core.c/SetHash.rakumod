@@ -1,16 +1,14 @@
 my class SetHash does Setty {
     has &!objectifier;
 
-    # Handle special setup of empty SetHash (which doesn't call SET-SELF
-    # by default)
-    multi method new(SetHash: --> SetHash:D) {
-        my $self := nqp::create(self);
-        nqp::p6bindattrinvres($self,SetHash,'&!objectifier',$self.OBJECTIFIER)
-    }
-
-    method SET-SELF(SetHash:D: \elems) {
-        nqp::p6bindattrinvres(self,SetHash,'&!objectifier',self.OBJECTIFIER);
-        self.QuantHash::SET-SELF(elems)
+    # Handle special setup of SetHash to set up objectifier
+    multi method SETUP(SetHash: $?) {
+        nqp::p6bindattrinvres(
+          callsame,
+          SetHash,
+          '&!objectifier',
+          self.OBJECTIFIER
+        )
     }
 
     method ^parameterize(Mu \base, Mu \type) {
@@ -25,7 +23,7 @@ my class SetHash does Setty {
 
     multi method grab(SetHash:D:) {
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my $object := nqp::iterval(
               my $iter := Rakudo::QuantHash.ROLL($!elems)
@@ -220,20 +218,14 @@ my class SetHash does Setty {
 
 #--- coercion methods
     multi method Set(SetHash:D: :view($)!) is implementation-detail {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Set).SET-SELF($!elems)
-          !! nqp::create(Set)
+        Set.SETUP($!elems)
     }
     multi method Set(SetHash:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Set).SET-SELF(nqp::clone($!elems))
-          !! nqp::create(Set)
+        Set.SETUP(nqp::clone($!elems))
     }
     multi method SetHash(SetHash:D:) { self }
     method clone() {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(self).SET-SELF(nqp::clone($!elems))
-          !! nqp::create(self)
+        self.WHAT.SETUP(nqp::clone($!elems))
     }
 
     multi method Setty(SetHash:U:) { SetHash }
@@ -247,7 +239,7 @@ my class SetHash does Setty {
     multi method STORE(SetHash:D: Any:D \keys --> SetHash:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
-          !! self.SET-SELF(
+          !! self.SETUP(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
@@ -274,27 +266,16 @@ my class SetHash does Setty {
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
         Proxy.new(
           FETCH => {
-              nqp::hllbool($!elems
-                ?? nqp::existskey($!elems,self.WHICHIFY(k))
-                !! 0
-              )
+              nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
           },
           STORE => -> $, $value {
-              nqp::if(
-                $value,
-                nqp::stmts(
-                  nqp::unless(
-                    $!elems,
-                    nqp::bindattr(self,SetHash,'$!elems',
-                      nqp::create(Rakudo::Internals::IterationSet))
-                  ),
-                  nqp::stmts(
-                    (my $object := &!objectifier(nqp::decont(k))),
-                    nqp::bindkey($!elems,$object.WHICH,$object)
-                  )
-                ),
-                $!elems && nqp::deletekey($!elems,self.WHICHIFY(k))
-              );
+              my $object   := &!objectifier(nqp::decont(k));
+              my str $which = $object.WHICH;
+
+              $value
+                ?? nqp::bindkey($!elems,$which,$object)
+                !! nqp::deletekey($!elems,$which);
+
               $value.Bool   # must be HLL
           }
         )
@@ -303,21 +284,18 @@ my class SetHash does Setty {
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
         nqp::hllbool(
           nqp::if(
-            $!elems && nqp::existskey($!elems,(my $which := self.WHICHIFY(k))),
+            nqp::existskey($!elems,(my str $which = self.WHICHIFY(k))),
             nqp::stmts(
               nqp::deletekey($!elems,$which),
               1
-            ),
-            0
+            )
+            # no else needed as 0 from existskey will be returned
           )
         )
     }
 
 #--- convenience methods
     method set(SetHash:D: \to-set --> Nil) {
-        nqp::bindattr(
-          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
-        ) unless $!elems;
         Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
           $!elems, to-set.iterator, self.keyof
         );
@@ -327,8 +305,8 @@ my class SetHash does Setty {
         my \iterator := to-unset.iterator;
         nqp::until(
           nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
-          nqp::deletekey($!elems,pulled.WHICH)
-        ) if $!elems
+          nqp::deletekey($!elems,self.WHICHIFY(pulled))
+        );
     }
 }
 

@@ -91,9 +91,7 @@ multi sub infix:<(elem)>(Any \a, Iterator:D \b --> Bool:D) {
     )
 }
 multi sub infix:<(elem)>(Any \a, QuantHash:D $b --> Bool:D) {
-    nqp::hllbool(
-      (my \elems := $b.RAW-HASH) ?? nqp::existskey(elems,a.WHICH) !! 0
-    )
+    nqp::hllbool(nqp::existskey($b.RAW-HASH,a.WHICH))
 }
 
 multi sub infix:<(elem)>(Any, Failure:D $b) { $b.throw }

@@ -11,7 +11,7 @@ multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::unless(
       nqp::eqaddr($a,$b),
       nqp::if(
-        (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+        nqp::elems(my \araw := $a.RAW-HASH),
         nqp::if(                # number of elems in B *always* >= A
           (my \braw := $b.RAW-HASH)
             && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
@@ -49,7 +49,7 @@ multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::unless(
       nqp::eqaddr($a,$b),
       nqp::if(
-        (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+        nqp::elems(my \araw := $a.RAW-HASH),
         nqp::if(                # number of elems in B *always* >= A
           (my \braw := $b.RAW-HASH)
             && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))

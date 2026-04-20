@@ -1107,6 +1107,7 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
+                my $existing := %stash{$final};
                 # On 6.d and earlier, allow the specific legacy pattern
                 # where a declaration silently replaces its enclosing
                 # module (`module Foo::Bar { class Foo::Bar { } }`),
@@ -1115,12 +1116,32 @@ class RakuAST::PackageInstaller {
                 # behavior). On 6.e the enclosing-package case is
                 # handled by the nested-install path above, so this
                 # branch is only reached for non-enclosing collisions.
-                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW)
+                if nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
                   || (nqp::getcomp('Raku').language_revision < 3
-                      && nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::ModuleHOW)
-                      && %stash{$final} =:= $current-package)
+                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+                      && $existing =:= $current-package)
                   || $name.is-identifier || $orig-scope eq 'my' {
-                    nqp::setwho($type-object, %stash{$final}.WHO);
+                    # Warn when we're actually using the legacy silent-
+                    # replace path on pre-6.e code, so authors migrate
+                    # before they bump their language version to 6.e,
+                    # which installs this pattern as a nested package
+                    # instead. Mirrors the deprecation emitted from the
+                    # traditional grammar's package installer.
+                    # Restrict to multi-part names: single-identifier
+                    # collisions nest inside the enclosing module's WHO
+                    # without losing the outer module, so behavior is
+                    # identical on 6.d and 6.e and there's nothing to
+                    # warn about.
+                    if !$name.is-identifier
+                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+                      && !nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                      && nqp::getcomp('Raku').language_revision < 3 {
+                        $resolver.add-worry: $resolver.build-exception:
+                            'X::Package::SameNameAsEnclosingModule',
+                            :kind(self.declarator),
+                            :name($existing.HOW.name($existing));
+                    }
+                    nqp::setwho($type-object, $existing.WHO);
                 }
                 else {
                     $resolver.add-sorry: $resolver.build-exception:

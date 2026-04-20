@@ -1702,7 +1702,23 @@ class Perl6::World is HLL::World {
         }
         if $create_scope eq 'our' {
             if nqp::existskey($cur_pkg.WHO, $name) {
-                self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
+                my $existing := ($cur_pkg.WHO){$name};
+                # Silently replacing an enclosing module with a class,
+                # role, grammar, etc. is legacy behavior specific to
+                # Raku 6.d and earlier. Under 6.e the same pattern
+                # installs the declaration as a nested package instead,
+                # so warn pre-6.e code to migrate before authors bump
+                # their language version.
+                if nqp::getcomp('Raku').language_revision < 3
+                  && $existing.HOW.HOW.name($existing.HOW) eq 'Perl6::Metamodel::ModuleHOW'
+                  && $symbol.HOW.HOW.name($symbol.HOW) ne 'Perl6::Metamodel::ModuleHOW' {
+                    $/.PRECURSOR.typed_worry(
+                        'X::Package::SameNameAsEnclosingModule',
+                        :kind($pkgdecl),
+                        :name($existing.HOW.name($existing)),
+                    );
+                }
+                self.steal_WHO($symbol, $existing);
             }
             self.install_package_symbol_unchecked($cur_pkg, $name, $symbol);
         }

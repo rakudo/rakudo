@@ -1131,15 +1131,29 @@ class RakuAST::PackageInstaller {
                     # collisions nest inside the enclosing module's WHO
                     # without losing the outer module, so behavior is
                     # identical on 6.d and 6.e and there's nothing to
-                    # warn about.
+                    # warn about. The $existing =:= $current-package
+                    # check keeps ordinary stub-package upgrades silent
+                    # (an imported PackageHOW at the same name is not
+                    # the enclosing container).
                     if !$name.is-identifier
-                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
-                      && !nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                      && $existing =:= $current-package
                       && nqp::getcomp('Raku').language_revision < 3 {
-                        $resolver.add-worry: $resolver.build-exception:
-                            'X::Package::SameNameAsEnclosingModule',
-                            :kind(self.declarator),
-                            :name($existing.HOW.name($existing));
+                        my $enclosing-kind :=
+                            nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+                                ?? 'module'
+                                !! nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+                                    ?? 'package'
+                                    !! '';
+                        my $inner-is-containerlike :=
+                            nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                            || nqp::istype($type-object.HOW, Perl6::Metamodel::PackageHOW);
+                        if $enclosing-kind ne '' && !$inner-is-containerlike {
+                            $resolver.add-worry: $resolver.build-exception:
+                                'X::Package::SameNameAsEnclosing',
+                                :kind(self.declarator),
+                                :enclosing-kind($enclosing-kind),
+                                :name($existing.HOW.name($existing));
+                        }
                     }
                     nqp::setwho($type-object, $existing.WHO);
                 }

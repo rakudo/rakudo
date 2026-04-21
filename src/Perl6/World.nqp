@@ -1703,32 +1703,8 @@ class Perl6::World is HLL::World {
         if $create_scope eq 'our' {
             if nqp::existskey($cur_pkg.WHO, $name) {
                 my $existing := ($cur_pkg.WHO){$name};
-                # Silently replacing an enclosing module or package with
-                # a class, role, grammar, etc. is legacy behavior specific
-                # to Raku 6.d and earlier. Under 6.e the same pattern
-                # installs the declaration as a nested package instead,
-                # so warn pre-6.e code to migrate before authors bump
-                # their language version. The $existing =:= $package
-                # check narrows to the enclosing-collision case so
-                # ordinary stub-package upgrades from `use` stay silent.
-                if nqp::getcomp('Raku').language_revision < 3
-                  && $existing =:= $package {
-                    my $existing-how := $existing.HOW.HOW.name($existing.HOW);
-                    my $symbol-how   := $symbol.HOW.HOW.name($symbol.HOW);
-                    my $enclosing-kind :=
-                        $existing-how eq 'Perl6::Metamodel::ModuleHOW'  ?? 'module'  !!
-                        $existing-how eq 'Perl6::Metamodel::PackageHOW' ?? 'package' !! '';
-                    if $enclosing-kind ne ''
-                      && $symbol-how ne 'Perl6::Metamodel::ModuleHOW'
-                      && $symbol-how ne 'Perl6::Metamodel::PackageHOW' {
-                        $/.PRECURSOR.typed_worry(
-                            'X::Package::SameNameAsEnclosing',
-                            :kind($pkgdecl),
-                            :enclosing-kind($enclosing-kind),
-                            :name($existing.HOW.name($existing)),
-                        );
-                    }
-                }
+                self.maybe_worry_same_name_as_enclosing(
+                    $/, $existing, $symbol, $pkgdecl, $package);
                 self.steal_WHO($symbol, $existing);
             }
             self.install_package_symbol_unchecked($cur_pkg, $name, $symbol);
@@ -1741,6 +1717,31 @@ class Perl6::World is HLL::World {
     # .WHO we already created for the stub package A.
     method steal_WHO($thief, $victim) {
         nqp::setwho($thief, $victim.WHO);
+    }
+
+    # Emit a SameNameAsEnclosing worry when a declaration silently
+    # replaces its enclosing module or package with a non-container
+    # kind on pre-6.e code. All gating lives here so the installer
+    # call site stays readable.
+    method maybe_worry_same_name_as_enclosing($/, $existing, $symbol, $pkgdecl, $package) {
+        if nqp::getcomp('Raku').language_revision < 3
+          && $existing =:= $package {
+            my $existing-how := $existing.HOW.HOW.name($existing.HOW);
+            my $enclosing-kind :=
+                $existing-how eq 'Perl6::Metamodel::ModuleHOW'  ?? 'module'  !!
+                $existing-how eq 'Perl6::Metamodel::PackageHOW' ?? 'package' !! '';
+            my $symbol-how := $symbol.HOW.HOW.name($symbol.HOW);
+            if $enclosing-kind ne ''
+              && $symbol-how ne 'Perl6::Metamodel::ModuleHOW'
+              && $symbol-how ne 'Perl6::Metamodel::PackageHOW' {
+                $/.PRECURSOR.typed_worry(
+                    'X::Package::SameNameAsEnclosing',
+                    :kind($pkgdecl),
+                    :enclosing-kind($enclosing-kind),
+                    :name($existing.HOW.name($existing)),
+                );
+            }
+        }
     }
 
     # Installs a lexical symbol. Takes a QAST::Block object, name and

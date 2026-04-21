@@ -1649,13 +1649,19 @@ class Perl6::World is HLL::World {
         if +@parts {
             try {
                 my $resolved_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
-                # Check if resolving would install over the current
-                # package. E.g. module Foo::Bar { class Foo::Bar { } }
-                # the resolver finds outer Foo, whose Bar entry is the
-                # current module. The intent is Foo::Bar::Foo::Bar.
-                unless +@parts == 1
-                  && nqp::existskey($resolved_pkg.WHO, $name)
-                  && ($resolved_pkg.WHO){$name} =:= $package {
+                # In 6.e and later, detect when installing would land on
+                # the enclosing package (e.g. `class Foo::Bar` inside
+                # `module Foo::Bar`) and keep the remaining name parts so
+                # the chase loop nests the declaration as
+                # Foo::Bar::Foo::Bar. In 6.d and earlier, preserve the
+                # legacy silent-replace behavior where the new package
+                # simply overwrites the module in the outer stash via
+                # steal_WHO below.
+                my $use-nested := nqp::getcomp('Raku').language_revision >= 3
+                    && +@parts == 1
+                    && nqp::existskey($resolved_pkg.WHO, $name)
+                    && ($resolved_pkg.WHO){$name} =:= $package;
+                unless $use-nested {
                     $cur_pkg := $resolved_pkg;
                     $cur_lex := 0;
                     $create_scope := 'our';
@@ -1696,7 +1702,23 @@ class Perl6::World is HLL::World {
         }
         if $create_scope eq 'our' {
             if nqp::existskey($cur_pkg.WHO, $name) {
-                self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
+                my $existing := ($cur_pkg.WHO){$name};
+                # Silently replacing an enclosing module with a class,
+                # role, grammar, etc. is legacy behavior specific to
+                # Raku 6.d and earlier. Under 6.e the same pattern
+                # installs the declaration as a nested package instead,
+                # so warn pre-6.e code to migrate before authors bump
+                # their language version.
+                if nqp::getcomp('Raku').language_revision < 3
+                  && $existing.HOW.HOW.name($existing.HOW) eq 'Perl6::Metamodel::ModuleHOW'
+                  && $symbol.HOW.HOW.name($symbol.HOW) ne 'Perl6::Metamodel::ModuleHOW' {
+                    $/.PRECURSOR.typed_worry(
+                        'X::Package::SameNameAsEnclosingModule',
+                        :kind($pkgdecl),
+                        :name($existing.HOW.name($existing)),
+                    );
+                }
+                self.steal_WHO($symbol, $existing);
             }
             self.install_package_symbol_unchecked($cur_pkg, $name, $symbol);
         }

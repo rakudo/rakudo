@@ -1027,12 +1027,15 @@ class RakuAST::PackageInstaller {
             my $first := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
-            # Check if the resolution would lead us to install over the
-            # current package. This happens when e.g. class Foo::Bar is
-            # declared inside module Foo::Bar: the resolver finds the
-            # outer Foo package and its Bar stash entry is the current
-            # module, but the intent is Foo::Bar::Foo::Bar.
-            if $resolved {
+            # In 6.e and later, detect when the resolved path would
+            # install over the enclosing package (e.g. class Foo::Bar
+            # declared inside module Foo::Bar) and clear $resolved so
+            # the else branch creates intermediate stubs under the
+            # current package, producing Foo::Bar::Foo::Bar.
+            # In 6.d and earlier, let $resolved stand so the legacy
+            # silent-replace path below does the ModuleHOW steal_WHO
+            # overwrite, matching the traditional grammar.
+            if $resolved && nqp::getcomp('Raku').language_revision >= 3 {
                 my $check := self.IMPL-UNWRAP-LIST($resolved);
                 my $check-target := $check[0];
                 my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
@@ -1104,8 +1107,41 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
-                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier || $orig-scope eq 'my' {
-                    nqp::setwho($type-object, %stash{$final}.WHO);
+                my $existing := %stash{$final};
+                # On 6.d and earlier, allow the specific legacy pattern
+                # where a declaration silently replaces its enclosing
+                # module (`module Foo::Bar { class Foo::Bar { } }`),
+                # matching the traditional grammar. Other ModuleHOW
+                # collisions stay strict (pre-PR #6122 RakuAST
+                # behavior). On 6.e the enclosing-package case is
+                # handled by the nested-install path above, so this
+                # branch is only reached for non-enclosing collisions.
+                if nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+                  || (nqp::getcomp('Raku').language_revision < 3
+                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+                      && $existing =:= $current-package)
+                  || $name.is-identifier || $orig-scope eq 'my' {
+                    # Warn when we're actually using the legacy silent-
+                    # replace path on pre-6.e code, so authors migrate
+                    # before they bump their language version to 6.e,
+                    # which installs this pattern as a nested package
+                    # instead. Mirrors the deprecation emitted from the
+                    # traditional grammar's package installer.
+                    # Restrict to multi-part names: single-identifier
+                    # collisions nest inside the enclosing module's WHO
+                    # without losing the outer module, so behavior is
+                    # identical on 6.d and 6.e and there's nothing to
+                    # warn about.
+                    if !$name.is-identifier
+                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+                      && !nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                      && nqp::getcomp('Raku').language_revision < 3 {
+                        $resolver.add-worry: $resolver.build-exception:
+                            'X::Package::SameNameAsEnclosingModule',
+                            :kind(self.declarator),
+                            :name($existing.HOW.name($existing));
+                    }
+                    nqp::setwho($type-object, $existing.WHO);
                 }
                 else {
                     $resolver.add-sorry: $resolver.build-exception:

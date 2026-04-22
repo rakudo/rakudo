@@ -256,6 +256,13 @@ class RakuAST::CompUnit
     # does not declare its own GLOBAL and so forth.
     method is-eval() { $!is-eval ?? True !! False }
 
+    # The setting context the CompUnit's resolver knows about, if any.
+    method setting() {
+        nqp::isconcrete($!resolver)
+          ?? nqp::getattr($!resolver, RakuAST::Resolver, '$!setting')
+          !! Mu
+    }
+
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['compunit'])
     }

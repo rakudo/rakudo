@@ -18,7 +18,7 @@
 
 # Make all class references a lot shorter
 
-unit module MoarVM::Profiler;
+unit class MoarVM::Profiler;
 
 # We need NQP here, duh!
 use nqp;
@@ -499,13 +499,12 @@ class Thread does OnHash[<
 }
 
 # Main object returned by profile() and friends.
-class MoarVM::Profiler {
-    has %.types_by_id;
-    has %.types_by_name;
-    has %.threads_by_id;
-    has @.callees_by_id;
-    has @.allocations_by_id;
-    has @.deallocations_by_id;
+has %.types_by_id;
+has %.types_by_name;
+has %.threads_by_id;
+has @.callees_by_id;
+has @.allocations_by_id;
+has @.deallocations_by_id;
 
     method !SET-SELF(@raw) {
         my $*PROFILE = self;
@@ -655,7 +654,6 @@ class MoarVM::Profiler {
     method average_profile(&code, :$times = 5 --> MoarVM::Profiler:D) {
         self.average( self.profile(&code, :$times) )
     }
-}
 
 # Raw subs, for cases where starting an extra scope would be troublesome
 sub profile_start(--> Nil) is export {

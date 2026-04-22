@@ -506,173 +506,173 @@ has @.callees_by_id;
 has @.allocations_by_id;
 has @.deallocations_by_id;
 
-    method !SET-SELF(@raw) {
-        my $*PROFILE = self;
-        %!types_by_id = @raw[0].map: -> $type {
-            .id => $_ given Type.new($type)
-        }
-
-        %!threads_by_id = @raw.skip.map: -> $thread {
-            .id => $_ given Thread.new($thread)
-        }
-
-        self
-    }
-    method new(@raw) { nqp::create(self)!SET-SELF(@raw) }
-
-    method types_by_name() {
-        %!types_by_name
-          ?? %!types_by_name
-          !! %!types_by_name = %!types_by_id.values.map: { .name => $_ }
+method !SET-SELF(@raw) {
+    my $*PROFILE = self;
+    %!types_by_id = @raw[0].map: -> $type {
+        .id => $_ given Type.new($type)
     }
 
-    # type/thread given an ID
-    method type_by_id($id)     { %!types_by_id{$id}   }
-    method type_by_name($name) { %.types_by_name{$name} }
-    method thread_by_id($id)   { %!threads_by_id{$id} }
-
-    method all_callees() {
-        %!threads_by_id.values.map: |*.all_callees
-    }
-    method all_allocations() {
-        %!threads_by_id.values.map: |*.all_callees.map: |*.all_allocations
+    %!threads_by_id = @raw.skip.map: -> $thread {
+        .id => $_ given Thread.new($thread)
     }
 
-    method my_callees() {
-        self.callees_by_file(callframe(1).file)
-    }
-    method callees_by_file(\matcher) {
-        self.all_callees.grep({ matcher.ACCEPTS(.file) })
-    }
-    method callees_by_name(\matcher) {
-        self.all_callees.grep({ matcher.ACCEPTS(.name) })
-    }
+    self
+}
+method new(@raw) { nqp::create(self)!SET-SELF(@raw) }
 
-    method my_allocations() {
-        self.allocations_by_file(callframe(1).file)
-    }
-    method allocations_by_file(\matcher) {
-        self.callees_by_file(matcher).map: *.allocations
-    }
+method types_by_name() {
+    %!types_by_name
+      ?? %!types_by_name
+      !! %!types_by_name = %!types_by_id.values.map: { .name => $_ }
+}
 
-    method report(--> Str:D) {
-        (
+# type/thread given an ID
+method type_by_id($id)     { %!types_by_id{$id}   }
+method type_by_name($name) { %.types_by_name{$name} }
+method thread_by_id($id)   { %!threads_by_id{$id} }
+
+method all_callees() {
+    %!threads_by_id.values.map: |*.all_callees
+}
+method all_allocations() {
+    %!threads_by_id.values.map: |*.all_callees.map: |*.all_allocations
+}
+
+method my_callees() {
+    self.callees_by_file(callframe(1).file)
+}
+method callees_by_file(\matcher) {
+    self.all_callees.grep({ matcher.ACCEPTS(.file) })
+}
+method callees_by_name(\matcher) {
+    self.all_callees.grep({ matcher.ACCEPTS(.name) })
+}
+
+method my_allocations() {
+    self.allocations_by_file(callframe(1).file)
+}
+method allocations_by_file(\matcher) {
+    self.callees_by_file(matcher).map: *.allocations
+}
+
+method report(--> Str:D) {
+    (
 "  #   wallclock   objects    frames   inlined    jitted   OSR   GCs",
 "----+-----------+---------+---------+---------+---------+-----+-----",
-          |self.threads_by_id.grep(*.value.nr_frames).sort(*.key).map( {
-              sprintf("%3d %11d %9d %9d %9d %9d %5d %5d",
-                .id,
-                .total_time,
-                .nr_allocations,
-                .nr_frames,
-                .nr_inlined,
-                .nr_jitted,
-                .nr_osred,
-                .nr_gcs,
-              ) given .value
-          } ),
+      |self.threads_by_id.grep(*.value.nr_frames).sort(*.key).map( {
+          sprintf("%3d %11d %9d %9d %9d %9d %5d %5d",
+            .id,
+            .total_time,
+            .nr_allocations,
+            .nr_frames,
+            .nr_inlined,
+            .nr_jitted,
+            .nr_osred,
+            .nr_gcs,
+          ) given .value
+      } ),
 "----+-----------+---------+---------+---------+---------+-----+-----",
-        ).join("\n")
-    }
+    ).join("\n")
+}
 
-    method gist(--> Str:D) {
-        self.threads_by_id
-          .sort(*.key)
-          .map( { .value.gist if .value.nr_frames } )
-          .join("-" x 80 ~ "\n")
-    }
-    method Str(--> Str:D) { self.gist }
+method gist(--> Str:D) {
+    self.threads_by_id
+      .sort(*.key)
+      .map( { .value.gist if .value.nr_frames } )
+      .join("-" x 80 ~ "\n")
+}
+method Str(--> Str:D) { self.gist }
 
-    method sink(--> Nil) { self.note if %!threads_by_id }
+method sink(--> Nil) { self.note if %!threads_by_id }
 
-    multi method profile(&code, :$times!) {
-        my @profiles;
-        for ^$times {
-            nqp::mvmstartprofile({:instrumented});
-            code();
-            @profiles.push: MoarVM::Profiler.new(nqp::mvmendprofile);
-        }
-        @profiles
-    }
-    multi method profile(&code --> MoarVM::Profiler:D) {
+multi method profile(&code, :$times!) {
+    my @profiles;
+    for ^$times {
         nqp::mvmstartprofile({:instrumented});
         code();
-        MoarVM::Profiler.new(nqp::mvmendprofile)
+        @profiles.push: MoarVM::Profiler.new(nqp::mvmendprofile);
     }
+    @profiles
+}
+multi method profile(&code --> MoarVM::Profiler:D) {
+    nqp::mvmstartprofile({:instrumented});
+    code();
+    MoarVM::Profiler.new(nqp::mvmendprofile)
+}
 
-    method !average(@profiles --> MoarVM::Profiler:D) {
-        return @profiles.head unless @profiles > 1;  # nothing to average
+method !average(@profiles --> MoarVM::Profiler:D) {
+    return @profiles.head unless @profiles > 1;  # nothing to average
 
-#        # logic for adding a type not yet seen (by name)
-#        my $type_id = 0;
-#        method !new-type($source  --> Nil) {
-#            my $type := Type.new(
-#              (++$type_id, {
-#                managed_size       => $source.managed_size,
-#                repr               => $source.repr,
-#                type               => $source.type,
-#                has_unmanaged_data => $source.has_unmanaged_data,
-#              })
-#            );
+#    # logic for adding a type not yet seen (by name)
+#    my $type_id = 0;
+#    method !new-type($source  --> Nil) {
+#        my $type := Type.new(
+#          (++$type_id, {
+#            managed_size       => $source.managed_size,
+#            repr               => $source.repr,
+#            type               => $source.type,
+#            has_unmanaged_data => $source.has_unmanaged_data,
+#          })
+#        );
 #
-#            nqp::bindattr($type,Type,'$!name',$source.name);
-#            nqp::bindattr($type,Type,'%!threads',%!threads);
-#            %!types.BIND-KEY($type_id,     $type);
-#            %!names.BIND-KEY($source.name, $type);
-#        }
+#        nqp::bindattr($type,Type,'$!name',$source.name);
+#        nqp::bindattr($type,Type,'%!threads',%!threads);
+#        %!types.BIND-KEY($type_id,     $type);
+#        %!names.BIND-KEY($source.name, $type);
+#    }
 #
-#        # logic for adding to an existing type (by name)
-#        method !add-to-type($source, $target --> Nil) {
-#            my %hash := $target.hash;
-#            %hash<managed_size>       += $source.managed_size;
-#            %hash<has_unmanaged_data> += $source.has_unmanaged_data;
-#        }
+#    # logic for adding to an existing type (by name)
+#    method !add-to-type($source, $target --> Nil) {
+#        my %hash := $target.hash;
+#        %hash<managed_size>       += $source.managed_size;
+#        %hash<has_unmanaged_data> += $source.has_unmanaged_data;
+#    }
 #
-#        my %callees;
-#        my %allocations;
-#        for @profiles -> $profile {
-#            for $profile.callees -> $callee {
-#                if %callees{$callee.sha} -> $found {
-#                }
-#                else {
-#                    my $new;
-#                    @!callees.push($new);
-#                }
+#    my %callees;
+#    my %allocations;
+#    for @profiles -> $profile {
+#        for $profile.callees -> $callee {
+#            if %callees{$callee.sha} -> $found {
+#            }
+#            else {
+#                my $new;
+#                @!callees.push($new);
+#            }
 #
-#                for $callee.allocations -> $allocation {
-#                }
+#            for $callee.allocations -> $allocation {
 #            }
 #        }
+#    }
 #
-        self
-    }
+    self
+}
 
-    method average(*@profiles --> MoarVM::Profiler:D) {
-        nqp::create(self)!average(@profiles)
-    }
+method average(*@profiles --> MoarVM::Profiler:D) {
+    nqp::create(self)!average(@profiles)
+}
 
-    method average_profile(&code, :$times = 5 --> MoarVM::Profiler:D) {
-        self.average( self.profile(&code, :$times) )
-    }
+method average_profile(&code, :$times = 5 --> MoarVM::Profiler:D) {
+    self.average( self.profile(&code, :$times) )
+}
 
 # Raw subs, for cases where starting an extra scope would be troublesome
-sub profile_start(--> Nil) is export {
+my sub profile_start(--> Nil) is export {
     nqp::mvmstartprofile({:instrumented})
 }
 
-sub profile_end(--> MoarVM::Profiler:D) is export {
+my sub profile_end(--> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.new(nqp::mvmendprofile)
 }
 
 # Profile the rest of the compilation unit
-sub profile_rest(--> Nil) is export {
+my sub profile_rest(--> Nil) is export {
     nqp::mvmstartprofile({:instrumented});
     my $end-profile = True;
     END MoarVM::Profiler.new(nqp::mvmendprofile) if $end-profile;
 }
 
 # HLL sub for profiling a piece of code and getting the info from that
-sub profile(&code --> MoarVM::Profiler:D) is export {
+my sub profile(&code --> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.profile(&code)
 }
 

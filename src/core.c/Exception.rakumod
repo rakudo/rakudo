@@ -1432,17 +1432,19 @@ my class X::Redeclaration::Multi does X::Comp {
     }
 }
 
-my class X::Package::SameNameAsEnclosingModule does X::Comp {
-    has $.kind;
+my class X::Package::SameNameAsEnclosing does X::Comp {
+    has $.kind;            # inner: 'class', 'role', 'grammar', ...
+    has $.enclosing-kind;  # outer: 'module' or 'package'
     has $.name;
     method message() {
-        ("Declaring $.kind '$.name' inside an enclosing module of the "
-        ~ "same name silently replaces the module in the outer stash. This "
-        ~ "is legacy behavior specific to Raku 6.d and earlier; in Raku 6.e "
-        ~ "the same pattern installs the $.kind as a nested package "
-        ~ "instead. Rewrite as 'unit $.kind $.name;' in its own file "
-        ~ "(or otherwise avoid the module+same-named-$.kind collision) to "
-        ~ "work the same way on either revision."
+        ("Declaring $.kind '$.name' inside an enclosing $.enclosing-kind "
+        ~ "of the same name silently replaces the $.enclosing-kind in the "
+        ~ "outer stash. This is legacy behavior specific to Raku 6.d and "
+        ~ "earlier; in Raku 6.e the same pattern installs the $.kind as a "
+        ~ "nested package instead. Rewrite as 'unit $.kind $.name;' in its "
+        ~ "own file (or otherwise avoid the "
+        ~ "$.enclosing-kind+same-named-$.kind collision) to work the same "
+        ~ "way on either revision."
         ).naive-word-wrapper
     }
 }

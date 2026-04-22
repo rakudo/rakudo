@@ -17,7 +17,7 @@ use Test::Helpers;
 # version. We drive the matrix via is-run, toggling RAKUDO_RAKUAST to
 # exercise the RakuAST frontend.
 
-plan 10;
+plan 12;
 
 my $code_6d = q:to/CODE/;
     use v6.d;
@@ -57,9 +57,25 @@ my $code_broader = q:to/CODE/;
     print Alpha::Beta::Mod.x;
     CODE
 
+# Same collision shape, but the outer is `unit package` rather than
+# `unit module`. The message should name the enclosing kind as "package"
+# and still suggest `unit role Foo::Bar;` as the migration target.
+my $code_6d_package = q:to/CODE/;
+    use v6.d;
+    unit package Foo::Bar;
+    role Foo::Bar { method x { 42 } }
+    CODE
+
 my $deprecation-rx = rx/
-    'Declaring class' \h "'Foo::Bar'" \h 'inside an enclosing module' .*
-    'silently replaces' .* 'Raku 6.d' .* 'Raku 6.e' .* "'unit class Foo::Bar;'"
+    'Declaring class' \s+ "'Foo::Bar'" \s+ 'inside an enclosing module' .+?
+    'silently replaces the module' .+? 'Raku 6.d' .+? 'Raku 6.e' .+?
+    "'unit class" \s+ "Foo::Bar"
+/;
+
+my $deprecation-package-rx = rx/
+    'Declaring role' \s+ "'Foo::Bar'" \s+ 'inside an enclosing package' .+?
+    'silently replaces the package' .+? 'Raku 6.d' .+? 'Raku 6.e' .+?
+    "'unit role" \s+ "Foo::Bar"
 /;
 
 {
@@ -76,6 +92,8 @@ my $deprecation-rx = rx/
     is-run $code_broader, :err(/'Redeclaration of symbol' .* 'Alpha::Beta::Mod'/),
       :exitcode(1), :out(''),
       '6.d traditional: non-enclosing collision is a Redeclaration';
+    is-run $code_6d_package, :err($deprecation-package-rx), :out(''),
+      '6.d traditional: unit package + same-named role also warns';
 }
 
 {
@@ -92,6 +110,8 @@ my $deprecation-rx = rx/
     is-run $code_broader, :err(/'Redeclaration of symbol' .* 'Alpha::Beta::Mod'/),
       :exitcode(1), :out(''),
       '6.d RakuAST: non-enclosing collision is a Redeclaration';
+    is-run $code_6d_package, :err($deprecation-package-rx), :out(''),
+      '6.d RakuAST: unit package + same-named role also warns';
 }
 
 # vim: expandtab shiftwidth=4

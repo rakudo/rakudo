@@ -1121,26 +1121,8 @@ class RakuAST::PackageInstaller {
                       && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
                       && $existing =:= $current-package)
                   || $name.is-identifier || $orig-scope eq 'my' {
-                    # Warn when we're actually using the legacy silent-
-                    # replace path on pre-6.e code, so authors migrate
-                    # before they bump their language version to 6.e,
-                    # which installs this pattern as a nested package
-                    # instead. Mirrors the deprecation emitted from the
-                    # traditional grammar's package installer.
-                    # Restrict to multi-part names: single-identifier
-                    # collisions nest inside the enclosing module's WHO
-                    # without losing the outer module, so behavior is
-                    # identical on 6.d and 6.e and there's nothing to
-                    # warn about.
-                    if !$name.is-identifier
-                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
-                      && !nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
-                      && nqp::getcomp('Raku').language_revision < 3 {
-                        $resolver.add-worry: $resolver.build-exception:
-                            'X::Package::SameNameAsEnclosingModule',
-                            :kind(self.declarator),
-                            :name($existing.HOW.name($existing));
-                    }
+                    self.IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING(
+                        $resolver, $existing, $type-object, $current-package, $name);
                     nqp::setwho($type-object, $existing.WHO);
                 }
                 else {
@@ -1149,6 +1131,30 @@ class RakuAST::PackageInstaller {
                 }
             }
             %stash{$final} := $type-object;
+        }
+    }
+
+    # Emit a SameNameAsEnclosing worry when a declaration silently
+    # replaces its enclosing module or package with a non-container
+    # kind on pre-6.e code. All gating lives here so the installer
+    # call site stays readable.
+    method IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING($resolver, $existing, $type-object, $current-package, $name) {
+        if nqp::getcomp('Raku').language_revision < 3
+          && !$name.is-identifier
+          && $existing =:= $current-package {
+            my $enclosing-kind :=
+                nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)  ?? 'module'  !!
+                nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW) ?? 'package' !! '';
+            my $inner-is-containerlike :=
+                nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                || nqp::istype($type-object.HOW, Perl6::Metamodel::PackageHOW);
+            if $enclosing-kind ne '' && !$inner-is-containerlike {
+                $resolver.add-worry: $resolver.build-exception:
+                    'X::Package::SameNameAsEnclosing',
+                    :kind(self.declarator),
+                    :enclosing-kind($enclosing-kind),
+                    :name($existing.HOW.name($existing));
+            }
         }
     }
 }

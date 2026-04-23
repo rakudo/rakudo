@@ -927,14 +927,30 @@ class RakuAST::VarDeclaration::Simple
                     !! RakuAST::ArgList.new;
                 my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
 
-                my $container-initializer-ast := RakuAST::ApplyPostfix.new(
-                    operand => RakuAST::Declaration::ResolvedConstant.new(
+                my $base-ast := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE-AST;
+                my $operand;
+                if $!sigil ne '$' && nqp::isconcrete($base-ast)
+                    && nqp::can($base-ast.meta-object.HOW, 'archetypes')
+                    && $base-ast.meta-object.HOW.archetypes.generic
+                {
+                    # Generic base type (e.g. `is T` in a parametric role):
+                    # reuse the already-resolved type AST as the operand. Its
+                    # IMPL-EXPR-QAST emits a lexical lookup that role
+                    # specialization re-resolves to the concrete type before
+                    # `.new` is dispatched.
+                    $operand := $base-ast;
+                }
+                else {
+                    $operand := RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(
                             $!sigil eq '$'
                                 ?? self.meta-object
                                 !! self.IMPL-CONTAINER-TYPE($of)
                         )
-                    ),
+                    );
+                }
+                my $container-initializer-ast := RakuAST::ApplyPostfix.new(
+                    :$operand,
                     postfix => RakuAST::Call::Method.new(
                         name => RakuAST::Name.from-identifier('new'),
                         :$args

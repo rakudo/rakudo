@@ -436,54 +436,7 @@ class RakuAST::Code
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
         my @coderefs := $comp.backend.compunit_coderefs($precomp);
-        my int $num-subs := nqp::elems(@coderefs);
-        my int $i;
-        my $result;
-        while $i < $num-subs {
-            my $subid := nqp::getcodecuid(@coderefs[$i]);
-
-            # un-stub code objects for blocks we just compiled:
-            my %sub-id-to-code-object := $context.sub-id-to-code-object();
-            if nqp::existskey(%sub-id-to-code-object, $subid) {
-                my $code-obj := %sub-id-to-code-object{$subid};
-                nqp::setcodeobj(@coderefs[$i], $code-obj);
-                nqp::bindattr($code-obj, Code, '$!do', @coderefs[$i]);
-                my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                if $fixups {
-                    $fixups.pop() while $fixups.list;
-                }
-                nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-            }
-
-            # un-stub clones of code objects for blocks we just compiled:
-            my %sub-id-to-cloned-code-objects := $context.sub-id-to-cloned-code-objects();
-            if nqp::existskey(%sub-id-to-cloned-code-objects, $subid) {
-                for %sub-id-to-cloned-code-objects{$subid} -> $code-obj {
-                    my $clone := nqp::clone(@coderefs[$i]);
-                    nqp::setcodeobj($clone, $code-obj);
-                    nqp::bindattr($code-obj, Code, '$!do', $clone);
-                    my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                    if $fixups {
-                        $fixups.pop() while $fixups.list;
-                    }
-                    nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-                }
-            }
-
-            my %sub-id-to-sc-idx := $context.sub-id-to-sc-idx();
-            if nqp::existskey(%sub-id-to-sc-idx, $subid) {
-                nqp::markcodestatic(@coderefs[$i]);
-                nqp::scsetcode($context.sc, %sub-id-to-sc-idx{$subid}, @coderefs[$i]);
-            }
-
-            if $subid eq $block.cuid {
-                # Remember the VM coderef that maps to the thing we were originally
-                # asked to compile.
-                $result := @coderefs[$i];
-            }
-            ++$i;
-        }
-        $result
+        $context.IMPL-FIXUP-COMPILED-CODEREFS(@coderefs, $block.cuid, :drain-compstuff-fixups)
     }
 
 

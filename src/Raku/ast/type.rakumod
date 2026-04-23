@@ -103,10 +103,16 @@ class RakuAST::Type::Simple
             self.set-resolution($resolved);
 
             my $value := $resolved.compile-time-value;
-            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-                my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
-                if $resolved {
-                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+            # Resolve the first-segment lexical whenever the name is multi-part
+            # and the stash walk will be needed at emit time: for generic types
+            # (role instantiation will replace them) and for package stubs
+            # (could be replaced later).
+            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes')
+              && ($value.HOW.archetypes.generic
+                  || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
+                my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
+                if $first-part {
+                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $first-part);
                 }
             }
         }
@@ -151,7 +157,14 @@ class RakuAST::Type::Simple
         else {
             my $value := self.resolution.compile-time-value;
             if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
-                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                if $!name.is-multi-part && $!lexical {
+                    # For multi-part names, canonicalize is 'S::G' but only the
+                    # first part is a real lexical; walk into its stash instead.
+                    $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                }
+                else {
+                    QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                }
             }
             elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 # Package stub could be replaced later, thus we need to look it up at runtime.

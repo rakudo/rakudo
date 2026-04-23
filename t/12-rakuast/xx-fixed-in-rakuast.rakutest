@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 110;
+plan 111;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -782,6 +782,18 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         foo();
         PROG
       'synthetic RakuAST::Sub calling a setting routine runs at runtime';
+
+
+}
+
+# https://github.com/rakudo/rakudo/issues/6137
+# Precompiling a module whose BEGIN block returns a synthetic RakuAST Sub
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    is-run 'use lib <t/packages/12-rakuast/lib>; use SyntheticSubAtBegin; foo();',
+      :out("from-precomped-6137\n"),
+      :err(""),
+      'precompiling a module returning a synthetic RakuAST Sub from BEGIN works';
 }
 
 # vim: expandtab shiftwidth=4

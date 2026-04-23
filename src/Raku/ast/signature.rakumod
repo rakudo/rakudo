@@ -1347,12 +1347,27 @@ class RakuAST::Parameter
         }
         elsif !$was-slurpy {
             # Type-check, unless it's Mu, in which case skip it.
-            if $is-generic && !$is-coercive {
+            if $is-generic && !$is-coercive
+              && nqp::istype($param-type.HOW, Perl6::Metamodel::GenericHOW) {
+                # True type capture (e.g. ::T in role R[::T]) resolves
+                # per-invocant-type at runtime.
                 my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('istype_nd'),
                     $get-decont-var(),
                     QAST::Var.new( :name($genericname), :scope<typevar> )
+                )));
+            }
+            elsif $is-generic && !$is-coercive {
+                # Archetypally generic but not a type capture (e.g. a class
+                # whose HOW reports generic because a user-defined is-generic
+                # method returned truthy). Bind against the static type
+                # directly; typevar scope would resolve to nothing.
+                $context.ensure-sc($param-type);
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('istype_nd'),
+                    $get-decont-var(),
+                    QAST::WVal.new( :value($param-type) )
                 )));
             }
             elsif !($param-type =:= Mu) {

@@ -43,15 +43,29 @@ class RakuAST::LexicalScope
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
-        # Visit declarations and produce declaration QAST.
+        # Visit declarations and produce declaration QAST. Track both by
+        # objectid (to avoid emitting the same declaration node twice) and
+        # by lexical-name (to avoid emitting two different nodes that declare
+        # the same lexical, which can happen when a CompUnit-level implicit
+        # declaration is visible both via PRODUCE-IMPLICIT-DECLARATIONS and
+        # via a direct visit-children walk from the scope).
         my %seen-decl;
+        my %seen-name;
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
+            next if $_ =:= self || %seen-decl{nqp::objectid($_)};
+            my str $lname := nqp::can($_, 'lexical-name') ?? ($_.lexical-name // '') !! '';
+            next if $lname && %seen-name{$lname};
+            $stmts.push($_.IMPL-QAST-DECL($context));
             %seen-decl{nqp::objectid($_)} := 1;
+            %seen-name{$lname} := 1 if $lname;
         }
         for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
-            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self || %seen-decl{nqp::objectid($_)};
+            next if $_ =:= self || %seen-decl{nqp::objectid($_)};
+            my str $lname := nqp::can($_, 'lexical-name') ?? ($_.lexical-name // '') !! '';
+            next if $lname && %seen-name{$lname};
+            $stmts.push($_.IMPL-QAST-DECL($context));
             %seen-decl{nqp::objectid($_)} := 1;
+            %seen-name{$lname} := 1 if $lname;
         }
 
         # Visit code objects that need to make a declaration entry. We don't

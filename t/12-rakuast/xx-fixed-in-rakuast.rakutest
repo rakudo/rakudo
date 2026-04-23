@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 111;
+plan 113;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -794,6 +794,21 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
       :out("from-precomped-6137\n"),
       :err(""),
       'precompiling a module returning a synthetic RakuAST Sub from BEGIN works';
+}
+
+# A Sub returned from BEGIN-time string EVAL used to infinite-loop on invoke
+# because nested IMPL-LINK-META-OBJECT skipped the runtime $!do fixup, so
+# the cloned IMPL-STUB-CODE stub never got replaced with the compiled
+# coderef.
+{
+    use MONKEY-SEE-NO-EVAL;
+    my $s1 = BEGIN EVAL 'sub { 42 }';
+    is $s1(), 42,
+      'invoking a Sub returned from BEGIN-time string EVAL works';
+
+    my $s2 = BEGIN EVAL 'sub { 1 + 2 }';
+    is $s2(), 3,
+      'BEGIN-time string-EVAL Sub with setting operator runs';
 }
 
 # vim: expandtab shiftwidth=4

@@ -198,7 +198,7 @@ class RakuAST::Code
         $block.set-cuid($!cuid);
 
         my $fixups := QAST::Stmts.new();
-        unless $context.is-precompilation-mode || $context.is-nested {
+        unless $context.is-precompilation-mode {
             # We need to do a fixup of the code block for the non-precompiled case.
             $fixups.push(
                 QAST::Op.new(

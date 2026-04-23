@@ -555,7 +555,7 @@ class RakuAST::CompUnit
             :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(@pre-deserialize),
-            :post_deserialize($context.is-nested ?? [] !! $context.post-deserialize()),
+            :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),

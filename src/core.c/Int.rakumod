@@ -16,6 +16,8 @@ my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool
     #     has bigint $!value is box_target;
 
+    method bits(Int:U:) { nqp::objprimbits(self) || Inf }
+
     multi method WHICH(Int:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(

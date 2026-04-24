@@ -1793,7 +1793,7 @@ my class Rakudo::Internals {
 }
 
 # expose the number of bits a native int has
-my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
+my constant $?BITS = nqp::objprimbits(int);
 
 {   # setting up END phaser handling
     my int $the-end-is-done;

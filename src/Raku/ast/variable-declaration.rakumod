@@ -250,7 +250,9 @@ class RakuAST::ContainerCreator {
 
         # Form container descriptor.
 
-        $default := $of if self.type;
+        # A definite-constrained variable (e.g. `my Int:U $a`) should default
+        # to the nominalized base type, not the wrapped type itself.
+        $default := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
                 nqp::eqaddr($of, Mu)

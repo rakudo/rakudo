@@ -209,6 +209,8 @@ class RakuAST::ContainerCreator {
                     }
                 }
                 else {
+                    # $of is derived from self.type, and self.type is a RakuAST node,
+                    # which is cleaner to check for truthiness than the equivalent !($of =:= Mu).
                     if self.type {
                         $container-type := Hash.HOW.parameterize(Hash, $of, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
@@ -238,9 +240,19 @@ class RakuAST::ContainerCreator {
             }
         }
         else {
-            $container-type := self.type
-                ?? $!explicit-container-base-type.HOW.parameterize($!explicit-container-base-type, $of)
-                !! $!explicit-container-base-type;
+            # The following logic cascade is in charge of assuring user's who have specified
+            #   an, eg. `my @h is Array[::T]` will have their containers parameterized properly,
+            #   in a way where the capture will be successfully resolved.
+            my str $sigil := self.sigil;
+            $container-base-type := $!explicit-container-base-type;
+            $container-type := self.type || ! ($key-type =:= NQPMu)
+                ?? $sigil eq '%' && !($key-type =:= NQPMu)
+                    ?? $container-base-type =:= Hash || nqp::eqaddr($container-base-type,self.IMPL-SIGIL-TYPE)
+                        ?? $container-base-type.HOW.parameterize($container-base-type, $of, $key-type)
+                        !! $container-base-type.HOW.parameterize($container-base-type, $key-type)
+                    !! $container-base-type.HOW.parameterize($container-base-type, $of)
+                !! $container-base-type;
+            $bind-constraint := $container-type;
         }
 
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);
@@ -600,6 +612,7 @@ class RakuAST::VarDeclaration::Simple
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
     has RakuAST::Code        $!block;
+    has Mu                   $!key-type;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -644,6 +657,8 @@ class RakuAST::VarDeclaration::Simple
           $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
           $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!key-type',
+          Mu); # Mu is the default key type of all hashes and hash-like things
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-ro', False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
@@ -792,9 +807,15 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-CALCULATE-TYPES(Mu $of) {
         my &calculate-types := nqp::findmethod(RakuAST::ContainerCreator, 'IMPL-CALCULATE-TYPES');
-        $!shape && self.sigil eq '%'
-            ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-            !! &calculate-types(self, $of);
+        if self.sigil eq '%' {
+            nqp::isconcrete($!shape)
+                    ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
+                    !! $!key-type =:= Mu # no key type is defined
+                        ?? &calculate-types(self, $of)
+                        !! &calculate-types(self, $of, :key-type($!key-type))
+        } else {
+            &calculate-types(self, $of);
+        }
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving
@@ -883,9 +904,33 @@ class RakuAST::VarDeclaration::Simple
 
                 # an actual type
                 if nqp::isconcrete($type) && !$_.argument
-                    && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
+                && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
                 {
-                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.meta-object);
+                    if nqp::istype($type,RakuAST::Type::Parameterized) {
+                        # Only @- and %-sigiled variables can take an `is $type` trait.
+                        # Otherwise we would want to guard to non-$-sigiled variables.
+                        # Note that the check below for number of arguments feels very fiddly.
+                        # It does seem to cover the majority of uses but the larger issue
+                        # Without setting the type here, a type capture fails to resolve to their
+                        # parameterization.
+                        my @of-types := self.IMPL-UNWRAP-LIST($type.args.args);
+                        my $num-types := nqp::elems(@of-types);
+                        # TODO: Throw an exception instead. Also, is it theoretically possible for a user to have
+                        # TODO: more than two types in their parameterization?
+                        nqp::die("Unable to parameterize a " ~ self.sigil ~ "  container with " ~ $num-types ~ " type parameters")
+                                unless $num-types <= 2;
+                        my $bt-mo := $type.base-type.meta-object;
+                        if self.sigil eq '%' {
+                            self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE: $bt-mo;
+                            nqp::bindattr(self,RakuAST::VarDeclaration::Simple,'$!key-type',@of-types[0].meta-object);
+                            # for the cases where Associative[Key,OfType] (as opposed to QuantHash[Key])
+                            self.set-type(@of-types[1]) if $num-types == 2;
+                        } else {
+                            self.set-type(@of-types[0]);
+                        }
+                    } else {
+                        self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.meta-object);
+                    }
                     next;
                 }
             }

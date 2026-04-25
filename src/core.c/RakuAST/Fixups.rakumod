@@ -342,35 +342,23 @@ augment class RakuAST::Doc {
 
 augment class RakuAST::Doc::Markup {
 
-    # convert the contents of E<> to a codepoint
+    # convert the contents of E<> to a representation (usually a codepoint)
     method !convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
         my $codepoint := val $entity;
 
-        my $string;
         if nqp::not_i(nqp::istype($codepoint,Allomorph)) {  # not numeric
-            if $entity.is-whitespace {
-                $string := Nil;
-            }
-            else {
-                $string := RakuAST::HTML::Entities.parse($entity);
-                unless $string {
-                    $string := $entity.uniparse;
-                    unless $string {
-                        die # self.worry-ad-hoc:  XXX need better solution
-                          qq/"$entity" is not a valid HTML5 entity./;
-                    }
-                }
-            }
+            $entity.is-whitespace
+              ?? Nil
+              !! (RakuAST::HTML::Entities.parse($entity)
+                  || $entity.uniparse
+                  || "E<$entity>");
         }
         elsif try $codepoint.chr -> $chr {
-            $string := $chr;
+            $chr
         }
         else {
-            die # self.sorry-ad-hoc:  XXX need better solution
-              "Codepoint $codepoint ($codepoint.base(16)) is out of bounds in E<>";
-            $string := '';
+            "E<$entity>"
         }
-        $string
     }
 
     # Extract any meta information from the atoms, perform the expected

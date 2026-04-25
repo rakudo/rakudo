@@ -122,6 +122,13 @@ the release announcement).
 
 =item *
 
+Review the 6.c, 6.d errata branches of Raku/roast - you do not
+want to find out about failures on the day of the release, in
+case they are indicators of an actual issue, and not just that
+the test file needs to be updated.
+
+=item *
+
 B<Bump often>, especially the day before the release. Otherwise issues
 with MoarVM/NQP might go unnoticed for too long.
 

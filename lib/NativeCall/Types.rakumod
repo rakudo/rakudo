@@ -125,20 +125,20 @@ our class Pointer is repr<CPointer> {
     multi method raku(::?CLASS:U:) { self.^name                            }
     multi method raku(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
-    my role TypedPointer[::TValue] {
-        method of() { TValue }
+    my role TypedPointer[::CORE'NativeCall'TypedPointer'TValue] {
+        method of() { CORE'NativeCall'TypedPointer'TValue }
 
         method deref(::?CLASS:D \ptr:) {
             self
-              ?? nativecast(TValue, ptr)
+              ?? nativecast(CORE'NativeCall'TypedPointer'TValue, ptr)
               !! "Can't dereference a Null Pointer".Failure
         }
 
         method add(::?CLASS:D: Int:D $off --> Pointer:D) {
-            TValue.isa(void)
+            CORE'NativeCall'TypedPointer'TValue.isa(void)
               ?? die("Can't do arithmetic with a void pointer")
               !! nqp::box_i(
-                   self.Int + nqp::nativecallsizeof(TValue) * $off,
+                   self.Int + nqp::nativecallsizeof(CORE'NativeCall'TypedPointer'TValue) * $off,
                    self.WHAT
                  )
         }
@@ -147,10 +147,10 @@ our class Pointer is repr<CPointer> {
 
         method AT-POS(::?CLASS:D: Int:D $pos) {
             nqp::nativecallcast(
-              TValue,
-              nqp::decont(map_return_type(TValue)),
+              CORE'NativeCall'TypedPointer'TValue,
+              nqp::decont(map_return_type(CORE'NativeCall'TypedPointer'TValue)),
               nqp::box_i(
-                nqp::unbox_i(self) + nqp::nativecallsizeof(TValue) * $pos,
+                nqp::unbox_i(self) + nqp::nativecallsizeof(CORE'NativeCall'TypedPointer'TValue) * $pos,
                 Pointer
               )
             )
@@ -185,9 +185,9 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     # For parameterization to ints
-    my role IntTypedCArray[::TValue]
-      does Positional[TValue]
-      is   array_type(TValue)
+    my role IntTypedCArray[::CORE'NativeCall'IntTypedCArray'TValue]
+      does Positional[CORE'NativeCall'IntTypedCArray'TValue]
+      is   array_type(CORE'NativeCall'IntTypedCArray'TValue)
     {
         multi method AT-POS(::?CLASS:D: int $pos) is raw {
             nqp::atposref_i(self, $pos)
@@ -233,9 +233,9 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     # For parameterization to unsigned ints
-    my role UIntTypedCArray[::TValue]
-      does Positional[TValue]
-      is   array_type(TValue)
+    my role UIntTypedCArray[::CORE'NativeCall'UIntTypedCArray'TValue]
+      does Positional[CORE'NativeCall'UIntTypedCArray'TValue]
+      is   array_type(CORE'NativeCall'UIntTypedCArray'TValue)
     {
         multi method AT-POS(::?CLASS:D: int $pos) is raw {
             nqp::atposref_u(self, $pos);
@@ -287,9 +287,9 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     # For parameterization to nums
-    my role NumTypedCArray[::TValue]
-      does Positional[TValue]
-      is   array_type(TValue)
+    my role NumTypedCArray[::CORE'NumTypedCArray'TValue]
+      does Positional[CORE'NumTypedCArray'TValue]
+      is   array_type(CORE'NumTypedCArray'TValue)
     {
         multi method AT-POS(::?CLASS:D: int $pos) is raw {
             nqp::atposref_n(self, $pos);
@@ -332,9 +332,9 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     # For parameterization to all other allowed REPRs
-    my role TypedCArray[::TValue]
-      does Positional[TValue]
-      is   array_type(TValue)
+    my role TypedCArray[::CORE'NativeCall'TypedCArray'TValue]
+      does Positional[CORE'NativeCall'TypedCArray'TValue]
+      is   array_type(CORE'NativeCall'TypedCArray'TValue)
     {
         multi method AT-POS(::?CLASS:D: int $pos) is rw {
             Proxy.new:

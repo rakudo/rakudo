@@ -322,7 +322,7 @@ Once this is done, create the artifact...
 
 ... And test it afterwards. You can manually verify the build worked and shows the correct version with:
 
-    ./temp/rakudo-test/rakudo-$version/install/bin/raku --version
+    ./temp/rakudo-test/rakudo-$VERSION/install/bin/raku --version
 
 Now you can test the built version. Note that this deletes the directory, so after this step you will be
 unable to rerun the previous command.

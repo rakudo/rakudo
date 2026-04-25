@@ -1051,7 +1051,7 @@ class RakuAST::ScopePhaser {
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
-        my $phasers := $block ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
+        my $phasers := nqp::isconcrete($block) ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
 
         if $!has-exit-handler || self.needs-result > 1 || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
             $qast.has_exit_handler(1);
@@ -1142,14 +1142,18 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
-            if $block {
-                my $enter-phasers := $block.phasers('ENTER');
+            if nqp::isconcrete($block) && nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
+                my $enter-phasers := nqp::atkey($phasers, 'ENTER');
                 if nqp::isconcrete($enter-phasers) {
-                    for $enter-phasers.FLATTENABLE_LIST {
-                        unless %seen{nqp::objectid($_)} {
-                            $context.ensure-sc($_);
-                            $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                    my int $i := 0;
+                    my int $n := nqp::elems($enter-phasers);
+                    while $i < $n {
+                        my $p := nqp::atpos($enter-phasers, $i);
+                        unless %seen{nqp::objectid($p)} {
+                            $context.ensure-sc($p);
+                            $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($p))));
                         }
+                        $i := $i + 1;
                     }
                 }
             }

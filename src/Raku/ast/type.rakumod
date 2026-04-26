@@ -76,6 +76,7 @@ class RakuAST::Type::Simple
     has RakuAST::Name $.name;
     has Mu $!package;
     has RakuAST::Node $!lexical;
+    has str $!ins-lexical-name;
 
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
@@ -103,10 +104,16 @@ class RakuAST::Type::Simple
             self.set-resolution($resolved);
 
             my $value := $resolved.compile-time-value;
-            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-                my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
-                if $resolved {
-                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+            # Resolve the first-segment lexical whenever the name is multi-part
+            # and the stash walk will be needed at emit time: for generic types
+            # (role instantiation will replace them) and for package stubs
+            # (could be replaced later).
+            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes')
+              && ($value.HOW.archetypes.generic
+                  || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
+                my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
+                if $first-part {
+                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $first-part);
                 }
             }
         }
@@ -121,6 +128,13 @@ class RakuAST::Type::Simple
         if self.is-resolved {
             self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
                 if self.sunk && !(self.resolution.compile-time-value =:= Nil);
+
+            my $value := self.resolution.compile-time-value;
+            if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
+                my str $candidate := '!INS_OF_' ~ $value.HOW.name($value);
+                my $found := $resolver.resolve-lexical-constant($candidate);
+                nqp::bindattr_s(self, RakuAST::Type::Simple, '$!ins-lexical-name', $candidate) if $found;
+            }
         }
     }
 
@@ -151,7 +165,41 @@ class RakuAST::Type::Simple
         else {
             my $value := self.resolution.compile-time-value;
             if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
-                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                # If the resolved type is a nested package inside a parametric
+                # role, prefer the `!INS_OF_<fullname>` instantiation lexical
+                # that its IMPL-COMPOSE registered with the role. The role's
+                # resolve_instantiations call rebinds that lexical to the
+                # concretization per specialization, so method bodies that
+                # reference the nested package see the specialization's copy.
+                if !nqp::isnull_s($!ins-lexical-name) && $!ins-lexical-name ne '' {
+                    QAST::Var.new( :name($!ins-lexical-name), :scope('lexical') )
+                }
+                elsif $!name.is-multi-part
+                  && RakuAST::Package.IMPL-IS-INSTANTIATION-REGISTRABLE($value) {
+                    # Multi-part generic names whose Type::Simple.IMPL-EXPR-QAST
+                    # fires before PERFORM-CHECK had a chance to stash the
+                    # instantiation-lexical name (happens for attribute-type
+                    # references that are emitted during early class/role
+                    # composition). The matching `!INS_OF_<fullname>` lexical
+                    # was declared on the enclosing role body by the time this
+                    # QAST actually runs. Gated via the shared filter on
+                    # RakuAST::Package; a parametric generic type was never
+                    # queued so would not have a matching `!INS_OF_*` lexical.
+                    QAST::Var.new(
+                        :name('!INS_OF_' ~ $value.HOW.name($value)),
+                        :scope('lexical')
+                    )
+                }
+                elsif $!name.is-multi-part && $!lexical {
+                    # For multi-part names, canonicalize is 'S::G' but only the
+                    # first part is a real lexical; walk into its stash instead.
+                    # Also serves as the fallback for parametric multi-part
+                    # generics that the registrable-filter excluded above.
+                    $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                }
+                else {
+                    QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                }
             }
             elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 # Package stub could be replaced later, thus we need to look it up at runtime.

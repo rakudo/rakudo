@@ -245,7 +245,6 @@ class RakuAST::Package
         self.add-trait-sorries;
 
         if $!is-stub && !$!stub-defused && !$!is-require-stub
-            && !self.stubbed-meta-object.HOW.is_composed(self.stubbed-meta-object)
             && !nqp::istype(self, RakuAST::Role) # No idea why roles are excempt
         { # Should be replaced by now
             self.add-sorry:
@@ -763,6 +762,7 @@ class RakuAST::Grammar
     ) {
         my $sanity-check := self.HOW.find_method(self,"check-sanity");
         $sanity-check(self) if $sanity-check;
+        nqp::findmethod(RakuAST::Package, 'PERFORM-CHECK')(self, $resolver, $context);
         True
     }
 }

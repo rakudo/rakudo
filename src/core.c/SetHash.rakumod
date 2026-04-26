@@ -247,17 +247,27 @@ my class SetHash does Setty {
                )
              )
     }
+
+    # This version of STORE typically gets called from HYPER, where
+    # it will just create a bare instance of the SetHash class.  So
+    # it must ensure we've done all initializations, and then call
+    # the actual STORE logic for this case.
     multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
-        my \iterobjs  := objects.iterator;
-        my \iterbools := bools.iterator;
-        nqp::bindattr(
-          self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
-        );
+        self.SETUP!STORE-DUAL(objects.iterator, bools.iterator)
+    }
+
+    method !STORE-DUAL($iterobjs, $iterbools) {
+        my &objectifier := &!objectifier;
+        my $elems       := $!elems;
+
         nqp::until(
-          nqp::eqaddr((my \object := iterobjs.pull-one),IterationEnd),
+          nqp::eqaddr((my $pulled := $iterobjs.pull-one),IterationEnd),
           nqp::if(
-            iterbools.pull-one,
-            nqp::bindkey($!elems,object.WHICH,nqp::decont(object))
+            $iterbools.pull-one,
+            nqp::stmts(
+              (my $object := objectifier($pulled)),
+              nqp::bindkey($elems,$object.WHICH,$object)
+            )
           )
         );
         self

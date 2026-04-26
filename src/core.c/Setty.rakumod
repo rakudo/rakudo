@@ -229,7 +229,7 @@ my role Setty does QuantHash {
     }
 
     multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
-        nqp::hllbool(nqp::existskey($!elems,k.WHICH))
+        nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
     }
 
     multi method Bag(Setty:D:) {

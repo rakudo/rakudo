@@ -143,3 +143,18 @@ class RakuAST::IMPL::InterpContext {
         nqp::create(self)
     }
 }
+
+# Shared metamodel-archetype helpers, called from RakuAST nodes anywhere
+# that needs to inspect a type object's archetypes. archetypes() must be
+# called with the type as argument: DefiniteHOW and CoercionHOW stash the
+# archetype in a type parameter and return a non-generic prototype when
+# called bare (Metamodel/DefiniteHOW.nqp, Metamodel/CoercionHOW.nqp), so
+# `$v.HOW.archetypes.generic` silently misreports for those HOWs. Routing
+# through these helpers keeps callers from having to remember the
+# argument form.
+class RakuAST::IMPL::Archetypes {
+    method is-generic(Mu $v) {
+        nqp::can($v.HOW, 'archetypes')
+            && $v.HOW.archetypes($v).generic
+    }
+}

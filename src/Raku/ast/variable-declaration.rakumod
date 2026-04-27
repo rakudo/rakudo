@@ -2044,6 +2044,11 @@ class RakuAST::VarDeclaration::Term
         my $invocant := nqp::defined($!type)
             ?? $!type.meta-object
             !! Mu;
+        # For `.=` initializers, the invocant must be the nominalized base
+        # type (e.g. `my Int:D \b .= new: 42` should call `Int.new`, not
+        # `Int:D.new`, since definite-constrained types are not instantiable).
+        $invocant := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($invocant)
+            if nqp::istype($!initializer, RakuAST::Initializer::CallAssign);
         $context.ensure-sc($invocant);
         my $invocant-qast := QAST::WVal.new(:value($invocant));
         my $init-qast := $!initializer.IMPL-TO-QAST($context, :$invocant-qast);

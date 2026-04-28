@@ -377,7 +377,7 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 
 multi sub trait_mod:<is>(Routine:D $r, Str :$revision-gated!) {
     my $chars := nqp::chars($revision-gated);
-    my $internal-revision := 1 + nqp::ord($revision-gated, $chars - 1) - nqp::ord("c");
+    my $internal-revision := nqp::add_i(1, nqp::sub_i(nqp::ord($revision-gated, nqp::sub_i($chars,1)), nqp::ord("c")));
     $r.set-revision-gated;
     $r.^mixin(
         role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }.^parameterize($internal-revision)

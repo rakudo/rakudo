@@ -2929,8 +2929,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*INVOCANT_OK := 0; }
     }
 
-    token infix:sym<X> { <!before <.sym> <.infixish>> <sym> }
-    token infix:sym<Z> { <!before <.sym> <.infixish>> <sym> }
+    token infix:sym<X> { <sym> }
+    token infix:sym<Z> { <sym> }
 
 
     token infix:sym<...>   { <sym> }

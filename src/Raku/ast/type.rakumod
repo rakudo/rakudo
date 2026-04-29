@@ -103,7 +103,7 @@ class RakuAST::Type::Simple
             self.set-resolution($resolved);
 
             my $value := $resolved.compile-time-value;
-            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            if $!name.is-multi-part && !RakuAST::IMPL::Archetypes.is-generic($value) && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $resolved {
                     nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
@@ -150,7 +150,7 @@ class RakuAST::Type::Simple
         }
         else {
             my $value := self.resolution.compile-time-value;
-            if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
+            if RakuAST::IMPL::Archetypes.is-generic($value) {
                 QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
             }
             elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
@@ -251,14 +251,36 @@ class RakuAST::Type::Coercion
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        # If either the base type or constraint is generic (e.g. `T()` inside
+        # a parametric role), the pre-composed CoercionHOW wraps the
+        # un-substituted generic. Emit a runtime CoercionHOW.new_type call so
+        # role specialization sees the concrete type(s).
+        my $base-type := self.base-type;
+        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value)
+         || RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        {
+            $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
+            QAST::Op.new(
+                :op('callmethod'), :name('new_type'),
+                QAST::WVal.new(:value(Perl6::Metamodel::CoercionHOW)),
+                $base-type.IMPL-EXPR-QAST($context),
+                $!constraint.IMPL-EXPR-QAST($context),
+            )
+        }
+        else {
+            my $value := self.meta-object;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
+        # Generic base/constraint must go through IMPL-EXPR-QAST's runtime
+        # branch; interpreting would bake the un-substituted meta-object.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
         && nqp::istype($!constraint, RakuAST::CompileTimeValue)
+        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -324,13 +346,41 @@ class RakuAST::Type::Definedness
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        # If the base type is generic (e.g. `T:D` inside a parametric role),
+        # the pre-composed DefiniteHOW wraps the un-substituted generic. Emit
+        # a runtime DefiniteHOW.new_type call that consumes the base-type's
+        # lexical lookup so role specialization sees the concrete base.
+        my $base-type := self.base-type;
+        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value) {
+            $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
+            my $base-qast := $base-type.IMPL-EXPR-QAST($context);
+            $base-qast.named('base_type');
+            my $definite-qast := QAST::WVal.new(:value($!definite ?? True !! False));
+            $definite-qast.named('definite');
+            QAST::Op.new(
+                :op('callmethod'), :name('new_type'),
+                QAST::WVal.new(:value(Perl6::Metamodel::DefiniteHOW)),
+                $base-qast,
+                $definite-qast,
+            )
+        }
+        else {
+            my $value := self.meta-object;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
+        # Generic base must go through IMPL-EXPR-QAST's runtime branch;
+        # interpreting would bake the un-substituted meta-object. Note: the
+        # cached PRODUCE-META-OBJECT result still reflects the un-substituted
+        # generic, so any caller other than IMPL-EXPR-QAST/IMPL-INTERPRET
+        # that pulls .meta-object on a generic-base node receives the wrong
+        # thing; no such caller is hit on the role specialization paths
+        # currently, but the asymmetry is intentional and bounded here.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
+        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

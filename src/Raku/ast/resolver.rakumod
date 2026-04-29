@@ -819,11 +819,13 @@ class RakuAST::Resolver::EVAL
     # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
-    method new(Mu :$global!, Mu :$context!) {
+    method new(Mu :$global!, Mu :$context!, Mu :$setting) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
-            self.IMPL-SETTING-FROM-CONTEXT($context));
+            nqp::defined($setting)
+              ?? $setting
+              !! self.IMPL-SETTING-FROM-CONTEXT($context));
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
@@ -907,9 +909,34 @@ class RakuAST::Resolver::EVAL
                 return $found if nqp::isconcrete($found);
             }
 
-            # Fallback handling
-            self.resolve-lexical-in-outer($name)
+            # Fallback: try the captured outer context, and if that doesn't
+            # reach the setting (e.g. EVAL from inside a BEGIN block whose
+            # outer chain isn't yet linked to CORE), walk $!setting directly.
+            my $found := self.resolve-lexical-in-outer($name);
+            return $found if nqp::isconcrete($found);
+            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+            nqp::isnull($setting) || !$setting
+              ?? Nil
+              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
         }
+    }
+
+    # Walk a given setting context for $name, returning an External::Setting
+    # on a hit. Setting-only walk: no native/primspec handling, since callers
+    # pass a real setting context. Mirrors the setting branch of
+    # resolve-lexical-in-outer on the base class.
+    method IMPL-RESOLVE-LEXICAL-IN-SETTING(Mu $setting, Str $name) {
+        my $context := $setting;
+        until nqp::isnull($context) {
+            if nqp::existskey($context, $name) {
+                return RakuAST::Declaration::External::Setting.new(
+                  :lexical-name($name),
+                  :compile-time-value(nqp::atkey($context, $name))
+                );
+            }
+            $context := nqp::ctxouter($context);
+        }
+        Nil
     }
 
     # Resolves a lexical to its declaration. The declaration must have a
@@ -953,8 +980,18 @@ class RakuAST::Resolver::EVAL
                 }
             }
 
-            # Fallback handling
-            self.resolve-lexical-constant-in-outer($name)
+            # Fallback: same shape as resolve-lexical above. Try the captured
+            # outer context; if that doesn't reach the setting (BEGIN-time
+            # EVAL cases), walk $!setting directly. Needed here because
+            # IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK asks for constants via
+            # this method when baking &routine / Nil / Mu etc. into
+            # dynamically-compiled Code bodies.
+            my $found := self.resolve-lexical-constant-in-outer($name);
+            return $found if nqp::isconcrete($found);
+            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+            nqp::isnull($setting) || !$setting
+              ?? Nil
+              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
         }
     }
 }

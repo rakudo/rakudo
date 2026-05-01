@@ -568,10 +568,12 @@ class RakuAST::CompUnit
             )),
     }
 
-    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
-        # Use the NQP module loader to load Perl6::ModuleLoader, which
-        # is a normal NQP module.
-        my $module-loading := QAST::Stmt.new(
+    # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is
+    # available: load Perl6/ModuleLoader's bytecode via NQP's ModuleLoader,
+    # then register it under the Raku HLL. Mirrors
+    # World.raku_module_loader_code in src/Perl6/World.nqp.
+    method IMPL-RAKU-MODULE-LOADER-CODE-QAST() {
+        QAST::Stmt.new(
             QAST::Op.new(
                 :op('loadbytecode'),
                 QAST::VM.new(
@@ -587,11 +589,13 @@ class RakuAST::CompUnit
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
                 QAST::SVal.new( :value('Perl6::ModuleLoader') )
-            ));
+            ))
+    }
 
+    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
         # Load and put in place the setting after deserialization and on fixup.
         QAST::Stmt.new(
-            $module-loading,
+            self.IMPL-RAKU-MODULE-LOADER-CODE-QAST(),
             QAST::Op.new(
                 :op('forceouterctx'),
                 QAST::BVal.new( :value($top-level) ),

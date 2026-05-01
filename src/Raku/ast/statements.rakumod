@@ -1799,6 +1799,15 @@ class RakuAST::ModuleLoading {
             my $existing := nqp::isconcrete($declarand.compile-time-value)
                 ?? Nil
                 !! $resolver.resolve-lexical-constant($key, :current-scope-only);
+            # If the incoming value is a stub package (e.g. the `Foo` namespace
+            # carrying a nested `Foo::Bar`) and no local declaration exists,
+            # fall back to an outer-scope lookup. That way the stub's WHO
+            # merges into an enclosing same-named package (such as a class
+            # being declared) instead of installing a new lexical that would
+            # shadow it.
+            if !$existing && nqp::can($declarand, 'is-stub') && $declarand.is-stub {
+                $existing := $resolver.resolve-lexical-constant($key);
+            }
             if $existing {
                 $existing.merge($declarand, :$resolver) unless $existing.compile-time-value =:= $declarand.compile-time-value;
             }

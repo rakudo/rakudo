@@ -1029,7 +1029,7 @@ class RakuAST::VarDeclaration::Simple
                 self.name,
                 nqp::getattr_s(self, RakuAST::Declaration, '$!scope'),
                 $meta,
-                $!block.stubbed-meta-object,
+                $!block ?? $!block.stubbed-meta-object !! Mu,
                 Mu
             );
             # Get around RakuAST compiler deconting all arguments:

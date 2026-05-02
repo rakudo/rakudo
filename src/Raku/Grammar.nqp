@@ -309,7 +309,11 @@ role Raku::Common {
         );
         nqp::unlock($quote-lang-lock);
 
-        $quote-lang.set_package(self.package);
+        # Use $*PACKAGE (the authoritative dyn-var) rather than
+        # self.package (which reads from the cursor's braid; that braid
+        # may have been cloned earlier from a different scope and not
+        # been re-synced when $*PACKAGE changed at scope transitions).
+        $quote-lang.set_package($*PACKAGE);
         $quote-lang
     }
 

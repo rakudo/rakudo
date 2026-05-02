@@ -106,13 +106,17 @@ class RakuAST::LexicalScope
     method ast-lexical-declarations() {
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
+            my %declarations-seen;
             my @variables;
             my %variables-seen;
             my @not-if-duplicate;
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
-                    nqp::push(@declarations, $node);
-                    nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
+                    unless %declarations-seen{nqp::objectid($node)} {
+                        nqp::push(@declarations, $node);
+                        nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
+                        %declarations-seen{nqp::objectid($node)} := 1;
+                    }
                 }
                 elsif nqp::istype($node, RakuAST::Var::Lexical)
                     || nqp::istype($node, RakuAST::Var::Dynamic)
@@ -130,9 +134,10 @@ class RakuAST::LexicalScope
                                 if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic) && $decl.IMPL-NOT-IF-DUPLICATE {
                                     nqp::push(@not-if-duplicate, $decl);
                                 }
-                                else {
+                                elsif !%declarations-seen{nqp::objectid($decl)} {
                                     nqp::push(@declarations, $decl);
                                     nqp::push(@variables, $decl);
+                                    %declarations-seen{nqp::objectid($decl)} := 1;
                                 }
                             }
                         }

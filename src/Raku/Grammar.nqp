@@ -1275,6 +1275,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
         <.lang-setup($outer-cu)>  # set the above variables
+        :my $*PACKAGE;
 
         # Further needed initializations
         {
@@ -1282,6 +1283,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              $*R.create-scope-implicits();
              self.actions.load-M-modules($/);
              self.actions.load-bootstrap($/);
+             self.actions.set-compunit-package($/);
         }
 
         # Perform the actual parsing of the code, using origin tracking

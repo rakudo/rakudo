@@ -172,6 +172,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $hash.FLATTENABLE_HASH
     }
 
+    # Set $*PACKAGE at compunit scope and sync the cursor's braid so the
+    # check_PACKAGE_oopsies sanity check used at every slang switch (LANG)
+    # doesn't fire spuriously while parsing file-scope code outside any
+    # package-def. Mirrors the legacy frontend's compunit-time package
+    # initialization (src/Perl6/World.nqp's comp_unit_stage1 sets
+    # $*PACKAGE := $*GLOBALish then calls $/.set_package($package)).
+    method set-compunit-package($/) {
+        my $package := nqp::getlexdyn('$?PACKAGE');
+        # In EVAL mode we expect $?PACKAGE to be inherited from the outer
+        # dyn-context. For a fresh compile there is no outer $?PACKAGE,
+        # so fall back to the compunit's generated GLOBAL.
+        if nqp::isnull($package) && !$*CU.is-eval {
+            $package := $*CU.generated-global;
+        }
+        unless nqp::isnull($package) {
+            $*PACKAGE := $package;
+            $/.set_package($package);
+        }
+    }
+
     # Perform all actions that are needed before any actual parsing can
     # be done by a grammar.
     method comp-unit-prologue($/) {

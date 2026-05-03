@@ -879,7 +879,7 @@ my $rakuast-built = SETTING::{'!RAKUAST_MARKER'}:exists;
 for @allowed -> (:key($rev), :value(@syms)) {
     my @adjusted = @syms;
     if $rakuast-built {
-        @adjusted.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+        @adjusted.push: Q{!RAKUAST_MARKER};
         @adjusted = @adjusted.grep(* ne '!INIT_VALUES').list;
         # TODO: legacy doesn't put $¢ in CORE::v6c, but RakuAST's CompUnit
         # PRODUCE-IMPLICIT-DECLARATIONS installs it unconditionally.  Drop

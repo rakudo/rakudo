@@ -2166,6 +2166,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<variable>.ast
     }
 
+    # Resolve the current source file as an interned string for `$?FILE`.
+    # Mirrors the legacy frontend's current_file in src/Perl6/World.nqp:
+    # prepend the cwd unless the name is already an absolute path or one
+    # of the non-path names a compilation can have ('-e', '<unknown file>').
+    # An EVAL's pseudo-file like 'EVAL_0' names no on-disk source, so it
+    # is also passed through as-is.
+    method IMPL-SOURCE-FILE($origin-source) {
+        my str $file := $origin-source.original-file;
+        $*LITERALS.intern-Str(
+          nqp::eqat($file,'/',0)      # absolute path
+            || nqp::eqat($file,'-',0) # '-e', '-'
+            || nqp::eqat($file,':',1) # Windows drive letter
+            || nqp::eqat($file,'<',0) # '<unknown file>'
+            || nqp::isconcrete(nqp::atkey(%*COMPILING<%?OPTIONS>,'outer_ctx'))
+            ?? $file
+            !! nqp::cwd() ~ '/' ~ $file
+        )
+    }
+
     method term:sym<package-declarator>($/) {
         self.attach: $/, $<package-declarator>.ast
     }
@@ -2517,6 +2536,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $ast := Nodify('Var::Package').new(
                   :$sigil, :$twigil, :name($desigilname)
                 );
+            }
+            elsif $name eq '$?FILE' {
+                $ast := Nodify('Var::Compiler::File').new(
+                   self.IMPL-SOURCE-FILE($origin-source)
+                )
             }
             elsif $name eq '$?LINE' {
                 $ast := Nodify('Var::Compiler::Line').new(

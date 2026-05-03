@@ -824,7 +824,6 @@ my %nyi-for-backend = (
 
 if SETTING::{'!RAKUAST_MARKER'}:exists {
     %allowed{'!RAKUAST_MARKER'} = 1;
-    %allowed{'$?FILE'}          = 1;
     %allowed{'!INIT_VALUES'}:delete;
     # TODO: legacy doesn't install $¢ at the v6.c CORE setting, but
     # RakuAST's CompUnit PRODUCE-IMPLICIT-DECLARATIONS does.  Drop this

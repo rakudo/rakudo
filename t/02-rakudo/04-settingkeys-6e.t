@@ -832,7 +832,6 @@ my %nyi-for-backend = (
 
 if SETTING::{'!RAKUAST_MARKER'}:exists {
     %allowed{'!RAKUAST_MARKER'} = 1;
-    %allowed{'$?FILE'}          = 1;
     %allowed{'!INIT_VALUES'}:delete;
 }
 

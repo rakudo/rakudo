@@ -542,22 +542,12 @@ class RakuAST::CompUnit
           value => nqp::hllizefor($!checksum, 'Raku')
         ));
 
-        my sub relative-source-filename() {
-            if $*LITERALS {
-                my str $file := $*ORIGIN-SOURCE.original-file;
-                my str $cwd  := nqp::cwd();
-                $*LITERALS.intern-Str(nqp::eqat($file,$cwd,0)
-                  ?? nqp::substr($file,nqp::chars($cwd) + 1)
-                  !! $file
-                )
-            }
-            else {
-                '<unknown>'
-            }
-        }
-        add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name  => '$?FILE', value => relative-source-filename()
-        ));
+        # `$?FILE` is deliberately not declared here. The `?` twigil action
+        # in src/Raku/Actions.nqp resolves it at parse time to a string
+        # literal via RakuAST::Var::Compiler::File. A per-compunit lexical
+        # would leak into `SETTING::` when CORE is the compunit being
+        # compiled, and would embed the source path in the string heap of
+        # every compilation unit whether or not it mentions `$?FILE`.
 
         add(RakuAST::VarDeclaration::Implicit::Cursor.new());
 

@@ -27,7 +27,6 @@ my %allowed = (
 
 if SETTING::{'!RAKUAST_MARKER'}:exists {
     %allowed{'!RAKUAST_MARKER'} = 1;
-    %allowed{'$?FILE'}          = 1;
 }
 
 my @unknown;

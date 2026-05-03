@@ -823,7 +823,7 @@ my %nyi-for-backend = (
 );
 
 if SETTING::{'!RAKUAST_MARKER'}:exists {
-    @expected.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+    @expected.push: Q{!RAKUAST_MARKER};
     @expected = @expected.grep(* ne '!INIT_VALUES').list;
     # TODO: legacy doesn't put $¢ in CORE::v6c, but RakuAST's CompUnit
     # PRODUCE-IMPLICIT-DECLARATIONS installs it unconditionally.  Drop

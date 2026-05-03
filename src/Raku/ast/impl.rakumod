@@ -46,6 +46,14 @@ class RakuAST::IMPL::QASTContext {
     method create-nested() {
         my $context := nqp::clone(self);
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
+        # Give the nested context its own post-deserialize bucket so
+        # add-fixup-task pushes only land on the inner compunit, not the
+        # shared outer one. Without this, compunit.rakumod has to force the
+        # nested compunit's :post_deserialize to [] to avoid polluting the
+        # outer's serialized fixups, which silently throws away the runtime
+        # $!do bind that IMPL-LINK-META-OBJECT emits for the non-precomp
+        # case.
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
         $context
     }

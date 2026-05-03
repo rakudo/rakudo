@@ -267,12 +267,9 @@ class RakuAST::ContainerCreator {
         # to the nominalized base type, not the wrapped type itself.
         $default := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
-        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
-                nqp::eqaddr($of, Mu)
-                ?? ContainerDescriptor::Untyped
-                !! ContainerDescriptor
-            ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
-        );
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
+            RakuAST::IMPL::Containers.create-descriptor(
+                :$of, :$default, :$dynamic, :name(self.lexical-name)));
 
         Nil
     }
@@ -1809,7 +1806,8 @@ class RakuAST::VarDeclaration::Signature
                     # so it consumes and type-checks the RHS value at this
                     # position.
                     my $of := $_.type.meta-object;
-                    my $desc := ContainerDescriptor.new(:$of, :default($of), :name('anon'));
+                    my $desc := RakuAST::IMPL::Containers.create-descriptor(
+                        :$of, :default($of), :dynamic(0), :name('anon'));
                     $context.ensure-sc($desc);
                     $value-list.push: QAST::Op.new(
                         :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
@@ -2159,26 +2157,30 @@ class RakuAST::VarDeclaration::Implicit::Special
     method PRODUCE-META-OBJECT() {
         # Reuse the container descriptor for the common cases that we expect
         # to have.
+        # Mu nominals use Untyped so Scalar STORE skips the type check that
+        # the regular descriptor would otherwise apply (mirrors
+        # Perl6/World.nqp create_container_descriptor).
         my constant COMMON := nqp::list(
             nqp::hash(),
             nqp::hash(  # 6.c
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
             nqp::hash(  # 6.d
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
             nqp::hash(  # 6.e
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             )
         );
         my $cont-desc := COMMON[nqp::getcomp('Raku').language_revision]{self.name} //
-            ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));
+            RakuAST::IMPL::Containers.create-descriptor(
+                :of(Mu), :default(Any), :dynamic(0), :name(self.name));
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
         nqp::bindattr($container, Scalar, '$!value', $cont-desc.default);
@@ -2488,7 +2490,8 @@ class RakuAST::VarDeclaration::Implicit::State
         my str $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Implicit, '$!name');
 
         # Create a container descriptor and attach it to a Scalar container, then set it to Int.new(0)
-        my $descriptor := ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :$name);
+        my $descriptor := RakuAST::IMPL::Containers.create-descriptor(
+            :of(Mu), :default(Any), :dynamic(0), :$name);
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
         if $!init-to-zero {

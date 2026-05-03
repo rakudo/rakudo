@@ -875,7 +875,8 @@ class RakuAST::Parameter
 
             if $rw {
                 if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
-                    my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
+                    my $cd := RakuAST::IMPL::Containers.create-descriptor(
+                        :of($type), :default($type), :dynamic(0), :$name);
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
                 }

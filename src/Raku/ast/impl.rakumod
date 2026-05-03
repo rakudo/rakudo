@@ -213,3 +213,14 @@ class RakuAST::IMPL::Archetypes {
             && $v.HOW.archetypes($v).generic
     }
 }
+
+# Builds a Scalar container descriptor, picking the Untyped variant for Mu
+# nominals so STORE accepts NQP-typed values. Emulates create_container_descriptor
+# in src/Perl6/World.nqp.
+class RakuAST::IMPL::Containers {
+    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name) {
+        my $d := nqp::eqaddr($default, Mu) ?? $of !! $default;
+        my $cd-type := nqp::eqaddr($of, Mu) ?? ContainerDescriptor::Untyped !! ContainerDescriptor;
+        $cd-type.new(:$of, :default($d), :$dynamic, :$name)
+    }
+}

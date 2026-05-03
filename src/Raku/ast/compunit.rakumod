@@ -496,6 +496,22 @@ class RakuAST::CompUnit
         $top-level.name('<unit>');
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
         my @pre-deserialize;
+        # When compiling a CORE.<spec>.setting (setting-name shaped like
+        # 'NULL.<spec>'), emit a pre-deserialize task that calls
+        # ModuleLoader.load_module('Perl6::BOOTSTRAP::v6<spec>') so the
+        # runtime registers BOOTSTRAP's SC before our SC tries to deserialize
+        # references to BOOTSTRAP types. The traditional grammar emits this
+        # via World.load_module_early. Pushed before the setting-loading task
+        # so BOOTSTRAP is available when the loaded sub-setting wants it,
+        # matching the order legacy uses in src/Perl6/World.nqp comp_unit.
+        if $!setting-name
+          && nqp::eqat($!setting-name, 'NULL.', 0)
+          && nqp::chars($!setting-name) >= 6
+        {
+            nqp::push(@pre-deserialize,
+                self.IMPL-BOOTSTRAP-LOADING-QAST(
+                    "Perl6::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
+        }
         nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
             if $!setting-name && $!setting-name ne 'NULL.c';
 
@@ -568,10 +584,12 @@ class RakuAST::CompUnit
             )),
     }
 
-    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
-        # Use the NQP module loader to load Perl6::ModuleLoader, which
-        # is a normal NQP module.
-        my $module-loading := QAST::Stmt.new(
+    # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is
+    # available: load Perl6/ModuleLoader's bytecode via NQP's ModuleLoader,
+    # then register it under the Raku HLL. Mirrors
+    # World.raku_module_loader_code in src/Perl6/World.nqp.
+    method IMPL-RAKU-MODULE-LOADER-CODE-QAST() {
+        QAST::Stmt.new(
             QAST::Op.new(
                 :op('loadbytecode'),
                 QAST::VM.new(
@@ -587,11 +605,36 @@ class RakuAST::CompUnit
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
                 QAST::SVal.new( :value('Perl6::ModuleLoader') )
-            ));
+            ))
+    }
 
+    # Emit runtime QAST that loads $module-name (a BOOTSTRAP module) via
+    # the Raku ModuleLoader. Mirrors World.raku_module_loader_code +
+    # World.load_module_early's deserialize_ast in src/Perl6/World.nqp;
+    # we add this to @pre-deserialize when compiling CORE.<spec>.setting
+    # so the resulting bytecode registers BOOTSTRAP's SC before the SC
+    # blob deserializes references to BOOTSTRAP-defined types.
+    method IMPL-BOOTSTRAP-LOADING-QAST(Str $module-name) {
+        my $line := QAST::IVal.new( :value(0), :named('line') );
+        QAST::Stmt.new(
+            self.IMPL-RAKU-MODULE-LOADER-CODE-QAST(),
+            QAST::Op.new(
+                :op('callmethod'), :name('load_module'),
+                QAST::Op.new(
+                    :op('getcurhllsym'),
+                    QAST::SVal.new( :value('ModuleLoader') )
+                ),
+                QAST::SVal.new( :value($module-name) ),
+                QAST::Op.new( :op('hash') ),
+                $line
+            )
+        )
+    }
+
+    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
         # Load and put in place the setting after deserialization and on fixup.
         QAST::Stmt.new(
-            $module-loading,
+            self.IMPL-RAKU-MODULE-LOADER-CODE-QAST(),
             QAST::Op.new(
                 :op('forceouterctx'),
                 QAST::BVal.new( :value($top-level) ),

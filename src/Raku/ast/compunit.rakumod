@@ -126,12 +126,18 @@ class RakuAST::CompUnit
               RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
-              RakuAST::VarDeclaration::Implicit::Doc::Data.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
-              RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!rakudoc',
-              RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
+            # $=data / $=finish / $=rakudoc are per-compunit, not setting-level;
+            # don't allocate them when this compunit IS the CORE setting, so
+            # they don't get visited by visit-children and end up as lexicals
+            # in `SETTING::`.
+            unless $obj.IMPL-IS-CORE-SETTING {
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
+                  RakuAST::VarDeclaration::Implicit::Doc::Data.new);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
+                  RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!rakudoc',
+                  RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
+            }
         }
 
         my $file := nqp::getlexdyn('$?FILES');
@@ -400,9 +406,21 @@ class RakuAST::CompUnit
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
+    # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).
+    # Per-compunit lexicals like $?PACKAGE, GLOBALish, EXPORT, $=data, $=finish,
+    # $=rakudoc, !UNIT_MARKER belong to user compunits, not the setting; legacy's
+    # Perl6/World.nqp gates them on the same condition. Without this gate they
+    # leak into SETTING:: at runtime.
+    method IMPL-IS-CORE-SETTING() {
+        nqp::isconcrete($!setting-name)
+            && nqp::eqat($!setting-name, 'NULL.', 0) ?? 1 !! 0
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @decls;
         my sub add(Mu $add) { nqp::push(@decls,$add) }
+
+        my int $core-setting := self.IMPL-IS-CORE-SETTING;
 
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
@@ -421,23 +439,31 @@ class RakuAST::CompUnit
             # After that, we can add the rest.
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '$?PACKAGE', value => $global.compile-time-value
-            ));
+            unless $core-setting {
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?PACKAGE', value => $global.compile-time-value
+                ));
+            }
 
+            # GLOBAL package is always added so generated-global can find it
+            # for the HLL symbol binding done in Actions.nqp lang-setup; the
+            # Package node does not leak into SETTING::'s WHO the way the
+            # GLOBALish/EXPORT constants do.
             add($global);
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-              name => 'GLOBALish', value => $global.compile-time-value
-            ));
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-              name => 'EXPORT', value => $!export-package
-            )) unless nqp::eqaddr($!export-package,Mu);
+            unless $core-setting {
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                  name => 'GLOBALish', value => $global.compile-time-value
+                ));
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                  name => 'EXPORT', value => $!export-package
+                )) unless nqp::eqaddr($!export-package,Mu);
+            }
 
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
 
-            add($!finish) if $!finish-content;
-            add($!data) if $!data-content;
-            add($!pod) if $!pod-content;
+            add($!finish) if $!finish && $!finish-content;
+            add($!data)   if $!data   && $!data-content;
+            add($!pod)    if $!pod-content;
         }
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
@@ -473,9 +499,11 @@ class RakuAST::CompUnit
           name => '$?LANGUAGE-REVISION', value => $!language-revision.Int
         ));
         # Various markers
-        add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name => '!UNIT_MARKER', value => 1
-        ));
+        unless $core-setting {
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name => '!UNIT_MARKER', value => 1
+            ));
+        }
         #TODO remove this when old frontend is gone
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
             name => '!RAKUAST_MARKER', value => 1
@@ -712,9 +740,13 @@ class RakuAST::CompUnit
 
     method generated-global() {
         nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
-        # GLOBALish is installed as the fourth entry in PRODUCE-IMPLICIT-DECLARATIONS
-        # due to the structural expectations of dynamic compilation fixups
-        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[3].compile-time-value
+        # Find the GLOBAL package among the implicit declarations rather than
+        # relying on a fixed positional index, so gating per-compunit decls in
+        # PRODUCE-IMPLICIT-DECLARATIONS doesn't break this lookup.
+        for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations) -> $decl {
+            return $decl.compile-time-value if nqp::istype($decl, RakuAST::Package);
+        }
+        nqp::die('Could not find generated GLOBAL package in implicit declarations')
     }
 
     method visit-children(Code $visitor) {

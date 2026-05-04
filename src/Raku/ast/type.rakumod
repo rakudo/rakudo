@@ -1127,12 +1127,10 @@ class RakuAST::Type::Subset
         my $block := $!block;
 
         $type.HOW.set_of($type, $!of.meta-object) if $!of;
-        $type.HOW.set_where($type, $block
-          ?? $block.IMPL-CURRIED
+        $type.HOW.set_where($type, $block.IMPL-CURRIED
             ?? $block.IMPL-CURRIED.meta-object
             !! $block.compile-time-value
-          !! Mu
-        );
+        ) if $block;
 
         $type
     }

@@ -446,15 +446,6 @@ class RakuAST::StatementPrefix::Start
 {
     method type() { "start" }
 
-    method new(RakuAST::Blorst $blorst) {
-        $blorst.apply-sink(True)
-          unless nqp::istype($blorst,RakuAST::Block);
-
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj,RakuAST::StatementPrefix,'$!blorst',$blorst);
-        $obj
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),

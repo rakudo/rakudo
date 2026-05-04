@@ -149,11 +149,11 @@ augment class Rakudo::Internals {
                       \s+
                       [ gid "=" $<gid>=(\d+) ]
                       [ "(" $<group>=(<-[ ) ]>+) ")" ]
-                    / { 
+                    / {
                         PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
                         PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
                     }
-            
+
                     # alas, no support yet
                     else {
                         PROCESS::<$USER>  := Nil;

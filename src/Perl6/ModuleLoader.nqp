@@ -91,7 +91,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
                 $UNIT
             }
-            
+
             # Already loaded
             else {
                 nqp::ctxlexpad($ctx)

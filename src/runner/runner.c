@@ -177,7 +177,6 @@ int wmain(int argc, wchar_t *argv[]) {
     my_path_len_wchar = MultiByteToWideChar(CP_UTF8, 0, my_path_char, -1, my_path, my_path_len_wchar);
     free(my_path_char);
     if (my_path_len_wchar == 0) return failure_exit;
-    
 
     // Find config
     file_handle = fopen(my_path, L"r");
@@ -314,7 +313,7 @@ int wmain(int argc, wchar_t *argv[]) {
     fclose(file_handle);
 
     // Put the new environment together.
-    int buflen = 200; 
+    int buflen = 200;
     wchar_t *buf = calloc(buflen, sizeof(wchar_t));
     for (c = 0; c < config_env_ignorec; c++) {
         while (wcslen(config_env_ignorev[c]) > buflen - 1) {
@@ -339,7 +338,6 @@ int wmain(int argc, wchar_t *argv[]) {
 
     free(my_path);
 
-    
     // Put command line string together
     // Size of the final command line string:
     // cmd_line_size = size of each argument + one space each - the last space + the trailing \0

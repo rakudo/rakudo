@@ -7,7 +7,7 @@
 # When introspection of the SIL object is done, the "exit" method should be
 # called on the object to prevent the code of the program actually running
 # twice.
-# 
+#
 # A typical use case would be:
 #
 #  use MoarVM::SIL;
@@ -171,7 +171,7 @@ sub SIL(:$skip-core) is export {
                    '(' (\d+)
                    ') with bytecode size ' (\d+)
                    ' into ' (<-[(]>+)
-                   '(' (\d+) 
+                   '(' (\d+)
                    '): ' (.*) /
             {
                 @not-inlineds.push: Not-Inlined.new(

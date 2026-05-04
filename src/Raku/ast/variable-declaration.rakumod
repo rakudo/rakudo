@@ -264,8 +264,11 @@ class RakuAST::ContainerCreator {
         # Form container descriptor.
 
         # A definite-constrained variable (e.g. `my Int:U $a`) should default
-        # to the nominalized base type, not the wrapped type itself.
-        $default := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) if self.type;
+        # to the nominalized base type, not the wrapped type itself. For a
+        # coercive type, the default is the coercion's nominal target so that
+        # an uninitialized `my Coerced(Source) $v` does not store the coercion
+        # type itself as a value.
+        $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
             RakuAST::IMPL::Containers.create-descriptor(

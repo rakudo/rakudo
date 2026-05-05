@@ -32,16 +32,17 @@ my class BagHash does Baggy {
     }
 
     multi method AT-KEY(BagHash:D: \k) is raw {
+        my     $object := self.OBJECTIFIER()(k);
+        my str $which   = $object.WHICH;
+
         Proxy.new(
           FETCH => {
-              (my $pair := nqp::atkey($!elems,self.WHICHIFY(k)))
+              (my $pair := nqp::atkey($!elems,$which))
                 ?? $pair.value
                 !! 0
           },
           STORE => -> $, Int() $value {
-              my     $elems  := $!elems;
-              my     $object := self.OBJECTIFIER()(k);
-              my str $which   = $object.WHICH;
+              my $elems  := $!elems;
 
               nqp::if(
                 # https://github.com/Raku/old-issue-tracker/issues/5567

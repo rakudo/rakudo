@@ -34,16 +34,17 @@ my class MixHash does Mixy {
         )
     }
     multi method AT-KEY(MixHash:D: \k) is raw {
+        my     $object := self.OBJECTIFIER()(k);
+        my str $which   = $object.WHICH;
+
         Proxy.new(
           FETCH => {
-              (my $pair := nqp::atkey($!elems,self.WHICHIFY(k)))
+              (my $pair := nqp::atkey($!elems,$which))
                 ?? $pair.value
                 !! 0
           },
           STORE => -> $, Real() $value {
-              my     $elems  := $!elems;
-              my     $object := self.OBJECTIFIER()(k);
-              my str $which   = $object.WHICH;
+              my $elems  := $!elems;
 
               nqp::if(
                 # https://github.com/Raku/old-issue-tracker/issues/5567

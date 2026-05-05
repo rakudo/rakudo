@@ -251,14 +251,14 @@ my class SetHash does Setty {
     }
 
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
+        my $object   := self.OBJECTIFIER()(k);
+        my str $which = $object.WHICH;
+
         Proxy.new(
           FETCH => {
-              nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
+              nqp::hllbool(nqp::existskey($!elems,$which))
           },
           STORE => -> $, $value {
-              my $object   := self.OBJECTIFIER()(k);
-              my str $which = $object.WHICH;
-
               $value
                 ?? nqp::bindkey($!elems,$which,$object)
                 !! nqp::deletekey($!elems,$which);

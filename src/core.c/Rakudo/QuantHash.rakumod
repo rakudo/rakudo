@@ -27,7 +27,12 @@ my class Rakudo::QuantHash {
         nqp::eqaddr(type,Mu)
           ?? -> Mu $value { $value }                  # no check needed
           !! type.^archetypes.coercive
-            ?? -> Mu $value { type.^coerce($value) }  # actually coerce
+            ?? -> Mu $value {                         # actually coerce
+                   my $result := type.^coerce($value);
+                   nqp::istype($result,Failure)
+                     ?? $result.throw
+                     !! $result
+               }
             !! -> Mu $value {                         # just typecheck
                    nqp::istype($value,type)
                      ?? $value
@@ -35,7 +40,7 @@ my class Rakudo::QuantHash {
                           got      => $value,
                           expected => type
                         ).throw
-                  }
+               }
     }
 
     # Specialized role for .kv methods on QuantHashes: copied methods
@@ -1724,7 +1729,7 @@ my class Rakudo::QuantHash {
           ),
           nqp::null
         );
-        
+
         $result
     }
 

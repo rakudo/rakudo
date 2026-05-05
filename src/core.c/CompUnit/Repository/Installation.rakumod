@@ -898,7 +898,6 @@ See http://design.raku.org/S22.html#provides for more information.\n";
 
         @lines.push: @call-parts.join(" ");
 
-        
         my $text = get-template('posix-runner-tmpl').slurp;
         $text ~= @lines.join("\n");
         $text

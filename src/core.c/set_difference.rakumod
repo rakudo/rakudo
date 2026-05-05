@@ -10,38 +10,21 @@ multi sub infix:<(-)>(BagHash:D $a)   { $a.Bag }
 multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
 
 multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
-    nqp::elems(my $araw := $a.RAW-HASH)
-      && nqp::elems(my $braw := $b.RAW-HASH)
-      ?? $a.WHAT.SETUP(                             # both have elems
-           Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
-         )
-      !! $a                                         # no elems in a or b
+    $a.WHAT.SETUP(Rakudo::QuantHash.SUB-SET-FROM-SET($a, $b))
 }
-multi sub infix:<(-)>(Setty:D $a, Map:D \b) {
-    nqp::if(
-      nqp::elems(my \araw := $a.RAW-HASH),
-      $a.WHAT.SETUP(                                      # elems in a
-        nqp::if(
-          nqp::elems(my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage')),
-          Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, b),    # both have elems
-          nqp::clone(araw)                                # no elems in b
-        )
-      ),
-      $a                                                  # no elems in a
-    )
+multi sub infix:<(-)>(Setty:D $a, Map:D $b) {
+    $a.WHAT.SETUP(Rakudo::QuantHash.SUB-MAP-FROM-SET($a, $b))
 }
 multi sub infix:<(-)>(Setty:D $a, Iterable:D \b) {
-    nqp::if(
-      (my $iterator := b.iterator).is-lazy,
-      Set.fail-iterator-cannot-be-lazy('set difference'),
-      nqp::if(
-        nqp::elems(my $raw := $a.RAW-HASH),
-        $a.WHAT.SETUP(                                    # elems in b
-          Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
-        ),
-        $a                                                # no elems in b
-      )
-    )
+    (my $iterator := b.iterator).is-lazy
+      ?? Set.fail-iterator-cannot-be-lazy('set difference')
+      !! $a.WHAT.SETUP(
+           Rakudo::QuantHash.SUB-PAIRS-FROM-SET(
+             $a.RAW-HASH,
+             $iterator,
+             $a.OBJECTIFIER
+           )
+         )
 }
 multi sub infix:<(-)>(Mixy:D $a, Mixy:D $b) {    # needed as tie-breaker
     Rakudo::QuantHash.DIFFERENCE-MIXY-QUANTHASH($a, $b)

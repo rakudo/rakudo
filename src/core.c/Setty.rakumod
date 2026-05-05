@@ -11,7 +11,7 @@ my role Setty does QuantHash {
                Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER
                )
              )
     }
@@ -34,28 +34,9 @@ my role Setty does QuantHash {
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER
                )
              )
-    }
-
-    # https://github.com/rakudo/rakudo/issues/5057
-    multi method deepmap(Setty:D: &mapper) {
-        my $type  := self.WHAT;
-        my $elems := $!elems;
-        my $clone := nqp::clone($elems);
-        my $iter  := nqp::iterator($elems);
-
-        while $iter {
-            nqp::shift($iter);
-            my $value = 1;  # must be Scalar
-            $value := nqp::decont($value) if nqp::istype($type,Set);
-
-            nqp::deletekey($clone,nqp::iterkey_s($iter)) unless mapper($value);
-            nqp::deletekey($elems,nqp::iterkey_s($iter)) unless $value;
-        }
-
-        $type.SETUP($clone)
     }
 
     method default(--> False) { }
@@ -228,10 +209,6 @@ my role Setty does QuantHash {
         ))
     }
 
-    multi method EXISTS-KEY(Setty:D: \k --> Bool:D) {
-        nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
-    }
-
     multi method Bag(Setty:D:) {
         nqp::elems($!elems)
           ?? Bag.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
@@ -249,7 +226,7 @@ my role Setty does QuantHash {
         MixHash.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
     }
 
-    method RAW-HASH() is raw is implementation-detail { $!elems }
+    method RAW-HASH() is implementation-detail { $!elems }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

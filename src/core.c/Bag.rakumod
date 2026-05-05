@@ -2,6 +2,15 @@ my class Bag does Baggy {
     has ValueObjAt $!WHICH;
     has Int        $!total;
 
+    # Make sure to return sentinel on empty Bags
+    multi method SETUP(Bag:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Bag)
+          ?? bag()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Bag,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(
@@ -42,7 +51,9 @@ my class Bag does Baggy {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.OBJECTIFIER
              ))
     }
     multi method STORE(Bag:D: \objects, \values, :INITIALIZE($)! --> Bag:D) {
@@ -51,13 +62,9 @@ my class Bag does Baggy {
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator,
-            self.keyof
+            self.OBJECTIFIER
           )
         )
-    }
-
-    multi method DELETE-KEY(Bag:D: \k) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
 #--- selection methods

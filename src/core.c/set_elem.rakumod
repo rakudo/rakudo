@@ -8,40 +8,33 @@
 
 proto sub infix:<(elem)>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D $a, Map:D \b --> Bool:D) {
+    my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage');
+
     nqp::hllbool(
-      nqp::istrue(
-        nqp::elems(my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-          && nqp::if(
-               nqp::istype(b,Hash::Object),
-                 nqp::getattr(                                # object hash
-                   nqp::ifnull(
-                     nqp::atkey(storage,$a.WHICH),
-                     BEGIN   # provide virtual value False    # did not exist
-                       nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
-                   ),
-                   Pair,
-                  '$!value'
-                 ),
-                 nqp::atkey(storage,$a)                       # normal hash
-               )
+      nqp::elems(storage) && nqp::istrue(
+        nqp::if(
+          nqp::istype(b,Hash::Object),
+          nqp::ifnull(                                # object hash
+            nqp::atkey(storage,$a.WHICH),
+            BEGIN Pair.new(Nil,False)                 # did not exist
+          ).value,
+          nqp::atkey(storage,$a)                      # normal hash
+        )
       )
     )
 }
 multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
+    my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage');
+
     nqp::hllbool(
-      nqp::istrue(
-        nqp::elems(                                       # haz a haystack
-          my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage')
-        ) && nqp::istype(b,Hash::Object)
-          && nqp::getattr(
-               nqp::ifnull(
-                 nqp::atkey(storage,a.WHICH),             # exists
-                 BEGIN   # provide virtual value False    # did not exist
-                   nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
-               ),
-               Pair,
-               '$!value'
-             )
+      nqp::elems(storage) && nqp::istrue(
+        nqp::if(
+          nqp::istype(b,Hash::Object),
+          nqp::ifnull(
+            nqp::atkey(storage,a.WHICH),             # exists
+            BEGIN Pair.new(Nil,False)                # did not exist
+          ).value
+        )
       )
     )
 }
@@ -54,12 +47,20 @@ multi sub infix:<(elem)>(Str:D $a, array[str] \b --> Bool:D) {
     );
     nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
 }
-
 multi sub infix:<(elem)>(Int:D $a, array[int] \b --> Bool:D) {
     my int $i = -1;
     nqp::while(
       nqp::islt_i(++$i,nqp::elems(b))
         && nqp::isne_i($a,nqp::atpos_i(b,$i)),
+      nqp::null
+    );
+    nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
+}
+multi sub infix:<(elem)>(Num:D $a, array[num] \b --> Bool:D) {
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(++$i,nqp::elems(b))
+        && nqp::isne_n($a,nqp::atpos_n(b,$i)),
       nqp::null
     );
     nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))

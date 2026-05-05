@@ -3,6 +3,15 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
+    # Make sure to return sentinel on empty Mixes
+    multi method SETUP(Mix:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Mix)
+          ?? mix()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Mix,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(
@@ -16,7 +25,9 @@ my class Mix does Mixy {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('.initialize')
           !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.OBJECTIFIER
              ))
     }
     multi method STORE(Mix:D: \objects, \values, :INITIALIZE($)! --> Mix:D) {
@@ -25,13 +36,9 @@ my class Mix does Mixy {
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator,
-            self.keyof
+            self.OBJECTIFIER
           )
         )
-    }
-
-    multi method DELETE-KEY(Mix:D: $) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
 #--- introspection methods

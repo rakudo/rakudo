@@ -78,10 +78,14 @@ my role Iterable {
     method !MIXIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
           ?? type.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             )) || nqp::eqaddr(type,MixHash)
-            ?? type.SETUP(elems)
+          !! nqp::elems(
+               my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 type.OBJECTIFIER
+               )
+             ) || nqp::eqaddr(type,MixHash)
+            ?? type.SETUP($elems)
             !! mix()
     }
     multi method Mix(Iterable:D:)     { self!MIXIFY(Mix)     }
@@ -90,10 +94,14 @@ my role Iterable {
     method !BAGGIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
           ?? type.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             )) || nqp::eqaddr(type,BagHash)
-            ?? type.SETUP(elems)
+          !! nqp::elems(
+               my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 type.OBJECTIFIER
+               )
+             ) || nqp::eqaddr(type,BagHash)
+            ?? type.SETUP($elems)
             !! bag()
     }
     multi method Bag(Iterable:D:)     { self!BAGGIFY(Bag)     }
@@ -102,9 +110,13 @@ my role Iterable {
     method !SETIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
           ?? type.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-             )) || nqp::eqaddr(type,SetHash)
+          !! nqp::elems(
+               my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 type.OBJECTIFIER
+               )
+             ) || nqp::eqaddr(type,SetHash)
             ?? type.SETUP($elems)
             !! set()
     }

@@ -7,74 +7,48 @@ multi sub infix:<(&)>()               { set() }
 multi sub infix:<(&)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
-    nqp::if(
-      nqp::elems(my $araw := $a.RAW-HASH)
-        && nqp::elems(my $braw := $b.RAW-HASH),
-      nqp::stmts(                              # both have elems
-        nqp::if(
-          nqp::islt_i(nqp::elems($araw),nqp::elems($braw)),
-          nqp::stmts(                          # a smallest, iterate over it
-            (my $iter := nqp::iterator($araw)),
-            (my $base := $braw)
-          ),
-          nqp::stmts(                          # b smallest, iterate over that
-            ($iter := nqp::iterator($braw)),
-            ($base := $araw)
-          )
-        ),
-        (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-        nqp::while(
-          $iter,
-          nqp::if(                             # bind if in both
-            nqp::existskey($base,nqp::iterkey_s(nqp::shift($iter))),
-            nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
-          )
-        ),
-        $a.WHAT.SETUP($elems)
-      ),
-      nqp::if(                                 # one/neither has elems
-        nqp::istype($a,Set),
-        nqp::if(nqp::eqaddr($a.WHAT,Set), set(), $a.SETUP),
-        SetHash.SETUP
-      )
-    )
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-SETTIES($a, $b))
 }
 multi sub infix:<(&)>(Setty:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Baggy, $b, Bag)
+    $a.WHAT.Baggy.SETUP(
+      Rakudo::QuantHash.INTERSECT-BAGGIES($a.Bag, $b, $a.OBJECTIFIER)
+    )
 }
 multi sub infix:<(&)>(Baggy:D $a, Setty:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Bag, Bag)
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Bag))
 }
 multi sub infix:<(&)>(Setty:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a.Mixy, $b, Mix)
+    $a.WHAT.Mixy.SETUP(
+      Rakudo::QuantHash.INTERSECT-BAGGIES($a.Mixy, $b, $a.OBJECTIFIER)
+    )
 }
 multi sub infix:<(&)>(Mixy:D $a, Setty:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Mix, Mix)
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b.Mix))
 }
 multi sub infix:<(&)>(Baggy:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, Bag)
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b))
 }
 multi sub infix:<(&)>(Mixy:D $a, Baggy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, Mix)
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b))
 }
 multi sub infix:<(&)>(Baggy:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, Mix)
+    $a.WHAT.Mixy.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b))
 }
 multi sub infix:<(&)>(Mixy:D $a, Mixy:D $b) {
-    Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b, Mix)
+    $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $b))
 }
 multi sub infix:<(&)>(Baggy:D $a, Any:D $b) {
-    nqp::istype((my $bbag := $b.Bag),Bag)
-      ?? Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bbag, Bag)
-      !! $bbag.throw
+    nqp::istype((my $bbag := $b.Bag),Failure)
+      ?? $bbag.throw
+      !! $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bbag))
 }
 multi sub infix:<(&)>(Any:D $a, Baggy:D $b) {
     $b.Bag (&) $a
 }
 multi sub infix:<(&)>(Mixy:D $a, Any:D $b) {
-    nqp::istype((my $bmix := $b.Mix),Mix)
-      ?? Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bmix, Mix)
-      !! $bmix.throw
+    nqp::istype((my $bmix := $b.Mix),Failure)
+      ?? $bmix.throw
+      !! $a.WHAT.SETUP(Rakudo::QuantHash.INTERSECT-BAGGIES($a, $bmix))
 }
 multi sub infix:<(&)>(Any:D $a, Mixy:D $b) {
     $b.Mix (&) $a

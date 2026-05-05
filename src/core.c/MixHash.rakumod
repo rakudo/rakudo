@@ -19,7 +19,7 @@ my class MixHash does Mixy {
                Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER
                )
              )
     }
@@ -29,48 +29,65 @@ my class MixHash does Mixy {
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator,
-            self.keyof
+            self.OBJECTIFIER
           )
         )
     }
     multi method AT-KEY(MixHash:D: \k) is raw {
-        my \type := self.keyof;
         Proxy.new(
           FETCH => {
-              nqp::if(
-                nqp::existskey($!elems,(my str $which = k.WHICH)),
-                nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value')
-                # no else needed, value of existskey will be 0
-              )
+              (my $pair := nqp::atkey($!elems,self.WHICHIFY(k)))
+                ?? $pair.value
+                !! 0
           },
           STORE => -> $, Real() $value {
+              my     $elems  := $!elems;
+              my     $object := self.OBJECTIFIER()(k);
+              my str $which   = $object.WHICH;
+
               nqp::if(
-                nqp::istype($value,Failure),   # https://github.com/Raku/old-issue-tracker/issues/5567
+                # https://github.com/Raku/old-issue-tracker/issues/5567
+                nqp::istype($value,Failure),
                 $value.throw,
-                nqp::if(                      # allocated hash
-                  nqp::existskey($!elems,(my str $which = k.WHICH)),
-                  nqp::if(                    # existing element
-                    $value == 0,
-                    nqp::stmts(
-                      nqp::deletekey($!elems,$which),
-                      0
-                    ),
-                    nqp::bindattr(
-                      nqp::atkey($!elems,$which),
-                      Pair,
-                      '$!value',
-                      nqp::decont($value)
-                    ),
-                  ),
-                  nqp::unless(
-                    $value == 0,
-                    Rakudo::QuantHash.BIND-TO-TYPED-MIX(
-                      $!elems, $which, k, nqp::decont($value), type
-                    )
+                nqp::if(
+                  $value == 0,
+                  nqp::deletekey($elems,$which),
+                  nqp::if(
+                    (my $pair := nqp::atkey($elems,$which)),
+                    nqp::bindattr($pair,Pair,'$!value',$value),
+                    nqp::bindkey($elems,$which,Pair.new($object,$value))
                   )
                 )
               )
           }
+        )
+    }
+
+    multi method ASSIGN-KEY(MixHash:D: \k, \v) is raw {
+        nqp::if(
+          nqp::istype((my $value := v.Real),Failure),
+          $value.throw,
+          nqp::stmts(
+            (my $object := self.OBJECTIFIER()(k)),
+            nqp::if(
+              $value == 0,
+              nqp::deletekey($!elems,$object.WHICH),
+              nqp::bindkey($!elems,$object.WHICH,Pair.new($object,$value))
+            )
+          )
+        );
+
+        $value
+    }
+
+    multi method DELETE-KEY(MixHash:D: \k) {
+        Rakudo::QuantHash.BAGGY-DELETE-KEY($!elems, self.WHICHIFY(k))
+    }
+
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(MixHash:D: &mapper) {
+        self.WHAT.SETUP(
+          Rakudo::QuantHash.BAGGY-MUTABLE-DEEPMAP($!elems, Real, &mapper, (* != 0))
         )
     }
 
@@ -152,7 +169,7 @@ my class MixHash does Mixy {
     }
 
 #--- iterator methods
-    sub proxy(str $key, Mu \elems) is raw {
+    my sub proxy(str $which, Mu \elems) is raw {
         # We are only sure that the key exists when the Proxy
         # is made, but we cannot be sure of its existence when
         # either the FETCH or STORE block is executed.  So we
@@ -162,16 +179,14 @@ my class MixHash does Mixy {
         # except for tests for allocated storage and .WHICH
         # processing.
 
-        # save for possible object recreation
-        my $pair := nqp::atkey(elems,$key);
+        # save object for potential recreation
+        my $object := nqp::atkey(elems,$which).key;
 
         Proxy.new(
           FETCH => {
-              nqp::if(
-                nqp::existskey(elems,$key),
-                nqp::getattr($pair,Pair,'$!value')
-                # no else neede, 0 from existskey will do
-              )
+              (my $pair := nqp::atkey(elems,$which))
+                ?? $pair.value
+                !! 0
           },
           STORE => -> $, Real() \value {
               nqp::if(
@@ -179,27 +194,13 @@ my class MixHash does Mixy {
                 nqp::istype(value,Failure),
                 value.throw,
                 nqp::if(
-                  nqp::existskey(elems,$key),
-                  nqp::if(                    # existing element
-                    value == 0,
-                    nqp::stmts(               # goodbye!
-                      nqp::deletekey(elems,$key),
-                      0
-                    ),
-                    nqp::bindattr(            # value ok
-                      nqp::atkey(elems,$key),
-                      Pair,
-                      '$!value',
-                      nqp::decont(value)
-                    )
-                  ),
-                  nqp::unless(                # where did it go?
-                    value == 0,
-                    nqp::bindattr(
-                      nqp::bindkey(elems,$key,$pair),
-                      Pair,
-                      '$!value',
-                      nqp::decont(value)
+                  value == 0,
+                  nqp::deletekey(elems,$which),
+                  nqp::if(
+                    (my $pair := nqp::atkey(elems,$which)),
+                    nqp::bindattr($pair,Pair,'$!value',nqp::decont(value)),
+                    nqp::bindkey(
+                      elems,$which,Pair.new($object,nqp::decont(value))
                     )
                   )
                 )
@@ -208,89 +209,15 @@ my class MixHash does Mixy {
         )
     }
 
-    my class Iterate does Iterator {
-        has $!elems is built(:bind);
-        has $!keys  is built(:bind) is built(False) =
-          Rakudo::Internals.IterationSet2keys($!elems);
-        method pull-one() is raw {
-            nqp::elems($!keys)
-              ?? nqp::p6bindattrinvres(
-                   nqp::clone(
-                     nqp::atkey($!elems,(my $key := nqp::shift_s($!keys)))
-                   ),
-                   Pair,
-                   '$!value',
-                   proxy($key,$!elems)
-                 )
-              !! IterationEnd
-        }
-        method push-all(\target --> IterationEnd) {
-            my $elems := $!elems;
-            my $keys  := $!keys;
-            nqp::while(  # doesn't sink
-              nqp::elems($keys),
-              target.push(nqp::atkey($elems,nqp::shift_s($keys)))
-            )
-        }
+    multi method iterator(MixHash:D:) {
+        Rakudo::QuantHash.BAGGY-MUTABLE-ITERATOR($!elems, &proxy)
     }
-    multi method iterator(MixHash:D:) { Iterate.new(:$!elems) }  # also .pairs
-
-    my class KV does Iterator {
-        has $!elems is built(:bind);
-        has $!keys  is built(:bind) is built(False) =
-          Rakudo::Internals.IterationSet2keys($!elems);
-        has str $!on;
-        method pull-one() is raw {
-            nqp::if(
-              $!on,
-              nqp::stmts(
-                (my $proxy := proxy($!on,$!elems)),
-                ($!on = ""),
-                $proxy
-              ),
-              nqp::if(
-                nqp::elems($!keys),
-                nqp::getattr(
-                  nqp::atkey($!elems,($!on = nqp::shift_s($!keys))),Pair,'$!key'
-                ),
-                IterationEnd
-              )
-            )
-        }
-        method push-all(\target --> IterationEnd) {
-            my $elems := $!elems;
-            my $keys  := $!keys;
-            nqp::while(
-              nqp::elems($keys),
-              nqp::stmts(  # doesn't sink
-                (my $pair := nqp::atkey($elems,nqp::shift_s($keys))),
-                target.push(nqp::getattr($pair,Pair,'$!key')),
-                target.push(nqp::getattr($pair,Pair,'$!value'))
-              )
-            )
-        }
+    multi method kv(MixHash:D:) {
+        Seq.new(Rakudo::QuantHash.BAGGY-MUTABLE-KV($!elems, &proxy))
     }
-    multi method kv(MixHash:D:) { Seq.new(KV.new(:$!elems)) }
-
-    my class Values does Iterator {
-        has $!elems is built(:bind);
-        has $!keys  is built(:bind) is built(False) =
-          Rakudo::Internals.IterationSet2keys($!elems);
-        method pull-one() is raw {
-            nqp::elems($!keys)
-              ?? proxy(nqp::shift_s($!keys),$!elems)
-              !! IterationEnd
-        }
-        method push-all(\target --> IterationEnd) {
-            my $elems := $!elems;
-            my $keys  := $!keys;
-            nqp::while(  # doesn't sink
-              nqp::elems($keys),
-              target.push(proxy(nqp::shift_s($keys),$elems))
-            )
-        }
+    multi method values(MixHash:D:) {
+        Seq.new(Rakudo::QuantHash.BAGGY-MUTABLE-VALUES($!elems, &proxy))
     }
-    multi method values(MixHash:D:) { Seq.new(Values.new(:$!elems)) }
 }
 
 # vim: expandtab shiftwidth=4

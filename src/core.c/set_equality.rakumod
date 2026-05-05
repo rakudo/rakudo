@@ -5,55 +5,26 @@
 
 proto sub infix:<<(==)>>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<<(==)>>(Setty:D $a, Setty:D $b --> Bool:D) {
-    nqp::unless(
-      nqp::eqaddr($a,$b),
-      nqp::stmts(                   # A and B not same object
-        (my \araw := $a.RAW-HASH),
-        (my \braw := $b.RAW-HASH),
-        nqp::if(
-          araw && braw,
-          nqp::if(                  # A and B both allocated
-            nqp::isne_i(nqp::elems(araw),nqp::elems(braw)),
-            (return False),         # not same number of elems
-            nqp::stmts(             # same number of elems in A and B
-              (my \iter := nqp::iterator(araw)),
-              nqp::while(           # have something to iterate over
-                iter,
-                nqp::unless(
-                  nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
-                  return False      # elem in A doesn't exist in B
-                )
-              )
-            )
-          ),
-          nqp::if(                  # A and B not both allocated
-            (araw && nqp::elems(araw)) || (braw && nqp::elems(braw)),
-            return False            # allocated side contains elements
-          )
-        )
-      )
-    );
-
-    True
+    Rakudo::QuantHash.SET-IS-EQUAL($a, $b)
 }
 multi sub infix:<<(==)>>(Setty:D $a, Mixy:D  $b --> Bool:D) { $a.Mix (==) $b }
 multi sub infix:<<(==)>>(Setty:D $a, Baggy:D $b --> Bool:D) { $a.Bag (==) $b }
 multi sub infix:<<(==)>>(Setty:D $a, Any     \b --> Bool:D) { $a (==) b.Set  }
 
 multi sub infix:<<(==)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
+    Rakudo::QuantHash.BAGGY-IS-EQUAL($a, $b)
 }
 multi sub infix:<<(==)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
+    Rakudo::QuantHash.BAGGY-IS-EQUAL($a, $b)
 }
 multi sub infix:<<(==)>>(Mixy:D $a, Setty:D $b --> Bool:D) { $a (==) $b.Mix }
 multi sub infix:<<(==)>>(Mixy:D $a, Any     \b --> Bool:D) { $a (==)  b.Mix }
 
 multi sub infix:<<(==)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
+    Rakudo::QuantHash.BAGGY-IS-EQUAL($a, $b)
 }
 multi sub infix:<<(==)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
+    Rakudo::QuantHash.BAGGY-IS-EQUAL($a, $b)
 }
 multi sub infix:<<(==)>>(Baggy:D $a, Setty:D $b --> Bool:D) { $a (==) $b.Bag }
 multi sub infix:<<(==)>>(Baggy:D $a, Any     \b --> Bool:D) { $a (==)  b.Bag }

@@ -1,6 +1,15 @@
 my class Set does Setty {
     has ValueObjAt $!WHICH;
 
+    # Make sure to return sentinel on empty Sets
+    multi method SETUP(Set:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Set)
+          ?? set()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Set,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(
@@ -128,15 +137,19 @@ my class Set does Setty {
           !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),
                iterator,
-               self.keyof
+               self.OBJECTIFIER
              ))
     }
+
+    # This version of STORE typically gets called from HYPER, where
+    # it will just create a bare instance of the Set class
     multi method STORE(Set:D: \objects, \bools, :INITIALIZE($)! --> Set:D) {
         self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
-            bools.iterator
+            bools.iterator,
+            self.OBJECTIFIER
           )
         )
     }
@@ -144,11 +157,18 @@ my class Set does Setty {
     multi method AT-KEY(Set:D: Mu \k) {
         nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
     }
-    multi method ASSIGN-KEY(Set:D: \k,\v) {
-        X::Assignment::RO.new(value => self).throw;
-    }
-    multi method DELETE-KEY(Set:D: \k) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
+
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(Set:D: &mapper) {
+        my $new  := nqp::clone($!elems);
+        my $iter := nqp::iterator($!elems);
+
+        while $iter {
+            nqp::shift($iter);
+            nqp::deletekey($new, nqp::iterkey_s($iter)) unless mapper(1);
+        }
+
+        self.WHAT.SETUP($new)
     }
 }
 

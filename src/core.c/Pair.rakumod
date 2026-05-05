@@ -195,6 +195,16 @@ my class Pair does Associative {
     method FLATTENABLE_HASH() is implementation-detail {
         nqp::hash($!key.Str, $!value)
     }
+
+    # Mostly used as shortcut by Baggy / Mixy logic
+    method add-value($value) is implementation-detail {
+        $!value := $!value + $value
+    }
+
+    # Mostly used as shortcut by Baggy / Mixy logic
+    method abs-value() is implementation-detail {
+        $!value := abs($!value)
+    }
 }
 
 multi sub infix:<eqv>(Pair:D $a, Pair:D $b --> Bool:D) {

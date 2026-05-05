@@ -8,21 +8,16 @@ multi sub infix:<(.)>(Setty:D $a)     { $a.Baggy }
 multi sub infix:<(.)>(Baggy:D $a)     { $a       }  # also Mixy
 
 multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
-    nqp::elems(my \elems := $a.Bag.RAW-HASH)
-      ?? $a.WHAT.Baggy.SETUP(
-           Rakudo::QuantHash.MULTIPLY-SET-TO-BAG(elems,$b.RAW-HASH),
-         )
-      !! $a.Baggy
+    $a.WHAT.Baggy.SETUP(
+      Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($a, $b)
+    )
 }
 
 multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
-    nqp::if(
-      nqp::elems(my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.RAW-HASH)),
-      nqp::stmts(
-        Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX($elems,$b.RAW-HASH),
-        $a.WHAT.SETUP($elems)
-      ),
-      $a
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX(
+        $a.RAW-HASH, $b.RAW-HASH, $a.OBJECTIFIER
+      )
     )
 }
 
@@ -32,11 +27,9 @@ multi sub infix:<(.)>(Setty:D $a, Mixy:D  $b) { infix:<(.)>($a.Mixy, $b) }
 multi sub infix:<(.)>(Baggy:D $a, Mixy:D  $b) { infix:<(.)>($a.Mixy, $b) }
 multi sub infix:<(.)>(Any     \a, Mixy:D  $b) { infix:<(.)>( a.Mix, $b)  }
 multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
-    nqp::elems(my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.RAW-HASH))
-      ?? $a.WHAT.SETUP(
-           Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.RAW-HASH),
-         )
-      !! $a
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($a.RAW-HASH, $b.RAW-HASH)
+    )
 }
 
 multi sub infix:<(.)>(Any, Failure:D $b) { $b.throw }

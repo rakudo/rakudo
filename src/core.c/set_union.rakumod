@@ -7,118 +7,29 @@ multi sub infix:<(|)>()               { set() }
 multi sub infix:<(|)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(|)>(Setty:D $a, Setty:D $b) {
-    nqp::if(
-      nqp::elems(my \araw := $a.RAW-HASH),
-      nqp::if(                                    # first has elems
-        nqp::elems(my \braw := $b.RAW-HASH),
-        nqp::stmts(                               # second has elems
-          (my \elems := nqp::clone(araw)),
-          (my \iter := nqp::iterator(braw)),
-          nqp::while(                             # loop over keys of second
-            iter,
-            nqp::bindkey(                         # bind into clone of first
-              elems,
-              nqp::iterkey_s(nqp::shift(iter)),
-              nqp::iterval(iter)
-            )
-          ),
-          $a.WHAT.SETUP(elems)                    # make it a Set(Hash)
-        ),
-        $a                                        # no second, so first
-      ),
-      nqp::if(                                    # no first
-        nqp::elems(my \raw := $b.RAW-HASH),
-        nqp::if(                                  # but second
-          nqp::istype($a,Set),$b.Set,$b.SetHash
-        ),
-        $a                                         # both empty
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.SET-UNION($a, $b)
     )
 }
 multi sub infix:<(|)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (|) $b }
 multi sub infix:<(|)>(Setty:D $a, Baggy:D $b) { $a.Baggy (|) $b }
 
 multi sub infix:<(|)>(Mixy:D $a, Mixy:D $b) {
-    nqp::if(
-      nqp::elems(my \araw := $a.RAW-HASH),
-      nqp::if(                                    # first has elems
-        nqp::elems(my \braw := $b.RAW-HASH),
-        nqp::stmts(                               # second has elems
-          (my \elems := nqp::clone(araw)),
-          (my \iter := nqp::iterator(braw)),
-          nqp::while(                             # loop over keys of second
-            iter,
-            nqp::if(
-              nqp::existskey(
-                araw,
-                (my \key := nqp::iterkey_s(nqp::shift(iter)))
-              ),
-              nqp::if(   # must use HLL < because values can be bignums
-                nqp::getattr(
-                  nqp::decont(nqp::atkey(araw,key)),Pair,'$!value')
-                < nqp::getattr(                   # > hl
-                    nqp::decont(nqp::atkey(braw,key)),Pair,'$!value'),
-                nqp::bindkey(elems,key,nqp::atkey(braw,key))
-              ),
-              nqp::bindkey(elems,key,nqp::atkey(braw,key))
-            )
-          ),
-          $a.WHAT.SETUP(elems)                    # make it a Mix(Hash)
-        ),
-        $a                                        # no second, so first
-      ),
-      nqp::if(                                    # no first
-        nqp::elems(my \raw := $b.RAW-HASH),
-        nqp::if(                                  # but second
-          nqp::istype($a,Mix),$b.Mix,$b.MixHash
-        ),
-        $a                                        # both empty
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.BAGGY-UNION($a, $b)
     )
 }
-
-multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) { $a (|) $b.Mix }
+multi sub infix:<(|)>(Mixy:D $a, Baggy:D $b) {
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.BAGGY-UNION($a, $b)
+    )
+}
 multi sub infix:<(|)>(Mixy:D $a, Setty:D $b) { $a (|) $b.Mix }
 
 multi sub infix:<(|)>(Baggy:D $a, Mixy:D $b) { $a.Mixy (|) $b }
 multi sub infix:<(|)>(Baggy:D $a, Baggy:D $b) {
-    nqp::if(
-      nqp::elems(my \araw := $a.RAW-HASH),
-      nqp::if(                                    # first has elems
-        nqp::elems(my \braw := $b.RAW-HASH),
-        nqp::stmts(                               # second has elems
-          (my \elems := nqp::clone(araw)),
-          (my \iter := nqp::iterator(braw)),
-          nqp::while(                             # loop over keys of second
-            iter,
-            nqp::if(
-              nqp::existskey(
-                araw,
-                (my \key := nqp::iterkey_s(nqp::shift(iter)))
-              ),
-              nqp::if(
-                nqp::islt_i(
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey(araw,key)),Pair,'$!value'),
-                  nqp::getattr(
-                    nqp::decont(nqp::atkey(braw,key)),Pair,'$!value')
-                ),
-                nqp::bindkey(elems,key,nqp::atkey(braw,key))
-              ),
-              nqp::bindkey(elems,key,nqp::atkey(braw,key))
-            )
-          ),
-         $a.WHAT.SETUP(elems)                     # make it a Bag
-        ),
-        $a                                        # no second, so first
-      ),
-      nqp::if(                                    # no first
-        nqp::elems(my \raw := $b.RAW-HASH),
-        nqp::if(                                  # but second
-          nqp::istype($a,Bag),$b.Bag,$b.BagHash
-        ),
-        $a                                        # both empty
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.BAGGY-UNION($a, $b)
     )
 }
 multi sub infix:<(|)>(Baggy:D $a, Setty:D $b) { $a (|) $b.Bag }
@@ -127,7 +38,8 @@ multi sub infix:<(|)>(Map:D \a, Map:D \b) {
     Set.SETUP(
       Rakudo::QuantHash.ADD-MAP-TO-SET(
         Rakudo::QuantHash.COERCE-MAP-TO-SET(a),
-        b
+        b,
+        Set.OBJECTIFIER
       )
     )
 }
@@ -141,10 +53,10 @@ multi sub infix:<(|)>(Iterable:D \a, Iterable:D \b) {
              Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),
                $aiterator,
-               Mu
+               Set.OBJECTIFIER
              ),
              $biterator,
-             Mu
+             Set.OBJECTIFIER
            )
          )
 }

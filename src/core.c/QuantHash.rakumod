@@ -4,17 +4,13 @@ my role QuantHash does Associative {
 
     method keyof() { Mu }
 
+    # Generic handling for setting up a QuantHash
     proto method SETUP(|) is implementation-detail {*}
     multi method SETUP(QuantHash:U:) {
         self.SETUP(nqp::create(Rakudo::Internals::IterationSet))
     }
     multi method SETUP(QuantHash:U: \elems) {
         nqp::create(self).SETUP(elems)
-    }
-    multi method SETUP(QuantHash:D:) {
-        nqp::p6bindattrinvres(
-          self,::?CLASS,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
-        )
     }
     multi method SETUP(QuantHash:D: \elems) {
         nqp::p6bindattrinvres(self,::?CLASS,'$!elems',nqp::decont(elems))
@@ -41,10 +37,35 @@ my role QuantHash does Associative {
           !! self.pairs.fmt($format, $sep)
     }
 
+    # Default autovivifying AT-KEY on mutable QuantHashes
     multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
-        nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
-          ?? X::AdHoc.new(payload => "Cannot auto-vivify an immutable {SELF.^name}").throw
+        nqp::istype(self, Set)
+          || nqp::istype(self, Bag)
+          || nqp::istype(self, Mix)
+          ?? X::Assignment::RO.new(value => self).throw
           !! (SELF = self.new).AT-KEY($key)
+    }
+
+    # EXISTS-KEY logic is the same for all QuantHashes, but complicated
+    # by the fact that the IterationSet $!elems can not be defined in
+    # this role because of visibility issues.  Hence the extended getattr
+    # syntax used here
+    multi method EXISTS-KEY(QuantHash:D: \k --> Bool:D) {
+        nqp::hllbool(
+          nqp::existskey(
+            nqp::getattr(self,self.WHAT,'$!elems'),
+            self.WHICHIFY(k)
+          )
+        )
+    }
+
+    # Default ASSIGN-KEY not allowing assignments
+    multi method ASSIGN-KEY(QuantHash:D: \k, \v) {
+        X::Assignment::RO.new(value => self).throw;
+    }
+    # Default DELETE-KEY not allowing deletions
+    multi method DELETE-KEY(QuantHash:D: \k) {
+        X::Assignment::RO.new(value => self).throw;
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
@@ -58,7 +79,7 @@ my role QuantHash does Associative {
     method Map()  { ... }
 
     # Objectifier logic for unparameterized quanthashes
-    method OBJECTIFIER() is implementation-detail { -> Mu \value { value } }
+    method OBJECTIFIER() is implementation-detail { -> Mu $value { $value } }
 
     # WHICH logic for unparameterized quanthashes
     method WHICHIFY(Mu \value) is implementation-detail { value.WHICH }

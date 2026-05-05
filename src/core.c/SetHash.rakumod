@@ -1,15 +1,4 @@
 my class SetHash does Setty {
-    has &!objectifier;
-
-    # Handle special setup of SetHash to set up objectifier
-    multi method SETUP(SetHash: $?) {
-        nqp::p6bindattrinvres(
-          callsame,
-          SetHash,
-          '&!objectifier',
-          self.OBJECTIFIER
-        )
-    }
 
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
@@ -243,34 +232,22 @@ my class SetHash does Setty {
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER
                )
              )
     }
 
     # This version of STORE typically gets called from HYPER, where
-    # it will just create a bare instance of the SetHash class.  So
-    # it must ensure we've done all initializations, and then call
-    # the actual STORE logic for this case.
+    # it will just create a bare instance of the SetHash class
     multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
-        self.SETUP!STORE-DUAL(objects.iterator, bools.iterator)
-    }
-
-    method !STORE-DUAL($iterobjs, $iterbools) {
-        my &objectifier := &!objectifier;
-        my $elems       := $!elems;
-
-        nqp::until(
-          nqp::eqaddr((my $pulled := $iterobjs.pull-one),IterationEnd),
-          nqp::if(
-            $iterbools.pull-one,
-            nqp::stmts(
-              (my $object := objectifier($pulled)),
-              nqp::bindkey($elems,$object.WHICH,$object)
-            )
+        self.SETUP(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            bools.iterator,
+            self.OBJECTIFIER
           )
-        );
-        self
+        )
     }
 
     multi method AT-KEY(SetHash:D: \k --> Bool:D) is raw {
@@ -279,7 +256,7 @@ my class SetHash does Setty {
               nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
           },
           STORE => -> $, $value {
-              my $object   := &!objectifier(nqp::decont(k));
+              my $object   := self.OBJECTIFIER()(k);
               my str $which = $object.WHICH;
 
               $value
@@ -289,6 +266,15 @@ my class SetHash does Setty {
               $value.Bool   # must be HLL
           }
         )
+    }
+
+    multi method ASSIGN-KEY(SetHash:D: \k, \v) is raw {
+        my $object := self.OBJECTIFIER()(k);
+        (my $value := v.Bool)  # must be HLL
+          ?? nqp::bindkey($!elems,$object.WHICH,$object)
+          !! nqp::deletekey($!elems,$object.WHICH);
+
+        $value
     }
 
     multi method DELETE-KEY(SetHash:D: \k --> Bool:D) {
@@ -304,10 +290,27 @@ my class SetHash does Setty {
         )
     }
 
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(SetHash:D: &mapper) {
+        my $elems := $!elems;
+        my $new   := nqp::clone($elems);
+        my $iter  := nqp::iterator($elems);
+
+        while $iter {
+            nqp::shift($iter);
+            my $value = 1;  # must be container
+
+            nqp::deletekey($new,  nqp::iterkey_s($iter)) unless mapper($value);
+            nqp::deletekey($elems,nqp::iterkey_s($iter)) unless $value;
+        }
+
+        self.WHAT.SETUP($new)
+    }
+
 #--- convenience methods
     method set(SetHash:D: \to-set --> Nil) {
         Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
-          $!elems, to-set.iterator, self.keyof
+          $!elems, to-set.iterator, self.OBJECTIFIER
         );
     }
 

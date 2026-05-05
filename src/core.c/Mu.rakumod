@@ -500,8 +500,18 @@ my class Mu { # declared in BOOTSTRAP
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),
-                    (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
-                      = %attrinit.AT-KEY(nqp::atpos($task,3)))
+                    nqp::if(
+                      # `@`/`%` need :INITIALIZE so STORE replaces storage on
+                      # a container built by action 900, instead of silently
+                      # no-opping on the empty List/Array.
+                      (nqp::iseq_i(nqp::ord(nqp::atpos($task,2),0), 64)    # @
+                        || nqp::iseq_i(nqp::ord(nqp::atpos($task,2),0), 37)),  # %
+                      nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)).STORE(
+                        %attrinit.AT-KEY(nqp::atpos($task,3)), :INITIALIZE
+                      ),
+                      (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                        = %attrinit.AT-KEY(nqp::atpos($task,3)))
+                    )
                   )
                 )
               )
@@ -792,8 +802,18 @@ my class Mu { # declared in BOOTSTRAP
 
               nqp::if(                           # 0
                 nqp::existskey($init,nqp::atpos($task,3)),
-                (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
-                  = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                nqp::if(
+                  # `@`/`%` need :INITIALIZE so STORE replaces storage on
+                  # a container built by action 900, instead of silently
+                  # no-opping on the empty List/Array.
+                  (nqp::iseq_i(nqp::ord(nqp::atpos($task,2),0), 64)    # @
+                    || nqp::iseq_i(nqp::ord(nqp::atpos($task,2),0), 37)),  # %
+                  nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2)).STORE(
+                    %attrinit.AT-KEY(nqp::atpos($task,3)), :INITIALIZE
+                  ),
+                  (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
+                    = %attrinit.AT-KEY(nqp::atpos($task,3)))
+                )
               )
             )
           )

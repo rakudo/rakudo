@@ -62,6 +62,20 @@ class RakuAST::Type
             !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
     }
 
+    # Like IMPL-MAYBE-NOMINALIZE, but always nominalizes coercive types so the
+    # value used for a Scalar's default is the coercion's nominal target rather
+    # than the coercion type itself. Mirrors legacy's `maybe-nominalize` in
+    # src/Perl6/World.nqp, which the descriptor-build path uses for default_value.
+    method IMPL-NOMINALIZE-FOR-DEFAULT($v) {
+        my $v-how := $v.HOW;
+        !$v-how.archetypes($v).coercive
+            && (nqp::can($v-how, 'language_revision')
+                    ?? $v-how.language_revision($v) < 3
+                    !! nqp::getcomp('Raku').language_revision < 3)
+            ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
+            !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
+    }
+
     method is-native() { False }
     method is-coercive() { False }
 }

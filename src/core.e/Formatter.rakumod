@@ -1,21 +1,15 @@
 # THEORY OF OPERATION
 # -------------------
-# The new method will look for the given format in a hash.  If found,
+# The "new" method will look for the given format in a hash.  If found,
 # it contains a Callable that will process the parameters doing all of the
 # necessary checks and conversions.
 #
-# If not found, it will parse the format with the Formatter:: Syntax grammar
+# If not found, it will parse the format with the Formatter::Syntax grammar
 # and the Formatter::Actions class, which will create the RakuAST nodes for
 # it and store the Callable in the hash.
 #
 # TODO:
 # - generate code that uses native ops and variables where possible
-
-# problem cases that should be checked:
-# - https://github.com/Raku/old-issue-tracker/issues/4537
-#   say sprintf('%f %f %f %f', Mu, Any, Nil, NaN);
-# - https://github.com/Raku/old-issue-tracker/issues/4892
-#   say sprintf("%e",1000)    # should be 1.0... instead of 10....
 
 our class Formatter {
 
@@ -37,7 +31,7 @@ our class Formatter {
     }
 
     # pad with zeroes after decimal point
-    our sub pad-zeroes-precision(int $positions, Str:D $string) {
+    our sub pad-zeroes-precision(int $positions, str $string) {
         my int $index = nqp::index($string,'.');
         if nqp::isge_i($index,0) {
             my int $digits =  # $string.chars - 1 - $index;
@@ -52,7 +46,7 @@ our class Formatter {
         }
         else {
             $positions
-              ?? nqp::concat('.',nqp::x('0',$positions))
+              ?? nqp::concat($string,nqp::concat('.',nqp::x('0',$positions)))
               !! $string
         }
     }
@@ -101,16 +95,25 @@ our class Formatter {
 
     # set up value for scientific notation
     our proto sub scientify(|) {*}
-    our multi sub scientify($letter, $positions, $value --> Str:D) {
+    multi sub scientify($letter, $positions, $value) {
         scientify($letter, $positions, $value.Numeric)
     }
-    our multi sub scientify($letter, $positions, Numeric:D $value --> Str:D) {
+    multi sub scientify($letter, $positions, Numeric:D $value) {
         if $value {
-            my $exponent := $value ?? $value.abs.log(10).floor !! 0;
-            my $abs-expo := $exponent.abs;
+            my int $exponent = $value ?? $value.abs.log(10).floor !! 0;
+            my str $string =
+              ($value / 10 ** $exponent).round(10 ** -$positions).Str;
+            my int $end = nqp::chars($string) - 1;
+
+            if nqp::ord($string,$end) == 48 {  # "0"
+                $string = nqp::substr($string,0,$end);
+                ++$exponent;
+            }
+
+            my int $abs-expo = nqp::abs_i($exponent);
             pad-zeroes-precision(
               $positions,
-              ($value / 10 ** $exponent).round(10**-$positions).Str
+              $string,
             ) ~ $letter
               ~ ($exponent < 0 ?? "-" !! "+")
               ~ ($abs-expo < 10 ?? "0" ~ $abs-expo !! $abs-expo)

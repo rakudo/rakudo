@@ -831,7 +831,6 @@ my @allowed =
         Q{&postcircumfix:<{ }>},
         Q{&prefix:<//>},
         Q{&rotor},
-        Q{&zprintf},
         Q{&snip},
         Q{&snitch},
         Q{&sprintf},

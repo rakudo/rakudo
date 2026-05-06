@@ -507,7 +507,6 @@ my @expected = (
     Q{&wordcase},
     Q{&words},
     Q{&zip},
-    Q{&zprintf},   # TEMPORARY!
     Q{AST},
     Q{Allomorph},
     Q{Any},

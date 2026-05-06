@@ -2381,6 +2381,7 @@ class RakuAST::VarDeclaration::Implicit::Self
 # The implicit `$¢` declaration for the cursor.
 class RakuAST::VarDeclaration::Implicit::Cursor
   is RakuAST::VarDeclaration::Implicit
+  is RakuAST::Meta
 {
     method new() {
         my $obj := nqp::create(self);
@@ -2389,8 +2390,22 @@ class RakuAST::VarDeclaration::Implicit::Cursor
         $obj
     }
 
+    method PRODUCE-META-OBJECT() {
+        my $cont-desc := RakuAST::IMPL::Containers.create-descriptor(
+            :of(Mu), :default(Nil), :dynamic(0), :name('$¢'));
+        my $container := nqp::create(Scalar);
+        nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
+        nqp::bindattr($container, Scalar, '$!value', $cont-desc.default);
+        $container
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Var.new(
+            :decl('contvar'), :scope('lexical'), :name(self.name),
+            :value($container)
+        )
     }
 }
 

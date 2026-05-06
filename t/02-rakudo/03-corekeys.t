@@ -876,10 +876,20 @@ my %nyi-for-backend = (
     'js' => (),
 );
 
+my $rakuast-built = SETTING::{'!RAKUAST_MARKER'}:exists;
 for @allowed -> (:key($rev), :value(@syms)) {
+    my @adjusted = @syms;
+    if $rakuast-built {
+        @adjusted.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+        @adjusted = @adjusted.grep(* ne '!INIT_VALUES').list;
+        # TODO: legacy doesn't put $¢ in CORE::v6c, but RakuAST's CompUnit
+        # PRODUCE-IMPLICIT-DECLARATIONS installs it unconditionally.  Drop
+        # this push once that install is gated to skip the v6.c CORE setting.
+        @adjusted.push: Q{$¢} if $rev eq 'c';
+    }
     has-symbols
       CORE::{"v6$rev"}.WHO,
-      (@syms (-) %nyi-for-backend{$*VM.name}).keys,
+      (@adjusted (-) %nyi-for-backend{$*VM.name}).keys,
       "Symbols in CORE::v6{$rev}";
 }
 

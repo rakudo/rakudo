@@ -115,21 +115,12 @@ my class Format is Str is Callable {
 #-------------------------------------------------------------------------------
 # Subroutine access to Formatter logic
 
-# the procedural frontend of sprintf functionality
-multi sub sprintf(Format:D $format, *@args) {  # until zprintf gone
-    $format(|@args)
-}
-
-proto sub zprintf($, |) {*}
-multi sub zprintf(Str(Cool) $format, \value) {
+proto sub sprintf($, |) {*}
+multi sub sprintf(Str(Cool) $format, \value) {
     Formatter.new($format)(value)
 }
-multi sub zprintf(Str(Cool) $format, |c) {
+multi sub sprintf(Str(Cool) $format, |c) {
     Formatter.new($format)(|c)
-}
-
-augment class Cool {
-    method zprintf(|c) { zprintf(self,|c) }
 }
 
 # vim: expandtab shiftwidth=4

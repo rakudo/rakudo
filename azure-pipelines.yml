@@ -78,14 +78,14 @@ parameters:
       Mac: ['']
     MVM:
       Win: ['relocatable', '']
-      Lin: ['relocatable', '']
+      Lin: ['relocatable', '', 'rakuast']
       Mac: ['']
 - name: test_variants
   type: object
   default:
     MVM:
       Win: ['']
-      Lin: ['']
+      Lin: ['', 'rakuast']
       Mac: ['']
 
 
@@ -116,6 +116,9 @@ stages:
               value: "yes"
             ${{ if ne(variant, 'fullspectest') }}:
               value: ""
+          - ${{ if eq(variant, 'rakuast') }}:
+            - name: RAKUDO_RAKUAST
+              value: '1'
           - ${{ if eq(backend, 'JVM') }}:
             - name: NQP_OPTIONS
               value: '--backends=jvm'
@@ -370,6 +373,9 @@ stages:
               value: "yes"
             ${{ if ne(variant, 'fullspectest') }}:
               value: ""
+          - ${{ if eq(variant, 'rakuast') }}:
+            - name: RAKUDO_RAKUAST
+              value: '1'
           - ${{ if eq(os, 'Win') }}:
             - name: IMAGE_NAME
               value: 'windows-2022'
@@ -495,7 +501,7 @@ stages:
                 ls -l .
                 env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku --ext .t --ext .rakutest -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              enabled: ${{ eq( variant, '' ) }}
+              enabled: ${{ or( eq( variant, '' ), eq( variant, 'rakuast' ) ) }}
               displayName: Test Rakudo
             - script: |
                 pwd

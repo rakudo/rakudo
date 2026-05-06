@@ -2335,10 +2335,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $twigil eq '' {
             if $name eq '@_' {
-                $ast := slurpy-placeholder('SlurpyArray');
+                # If @_ is already in lexical scope (e.g. from an
+                # enclosing routine that declared *@_), resolve to that
+                # lexical rather than installing a fresh placeholder for
+                # the current block. Without this, a reference inside a
+                # nested block (if/while/...) shadows the outer @_ with
+                # an empty placeholder. Mirrors the legacy de-facto
+                # behavior since 2010.
+                $ast := $*R.resolve-lexical($name)
+                  ?? Nodify('Var', 'Lexical').new(:$sigil, :$desigilname)
+                  !! slurpy-placeholder('SlurpyArray');
             }
             elsif $name eq '%_' {
-                $ast := slurpy-placeholder('SlurpyHash');
+                # See @_ comment above.
+                $ast := $*R.resolve-lexical($name)
+                  ?? Nodify('Var', 'Lexical').new(:$sigil, :$desigilname)
+                  !! slurpy-placeholder('SlurpyHash');
             }
 
             # an anonymous state variable.

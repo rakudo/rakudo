@@ -822,6 +822,16 @@ my %nyi-for-backend = (
     'js' => (),
 );
 
+if SETTING::{'!RAKUAST_MARKER'}:exists {
+    @expected.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+    @expected = @expected.grep(* ne '!INIT_VALUES').list;
+    # TODO: legacy doesn't put $¢ in this v6.d CORE:: view, but RakuAST's
+    # CompUnit PRODUCE-IMPLICIT-DECLARATIONS installs it.  Drop this push
+    # once that install is gated to skip the v6.c CORE setting (which is
+    # the layer this $¢ originates from).
+    @expected.push: Q{$¢};
+}
+
 has-symbols CORE::, (@expected (-) %nyi-for-backend{$*VM.name}).keys, "Symbols in 6.d CORE::";
 
 # vim: expandtab shiftwidth=4

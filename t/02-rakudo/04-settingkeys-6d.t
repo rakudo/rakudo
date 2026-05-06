@@ -25,6 +25,11 @@ my %allowed = (
   Q{&undefine},
 ).map: { $_ => 1 };
 
+if SETTING::{'!RAKUAST_MARKER'}:exists {
+    %allowed{'!RAKUAST_MARKER'} = 1;
+    %allowed{'$?FILE'}          = 1;
+}
+
 my @unknown;
 my $known-count;
 my @missing;

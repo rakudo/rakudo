@@ -833,6 +833,11 @@ my %nyi-for-backend = (
     'js' => (),
 );
 
+if SETTING::{'!RAKUAST_MARKER'}:exists {
+    @expected.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+    @expected = @expected.grep(* ne '!INIT_VALUES').list;
+}
+
 has-symbols CORE::, (@expected (-) %nyi-for-backend{$*VM.name}).keys, "Symbols in 6.e CORE::";
 
 # vim: expandtab shiftwidth=4

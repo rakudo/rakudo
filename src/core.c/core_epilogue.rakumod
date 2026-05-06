@@ -291,7 +291,7 @@ augment class Code {
     }
 
     # Create a RakuAST version of a Parameter object
-    my sub ParameterAST(Parameter:D $parameter, *%_) {
+    my sub ParameterAST(Parameter:D $parameter, *%opts) {
         my $slurpytypes := BEGIN nqp::hash(
           '*',   RakuAST::Parameter::Slurpy::Flattened,
           '**',  RakuAST::Parameter::Slurpy::Unflattened,
@@ -328,7 +328,7 @@ augment class Code {
             );
         }
         else {
-            my $type := %_<type>:exists ?? %_<type> !! $parameter.type;
+            my $type := %opts<type>:exists ?? %opts<type> !! $parameter.type;
 
             $sigil eq '@'
               ?? set-role-type($type, Positional)
@@ -340,7 +340,7 @@ augment class Code {
         # Some kind of capture as target
         if $sigil eq '|' {
             %args<target> = RakuAST::ParameterTarget::Term.new(
-              RakuAST::Name.from-identifier(%_<name> // $parameter.name)
+              RakuAST::Name.from-identifier(%opts<name> // $parameter.name)
             );
             %args<slurpy> = RakuAST::Parameter::Slurpy::Capture;
         }
@@ -348,7 +348,7 @@ augment class Code {
         # An ordinary target
         else {
             %args<target> = RakuAST::ParameterTarget::Var.new(
-              name => %_<name> // ($parameter.name || $sigil)
+              name => %opts<name> // ($parameter.name || $sigil)
             );
         }
 
@@ -368,8 +368,8 @@ augment class Code {
         # If a default value was explicitely specified, we're handling
         # a name argument, which by definition has to become optional
         # if it has a default
-        if %_<default>:exists {
-            %args<default> = literalize(%_<default>);
+        if %opts<default>:exists {
+            %args<default> = literalize(%opts<default>);
             %args<optional>:delete;
         }
 

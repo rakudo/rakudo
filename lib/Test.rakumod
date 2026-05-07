@@ -791,9 +791,28 @@ sub proclaim(
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 1;
 
+        # Walk past frames inside this file. Compare in both directions
+        # because `$?FILE` and `$caller.file` end up in opposite
+        # absolute/relative shapes depending on which frontend built
+        # rakudo and which Repository loaded Test.rakumod:
+        #   RakuAST-built:           $?FILE relative (cwd-stripped, see
+        #                            relative-source-filename in
+        #                            src/Raku/ast/compunit.rakumod);
+        #                            $caller.file absolute.
+        #   legacy-built / install:  $?FILE absolute; $caller.file is
+        #                            the Installation-repo form
+        #                            `core#sources/<sha1> (Test)`,
+        #                            i.e. shorter than $?FILE.
+        # In both cases one string is a suffix of the other, so a
+        # bidirectional ends-with is what we want. The original
+        # `$?FILE.ends-with($caller.file)` alone was right for the
+        # legacy/install path but bailed at the first Test.rakumod
+        # frame under RakuAST, attributing every failure to
+        # Test.rakumod itself.
         repeat {
             $caller = callframe(++$level);
-        } while $?FILE.ends-with($caller.file);
+        } while $?FILE.ends-with($caller.file)
+             || $caller.file.ends-with($?FILE);
 
         # initial level for reporting
         my $tester = $caller;

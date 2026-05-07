@@ -194,6 +194,13 @@ class RakuAST::Code
         $block.code_object($code-obj);
 
         my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
+        # @!compstuff is null on a re-compile of a shared AST: the
+        # previous compile's cleanup nulled it and $!begin-performed
+        # keeps IMPL-STUB-CODE from re-running.
+        if nqp::isnull(@compstuff) {
+            @compstuff := nqp::list();
+            nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
+        }
         my $cuid := $!cuid;
         $block.set-cuid($!cuid);
 

@@ -103,28 +103,11 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $from := $compiler.exists_stage('optimize') ?? 'optimize' !! 'qast';
         my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
         my $context := $comp-unit.context;
-        if $context.is-nested {
-            # Nested QAST::CompUnits skip deserialization_code emission, so
-            # their static code refs never get scsetcode'd into the shared
-            # SC. If EVAL returns a Sub the outer compile references,
-            # outer's precomp serialization fails with "missing static
-            # code ref" because the inner code ref's static_code isn't in
-            # any SC. Keep the compunit around via :compunit_ok and run
-            # the shared fixup loop to register each code ref in the
-            # shared SC at the index stashed when the stub was added.
-            my $precomp := $compiler.compile($qast-cu, :$from, :compunit_ok(1));
-            $context.IMPL-FIXUP-COMPILED-CODEREFS(nqp::compunitcodes($precomp));
-            # Run cleanup-tasks registered during begin/compile (mainly to
-            # null @!compstuff on each Code object, which still holds the
-            # IMPL-STUB-CODE closure). The normal compile pipeline does
-            # this from the qast stage in Perl6::Compiler, but this EVAL
-            # path bypasses the stage system.
-            $comp-unit.cleanup;
-            $compiled := $compiler.backend.compunit_mainline($precomp);
-        }
-        else {
-            $compiled := $compiler.compile(:$from, $qast-cu);
-        }
+        # Run the qast-stage SC bookkeeping that AST EVAL otherwise skips.
+        my $precomp := $compiler.compile($qast-cu, :$from, :compunit_ok(1));
+        $context.IMPL-FIXUP-COMPILED-CODEREFS(nqp::compunitcodes($precomp));
+        $comp-unit.cleanup;
+        $compiled := $compiler.backend.compunit_mainline($precomp);
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;

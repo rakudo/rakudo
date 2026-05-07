@@ -153,7 +153,7 @@ class RakuAST::Type::Simple
     }
 
     method PRODUCE-META-OBJECT() {
-        RakuAST::Type.IMPL-MAYBE-NOMINALIZE: self.resolution.compile-time-value
+        self.resolution.compile-time-value
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -1282,13 +1282,15 @@ my class Rakudo::QuantHash {
               $iter,
               nqp::unless(
                 nqp::iterval(nqp::shift($iter)).value
-                  == nqp::atkey($braw,nqp::iterkey_s($iter)).value,
+                  == nqp::ifnull(
+                       nqp::atkey($braw,nqp::iterkey_s($iter)),$p0
+                     ).value,
                 (return False)
               )
             ),
             True
-          ),
-          False
+          )
+          # Don't need else clause, as the failing condition provides it
         )
     }
 
@@ -1300,11 +1302,10 @@ my class Rakudo::QuantHash {
         my $result := True;
 
         nqp::while(
-          $iter && ($result := nqp::if(
-            (my $pair := nqp::atkey(braw,nqp::iterkey_s(nqp::shift($iter)))),
-            nqp::iterval($iter).value <= $pair.value,
-            False
-          )),
+          $iter
+            && ($result := nqp::iterval(nqp::shift($iter)).value <=
+                 nqp::ifnull(nqp::atkey(braw,nqp::iterkey_s($iter)),$p0).value
+               ),
           nqp::null
         );
 

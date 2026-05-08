@@ -844,9 +844,10 @@ class RakuAST::Grammar
       RakuAST::Resolver          $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        nqp::findmethod(RakuAST::Class, 'PERFORM-CHECK')(self, $resolver, $context);
         my $sanity-check := self.HOW.find_method(self,"check-sanity");
         $sanity-check(self) if $sanity-check;
-        True
+        True;
     }
 }
 

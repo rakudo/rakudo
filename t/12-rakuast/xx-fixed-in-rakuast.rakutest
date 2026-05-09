@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 113;
+plan 114;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -794,6 +794,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
       :out("from-precomped-6137\n"),
       :err(""),
       'precompiling a module returning a synthetic RakuAST Sub from BEGIN works';
+}
+
+# https://github.com/rakudo/rakudo/issues/6169
+# Precompiling a module that loads another module whose mainline calls
+# .assuming. .assuming uses RakuAST::Sub.new(...).EVAL, which previously
+# failed in the non-nested branch.
+{
+    is-run 'use lib <t/packages/12-rakuast/lib>; use UsesAssumingInPrecomp; say "ok"',
+      :out("ok\n"),
+      :err(""),
+      '.assuming in a precompiled module loaded via another module works';
 }
 
 # A Sub returned from BEGIN-time string EVAL used to infinite-loop on invoke

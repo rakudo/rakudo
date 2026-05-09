@@ -27,6 +27,10 @@ class RakuAST::IMPL::QASTContext {
     has int $.is-nested;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
 
+    # Optional nested Perl6::World; when set, add-code-ref delegates
+    # to it so the shared $!num_code_refs counter advances.
+    has Mu $.world-bridge;
+
     method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
@@ -40,7 +44,12 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
         $obj
+    }
+
+    method set-world-bridge(Mu $world) {
+        nqp::bindattr(self, RakuAST::IMPL::QASTContext, '$!world-bridge', $world);
     }
 
     method create-nested() {
@@ -94,9 +103,15 @@ class RakuAST::IMPL::QASTContext {
     }
 
     method add-code-ref(Mu $code-ref, Mu $block) {
-        my int $code-ref-idx := nqp::elems($!code-ref-blocks);
-        nqp::push($!code-ref-blocks, $block);
-        nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
+        my int $code-ref-idx;
+        if nqp::isconcrete($!world-bridge) {
+            $code-ref-idx := $!world-bridge.add_root_code_ref($code-ref, $block);
+        }
+        else {
+            $code-ref-idx := nqp::elems($!code-ref-blocks);
+            nqp::push($!code-ref-blocks, $block);
+            nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
+        }
         $!sub-id-to-sc-idx{$block.cuid} := $code-ref-idx;
     }
 

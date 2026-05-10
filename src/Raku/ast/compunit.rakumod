@@ -119,11 +119,41 @@ class RakuAST::CompUnit
               $precompilation-mode);
         }
         else {
-            $sc := nqp::createsc($comp-unit-name);
-            nqp::pushcompsc($sc);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+            # Runtime AST EVAL inside a precompiling legacy-frontend
+            # compile: bridge through Perl6::World, mirroring
+            # Perl6::Grammar TOP's nested-compile setup.
+            my $outer-world := nqp::getlexdyn('$*W');
+            my $is-legacy-nested := $eval
+                && nqp::isconcrete($outer-world)
+                && nqp::can($outer-world, 'is_precompilation_mode')
+                && $outer-world.is_precompilation_mode;
+
+            if $is-legacy-nested {
+                my $nested-world := $outer-world.create_nested();
+                $sc := $nested-world.sc;
+                nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', 2);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+                my $context := RakuAST::IMPL::QASTContext.new(
+                  :$sc, :$precompilation-mode,
+                  :$setting, :$language-revision);
+                nqp::bindattr_i($context, RakuAST::IMPL::QASTContext,
+                  '$!is-nested', 1);
+                $context.set-world-bridge($nested-world);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!context', $context);
+            }
+            else {
+                $sc := nqp::createsc($comp-unit-name);
+                nqp::pushcompsc($sc);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
+                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+                # Set the SC description to $?FILES only on the
+                # fresh-SC path. The bridged path shares the outer
+                # World's SC, whose description was already set by
+                # the outer's compile and must not be overwritten.
+                my $file := nqp::getlexdyn('$?FILES');
+                nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
+            }
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
             # $=data / $=finish / $=rakudoc are per-compunit, not setting-level;
@@ -139,9 +169,6 @@ class RakuAST::CompUnit
                   RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
             }
         }
-
-        my $file := nqp::getlexdyn('$?FILES');
-        nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
 
         $obj
     }
@@ -348,6 +375,9 @@ class RakuAST::CompUnit
         for $!context.cleanup-tasks {
             $_()
         }
+        # Propagate any inner @!load_dependency_tasks to the outer World.
+        my $world := $!context.world-bridge;
+        $world.finish if nqp::isconcrete($world);
     }
 
     method record-precompilation-dependencies() {

@@ -377,14 +377,9 @@ multi sub infix:<div>($a, $b --> Int:D) {
 }
 
 multi sub infix:<%>(Int:D $a, Int:D $b --> Int:D) {
-    nqp::isbig_I($a) || nqp::isbig_I($b)
-      ?? $b
-        ?? nqp::mod_I($a,$b,Int)
-        !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
-      !! nqp::isne_i($b,0)
-        # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
-        ?? nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b)
-        !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
+    $b
+      ?? nqp::mod_I($a,$b,Int)
+      !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
 }
 # relies on opcode or hardware to detect division by 0
 # quick fix https://github.com/Raku/old-issue-tracker/issues/4999

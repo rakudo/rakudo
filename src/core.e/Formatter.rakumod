@@ -595,7 +595,7 @@ our class Formatter {
 
         # show unsigned decimal (integer) value
         method directive:sym<u>($/ --> Nil) {
-            make handle-integer-numeric($/, :plus, :space, :coerce<UInt>);
+            make handle-integer-numeric($/, :coerce<UInt>);
         }
 
         # show numeric value in hexadecimal

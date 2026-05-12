@@ -17,21 +17,26 @@ our class Formatter {
 # Subroutines referenced at runtime by the generated ASTs, to reduce the
 # actual size of the specific parts of sprintf processing.
 
-    # pad with zeroes as integer
-    our sub pad-zeroes-int(int $positions, Str:D $string) {
-        nqp::isgt_i($positions,0)
-          ?? nqp::islt_i(nqp::chars($string),$positions)
-            ?? nqp::eqat($string,'-',0)
-              ?? nqp::concat('-',pad-zeroes-str(
+    # Pad with zeroes as integer, keeping any +, - or space as
+    # first character intact
+    our sub pad-zeroes-int(int $positions, str $string --> str) {
+        nqp::isle_i($positions,0)
+          || nqp::isge_i(nqp::chars($string),$positions)
+          ?? $string                                # nothing to do
+          !! nqp::eqat($string,'-',0)   # XXX optimize?
+               || nqp::eqat($string,'+',0)
+               || nqp::eqat($string,' ',0)
+            ?? nqp::concat(                         # preserve + - space
+                 nqp::substr($string,0,1),
+                 pad-zeroes-str(
                    nqp::sub_i($positions,1),nqp::substr($string,1)
-                 ))
-              !! pad-zeroes-str($positions,$string)
-            !! $string
-          !! $string
+                 )
+               )
+            !! pad-zeroes-str($positions,$string)   # just pad out
     }
 
     # pad with zeroes after decimal point
-    our sub pad-zeroes-precision(int $positions, str $string) {
+    our sub pad-zeroes-precision(int $positions, str $string --> str) {
         my int $index = nqp::index($string,'.');
         if nqp::isge_i($index,0) {
             my int $digits =  # $string.chars - 1 - $index;
@@ -52,7 +57,7 @@ our class Formatter {
     }
 
     # pad with zeroes as string
-    our sub pad-zeroes-str(int $positions, Str:D $string) {
+    our sub pad-zeroes-str(int $positions, str $string --> str) {
         nqp::islt_i(nqp::chars($string),$positions)
           ?? nqp::concat(
                nqp::x('0',nqp::sub_i($positions,nqp::chars($string))),
@@ -61,36 +66,31 @@ our class Formatter {
           !! $string
     }
 
-    # prefix given hash properly, also if value negative
-    our sub prefix-hash(str $hash, Str:D $string) {
+    # prefix given hash properly, also if value negative or starting with
+    # a + or - or space
+    our sub prefix-hash(str $hash, str $string --> str) {
         nqp::eqat($string,'-',0)
-          ?? nqp::concat('-',nqp::concat($hash,nqp::substr($string,1)))
+          || nqp::eqat($string,'+',0)
+          || nqp::eqat($string,' ',0)
+          ?? nqp::concat(
+               nqp::substr($string,0,1),
+               nqp::concat($hash,nqp::substr($string,1))
+             )
           !! nqp::concat($hash,$string)
     }
 
     # prefix plus if value is not negative
-    our sub prefix-plus(Str:D $string) {
+    our sub prefix-plus(str $string --> str) {
         nqp::eqat($string,'-',0)
           ?? $string
           !! nqp::concat("+",$string)
     }
 
-    # prefix space if string not starting with "+" or "-"
-    our sub prefix-space(Str:D $string) {
-        nqp::eqat($string,'-',0) || nqp::eqat($string,'+',0)
+    # prefix space if string not starting with "-"
+    our sub prefix-space(str $string --> str) {
+        nqp::eqat($string,'-',0)
           ?? $string
           !! nqp::concat(' ',$string)
-    }
-
-    # prefix 0 if string not starting with 0
-    our sub prefix-zero(Str:D $string) {
-        nqp::eqat($string,'0',0)
-          ?? $string
-          !! nqp::eqat($string,'-',0)
-            ?? nqp::eqat($string,'0',1)
-              ?? $string
-              !! nqp::concat('-0',nqp::substr($string,1))
-            !! nqp::concat('0',$string)
     }
 
     # set up value for scientific notation
@@ -124,7 +124,7 @@ our class Formatter {
     }
 
     # provide left justification of string
-    our sub str-left-justified(int $positions, Str:D $string) {
+    our sub str-left-justified(int $positions, str $string --> str) {
         nqp::islt_i(nqp::chars($string),nqp::abs_i($positions))
           ?? nqp::concat(
                $string,nqp::x(
@@ -135,7 +135,7 @@ our class Formatter {
     }
 
     # provide right justification of string
-    our sub str-right-justified(int $positions, Str:D $string) {
+    our sub str-right-justified(int $positions, str $string --> str) {
         nqp::islt_i($positions,0)
           ?? str-left-justified($positions, $string)
           !! nqp::islt_i(nqp::chars($string),$positions)
@@ -156,6 +156,11 @@ our class Formatter {
 # Helper subroutines that generate RakuAST::Nodes.  These all have the "ast"
 # prefix and should only be called at format parse time.  These methods are
 # agnostic of the grammar / actions.
+
+        # helper sub to see whether an AST is a literal Int
+        sub is-literal-int($ast --> int) {
+            nqp::istype($ast,RakuAST::IntLiteral)
+        }
 
         # helper sub to call a method on a given AST
         proto sub ast-call-method(|) {*}
@@ -245,6 +250,19 @@ our class Formatter {
             RakuAST::Ternary.new(:$condition, :$then, :$else)
         }
 
+        # helper sub to create ast from ast and integer value to be subtracted,
+        # constant fold as much as possible
+        sub ast-sub-integer($ast, Int:D $value) {
+            $value
+              ?? is-literal-int($ast)
+                ?? ast-integer($ast.value - $value)          # constant fold
+                !! ast-infix($ast, "-", ast-integer($value)) # runtime fold
+              !! $ast
+        }
+
+        # helper sub to create an NQP op
+        sub ast-nqp($op, *@args) { RakuAST::Nqp.new($op, |@args) }
+
 #-------------------------------------------------------------------------------
 # Helper subs that obtain information from Match objects.  These always take
 # $/ as the first positional parameter.
@@ -256,12 +274,13 @@ our class Formatter {
         sub has-space($/) { " " (elem) $<flags>.map: *.Str }
         sub has-zero($/)  { "0" (elem) $<flags>.map: *.Str }
 
-
         # helper sub to get size specification
         sub size($/ --> RakuAST::Node:D) { any-size($<size>) }
 
         # helper sub to get precision specification
-        sub precision($/ --> RakuAST::Node:D) { any-size($<precision><size>) }
+        sub precision($/ --> RakuAST::Node:D) {
+            any-size($<precision><size>)
+        }
 
         # helper sub to get any size-type info.  Note that this will "eat"
         # parameters if a * is specified, indicating runtime width info.
@@ -269,14 +288,12 @@ our class Formatter {
             $/
               ?? $<star>
                 ?? ast-call-method(parameter($/), 'Int')
-                !! (my $size := $/.Int) > 1
-                  ?? ast-integer($size)
-                  !! Nil
+                !! ast-integer($/.Int)
               !! Nil
         }
 
         # helper sub to determine the value for this directive
-        sub parameter($/ --> RakuAST::Node:D) {
+        sub parameter($/, :$coerce --> RakuAST::Node:D) {
             my Int $index = $<idx> ?? $<idx>.chop.Int !! $*NEXT-PARAMETER;
             X::Str::Sprintf::Directives::Unsupported.new(
               directive => ~$<idx>,
@@ -288,6 +305,7 @@ our class Formatter {
 
             # record the directive, * indicates a position indicator (e.g. 4$)
             @*DIRECTIVES[$index] = .Str with $<sym> // '*';
+            @*COERCIONS[$index]  = $coerce if $coerce;
 
             my $letter = "a";
             $letter++ while --$index;
@@ -339,103 +357,126 @@ our class Formatter {
           Bool :$space,   # whether to prefix " " if not starting with + or -
           Bool :$lc       # whether to lowercase resulting string
         ) {
-            my ($size is copy, $precision is copy, $parameter) := spa($/);
+            my $size      := size($/);
+            my $precision := precision($/);
+            my $parameter := parameter($/, :coerce($coerce // "Int"));
 
-            if !$precision && $size {
-                if has-zero($/) && !has-minus($/) {
-                    $precision := $size;
-                    $size      := Nil;
-                }
-#                else {
-#                    $precision = literal-integer(1);
-#                }
-            }
+            # AST for handling when the value is zero
+            my $zero := "0";
 
-            # $a.Int
-            my $ast := ast-call-method($parameter, $coerce // 'Int');
-
+            # AST for handling when the value is NOT zero
             # $ast.(Str || .base($base))
-            $ast := $base && $base != 10
-              ?? ast-call-method($ast, 'base', ast-integer($base))
-              !! ast-call-method($ast, 'Str');
+            my $not-zero := $base && $base != 10
+              ?? ast-call-method($parameter, 'base', ast-integer($base))
+              !! ast-call-method($parameter, 'Str');
 
             # $ast.lc
-            $ast := ast-call-method($ast, 'lc') if $lc;
+            $not-zero := ast-call-method($not-zero, 'lc') if $lc;
 
-            # handle any prefixes
-            my int $minus;
-            if $hash && has-hash($/) {
-                if $hash eq '0' {   # only for octal
-                    # prefix-zero($ast)
-                    $ast  := ast-call-sub('prefix-zero', $ast);
-                    $minus = 1;
+            # set up width of any prefix
+            my int $prefix-width = $hash.defined && has-hash($/)
+              ?? $hash.chars
+              !! 0;
+
+            unless $prefix-width {
+                # Handling + and space
+                if $plus && has-plus($/) {
+                    # prefix-plus($ast)
+                    $not-zero := ast-call-sub('prefix-plus', $not-zero);
+                }
+                elsif $space && has-space($/) {
+                    # prefix-space($ast)
+                    $not-zero := ast-call-sub('prefix-space', $not-zero);
+                }
+            }
+
+            # A precision indicates the number of digits to be shown
+            # filled out with 0's for the given precision.  It does
+            # **not** take into account any prefix width, and will
+            # gladly revert to not showing any digit at all if the
+            # precision is 0.
+            if $precision {
+                # Known at parse time
+                $zero := is-literal-int($precision)
+                  ?? "0" x $precision.value  # also handles 0 ok
+                  !! ast-nqp("x",ast-string("0"),$precision);
+
+                # pad-zeroes-int($precision,$ast)
+                $not-zero := ast-call-sub(
+                  'pad-zeroes-int', $precision, $not-zero
+                );
+            }
+
+            # Use of a size with a zero is *almost* the same as
+            # precision, but has different handling for zero and
+            # also takes into account any prefix in its size
+            # padding logic.
+            elsif $size && has-zero($/) && !has-minus($/)  {
+                # Known at parse time
+                if is-literal-int($size) {
+                    if $size.value -> $width {
+                        $zero := "0" x $width; # 0 size keeps the "0"
+
+                        # pad-zeroes-int($width,$ast)
+                        $not-zero := ast-call-sub(
+                          'pad-zeroes-int',
+                          ast-integer($width - $prefix-width),
+                          $not-zero
+                        );
+                    }
+                }
+
+                # Need to determine ar runtime
+                else {
+                    $zero := ast-nqp("x",ast-string("0"),$size);
+
+                    # pad-zeroes-int($width,$ast)
+                    $not-zero := ast-call-sub(
+                      'pad-zeroes-int',
+                      ast-sub-integer($size, $prefix-width),
+                      $not-zero
+                    );
+                }
+            }
+
+            # Handle any hash prefix.
+            if $prefix-width {
+                # prefix-hash($hash,$ast)
+                $not-zero := ast-call-sub(
+                  'prefix-hash', ast-string($hash), $not-zero
+                );
+            }
+
+            # Handle justification
+            if $size {
+                my $justifier := has-minus($/)
+                  ?? "str-left-justified"
+                  !! "str-right-justified";
+
+                if is-literal-int($size) {
+                    $zero := nqp::istype($zero,Str)
+                      ?? ast-string(::("&$justifier")($size.value, $zero))
+                      !! ast-call-sub($justifier, $size, $zero);
                 }
                 else {
-                    # parameter ?? prefix-hash('$hash',$ast) !! $ast
-                    $ast := ast-ternary(
-                      $parameter,
-                      ast-call-sub('prefix-hash', ast-string($hash), $ast),
-                      $ast
+                    # str-(left|right)-justified($size, $ast)
+                    $zero := ast-call-sub(
+                      $justifier,
+                      $size,
+                      nqp::istype($zero,Str) ?? ast-string($zero) !! $zero
                     );
-                    $minus = $hash.chars;
                 }
+
+                # str-(left|right)-justified($size, $ast)
+                $not-zero := ast-call-sub($justifier, $size, $not-zero);
             }
 
-            my $prefix;
-            if $plus && has-plus($/) {
-                $prefix = 'prefix-plus';
-                $minus  = 1;
-            }
-            elsif $space && has-space($/) {
-                $prefix = 'prefix-space';
-                $minus  = 1;
-            }
-
-            # expand to precision indicated
-            if $precision {
-                my $width := $prefix
-                  # $precision - 1
-                  ?? ast-infix($precision, "-", ast-integer(1))
-                  !! $precision;
-
-                # pad-zeroes-int(
-                #   $parameter ?? ($precision - $minus) !! $precision, $ast
-                # )
-                $ast := ast-call-sub(
-                  'pad-zeroes-int',
-                  ast-ternary(
-                    $parameter,
-                    $minus
-                      ?? ast-infix($width, "-", ast-integer($minus))
-                      !! $width,
-                    $width
-                  ),
-                  $ast
-                );
-            }
-
-            # $prefix($ast)
-            $ast := ast-call-sub($prefix, $ast) if $prefix;
-
-            # handle justification only if we need to
-            if $size {
-                # str-(left|right)-justified($precision, $ast)
-                $ast := ast-call-sub(
-                  has-minus($/)
-                    ?? "str-left-justified"
-                    !! "str-right-justified",
-                  $size,
-                  $ast
-                );
-            }
-
-            # Set up special handling of 0 if 0 precision
-            if !$precision && $<precision><size> {
-                # parameter ?? $ast !! ""
-                $ast := ast-ternary($parameter, $ast, ast-string(""));
-            }
-
-            $ast
+            # generate ternary for separated zero / non-zero value processing
+            ast-ternary(
+              $parameter,
+              $not-zero,
+              nqp::istype($zero,Str) ?? ast-string($zero) !! $zero
+            )
         }
 
 #-------------------------------------------------------------------------------
@@ -455,7 +496,7 @@ our class Formatter {
         # show numeric value in binary
         method directive:sym<b>($/ --> Nil) {
             make handle-integer-numeric(
-              $/, :base(2), :plus, :space, :hash("0$<sym>")
+              $/, :base(2), :hash("0$<sym>")
             );
         }
 
@@ -582,9 +623,13 @@ our class Formatter {
         # directives were.
         if nqp::istype(@*DIRECTIVES,Failure) {
             my @*DIRECTIVES := my str @;  # the directives seen
+            my @*COERCIONS  := my str @;  # any coercions on parameters
             return &?ROUTINE(self, $format);
         }
-        @*DIRECTIVES.unshift("");       # we're 1-based internally
+
+        # we're 1-based internally
+        @*DIRECTIVES.unshift("");
+        @*COERCIONS.unshift("");
 
         # Index of next parameter to be expected.  Note that we do this
         # 1-based rather than 0-based, for easier matching with position
@@ -594,8 +639,11 @@ our class Formatter {
         if Formatter::Syntax.parse($format, actions => Actions) -> $parsed {
             my @operands = $parsed<statement>.map: *.made;
 
+            # 0-based from now on
+            @*DIRECTIVES.shift;
+            @*COERCIONS.shift;
+
             # at least one directive
-            @*DIRECTIVES.shift;  # 0-based from now on
             if @*DIRECTIVES -> @directives {
 
                 # set up the statements
@@ -618,7 +666,20 @@ our class Formatter {
                 # set up the parameters list
                 my $letter = "a";
                 my @parameters = (^@directives).map: {
+
+                    # set up any coercion logic
+                    my $type;
+                    if @*COERCIONS[$_] -> $coercion {
+                        $type := RakuAST::Type::Coercion.new(
+                          base-type => RakuAST::Type::Simple.new(
+                            RakuAST::Name.from-identifier($coercion)
+                          )
+                        )
+                    }
+
+                    # set up the parameter
                     RakuAST::Parameter.new(
+                      :$type,
                       target => RakuAST::ParameterTarget::Var.new(
                         :name('$' ~ $letter++)
                       )

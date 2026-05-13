@@ -629,7 +629,6 @@ our class Formatter {
 
         # we're 1-based internally
         @*DIRECTIVES.unshift("");
-        @*COERCIONS.unshift("");
 
         # Index of next parameter to be expected.  Note that we do this
         # 1-based rather than 0-based, for easier matching with position
@@ -641,7 +640,6 @@ our class Formatter {
 
             # 0-based from now on
             @*DIRECTIVES.shift;
-            @*COERCIONS.shift;
 
             # at least one directive
             if @*DIRECTIVES -> @directives {

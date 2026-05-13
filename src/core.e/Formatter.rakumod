@@ -11,28 +11,77 @@
 # TODO:
 # - generate code that uses native ops and variables where possible
 
+#- Formatter -------------------------------------------------------------------
+# Class containing actual format -> AST mapping logic
+
 our class Formatter {
 
 #-------------------------------------------------------------------------------
 # Subroutines referenced at runtime by the generated ASTs, to reduce the
 # actual size of the specific parts of sprintf processing.
 
-    # Pad with zeroes as integer, keeping any +, - or space as
-    # first character intact
+    # Pad with zeroes as integer, keeping any - as first character intact
+    # and taking it into account for the padding
     our sub pad-zeroes-int(int $positions, str $string --> str) {
         nqp::isle_i($positions,0)
           || nqp::isge_i(nqp::chars($string),$positions)
           ?? $string                                # nothing to do
-          !! nqp::eqat($string,'-',0)   # XXX optimize?
-               || nqp::eqat($string,'+',0)
-               || nqp::eqat($string,' ',0)
-            ?? nqp::concat(                         # preserve + - space
-                 nqp::substr($string,0,1),
+          !! nqp::eqat($string,'-',0)
+            ?? nqp::concat(                         # preserve -
+                 "-",
                  pad-zeroes-str(
                    nqp::sub_i($positions,1),nqp::substr($string,1)
                  )
                )
             !! pad-zeroes-str($positions,$string)   # just pad out
+    }
+
+    # Pad with zeroes as integer, specifying the number of *digits* to
+    # generate (excluding any sign symbol)
+    our sub signer-pad-zeroes-int(
+      str $signer,  # sign symbol: "", " " or "+"
+      int $digits,  # number of digits that should be generated at least
+      str $string   # the stringified version of the value so far
+    --> str) {
+        my int $minus = nqp::eqat($string,'-',0);
+        nqp::isle_i($digits,0)
+          || nqp::isge_i(nqp::chars($string),$digits)
+          ?? $minus                         # too wide
+            ?? $string                       # nothing to do, already has sign
+            !! nqp::concat($signer,$string)  # just prepend any signer
+          !! $minus                         # still room
+            ?? nqp::concat(                  # negative
+                 "-",
+                 pad-zeroes-str($digits,nqp::substr($string,1))
+               )
+            !! nqp::concat($signer,pad-zeroes-str($digits,$string))
+    }
+
+    # Pad with zeroes as integer, specifying the number of *characters* to
+    # generate (including any sign symbol)
+    our sub pad-signer-zeroes-int(
+      int $digits,  # number of digits that should be generated at least
+      str $signer,  # sign symbol: "", " " or "+"
+      str $string   # the stringified version of the value so far
+    --> str) {
+        my int $minus = nqp::eqat($string,'-',0);
+
+        nqp::isle_i($digits,0)
+          || nqp::isge_i(nqp::chars($string),$digits)
+          ?? $minus                              # too wide
+            ?? $string                            # nothing todo, has sign
+            !! nqp::concat($signer,$string)       # just prepend any signer
+          !! $minus                              # still room
+            ?? nqp::concat(                       # account for existing sign
+                 "-",
+                 pad-zeroes-str(nqp::sub_i($digits,1), nqp::substr($string,1))
+               )
+            !! $signer                            # has a signer
+              ?? nqp::concat(                      # take signer into account
+                   $signer,
+                   pad-zeroes-str(nqp::sub_i($digits,1),$string)
+                 )
+              !! pad-zeroes-str($digits, $string)  # just pad
     }
 
     # pad with zeroes after decimal point
@@ -79,6 +128,13 @@ our class Formatter {
           !! nqp::concat($hash,$string)
     }
 
+    # prefix sign symbol if value is not negative or zero
+    our sub prefix-signer(str $signer, str $string --> str) {
+        nqp::eqat($string,'-',0)
+          ?? $string
+          !! nqp::concat($signer,$string)
+    }
+
     # prefix plus if value is not negative
     our sub prefix-plus(str $string --> str) {
         nqp::eqat($string,'-',0)
@@ -86,7 +142,8 @@ our class Formatter {
           !! nqp::concat("+",$string)
     }
 
-    # prefix space if string not starting with "-"
+    # Prefix signer character if string not starting with "-",
+    # and replace leading zero with signer, or just prefix it
     our sub prefix-space(str $string --> str) {
         nqp::eqat($string,'-',0)
           ?? $string
@@ -274,8 +331,14 @@ our class Formatter {
         sub has-space($/) { " " (elem) $<flags>.map: *.Str }
         sub has-zero($/)  { "0" (elem) $<flags>.map: *.Str }
 
-        # helper sub to get size specification
-        sub size($/ --> RakuAST::Node:D) { any-size($<size>) }
+        # helper sub to get size specification, size 0 is ignored
+        sub size($/ --> RakuAST::Node:D) {
+            is-literal-int(my $size := any-size($<size>))
+              ?? $size.value > 0
+                ?? $size
+                !! Nil
+              !! $size
+        }
 
         # helper sub to get precision specification
         sub precision($/ --> RakuAST::Node:D) {
@@ -287,7 +350,7 @@ our class Formatter {
         sub any-size($/ --> RakuAST::Node:D) {
             $/
               ?? $<star>
-                ?? ast-call-method(parameter($/), 'Int')
+                ?? parameter($/, :coerce<Int>)
                 !! ast-integer($/.Int)
               !! Nil
         }
@@ -378,72 +441,81 @@ our class Formatter {
               ?? $hash.chars
               !! 0;
 
+            # The signer symbol is either a "+" or a " " which will
+            # be prefixed if the value is not negative
+            my str $signer = "";
             unless $prefix-width {
                 # Handling + and space
                 if $plus && has-plus($/) {
-                    # prefix-plus($ast)
-                    $not-zero := ast-call-sub('prefix-plus', $not-zero);
+                    $signer = "+";
                 }
                 elsif $space && has-space($/) {
-                    # prefix-space($ast)
-                    $not-zero := ast-call-sub('prefix-space', $not-zero);
+                    $signer = " ";
                 }
             }
 
             # A precision indicates the number of digits to be shown
             # filled out with 0's for the given precision.  It does
-            # **not** take into account any prefix width, and will
-            # gladly revert to not showing any digit at all if the
-            # precision is 0.
+            # **not** take into account any prefix width or plus/space,
+            # and will gladly revert to not showing any digit at all if
+            # the precision is 0.
             if $precision {
-                # Known at parse time
                 $zero := is-literal-int($precision)
-                  ?? "0" x $precision.value  # also handles 0 ok
-                  !! ast-nqp("x",ast-string("0"),$precision);
+                  ?? $signer ~ "0" x $precision.value
+                  !! $signer
+                    ?? ast-nqp("concat",
+                         ast-string($signer),
+                         ast-nqp("x","0",$precision)
+                       )
+                    !! ast-nqp("x","0",$precision);
 
-                # pad-zeroes-int($precision,$ast)
-                $not-zero := ast-call-sub(
-                  'pad-zeroes-int', $precision, $not-zero
+                $not-zero := ast-call-sub('signer-pad-zeroes-int',
+                  ast-string($signer), $precision, $not-zero
                 );
             }
 
             # Use of a size with a zero is *almost* the same as
             # precision, but has different handling for zero and
-            # also takes into account any prefix in its size
-            # padding logic.
+            # also takes into account any prefix, + or space in
+            # its size padding logic.
             elsif $size && has-zero($/) && !has-minus($/)  {
-                # Known at parse time
-                if is-literal-int($size) {
-                    if $size.value -> $width {
-                        $zero := "0" x $width; # 0 size keeps the "0"
 
-                        # pad-zeroes-int($width,$ast)
-                        $not-zero := ast-call-sub(
-                          'pad-zeroes-int',
-                          ast-integer($width - $prefix-width),
-                          $not-zero
-                        );
-                    }
-                }
+                $zero := is-literal-int($size)
+                  ?? (my int $width = $size.value)
+                    ?? ($signer ~ "0" x ($width - $signer.chars))
+                    !! $zero
+                  !! $signer
+                    ?? ast-nqp("if",
+                         $size,
+                         ast-nqp("concat",
+                           ast-string($signer),
+                           ast-nqp("x","0",ast-sub-integer($size,1))
+                         ),
+                         ast-string($signer)
+                       )
+                    !! ast-nqp("x","0",$size);
 
-                # Need to determine ar runtime
-                else {
-                    $zero := ast-nqp("x",ast-string("0"),$size);
+                $not-zero := ast-call-sub('pad-signer-zeroes-int',
+                  $size, ast-string($signer), $not-zero
+                );
 
-                    # pad-zeroes-int($width,$ast)
-                    $not-zero := ast-call-sub(
-                      'pad-zeroes-int',
-                      ast-sub-integer($size, $prefix-width),
-                      $not-zero
-                    );
-                }
+                # No further sizing needed
+                $size := Nil;
+            }
+
+            # A signer and no zeroed size and no precision
+            elsif $signer {
+                $zero     := $signer ~ "0";
+                $not-zero := ast-call-sub('prefix-signer',
+                  ast-string($signer), $not-zero
+                );
             }
 
             # Handle any hash prefix.
             if $prefix-width {
                 # prefix-hash($hash,$ast)
-                $not-zero := ast-call-sub(
-                  'prefix-hash', ast-string($hash), $not-zero
+                $not-zero := ast-call-sub('prefix-hash',
+                  ast-string($hash), $not-zero
                 );
             }
 
@@ -457,26 +529,33 @@ our class Formatter {
                     $zero := nqp::istype($zero,Str)
                       ?? ast-string(::("&$justifier")($size.value, $zero))
                       !! ast-call-sub($justifier, $size, $zero);
+
+                    ast-ternary(
+                      $parameter,
+                      ast-call-sub($justifier, $size, $not-zero),
+                      $zero
+                    )
                 }
                 else {
-                    # str-(left|right)-justified($size, $ast)
-                    $zero := ast-call-sub(
-                      $justifier,
+                    $zero := ast-call-sub($justifier,
                       $size,
                       nqp::istype($zero,Str) ?? ast-string($zero) !! $zero
                     );
+                    $not-zero := ast-call-sub(
+                      $justifier,
+                      $size,
+                      ast-ternary($parameter, $not-zero, $zero)
+                    );
                 }
-
-                # str-(left|right)-justified($size, $ast)
-                $not-zero := ast-call-sub($justifier, $size, $not-zero);
             }
 
-            # generate ternary for separated zero / non-zero value processing
-            ast-ternary(
-              $parameter,
-              $not-zero,
-              nqp::istype($zero,Str) ?? ast-string($zero) !! $zero
-            )
+            else {
+                ast-ternary(
+                  $parameter,
+                  $not-zero,
+                  nqp::istype($zero,Str) ?? ast-string($zero) !! $zero
+                )
+            }
         }
 
 #-------------------------------------------------------------------------------
@@ -629,6 +708,7 @@ our class Formatter {
 
         # we're 1-based internally
         @*DIRECTIVES.unshift("");
+        @*COERCIONS.unshift("");
 
         # Index of next parameter to be expected.  Note that we do this
         # 1-based rather than 0-based, for easier matching with position
@@ -640,6 +720,7 @@ our class Formatter {
 
             # 0-based from now on
             @*DIRECTIVES.shift;
+            @*COERCIONS.shift;
 
             # at least one directive
             if @*DIRECTIVES -> @directives {

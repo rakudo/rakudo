@@ -36,6 +36,20 @@ our class Formatter {
             !! pad-zeroes-str($positions,$string)   # just pad out
     }
 
+    # Pad with zeroes as integer, keeping any - as first character intact
+    # and *not* taking any minus into account for padding
+    our sub pad-zeroes-int-strict(int $positions, str $string --> str) {
+        nqp::isle_i($positions,0)
+          || nqp::isgt_i(nqp::chars($string),$positions)
+          ?? $string                                # nothing to do
+          !! nqp::eqat($string,'-',0)
+            ?? nqp::concat(                         # preserve -
+                 "-",
+                 pad-zeroes-str($positions,nqp::substr($string,1))
+               )
+            !! pad-zeroes-str($positions,$string)   # just pad out
+    }
+
     # Pad with zeroes as integer, specifying the number of *digits* to
     # generate (excluding any sign symbol)
     our sub signer-pad-zeroes-int(
@@ -119,8 +133,6 @@ our class Formatter {
     # a + or - or space
     our sub prefix-hash(str $hash, str $string --> str) {
         nqp::eqat($string,'-',0)
-          || nqp::eqat($string,'+',0)
-          || nqp::eqat($string,' ',0)
           ?? nqp::concat(
                nqp::substr($string,0,1),
                nqp::concat($hash,nqp::substr($string,1))
@@ -428,21 +440,21 @@ our class Formatter {
             my $zero := "0";
 
             # AST for handling when the value is NOT zero
-            # $ast.(Str || .base($base))
             my $not-zero := $base && $base != 10
               ?? ast-call-method($parameter, 'base', ast-integer($base))
               !! ast-call-method($parameter, 'Str');
 
-            # $ast.lc
+            # For lowercase versions number bases > 10
             $not-zero := ast-call-method($not-zero, 'lc') if $lc;
 
-            # set up width of any prefix
-            my int $prefix-width = $hash.defined && has-hash($/)
+            # Set up width of any prefix (a # in the format)
+            my int $prefix-width = $hash && has-hash($/)
               ?? $hash.chars
               !! 0;
 
             # The signer symbol is either a "+" or a " " which will
-            # be prefixed if the value is not negative
+            # be prefixed if the value is not negative and there's
+            # no # in the format
             my str $signer = "";
             unless $prefix-width {
                 # Handling + and space
@@ -469,9 +481,13 @@ our class Formatter {
                        )
                     !! ast-nqp("x","0",$precision);
 
-                $not-zero := ast-call-sub('signer-pad-zeroes-int',
-                  ast-string($signer), $precision, $not-zero
-                );
+                $not-zero := $prefix-width
+                  ?? ast-call-sub('pad-zeroes-int-strict',
+                       $precision, $not-zero
+                     )
+                  !! ast-call-sub('signer-pad-zeroes-int',
+                       ast-string($signer), $precision, $not-zero
+                     );
             }
 
             # Use of a size with a zero is *almost* the same as
@@ -495,9 +511,16 @@ our class Formatter {
                        )
                     !! ast-nqp("x","0",$size);
 
-                $not-zero := ast-call-sub('pad-signer-zeroes-int',
-                  $size, ast-string($signer), $not-zero
-                );
+                $not-zero := $prefix-width
+                  ?? ast-call-sub('pad-zeroes-int',
+                       is-literal-int($size)
+                         ?? ast-integer($size.value - $prefix-width)
+                         !! ast-sub-integer($size, $prefix-width),
+                       $not-zero
+                     )
+                  !! ast-call-sub('pad-signer-zeroes-int',
+                       $size, ast-string($signer), $not-zero
+                     );
 
                 # No further sizing needed
                 $size := Nil;

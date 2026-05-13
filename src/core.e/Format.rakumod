@@ -8,13 +8,13 @@ my class Format is Str is Callable {
     has     &!code;
 
     method new(Str:D $format, :$class = Formatter) {
-        my @*DIRECTIVES := my str @;
         my &code := $class.new($format);
+        my $obj  := nqp::create(self);
 
-        my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);
         nqp::bindattr($obj,Format,'@!directives',@*DIRECTIVES);
         nqp::bindattr($obj,Format,'&!code',&code);
+
         $obj
     }
 

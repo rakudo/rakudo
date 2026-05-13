@@ -678,16 +678,18 @@ our class Formatter {
 
             # make sure we have a (potentially truncated) string
             my $ast := $precision
-                 # $a.substr(0,$precision)
               ?? ast-call-method(
                    $parameter, 'substr', ast-integer(0), $precision
                  )
-                 # $a.Str
               !! ast-call-method($parameter, 'Str');
 
             # perform any justification
             $ast := ast-call-sub(
-              'str-' ~ (has-minus($/) ?? 'left' !! 'right') ~ '-justified',
+              has-minus($/)
+                ?? 'str-left-justified'
+                !! has-zero($/)
+                  ?? 'pad-zeroes-str'
+                  !! 'str-right-justified',
               $size,
               $ast
             ) if $size;

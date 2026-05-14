@@ -7,9 +7,6 @@
 # If not found, it will parse the format with the Formatter::Syntax grammar
 # and the Formatter::Actions class, which will create the RakuAST nodes for
 # it and store the Callable in the hash.
-#
-# TODO:
-# - generate code that uses native ops and variables where possible
 
 #- Formatter -------------------------------------------------------------------
 # Class containing actual format -> AST mapping logic
@@ -142,7 +139,7 @@ our class Formatter {
 
     # prefix sign symbol if value is not negative or zero
     our sub prefix-signer(str $signer, str $string --> str) {
-        nqp::eqat($string,'-',0)
+        nqp::eqat($string,'-',0) || nqp::iseq_s($string,'NaN')
           ?? $string
           !! nqp::concat($signer,$string)
     }
@@ -154,24 +151,16 @@ our class Formatter {
           !! nqp::concat("+",$string)
     }
 
-    # Prefix signer character if string not starting with "-",
-    # and replace leading zero with signer, or just prefix it
-    our sub prefix-space(str $string --> str) {
-        nqp::eqat($string,'-',0)
-          ?? $string
-          !! nqp::concat(' ',$string)
-    }
-
     # set up value for scientific notation
-    our proto sub scientify(|) {*}
-    multi sub scientify($letter, $positions, $value) {
-        scientify($letter, $positions, $value.Numeric)
-    }
-    multi sub scientify($letter, $positions, Numeric:D $value) {
-        if $value {
-            my int $exponent = $value ?? $value.abs.log(10).floor !! 0;
+    our sub scientify(str $letter, int $positions, Numeric() $value) {
+        if nqp::istype($value,Num) && nqp::isnanorinf($value) {
+            $value.Str
+        }
+        elsif $value {
+
+            my int $exponent = $value.abs.log(10).floor;
             my str $string =
-              ($value / 10 ** $exponent).round(10 ** -$positions).Str;
+              (($value / 10 ** $exponent).round(10 ** -$positions)).Str;
             my int $end = nqp::chars($string) - 1;
 
             if nqp::ord($string,$end) == 48 {  # "0"
@@ -213,6 +202,32 @@ our class Formatter {
                  $string
                )
             !! $string
+    }
+
+    # Return 1 of NaN or Inf, else 0
+    our sub nan-or-inf($value --> int) {
+        nqp::istype($value,Num) && nqp::isnanorinf($value)
+    }
+
+    # Provide conversion of numeric values to string, as the workhorse
+    # of the %f formatting
+    our sub stringify-multiplier-digits(
+      $value, int $multiplier, int $digits
+    --> str) {
+        if $digits {
+            my str $string = $value
+              ?? ($value * $multiplier).round.Str
+              !! nqp::concat("0",nqp::substr($multiplier,1));
+
+            my int $cutoff = nqp::chars($string) - $digits;
+            nqp::concat(
+              nqp::substr($string,0,$cutoff),
+              nqp::concat('.',nqp::substr($string,$cutoff))
+            )
+        }
+        else {
+            $value.round.Str
+        }
     }
 
 #-------------------------------------------------------------------------------
@@ -415,26 +430,20 @@ our class Formatter {
         # We first need to get any size/precision information because
         # they can be parameter based and should be specified *before*
         # the actual argument
-        proto sub spa(|) {*}
-        multi sub spa($/ --> List:D) {
-            (size($/), precision($/), parameter($/))
-        }
-        multi sub spa($/, Int:D $default --> List:D) {
-            (size($/), precision($/) // ast-integer($default), parameter($/))
-        }
+        sub spa($/ --> List:D) { (size($/), precision($/), parameter($/)) }
 
         # helper sub for processing formats for integer values
         sub handle-integer-numeric($/,
            Int :$base,    # the number base to assume for generating string
            Str :$hash,    # the string to prefix if "#" is in format
            Str :$coerce,  # method name to initially coerce with, default Int
-          Bool :$plus,    # whether to prefix "+" if positive
-          Bool :$space,   # whether to prefix " " if not starting with + or -
-          Bool :$lc       # whether to lowercase resulting string
+          Bool :$lc,      # whether to lowercase resulting string
+          Bool :$plus,    # allow prefix "+" if positive, not starting with -
+          Bool :$space,   # allow prefix " " if not starting with -
+               :$size is copy = size($/),
+               :$precision    = precision($/),
+               :$parameter    = parameter($/, :coerce($coerce // "Int"))
         ) {
-            my $size      := size($/);
-            my $precision := precision($/);
-            my $parameter := parameter($/, :coerce($coerce // "Int"));
 
             # AST for handling when the value is zero
             my $zero := "0";
@@ -597,8 +606,8 @@ our class Formatter {
 
         # show numeric value in binary
         method directive:sym<b>($/ --> Nil) {
-            make handle-integer-numeric(
-              $/, :base(2), :hash("0$<sym>")
+            make handle-integer-numeric($/,
+              :base(2), :hash("0$<sym>")
             );
         }
 
@@ -627,12 +636,14 @@ our class Formatter {
 
         # show decimal (integer) value
         method directive:sym<d>($/ --> Nil) {
-            make handle-integer-numeric($/, :base(10), :plus, :space);
+            make handle-integer-numeric($/,
+              :base(10), :plus, :space
+            );
         }
 
         # show floating point value, scientific notation
         method directive:sym<e>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/, 6);
+            my ($size, $precision, $parameter) := spa($/);
 
             # scientify($precision,'e',$a)
             my $ast := ast-call-sub(
@@ -644,22 +655,65 @@ our class Formatter {
 
         # show floating point value
         method directive:sym<f>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/, 6);
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(6);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my $has-minus := has-minus($/);
 
-            # $a.Numeric
-            my $ast := ast-call-method($parameter, 'Numeric');
+            my $signer = has-plus($/)
+              ?? ast-string("+")
+              !! has-space($/)
+                ?? ast-string(" ")
+                !! Nil;
 
-            # $ast.round(10 ** -$precision)
-            $ast := ast-call-method(
-              $ast,
-              'round',
-              ast-infix(ast-integer(10), '**', ast-prefix('-', $precision))
+            # helper sub to set up justification if there is no "0" flag
+            my sub justify($ast is copy) {
+                $ast := ast-call-sub('prefix-signer', $signer, $ast) if $signer;
+                $ast := ast-call-sub(
+                  $has-minus
+                    ?? 'str-left-justified'
+                    !! 'str-right-justified',
+                  $size,
+                  $ast
+                ) if $size;
+                $ast
+            }
+
+            # Set up NaN / ±Inf handling
+            my $nan-or-inf := ast-call-method($parameter,'Str');
+
+            # Set up non-zero value handling
+            my $not-zero := ast-call-sub('stringify-multiplier-digits',
+              $parameter,
+              is-literal-int($precision)
+                ?? ast-integer(10 ** $precision.value)
+                !! ast-infix(ast-integer(10), '**', $precision),
+              $precision
             );
 
-            # $ast.Str
-            $ast := ast-call-method($ast, 'Str');
+            # Filling out with zeroes
+            make do if $size && has-zero($/) {
+                $not-zero := $signer
+                  ?? ast-call-sub('signer-pad-zeroes-int',
+                       $signer, ast-sub-integer($size, 1), $not-zero
+                     )
+                  !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
 
-            make plus-minus-zero($/, $size, $ast);
+                ast-ternary(
+                  ast-call-sub('nan-or-inf', $parameter),
+                  justify($nan-or-inf),
+                  $not-zero
+                )
+            }
+            else {
+                justify(
+                  ast-ternary(
+                    ast-call-sub('nan-or-inf', $parameter),
+                    $nan-or-inf,
+                    $not-zero
+                  )
+                )
+            }
         }
 
         # f or e depending on value
@@ -669,7 +723,7 @@ our class Formatter {
 
         # show numeric value in octal using Perl / Raku semantics
         method directive:sym<o>($/ --> Nil) {
-            make handle-integer-numeric($/, :base(8), :hash<0>);
+            make handle-integer-numeric($/, :base(8), :hash("0"));
         }
 
         # show string
@@ -704,8 +758,8 @@ our class Formatter {
 
         # show numeric value in hexadecimal
         method directive:sym<x>($/ --> Nil) {
-            make handle-integer-numeric(
-              $/, :base(16), :hash("0$<sym>"), :lc($<sym> eq "x")
+            make handle-integer-numeric($/,
+              :base(16), :hash("0$<sym>"), :lc($<sym> eq "x")
             )
         }
 

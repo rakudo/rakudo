@@ -223,9 +223,9 @@ our class Formatter {
     # Provide conversion of numeric values to string, as the workhorse
     # of the %f formatting
     our sub stringify-multiplier-digits(
-      $value, int $multiplier, int $digits
+      $value, int $multiplier, int $digits, int $decimal-point
     --> str) {
-        if $digits {
+        if $digits || $decimal-point {
             my str $string = $value
               ?? ($value * $multiplier).round.Str
               !! nqp::concat("0",nqp::substr($multiplier,1));
@@ -310,6 +310,14 @@ our class Formatter {
             RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier-parts('Formatter', $name),
               args => RakuAST::ArgList.new($one, $two, $three)
+            )
+        }
+        multi sub ast-call-sub(
+          $name, $one, $two, $three, $four,
+        --> RakuAST::Call::Name:D) {
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier-parts('Formatter', $name),
+              args => RakuAST::ArgList.new($one, $two, $three, $four)
             )
         }
 
@@ -676,6 +684,7 @@ our class Formatter {
             my $parameter := parameter($/, :coerce<Numeric>);
             my $has-minus := has-minus($/);
 
+            # Set up any additional sign info
             my $signer = has-plus($/)
               ?? ast-string("+")
               !! has-space($/)
@@ -704,7 +713,8 @@ our class Formatter {
               is-literal-int($precision)
                 ?? ast-integer(10 ** $precision.value)
                 !! ast-infix(ast-integer(10), '**', $precision),
-              $precision
+              $precision,
+              ast-integer(+has-hash($/))
             );
 
             # Filling out with zeroes

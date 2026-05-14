@@ -772,6 +772,8 @@ class RakuAST::Declaration::External::Setting
 class RakuAST::Declaration::Import
   is RakuAST::Declaration::External::Constant
 {
+    method meta-object() { self.compile-time-value }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := self.compile-time-value;
         $context.ensure-sc($value);

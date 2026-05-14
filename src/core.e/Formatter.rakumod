@@ -151,6 +151,17 @@ our class Formatter {
           !! nqp::concat("+",$string)
     }
 
+    # prefix 0 if value does not start with a 0
+    our sub prefix-zero(str $string --> str) {
+        nqp::eqat($string,'0',0)
+          ?? $string
+          !! nqp::eqat($string,'-',0)
+            ?? nqp::eqat($string,'0',1)
+              ?? $string
+              !! nqp::concat("-0",nqp::substr($string,1))
+            !! nqp::concat("0",$string)
+    }
+
     # set up value for scientific notation
     our sub scientify(str $letter, int $positions, Numeric() $value) {
         if nqp::istype($value,Num) && nqp::isnanorinf($value) {
@@ -440,10 +451,11 @@ our class Formatter {
           Bool :$lc,      # whether to lowercase resulting string
           Bool :$plus,    # allow prefix "+" if positive, not starting with -
           Bool :$space,   # allow prefix " " if not starting with -
-               :$size is copy = size($/),
-               :$precision    = precision($/),
-               :$parameter    = parameter($/, :coerce($coerce // "Int"))
+          Bool :$octal    # perform extra octal handling for #
         ) {
+            my $size      = size($/);
+            my $precision = precision($/);
+            my $parameter = parameter($/, :coerce($coerce // "Int"));
 
             # AST for handling when the value is zero
             my $zero := "0";
@@ -452,6 +464,10 @@ our class Formatter {
             my $not-zero := $base && $base != 10
               ?? ast-call-method($parameter, 'base', ast-integer($base))
               !! ast-call-method($parameter, 'Str');
+
+            # Perform weird octal handling for # flag
+            $not-zero := ast-call-sub('prefix-zero', $not-zero)
+              if $octal && has-hash($/);
 
             # For lowercase versions number bases > 10
             $not-zero := ast-call-method($not-zero, 'lc') if $lc;
@@ -723,7 +739,7 @@ our class Formatter {
 
         # show numeric value in octal using Perl / Raku semantics
         method directive:sym<o>($/ --> Nil) {
-            make handle-integer-numeric($/, :base(8), :hash("0"));
+            make handle-integer-numeric($/, :base(8), :octal);
         }
 
         # show string

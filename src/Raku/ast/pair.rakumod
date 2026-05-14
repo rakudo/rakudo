@@ -105,10 +105,29 @@ class RakuAST::ColonPair
 
     method properties() { OperatorProperties.postfix(':') }
 
+    method simple-compile-time-quote-value() { Nil }
+
+    # Failure results are returned, not rethrown; callers decide, see
+    # `IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW`. Value is memoized on the
+    # node so side effects fire at most once.
+    method IMPL-EVAL-COLONPAIR-VALUE(RakuAST::Resolver $resolver,
+                                     RakuAST::IMPL::QASTContext $context) {
+        self.simple-compile-time-quote-value
+    }
+
+    # `$Failure` is the caller's already-resolved Failure type, or
+    # `nqp::null` during CORE setting bootstrap.
+    method IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(RakuAST::Resolver $resolver,
+                                                RakuAST::IMPL::QASTContext $context,
+                                                Mu $Failure) {
+        my $value := self.IMPL-EVAL-COLONPAIR-VALUE($resolver, $context);
+        $value.exception.throw
+            if !nqp::isnull($Failure) && nqp::istype($value, $Failure);
+        $value
+    }
+
     method canonicalize() {
         my $value := self.simple-compile-time-quote-value;
-        $value := self.value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
-            if !$value && self.value.IMPL-CAN-INTERPRET;
         $!key ~ (
             $value
                 ?? self.IMPL-QUOTE-VALUE($value)
@@ -317,6 +336,8 @@ class RakuAST::ColonPair::Value
   is RakuAST::QuotePair
 {
     has RakuAST::Expression $.value;
+    has Mu  $!cached-value;
+    has int $!has-cached-value;
 
     method new(Str :$key!, RakuAST::Expression :$value!) {
         my $obj := nqp::create(self);
@@ -329,14 +350,71 @@ class RakuAST::ColonPair::Value
         $visitor($!value);
     }
 
+    # Memoise on $!cached-value/$!has-cached-value; treat the flag as the
+    # authoritative "is there a value" indicator so a legitimately falsy
+    # interpret result (`:foo(0)`, `:foo("")`) doesn't get re-evaluated.
+    method IMPL-CACHE-VALUE(Mu $value) {
+        nqp::bindattr(self, RakuAST::ColonPair::Value, '$!cached-value', $value);
+        nqp::bindattr_i(self, RakuAST::ColonPair::Value, '$!has-cached-value', 1);
+        $value
+    }
+
+    # Never calls IMPL-INTERPRET, so callers that just need to introspect
+    # (base canonicalize, adverb scanners) don't fire side effects.
     method simple-compile-time-quote-value() {
-        # TODO various cases we can handle here
-        if nqp::istype(self.value, RakuAST::QuotedString) {
-            self.value.literal-value
+        return $!cached-value if $!has-cached-value;
+        nqp::istype(self.value, RakuAST::QuotedString)
+            ?? self.IMPL-CACHE-VALUE(self.value.literal-value)
+            !! Nil
+    }
+
+    # Single source of truth for "interpret the value expression once and
+    # cache it". Returns the interpreted value, or Nil when the expression
+    # is not IMPL-INTERPRET-able and a BEGIN-time evaluation is needed
+    # (only IMPL-EVAL-COLONPAIR-VALUE has the resolver/context to do that).
+    method IMPL-INTERPRETED-VALUE-OR-NIL() {
+        return $!cached-value if $!has-cached-value;
+        my $v := self.simple-compile-time-quote-value;
+        return $v if $!has-cached-value;
+        $!value.IMPL-CAN-INTERPRET
+            ?? self.IMPL-CACHE-VALUE($!value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new))
+            !! Nil
+    }
+
+    # Non-QuotedString values (`:foo['a','b']`, `:foo('a','b')`) need to
+    # be interpreted so IMPL-QUOTE-VALUE can render the same `<a b>`
+    # canonical form as `:foo<a b>`.
+    method canonicalize() {
+        my $value := self.IMPL-INTERPRETED-VALUE-OR-NIL;
+        self.key ~ (
+            $!has-cached-value && nqp::isconcrete($value)
+                ?? self.IMPL-QUOTE-VALUE($value)
+                !! $!value.origin
+                    ?? $!value.origin.Str
+                    !! $!value.DEPARSE)
+    }
+
+    method IMPL-EVAL-COLONPAIR-VALUE(RakuAST::Resolver $resolver,
+                                     RakuAST::IMPL::QASTContext $context) {
+        my $value := self.IMPL-INTERPRETED-VALUE-OR-NIL;
+        return $value if $!has-cached-value;
+        # Not IMPL-INTERPRET-able; fall through to BEGIN-time evaluation.
+        # The CATCH re-attaches the colonpair's source location because
+        # IMPL-BEGIN-TIME-EVALUATE attributes through self.origin, which
+        # is unset on the BeginTime type object we dispatch through.
+        {
+            CATCH {
+                my $ex := $resolver.convert-begin-time-exception($_);
+                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
+                    my $origin-match := $origin.as-match;
+                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
+                }
+                $ex.rethrow;
+            }
+            $value := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
+                $!value, $resolver, $context);
         }
-        else {
-            Nil
-        }
+        self.IMPL-CACHE-VALUE($value)
     }
 
     method has-compile-time-value() {

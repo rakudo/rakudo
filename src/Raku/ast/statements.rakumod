@@ -1709,17 +1709,24 @@ class RakuAST::ModuleLoading {
         $!unchecked-declarators // nqp::hash
     }
 
-    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
+    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver,
+                            RakuAST::IMPL::QASTContext $context,
+                            RakuAST::Name $module-name) {
         # Build dependency specification for the module.
         my $dependency-specification := $resolver.type-from-setting(
           'CompUnit', 'DependencySpecification'
         );
         my $opts := nqp::hash();
-        for $module-name.IMPL-UNWRAP-LIST($module-name.colonpairs) {
-            $opts{$_.key} := $_.simple-compile-time-quote-value;
+        my @colonpairs := $module-name.IMPL-UNWRAP-LIST($module-name.colonpairs);
+        if nqp::elems(@colonpairs) {
+            my $Failure := $resolver.type-from-setting('Failure');
+            for @colonpairs {
+                $opts{$_.key} := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
+                    $resolver, $context, $Failure);
+            }
         }
         my $spec := $dependency-specification.new(
-            :short-name($module-name.canonicalize(:colonpairs(False))),
+            :short-name($module-name.canonicalize(:colonpairs(0))),
             :from($opts<from> // 'Perl6'),
             :auth-matcher($opts<auth> // True),
             :api-matcher($opts<api> // True),
@@ -1915,7 +1922,7 @@ class RakuAST::Statement::Use
             ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
             !! Nil;
 
-        my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $!module-name);
+        my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $context, $!module-name);
         self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist, :module($!module-name.canonicalize));
         self.IMPL-IMPORT-EXPORTHOW($resolver, $comp-unit.handle);
     }
@@ -1947,7 +1954,7 @@ class RakuAST::Statement::Need
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         for $!module-names {
-            self.IMPL-LOAD-MODULE($resolver, $_);
+            self.IMPL-LOAD-MODULE($resolver, $context, $_);
         }
     }
 

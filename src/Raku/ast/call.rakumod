@@ -1126,6 +1126,7 @@ class RakuAST::Call::VarMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -1176,6 +1177,12 @@ class RakuAST::Call::VarMethod
         }
 
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            self.PERFORM-BEGIN($resolver, $context);
+        }
     }
 
     method undeclared-symbol-details() {

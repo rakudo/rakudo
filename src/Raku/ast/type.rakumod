@@ -951,7 +951,7 @@ class RakuAST::Type::Enum
 
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::EnumHOW.new_type(
-            :name($!name.canonicalize),
+            :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
         )
     }
@@ -1130,7 +1130,7 @@ class RakuAST::Type::Subset
 
     method PRODUCE-STUBBED-META-OBJECT() {
         Perl6::Metamodel::SubsetHOW.new_type(
-            :name($!name.canonicalize),
+            :name($!name.canonicalize(:colonpairs(0))),
             :refinee(Any),
             :refinement(nqp::null)
         )

@@ -220,25 +220,31 @@ our class Formatter {
         nqp::istype($value,Num) && nqp::isnanorinf($value)
     }
 
-    # Provide conversion of numeric values to string, as the workhorse
-    # of the %f formatting
+    # Provide conversion of numeric values to string, only rendering a
+    # decimal point if number of digits > 0
     our sub stringify-multiplier-digits(
-      $value, int $multiplier, int $digits, int $decimal-point
+      $value, int $multiplier, int $digits
     --> str) {
-        if $digits || $decimal-point {
-            my str $string = $value
-              ?? ($value * $multiplier).round.Str
-              !! nqp::concat("0",nqp::substr($multiplier,1));
+        $digits
+          ?? stringify-multiplier-digits-point($value, $multiplier, $digits)
+          !! $value.round.Str
+    }
 
-            my int $cutoff = nqp::chars($string) - $digits;
-            nqp::concat(
-              nqp::substr($string,0,$cutoff),
-              nqp::concat('.',nqp::substr($string,$cutoff))
-            )
-        }
-        else {
-            $value.round.Str
-        }
+    # Provide conversion of numeric values to string, always rendering
+    # a decimal point
+    # of the %f formatting
+    our sub stringify-multiplier-digits-point(
+      $value, int $multiplier, int $digits
+    --> str) {
+        my str $string = $value
+          ?? ($value * $multiplier).round.Str
+          !! nqp::concat("0",nqp::substr($multiplier,1));
+
+        my int $cutoff = nqp::chars($string) - $digits;
+        nqp::concat(
+          nqp::substr($string,0,$cutoff),
+          nqp::concat('.',nqp::substr($string,$cutoff))
+        )
     }
 
 #-------------------------------------------------------------------------------
@@ -310,14 +316,6 @@ our class Formatter {
             RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier-parts('Formatter', $name),
               args => RakuAST::ArgList.new($one, $two, $three)
-            )
-        }
-        multi sub ast-call-sub(
-          $name, $one, $two, $three, $four,
-        --> RakuAST::Call::Name:D) {
-            RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier-parts('Formatter', $name),
-              args => RakuAST::ArgList.new($one, $two, $three, $four)
             )
         }
 
@@ -708,13 +706,15 @@ our class Formatter {
             my $nan-or-inf := ast-call-method($parameter,'Str');
 
             # Set up non-zero value handling
-            my $not-zero := ast-call-sub('stringify-multiplier-digits',
+            my $not-zero := ast-call-sub(
+              has-hash($/)
+                ?? 'stringify-multiplier-digits-point'
+                !! 'stringify-multiplier-digits',
               $parameter,
               is-literal-int($precision)
                 ?? ast-integer(10 ** $precision.value)
                 !! ast-infix(ast-integer(10), '**', $precision),
-              $precision,
-              ast-integer(+has-hash($/))
+              $precision
             );
 
             # Filling out with zeroes

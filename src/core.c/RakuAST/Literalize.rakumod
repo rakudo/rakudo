@@ -96,6 +96,12 @@ augment class RakuAST::Node {
         self.body.statement-list.literalize.Map
     }
 
+#- C ---------------------------------------------------------------------------
+
+    multi method literalize(RakuAST::Call:D:) {
+        alas
+    }
+
 #- Circumfix -------------------------------------------------------------------
 
     multi method literalize(RakuAST::Circumfix::ArrayComposer:D:) {

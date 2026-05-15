@@ -502,10 +502,10 @@ our class Formatter {
               !! 'str-signer-right-justified'
         }
 
-        # Helper sub to return an AST for the string for 0 for the
-        # given %f, %g and %e formats.  Returns Nil if no static
-        # string couldbe returned.
-        sub zero-float($/, $size, $precision) {
+        # Helper sub to return a string for 0 for the given %f, %g
+        # and %e formats.  Returns empty string if no static string
+        # could be returned.
+        sub zero-float($/, $size, $precision --> str) {
             if is-literal-int($precision) {
                 my int $digits = $precision.value;
                 my str $string = $digits || has-hash($/)
@@ -516,25 +516,23 @@ our class Formatter {
                 if $size {
                     if is-literal-int($size) {
                         my int $width = $size.value;
-                        ast-string(
-                          has-zero($/)
-                            ?? pad-signer-zeroes-int($width, $signer, $string)
-                            !! ::("&" ~ justifier($/))(
-                                 $width,
-                                 prefix-signer($signer, $string)
-                               )
-                        )
+                        has-zero($/)
+                          ?? pad-signer-zeroes-int($width, $signer, $string)
+                          !! ::("&" ~ justifier($/))(
+                               $width,
+                               prefix-signer($signer, $string)
+                             )
                     }
                     else {
-                        Nil
+                        ""
                     }
                 }
                 else {
-                    ast-string(prefix-signer($signer, $string))
+                    prefix-signer($signer, $string)
                 }
             }
             else {
-                Nil
+                ""
             }
         }
 
@@ -699,6 +697,62 @@ our class Formatter {
             }
         }
 
+        # Generic handling of floating point logic, returns a ready
+        # to use AST
+        sub handle-float-numeric($/,
+          $size, $precision, $parameter, str $zero, $not-zero is copy
+        ) {
+            my str $signer = signer($/);
+
+            # helper sub to set up justification if there is no "0" flag
+            my sub justify($/, $ast) {
+                $size
+                  ?? $signer
+                    ?? ast-call-sub(signer-justifier($/),
+                         ast-string($signer), $size, $ast
+                       )
+                    !! ast-call-sub(justifier($/), $size, $ast)
+                  !! $signer
+                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
+                    !! $ast
+            }
+
+            # Set up NaN / ±Inf handling
+            my $nan-or-inf := ast-call-method($parameter,'Str');
+
+            # Filling out with zeroes
+            if $size && has-zero($/) {
+                $not-zero := $signer
+                  ?? ast-call-sub('signer-pad-zeroes-int',
+                       ast-string($signer), ast-sub-integer($size, 1), $not-zero
+                     )
+                  !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
+
+                $not-zero := ast-ternary(
+                  ast-call-sub('nan-or-inf', $parameter),
+                  justify($/, $nan-or-inf),
+                  $not-zero
+                );
+
+            }
+
+            # Just justification
+            else {
+                $not-zero := justify($/,
+                  ast-ternary(
+                    ast-call-sub('nan-or-inf', $parameter),
+                    $nan-or-inf,
+                    $not-zero
+                  )
+                );
+            }
+
+            # Add zero handling if possible
+            $zero
+              ?? ast-ternary($parameter, $not-zero, ast-string($zero))
+              !! $not-zero
+        }
+
 #-------------------------------------------------------------------------------
 # These are the actual action methods that will be called when the associated
 # token in the grammar matches.
@@ -752,14 +806,21 @@ our class Formatter {
 
         # show floating point value, scientific notation
         method directive:sym<e>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/);
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(6);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my $letter    := $<sym>.Str;
+            my $has-minus := has-minus($/);
 
-            # scientify($precision,'e',$a)
-            my $ast := ast-call-sub(
-              'scientify', ast-string($<sym>.Str), $precision, $parameter
-            );
+            # Set up any zero handling
+            my str $zero = zero-float($/, $size, $precision);
+            $zero = $zero ~ $letter ~ "+00" if $zero;
 
-            make plus-minus-zero($/, $size, $ast);
+            my $not-zero := ast-string("scientify");
+
+            make handle-float-numeric($/,
+              $size, $precision, $parameter, $zero, $not-zero
+            )
         }
 
         # show floating point value
@@ -767,27 +828,9 @@ our class Formatter {
             my $size      := size($/);
             my $precision := precision($/) // ast-integer(6);
             my $parameter := parameter($/, :coerce<Numeric>);
-            my $has-minus := has-minus($/);
-            my str $signer = signer($/);
-
-            # helper sub to set up justification if there is no "0" flag
-            my sub justify($/, $ast) {
-                $size
-                  ?? $signer
-                    ?? ast-call-sub(signer-justifier($/),
-                         ast-string($signer), $size, $ast
-                       )
-                    !! ast-call-sub(justifier($/), $size, $ast)
-                  !! $signer
-                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
-                    !! $ast
-            }
-
-            # Set up NaN / ±Inf handling
-            my $nan-or-inf := ast-call-method($parameter,'Str');
 
             # Set up any zero handling
-            my $zero := zero-float($/, $size, $precision);
+            my str $zero = zero-float($/, $size, $precision);
 
             # Set up non-zero value handling
             my $not-zero := ast-call-sub(
@@ -801,37 +844,11 @@ our class Formatter {
               $precision
             );
 
-            # Filling out with zeroes
-            if $size && has-zero($/) {
-                $not-zero := $signer
-                  ?? ast-call-sub('signer-pad-zeroes-int',
-                       ast-string($signer), ast-sub-integer($size, 1), $not-zero
-                     )
-                  !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
+            my $ast = handle-float-numeric($/,
+              $size, $precision, $parameter, $zero, $not-zero
+            );
 
-                $not-zero := ast-ternary(
-                  ast-call-sub('nan-or-inf', $parameter),
-                  justify($/, $nan-or-inf),
-                  $not-zero
-                );
-
-            }
-
-            # Just justification
-            else {
-                $not-zero := justify($/,
-                  ast-ternary(
-                    ast-call-sub('nan-or-inf', $parameter),
-                    $nan-or-inf,
-                    $not-zero
-                  )
-                );
-            }
-
-            # Add zero handling if possible
-            make $zero
-              ?? ast-ternary($parameter, $not-zero, $zero)
-              !! $not-zero
+            make $ast;
         }
 
         # f or e depending on value

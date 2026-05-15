@@ -192,7 +192,33 @@ our class Formatter {
         }
     }
 
-    # provide left justification of string
+    # Provide left justification of string for given signer and
+    # number of positions
+    our sub str-signer-left-justified(
+      str $signer, int $positions, str $string
+    --> str) {
+        str-left-justified(
+          $positions,
+          nqp::eqat($string,'-',0)
+            ?? $string
+            !! nqp::concat($signer,$string)
+        )
+    }
+
+    # Provide right justification of string for given signer and
+    # number of positions
+    our sub str-signer-right-justified(
+      str $signer, int $positions, str $string
+    --> str) {
+        str-right-justified(
+          $positions,
+          nqp::eqat($string,'-',0)
+            ?? $string
+            !! nqp::concat($signer,$string)
+        )
+    }
+
+    # Provide left justification of string for given number of positions
     our sub str-left-justified(int $positions, str $string --> str) {
         nqp::islt_i(nqp::chars($string),nqp::abs_i($positions))
           ?? nqp::concat(
@@ -316,6 +342,14 @@ our class Formatter {
             RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier-parts('Formatter', $name),
               args => RakuAST::ArgList.new($one, $two, $three)
+            )
+        }
+        multi sub ast-call-sub(
+          $name, $one, $two, $three, $four,
+        --> RakuAST::Call::Name:D) {
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier-parts('Formatter', $name),
+              args => RakuAST::ArgList.new($one, $two, $three, $four)
             )
         }
 
@@ -449,6 +483,61 @@ our class Formatter {
         # the actual argument
         sub spa($/ --> List:D) { (size($/), precision($/), parameter($/)) }
 
+        # Helper sub to return string for any signer, or the empty string
+        sub signer($/) {
+            has-plus($/) ?? "+" !! has-space($/) ?? " " !! ""
+        }
+
+        # Helper sub to return any applicable justifier without signer
+        sub justifier($/) {
+            has-minus($/)
+              ?? 'str-left-justified'
+              !! 'str-right-justified'
+        }
+
+        # Helper sub to return any applicable justifier *with* signer
+        sub signer-justifier($/) {
+            has-minus($/)
+              ?? 'str-signer-left-justified'
+              !! 'str-signer-right-justified'
+        }
+
+        # Helper sub to return an AST for the string for 0 for the
+        # given %f, %g and %e formats.  Returns Nil if no static
+        # string couldbe returned.
+        sub zero-float($/, $size, $precision) {
+            if is-literal-int($precision) {
+                my int $digits = $precision.value;
+                my str $string = $digits || has-hash($/)
+                  ?? "0." ~ "0" x $digits
+                  !! "0";
+                my str $signer = signer($/);
+
+                if $size {
+                    if is-literal-int($size) {
+                        my int $width = $size.value;
+                        ast-string(
+                          has-zero($/)
+                            ?? pad-signer-zeroes-int($width, $signer, $string)
+                            !! ::("&" ~ justifier($/))(
+                                 $width,
+                                 prefix-signer($signer, $string)
+                               )
+                        )
+                    }
+                    else {
+                        Nil
+                    }
+                }
+                else {
+                    ast-string(prefix-signer($signer, $string))
+                }
+            }
+            else {
+                Nil
+            }
+        }
+
         # helper sub for processing formats for integer values
         sub handle-integer-numeric($/,
            Int :$base,    # the number base to assume for generating string
@@ -575,9 +664,7 @@ our class Formatter {
 
             # Handle justification
             if $size {
-                my $justifier := has-minus($/)
-                  ?? "str-left-justified"
-                  !! "str-right-justified";
+                my str $justifier = justifier($/);
 
                 if is-literal-int($size) {
                     $zero := nqp::istype($zero,Str)
@@ -681,29 +768,26 @@ our class Formatter {
             my $precision := precision($/) // ast-integer(6);
             my $parameter := parameter($/, :coerce<Numeric>);
             my $has-minus := has-minus($/);
-
-            # Set up any additional sign info
-            my $signer = has-plus($/)
-              ?? ast-string("+")
-              !! has-space($/)
-                ?? ast-string(" ")
-                !! Nil;
+            my str $signer = signer($/);
 
             # helper sub to set up justification if there is no "0" flag
-            my sub justify($ast is copy) {
-                $ast := ast-call-sub('prefix-signer', $signer, $ast) if $signer;
-                $ast := ast-call-sub(
-                  $has-minus
-                    ?? 'str-left-justified'
-                    !! 'str-right-justified',
-                  $size,
-                  $ast
-                ) if $size;
-                $ast
+            my sub justify($/, $ast) {
+                $size
+                  ?? $signer
+                    ?? ast-call-sub(signer-justifier($/),
+                         ast-string($signer), $size, $ast
+                       )
+                    !! ast-call-sub(justifier($/), $size, $ast)
+                  !! $signer
+                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
+                    !! $ast
             }
 
             # Set up NaN / ±Inf handling
             my $nan-or-inf := ast-call-method($parameter,'Str');
+
+            # Set up any zero handling
+            my $zero := zero-float($/, $size, $precision);
 
             # Set up non-zero value handling
             my $not-zero := ast-call-sub(
@@ -718,28 +802,36 @@ our class Formatter {
             );
 
             # Filling out with zeroes
-            make do if $size && has-zero($/) {
+            if $size && has-zero($/) {
                 $not-zero := $signer
                   ?? ast-call-sub('signer-pad-zeroes-int',
-                       $signer, ast-sub-integer($size, 1), $not-zero
+                       ast-string($signer), ast-sub-integer($size, 1), $not-zero
                      )
                   !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
 
-                ast-ternary(
+                $not-zero := ast-ternary(
                   ast-call-sub('nan-or-inf', $parameter),
-                  justify($nan-or-inf),
+                  justify($/, $nan-or-inf),
                   $not-zero
-                )
+                );
+
             }
+
+            # Just justification
             else {
-                justify(
+                $not-zero := justify($/,
                   ast-ternary(
                     ast-call-sub('nan-or-inf', $parameter),
                     $nan-or-inf,
                     $not-zero
                   )
-                )
+                );
             }
+
+            # Add zero handling if possible
+            make $zero
+              ?? ast-ternary($parameter, $not-zero, $zero)
+              !! $not-zero
         }
 
         # f or e depending on value

@@ -302,7 +302,7 @@ our class Formatter {
     # Provide conversion of numeric values to string, only rendering a
     # decimal point if number of digits > 0
     our sub stringify-multiplier-digits(
-      $value, int $multiplier, int $digits
+      $value, Int:D $multiplier, int $digits
     --> str) {
         $digits
           ?? stringify-multiplier-digits-point($value, $multiplier, $digits)
@@ -313,7 +313,7 @@ our class Formatter {
     # a decimal point
     # of the %f formatting
     our sub stringify-multiplier-digits-point(
-      $value, int $multiplier, int $digits
+      $value, Int:D $multiplier, int $digits
     --> str) {
         my str $string = $value
           ?? ($value * $multiplier).round.Str

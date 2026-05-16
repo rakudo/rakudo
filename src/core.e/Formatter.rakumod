@@ -166,9 +166,7 @@ our class Formatter {
     # is guaranteed that the value is *not* 0 and that it is
     # *not* Inf, -Inf or NaN.  This version will *always*
     # render with a period, even if precision is 0
-    our sub scientify-period(
-      str $letter, int $positions, $value
-    --> str) {
+    our sub scientify-period(str $letter, int $positions, $value --> str) {
         my str $string = scientify($letter, $positions, $value);
         my int $offset = 1 + nqp::eqat($string,'-',0);
 
@@ -184,9 +182,72 @@ our class Formatter {
     }
 
     # Set up value for scientific notation: at this point it
-    # is guaranteed that the value is *not* 0 and that it is
-    # *not* Inf, -Inf or NaN
-    our sub scientify(
+    # is guaranteed that the value *not* Inf, -Inf or NaN.
+    # The value 0 can only occur here with dynamic width or
+    # precision.
+    our sub scientify(str $letter, int $positions, $value --> str) {
+
+        # Something complicated to do
+        if $value {
+            my $abs := $value.abs;
+            my constant $divider = 10.log;
+
+            # Initial rendering
+            my int $exp     = $abs ?? ($abs.log / $divider).floor !! 0;
+            my int $abs-exp = nqp::abs_i($exp);
+            my     $power  := 10 ** $abs-exp;
+            my str $string  = (($exp < 0
+              ?? $abs * $power
+              !! $abs / $power
+            ) * 10 ** $positions).round.Str;
+
+            # Fix up decimal point
+            $string = $positions
+              ?? nqp::concat(
+                   nqp::substr($string,0,1),
+                   nqp::concat(
+                     ".",
+                     nqp::substr($string,1,$positions)
+                   )
+                 )
+              !! nqp::substr($string,0,1);
+
+            # Fix up for consumption
+            nqp::concat(
+              ($value < 0 ?? "-" !! ""),
+              nqp::concat(
+                $string,
+                nqp::concat(
+                  $letter,
+                  nqp::concat(
+                    ($exp < 0 ?? "-" !! "+"),
+                    ($abs-exp < 10 ?? "0" ~ $abs-exp !! ~$abs-exp)
+                  )
+                )
+              )
+            )
+        }
+
+        # Simple 0 handling
+        else {
+            nqp::concat(
+              $positions
+                ?? nqp::concat('0.',nqp::x('0',$positions))
+                !! '0',
+              nqp::concat(
+                $letter,
+                '+00'
+              )
+            )
+        }
+    }
+
+    # Set up value for either floating point or scientific
+    # notation: at this point it is guaranteed that the value is
+    # *not* Inf, -Inf or NaN.  The value 0 can only occur here
+    # with dynamic width or
+    # precision.
+    our sub bestfit(
       str $letter, int $positions, $value
     --> str) {
 
@@ -310,8 +371,7 @@ our class Formatter {
     }
 
     # Provide conversion of numeric values to string, always rendering
-    # a decimal point
-    # of the %f formatting
+    # a decimal point of the %f formatting
     our sub stringify-multiplier-digits-point(
       $value, Int:D $multiplier, int $digits
     --> str) {
@@ -460,6 +520,21 @@ our class Formatter {
         # helper sub to create an NQP op
         sub ast-nqp($op, *@args) { RakuAST::Nqp.new($op, |@args) }
 
+        # helper sub to create AST for justifying if necessary
+        sub ast-justify($/, $size, $ast) {
+            $size
+              ?? ast-call-sub(
+                   has-minus($/)
+                     ?? "str-left-justified"
+                     !! has-zero($/)
+                       ?? "pad-zeroes-str"
+                       !! "str-right-justified",
+                   $size,
+                   $ast
+                 )
+              !! $ast
+        }
+
 #-------------------------------------------------------------------------------
 # Helper subs that obtain information from Match objects.  These always take
 # $/ as the first positional parameter.
@@ -516,34 +591,14 @@ our class Formatter {
         }
 
         # helper sub for float values handling plus/minus/zero padding
-        sub plus-minus-zero($/, $size, $ast is copy) {
-
-            if has-plus($/) {
-                # prefix-plus($ast)
-                $ast = ast-call-sub('prefix-plus', $ast);
-            }
-
-            if $size {
-                # justification($size, $ast)
-                $ast = ast-call-sub(
-                  has-minus($/)
-                    ?? 'str-left-justified'
-                    !! has-zero($/)
-                      ?? "pad-zeroes-int"
-                      !! "str-right-justified",
-                  $size,
-                  $ast
-                );
-            }
-
-            $ast
+        sub plus-minus-zero($/, $size, $ast) {
+            ast-justify( $/,
+              $size,
+              has-plus($/)
+                ?? ast-call-sub('prefix-plus', $ast)
+                !! $ast
+            )
         }
-
-        # Helper sub to obtain size / precision / parameter ASTs.
-        # We first need to get any size/precision information because
-        # they can be parameter based and should be specified *before*
-        # the actual argument
-        sub spa($/ --> List:D) { (size($/), precision($/), parameter($/)) }
 
         # Helper sub to return string for any signer, or the empty string
         sub signer($/) {
@@ -847,25 +902,14 @@ our class Formatter {
 
         # show character representation of codepoint value
         method directive:sym<c>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/);
+            my $size      := size($/);
+            my $precision := precision($/);
+            my $parameter := parameter($/, :coerce<Int>);
 
-            # $a.chr
-            my $ast := ast-call-method($parameter, 'chr');
-
-            if $size {
-                # str-(left|right)-justified($size, $ast)
-                $ast := ast-call-sub(
-                  has-minus($/)
-                    ?? "str-left-justified"
-                    !! has-zero($/)
-                      ?? "pad-zeroes-str"
-                      !! "str-right-justified",
-                  $size,
-                  $ast
-                );
-            }
-
-            make $ast;
+            make ast-justify($/,
+              $size,
+              ast-call-method($parameter, 'chr')
+            )
         }
 
         # show decimal (integer) value
@@ -920,7 +964,23 @@ our class Formatter {
 
         # f or e depending on value
         method directive:sym<g>($/ --> Nil) {
-            self."directive:sym<f>"($/);  # for now
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(6);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my $letter    := $<sym>.Str;
+
+            make handle-float-numeric($/,
+              $size, $precision, $parameter,
+              zero-exponential($/, $letter, $size, $precision),
+              ast-call-sub(has-hash($/)
+                  && (!is-literal-int($precision) || $precision.value == 0)
+                  ?? 'bestfit-period'
+                  !! 'bestfit',
+                ast-string($letter),
+                $precision,
+                $parameter
+              )
+            )
         }
 
         # show numeric value in octal using Perl / Raku semantics
@@ -930,27 +990,18 @@ our class Formatter {
 
         # show string
         method directive:sym<s>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/);
+            my $size      := size($/);
+            my $precision := precision($/);
+            my $parameter := parameter($/, :coerce<Str>);
 
-            # make sure we have a (potentially truncated) string
-            my $ast := $precision
+            make ast-justify($/,
+              $size,
+              $precision
               ?? ast-call-method(
                    $parameter, 'substr', ast-integer(0), $precision
                  )
-              !! ast-call-method($parameter, 'Str');
-
-            # perform any justification
-            $ast := ast-call-sub(
-              has-minus($/)
-                ?? 'str-left-justified'
-                !! has-zero($/)
-                  ?? 'pad-zeroes-str'
-                  !! 'str-right-justified',
-              $size,
-              $ast
-            ) if $size;
-
-            make $ast;
+              !! $parameter
+            )
         }
 
         # show unsigned decimal (integer) value
@@ -968,14 +1019,6 @@ our class Formatter {
         # an escaped %
         method directive:sym<%>($/ --> Nil) {
             make ast-string('%');
-        }
-
-        # alas, don't know this one
-        method panic($/ --> Nil) {
-            X::Str::Sprintf::Directives::Unsupported.new(
-              directive => ~$/<sym>,
-              sequence  => ~$/
-            ).throw;
         }
     }
 

@@ -317,7 +317,7 @@ our class Formatter {
     --> str) {
         my str $string = $value
           ?? ($value * $multiplier).round.Str
-          !! nqp::concat("0",nqp::substr($multiplier,1));
+          !! nqp::concat("0",nqp::substr($multiplier.Str,1));
 
         if nqp::chars($string) - $digits -> int $cutoff {
             $cutoff < 0

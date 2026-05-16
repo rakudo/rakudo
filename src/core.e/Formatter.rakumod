@@ -778,7 +778,9 @@ our class Formatter {
             }
 
             # Set up NaN / ±Inf handling
-            my $nan-or-inf := ast-call-method($parameter,'Str');
+            my $nan-or-inf := ast-call-method(
+              $parameter, $<sym> eq 'F' ?? 'uc' !! 'Str'
+            );
 
             # Filling out with zeroes
             if $size && has-zero($/) {

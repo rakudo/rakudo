@@ -1002,6 +1002,13 @@ class RakuAST::PackageInstaller {
         my $final;
         my $lexical;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
+        # If the multi-part install resolves its parent through the
+        # setting / outer lexical chain (cross-compunit reload),
+        # capture *which* parent that was and treat the install-
+        # collision as silent only when $target is still that exact
+        # parent at check time (the loop below may reassign $target
+        # to a freshly-created intermediate stub, which is ours).
+        my $setting-resolved-target;
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
         $resolver.add-sorry: $resolver.build-exception:
@@ -1058,6 +1065,7 @@ class RakuAST::PackageInstaller {
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
+                $setting-resolved-target := $target if $resolved[2] eq 'lexical';
                 if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical' {
                     # Upgrade lexically imported top level package to global
                     ($resolver.get-global.WHO){$first} := $resolver.resolve-lexical($first).compile-time-value;
@@ -1107,6 +1115,18 @@ class RakuAST::PackageInstaller {
             }
         }
 
+        # Catch in-source dupes the install-collision check below
+        # silent-replaces: multi-part names (lexical-decl merge only
+        # sees the leading identifier) and identifier dupes inside
+        # an augment body (augment opens a fresh lexical scope).
+        if $orig-scope eq 'our' || $orig-scope eq 'unit' {
+            my $existed := $resolver.declare-our-package($target, $final, self);
+            $resolver.add-sorry($resolver.build-exception:
+                'X::Redeclaration', :symbol($name.canonicalize(:colonpairs(0))))
+              if $existed
+              && (!$name.is-identifier || $resolver.in-augment-scope);
+        }
+
         my %stash := $resolver.IMPL-STASH-HASH($target);
         # upgrade a lexically imported package stub to package scope if it exists
         if $lexical {
@@ -1115,19 +1135,10 @@ class RakuAST::PackageInstaller {
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
                 my $existing := %stash{$final};
-                # On 6.d and earlier, allow the specific legacy pattern
-                # where a declaration silently replaces its enclosing
-                # module (`module Foo::Bar { class Foo::Bar { } }`),
-                # matching the traditional grammar. Other ModuleHOW
-                # collisions stay strict (pre-PR #6122 RakuAST
-                # behavior). On 6.e the enclosing-package case is
-                # handled by the nested-install path above, so this
-                # branch is only reached for non-enclosing collisions.
-                if nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
-                  || (nqp::getcomp('Raku').language_revision < 3
-                      && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
-                      && $existing =:= $current-package)
-                  || $name.is-identifier || $orig-scope eq 'my' {
+                if self.IMPL-SHOULD-SILENT-REPLACE(
+                    $existing, $current-package, $name, $orig-scope,
+                    nqp::eqaddr($target, $setting-resolved-target)
+                ) {
                     self.IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING(
                         $resolver, $existing, $type-object, $current-package, $name);
                     nqp::setwho($type-object, $existing.WHO);
@@ -1139,6 +1150,22 @@ class RakuAST::PackageInstaller {
             }
             %stash{$final} := $type-object;
         }
+    }
+
+    # Conditions under which an `our`-scoped install collision is
+    # silently replaced rather than raising X::Redeclaration. Stub
+    # PackageHOW upgrades; 6.d `module Foo::Bar { class Foo::Bar { } }`
+    # enclosing-module replace; identifier and `my`-scope (caught
+    # elsewhere); and cross-compunit reload (target resolved through
+    # the setting / outer chain), matching legacy `install_package`.
+    method IMPL-SHOULD-SILENT-REPLACE(Mu $existing, Mu $current-package, RakuAST::Name $name, str $orig-scope, int $target-from-setting) {
+        nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+        || (nqp::getcomp('Raku').language_revision < 3
+            && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+            && $existing =:= $current-package)
+        || $name.is-identifier
+        || $orig-scope eq 'my'
+        || $target-from-setting
     }
 
     # Emit a SameNameAsEnclosing worry when a declaration silently

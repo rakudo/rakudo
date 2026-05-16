@@ -25,6 +25,45 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # In-source `our` package decls seen in this compunit's BEGIN
+    # walk. Keyed by install target's `nqp::objectid` plus the final
+    # name part so the same trailing name under different `my`-scoped
+    # parents in sibling blocks doesn't collide.
+    has Mu $!our-package-decl-map;
+
+    method in-augment-scope() {
+        my int $i := nqp::elems($!packages);
+        while $i-- {
+            return 1 if $!packages[$i].augmented;
+        }
+        0
+    }
+
+    method declare-our-package(Mu $target, str $final, RakuAST::Package $pkg) {
+        # Skip the 6.d `module Foo::Bar { class Foo::Bar { } }`
+        # pattern: silent-replace at install time, no tracker entry.
+        # Canonical name is only needed when we have an enclosing
+        # package to compare against.
+        my int $i := nqp::elems($!packages);
+        if $i {
+            my str $full-name := $pkg.name.canonicalize(:colonpairs(0));
+            while $i-- {
+                my $enclosing := $!packages[$i].compile-time-value;
+                return NQPMu
+                  if nqp::can($enclosing.HOW, 'name')
+                  && $enclosing.HOW.name($enclosing) eq $full-name;
+            }
+        }
+        my str $key := nqp::objectid($target) ~ '::' ~ $final;
+        my $existed := nqp::atkey($!our-package-decl-map, $key);
+        $!our-package-decl-map{$key} := $pkg;
+        # Allow stub-then-real: `class Foo { ... }` followed by the
+        # real body. Flag only when both sides are non-stub.
+        $existed && !$pkg.is-stub && !$existed.is-stub
+            ?? $existed
+            !! NQPMu
+    }
+
     # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
@@ -32,6 +71,8 @@ class RakuAST::Resolver {
           nqp::clone($!attach-targets));
         nqp::bindattr($clone,RakuAST::Resolver,'$!packages',
           nqp::clone($!packages));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!our-package-decl-map',
+          nqp::clone($!our-package-decl-map));
         $clone
     }
 
@@ -835,6 +876,7 @@ class RakuAST::Resolver::EVAL
               !! self.IMPL-SETTING-FROM-CONTEXT($context));
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package ?? [$cur-package] !! []);
@@ -1027,6 +1069,7 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', $attach-targets // nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);

@@ -113,7 +113,7 @@ my class Format is Str is Callable {
 
     # Helper method to render a format for the arguments given.
     # Throws appropriate error if number of arguments not correct.
-    method render($format, @args) {
+    method render($format, @args) is implementation-detail {
         (my &render := Formatter.new($format)).count == @args.elems
           ?? render(|@args)
           !! X::Str::Sprintf::Directives::Count.new(

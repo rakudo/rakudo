@@ -319,11 +319,20 @@ our class Formatter {
           ?? ($value * $multiplier).round.Str
           !! nqp::concat("0",nqp::substr($multiplier,1));
 
-        my int $cutoff = nqp::chars($string) - $digits;
-        nqp::concat(
-          nqp::substr($string,0,$cutoff),
-          nqp::concat('.',nqp::substr($string,$cutoff))
-        )
+        if nqp::chars($string) - $digits -> int $cutoff {
+            $cutoff < 0
+              ?? nqp::concat(
+                   "0.",
+                   nqp::concat($string,nqp::x("0", nqp::abs_i($cutoff)))
+                 )
+              !! nqp::concat(
+                   nqp::substr($string,0,$cutoff),
+                   nqp::concat('.',nqp::substr($string,$cutoff))
+                 )
+        }
+        else {
+            nqp::concat("0.",$string);
+        }
     }
 
 #-------------------------------------------------------------------------------

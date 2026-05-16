@@ -162,33 +162,86 @@ our class Formatter {
             !! nqp::concat("0",$string)
     }
 
-    # set up value for scientific notation
-    our sub scientify(str $letter, int $positions, Numeric() $value) {
-        if nqp::istype($value,Num) && nqp::isnanorinf($value) {
-            $value.Str
+    # Set up value for scientific notation: at this point it
+    # is guaranteed that the value is *not* 0 and that it is
+    # *not* Inf, -Inf or NaN.  This version will *always*
+    # render with a period, even if precision is 0
+    our sub scientify-period(
+      str $letter, int $positions, $value
+    --> str) {
+        my str $string = scientify($letter, $positions, $value);
+        my int $offset = 1 + nqp::eqat($string,'-',0);
+
+        $positions
+          ?? $string
+          !! nqp::concat(
+               nqp::substr($string,0,$offset),
+               nqp::concat(
+                 ".",
+                 nqp::substr($string,$offset)
+               )
+             )
+    }
+
+    # Set up value for scientific notation: at this point it
+    # is guaranteed that the value is *not* 0 and that it is
+    # *not* Inf, -Inf or NaN
+    our sub scientify(
+      str $letter, int $positions, $value
+    --> str) {
+
+        # Something complicated to do
+        if $value {
+            my $abs := $value.abs;
+            my constant $divider = 10.log;
+
+            # Initial rendering
+            my int $exp     = $abs ?? ($abs.log / $divider).floor !! 0;
+            my int $abs-exp = nqp::abs_i($exp);
+            my     $power  := 10 ** $abs-exp;
+            my str $string  = (($exp < 0
+              ?? $abs * $power
+              !! $abs / $power
+            ) * 10 ** $positions).round.Str;
+
+            # Fix up decimal point
+            $string = $positions
+              ?? nqp::concat(
+                   nqp::substr($string,0,1),
+                   nqp::concat(
+                     ".",
+                     nqp::substr($string,1,$positions)
+                   )
+                 )
+              !! nqp::substr($string,0,1);
+
+            # Fix up for consumption
+            nqp::concat(
+              ($value < 0 ?? "-" !! ""),
+              nqp::concat(
+                $string,
+                nqp::concat(
+                  $letter,
+                  nqp::concat(
+                    ($exp < 0 ?? "-" !! "+"),
+                    ($abs-exp < 10 ?? "0" ~ $abs-exp !! ~$abs-exp)
+                  )
+                )
+              )
+            )
         }
-        elsif $value {
 
-            my int $exponent = $value.abs.log(10).floor;
-            my str $string =
-              (($value / 10 ** $exponent).round(10 ** -$positions)).Str;
-            my int $end = nqp::chars($string) - 1;
-
-            if nqp::ord($string,$end) == 48 {  # "0"
-                $string = nqp::substr($string,0,$end);
-                ++$exponent;
-            }
-
-            my int $abs-expo = nqp::abs_i($exponent);
-            pad-zeroes-precision(
-              $positions,
-              $string,
-            ) ~ $letter
-              ~ ($exponent < 0 ?? "-" !! "+")
-              ~ ($abs-expo < 10 ?? "0" ~ $abs-expo !! $abs-expo)
-        }
+        # Simple 0 handling
         else {
-            "0." ~ nqp::x("0",$positions) ~ $letter ~ "+00"
+            nqp::concat(
+              $positions
+                ?? nqp::concat('0.',nqp::x('0',$positions))
+                !! '0',
+              nqp::concat(
+                $letter,
+                '+00'
+              )
+            )
         }
     }
 
@@ -266,11 +319,20 @@ our class Formatter {
           ?? ($value * $multiplier).round.Str
           !! nqp::concat("0",nqp::substr($multiplier,1));
 
-        my int $cutoff = nqp::chars($string) - $digits;
-        nqp::concat(
-          nqp::substr($string,0,$cutoff),
-          nqp::concat('.',nqp::substr($string,$cutoff))
-        )
+        if nqp::chars($string) - $digits -> int $cutoff {
+            $cutoff < 0
+              ?? nqp::concat(
+                   "0.",
+                   nqp::concat($string,nqp::x("0", nqp::abs_i($cutoff)))
+                 )
+              !! nqp::concat(
+                   nqp::substr($string,0,$cutoff),
+                   nqp::concat('.',nqp::substr($string,$cutoff))
+                 )
+        }
+        else {
+            nqp::concat("0.",$string);
+        }
     }
 
 #-------------------------------------------------------------------------------
@@ -502,39 +564,44 @@ our class Formatter {
               !! 'str-signer-right-justified'
         }
 
-        # Helper sub to return an AST for the string for 0 for the
-        # given %f, %g and %e formats.  Returns Nil if no static
-        # string couldbe returned.
-        sub zero-float($/, $size, $precision) {
+        # Helper sub to return a string for 0 for the given %e or %g
+        # formats.  Returns empty string if no static string
+        # could be returned.
+        sub zero-exponential($/, str $letter, $size, $precision) {
+            zero-float($/, $size, $precision, $letter ~ "+00");
+        }
+
+        # Helper sub to return a string for 0 for the given %f
+        # format.  Returns empty string if no static string
+        # could be returned.
+        sub zero-float($/, $size, $precision, str $extra = "" --> str) {
             if is-literal-int($precision) {
                 my int $digits = $precision.value;
                 my str $string = $digits || has-hash($/)
-                  ?? "0." ~ "0" x $digits
-                  !! "0";
+                  ?? "0." ~ "0" x $digits ~ $extra
+                  !! "0" ~ $extra;
                 my str $signer = signer($/);
 
                 if $size {
                     if is-literal-int($size) {
                         my int $width = $size.value;
-                        ast-string(
-                          has-zero($/)
-                            ?? pad-signer-zeroes-int($width, $signer, $string)
-                            !! ::("&" ~ justifier($/))(
-                                 $width,
-                                 prefix-signer($signer, $string)
-                               )
-                        )
+                        has-zero($/)
+                          ?? pad-signer-zeroes-int($width, $signer, $string)
+                          !! ::("&" ~ justifier($/))(
+                               $width,
+                               prefix-signer($signer, $string)
+                             )
                     }
                     else {
-                        Nil
+                        ""
                     }
                 }
                 else {
-                    ast-string(prefix-signer($signer, $string))
+                    prefix-signer($signer, $string)
                 }
             }
             else {
-                Nil
+                ""
             }
         }
 
@@ -699,6 +766,64 @@ our class Formatter {
             }
         }
 
+        # Generic handling of floating point logic, returns a ready
+        # to use AST
+        sub handle-float-numeric($/,
+          $size, $precision, $parameter, str $zero, $not-zero is copy
+        ) {
+            my str $signer = signer($/);
+
+            # helper sub to set up justification if there is no "0" flag
+            my sub justify($/, $ast) {
+                $size
+                  ?? $signer
+                    ?? ast-call-sub(signer-justifier($/),
+                         ast-string($signer), $size, $ast
+                       )
+                    !! ast-call-sub(justifier($/), $size, $ast)
+                  !! $signer
+                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
+                    !! $ast
+            }
+
+            # Set up NaN / ±Inf handling
+            my $nan-or-inf := ast-call-method(
+              $parameter, $<sym> eq 'F' ?? 'uc' !! 'Str'
+            );
+
+            # Filling out with zeroes
+            if $size && has-zero($/) {
+                $not-zero := $signer
+                  ?? ast-call-sub('signer-pad-zeroes-int',
+                       ast-string($signer), ast-sub-integer($size, 1), $not-zero
+                     )
+                  !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
+
+                $not-zero := ast-ternary(
+                  ast-call-sub('nan-or-inf', $parameter),
+                  justify($/, $nan-or-inf),
+                  $not-zero
+                );
+
+            }
+
+            # Just justification
+            else {
+                $not-zero := justify($/,
+                  ast-ternary(
+                    ast-call-sub('nan-or-inf', $parameter),
+                    $nan-or-inf,
+                    $not-zero
+                  )
+                );
+            }
+
+            # Add zero handling if possible
+            $zero
+              ?? ast-ternary($parameter, $not-zero, ast-string($zero))
+              !! $not-zero
+        }
+
 #-------------------------------------------------------------------------------
 # These are the actual action methods that will be called when the associated
 # token in the grammar matches.
@@ -752,14 +877,23 @@ our class Formatter {
 
         # show floating point value, scientific notation
         method directive:sym<e>($/ --> Nil) {
-            my ($size, $precision, $parameter) := spa($/);
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(6);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my $letter    := $<sym>.Str;
 
-            # scientify($precision,'e',$a)
-            my $ast := ast-call-sub(
-              'scientify', ast-string($<sym>.Str), $precision, $parameter
-            );
-
-            make plus-minus-zero($/, $size, $ast);
+            make handle-float-numeric($/,
+              $size, $precision, $parameter,
+              zero-exponential($/, $letter, $size, $precision),
+              ast-call-sub(has-hash($/)
+                  && (!is-literal-int($precision) || $precision.value == 0)
+                  ?? 'scientify-period'
+                  !! 'scientify',
+                ast-string($letter),
+                $precision,
+                $parameter
+              )
+            )
         }
 
         # show floating point value
@@ -767,71 +901,21 @@ our class Formatter {
             my $size      := size($/);
             my $precision := precision($/) // ast-integer(6);
             my $parameter := parameter($/, :coerce<Numeric>);
-            my $has-minus := has-minus($/);
-            my str $signer = signer($/);
 
-            # helper sub to set up justification if there is no "0" flag
-            my sub justify($/, $ast) {
-                $size
-                  ?? $signer
-                    ?? ast-call-sub(signer-justifier($/),
-                         ast-string($signer), $size, $ast
-                       )
-                    !! ast-call-sub(justifier($/), $size, $ast)
-                  !! $signer
-                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
-                    !! $ast
-            }
-
-            # Set up NaN / ±Inf handling
-            my $nan-or-inf := ast-call-method($parameter,'Str');
-
-            # Set up any zero handling
-            my $zero := zero-float($/, $size, $precision);
-
-            # Set up non-zero value handling
-            my $not-zero := ast-call-sub(
-              has-hash($/)
-                ?? 'stringify-multiplier-digits-point'
-                !! 'stringify-multiplier-digits',
-              $parameter,
-              is-literal-int($precision)
-                ?? ast-integer(10 ** $precision.value)
-                !! ast-infix(ast-integer(10), '**', $precision),
-              $precision
+            make handle-float-numeric($/,
+              $size, $precision, $parameter,
+              zero-float($/, $size, $precision),
+              ast-call-sub(
+                has-hash($/)
+                  ?? 'stringify-multiplier-digits-point'
+                  !! 'stringify-multiplier-digits',
+                $parameter,
+                is-literal-int($precision)
+                  ?? ast-integer(10 ** $precision.value)
+                  !! ast-infix(ast-integer(10), '**', $precision),
+                $precision
+              )
             );
-
-            # Filling out with zeroes
-            if $size && has-zero($/) {
-                $not-zero := $signer
-                  ?? ast-call-sub('signer-pad-zeroes-int',
-                       ast-string($signer), ast-sub-integer($size, 1), $not-zero
-                     )
-                  !! ast-call-sub('pad-zeroes-int', $size, $not-zero);
-
-                $not-zero := ast-ternary(
-                  ast-call-sub('nan-or-inf', $parameter),
-                  justify($/, $nan-or-inf),
-                  $not-zero
-                );
-
-            }
-
-            # Just justification
-            else {
-                $not-zero := justify($/,
-                  ast-ternary(
-                    ast-call-sub('nan-or-inf', $parameter),
-                    $nan-or-inf,
-                    $not-zero
-                  )
-                );
-            }
-
-            # Add zero handling if possible
-            make $zero
-              ?? ast-ternary($parameter, $not-zero, $zero)
-              !! $not-zero
         }
 
         # f or e depending on value

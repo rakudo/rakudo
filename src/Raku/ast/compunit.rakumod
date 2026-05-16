@@ -33,6 +33,7 @@ class RakuAST::CompUnit
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
     has int $.precompilation-mode;
+    has int $!suspend-recording-precompilation-dependencies;
     has Mu $!export-package;
     has Mu $.herestub-queue;
     has int $!explicit-ctxsave;
@@ -381,7 +382,18 @@ class RakuAST::CompUnit
     }
 
     method record-precompilation-dependencies() {
-        $!precompilation-mode ?? True !! False
+        $!precompilation-mode && !$!suspend-recording-precompilation-dependencies
+          ?? True !! False
+    }
+
+    method suspend-recording-precompilation-dependencies() {
+        nqp::bindattr_i(self, RakuAST::CompUnit,
+          '$!suspend-recording-precompilation-dependencies', 1);
+    }
+
+    method resume-recording-precompilation-dependencies() {
+        nqp::bindattr_i(self, RakuAST::CompUnit,
+          '$!suspend-recording-precompilation-dependencies', 0);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -1020,6 +1020,14 @@ our class Formatter {
         method directive:sym<%>($/ --> Nil) {
             make ast-string('%');
         }
+
+        # alas, don't know this one
+        method panic($/ --> Nil) {
+            X::Str::Sprintf::Directives::Unsupported.new(
+              directive => ~$/<sym>,
+              sequence  => ~$/
+            ).throw;
+        }
     }
 
 #-------------------------------------------------------------------------------

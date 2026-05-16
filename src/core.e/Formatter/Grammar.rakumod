@@ -5,30 +5,9 @@
 grammar Formatter::Syntax {
     token TOP { ^ <statement>* $ }
 
-    method panic($message, $payload) {
-        my $ex := nqp::newexception();
-        nqp::setmessage($ex, $message);
-        nqp::setpayload($ex, $payload);
-        nqp::throw($ex);
-    }
-
     token statement {
         [
-        | <?[%]> [ <directive>
-          || <.panic(
-            "'"
-              ~ self.orig.substr(1)
-              ~ "' is not valid in sprintf format sequence '"
-              ~ self.orig
-              ~ "'",
-            nqp::hash(
-              'BAD_DIRECTIVE',
-              nqp::hash(
-                'DIRECTIVE', self.orig.substr(1),
-                'SEQUENCE', self.orig
-              )
-            )
-          )> ]
+        | <?[%]> [ <directive> || <panic> ]
         | <![%]> <literal>
         ]
     }
@@ -68,6 +47,10 @@ grammar Formatter::Syntax {
         '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[xX]>
     }
     token directive:sym<%> { '%%' }
+
+    token panic {
+        '%' <idx>? <flags>* <size>? <precision>? $<sym>=.
+    }
 
     token literal { <-[%]>+ }
 

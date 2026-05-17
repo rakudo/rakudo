@@ -1161,9 +1161,7 @@ CODE
 #- M ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> Str:D) {
-        my str $operator = $ast.infix.operator;
-        self.hsyn("infix-$operator", self.xsyn("infix",$operator))
-          ~ self.hsyn("meta-=", '=')
+        self.deparse($ast.infix) ~ self.hsyn("meta-=", '=')
     }
 
     multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {

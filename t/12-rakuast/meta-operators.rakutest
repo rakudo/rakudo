@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -284,6 +284,123 @@ subtest 'Triangle reduce meta-op on left associative operator' => {
     is-deeply $deparsed, '[\+] 1, 2, 3', 'deparse';
     is-deeply $_, (1,3,6), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+{
+    my @a = 1, 2, 3;
+    subtest 'Zip+Assign meta-op assigns elementwise to LHS' => {
+        # @a Z+= (10, 20, 30)
+        ast RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::MetaInfix::Assign.new(
+            RakuAST::MetaInfix::Zip.new(
+              RakuAST::Infix.new("+")
+            )
+          ),
+          operands => (
+            RakuAST::Var::Lexical.new('@a'),
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(","),
+                    operands => (
+                      RakuAST::IntLiteral.new(10),
+                      RakuAST::IntLiteral.new(20),
+                      RakuAST::IntLiteral.new(30),
+                    )
+                  )
+                )
+              )
+            ),
+          )
+        );
+
+        is-deeply $deparsed, '@a Z+= (10, 20, 30)', 'deparse';
+
+        my @expected = 11, 22, 33;
+        for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+            EVAL($it);
+            is-deeply @a, @expected, "$type: did mutate the array";
+            @expected = @expected Z+ (10, 20, 30);
+        }
+    }
+}
+
+{
+    my @a = 1, 2, 3;
+    subtest 'Cross+Assign meta-op assigns the cross to LHS' => {
+        # @a X+= (10, 20)
+        ast RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::MetaInfix::Assign.new(
+            RakuAST::MetaInfix::Cross.new(
+              RakuAST::Infix.new("+")
+            )
+          ),
+          operands => (
+            RakuAST::Var::Lexical.new('@a'),
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(","),
+                    operands => (
+                      RakuAST::IntLiteral.new(10),
+                      RakuAST::IntLiteral.new(20),
+                    )
+                  )
+                )
+              )
+            ),
+          )
+        );
+
+        is-deeply $deparsed, '@a X+= (10, 20)', 'deparse';
+
+        # Element-wise X+= accumulates each RHS element into the LHS slot
+        my @expected = [31, 32, 33];
+        EVAL($ast);
+        is-deeply @a, @expected, 'AST: did mutate the array';
+    }
+}
+
+{
+    my @a = 1, 2, 3;
+    subtest 'Hyper+Assign meta-op assigns elementwise to LHS' => {
+        # @a <<+=>> (10, 20, 30)
+        ast RakuAST::ApplyInfix.new(
+          left => RakuAST::Var::Lexical.new('@a'),
+          infix => RakuAST::MetaInfix::Assign.new(
+            RakuAST::MetaInfix::Hyper.new(
+              infix      => RakuAST::Infix.new("+"),
+              dwim-left  => True,
+              dwim-right => True,
+            )
+          ),
+          right => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyListInfix.new(
+                  infix    => RakuAST::Infix.new(","),
+                  operands => (
+                    RakuAST::IntLiteral.new(10),
+                    RakuAST::IntLiteral.new(20),
+                    RakuAST::IntLiteral.new(30),
+                  )
+                )
+              )
+            )
+          ),
+        );
+
+        is-deeply $deparsed, '@a <<+>>= (10, 20, 30)', 'deparse';
+
+        my @expected = 11, 22, 33;
+        for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+            EVAL($it);
+            is-deeply @a, @expected, "$type: did mutate the array";
+            @expected = @expected Z+ (10, 20, 30);
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4

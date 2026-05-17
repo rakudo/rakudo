@@ -125,7 +125,8 @@ plan 114;
     is-deeply Q| my Positional:D[Int] $x := Array[Int].new(1, 2) |.AST.EVAL, Array[Int].new(1, 2),
         "Parametarization with DefiniteHOWs works where it should";
 
-    ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
+    is Q| my Positional:D[Int] $x = Array[Int].new(1, 2); $x.VAR.of.^name |.AST.EVAL,
+        'Positional[Int]:D',
         "Parameterization with DefiniteHOWs is propagated to scalar container";
 }
 

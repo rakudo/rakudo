@@ -3446,15 +3446,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $/.typed-sorry('X::InvalidTypeSmiley', :name($_.key));
         }
 
+        $type := Nodify('Type','Parameterized').new(
+          :base-type($type), :args($<arglist>.ast)
+        ).to-begin-time($*R, $*CU.context) if $<arglist>;
+
         $type := $name.has-colonpair('D')
           ?? Nodify('Type','Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
           !! $name.has-colonpair('U')
             ?? Nodify('Type','Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
             !! $type;
-
-        $type := Nodify('Type','Parameterized').new(
-          :base-type($type), :args($<arglist>.ast)
-        ).to-begin-time($*R, $*CU.context) if $<arglist>;
 
         $<accept>
           ?? Nodify('Type','Coercion').new(

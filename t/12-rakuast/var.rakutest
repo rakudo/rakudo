@@ -1152,12 +1152,10 @@ subtest 'Lexical my constant with expression' => {
     );
     is-deeply $deparsed, 'my constant foo = now', 'deparse';
     for
-      'AST', (try EVAL $ast),
+      'AST', EVAL($ast),
       'Str', EVAL($deparsed),
-      'Raku', (try EVAL(EVAL $raku))
+      'Raku', EVAL(EVAL $raku)
     -> $type, $it {
-        todo "Unknown compilation input 'qast'"
-          if $type eq 'AST' | 'Raku' && !%*ENV<RAKUDO_RAKUAST>;
         isa-ok $it, Instant, "$type: did it produce an Instant";
         nok $it == now, "$type: check that time has passed";
         nok OUR::<foo>:exists, "$type: was the constant *not* installed";

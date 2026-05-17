@@ -558,12 +558,10 @@ CODE
         self.hsyn("typer-$typer", self.xsyn('typer', $typer))
     }
 
-    method var-declaration(
-      $ast, str $name = $ast.name, str $scope = $ast.scope
-    ) {
+    method var-declaration($ast, str $name = $ast.name) {
         my str @parts;
 
-        @parts.push(self.syn-scope($ast.scope)) if $scope;
+        @parts.push(self.syn-scope($ast.scope));
         @parts.push(' ');
 
         if $ast.original-type -> $type {
@@ -2848,16 +2846,10 @@ CODE
 
     multi method deparse(RakuAST::VarDeclaration::Anonymous:D $ast --> Str:D) {
         my str $sigil = $ast.sigil;
-        my str $scope = $ast.scope;
 
-        if $sigil eq '$' && $scope eq 'state' {
-            $sigil
-        }
-        else {
-            self.var-declaration(
-              $ast, $ast.sigil, $scope eq 'state' ?? "" !! $scope
-            ).chomp
-        }
+        $sigil eq '$' && $ast.scope eq 'state'
+          ?? $sigil
+          !! self.var-declaration($ast, $sigil).chomp
     }
 
     multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {

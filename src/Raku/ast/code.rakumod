@@ -433,8 +433,19 @@ class RakuAST::Code
             $wrapper
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
-        my $precomp := $comp.compile($qast-compunit, :from<qast>, :compunit_ok(1));
+        # Legacy frontend registers `optimize`; RakuAST registers `qast`
+        # (src/main.nqp).  Pick whichever is present.
+        my $from := $comp.exists_stage('optimize') ?? 'optimize' !! 'qast';
+        my $precomp := $comp.compile($qast-compunit, :$from, :compunit_ok(1));
         my $mainline := $comp.backend.compunit_mainline($precomp);
+        # Wire the wrapper's outer to the resolver's setting so :name lookups
+        # for setting symbols resolve instead of returning VMNull.  Anchored
+        # on the setting (always reaches setting symbols) rather than the
+        # dynamic caller (which may not, under nested AST EVAL).  Same trick
+        # ForeignCode::EVAL uses for AST-form EVAL.
+        my $outer-ctx := $resolver.setting;
+        nqp::forceouterctx($mainline, $outer-ctx)
+          unless nqp::isnull($outer-ctx);
         $mainline();
 
         # Fix up Code object associations (including nested blocks).

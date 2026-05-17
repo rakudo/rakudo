@@ -110,6 +110,16 @@ my class Format is Str is Callable {
 
     # mostly for debugging, but also for consistency
     method AST(Format:D:) { Formatter.AST: self }
+
+    # Helper method to render a format for the arguments given.
+    # Throws appropriate error if number of arguments not correct.
+    method render($format, @args) is implementation-detail {
+        (my &render := Formatter.new($format)).count == @args.elems
+          ?? render(|@args)
+          !! X::Str::Sprintf::Directives::Count.new(
+               :$format, :args-have(@args.elems), :args-used(&render.count)
+             ).throw
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -117,10 +127,13 @@ my class Format is Str is Callable {
 
 proto sub sprintf($, |) {*}
 multi sub sprintf(Str(Cool) $format, \value) {
-    Formatter.new($format)(value)
+    Format.render($format, (value,))
 }
-multi sub sprintf(Str(Cool) $format, |c) {
-    Formatter.new($format)(|c)
+multi sub sprintf(Str(Cool) $format, @args) {
+    Format.render($format, @args)
+}
+multi sub sprintf(Str(Cool) $format, *@args) {
+    Format.render($format, @args)
 }
 
 # vim: expandtab shiftwidth=4

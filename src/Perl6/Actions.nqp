@@ -3168,7 +3168,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
               'X::Comp::NYI', feature => 'Pod variable ' ~ $name);
         }
         elsif $name eq '@_' {
-            if $world.nearest_signatured_block_declares('@_') {
+            # Pre-6.e: resolve to an enclosing routine's @_ via the
+            # nearest signatured block. 6.e+: each block is a real block
+            # with its own signature, so auto-declare a fresh placeholder
+            # on the current block instead. See:
+            #   https://github.com/Raku/roast/commit/0b8c717e6
+            #
+            # The "current pad already has @_" check is needed even
+            # under 6.e so that an if/while/etc. CONDITION (which is
+            # parsed in the outer pad, before the body's new pad gets
+            # pushed) doesn't try to redeclare an explicit *@_ parameter.
+            if (nqp::getcomp('Raku').language_revision < 3
+                && $world.nearest_signatured_block_declares('@_'))
+              || +$world.cur_lexpad().symbol('@_') {
                 $past.scope('lexical');
             }
             else {
@@ -3177,7 +3189,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $name eq '%_' {
-            if $world.nearest_signatured_block_declares('%_') || $*METHODTYPE {
+            # Same 6.e gate as @_ above. The $*METHODTYPE check stays
+            # unconditional: methods auto-have *%_ in every revision.
+            if (nqp::getcomp('Raku').language_revision < 3
+                && $world.nearest_signatured_block_declares('%_'))
+              || +$world.cur_lexpad().symbol('%_')
+              || $*METHODTYPE {
                 $past.scope('lexical');
             }
             else {

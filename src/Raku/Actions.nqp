@@ -2334,23 +2334,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast;
 
         if $twigil eq '' {
-            if $name eq '@_' {
-                # If @_ is already in lexical scope (e.g. from an
-                # enclosing routine that declared *@_), resolve to that
-                # lexical rather than installing a fresh placeholder for
-                # the current block. Without this, a reference inside a
-                # nested block (if/while/...) shadows the outer @_ with
-                # an empty placeholder. Mirrors the legacy de-facto
-                # behavior since 2010.
-                $ast := $*R.resolve-lexical($name)
-                  ?? Nodify('Var', 'Lexical').new(:$sigil, :$desigilname)
-                  !! slurpy-placeholder('SlurpyArray');
-            }
-            elsif $name eq '%_' {
-                # See @_ comment above.
-                $ast := $*R.resolve-lexical($name)
-                  ?? Nodify('Var', 'Lexical').new(:$sigil, :$desigilname)
-                  !! slurpy-placeholder('SlurpyHash');
+            if $name eq '@_' || $name eq '%_' {
+                # @_/%_ are magical auto-declaring slurpies. Two semantics:
+                #
+                # Pre-6.e (the de-facto behavior since 2010): a reference
+                # to @_/%_ inside a nested block resolves to an enclosing
+                # routine's @_/%_ via lexical lookup, rather than
+                # auto-declaring a fresh placeholder on the inner block.
+                # Lots of existing code is written against this.
+                #
+                # 6.e+: each block is a real block with its own signature,
+                # so @_/%_ inside e.g. an if-body auto-declares on that
+                # block, shadowing the outer one. See:
+                #   https://github.com/Raku/roast/commit/0b8c717e6
+                #   https://github.com/Raku/old-issue-tracker/issues/1488
+                if nqp::getcomp('Raku').language_revision < 3
+                    && $*R.resolve-lexical($name)
+                {
+                    $ast := Nodify('Var', 'Lexical').new(:$sigil, :$desigilname);
+                }
+                elsif $name eq '@_' {
+                    $ast := slurpy-placeholder('SlurpyArray');
+                }
+                else {
+                    $ast := slurpy-placeholder('SlurpyHash');
+                }
             }
 
             # an anonymous state variable.

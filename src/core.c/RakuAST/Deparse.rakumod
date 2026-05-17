@@ -558,6 +558,48 @@ CODE
         self.hsyn("typer-$typer", self.xsyn('typer', $typer))
     }
 
+    method var-declaration($ast, str $name = $ast.name) {
+        my str $scope = $ast.scope;
+        my str @parts;
+
+        @parts.push(self.syn-scope($ast.scope));
+        @parts.push(' ');
+
+        if $ast.original-type -> $type {
+            if self.syn-type($type) -> $the-type {
+                @parts.push($the-type);
+                @parts.push(' ');
+            }
+        }
+
+        my str $twigil = $ast.twigil;
+        @parts.push(
+          self.hsyn(%twigil2type{$twigil} // 'var-lexical', $name)
+        );
+
+        if $ast.traits.grep({
+            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
+        }) -> @traits {
+            for @traits {
+                @parts.push(' ');
+                @parts.push(self.deparse($_));
+            }
+        }
+
+        if $ast.where -> $where {
+            @parts.push(' ');
+            @parts.push(self.xsyn('constraint', 'where'));
+            @parts.push(' ');
+            @parts.push(self.deparse($where));
+        }
+
+        if $ast.initializer -> $initializer {
+            @parts.push(self.deparse($initializer));
+        }
+
+        self.add-any-docs(@parts.join, $ast.WHY)
+    }
+
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
@@ -2804,12 +2846,7 @@ CODE
 #- VarDeclaration --------------------------------------------------------------
 
     multi method deparse(RakuAST::VarDeclaration::Anonymous:D $ast --> Str:D) {
-        my str $sigil = $ast.sigil;
-        my str $scope = $ast.scope;
-
-        $scope eq 'state'
-          ?? $sigil
-          !! self.xsyn('scope', $scope) ~ ' ' ~ $sigil
+        self.var-declaration($ast, $ast.sigil)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {
@@ -2883,45 +2920,7 @@ CODE
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {
-        my str $scope = $ast.scope;
-        my str @parts;
-
-        @parts.push(self.syn-scope($ast.scope));
-        @parts.push(' ');
-
-        if $ast.original-type -> $type {
-            if self.syn-type($type) -> $the-type {
-                @parts.push($the-type);
-                @parts.push(' ');
-            }
-        }
-
-        my str $twigil = $ast.twigil;
-        @parts.push(
-          self.hsyn(%twigil2type{$twigil} // 'var-lexical', $ast.name)
-        );
-
-        if $ast.traits.grep({
-            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
-        }) -> @traits {
-            for @traits {
-                @parts.push(' ');
-                @parts.push(self.deparse($_));
-            }
-        }
-
-        if $ast.where -> $where {
-            @parts.push(' ');
-            @parts.push(self.xsyn('constraint', 'where'));
-            @parts.push(' ');
-            @parts.push(self.deparse($where));
-        }
-
-        if $ast.initializer -> $initializer {
-            @parts.push(self.deparse($initializer));
-        }
-
-        self.add-any-docs(@parts.join, $ast.WHY)
+        self.var-declaration($ast)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Term:D $ast --> Str:D) {

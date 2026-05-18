@@ -596,7 +596,7 @@ CODE
             @parts.push(self.deparse($initializer));
         }
 
-        self.add-any-docs(@parts.join, $ast.WHY)
+        @parts.join
     }
 
 #- A ---------------------------------------------------------------------------
@@ -2923,7 +2923,7 @@ CODE
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {
-        self.var-declaration($ast)
+        self.add-any-docs(self.var-declaration($ast), $ast.WHY)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Term:D $ast --> Str:D) {

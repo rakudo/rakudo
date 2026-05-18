@@ -3318,8 +3318,10 @@ class RakuAST::ApplyPostfix
             $operand := $statement.expression
                 unless $statement.condition-modifier || $statement.loop-modifier;
 
-            # Double parentheses act as a currying border.
-            $obj.IMPL-MUST-NOT-CURRY if nqp::istype($operand, RakuAST::Circumfix::Parentheses);
+            # Parentheses around the operand act as a currying border, so the
+            # postfix applies to the value of the parenthesized expression
+            # rather than being absorbed into a surrounding WhateverCode.
+            $obj.IMPL-MUST-NOT-CURRY;
         }
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!operand', $operand);
         $obj

@@ -3897,6 +3897,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method add-trailing-declarator-doc($/) {
         my $from := $/.from;
 
+        # `enter-block-scope` set-declarands the Routine stub first;
+        # the signature's parameters then overwrite `$*DECLARAND`.  By
+        # the time the .ws-consumed trailing `#=` after a routine body
+        # fires its action, `$*DECLARAND` is the last Parameter and
+        # the doc lands on the wrong target.  Promote back to the
+        # Routine when we're past the signature (the grammar clears
+        # `$*IN-DECL` before parsing the body), leaving mid-signature
+        # `#=` attached to the Parameter.
+        if $*IN-DECL eq ''
+            && $*BLOCK
+            && nqp::istype($*BLOCK, Nodify('Routine'))
+            && nqp::istype($*DECLARAND, Nodify('Parameter'))
+        {
+            $*DECLARAND          := $*BLOCK;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
+        }
+
         sub accept($/) {
             $*DECLARAND.add-trailing(~$/);
             ++$*FROM-SEEN{$from};

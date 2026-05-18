@@ -194,7 +194,7 @@ class RakuAST::Signature
                     $type := Mu;
                 }
                 elsif $!is-on-named-method {
-                    if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
+                    if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
                         my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));

@@ -31,11 +31,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     my class InstalledDistribution is Distribution::Hash {
         method content($address) {
             my $entry = $.meta<provides>.values.first: { $_{$address}:exists };
-            my $file = $entry
-                ?? $.prefix.add('sources').add($entry{$address}<file>)
-                !! $.prefix.add('resources').add($.meta<files>{$address});
-
-            IO::Handle.new(:path($file))
+            my $sources-path = $.prefix.add('sources').add($_) with $entry{$address}<file>;
+            my $resources-path = $.prefix.add('resources').add($_) with $.meta<files>{$address};
+            my $path = $sources-path // $resources-path;
+            IO::Handle.new(:$path);
         }
     }
 

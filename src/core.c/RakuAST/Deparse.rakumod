@@ -2849,7 +2849,7 @@ CODE
 
         $sigil eq '$' && $ast.scope eq 'state'
           ?? $sigil
-          !! self.var-declaration($ast, $sigil).chomp
+          !! self.var-declaration($ast, $sigil)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {

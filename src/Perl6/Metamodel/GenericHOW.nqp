@@ -39,7 +39,14 @@ class Perl6::Metamodel::GenericHOW
               ?? nqp::decont($type_environment.AT-KEY($name))
               !! nqp::null;
 
-        nqp::isnull($found)
+        # A name-collision between a user role's type capture and a core
+        # role's same-named capture (e.g. user `role R[::TValue]` versus
+        # `Array::Typed[::TValue]`) can resolve the lookup to the very
+        # same generic object we just started from.  Without this guard
+        # the recursive call below spins forever.  Treat self-resolution
+        # as "no further resolution available in this env" and return
+        # $target unchanged, mirroring the not-found branch.
+        nqp::isnull($found) || nqp::eqaddr($found, $target)
           ?? $target
           !! $found.HOW.archetypes($found).generic
             ?? $found.HOW.instantiate_generic($found, $type_environment)

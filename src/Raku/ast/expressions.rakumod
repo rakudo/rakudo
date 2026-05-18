@@ -197,6 +197,9 @@ class RakuAST::Infixish
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
 
+    # Override on infixes whose call returns a lazy producer (needs p6sink).
+    method IMPL-RESULT-NEEDS-ITERATION() { False }
+
     # A node can implement this if it wishes to have full control of the
     # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
     # QAST of the operands.
@@ -1304,7 +1307,13 @@ class RakuAST::MetaInfix::Assign
 
     method is-pure() { False }
 
+    method IMPL-RESULT-NEEDS-ITERATION() {
+        nqp::istype($!infix, RakuAST::MetaInfix::Zip)
+          || nqp::istype($!infix, RakuAST::MetaInfix::Cross)
+    }
+
     method IMPL-IS-TEST() {
+        return False unless nqp::istype(self.infix, RakuAST::Infix);
         my $basesym := self.infix.operator;
         $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
         || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
@@ -1359,6 +1368,10 @@ class RakuAST::MetaInfix::Assign
                 )
             )
         }
+        elsif self.IMPL-WRAPS-LIST-META {
+            QAST::Op.new: :op<call>,
+              self.IMPL-NESTED-META-HOP-QAST($context), $left-qast, $right-qast
+        }
         else {
             QAST::Op.new(:op<call>,
               self.IMPL-HOP-INFIX-QAST($context) , $left-qast, $right-qast
@@ -1377,6 +1390,45 @@ class RakuAST::MetaInfix::Assign
         while $i < nqp::elems($operands) {
             $operands[$i].apply-sink(False);
             $i++;
+        }
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        if self.IMPL-WRAPS-LIST-META {
+            my $op := QAST::Op.new: :op<call>, self.IMPL-NESTED-META-HOP-QAST($context);
+            for $operands { $op.push($_) }
+            $op
+        }
+        else {
+            self.IMPL-INFIX-QAST($context, $operands[0], $operands[1])
+        }
+    }
+
+    method IMPL-WRAPS-LIST-META() {
+        self.IMPL-RESULT-NEEDS-ITERATION
+          || nqp::istype($!infix, RakuAST::MetaInfix::Hyper)
+    }
+
+    # Emits METAOP_<TYPE>(METAOP_ASSIGN(base)).  The flipped
+    # METAOP_ASSIGN(METAOP_<TYPE>(base)) returns a Seq that breaks native arrays.
+    method IMPL-NESTED-META-HOP-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $base       := $!infix.infix;
+        my $assign-hop := QAST::Op.new: :op('call'), :name('&METAOP_ASSIGN'),
+                            $base.IMPL-HOP-INFIX-QAST($context);
+        if nqp::istype($!infix, RakuAST::MetaInfix::Hyper) {
+            my $hyper := $!infix;
+            my $hop   := QAST::Op.new: :op('call'), :name('&METAOP_HYPER'),
+                            $assign-hop;
+            $hop.push(QAST::WVal.new(:value(True), :named('dwim-left')))  if $hyper.dwim-left;
+            $hop.push(QAST::WVal.new(:value(True), :named('dwim-right'))) if $hyper.dwim-right;
+            $hop
+        }
+        else {
+            my str $name := nqp::istype($!infix, RakuAST::MetaInfix::Zip)
+                              ?? '&METAOP_ZIP' !! '&METAOP_CROSS';
+            QAST::Op.new: :op('call'), :name($name),
+                $assign-hop,
+                QAST::Var.new(:name('&METAOP_REDUCE_RIGHT'), :scope('lexical'))
         }
     }
 }
@@ -2049,7 +2101,8 @@ class RakuAST::ApplyInfix
         );
 
         # handle op=
-        if nqp::istype($infix, RakuAST::MetaInfix::Assign) {
+        if nqp::istype($infix, RakuAST::MetaInfix::Assign)
+          && nqp::istype($infix.infix, RakuAST::Infix) {
             my str $operator := $infix.infix.operator;
             if $operator eq ',' || $operator eq 'xx' {
                 my $sigil := (try $left.sigil) // '';
@@ -2181,7 +2234,7 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
     }
 
-    method needs-sink-call() { $!infix.is-pure }
+    method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     method IMPL-CAN-INTERPRET() {
         $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET

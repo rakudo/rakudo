@@ -9,6 +9,19 @@ augment class RakuAST::Node {
     our class CannotLiteralize is Exception { }
     my sub alas() { CannotLiteralize.new.throw }
 
+    # Like .literalize, but throws CannotLiteralize on failure instead of
+    # returning the sentinel.  Lets a multi that recursively literalizes
+    # children write only the happy path; an inner failure unwinds back
+    # to the proto's CATCH and propagates as a sentinel return.  decont
+    # is needed so the eqaddr identity check sees the bare type object
+    # rather than the Scalar container the literalize result arrives in.
+    method IMPL-LITERALIZE-OR-ALAS() {
+        my $v := self.literalize;
+        nqp::istype($v, Nil) || nqp::eqaddr(nqp::decont($v), CannotLiteralize)
+          ?? alas()
+          !! $v
+    }
+
     proto method literalize(RakuAST::Node:) {
         CATCH {
             when CannotLiteralize {
@@ -39,14 +52,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::ApplyInfix:D:) {
         if infix-op(self.infix.operator) -> &op {
-            my $left  := self.left.literalize;
-            my $right := self.right.literalize;
-            if nqp::istype($left,Nil) || nqp::istype($right,Nil) {
-                alas
-            }
-            else {
-                op($left, $right);
-            }
+            op(self.left.IMPL-LITERALIZE-OR-ALAS, self.right.IMPL-LITERALIZE-OR-ALAS)
         }
         else {
             alas;
@@ -60,7 +66,7 @@ augment class RakuAST::Node {
             self.operands.map(*.literalize).List
         }
         elsif infix-op(self.infix.operator) -> &op {
-            op(self.operands.map(*.literalize))
+            op(self.operands.map(*.IMPL-LITERALIZE-OR-ALAS))
         }
         else {
             alas;
@@ -71,10 +77,10 @@ augment class RakuAST::Node {
         my $postfix := self.postfix;
 
         if nqp::istype($postfix,RakuAST::Postfix::Vulgar) {
-            self.operand.literalize + $postfix.vulgar
+            self.operand.IMPL-LITERALIZE-OR-ALAS + $postfix.vulgar
         }
         elsif nqp::istype($postfix,RakuAST::Postfix::Power) {
-            self.operand.literalize ** $postfix.power
+            self.operand.IMPL-LITERALIZE-OR-ALAS ** $postfix.power
         }
         else {
             alas;
@@ -83,7 +89,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::ApplyPrefix:D:) {
         if prefix-op(self.prefix.operator) -> &op {
-            op(self.operand.literalize)
+            op(self.operand.IMPL-LITERALIZE-OR-ALAS)
         }
         else {
             alas;
@@ -93,7 +99,7 @@ augment class RakuAST::Node {
 #- B ---------------------------------------------------------------------------
 
     multi method literalize(RakuAST::Block:D:) {
-        self.body.statement-list.literalize.Map
+        self.body.statement-list.IMPL-LITERALIZE-OR-ALAS.Map
     }
 
 #- C ---------------------------------------------------------------------------
@@ -109,7 +115,7 @@ augment class RakuAST::Node {
     }
 
     multi method literalize(RakuAST::Circumfix::HashComposer:D:) {
-        self.expression.literalize.Map
+        self.expression.IMPL-LITERALIZE-OR-ALAS.Map
     }
 
     multi method literalize(RakuAST::Circumfix::Parentheses:D:) {
@@ -131,7 +137,7 @@ augment class RakuAST::Node {
     }
 
     multi method literalize(RakuAST::ColonPair::Value:D:) {
-        Pair.new: self.key, self.value.literalize
+        Pair.new: self.key, self.value.IMPL-LITERALIZE-OR-ALAS
     }
 
 #- D ---------------------------------------------------------------------------
@@ -147,7 +153,7 @@ augment class RakuAST::Node {
 #- F ---------------------------------------------------------------------------
 
     multi method literalize(RakuAST::FatArrow:D:) {
-        Pair.new: self.key, self.value.literalize
+        Pair.new: self.key, self.value.IMPL-LITERALIZE-OR-ALAS
     }
 
 #- L ---------------------------------------------------------------------------
@@ -231,7 +237,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Term::RadixNumber:D:) {
         (self.multi-part ?? &UNBASE_BRACKET !! &UNBASE)(
-          self.radix, self.value.literalize
+          self.radix, self.value.IMPL-LITERALIZE-OR-ALAS
         )
     }
 

@@ -558,7 +558,9 @@ CODE
         self.hsyn("typer-$typer", self.xsyn('typer', $typer))
     }
 
-    method var-declaration($ast, str $name = $ast.name) {
+    method var-declaration(RakuAST::VarDeclaration::Simple:D
+      $ast, str $name = $ast.name
+    ) {
         my str @parts;
 
         @parts.push(self.syn-scope($ast.scope));

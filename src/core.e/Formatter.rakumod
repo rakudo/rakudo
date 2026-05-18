@@ -168,11 +168,17 @@ our class Formatter {
     # even if precision is 0
     our sub scientify-point(str $letter, int $positions, $value --> str) {
         my str $string = scientify($letter, $positions, $value);
+        my int $index  = nqp::index($string,$letter);
 
-        # Not zero positions or reverted to "e" format
-        $positions || nqp::indexic($string,"e",0) > -1
+        # Not zero positions or generated with "e" format
+        $positions
           ?? $string
-          !! nqp::concat($string,".")
+          !! $index > -1
+            ?? nqp::concat(
+                 nqp::substr($string,0,$index),
+                 nqp::concat(".",nqp::substr($string,$index))
+               )
+            !! nqp::concat($string,".")
     }
 
     # Set up value for scientific notation: at this point it
@@ -294,7 +300,7 @@ our class Formatter {
                   $significant - 1,
                   $value
                 );
-
+                
                 # See if we can move it back to simple format, now that
                 # all the proper rounding has been done.
                 my int $index = nqp::index($string,nqp::concat($letter,"+"));

@@ -2469,6 +2469,41 @@ class RakuAST::Methodish
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
             $resolver.outer-scope.add-generated-lexical-declaration(self) if self.scope ne 'has';
         }
+
+        # Install `our` multi/proto methods into the package's OUR stash
+        # with duplicate detection.  Routine.PERFORM-BEGIN's stash install
+        # excludes multi, and Methodish doesn't chain through it; non-multi
+        # `our method` is handled by LexicalScope.PERFORM-CHECK.  Skip
+        # roles and non-method-capable packages: their existing role-scope
+        # / useless-declaration errors already report the issue.
+        if self.lexical-name && self.scope eq 'our'
+                && (self.multiness eq 'multi' || self.multiness eq 'proto') {
+            my $install-pkg := $package;
+            # Mainline (no enclosing package) falls back to GLOBAL.  Skip
+            # during CORE.setting compile: GLOBAL's `.WHO` isn't wired up
+            # that early in bootstrap.
+            if !$install-pkg && !($*COMPILING_CORE_SETTING // 0) {
+                $install-pkg := $resolver.global-package;
+            }
+            # GLOBAL is wrapped in a non-Package Implicit::Constant; only
+            # real RakuAST::Package nodes carry `can-have-methods`.
+            if $install-pkg
+                    && !$package-is-role
+                    && (!nqp::istype($install-pkg, RakuAST::Package)
+                            || $install-pkg.can-have-methods) {
+                my $stash := $install-pkg.stubbed-meta-object.WHO;
+                if nqp::existskey($stash, self.lexical-name) {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Redeclaration',
+                            :symbol(self.declaration-name),
+                            :what(self.declaration-kind);
+                }
+                else {
+                    $stash{self.lexical-name} := self.meta-object;
+                }
+            }
+        }
+
         self.IMPL-STUB-PHASERS($resolver, $context);
 
         my $stub := self.IMPL-STUB-CODE($resolver, $context);

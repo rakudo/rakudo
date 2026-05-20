@@ -885,26 +885,9 @@ class RakuAST::Feed
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                my str $error := "Only routine calls or variables that can '.append' may appear on either side
-of feed operators.";
-                if nqp::istype($stage, QAST::Children) && nqp::istype($stage[0], QAST::Var) {
-                    if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
-                        && nqp::eqat($stage[0].name, '&', 0) {
-                        $error := "A feed may not sink values into a code object.
-Did you mean a call like '"
-                            ~ nqp::substr($stage[0].name, 1)
-                            ~ "()' instead?";
-                    }
-
-                    # Looks like an array, yet we wound up here (which we
-                    # wouldn't if it was an ordinary array.  Assume it's
-                    # a shaped array definition throwing a spanner into the
-                    # works.
-                    elsif nqp::eqat($stage[0].name, '@', 0) {
-                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
-                    }
-                }
-                $_.PRECURSOR.panic($error);
+                # ApplyListInfix.PERFORM-CHECK should reject this earlier.
+                nqp::die("internal error: feed stage of unsupported QAST kind "
+                  ~ $stage.HOW.name($stage));
             }
             $result := $stage;
         }
@@ -2284,20 +2267,64 @@ class RakuAST::ApplyListInfix
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!infix, RakuAST::Feed) {
-            for $!operands {
-                if nqp::istype($_, RakuAST::Var::Lexical) && $_.sigil eq '&' {
+            my $op := $!infix.operator;
+            my @stages;
+            if $op eq '==>' || $op eq '==>>' {
+                for $!operands { @stages.push($_) }
+            }
+            else {
+                for $!operands { @stages.unshift($_) }
+            }
+            @stages.shift;  # source operand, not a stage to validate
+            for @stages {
+                my $stage := $_;
+                if nqp::istype($stage, RakuAST::Var) && $stage.sigil eq '&' {
                     self.add-sorry(
                         $resolver.build-exception: 'X::AdHoc', :payload(
                             "A feed may not sink values into a code object.\n"
                                 ~ "Did you mean a call like '"
-                                ~ $_.desigilname.canonicalize
+                                ~ self.IMPL-FEED-CODE-OBJECT-NAME($stage)
                                 ~ "()' instead?"));
+                }
+                elsif !self.IMPL-IS-VALID-FEED-STAGE($stage) {
+                    my str $error := "Only routine calls or variables that can '.append' may appear on either side\nof feed operators.";
+                    # `my @x = ...` / `our @x = ...` gets legacy's
+                    # "shaped arrays" wording even without a declared
+                    # shape; other scopes get the generic message.
+                    if nqp::istype($stage, RakuAST::VarDeclaration::Simple)
+                      && $stage.sigil eq '@'
+                      && ($stage.scope eq 'my' || $stage.scope eq 'our') {
+                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
+                    }
+                    self.add-sorry(
+                        $resolver.build-exception: 'X::AdHoc', :payload($error));
                 }
             }
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
+    }
+
+    method IMPL-IS-VALID-FEED-STAGE($stage) {
+        return 1 if nqp::istype($stage, RakuAST::Call);
+        return 1 if nqp::istype($stage, RakuAST::Var);
+        # `my @a <== source`: a bare declaration acts as the Var.
+        # An initializer (`my @a = grep(...)`) or a shape
+        # (`my @a[5]`) makes it a complex expression that legacy
+        # correctly rejects, so we reject too.
+        if nqp::istype($stage, RakuAST::VarDeclaration::Simple) {
+            return 1 unless $stage.initializer || $stage.shape;
+        }
+        0
+    }
+
+    method IMPL-FEED-CODE-OBJECT-NAME($stage) {
+        return $stage.desigilname.canonicalize
+          if nqp::istype($stage, RakuAST::Var::Lexical);
+        return $stage.name.canonicalize
+          if nqp::istype($stage, RakuAST::Var::Package);
+        nqp::can($stage, 'name') ?? ~$stage.name !! ''
     }
 
     method IMPL-CAN-INTERPRET() {

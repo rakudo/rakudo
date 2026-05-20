@@ -384,11 +384,18 @@ augment class Code {
         if $parameter.constraint_list -> @constraints {
             my $head := @constraints.head;
             if @constraints.elems == 1
-              && nqp::not_i(nqp::istype($head,Code)) {
-                %args<value> = $head;  # literalize($head)) ??
+              && nqp::not_i(nqp::istype($head,Code))
+              && nqp::isconcrete($head) {
+                # Concrete value constraint, e.g. `sub f(42) { }`:
+                # match by value, parameter is anonymous.
+                %args<value> = $head;
                 %args<target>:delete;
             }
             else {
+                # Type-object constraint (subset type, etc.) or a
+                # `where`-clause Code: keep the parameter's target so
+                # the synthesised body can reference it by name; turn
+                # the constraint into a where-clause on the binding.
                 %args<where> = literalize($head);
             }
         }

@@ -2,7 +2,7 @@ use lib <t/02-rakudo/test-packages>;
 use Test;
 use AssumingExternalType;
 
-plan 7;
+plan 9;
 
 # External (use-imported) typed named arg curried.
 {
@@ -68,6 +68,19 @@ plan 7;
     is c(), 42, 'is raw curried call sees initial container value';
     $b = 666;
     is c(), 666, 'is raw curried call sees mutated container value';
+}
+
+# Subset-typed pass-through param: the param has to keep its name
+# in the synthesised signature so the body's reference to it
+# resolves.  Triggered by a Whatever placeholder leaving the
+# typed param in the curried signature.
+{
+    subset Simple where Int | Str;
+    sub check (Simple $a, $type) { so $a ~~ $type }
+    is (1, 2, "foo", "bar").first(&check.assuming(*, Int)), 1,
+       'subset-typed Whatever-passthrough, currying Int';
+    is (1, 2, "foo", "bar").first(&check.assuming(*, Str)), "foo",
+       'subset-typed Whatever-passthrough, currying Str';
 }
 
 # vim: expandtab shiftwidth=4

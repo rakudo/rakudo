@@ -705,7 +705,11 @@ augment class Code {
             die "Unexpected @nogo[]";
         }
 
-        # Create the Callable wrapper and return it
+        # Embed the Code being curried as a literal compile-time value
+        # rather than via `self`, so the synthesized closure can be
+        # EVAL'd in the caller's lexical scope (needed for type names
+        # like `URI` in the curried Code's signature to resolve) without
+        # depending on a `self` binding in that scope.
         my %args =
           signature => RakuAST::Signature.new(
             parameters => @new.List,
@@ -714,23 +718,31 @@ augment class Code {
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::ApplyPostfix.new(
-                  operand => RakuAST::Term::Self.new,
+                  operand => RakuAST::Literal.from-value(self),
                   postfix => RakuAST::Call::Term.new(:$args),
                 )
               )
             )
           )
         ;
-        if nqp::istype(self,Routine) {
+        my $ast := do if nqp::istype(self,Routine) {
             %args<multiness> = "proto" if self.is_dispatcher;
             %args<traits>.push(trait-is("rw")) if self.rw;
             %args<name> =
               RakuAST::Name.from-identifier("assumed." ~ self.name);
-            RakuAST::Sub.new(|%args).EVAL
+            RakuAST::Sub.new(|%args)
         }
         else {
-            RakuAST::PointyBlock.new(|%args).EVAL
+            RakuAST::PointyBlock.new(|%args)
         }
+
+        # Show generated code either deparsed, or with full AST
+        if %*ENV<RAKUDO_ASSUMING_DEBUG> -> $level {
+            note $ast if $level > 1;
+            note $ast.DEPARSE;
+        }
+
+        $ast.EVAL(:context(CALLER::LEXICAL::))
     }
 }
 

@@ -384,11 +384,18 @@ augment class Code {
         if $parameter.constraint_list -> @constraints {
             my $head := @constraints.head;
             if @constraints.elems == 1
-              && nqp::not_i(nqp::istype($head,Code)) {
-                %args<value> = $head;  # literalize($head)) ??
+              && nqp::not_i(nqp::istype($head,Code))
+              && nqp::isconcrete($head) {
+                # Concrete value constraint, e.g. `sub f(42) { }`:
+                # match by value, parameter is anonymous.
+                %args<value> = $head;
                 %args<target>:delete;
             }
             else {
+                # Type-object constraint (subset type, etc.) or a
+                # `where`-clause Code: keep the parameter's target so
+                # the synthesised body can reference it by name; turn
+                # the constraint into a where-clause on the binding.
                 %args<where> = literalize($head);
             }
         }
@@ -412,14 +419,24 @@ augment class Code {
         # Current index into positionals
         my int $index;
 
-        # Curry the positional at the given index
+        # For containerised values (or Positional/Associative) we want
+        # `is raw` semantics to survive across the call: the closure
+        # must see the original container at invocation time so
+        # mutations between `.assuming(...)` and the call propagate.
+        # Index into the `@positionals` slurpy itself, embedded as a
+        # literal so the closure does not need that variable to
+        # resolve in any outer scope.  Built once and reused across
+        # every containerised index so we don't emit a fresh Literal
+        # node and WVal per positional.  Other values are literalised
+        # by value.
+        my $positionals-literal := RakuAST::Literal.from-value(@positionals);
         my sub curry-positional($i --> Nil) {
             $args.push(
               nqp::iscont(my $value := @positionals[$i])
                 || nqp::istype($value,Positional)
                 || nqp::istype($value,Associative)
                 ?? RakuAST::ApplyPostfix.new(
-                     operand => RakuAST::Var::Lexical.new("\@positionals"),
+                     operand => $positionals-literal,
                      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
                        index => RakuAST::SemiList.new(
                          RakuAST::Statement::Expression.new(
@@ -705,7 +722,12 @@ augment class Code {
             die "Unexpected @nogo[]";
         }
 
-        # Create the Callable wrapper and return it
+        # Embed the Code being curried as a literal compile-time value
+        # rather than via `self`, so the synthesized closure can be
+        # EVAL'd in the caller's lexical scope (needed for type names
+        # in the curried Code's signature to resolve against the
+        # caller's `use`-imports) without depending on a `self`
+        # binding in that scope.
         my %args =
           signature => RakuAST::Signature.new(
             parameters => @new.List,
@@ -714,22 +736,23 @@ augment class Code {
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::ApplyPostfix.new(
-                  operand => RakuAST::Term::Self.new,
+                  operand => RakuAST::Literal.from-value(self),
                   postfix => RakuAST::Call::Term.new(:$args),
                 )
               )
             )
           )
         ;
+        my $context := CALLER::LEXICAL::;
         if nqp::istype(self,Routine) {
             %args<multiness> = "proto" if self.is_dispatcher;
             %args<traits>.push(trait-is("rw")) if self.rw;
             %args<name> =
               RakuAST::Name.from-identifier("assumed." ~ self.name);
-            RakuAST::Sub.new(|%args).EVAL
+            RakuAST::Sub.new(|%args).EVAL(:$context)
         }
         else {
-            RakuAST::PointyBlock.new(|%args).EVAL
+            RakuAST::PointyBlock.new(|%args).EVAL(:$context)
         }
     }
 }

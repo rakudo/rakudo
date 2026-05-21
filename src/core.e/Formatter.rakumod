@@ -242,95 +242,6 @@ our class Formatter {
         }
     }
 
-    # Set up value for either a sort of floating point or scientific
-    # notation: this version will *always* render with a period if it
-    # is *not* reverting to %e format. At this point it is guaranteed
-    # that the value is *not* Inf, -Inf or NaN.  The value 0 can only
-    # occur here with dynamic width or precision.
-    our sub bestfit-point(str $letter, int $positions, $value --> str) {
-        my str $string = bestfit($letter, $positions, $value);
-
-        # Not zero positions or reverted to "e" format
-        $value
-          ?? $positions || nqp::indexic($string,"e",0) > -1
-            ?? $string
-            !! nqp::concat($string,".")
-          !! "0."
-    }
-
-    # Set up value for either a sort of floating point or scientific
-    # notation: at this point it is guaranteed that the value is
-    # *not* Inf, -Inf or NaN.  The value 0 can only occur here
-    # with dynamic width or precision.
-    our sub bestfit(
-      str $letter      is copy,
-      int $significant is copy,
-          $value
-    --> str) {
-
-        # Something complicated to do
-        if $value {
-
-            # One would specify a 0 significance to indicate that the
-            # decimal point should be shown for whole values (with the
-            # # also occurring in the format).  Otherwise, we just use
-            ++$significant unless $significant;
-
-            # Initial rendering
-            my $abs          := $value.abs;
-            my str $string    = $abs.Str;
-            my int $has-point = nqp::isgt_i(nqp::index($string,".",1),-1);
-            my int $has-zero  = nqp::eqat($string,'0',0);
-
-            # Initial rendering has sufficient significant digits
-            if nqp::chars($string) - $has-zero - $has-point <= $significant {
-
-                # Make sure the negative values were handled correctly
-                $value < 0
-                  ?? nqp::concat("-",$string)
-                  !! $string
-            }
-
-            # Out of range of significant digits, so, revert to using
-            # exponential notation (which will take care of any rounding
-            # issues).
-            else {
-                $string = scientify(
-                  ($letter = $letter eq 'G' ?? 'E' !! 'e'),
-                  $significant - 1,
-                  $value
-                );
-                
-                # See if we can move it back to simple format, now that
-                # all the proper rounding has been done.
-                my int $index = nqp::index($string,nqp::concat($letter,"+"));
-                if $index > -1 {
-
-                    # Number of digits in positive exponent
-                    my int $power = nqp::substr($string,$index+2);
-
-                    # Remove exponential notation if possible
-                    $index         # number of digits with decimal point
-                      - $has-point # subtract any decimal point
-                      + $power <= $significant
-                      ?? nqp::substr($string,0,$index)
-                      !! $string
-                }
-
-                # Nothing possible left to do
-                else {
-                    $string
-                }
-            }
-        }
-
-        # 0 returns "0", as it has no number of significant digits
-        # and the "g/G" format only shows significant digits
-        else {
-            "0"
-        }
-    }
-
     # Provide left justification of string for given signer and
     # number of positions
     our sub str-signer-left-justified(
@@ -991,24 +902,7 @@ our class Formatter {
 
         # f or e depending on value
         method directive:sym<g>($/ --> Nil) {
-            my $size      := size($/);
-            my $precision := precision($/) // ast-integer(6);
-            my $parameter := parameter($/, :coerce<Numeric>);
-            my $letter    := $<sym>.Str;
-            my int $point  = has-hash($/)
-              && (!is-literal-int($precision) || $precision.value == 0);
-
-            make handle-float-numeric($/,
-              $size, $precision, $parameter,
-              $point ?? "0." !! "0",   # zero
-              ast-call-sub(            # not-zero
-                $point ?? 'bestfit-point' !! 'bestfit',
-                ast-string($letter),
-                $precision,
-                $parameter
-              ),
-              :NAN-OR-INF($letter eq 'G')
-            )
+            self."directive:sym<e>"($/);  # for now
         }
 
         # show numeric value in octal using Perl / Raku semantics

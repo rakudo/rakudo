@@ -1,3 +1,90 @@
+New in 2026.05:
+
++ Improvements:
+    + MoarVM debugserver improvements [a8b8c713]
+    + Update to mimalloc v2.3.2 [71cb699c]
+    + Improve error messaging of Mu values [42ef8973]
+    + QuantHash refactor, now allowing key parameterization with coercive types
+      [5c37ccea][d8f907ee][9e6d078e][f5773837][b8f0e1f9][287dfb25]
+    + Simplify Int multi for infix:<%> (#6177) [13fcc50e]
+    + Many RakuAST improvements and fixes (see RakuAST section) now allowing:
+       + Synthetically built RakuAST code to be used in precompiled modules
+       + Code.assuming now builds a Callable using RakuAST for better performance and features
+       + sprintf on 6.e now builds a Callable for better performance and adherence to standards
+       + Building and installing Rakudo with RAKUDO_RAKUAST=1 now works
+       + Installing modules with RAKUDO_RAKUAST=1 now works
+    + In other words: major steps towards releasing the next Raku language level 
+
++ Fixes:
+    + Fix "Missing infix inside R" when using RZ/RX infix form [6baf3735][764a3382]
+    + Mu BUILDPLAN walkers: route @/% attr init through STORE :INITIALIZE [76f3f79a][a4ccac2c]
+    + Fixes from MoarVM/NQP including: optimizations, avoiding segfaults [af66caff][9e649f70][12e6f4df][07e67462]
+    + Make Format.raku subclass safe [0dcdb5c5]
+    + Fix Test.rakumod failure-attribution across frontend / Repository combos [aa5abe40][57b9943f]
+
++ Additions:
+    + JITDUMP support [5e09687f]
+    + Add obituary for Clifton Wood [b49217d2]
+
++ RakuAST:
+    + drop dead compile-time-value read in package-lookup parse [9620e240][995fdc58]
+    + emit lexical lookup for generic 'is T' attribute container initializer [3fc33fda][836f8fcb]
+    + nominalize sigilless variable invocant for .= initializers [2cf777b2][3983159b]
+    + store explicit container base type as RakuAST::Type AST [2408d059]
+    + emit runtime construction for generic Definedness/Coercion types [c4dcb61c][bdb8ee9e]
+    + tighten generic detection in Type::Simple via IMPL::Archetypes.is-generic [f9a1a517]
+    + Fix .EVAL at BEGIN time losing access to setting symbols [fa177fef][4666cd56]
+    + Guard $!block in TraitTarget::Variable for NULL setting compilation [13cfef08][4e8a2c06]
+    + Fix build-exception crash on uncomposed exception type stubs [d7295890][8ecf4c4d]
+    + propagate $*COMPILING_CORE_SETTING into QAST stage [b2489e8d][07310601]
+    + avoid pathologically slow Raku dispatch in add-phasers-handling-code [768819d6][dabe0f4d]
+    + nominalize default value for definite-constrained variables [224aa3d8][b59889e7]
+    + install instantiation lexicals for nested generic packages in roles [c53eaeea]
+    + merge loaded stub package into enclosing same-named class [2af7c683][d69bb16c]
+    + Fix multi-part type name lookup when resolved type is generic [7da16e72]
+    + Narrow typevar scope to actual type captures in signatures [45d1eade]
+    + Fix generic nested packages in parametric roles [a4c712fe]
+    + Fix colon invocant syntax with Whatever [6a13156f][386eb023]
+    + dedupe @declarations at the source in ast-lexical-declarations [f8b2ac3c][fc7e95d7]
+    + Fix .EVAL at BEGIN time breaking module precompilation [46ce0e3f][0b3f0f5f]
+    + Extract shared coderef-fixup loop into IMPL-FIXUP-COMPILED-CODEREFS [9885a375]
+    + extract Raku module-loader prelude helper [b15a0f87]
+    + emit BOOTSTRAP load as pre-deserialize task for CORE.<spec> [1dc23fba][1e95be44]
+    + align nested-EVAL fixup with legacy frontend so `$!do` gets unstubbed [7cb5a5bc][e91fa0db]
+    + route ContainerDescriptor creation through one Mu-aware helper [64b08ae0][46f12ddf]
+    + skip per-compunit implicit decls when compiling CORE setting [a32c4c58][97e5c1bb]
+    + don't set Mu refinement on where-free subsets [63b0013f][5e263cb3]
+    + nominalize coercive types for descriptor default in pre-6.e [e326ab3e][bbec4369]
+    + declare $¢ with a Scalar container, matching legacy [8bf03215]
+    + Account for CORE/SETTING differences when built with RakuAST [c6c2cb1f][e20e8cc0]
+    + Re-instate the RakuAST based implementation of .assuming [6cb6ac32]
+    + Add a rakuast variant to the Azure CI build/test matrix [505c6b4f][1e6da94c]
+    + don't rely on magical %_ inside nested blocks of ParameterAST [d8957e54]
+    + align @_/%_ resolution with the legacy frontend's de-facto behavior [b2671803][9a66df20]
+    + Revert "RakuAST: make sure non-blocks are sunk in start" [d4d146a9]
+    + fix subset-typed parameter binding under v6.e [92e003e2][0106c6b8]
+    + re-allocate @!compstuff in IMPL-LINK-META-OBJECT if cleanup nulled it [c2db2a1c]
+    + report stub grammars in X::Package::Stubbed alongside other stubs [585e93fe][6654591f]
+    + retry .& resolution at check time to handle forward references [60ff486a][3b68b4c8]
+    + add meta-object to RakuAST::Declaration::Import [e803a394][ec00e3b6]
+    + strip colonpairs from subset/enum meta-object names [fc09ce63][c4ed6b48]
+    + evaluate non-trivial package colonpair values once, cached [3761996b] [0e03c00c]
+    + literalizing subroutine calls will never work [c1d292bb]
+    + silent-replace cross-compunit class reload in 'our' scope [eb91c164][9e341da6]
+    + suspend precomp-dep recording across $*REPO chain setup [081e4ba0][05c18fa1]
+    + fix deparsing of RakuAST::VarDeclaration::Anonymous [b162d0a0]
+    + resolve externally-defined types in synthesised closures [82cd9152][4e96aa26]
+    + keep parameter target for type-object constraints [b31e255f]
+    + stop currying through special-op postfixes (.WHAT etc.) [437a589e]
+    + Add test to avoid regression on .assuming in precompiled module loaded via another [45b604d7][a716df8f]
+    + sprintf on 6.e now builds a Callable using RakuAST for better performance [1e134814][a8235075][ec26e96f][767a89de][8c5157ae][47b5e306][31076bbc][505e0061][7a0d2661][661ffbb7][b10adfb3] [ea7786dc][6f0f1f5a][6f0f1f5a][81b3d172][6ae9ef82][842b8d2d][36e9e032][456781a5][f4f231be]
+    + EVAL: register compiled code refs and drain cleanup for AST EVAL [ce279451]
+    + EVAL: bridge AST EVAL to outer Perl6::World during legacy precomp (#6176) [df18dda4]
+
+
++ Internal:
+    + Add CI job for RAKUDO_RAKUAST=1 built rakudo to run RAKUDO_RAKUAST=1 make spectest [35eb4abb][d0d1b716]
+
 New in 2026.04:
 
 + Improvements:

@@ -489,4 +489,29 @@ multi sub infix:<mod>( int $a, uint $b --> int)  { nqp::mod_i($a, $b) }
 multi sub infix:<mod>(uint $a,  int $b --> int)  { nqp::mod_i($a, $b) }
 multi sub infix:<mod>(uint $a, uint $b --> uint) { nqp::mod_i($a, $b) }
 
+#- infix ~~ --------------------------------------------------------------------
+# A concrete Match matcher no longer matches everything in 6.e: the smartmatch
+# is an ordinary identity comparison, as for any other object without its own
+# ACCEPTS. The typeobject Match takes the usual typecheck path, so `~~ Match`
+# is unaffected. The same-signature core.c candidates carry the pre-6.e
+# semantics, hence the `is default`. Like infix:<~> above, revision gating
+# can not be made to work on the proto.
+multi sub infix:<~~>(Mu \topic, Match:D $matcher) is default {
+    nqp::hllbool(nqp::eqaddr(nqp::decont($matcher),nqp::decont(topic)))
+}
+multi sub infix:<!~~>(Mu \topic, Match:D $matcher) is default {
+    nqp::hllbool(nqp::not_i(nqp::eqaddr(nqp::decont($matcher),nqp::decont(topic))))
+}
+# A Junction topic still matches over its eigenstates.
+multi sub infix:<~~>(Junction:D \topic, Match:D $matcher) is default {
+    topic.THREAD({
+        nqp::hllbool(nqp::eqaddr(nqp::decont($matcher),nqp::decont($_)))
+    }).Bool
+}
+multi sub infix:<!~~>(Junction:D \topic, Match:D $matcher) is default {
+    topic.THREAD({
+        nqp::hllbool(nqp::eqaddr(nqp::decont($matcher),nqp::decont($_)))
+    }).Bool.not
+}
+
 # vim: expandtab shiftwidth=4

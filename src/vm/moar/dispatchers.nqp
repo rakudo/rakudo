@@ -4242,7 +4242,6 @@ nqp::register('raku-boolify', -> $capture {
     my &negate-nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
         nqp::hllboolfor(nqp::not_i(nqp::istype($topic, $rhs)), 'Raku')
     });
-
     my sub find-core-symbol(str $sym, :$ctx, :$revision) {
         unless nqp::isconcrete($ctx) {
             $ctx := nqp::ctxcaller(nqp::ctx());
@@ -4273,6 +4272,10 @@ nqp::register('raku-boolify', -> $capture {
         # boolification flag can either be -1 to negate, 0 to return as-is, 1 to boolify
         # Note that boolification flag is not guarded because it is expected to be invariant over call site.
         my $Match               := find-core-symbol('Match', :ctx(nqp::ctxcaller(nqp::ctx())));
+        # Language revision of the scope the smartmatch was written in. Not
+        # guarded for the same reason as the boolification flag: it is
+        # invariant over the call site.
+        my $caller-revision     := nqp::getlexcaller('$?LANGUAGE-REVISION') // 1;
         my $lhs                 := nqp::captureposarg($capture, 0);
         my $rhs                 := nqp::captureposarg($capture, 1);
         my $boolification       := nqp::captureposarg_i($capture, 2);
@@ -4341,6 +4344,24 @@ nqp::register('raku-boolify', -> $capture {
                     nqp::syscall('dispatcher-drop-arg', $capture, 0));
                 $explicit-accepts := 0;
             }
+        }
+        # From 6.e on a concrete Match matcher makes the smartmatch an
+        # identity comparison, with a Junction topic still matching over its
+        # eigenstates. The semantics live in the core.e infix candidates, so
+        # route the dispatch through the operator the caller's scope
+        # resolves.
+        elsif $caller-revision >= 3
+            && nqp::isconcrete_nd($rhs)
+            && nqp::istype_nd($rhs, $Match)
+        {
+            nqp::guard('concreteness', $track-rhs);
+            nqp::guard('type', $track-rhs);
+            my $op := nqp::getlexcaller($boolification < 0 ?? '&infix:<!~~>' !! '&infix:<~~>');
+            nqp::delegate($op.is_dispatcher ?? 'raku-multi' !! 'raku-invoke',
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-drop-arg', $capture, 2), # boolification flag
+                    0, $op));
+            $explicit-accepts := 0;
         }
         # Delegate to Junction.BOOLIFY-ACCEPTS if possible and makes sense.
         # - Junction type object on RHS is always a type match and we can pass it to the typematching branch

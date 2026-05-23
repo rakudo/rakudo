@@ -1,11 +1,11 @@
-# Moving towards a better pre-comp and module management design
+# Moving towards a better precomp and module management design
 
 ## Overview
 
 This document contains my (jnthn) input to where implementation work for
 Raku module/precomp stuff should head. While much has been converged on by
 existing work, some problems have also been consistently avoided or punted
-on; robust pre-compilation management is one such issue. Everything here is
+on; robust precompilation management is one such issue. Everything here is
 subject to course corrections as implementation takes place, but it should
 hopefully set out a good direction to move in. Also, don't expect this to be
 a complete design. It's as much as I had time to figure out before I vanish
@@ -208,7 +208,7 @@ type object.
             ...
         }
 
-        # Load a pre-compiled file
+        # Load a precompiled file
         method load-precompilation-file(Str $path) returns CompUnit::Handle {
             ...
         }
@@ -221,7 +221,7 @@ type object.
     }
 
 The `CompUnit::Loader` class only expects to be asked to load a given source
-or precompiled file into memory once. Asking it to load the same pre-compiled
+or precompiled file into memory once. Asking it to load the same precompiled
 file twice is erroneous. Provided this is respected, concurrent calls to the
 methods of `CompUnit::Loader` are allowed.
 
@@ -320,7 +320,7 @@ a way to reach any resources declared within it.
 
 #### CompUnit::PrecompilationStore
 
-A precompilation store provides storage of pre-compiled things. It is not
+A precompilation store provides storage of precompiled things. It is not
 concerned with precompilation validity, just storage. Most of the time, the
 Raku built-in implementation that stores precompiled files on disk will be
 sufficient. However, a tool that wished to bundle a Raku implementation

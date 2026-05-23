@@ -868,23 +868,6 @@ my class Rakudo::QuantHash {
         $pair.key
     }
 
-    # Create an IterationSet clone from a Baggy
-    method BAGGY-CLONE-RAW(Mu \baggy) {
-        my $elems := nqp::clone(baggy);
-        my $iter  := nqp::iterator($elems);
-
-        nqp::while(
-          $iter,
-          nqp::bindkey(
-            $elems,
-            nqp::iterkey_s(nqp::shift($iter)),
-            nqp::clone(nqp::iterval($iter))
-          )
-        );
-
-        $elems
-    }
-
     # Add contents of a strict Baggy to the IterationSet of
     # another baggy, and return that
     method ADD-BAG-TO-BAG(\elems, Mu \bag, &objectifier) {
@@ -1860,7 +1843,7 @@ my class Rakudo::QuantHash {
 
     # Set difference from a Setty to a Mixy
     my sub SUB-SETTY-FROM-MIX(\base, Mu \iter, &objectifier) {
-        my $elems := nqp::clone(base);
+        my $elems := Rakudo::QuantHash.BAGGY-CLONE(base);
 
         nqp::while(
           iter,
@@ -1882,7 +1865,7 @@ my class Rakudo::QuantHash {
 
     # Set difference from a Baggy to a Mixy
     my sub SUB-BAGGY-FROM-MIX(\base, Mu \iter, &objectifier) {
-        my $elems := nqp::clone(base);
+        my $elems := Rakudo::QuantHash.BAGGY-CLONE(base);
 
         nqp::while(
           iter,

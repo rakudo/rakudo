@@ -13,6 +13,14 @@
 
 our class Formatter {
 
+    # Integer representation of characters needed in rounding logic.
+    # Not sure yet whether constants would be better
+    my int $zero    = nqp::ord("0");
+    my int $five    = $zero + 5;
+    my int $ten     = $zero + 10;
+    my int $minus   = nqp::ord("-");
+    my     $period := nqp::list_i(nqp::ord("."));
+
 #-------------------------------------------------------------------------------
 # Subroutines referenced at runtime by the generated ASTs, to reduce the
 # actual size of the specific parts of sprintf processing.
@@ -239,6 +247,309 @@ our class Formatter {
                 '+00'
               )
             )
+        }
+    }
+
+    # Helper sub to round a number in a string with a possible decimal
+    # point.  Returns a int32 codes array. Sets an upgraded flag if the
+    # value actually was bumped an order of magnitude (999 -> 1000).
+    our sub string-round-codes(
+      str $string,
+      int $point,
+      int $significant,
+          $upgraded is rw
+    ) {
+        nqp::strtocodes(
+          $string,nqp::const::NORMALIZE_NFC,my int32 @codes
+        );
+        nqp::splice(@codes,nqp::list_i,$point,1)  # remove any period
+          if $point > -1;
+        nqp::unshift_i(@codes,$zero);  # make sure a 999 will allow a 1000
+
+        # Perform rounding
+        my int $index = nqp::elems(@codes);
+        nqp::while(
+          nqp::isge_i(--$index,$significant),  # > because of additional 0
+          nqp::if(
+            nqp::isge_i(nqp::atpos_i(@codes,$index),$five),
+            nqp::stmts(
+              nqp::bindpos_i(@codes,$index,$zero),
+              (my int $before = $index - 1),
+              nqp::bindpos_i(
+                @codes,$before,nqp::atpos_i(@codes,$before) + 1
+              )
+            )
+          )
+        );
+
+        # Finish rounding
+        if nqp::iseq_i(nqp::atpos_i(@codes,$index),$ten) {
+            nqp::bindpos_i(@codes,$index--,$zero);   # reset current
+            nqp::bindpos_i(                          # increment previous
+              @codes,$index,nqp::atpos_i(@codes,$index) + 1
+            );
+        }
+
+        # Upped an order of magnitude (999 -> 1000)
+        if nqp::isne_i(nqp::atpos_i(@codes,0),$zero) {
+            $upgraded = 1;
+        }
+
+        # No upgrade, remove dummy zero
+        else {
+            nqp::shift_i(@codes);
+        }
+
+        @codes
+    }
+
+    # Helper sub to round the *string* representing a mantissa in
+    # scientific notation to the given significant number of digits
+    our sub mantissa-round(
+      str $string,       # string to handle
+      int $exponential,  # location of the E/e in the string
+      int $significant   # number of significant digits required
+     --> str) {
+
+        # Convert to codes and round the value
+        my @codes := string-round-codes(
+          nqp::substr($string,0,$exponential), 1, $significant, my $upgraded
+        );
+
+        # Moved value up an order of magnitude
+        my str $post = nqp::substr($string,$exponential);
+        if $upgraded {
+            my int $exponent =
+              nqp::atpos(nqp::radix(10,nqp::substr($post,1),0,0x02),0);
+            ++$exponent;
+            $exponent = nqp::abs_i($exponent);
+
+            $post = nqp::concat(
+              nqp::substr($post,0,1),
+              $exponent <= 10 ?? nqp::concat("0",~$exponent) !! ~$exponent
+            );
+
+            # Going up an order of magnitude *always* results in a X.0,
+            # so limit to just the first digit
+            nqp::setelems(@codes,1);
+        }
+
+        # Same order of magnitude, set to number of significant digits
+        # and slip in the period
+        else {
+            nqp::setelems(@codes,$significant);
+
+            my $index = nqp::elems(@codes);
+            nqp::while(
+              nqp::iseq_i(nqp::atpos_i(@codes,--$index),$zero),
+              nqp::null
+            );
+            nqp::splice(@codes,$period,1,0);
+        }
+
+        # create the final result
+        nqp::concat(nqp::strfromcodes(@codes),$post)
+    }
+
+    # Set up value for either a sort of floating point or scientific
+    # notation: this version will *always* render with a period if it
+    # is *not* reverting to %e format. At this point it is guaranteed
+    # that the value is *not* Inf, -Inf or NaN.  The value 0 can only
+    # occur here with dynamic width or precision.
+    our sub bestfit-point(str $letter, int $positions, $value --> str) {
+        my str $string = bestfit($letter, $positions, $value);
+
+        # Not zero positions or reverted to "e" format
+        $value
+          ?? $positions || nqp::indexic($string,"e",0) > -1
+            ?? $string
+            !! nqp::concat($string,".")
+          !! "0."
+    }
+
+    # Set up value for either a sort of floating point or scientific
+    # notation: at this point it is guaranteed that the value is
+    # *not* Inf, -Inf or NaN.  The value 0 can only occur here
+    # with dynamic width or precision.
+    our sub bestfit(
+      str $letter      is copy,
+      int $significant is copy,
+          $value
+    ) {
+
+        # Something complicated to do
+        if $value {
+
+            # Adjust to letter to generate with
+            $letter = $letter eq 'G' ?? 'E' !! 'e';
+
+            # One would specify a 0 significance to indicate that the
+            # decimal point should be shown for whole values (with the
+            # # also occurring in the format).  Otherwise, we just use
+            ++$significant unless $significant;
+
+            # Initial rendering
+            my $abs       := $value.abs;
+            my str $string = $abs.Str;
+
+            # Already get an exponential representation
+            my int $exponential = nqp::index($string,'e');
+            if $exponential > -1 {
+
+                # Make sure the string as the right letter
+                $string = nqp::replace($string,$exponential,1,$letter)
+                  if $letter eq 'E';
+
+                # String was generated with the right number of significant
+                # digits or less: less means that there were no more
+                # significant digits to generate anyway.  So we're done.
+                if $exponential - 1 <= $significant {
+                    $string
+                }
+
+                # Need to round the mantissa to the requested number of
+                # significant digits
+                else {
+                    $string = mantissa-round(
+                      $string, $exponential, $significant
+                    );
+
+                    # Make sure the negative values were handled correctly
+                    $value < 0
+                      ?? nqp::concat("-",$string)
+                      !! $string
+                }
+            }
+
+            # Not an exponential representation yet
+            else {
+                my int $point    = nqp::index($string,".");
+                my int $has-zero = nqp::eqat($string,'0',0);
+                my int $valids   =
+                  nqp::chars($string) - $has-zero - nqp::isgt_i($point,-1);
+
+                # Initial rendering has fewer or the same significant
+                # digits: so we're really done
+                if $valids <= $significant {
+
+                    # Make sure the negative values were handled correctly
+                    $value < 0
+                      ?? nqp::concat("-",$string)
+                      !! $string
+                }
+
+                # Initial rendering has more than requested significant
+                # digits, so we will need to round
+                else {
+
+                    # Helper sub for adding E±NN
+                    my sub add-exponent(str $string, int $exponent) {
+                        nqp::concat(
+                          $string,
+                          nqp::concat(
+                            $letter,
+                            nqp::concat(
+                              nqp::islt_i($exponent,0) ?? "-" !! "+",
+                              nqp::concat(
+                                nqp::abs_i($exponent) < 10 ?? "0" !! "",
+                                nqp::abs_i($exponent)
+                              )
+                            )
+                          )
+                        )
+                    }
+
+                    # Convert to codes, round the value and set signficance
+                    my @codes := string-round-codes(
+                      $string, $point, $significant, my int $upgraded
+                    );
+
+                    # If upgraded to another order of magnitude, it's
+                    # always just 1e+NN, so do that
+                    if $upgraded {
+                        add-exponent(
+                          $value < 0 ?? "-1" !! "1",
+                          $point > -1
+                            ?? $point - $has-zero
+                            !! nqp::chars($string)
+                        )
+                    }
+
+                    # not upgraded
+                    else {
+                        my int $power;
+
+                        # Same order of magnitude, with a period
+                        if $point > -1 {
+
+                            # period indicates just a fraction
+                            if $abs < 1 {
+
+                                # Count leading zeroes
+                                my int $index;
+                                nqp::while(
+                                  nqp::iseq_i(
+                                    nqp::atpos_i(@codes,++$index),$zero
+                                  ),
+                                  nqp::null
+                                );
+
+                                # Can show without reverting to e notation
+                                if $index <= $significant {
+                                    # include leading 0 for later limiting
+                                    ++$significant;
+                                }
+
+                                # Need to use E notation
+                                else {
+                                    nqp::splice(@codes,nqp::list,0,$index);
+                                    $power = $index;
+                                }
+                            }
+                            # period indicates value with a fractional part
+                            else {
+                                $power = $point - 1;
+                            }
+                        }
+
+                        # No period
+                        else {
+                            $power = nqp::sub_i(nqp::chars($string),1);
+                        }
+
+                        # Limit to significant digits
+                        nqp::setelems(@codes,$significant);
+
+                        # Eliminate trailing 0's
+                        nqp::while(
+                          nqp::elems(@codes) && nqp::iseq_i(
+                            (my int $digit = nqp::pop_i(@codes)),
+                            $zero
+                          ),
+                          nqp::null
+                        );
+                        nqp::push_i(@codes,$digit);
+
+                        # Put back period unless it would be at the end
+                        nqp::splice(@codes,$period,1,0)
+                          if nqp::isgt_i(nqp::elems(@codes),1);
+
+                        # Prefix sign if necessary and done
+                        nqp::unshift_i(@codes,$minus) if $value < 0;
+
+                        # Add scientific notation if so indicated
+                        $power
+                          ?? add-exponent(nqp::strfromcodes(@codes),$power)
+                          !! nqp::strfromcodes(@codes)
+                    }
+                }
+            }
+        }
+
+        # 0 returns "0", as it has no number of significant digits
+        # and the "g/G" format only shows significant digits
+        else {
+            "0"
         }
     }
 
@@ -902,7 +1213,24 @@ our class Formatter {
 
         # f or e depending on value
         method directive:sym<g>($/ --> Nil) {
-            self."directive:sym<e>"($/);  # for now
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(6);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my $letter    := $<sym>.Str;
+            my int $point  = has-hash($/)
+              && (!is-literal-int($precision) || $precision.value == 0);
+
+            make handle-float-numeric($/,
+              $size, $precision, $parameter,
+              $point ?? "0." !! "0",   # zero
+              ast-call-sub(            # not-zero
+                $point ?? 'bestfit-point' !! 'bestfit',
+                ast-string($letter),
+                $precision,
+                $parameter
+              ),
+              :NAN-OR-INF($letter eq 'G')
+            )
         }
 
         # show numeric value in octal using Perl / Raku semantics
@@ -941,6 +1269,13 @@ our class Formatter {
         # an escaped %
         method directive:sym<%>($/ --> Nil) {
             make ast-string('%');
+        }
+
+        # huh?
+        method panic($/ --> Nil) {
+            X::Str::Sprintf::Directives::Unsupported.new(
+              directive => ~$<sym>, sequence  => ~$/
+            ).throw
         }
     }
 
@@ -984,15 +1319,14 @@ our class Formatter {
                   RakuAST::Statement::Expression.new(
                     expression => @operands == 1
                       ?? @operands.head  # already stringified
-                      !! RakuAST::ApplyPostfix.new(
-                           operand => RakuAST::ApplyListInfix.new(
-                             infix    => RakuAST::Infix.new(','),
-                             operands => @operands
-                           ),
-                          postfix => RakuAST::Call::Method.new(
-                            name => RakuAST::Name.from-identifier('join')
-                          )
-                        )
+                      !! RakuAST::Nqp.new(
+                           "join",
+                           RakuAST::StrLiteral.new(""),
+                           RakuAST::Nqp.new(
+                             "list_s",
+                             @operands
+                           )
+                         )
                   )
                 );
 

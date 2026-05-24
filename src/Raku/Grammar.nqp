@@ -257,10 +257,14 @@ role Raku::Common {
             @keybits.push($base) if $base;
             for @tweaks {
                 my str $t := $_[0];
-                @keybits.push($t eq 'to'
-                  ?? 'HEREDOC'         # all heredocs share the same lang
-                  !! $t ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
-                );
+                # Heredocs (:to) get a fresh quote-lang per invocation so
+                # the herelang cursor's braid is cloned from the current
+                # scope's self.braid (matching $*PACKAGE) rather than
+                # being inherited from a cached cursor that was built in
+                # a different scope. Mirrors legacy's NOCACHE handling
+                # in src/Perl6/Grammar.nqp's quote_lang lang_key sub.
+                return 'NOCACHE' if $t eq 'to';
+                @keybits.push($t ~ '=' ~ $_[1]);
             }
 
             nqp::join("\0", @keybits)
@@ -297,19 +301,24 @@ role Raku::Common {
               !! $lang.unbalanced($stop)
         }
 
-        # get language from cache or derive it.
+        # get language from cache or derive it. The 'NOCACHE' sentinel
+        # (currently used for heredocs, see key-for-quote-lang) skips the
+        # cache and forces a fresh quote-lang per invocation.
         my $key   := key-for-quote-lang();
         my %cache := %*QUOTE-LANGS;
 
         # Read from / Update to cache in a thread-safe manner
         nqp::lock($quote-lang-lock);
-        my $quote-lang := nqp::ifnull(
-          nqp::atkey(%cache,$key),
-          nqp::bindkey(%cache,$key,create-quote-lang-type())
-        );
+        my $quote-lang := nqp::existskey(%cache, $key) && $key ne 'NOCACHE'
+          ?? nqp::atkey(%cache, $key)
+          !! nqp::bindkey(%cache, $key, create-quote-lang-type());
         nqp::unlock($quote-lang-lock);
 
-        $quote-lang.set_package(self.package);
+        # Use $*PACKAGE (the authoritative dyn-var) rather than
+        # self.package (which reads from the cursor's braid; that braid
+        # may have been cloned earlier from a different scope and not
+        # been re-synced when $*PACKAGE changed at scope transitions).
+        $quote-lang.set_package($*PACKAGE);
         $quote-lang
     }
 
@@ -1275,6 +1284,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
         <.lang-setup($outer-cu)>  # set the above variables
+        :my $*PACKAGE;
 
         # Further needed initializations
         {
@@ -1282,6 +1292,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              $*R.create-scope-implicits();
              self.actions.load-M-modules($/);
              self.actions.load-bootstrap($/);
+             self.actions.set-compunit-package($/);
         }
 
         # Perform the actual parsing of the code, using origin tracking

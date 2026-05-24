@@ -2462,7 +2462,7 @@ class RakuAST::Methodish
             if $package.can-have-methods {
                 $package.ATTACH-METHOD(self) unless self.scope eq 'our';
             }
-            else {
+            elsif self.scope ne 'our' {
                 $resolver.add-worry:  # XXX should be self.add-worry
                   $resolver.build-exception: 'X::Useless::Declaration',
                     name  => $name,
@@ -2735,7 +2735,7 @@ class RakuAST::RegexDeclaration
     method IMPL-META-OBJECT-TYPE() { Regex }
 
     method IMPL-INVOCANT-TYPE-CHECK() {
-        self.scope ne 'my'
+        self.scope ne 'my' && self.scope ne 'our'
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {

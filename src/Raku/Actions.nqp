@@ -1841,11 +1841,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infix-prefix-meta-operator:sym<X>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Cross').new($<infixish>.ast);
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base { Nodify('MetaInfix', 'Cross').new($base) };
     }
 
     method infix-prefix-meta-operator:sym<Z>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Zip').new($<infixish>.ast);
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base { Nodify('MetaInfix', 'Zip').new($base) };
     }
 
     method infix-postfix-meta-operator:sym<=>($/) {
@@ -1853,16 +1855,34 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infix-circumfix-meta-operator:sym<« »>($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Hyper').new:
-          infix      => $<infixish>.ast,
-          dwim-left  => $<opening> eq '«',
-          dwim-right => $<closing> eq '»'
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base {
+              Nodify('MetaInfix', 'Hyper').new:
+                infix      => $base,
+                dwim-left  => $<opening> eq '«',
+                dwim-right => $<closing> eq '»'
+          };
     }
     method infix-circumfix-meta-operator:sym«<< >>»($/) {
-        self.attach: $/, Nodify('MetaInfix', 'Hyper').new:
-          infix      => $<infixish>.ast,
-          dwim-left  => $<opening> eq '<<',
-          dwim-right => $<closing> eq '>>'
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base {
+              Nodify('MetaInfix', 'Hyper').new:
+                infix      => $base,
+                dwim-left  => $<opening> eq '<<',
+                dwim-right => $<closing> eq '>>'
+          };
+    }
+
+    # Lift the Assign outside any Z/X/Hyper wrap so codegen sees compound
+    # assignment at the outermost position.  R/S keep the inner shape:
+    # reversed operand order makes the RHS the target, not the LHS.
+    method wrap-meta-assign($inner, $wrap) {
+        if nqp::istype($inner, Nodify('MetaInfix', 'Assign')) {
+            Nodify('MetaInfix', 'Assign').new($wrap($inner.infix))
+        }
+        else {
+            $wrap($inner)
+        }
     }
 
 #-------------------------------------------------------------------------------

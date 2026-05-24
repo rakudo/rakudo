@@ -313,7 +313,10 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
-        my \ins-hash = self.INSTANTIATE-GENERIC(type-environment);
+        # Dispatch to the :U candidate via .WHAT - calling
+        # `self.INSTANTIATE-GENERIC` from a :D invocant would re-enter this
+        # same :D candidate and spin forever.
+        my \ins-hash = self.WHAT.INSTANTIATE-GENERIC(type-environment);
         my Mu $descr := type-environment.instantiate( nqp::getattr(self, Hash, '$!descriptor') );
         nqp::p6bindattrinvres((self.elems ?? ins-hash.new(self) !! ins-hash.new), Hash, '$!descriptor', $descr )
     }

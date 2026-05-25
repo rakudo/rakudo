@@ -2,7 +2,7 @@ Binary release pipeline
 =======================
 
 The files in this directory comprise the binary release pipeline which is used
-to generate the pre-compiled release archives and installers provided on
+to generate the precompiled release archives and installers provided on
 <rakudo.org>. The Star Bundle is handled separately though.
 
 The pipeline is meant to be run on Azure Pipelines. It is triggered via the

@@ -10,7 +10,7 @@ the Raku[^1] language.
 
 The source tarball for this release is available from
 <https://rakudo.org/files/rakudo>.
-Pre-compiled archives will be available shortly.
+Precompiled archives will be available shortly.
 
 New in «release-name»:
 «changes»

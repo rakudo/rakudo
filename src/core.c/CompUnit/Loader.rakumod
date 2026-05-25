@@ -25,7 +25,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
         $handle
     }
 
-    # Load a pre-compiled file
+    # Load a precompiled file
     proto method load-precompilation-file(|) {*}
     multi method load-precompilation-file(
       IO::Path:D $precompiled-file

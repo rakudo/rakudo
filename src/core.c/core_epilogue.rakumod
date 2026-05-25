@@ -743,17 +743,24 @@ augment class Code {
             )
           )
         ;
-        my $context := CALLER::LEXICAL::;
-        if nqp::istype(self,Routine) {
+        my $ast := do if nqp::istype(self,Routine) {
             %args<multiness> = "proto" if self.is_dispatcher;
             %args<traits>.push(trait-is("rw")) if self.rw;
             %args<name> =
               RakuAST::Name.from-identifier("assumed." ~ self.name);
-            RakuAST::Sub.new(|%args).EVAL(:$context)
+            RakuAST::Sub.new(|%args)
         }
         else {
-            RakuAST::PointyBlock.new(|%args).EVAL(:$context)
+            RakuAST::PointyBlock.new(|%args)
         }
+
+        # Show generated code either deparsed, or with full AST
+        if %*ENV<RAKUDO_ASSUMING_DEBUG> -> $level {
+            note $ast if $level > 1;
+            note $ast.DEPARSE;
+        }
+
+        $ast.EVAL(:context(CALLER::LEXICAL::))
     }
 }
 

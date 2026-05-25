@@ -2389,15 +2389,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 #   https://github.com/Raku/roast/commit/0b8c717e6
                 #   https://github.com/Raku/old-issue-tracker/issues/1488
                 if nqp::getcomp('Raku').language_revision < 3
-                    && $*R.resolve-lexical($name)
-                {
-                    $ast := Nodify('Var', 'Lexical').new(:$sigil, :$desigilname);
-                }
-                elsif $name eq '@_' {
-                    $ast := slurpy-placeholder('SlurpyArray');
+                  && $*R.resolve-lexical($name) {
+                    $ast := Nodify('Var','Lexical').new(:$sigil, :$desigilname);
                 }
                 else {
-                    $ast := slurpy-placeholder('SlurpyHash');
+                    $ast := slurpy-placeholder(
+                      $name eq '@_' ?? 'SlurpyArray' !! 'SlurpyHash'
+                    );
                 }
             }
 

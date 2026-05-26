@@ -806,7 +806,7 @@ role Raku::Common {
     # Return the name of the meta op if any
     method meta-op-name($desigilname) {
         my $colonpair := $desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0];
-        my $op := nqp::istype($colonpair, self.actions.r('QuotedString'))
+        my $op := nqp::istype($colonpair, self.Nodify('QuotedString'))
             ?? $colonpair.literal-value
             !! $colonpair.semilist.code-statements[0].expression.literal-value;
         if $op ne '!=' && $op ne '≠' {
@@ -848,7 +848,7 @@ role Raku::Common {
 
         # Not capable of checking
         return Nil
-          unless nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT);
+          unless nqp::eqaddr($ast.WHAT,self.Nodify('Var::Lexical').WHAT);
 
         return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
 
@@ -869,7 +869,7 @@ role Raku::Common {
 
             my $meta-op := $META.IMPL-HOP-INFIX;
             $ast.set-resolution(
-              self.actions.r('Declaration','External','Constant').new(
+              self.Nodify('Declaration::External::Constant').new(
                 lexical-name       => $name,
                 compile-time-value => $meta-op
               )
@@ -904,6 +904,10 @@ role Raku::Common {
         self.actions.key-origin($rc) if $rc;
         $rc
     }
+
+    # A shortcut to obtaining a RakuAST::Node class type object, at least
+    # until it is possible to directly reference RakuAST classes in here
+    method Nodify(str $class) { self.actions.r($class) }
 }
 
 #-------------------------------------------------------------------------------
@@ -1117,7 +1121,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # object with the name of the core functionality if there is an original
     # name known.  Otherwise it should just return the ".ast" of the invocant.
     method core2ast() {
-        self.ast // self.actions.r('Name').from-identifier(~self)
+        self.ast // self.Nodify('Name').from-identifier(~self)
     }
 
     # Convert the invocant, a match that is expected to have a RakuAST::Name
@@ -1126,7 +1130,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # original name known.  Otherwise it should just return the ".ast" ofi
     # the invocant.
     method trait-is2ast() {
-        self.ast // self.actions.r('Name').from-identifier(~self)
+        self.ast // self.Nodify('Name').from-identifier(~self)
     }
 
     # Convert the given postcircumfix adverb if there is an original name
@@ -1438,7 +1442,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             :my $*GOAL := '{';
             <.enter-block-scope('PointyBlock')>
             {
-                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                     $*BLOCK.ensure-parse-performed($*R, $*CU.context);
                 }
             }
@@ -1451,7 +1455,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <?[{]>                                  # block without signature
             <.enter-block-scope('Block')>
             {
-                if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                     $*BLOCK.ensure-parse-performed($*R, $*CU.context);
                 }
             }
@@ -1472,7 +1476,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?[{]>                                 # block without signature
              <.enter-block-scope($kind, $parameterization)>
              {
-                 if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+                 if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                      $*BLOCK.ensure-parse-performed($*R, $*CU.context);
                  }
              }
@@ -1520,7 +1524,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*IN-DECL := ''; }                        # not inside declaration
         <.enter-block-scope($kind, $parameterization)>
         {
-            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+            if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                 $*BLOCK.ensure-parse-performed($*R, $*CU.context);
             }
         }
@@ -3263,15 +3267,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             my $line := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
             if $*TERMISH {
                 my $term := $*TERMISH.ast;
-                if nqp::istype($term, self.actions.r('Call', 'Name')) {
+                if nqp::istype($term, self.Nodify('Call::Name')) {
                     $term.to-begin-time($*R, $*CU.context);
                     $term.PERFORM-CHECK($*R, $*CU.context);
-                    if nqp::istype($term, self.actions.r('Lookup')) && !$term.is-resolved && $term.needs-resolution {
+                    if nqp::istype($term, self.Nodify('Lookup')) && !$term.is-resolved && $term.needs-resolution {
                         my $word := $term.name.canonicalize;
                         for 'if', 'unless', 'while', 'until', 'for', 'given', 'when', 'loop', 'sub', 'method', 'with', 'without', 'supply', 'whenever', 'react' {
                             if $_ eq $word {
                                 $needparens++ if $_ eq 'loop';
-                                if nqp::istype($term, self.actions.r('Call', 'Name')) && !nqp::istype($term, self.actions.r('Call', 'Name', 'WithoutParentheses')) {
+                                if nqp::istype($term, self.Nodify('Call::Name')) && !nqp::istype($term, self.Nodify('Call::Name::WithoutParentheses')) {
                                     self.typed-sorry-at($*TERMISH<term><identifier>.to, 'X::Syntax::KeywordAsFunction', :$word, :$needparens);
                                 }
                                 else {
@@ -3371,7 +3375,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  || <accept=.maybe-typename>
                     <?{
                         my $it := $<accept>.ast;
-                        nqp::istype($it,self.actions.r('Type','Coercion'))
+                        nqp::istype($it,self.Nodify('Type::Coercion'))
                           || $*R.is-name-type($it.name)
                     }>
                  || $<accept_any>=<?>
@@ -3386,10 +3390,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my $desigilname := $<longname>.ast;
                 if nqp::elems($desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)) == 1 {
                     my $colonpair := $desigilname.IMPL-UNWRAP-LIST($desigilname.colonpairs)[0];
-                    if nqp::istype($colonpair, self.actions.r('QuotedString'))
-                        || nqp::istype($colonpair, self.actions.r('Circumfix', 'ArrayComposer'))
+                    if nqp::istype($colonpair, self.Nodify('QuotedString'))
+                        || nqp::istype($colonpair, self.Nodify('Circumfix::ArrayComposer'))
                             && $colonpair.semilist.IMPL-IS-SINGLE-EXPRESSION
-                            && nqp::istype($colonpair.semilist.code-statements[0].expression, self.actions.r('QuotedString'))
+                            && nqp::istype($colonpair.semilist.code-statements[0].expression, self.Nodify('QuotedString'))
                     {
                         my $meta-op-name := self.meta-op-name($desigilname);
                         if nqp::isconcrete($meta-op-name) {
@@ -4132,7 +4136,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
-            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+            if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                 $*BLOCK.ensure-parse-performed($*R, $*CU.context);
             }
         }
@@ -4152,7 +4156,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 my $canname := $category
                   ~ ':sym'
-                  ~ self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                  ~ self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
 
                 $/.add-categorical(
                   $category, $opname, $canname, $name.ast.canonicalize, $*BLOCK
@@ -4181,7 +4185,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                        what  => "sub",
                        where => "on a $*MULTINESS sub";
                  }
-                 unless $*R.outer-scope.WHAT =:= self.actions.r('CompUnit') {
+                 unless $*R.outer-scope.WHAT =:= self.Nodify('CompUnit') {
                      $/.typed-panic: "X::UnitScope::Invalid",
                        what  => "sub",
                        where => "in a subscope";
@@ -4204,13 +4208,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
         {
-            if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+            if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                 $*BLOCK.to-parse-time($*R, $*CU.context);
             }
         }
         {
             # Declare self early for attribute parameters
-            $*R.declare-lexical($/.actions.r('VarDeclaration', 'Implicit', 'Self').new)
+            $*R.declare-lexical($/.Nodify('VarDeclaration::Implicit::Self').new)
         }
         [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
@@ -4267,7 +4271,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           <deflongname('has')>?
           {
-              if nqp::istype($*BLOCK, self.actions.r('ParseTime')) {
+              if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                   $*BLOCK.ensure-parse-performed($*R, $*CU.context);
               }
           }
@@ -4291,7 +4295,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         my $cat := ~$categorical[0][0];
         if $categorical && nqp::can(self, $cat) {
-            my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
+            my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
             my $canname := $cat ~ ':sym' ~ $canop;
             self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0], :current-scope);
         }
@@ -5203,16 +5207,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <EXPR('e=')>
             {
-                my $actions := self.actions;
-
                 sub handle-any-named($ast) {
                     $ast.set-key(self.named2str($ast.key))
-                      if nqp::istype($ast,$actions.r('ColonPair'))
-                      || nqp::istype($ast,$actions.r('FatArrow'));
+                      if nqp::istype($ast,self.Nodify('ColonPair'))
+                      || nqp::istype($ast,self.Nodify('FatArrow'));
                 }
 
                 my $ast := $<EXPR>.ast;
-                if nqp::istype($ast,$actions.r('ApplyListInfix')) {
+                if nqp::istype($ast,self.Nodify('ApplyListInfix')) {
                     my $operands := $ast.operands;
                     for nqp::getattr($operands, $operands.WHAT, '$!reified') {
                         handle-any-named($_);
@@ -5306,7 +5308,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                           ?? $nibble.ast.literal-value(:stringify) // ~$nibble
                           !! $ccf<semilist>;
                     }
-                    my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                    my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
                     my $canname := $category ~ ':sym' ~ $canop;
                     my $termname := $category ~ ':' ~ $canop;
                     $/.add-categorical($category, $opname, $canname, $termname, :defterm, :current-scope);
@@ -5563,10 +5565,10 @@ Rakudo significantly on *every* run."
         # Declarand should get precedence traits.
         if $is-operator && nqp::isconcrete($declarand) {
             my $base_prec := %prec<prec>;
-            #$declarand.add-trait(self.actions.r('Trait', 'Is').new(
-            #    :name(self.actions.r('Name').from-lexical('prec')),
-            #    :argument(self.action.r('Circumfix', 'Parentheses').new(
-            #        self.actions.r('SemiList').new(
+            #$declarand.add-trait(self.Nodify('Trait::Is').new(
+            #    :name(self.Nodify('Name').from-lexical('prec')),
+            #    :argument(self.Nodify('Circumfix::Parentheses').new(
+            #        self.Nodify('SemiList').new(
             #            self.action.r('')
             #        )
             #    )),
@@ -5580,9 +5582,9 @@ Rakudo significantly on *every* run."
         if $category eq 'postcircumfix' {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    my $ast := self.r('Call','Name').new(
-                        :name(self.r('Name').from-identifier($subname)),
-                        :args(self.r('ArgList').new($<statement>.ast))
+                    my $ast := self.Nodify('Call::Name').new(
+                        :name(self.Nodify('Name').from-identifier($subname)),
+                        :args(self.Nodify('ArgList').new($<statement>.ast))
                     );
                     self.attach: $/, $ast;
                 }
@@ -5594,9 +5596,9 @@ Rakudo significantly on *every* run."
         elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    my $ast := self.r('Call','Name').new(
-                        :name(self.r('Name').from-identifier($subname)),
-                        :args(self.r('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
+                    my $ast := self.Nodify('Call::Name').new(
+                        :name(self.Nodify('Name').from-identifier($subname)),
+                        :args(self.Nodify('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
                     );
                     self.attach: $/, $ast;
                 }
@@ -5608,12 +5610,12 @@ Rakudo significantly on *every* run."
         elsif $category eq 'term' {
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    self.attach: $/, $actions.r('Term', 'Named').new($subname)
+                    self.attach: $/, self.Nodify('Term::Named').new($subname)
                 }
             };
             my role TermActionConstant[$meth, $name] {
                 method ::($meth)($/) {
-                    self.attach: $/, $actions.r('Term', 'Name').new($actions.r('Name').from-identifier($name))
+                    self.attach: $/, self.Nodify('Term::Name').new(self.Nodify('Name').from-identifier($name))
                 }
             };
             $actions-mixin := $defterm
@@ -5638,7 +5640,7 @@ Rakudo significantly on *every* run."
         ($current-scope ?? $*R.current-scope !! $*R.outer-scope).merge-generated-lexical-declaration(
             :resolver($*R),
             :force,
-            self.actions.r('VarDeclaration', 'Implicit', 'Constant').new(
+            self.Nodify('VarDeclaration::Implicit::Constant').new(
                 :name('%?LANG'),
                 :value($scalar),
             )

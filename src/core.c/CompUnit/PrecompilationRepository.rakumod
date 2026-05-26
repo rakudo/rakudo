@@ -20,7 +20,7 @@ role CompUnit::PrecompilationRepository {
 }
 
 BEGIN CompUnit::PrecompilationRepository::<None> :=
-  CompUnit::PrecompilationRepository.new;
+  nqp::create(CompUnit::PrecompilationRepository.^pun);
 
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default

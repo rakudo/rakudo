@@ -1,5 +1,5 @@
 class Rakudo::Supply {
-    my constant ADD_WHENEVER_PROMPT = Mu.new;
+    my constant ADD_WHENEVER_PROMPT = nqp::create(Mu);
 
     class BlockState {
         has &.emit;

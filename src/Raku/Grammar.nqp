@@ -5582,9 +5582,9 @@ Rakudo significantly on *every* run."
         if $category eq 'postcircumfix' {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    my $ast := self.Nodify('Call::Name').new(
-                        :name(self.Nodify('Name').from-identifier($subname)),
-                        :args(self.Nodify('ArgList').new($<statement>.ast))
+                    my $ast := self.r('Call::Name').new(
+                        :name(self.r('Name').from-identifier($subname)),
+                        :args(self.r('ArgList').new($<statement>.ast))
                     );
                     self.attach: $/, $ast;
                 }
@@ -5596,9 +5596,9 @@ Rakudo significantly on *every* run."
         elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    my $ast := self.Nodify('Call::Name').new(
-                        :name(self.Nodify('Name').from-identifier($subname)),
-                        :args(self.Nodify('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
+                    my $ast := self.r('Call::Name').new(
+                        :name(self.r('Name').from-identifier($subname)),
+                        :args(self.r('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
                     );
                     self.attach: $/, $ast;
                 }
@@ -5610,12 +5610,14 @@ Rakudo significantly on *every* run."
         elsif $category eq 'term' {
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    self.attach: $/, self.Nodify('Term::Named').new($subname)
+                    self.attach: $/, self.r('Term::Named').new($subname)
                 }
             };
             my role TermActionConstant[$meth, $name] {
                 method ::($meth)($/) {
-                    self.attach: $/, self.Nodify('Term::Name').new(self.Nodify('Name').from-identifier($name))
+                    self.attach: $/, self.r('Term::Name').new(
+                      self.r('Name').from-identifier($name)
+                    )
                 }
             };
             $actions-mixin := $defterm

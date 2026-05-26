@@ -1045,12 +1045,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
         nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
         $*R.current-scope.merge-generated-lexical-declaration(
-            :resolver($*R),
-            :force,
-            self.r('VarDeclaration', 'Implicit', 'Constant').new(
-                :name('%?LANG'),
-                :value($scalar),
-            )
+          :resolver($*R),
+          :force,
+          Nodify('VarDeclaration::Implicit::Constant').new(
+            :name('%?LANG'), :value($scalar)
+          )
         );
 
         $*LANG := $cursor;
@@ -1145,8 +1144,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # BEGIN phaser needs to be executed *now* and produce a value
     method statement-prefix:sym<BEGIN>($/) {
-        my $ast :=
-          Nodify('StatementPrefix::Phaser::Begin').new($<blorst>.ast);
+        my $ast := Nodify('StatementPrefix::Phaser::Begin').new($<blorst>.ast);
         self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
         $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
@@ -1155,12 +1153,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # PRE/POST phasers need a stringification of the blorst as well
     method statement-prefix:sym<PRE>($/) {
         self.attach: $/, Nodify(
-          'StatementPrefix', 'Phaser', 'Pre'
+          'StatementPrefix::Phaser::Pre'
         ).new($<blorst>.ast, ~$<blorst>);
     }
     method statement-prefix:sym<POST>($/) {
         self.attach: $/, Nodify(
-          'StatementPrefix', 'Phaser', 'Post'
+          'StatementPrefix::Phaser::Post'
         ).new($<blorst>.ast, ~$<blorst>);
     }
 

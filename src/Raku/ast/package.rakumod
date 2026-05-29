@@ -462,7 +462,7 @@ class RakuAST::Package::Attachable
     # Methods and attributes are not directly added, but rather thorugh the
     # attach target mechanism. Attribute usages are also attached for checking
     # after compose time.
-    has Mu $!attached-methods;
+    has Mu $.attached-methods;
     has Mu $.attached-attributes;
     has Mu $!attached-attribute-usages;
     has Mu $!role-group;
@@ -856,13 +856,18 @@ class RakuAST::Class
       RakuAST::IMPL::QASTContext $context
     ) {
 
+        # Only do the work if there's no method POPULATE yet
+        for self.attached-methods {
+            return Nil if $_.name.canonicalize eq 'POPULATE';
+        }
+
 #- helper subs -----------------------------------------------------------------
 
         # Helper sub to create AST representation of a name
         my sub makeName(str $name) {
             nqp::index($name,"::") == -1
               ?? RakuAST::Name.from-identifier($name)
-              !! RakuAST::Name.from-identifier-parts(|$name.split("::"))
+              !! RakuAST::Name.from-identifier-parts(nqp::split("::",$name))
         }
 
         # Helper sub to create AST representation of a type by name
@@ -888,11 +893,7 @@ class RakuAST::Class
 
 #- process all attributes ------------------------------------------------------
         my int $are-built;
-        my @attributes := nqp::getattr(
-          self,RakuAST::Package::Attachable,'$!attached-attributes'
-        );
-
-        for @attributes -> $attribute {
+        for self.attached-attributes -> $attribute {
             my str $name     := $attribute.name;
             my str $key      := $attribute.desigilname.canonicalize;
             my int $is-built := $attribute.twigil eq ".";
@@ -955,7 +956,7 @@ class RakuAST::Class
                                   ?? ($is-built := 0)
                                   !! $name eq 'True'
                                     ?? ($is-built := 1)
-                                    !! nqp::die("Unknown value in 'is built' trait: $name");
+                                    !! nqp::die("Unknown value in 'is built' trait: " ~ $name);
                             }
                             elsif nqp::istype(
                                     $expression,RakuAST::ColonPair::True
@@ -963,7 +964,7 @@ class RakuAST::Class
                                 my str $key := $expression.key;
                                 $key eq 'bind'
                                   ?? ($is-bound := 1)
-                                  !! nqp::die("Unknown colonpair in 'is built' trait: :$key");
+                                  !! nqp::die("Unknown colonpair in 'is built' trait: :" ~ $key);
                             }
                             elsif nqp::istype(
                                     $expression,RakuAST::ColonPair::False
@@ -971,7 +972,7 @@ class RakuAST::Class
                                 my str $key := $expression.key;
                                 $key eq 'bind'
                                   ?? ($is-bound := 0)
-                                  !! nqp::die("Unknown colonpair in 'is built' trait: :!$key");
+                                  !! nqp::die("Unknown colonpair in 'is built' trait: :!" ~ $key);
                             }
                             else {
                                 nqp::die("Unknown value in 'built' trait");
@@ -984,15 +985,22 @@ class RakuAST::Class
                         }
                     }
 
+                    elsif $name eq 'rw' {
+                        # no action yet
+                    }
+                    elsif $name eq 'raw' {
+                        # no action yet
+                    }
+
                     # is huh?
                     else {
-                        nqp::die("unknown trait: 'is $name");
+                        nqp::die("unknown trait: is " ~ $name);
                     }
                 }
 
                 # huh?
                 else {
-                    nqp::die("unknown trait: $trait-name");
+                    nqp::die("unknown trait: " ~ $trait-name);
                 }
             }
 
@@ -1067,8 +1075,8 @@ class RakuAST::Class
           )
         );
 
-        $method.to-begin-time($resolver, $context);
-        self.ATTACH-METHOD($method);
+#        $method.to-begin-time($resolver, $context);
+#        self.ATTACH-METHOD($method);
     }
 }
 

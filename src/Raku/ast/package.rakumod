@@ -551,210 +551,11 @@ class RakuAST::Package::Attachable
             }
         }
 
-#- helper subs -----------------------------------------------------------------
-        
-        # Helper sub to create AST representation of a name
-        my sub makeName(str $name) {
-            nqp::index($name,"::") == -1
-              ?? RakuAST::Name.from-identifier($name)
-              !! RakuAST::Name.from-identifier-parts(|$name.split("::"))
-        }       
-                  
-        # Helper sub to create AST representation of a type by name
-        my sub makeType(str $name) {
-            RakuAST::Type::Simple.new(makeName($name))
-        }     
-              
-        # Helper sub to create a :foo(bar) named argument
-        my sub makeColonPairValue(str $name, $ast) {
-            RakuAST::ColonPair::Value.new(key => $name, value => $ast)
-        }
-
-#- shortcuts -------------------------------------------------------------------
-        # Often used references
-        my $varnameds := RakuAST::Var::Lexical.new("\$nameds");
-        my $Nil       := RakuAST::Type::Simple.new(makeName("Nil"));
-
-#- initial setup ---------------------------------------------------------------
-        # The body of the POPULATE method to be
-        my $statements := RakuAST::StatementList.new;
-
-        # Helper sub for adding statements
-        my sub add-statement($expression) {
-            $statements.add-statement(
-              RakuAST::Statement::Expression.new(:$expression)
-            )
-        }
-
-        # Try to do everything as low level as possible, so extract the
-        # NQP hash from the positional argument
-        # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
-        add-statement(RakuAST::VarDeclaration::Simple.new(
-          sigil       => "\$",
-          desigilname => makeName("nameds"),
-          initializer => RakuAST::Initializer::Bind.new(
-            # my $nameds := nqp::getattr(self,Map,'$!storage')
-            RakuAST::Nqp.new(
-              "getattr",
-              RakuAST::Var::Lexical.new("\%nameds"),
-              makeType("Map"),
-              RakuAST::StrLiteral.new("\$!storage")
-            )
-          )
-        ));
-
-add-statement(RakuAST::Call::Name::WithoutParentheses.new(
-    name => makeName("dd")
-));
-
-#- process all attributes ------------------------------------------------------
         for $!attached-attributes -> $attribute {
 
             # attribute defined means we don't need to check it anymore
-            nqp::deletekey($!attached-attribute-usages, $_.name);
-
-
-            my str $name     := $attribute.name;
-            my str $key      := $attribute.desigilname.canonicalize;
-            my int $is-built := $attribute.twigil eq ".";
-            my int $is-bound;
-            my     $default  := $Nil;
-
-            for $attribute.traits -> $trait {
-                my str $trait-name := $trait.IMPL-TRAIT-NAME;
-
-                # Has some default value logic
-                if $trait-name eq 'will' {
-                    my $expr := $trait.expr;
-                    $default := nqp::istype($expr,RakuAST::Method::Initializer)
-                      ?? $expr.body.statement-list.statements.head.expression.args
-                      !! $expr;
-                }
-
-                # Some type of "is" trait
-                elsif $trait-name eq 'is' {
-                    my str $name := $trait.name.canonicalize;
-
-                    # is required
-                    if $name eq 'required' {
-                        my $required := (my $argument := $trait.argument)
-                          ?? $argument.semilist.head
-                          !! RakuAST::IntLiteral.new(1);
-
-                        # X::Attribute::Required.new(:$name, :$why).throw
-                        $default := RakuAST::ApplyPostfix.new(
-                          operand => RakuAST::ApplyPostfix.new(
-                            operand => makeType("X::Attribute::Required"),
-                            postfix => RakuAST::Call::Method.new(
-                              name => makeName("new"),
-                              args => RakuAST::ArgList.new(
-                                makeColonPairValue(
-                                  "name", RakuAST::StrLiteral.new($name)
-                                ),
-                                makeColonPairValue(
-                                  "why", RakuAST::Literal.from-value($required)
-                                )
-                              )
-                            )
-                          ),
-                          postfix => RakuAST::Call::Method.new(
-                            name => makeName("throw")
-                          )
-                        )
-                    }
-
-                    # is built
-                    elsif $name eq 'built' {
-
-                        # is built(foo)
-                        if $trait.argument -> $argument {
-                            my $expression :=
-                              $argument.semilist.statements.head.expression;
-                            if nqp::istype($expression,RakuAST::Term::Enum) {
-                                my str $name := $expression.name.canonicalize;
-                                $name eq 'False'
-                                  ?? ($is-built := 0)
-                                  !! $name eq 'True'
-                                    ?? ($is-built := 1)
-                                    !! nqp::die("Unknown value in 'is built' trait: $name");
-                            }
-                            elsif nqp::istype(
-                                    $expression,RakuAST::ColonPair::True
-                                  ) {
-                                my str $key := $expression.key;
-                                $key eq 'bind'
-                                  ?? ($is-bound := 1)
-                                  !! nqp::die("Unknown colonpair in 'is built' trait: :$key");
-                            }
-                            elsif nqp::istype(
-                                    $expression,RakuAST::ColonPair::False
-                                  ) {
-                                my str $key := $expression.key;
-                                $key eq 'bind'
-                                  ?? ($is-bound := 0)
-                                  !! nqp::die("Unknown colonpair in 'is built' trait: :!$key");
-                            }
-                            else {
-                                nqp::die("Unknown value in 'built' trait");
-                            }
-                        }
-
-                        # is built
-                        else {
-                            $is-built := 1;
-                        }
-                    }
-
-                    # is huh?
-                    else {
-                        nqp::die("unknown trait: 'is $name");
-                    }
-                }
-
-                # huh?
-                else {
-                    nqp::die("unknown trait: $trait-name");
-                }
-            }
-
-            # nqp::atkey($nameds,$key)
-            my $value := RakuAST::Nqp.new(
-              "atkey", $varnameds, RakuAST::StrLiteral.new($key)
-            );
-
-            # $!a = nqp::ifnull($value,$default)
-            add-statement(RakuAST::ApplyInfix.new(
-              left  => RakuAST::Var::Attribute.new(
-                         $attribute.sigil ~ '!' ~ $key
-                       ),
-              infix => $is-bound
-                ?? RakuAST::Infix.new(":=")
-                !! RakuAST::Assignment.new,
-              right => RakuAST::Nqp.new("ifnull", $value, $default)
-            ));
+            nqp::deletekey($!attached-attribute-usages, $attribute.name);
         }
-#- wrap it up ------------------------------------------------------------------
-
-        # self
-        add-statement(RakuAST::Term::Self.new);
-
-        # method POPULATE(%nameds) { $statements }
-        my $ast := RakuAST::Method.new(
-          name      => makeName("POPULATE"),
-          signature => RakuAST::Signature.new(
-            parameters => (
-              RakuAST::Parameter.new(
-                target   => RakuAST::ParameterTarget::Var.new(
-                  name => "\%nameds"
-                ),
-                optional => False
-              )
-            )
-          ),
-          body      => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new($statements)
-          )
-        );
     }
 }
 
@@ -1031,15 +832,243 @@ class RakuAST::Class
         # Obtain the stubbed meta-object, which is the type object.
         my $type := self.stubbed-meta-object();
         my $how  := $type.HOW;
+        my $compiler_services := self.compiler-services;
+
+        self.PRODUCE-POPULATE(
+          $compiler_services.resolver,
+          $compiler_services.context
+        );
 
         self.PRODUCE-META-ATTACHABLES($type, $how);
         {
-        $how.compose($type, :compiler_services(self.compiler-services));
             CATCH {
                 nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
             }
+            $how.compose($type, :$compiler_services)
         }
         $type
+    }
+
+    # Produce the POPULATE method from the attributes that are known at this
+    # time, and add it as a method for later processing
+    method PRODUCE-POPULATE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+
+#- helper subs -----------------------------------------------------------------
+
+        # Helper sub to create AST representation of a name
+        my sub makeName(str $name) {
+            nqp::index($name,"::") == -1
+              ?? RakuAST::Name.from-identifier($name)
+              !! RakuAST::Name.from-identifier-parts(|$name.split("::"))
+        }
+
+        # Helper sub to create AST representation of a type by name
+        my sub makeType(str $name) {
+            RakuAST::Type::Simple.new(makeName($name))
+        }
+
+        # Helper sub to create a :foo(bar) named argument
+        my sub makeColonPairValue(str $name, $ast) {
+            RakuAST::ColonPair::Value.new(key => $name, value => $ast)
+        }
+
+#- initial setup ---------------------------------------------------------------
+        # The body of the POPULATE method to be
+        my $statements := RakuAST::StatementList.new;
+
+        # Helper sub for adding statements
+        my sub add-statement($expression) {
+            $statements.add-statement(
+              RakuAST::Statement::Expression.new(:$expression)
+            )
+        }
+
+#- process all attributes ------------------------------------------------------
+        my int $are-built;
+        my @attributes := nqp::getattr(
+          self,RakuAST::Package::Attachable,'$!attached-attributes'
+        );
+
+        for @attributes -> $attribute {
+            my str $name     := $attribute.name;
+            my str $key      := $attribute.desigilname.canonicalize;
+            my int $is-built := $attribute.twigil eq ".";
+            my int $is-bound;
+            my     $default  := RakuAST::Type::Simple.new(makeName("Nil"));
+
+            for self.IMPL-UNWRAP-LIST($attribute.traits) -> $trait {
+                my str $trait-name := $trait.IMPL-TRAIT-NAME;
+
+                # Has some default value logic
+                if $trait-name eq 'will' {
+                    my $expr := $trait.expr;
+                    $default := nqp::istype($expr,RakuAST::Method::Initializer)
+                      ?? $expr.body.statement-list.statements.head.expression.args
+                      !! $expr;
+                }
+
+                # Some type of "is" trait
+                elsif $trait-name eq 'is' {
+                    my str $name := $trait.name.canonicalize;
+
+                    # is required
+                    if $name eq 'required' {
+                        my $required := (my $argument := $trait.argument)
+                          ?? $argument.semilist.head
+                          !! RakuAST::IntLiteral.new(1);
+
+                        # X::Attribute::Required.new(:$name, :$why).throw
+                        $default := RakuAST::ApplyPostfix.new(
+                          operand => RakuAST::ApplyPostfix.new(
+                            operand => makeType("X::Attribute::Required"),
+                            postfix => RakuAST::Call::Method.new(
+                              name => makeName("new"),
+                              args => RakuAST::ArgList.new(
+                                makeColonPairValue(
+                                  "name", RakuAST::StrLiteral.new($name)
+                                ),
+                                makeColonPairValue(
+                                  "why", RakuAST::Literal.from-value($required)
+                                )
+                              )
+                            )
+                          ),
+                          postfix => RakuAST::Call::Method.new(
+                            name => makeName("throw")
+                          )
+                        )
+                    }
+
+                    # is built
+                    elsif $name eq 'built' {
+
+                        # is built(foo)
+                        if (my $argument := $trait.argument) {
+                            my $expression :=
+                              $argument.semilist.statements.head.expression;
+                            if nqp::istype($expression,RakuAST::Term::Enum) {
+                                my str $name := $expression.name.canonicalize;
+                                $name eq 'False'
+                                  ?? ($is-built := 0)
+                                  !! $name eq 'True'
+                                    ?? ($is-built := 1)
+                                    !! nqp::die("Unknown value in 'is built' trait: $name");
+                            }
+                            elsif nqp::istype(
+                                    $expression,RakuAST::ColonPair::True
+                                  ) {
+                                my str $key := $expression.key;
+                                $key eq 'bind'
+                                  ?? ($is-bound := 1)
+                                  !! nqp::die("Unknown colonpair in 'is built' trait: :$key");
+                            }
+                            elsif nqp::istype(
+                                    $expression,RakuAST::ColonPair::False
+                                  ) {
+                                my str $key := $expression.key;
+                                $key eq 'bind'
+                                  ?? ($is-bound := 0)
+                                  !! nqp::die("Unknown colonpair in 'is built' trait: :!$key");
+                            }
+                            else {
+                                nqp::die("Unknown value in 'built' trait");
+                            }
+                        }
+
+                        # is built
+                        else {
+                            $is-built := 1;
+                        }
+                    }
+
+                    # is huh?
+                    else {
+                        nqp::die("unknown trait: 'is $name");
+                    }
+                }
+
+                # huh?
+                else {
+                    nqp::die("unknown trait: $trait-name");
+                }
+            }
+
+            # named argument can be specified
+            if $is-built {
+                ++$are-built;
+
+                # nqp::atkey($nameds,$key)
+                my $value := RakuAST::Nqp.new(
+                  "atkey",
+                  RakuAST::Var::Lexical.new('$nameds'),
+                  RakuAST::StrLiteral.new($key)
+                );
+
+                # $!a = nqp::ifnull($value,$default)
+                add-statement(RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Attribute.new(
+                             $attribute.sigil ~ '!' ~ $key
+                           ),
+                  infix => $is-bound
+                    ?? RakuAST::Infix.new(":=")
+                    !! RakuAST::Assignment.new,
+                  right => RakuAST::Nqp.new("ifnull", $value, $default)
+                ));
+            }
+        }
+#- wrap it up ------------------------------------------------------------------
+
+        # at least one attribute to be built
+        if $are-built {
+            # Try to do everything as low level as possible, so extract the
+            # NQP hash from the positional argument
+            # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
+            $statements.unshift-statement(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::VarDeclaration::Simple.new(
+                  sigil       => '$',
+                  desigilname => makeName("nameds"),
+                  initializer => RakuAST::Initializer::Bind.new(
+                    # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
+                    RakuAST::Nqp.new(
+                      "getattr",
+                      RakuAST::Var::Lexical.new('%nameds'),
+                      makeType("Map"),
+                      RakuAST::StrLiteral.new('$!storage')
+                    )
+                  )
+                )
+              )
+            );
+        }
+
+        # self
+        add-statement(RakuAST::Term::Self.new);
+
+        # method POPULATE(%nameds) { $statements }
+        my $method := RakuAST::Method.new(
+          name      => makeName("POPULATE"),
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target   => RakuAST::ParameterTarget::Var.new(
+                  name => "\%nameds"
+                ),
+                optional => False
+              )
+            )
+          ),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new($statements)
+          )
+        );
+
+        $method.to-begin-time($resolver, $context);
+        self.ATTACH-METHOD($method);
     }
 }
 
@@ -1107,8 +1136,8 @@ class RakuAST::Native
 class RakuAST::CompilerServices
 {
     has RakuAST::Package $!package;
-    has RakuAST::Resolver $!resolver;
-    has RakuAST::IMPL::QASTContext $!context;
+    has RakuAST::Resolver $.resolver;
+    has RakuAST::IMPL::QASTContext $.context;
     has QAST::Stmts $!qast;
 
     method new(RakuAST::Package $package, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

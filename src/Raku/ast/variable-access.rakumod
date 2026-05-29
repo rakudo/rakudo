@@ -419,6 +419,16 @@ class RakuAST::Var::Attribute::Public
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-EXPR-QAST($context)
     }
+
+    # In lvalue position (e.g. `$.foo = 42`), peel the outer hllize and
+    # the sigil contextualizer off $!expression's compiled QAST so the
+    # assignment lands on the bare `self.<attr>` method call. Without
+    # this, .item wraps a non-rw accessor result in a throwaway Scalar
+    # container, silently swallowing the assignment.
+    # See rakudo/rakudo#5908 and #6113.
+    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
+        $qast[0][0]
+    }
 }
 
 # The base for special compiler variables ($?FOO).
@@ -628,6 +638,19 @@ class RakuAST::Var::Compiler::Lookup
         my $resolved := $resolver.resolve-lexical($!name);
         if $resolved {
             self.set-resolution($resolved);
+        }
+        else {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Undeclared',
+                symbol          => $!name,
+# This appears to tickle an issue with some resolvers, resulting in
+# hard to trace:
+#   lang-call cannot invoke object of type 'VMNull' belonging to no language
+# and
+#   Cannot invoke object of type 'NQPMu'
+# errors.  So don't try to come up with suggestions for now
+#                suggestions     => $resolver.suggest-lexicals($!name),
+                is-compile-time => 1;
         }
     }
 

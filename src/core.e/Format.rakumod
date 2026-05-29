@@ -8,13 +8,13 @@ my class Format is Str is Callable {
     has     &!code;
 
     method new(Str:D $format, :$class = Formatter) {
-        my @*DIRECTIVES := my str @;
         my &code := $class.new($format);
+        my $obj  := nqp::create(self);
 
-        my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);
         nqp::bindattr($obj,Format,'@!directives',@*DIRECTIVES);
         nqp::bindattr($obj,Format,'&!code',&code);
+
         $obj
     }
 
@@ -106,30 +106,34 @@ my class Format is Str is Callable {
         ).throw
     }
 
-    multi method raku(Format:D:) { 'Format.new(' ~ self.Str::raku ~ ')' }
+    multi method raku(Format:D:) { self.^name ~ '.new(' ~ self.Str::raku ~ ')' }
 
     # mostly for debugging, but also for consistency
     method AST(Format:D:) { Formatter.AST: self }
+
+    # Helper method to render a format for the arguments given.
+    # Throws appropriate error if number of arguments not correct.
+    method render($format, @args) is implementation-detail {
+        (my &render := Formatter.new($format)).count == @args.elems
+          ?? render(|@args)
+          !! X::Str::Sprintf::Directives::Count.new(
+               :$format, :args-have(@args.elems), :args-used(&render.count)
+             ).throw
+    }
 }
 
 #-------------------------------------------------------------------------------
 # Subroutine access to Formatter logic
 
-# the procedural frontend of sprintf functionality
-multi sub sprintf(Format:D $format, *@args) {  # until zprintf gone
-    $format(|@args)
+proto sub sprintf($, |) {*}
+multi sub sprintf(Str(Cool) $format, \value) {
+    Format.render($format, (value,))
 }
-
-proto sub zprintf($, |) {*}
-multi sub zprintf(Str(Cool) $format, \value) {
-    Formatter.new($format)(value)
+multi sub sprintf(Str(Cool) $format, @args) {
+    Format.render($format, @args)
 }
-multi sub zprintf(Str(Cool) $format, |c) {
-    Formatter.new($format)(|c)
-}
-
-augment class Cool {
-    method zprintf(|c) { zprintf(self,|c) }
+multi sub sprintf(Str(Cool) $format, *@args) {
+    Format.render($format, @args)
 }
 
 # vim: expandtab shiftwidth=4

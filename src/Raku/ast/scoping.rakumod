@@ -106,13 +106,17 @@ class RakuAST::LexicalScope
     method ast-lexical-declarations() {
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
+            my %declarations-seen;
             my @variables;
             my %variables-seen;
             my @not-if-duplicate;
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
-                    nqp::push(@declarations, $node);
-                    nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
+                    unless %declarations-seen{nqp::objectid($node)} {
+                        nqp::push(@declarations, $node);
+                        nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
+                        %declarations-seen{nqp::objectid($node)} := 1;
+                    }
                 }
                 elsif nqp::istype($node, RakuAST::Var::Lexical)
                     || nqp::istype($node, RakuAST::Var::Dynamic)
@@ -130,9 +134,10 @@ class RakuAST::LexicalScope
                                 if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic) && $decl.IMPL-NOT-IF-DUPLICATE {
                                     nqp::push(@not-if-duplicate, $decl);
                                 }
-                                else {
+                                elsif !%declarations-seen{nqp::objectid($decl)} {
                                     nqp::push(@declarations, $decl);
                                     nqp::push(@variables, $decl);
+                                    %declarations-seen{nqp::objectid($decl)} := 1;
                                 }
                             }
                         }
@@ -767,6 +772,8 @@ class RakuAST::Declaration::External::Setting
 class RakuAST::Declaration::Import
   is RakuAST::Declaration::External::Constant
 {
+    method meta-object() { self.compile-time-value }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := self.compile-time-value;
         $context.ensure-sc($value);
@@ -995,6 +1002,13 @@ class RakuAST::PackageInstaller {
         my $final;
         my $lexical;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
+        # If the multi-part install resolves its parent through the
+        # setting / outer lexical chain (cross-compunit reload),
+        # capture *which* parent that was and treat the install-
+        # collision as silent only when $target is still that exact
+        # parent at check time (the loop below may reassign $target
+        # to a freshly-created intermediate stub, which is ours).
+        my $setting-resolved-target;
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
         $resolver.add-sorry: $resolver.build-exception:
@@ -1027,9 +1041,31 @@ class RakuAST::PackageInstaller {
             my $first := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
+            # In 6.e and later, detect when the resolved path would
+            # install over the enclosing package (e.g. class Foo::Bar
+            # declared inside module Foo::Bar) and clear $resolved so
+            # the else branch creates intermediate stubs under the
+            # current package, producing Foo::Bar::Foo::Bar.
+            # In 6.d and earlier, let $resolved stand so the legacy
+            # silent-replace path below does the ModuleHOW steal_WHO
+            # overwrite, matching the traditional grammar.
+            if $resolved && nqp::getcomp('Raku').language_revision >= 3 {
+                my $check := self.IMPL-UNWRAP-LIST($resolved);
+                my $check-target := $check[0];
+                my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
+                if !nqp::elems($check-remaining) {
+                    my %check-stash := $resolver.IMPL-STASH-HASH($check-target);
+                    if nqp::existskey(%check-stash, $final)
+                      && %check-stash{$final} =:= $current-package {
+                        $resolved := NQPMu;
+                    }
+                }
+            }
+
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
+                $setting-resolved-target := $target if $resolved[2] eq 'lexical';
                 if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical' {
                     # Upgrade lexically imported top level package to global
                     ($resolver.get-global.WHO){$first} := $resolver.resolve-lexical($first).compile-time-value;
@@ -1079,6 +1115,18 @@ class RakuAST::PackageInstaller {
             }
         }
 
+        # Catch in-source dupes the install-collision check below
+        # silent-replaces: multi-part names (lexical-decl merge only
+        # sees the leading identifier) and identifier dupes inside
+        # an augment body (augment opens a fresh lexical scope).
+        if $orig-scope eq 'our' || $orig-scope eq 'unit' {
+            my $existed := $resolver.declare-our-package($target, $final, self);
+            $resolver.add-sorry($resolver.build-exception:
+                'X::Redeclaration', :symbol($name.canonicalize(:colonpairs(0))))
+              if $existed
+              && (!$name.is-identifier || $resolver.in-augment-scope);
+        }
+
         my %stash := $resolver.IMPL-STASH-HASH($target);
         # upgrade a lexically imported package stub to package scope if it exists
         if $lexical {
@@ -1086,8 +1134,14 @@ class RakuAST::PackageInstaller {
         }
         if $scope eq 'our' {
             if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
-                if nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW) || $name.is-identifier || $orig-scope eq 'my' {
-                    nqp::setwho($type-object, %stash{$final}.WHO);
+                my $existing := %stash{$final};
+                if self.IMPL-SHOULD-SILENT-REPLACE(
+                    $existing, $current-package, $name, $orig-scope,
+                    nqp::eqaddr($target, $setting-resolved-target)
+                ) {
+                    self.IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING(
+                        $resolver, $existing, $type-object, $current-package, $name);
+                    nqp::setwho($type-object, $existing.WHO);
                 }
                 else {
                     $resolver.add-sorry: $resolver.build-exception:
@@ -1095,6 +1149,46 @@ class RakuAST::PackageInstaller {
                 }
             }
             %stash{$final} := $type-object;
+        }
+    }
+
+    # Conditions under which an `our`-scoped install collision is
+    # silently replaced rather than raising X::Redeclaration. Stub
+    # PackageHOW upgrades; 6.d `module Foo::Bar { class Foo::Bar { } }`
+    # enclosing-module replace; identifier and `my`-scope (caught
+    # elsewhere); and cross-compunit reload (target resolved through
+    # the setting / outer chain), matching legacy `install_package`.
+    method IMPL-SHOULD-SILENT-REPLACE(Mu $existing, Mu $current-package, RakuAST::Name $name, str $orig-scope, int $target-from-setting) {
+        nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+        || (nqp::getcomp('Raku').language_revision < 3
+            && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+            && $existing =:= $current-package)
+        || $name.is-identifier
+        || $orig-scope eq 'my'
+        || $target-from-setting
+    }
+
+    # Emit a SameNameAsEnclosing worry when a declaration silently
+    # replaces its enclosing module or package with a non-container
+    # kind on pre-6.e code. All gating lives here so the installer
+    # call site stays readable.
+    method IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING($resolver, $existing, $type-object, $current-package, $name) {
+        if nqp::getcomp('Raku').language_revision < 3
+          && !$name.is-identifier
+          && $existing =:= $current-package {
+            my $enclosing-kind :=
+                nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)  ?? 'module'  !!
+                nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW) ?? 'package' !! '';
+            my $inner-is-containerlike :=
+                nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
+                || nqp::istype($type-object.HOW, Perl6::Metamodel::PackageHOW);
+            if $enclosing-kind ne '' && !$inner-is-containerlike {
+                $resolver.add-worry: $resolver.build-exception:
+                    'X::Package::SameNameAsEnclosing',
+                    :kind(self.declarator),
+                    :enclosing-kind($enclosing-kind),
+                    :name($existing.HOW.name($existing));
+            }
         }
     }
 }

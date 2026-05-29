@@ -186,6 +186,17 @@ augment class RakuAST::Node {
             Nil
         }
     }
+
+    method fileline() {
+        with self.origin -> $origin {
+            with $origin.source -> $source {
+                my $from := $origin.from;
+                return "$source.file-of-pos($from):$source.line-of-pos($from)";
+            }
+        }
+
+        ""
+    }
 }
 
 my class RakuAST::Doc::LegacyRow is RakuAST::Node {
@@ -331,35 +342,23 @@ augment class RakuAST::Doc {
 
 augment class RakuAST::Doc::Markup {
 
-    # convert the contents of E<> to a codepoint
+    # convert the contents of E<> to a representation (usually a codepoint)
     method !convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
         my $codepoint := val $entity;
 
-        my $string;
         if nqp::not_i(nqp::istype($codepoint,Allomorph)) {  # not numeric
-            if $entity.is-whitespace {
-                $string := Nil;
-            }
-            else {
-                $string := RakuAST::HTML::Entities.parse($entity);
-                unless $string {
-                    $string := $entity.uniparse;
-                    unless $string {
-                        die # self.worry-ad-hoc:  XXX need better solution
-                          qq/"$entity" is not a valid HTML5 entity./;
-                    }
-                }
-            }
+            $entity.is-whitespace
+              ?? Nil
+              !! (RakuAST::HTML::Entities.parse($entity)
+                  || $entity.uniparse
+                  || "E<$entity>");
         }
         elsif try $codepoint.chr -> $chr {
-            $string := $chr;
+            $chr
         }
         else {
-            die # self.sorry-ad-hoc:  XXX need better solution
-              "Codepoint $codepoint ($codepoint.base(16)) is out of bounds in E<>";
-            $string := '';
+            "E<$entity>"
         }
-        $string
     }
 
     # Extract any meta information from the atoms, perform the expected
@@ -1491,6 +1490,46 @@ augment class RakuAST::Postfix::Power {
           val(
             nqp::hllize($/).Str.trans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁱ" => "0123456789-+i")
           ).Numeric
+    }
+}
+
+augment class RakuAST::Grammar {
+
+    # Check general sanity of the grammar
+    method check-sanity() {
+        my $grammar := self.meta-object;
+
+        my %bad;
+        self.map: -> $node {
+            if nqp::istype($node,RakuAST::Regex::Assertion::Named) {
+                if $node.name.simple-identifier -> $name {
+                    unless nqp::isconcrete($grammar.^find_method($name)) {
+                        my int $i;
+                        nqp::while(
+                          (my $parent := $node.parent(++$i))
+                            && nqp::not_i(nqp::istype(
+                                 $parent,RakuAST::RegexDeclaration
+                               )),
+                          nqp::null
+                        );
+
+                        if $parent
+                          && $parent.name.simple-identifier -> $regex {
+                            %bad{
+                              "$parent.declarator() $regex (at $node.fileline())"
+                            }.push($name);
+                        }
+                    }
+                }
+            }
+        }
+
+        if %bad {
+            my @bad = %bad.sort(*.key).map: {
+                "\n  in $_.key(): $_.value()"
+            }
+            die "Unresolved references found in grammar $grammar.^name():@bad.join()"
+        }
     }
 }
 

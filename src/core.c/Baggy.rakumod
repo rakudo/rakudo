@@ -24,111 +24,93 @@ my role Baggy does QuantHash {
         self (==) other.Bag
     }
 
-    my constant notfound =
-      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
-
-    multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        $!elems
-          ?? nqp::getattr(
-               nqp::ifnull(nqp::atkey($!elems,k.WHICH),notfound),
-               Pair,
-               '$!value'
-             )
+    # BagHash and MixHash have different AT-KEY logic, so put the common
+    # logic Bag/Mix AT-KEY here
+    multi method AT-KEY(Baggy:D: \k) {
+        (my $pair := nqp::atkey($!elems,self.WHICHIFY(k)))
+          ?? $pair.value
           !! 0
     }
-    multi method DELETE-KEY(Baggy:D: \k) {
+
+    # The DELETE-KEY logic is shared by BagHash/MixHash, so put the actual
+    # logic here, reachable by private method call
+    method !DELETE-KEY(\k) {
         nqp::if(
-          $!elems && nqp::existskey($!elems,(my $which := k.WHICH)),
+          (my $pair := nqp::atkey($!elems,(my str $which = self.WHICHIFY(k)))),
           nqp::stmts(
-            (my \value :=
-              nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value')),
             nqp::deletekey($!elems,$which),
-            value
+            $pair.value
           ),
           0
         )
     }
-    multi method EXISTS-KEY(Baggy:D: \k) {
-        nqp::hllbool(
-          $!elems ?? nqp::existskey($!elems,k.WHICH) !! 0
-        )
-    }
 
     # https://github.com/rakudo/rakudo/issues/5057
+    # The .deepmap version on immutable Baggies, shadowed by versions
+    # in BagHash/MixHash
     multi method deepmap(Baggy:D: &mapper) {
-        my $type  := self.WHAT;
-        my $elems := $!elems;
-        my $clone := nqp::clone($elems);
-        my $iter  := nqp::iterator($elems);
+        my $new  := nqp::create(Rakudo::Internals::IterationSet);
+        my $iter := nqp::iterator($!elems);
 
-        while $iter {
-            my str $key = nqp::iterkey_s(nqp::shift($iter));
-            my $pair   := nqp::iterval($iter);
-            my $value   = nqp::getattr($pair,Pair,'$!value');  # must be Scalar
-            $value := nqp::decont($value) if nqp::istype($type,Bag);
+        nqp::while(
+          $iter,
+          nqp::stmts(
+            (my $pair     := nqp::iterval(nqp::shift($iter))),
+            (my $returned := mapper($pair.value).Int),
+            nqp::if(
+              nqp::istype($returned,Failure),
+              $returned.throw,
+              nqp::if(
+                $returned > 0,
+                nqp::bindkey(
+                  $new,
+                  nqp::iterkey_s($iter),
+                  nqp::p6bindattrinvres(
+                    nqp::clone($pair),Pair,'$!value',$returned
+                  )
+                )
+              )
+            )
+          )
+        );
 
-            # update clone
-            my $returned := nqp::decont(mapper($value).Int);
-            $returned > 0
-              ?? nqp::bindkey(
-                   $clone,
-                   $key,
-                   nqp::p6bindattrinvres(
-                     nqp::clone($pair),Pair,'$!value',$returned
-                   )
-                 )
-              !! nqp::deletekey($clone,$key);
-
-            $value > 0
-              ?? nqp::bindattr($pair,Pair,'$!value',nqp::decont($value))
-              !! nqp::deletekey($elems,$key)
-        }
-
-        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$clone)
+        self.WHAT.SETUP($new)
     }
 
 #--- object creation methods
 
     # helper method to create Bag from iterator, check for laziness
-    method !create-from-iterator(\type, \iterator --> Baggy:D) {
+    method !create-from-iterator(\iterator --> Baggy:D) {
         iterator.is-lazy
-          ?? type.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::create(type).SET-SELF(
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
+          !! self.WHAT.SETUP(
                Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER,
                )
              )
     }
 
-    multi method new(Baggy:_: --> Baggy:D) { nqp::create(self) }
     multi method new(Baggy:_: \value --> Baggy:D) {
-        nqp::if(
-          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value)),
-          self!create-from-iterator(self, value.iterator),
-          nqp::stmts(
-            nqp::bindkey(
-              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              value.WHICH,
-              Pair.new(value,1)
-            ),
-            nqp::create(self).SET-SELF($elems)
-          )
+        self!create-from-iterator(
+          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value))
+            ?? value.iterator
+            !! Rakudo::Iterator.OneValue(value)
         )
     }
     multi method new(Baggy:_: **@args) {
-        self!create-from-iterator(self, @args.iterator)
+        self!create-from-iterator(@args.iterator)
     }
 
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
         (my \iterator := @pairs.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('coerce')
-          !! nqp::create(self).SET-SELF(
+          !! self.WHAT.SETUP(
                Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
                  iterator,
-                 self.keyof
+                 self.OBJECTIFIER
                )
              )
     }
@@ -252,18 +234,16 @@ my role Baggy does QuantHash {
     }
 
 #--- introspection methods
-    multi method elems(Baggy:D:) {
-        nqp::istrue($!elems) && nqp::elems($!elems)
-    }
+    multi method elems(Baggy:D:) { nqp::elems($!elems) }
     multi method Bool(Baggy:D: --> Bool:D) {
-        nqp::hllbool($!elems ?? nqp::elems($!elems) !! 0)
+        nqp::hllbool(nqp::elems($!elems))
     }
 
     method !HASHIFY(\type) {
         my \hash := Hash.^parameterize(type,Mu,Any).new;
         my \descriptor := nqp::getattr(hash,Hash,'$!descriptor');
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my \storage := nqp::clone($!elems)),
             (my \iter := nqp::iterator(storage)),
@@ -303,7 +283,7 @@ my role Baggy does QuantHash {
     proto method grabpairs (|) {*}
     multi method grabpairs(Baggy:D:) {
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my \iter := Rakudo::QuantHash.ROLL($!elems)),
             (my \pair := nqp::iterval(iter)),
@@ -342,7 +322,7 @@ my role Baggy does QuantHash {
 
     proto method pickpairs(|) {*}
     multi method pickpairs(Baggy:D:) {
-        $!elems && nqp::elems($!elems)
+        nqp::elems($!elems)
           ?? nqp::iterval(Rakudo::QuantHash.ROLL($!elems))
           !! Nil
     }
@@ -392,7 +372,7 @@ my role Baggy does QuantHash {
               iter && nqp::isle_I(
                 ($seen := nqp::add_I(
                   $seen,
-                  nqp::iterval(nqp::shift(iter)),
+                  nqp::decont(nqp::iterval(nqp::shift(iter))),
                   Int
                 )),
                 $rand
@@ -403,7 +383,7 @@ my role Baggy does QuantHash {
             nqp::bindkey(                # iter now contains picked one
               $!weights,
               nqp::iterkey_s(iter),
-              nqp::sub_I(nqp::iterval(iter),1,Int)
+              nqp::sub_I(nqp::decont(nqp::iterval(iter)),1,Int)
             );
             $!total := nqp::sub_I($!total,1,Int);
 
@@ -455,11 +435,7 @@ my role Baggy does QuantHash {
                 $todo,
                 nqp::stmts(
                   --$todo,
-                  target.push(nqp::getattr(
-                    nqp::atkey($!raw,self.BAG-PICK),
-                    Pair,
-                    '$!key'
-                  ))
+                  target.push(nqp::atkey($!raw,self.BAG-PICK).key)
                 )
               ),
               ($!todo := nqp::decont($todo))
@@ -480,23 +456,15 @@ my role Baggy does QuantHash {
 
     proto method roll(|) {*}
     multi method roll(Baggy:D:) {
-        $!elems && (my \total := self.total)
-          ?? nqp::getattr(
-               nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
-               Pair,
-               '$!key'
-             )
+        (my \total := self.total)
+          ?? nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)).key
           !! Nil
     }
     multi method roll(Baggy:D: Whatever) {
         Seq.new(
-          $!elems && (my \total := self.total)
+          (my \total := self.total)
             ?? Rakudo::Iterator.Callable( {
-                 nqp::getattr(
-                   nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
-                   Pair,
-                   '$!key'
-                 )
+                 nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)).key
                }, True)
             !! Rakudo::Iterator.Empty
         )
@@ -512,16 +480,12 @@ my role Baggy does QuantHash {
           !! Seq.new(                             # something else as count
                (my $todo = count.Int) < 1         # also handles NaN
                  ?? Rakudo::Iterator.Empty        # nothing to do
-                 !! $!elems && (my \total := self.total) && ++$todo
+                 !! (my \total := self.total) && ++$todo
                    ?? Rakudo::Iterator.Callable({ # need to do a number of times
                           --$todo
-                          ?? nqp::getattr(
-                               nqp::iterval(
-                                 Rakudo::QuantHash.BAG-ROLL($!elems,total)
-                               ),
-                               Pair,
-                              '$!key'
-                             )
+                          ?? nqp::iterval(
+                               Rakudo::QuantHash.BAG-ROLL($!elems,total)
+                             ).key
                           !! IterationEnd
                       })
                    !! Rakudo::Iterator.Empty      # nothing to roll for
@@ -613,70 +577,70 @@ my role Baggy does QuantHash {
     }
 
 #--- coercion methods
-   sub SETIFY(\raw, \type) {
-        nqp::if(
-          raw && nqp::elems(raw),
-          nqp::stmts(
-            (my \elems := nqp::clone(raw)),
-            (my \iter := nqp::iterator(elems)),
+   sub SETIFY(\type, \raw) {
+        if nqp::elems(raw) {
+            my $elems := nqp::clone(raw);
+            my $iter  := nqp::iterator($elems);
+
             nqp::while(
-              iter,
+              $iter,
               nqp::bindkey(
-                elems,
-                nqp::iterkey_s(nqp::shift(iter)),
-                nqp::getattr(nqp::iterval(iter),Pair,'$!key'),
+                $elems,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::iterval($iter).key
               )
-            ),
-            nqp::create(type).SET-SELF(elems)
-          ),
-          nqp::if(
-            nqp::eqaddr(type,Set),
-            set(),
-            nqp::create(type)
-          )
-        )
-    }
-    multi method Set(Baggy:D:)     { SETIFY($!elems,Set)     }
-    multi method SetHash(Baggy:D:) { SETIFY($!elems,SetHash) }
+            );
 
-    sub MIXIFY(\raw, \type) {
-        raw && nqp::elems(raw)
-          ?? nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE(raw))
-          !! nqp::istype(type,Mix)
-            ?? mix()
-            !! nqp::create(MixHash)
+            type.SETUP($elems)
+        }
+        elsif nqp::istype(type,SetHash) {
+            SetHash.SETUP
+        }
+        else {
+            set()
+        }
     }
+    multi method Set(Baggy:D:)     { SETIFY(Set,     $!elems) }
+    multi method SetHash(Baggy:D:) { SETIFY(SetHash, $!elems) }
 
-    multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
-    multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
+    sub MIXIFY(\type, \raw) {
+        nqp::elems(raw)
+          ?? type.SETUP(Rakudo::QuantHash.BAGGY-CLONE(raw))
+          !! nqp::istype(type,MixHash)
+            ?? MixHash.SETUP
+            !! mix()
+    }
+    multi method Mix(Baggy:D:)     { MIXIFY(Mix,     $!elems) }
+    multi method MixHash(Baggy:D:) { MIXIFY(MixHash, $!elems) }
 
     method Map {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::stmts(
-            (my \storage := nqp::hash),
-            (my \iter := nqp::iterator($!elems)),
+        if nqp::elems($!elems) {
+            my \storage := nqp::hash;
+            my \iter := nqp::iterator($!elems);
+
             nqp::while(
               iter,
               nqp::bindkey(
                 storage,
-                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!key').Str,
-                nqp::getattr(nqp::iterval(iter),Pair,'$!value')
+                nqp::iterval(nqp::shift(iter)).key.Str,
+                nqp::iterval(iter).value
               )
-            ),
+            );
+
             nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',storage)
-          ),
-          nqp::create(Map)
-        )
+        }
+        else {
+            nqp::create(Map)
+        }
     }
 
     method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 
-multi sub infix:<eqv>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr($a,$b)
-        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
+      nqp::eqaddr(a,b)
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
 

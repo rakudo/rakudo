@@ -13,7 +13,9 @@ my @expected = (
     Q{$?BITS},
     Q{$?NL},
     Q{$?TABSTOP},
+    Q{$?CHECKSUM},
     Q{$?LANGUAGE-REVISION},
+    Q{$?SOURCE},
     Q{$_},
     Q{$¢},
     Q{&CLONE-HASH-DECONTAINERIZED},
@@ -505,7 +507,6 @@ my @expected = (
     Q{&wordcase},
     Q{&words},
     Q{&zip},
-    Q{&zprintf},   # TEMPORARY!
     Q{AST},
     Q{Allomorph},
     Q{Any},
@@ -830,6 +831,11 @@ my %nyi-for-backend = (
     'moar' => (),
     'js' => (),
 );
+
+if SETTING::{'!RAKUAST_MARKER'}:exists {
+    @expected.push: Q{!RAKUAST_MARKER}, Q{$?FILE};
+    @expected = @expected.grep(* ne '!INIT_VALUES').list;
+}
 
 has-symbols CORE::, (@expected (-) %nyi-for-backend{$*VM.name}).keys, "Symbols in 6.e CORE::";
 

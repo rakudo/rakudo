@@ -194,7 +194,7 @@ class RakuAST::Signature
                     $type := Mu;
                 }
                 elsif $!is-on-named-method {
-                    if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) {
+                    if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
                         my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
@@ -875,7 +875,8 @@ class RakuAST::Parameter
 
             if $rw {
                 if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
-                    my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
+                    my $cd := RakuAST::IMPL::Containers.create-descriptor(
+                        :of($type), :default($type), :dynamic(0), :$name);
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
                 }
@@ -1347,12 +1348,27 @@ class RakuAST::Parameter
         }
         elsif !$was-slurpy {
             # Type-check, unless it's Mu, in which case skip it.
-            if $is-generic && !$is-coercive {
+            if $is-generic && !$is-coercive
+              && nqp::istype($param-type.HOW, Perl6::Metamodel::GenericHOW) {
+                # True type capture (e.g. ::T in role R[::T]) resolves
+                # per-invocant-type at runtime.
                 my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('istype_nd'),
                     $get-decont-var(),
                     QAST::Var.new( :name($genericname), :scope<typevar> )
+                )));
+            }
+            elsif $is-generic && !$is-coercive {
+                # Archetypally generic but not a type capture (e.g. a class
+                # whose HOW reports generic because a user-defined is-generic
+                # method returned truthy). Bind against the static type
+                # directly; typevar scope would resolve to nothing.
+                $context.ensure-sc($param-type);
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('istype_nd'),
+                    $get-decont-var(),
+                    QAST::WVal.new( :value($param-type) )
                 )));
             }
             elsif !($param-type =:= Mu) {

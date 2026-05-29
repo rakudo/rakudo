@@ -263,6 +263,9 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method qast($rakuast, *%adverbs) {
+        my str $setting-name := nqp::can($rakuast, 'setting-name') ?? ($rakuast.setting-name // '') !! '';
+        my int $compiling-core := $setting-name eq 'NULL.c' || $setting-name eq 'NULL.d' || $setting-name eq 'NULL.e' ?? 1 !! 0;
+        my $*COMPILING_CORE_SETTING := $compiling-core;
         my $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
         $rakuast.cleanup();
         $comp_unit;

@@ -108,46 +108,38 @@ PROCESS::<$RAT-OVERFLOW> = Num;
 # which would be useless.  Also used when normalization *was* needed.
 proto sub CREATE_RATIONAL_FROM_INTS(|) is implementation-detail {*}
 multi sub CREATE_RATIONAL_FROM_INTS(Int:D $nu, Int:D $de, Any, Any) is raw {
-    $de
-      ?? nqp::islt_I($de,UINT64_UPPER)       # do we need to upgrade?
-        ?? nqp::p6bindattrinvres(            # no, we need to keep a Rat
-             nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$nu),
-             Rat,'$!denominator',$de
-           )
-        !! $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
-      !! Rat.zero-denominator($nu, $de)
+    nqp::islt_I($de,UINT64_UPPER)            # do we need to downgrade to float?
+      ?? nqp::p6bindattrinvres(              # no, we need to keep a Rat
+           nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$nu),
+           Rat,'$!denominator',$de
+         )
+      !! $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
 }
 
 # already a FatRat, so keep that
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D $nu, Int:D $de, FatRat, Any
 --> FatRat:D) is raw {
-    $de
-      ?? nqp::p6bindattrinvres(
-           nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
-           FatRat,'$!denominator',$de
-         )
-      !! FatRat.zero-denominator($nu, $de)
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
+    )
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D $nu, Int:D $de, Any, FatRat
 --> FatRat:D) is raw {
-    $de
-      ?? nqp::p6bindattrinvres(
-           nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
-           FatRat,'$!denominator',$de
-         )
-      !! FatRat.zero-denominator($nu, $de)
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
+    )
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
   Int:D $nu, Int:D $de, FatRat, FatRat
 --> FatRat:D) is raw {
-    $de
-      ?? nqp::p6bindattrinvres(
-           nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
-           FatRat,'$!denominator',$de
-         )
-      !! FatRat.zero-denominator($nu, $de)
+    nqp::p6bindattrinvres(
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
+    )
 }
 
 multi sub prefix:<->(Rat:D $a --> Rat:D) {

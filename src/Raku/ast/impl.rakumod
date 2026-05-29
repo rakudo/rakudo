@@ -27,6 +27,10 @@ class RakuAST::IMPL::QASTContext {
     has int $.is-nested;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
 
+    # Optional nested Perl6::World; when set, add-code-ref delegates
+    # to it so the shared $!num_code_refs counter advances.
+    has Mu $.world-bridge;
+
     method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
@@ -40,12 +44,25 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
         $obj
+    }
+
+    method set-world-bridge(Mu $world) {
+        nqp::bindattr(self, RakuAST::IMPL::QASTContext, '$!world-bridge', $world);
     }
 
     method create-nested() {
         my $context := nqp::clone(self);
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
+        # Give the nested context its own post-deserialize bucket so
+        # add-fixup-task pushes only land on the inner compunit, not the
+        # shared outer one. Without this, compunit.rakumod has to force the
+        # nested compunit's :post_deserialize to [] to avoid polluting the
+        # outer's serialized fixups, which silently throws away the runtime
+        # $!do bind that IMPL-LINK-META-OBJECT emits for the non-precomp
+        # case.
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
         $context
     }
@@ -86,9 +103,15 @@ class RakuAST::IMPL::QASTContext {
     }
 
     method add-code-ref(Mu $code-ref, Mu $block) {
-        my int $code-ref-idx := nqp::elems($!code-ref-blocks);
-        nqp::push($!code-ref-blocks, $block);
-        nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
+        my int $code-ref-idx;
+        if nqp::isconcrete($!world-bridge) {
+            $code-ref-idx := $!world-bridge.add_root_code_ref($code-ref, $block);
+        }
+        else {
+            $code-ref-idx := nqp::elems($!code-ref-blocks);
+            nqp::push($!code-ref-blocks, $block);
+            nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
+        }
         $!sub-id-to-sc-idx{$block.cuid} := $code-ref-idx;
     }
 
@@ -134,6 +157,61 @@ class RakuAST::IMPL::QASTContext {
     method add-cleanup-task($task) {
         nqp::push($!cleanup-tasks, $task)
     }
+
+    # Reconnect freshly-compiled code refs to the Code objects and SC slots
+    # stashed during stubbing. :drain-compstuff-fixups is only needed when
+    # the caller populated @!compstuff[3] (i.e. the non-nested non-precomp
+    # branch of IMPL-LINK-META-OBJECT); nested/precomp callers leave it off
+    # and null @!compstuff via cleanup-tasks instead. When $block-cuid is
+    # passed, returns the matching code ref; otherwise returns Mu.
+    method IMPL-FIXUP-COMPILED-CODEREFS(Mu $coderefs, $block-cuid?, :$drain-compstuff-fixups) {
+        my int $n := nqp::elems($coderefs);
+        my int $i := 0;
+        my $result;
+        while $i < $n {
+            my $coderef := nqp::atpos($coderefs, $i);
+            my $subid := nqp::getcodecuid($coderef);
+
+            if nqp::existskey($!sub-id-to-code-object, $subid) {
+                my $code-obj := $!sub-id-to-code-object{$subid};
+                nqp::setcodeobj($coderef, $code-obj);
+                nqp::bindattr($code-obj, Code, '$!do', $coderef);
+                if $drain-compstuff-fixups {
+                    my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
+                    if $fixups {
+                        $fixups.pop() while $fixups.list;
+                    }
+                    nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+                }
+            }
+
+            if nqp::existskey($!sub-id-to-cloned-code-objects, $subid) {
+                for $!sub-id-to-cloned-code-objects{$subid} -> $code-obj {
+                    my $clone := nqp::clone($coderef);
+                    nqp::setcodeobj($clone, $code-obj);
+                    nqp::bindattr($code-obj, Code, '$!do', $clone);
+                    if $drain-compstuff-fixups {
+                        my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
+                        if $fixups {
+                            $fixups.pop() while $fixups.list;
+                        }
+                        nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+                    }
+                }
+            }
+
+            if nqp::existskey($!sub-id-to-sc-idx, $subid) {
+                nqp::markcodestatic($coderef);
+                nqp::scsetcode($!sc, $!sub-id-to-sc-idx{$subid}, $coderef);
+            }
+
+            if $block-cuid && $subid eq $block-cuid {
+                $result := $coderef;
+            }
+            $i := $i + 1;
+        }
+        $result
+    }
 }
 
 # Rakudo-specific class used for holding state used during interpretation of
@@ -141,5 +219,31 @@ class RakuAST::IMPL::QASTContext {
 class RakuAST::IMPL::InterpContext {
     method new() {
         nqp::create(self)
+    }
+}
+
+# Shared metamodel-archetype helpers, called from RakuAST nodes anywhere
+# that needs to inspect a type object's archetypes. archetypes() must be
+# called with the type as argument: DefiniteHOW and CoercionHOW stash the
+# archetype in a type parameter and return a non-generic prototype when
+# called bare (Metamodel/DefiniteHOW.nqp, Metamodel/CoercionHOW.nqp), so
+# `$v.HOW.archetypes.generic` silently misreports for those HOWs. Routing
+# through these helpers keeps callers from having to remember the
+# argument form.
+class RakuAST::IMPL::Archetypes {
+    method is-generic(Mu $v) {
+        nqp::can($v.HOW, 'archetypes')
+            && $v.HOW.archetypes($v).generic
+    }
+}
+
+# Builds a Scalar container descriptor, picking the Untyped variant for Mu
+# nominals so STORE accepts NQP-typed values. Emulates create_container_descriptor
+# in src/Perl6/World.nqp.
+class RakuAST::IMPL::Containers {
+    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name) {
+        my $d := nqp::eqaddr($default, Mu) ?? $of !! $default;
+        my $cd-type := nqp::eqaddr($of, Mu) ?? ContainerDescriptor::Untyped !! ContainerDescriptor;
+        $cd-type.new(:$of, :default($d), :$dynamic, :$name)
     }
 }

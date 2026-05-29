@@ -104,12 +104,6 @@ class RakuAST::Expression
         $!thunks
     }
 
-    method IMPL-CURRY(@params) {
-        my $thunk := RakuAST::CurryThunk.new(self.origin ?? self.origin.Str !! self.DEPARSE, @params);
-        self.wrap-with-thunk($thunk);
-        $thunk
-    }
-
     method IMPL-CURRIED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
@@ -202,6 +196,9 @@ class RakuAST::Infixish
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
+
+    # Override on infixes whose call returns a lazy producer (needs p6sink).
+    method IMPL-RESULT-NEEDS-ITERATION() { False }
 
     # A node can implement this if it wishes to have full control of the
     # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
@@ -403,6 +400,7 @@ class RakuAST::Infix
             '='     , 0,
             ':='    , 0,
             '≔'     , 0,
+            ':'     , 0,
             '&&'    , 0,
             '||'    , 0,
             '~~'    , 1,
@@ -890,26 +888,9 @@ class RakuAST::Feed
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                my str $error := "Only routine calls or variables that can '.append' may appear on either side
-of feed operators.";
-                if nqp::istype($stage, QAST::Children) && nqp::istype($stage[0], QAST::Var) {
-                    if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
-                        && nqp::eqat($stage[0].name, '&', 0) {
-                        $error := "A feed may not sink values into a code object.
-Did you mean a call like '"
-                            ~ nqp::substr($stage[0].name, 1)
-                            ~ "()' instead?";
-                    }
-
-                    # Looks like an array, yet we wound up here (which we
-                    # wouldn't if it was an ordinary array.  Assume it's
-                    # a shaped array definition throwing a spanner into the
-                    # works.
-                    elsif nqp::eqat($stage[0].name, '@', 0) {
-                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
-                    }
-                }
-                $_.PRECURSOR.panic($error);
+                # ApplyListInfix.PERFORM-CHECK should reject this earlier.
+                nqp::die("internal error: feed stage of unsupported QAST kind "
+                  ~ $stage.HOW.name($stage));
             }
             $result := $stage;
         }
@@ -1309,7 +1290,13 @@ class RakuAST::MetaInfix::Assign
 
     method is-pure() { False }
 
+    method IMPL-RESULT-NEEDS-ITERATION() {
+        nqp::istype($!infix, RakuAST::MetaInfix::Zip)
+          || nqp::istype($!infix, RakuAST::MetaInfix::Cross)
+    }
+
     method IMPL-IS-TEST() {
+        return False unless nqp::istype(self.infix, RakuAST::Infix);
         my $basesym := self.infix.operator;
         $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
         || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
@@ -1364,6 +1351,10 @@ class RakuAST::MetaInfix::Assign
                 )
             )
         }
+        elsif self.IMPL-WRAPS-LIST-META {
+            QAST::Op.new: :op<call>,
+              self.IMPL-NESTED-META-HOP-QAST($context), $left-qast, $right-qast
+        }
         else {
             QAST::Op.new(:op<call>,
               self.IMPL-HOP-INFIX-QAST($context) , $left-qast, $right-qast
@@ -1382,6 +1373,45 @@ class RakuAST::MetaInfix::Assign
         while $i < nqp::elems($operands) {
             $operands[$i].apply-sink(False);
             $i++;
+        }
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        if self.IMPL-WRAPS-LIST-META {
+            my $op := QAST::Op.new: :op<call>, self.IMPL-NESTED-META-HOP-QAST($context);
+            for $operands { $op.push($_) }
+            $op
+        }
+        else {
+            self.IMPL-INFIX-QAST($context, $operands[0], $operands[1])
+        }
+    }
+
+    method IMPL-WRAPS-LIST-META() {
+        self.IMPL-RESULT-NEEDS-ITERATION
+          || nqp::istype($!infix, RakuAST::MetaInfix::Hyper)
+    }
+
+    # Emits METAOP_<TYPE>(METAOP_ASSIGN(base)).  The flipped
+    # METAOP_ASSIGN(METAOP_<TYPE>(base)) returns a Seq that breaks native arrays.
+    method IMPL-NESTED-META-HOP-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $base       := $!infix.infix;
+        my $assign-hop := QAST::Op.new: :op('call'), :name('&METAOP_ASSIGN'),
+                            $base.IMPL-HOP-INFIX-QAST($context);
+        if nqp::istype($!infix, RakuAST::MetaInfix::Hyper) {
+            my $hyper := $!infix;
+            my $hop   := QAST::Op.new: :op('call'), :name('&METAOP_HYPER'),
+                            $assign-hop;
+            $hop.push(QAST::WVal.new(:value(True), :named('dwim-left')))  if $hyper.dwim-left;
+            $hop.push(QAST::WVal.new(:value(True), :named('dwim-right'))) if $hyper.dwim-right;
+            $hop
+        }
+        else {
+            my str $name := nqp::istype($!infix, RakuAST::MetaInfix::Zip)
+                              ?? '&METAOP_ZIP' !! '&METAOP_CROSS';
+            QAST::Op.new: :op('call'), :name($name),
+                $assign-hop,
+                QAST::Var.new(:name('&METAOP_REDUCE_RIGHT'), :scope('lexical'))
         }
     }
 }
@@ -1850,14 +1880,28 @@ class RakuAST::MetaInfix::Hyper
 class RakuAST::WhateverApplicable
 {
     has int $!must-not-curry;
+    has int $!hyperwhatever;
 
     method IMPL-MUST-NOT-CURRY() {
         nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-curry', 1);
     }
 
+    method IMPL-CURRY(@params) {
+        my $expr := self.origin ?? self.origin.Str !! self.DEPARSE;
+        my $thunk := $!hyperwhatever
+            ?? RakuAST::HyperCurryThunk.new($expr, @params)
+            !! RakuAST::CurryThunk.new($expr, @params);
+        self.wrap-with-thunk($thunk);
+        $thunk
+    }
+
     method IMPL-MAYBE-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.IMPL-SHOULD-CURRY {
             my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
+            if $!hyperwhatever && nqp::elems($args) > 1 {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::HyperWhatever::Multiple';
+            }
             self.IMPL-CURRY($args).to-begin-time($resolver, $context);
         }
     }
@@ -1874,6 +1918,7 @@ class RakuAST::WhateverApplicable
         if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
             for self.IMPL-UNWRAP-LIST(self.operands) {
                 return True if nqp::istype($_, RakuAST::Term::Whatever)
+                            || nqp::istype($_, RakuAST::Term::HyperWhatever)
             }
         }
         if nqp::bitand_i(self.operator.IMPL-CURRIES, 2) {
@@ -1891,8 +1936,11 @@ class RakuAST::WhateverApplicable
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
-            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
-                @operands[$index] := RakuAST::WhateverCode::Argument.new if nqp::istype($_, RakuAST::Term::Whatever);
+            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1)
+            && (nqp::istype($_, RakuAST::Term::Whatever) || nqp::istype($_, RakuAST::Term::HyperWhatever)) {
+                nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!hyperwhatever', 1)
+                    if nqp::istype($_, RakuAST::Term::HyperWhatever);
+                @operands[$index] := RakuAST::WhateverCode::Argument.new;
             }
 
             # If we can curry WhateverCodes, uncurry them first, i.e. move the thunk up to this node
@@ -1941,7 +1989,8 @@ class RakuAST::WhateverApplicable
         return False unless nqp::bitand_i(self.operator.IMPL-CURRIES, 1);
         return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
         for self.IMPL-UNWRAP-LIST(self.operands) {
-            return True if nqp::istype($_, RakuAST::Term::Whatever);
+            return True if nqp::istype($_, RakuAST::Term::Whatever)
+                        || nqp::istype($_, RakuAST::Term::HyperWhatever);
             return True if nqp::istype($_, RakuAST::WhateverCode::Argument);
         }
         False
@@ -2014,10 +2063,7 @@ class RakuAST::ApplyInfix
     method operator() { $!infix }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if self.IMPL-SHOULD-CURRY {
-            my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
-            self.IMPL-CURRY($args).to-begin-time($resolver, $context);
-        }
+        self.IMPL-MAYBE-CURRY($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
     }
@@ -2038,7 +2084,8 @@ class RakuAST::ApplyInfix
         );
 
         # handle op=
-        if nqp::istype($infix, RakuAST::MetaInfix::Assign) {
+        if nqp::istype($infix, RakuAST::MetaInfix::Assign)
+          && nqp::istype($infix.infix, RakuAST::Infix) {
             my str $operator := $infix.infix.operator;
             if $operator eq ',' || $operator eq 'xx' {
                 my $sigil := (try $left.sigil) // '';
@@ -2170,7 +2217,7 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
     }
 
-    method needs-sink-call() { $!infix.is-pure }
+    method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     method IMPL-CAN-INTERPRET() {
         $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
@@ -2273,20 +2320,64 @@ class RakuAST::ApplyListInfix
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!infix, RakuAST::Feed) {
-            for $!operands {
-                if nqp::istype($_, RakuAST::Var::Lexical) && $_.sigil eq '&' {
+            my $op := $!infix.operator;
+            my @stages;
+            if $op eq '==>' || $op eq '==>>' {
+                for $!operands { @stages.push($_) }
+            }
+            else {
+                for $!operands { @stages.unshift($_) }
+            }
+            @stages.shift;  # source operand, not a stage to validate
+            for @stages {
+                my $stage := $_;
+                if nqp::istype($stage, RakuAST::Var) && $stage.sigil eq '&' {
                     self.add-sorry(
                         $resolver.build-exception: 'X::AdHoc', :payload(
                             "A feed may not sink values into a code object.\n"
                                 ~ "Did you mean a call like '"
-                                ~ $_.desigilname.canonicalize
+                                ~ self.IMPL-FEED-CODE-OBJECT-NAME($stage)
                                 ~ "()' instead?"));
+                }
+                elsif !self.IMPL-IS-VALID-FEED-STAGE($stage) {
+                    my str $error := "Only routine calls or variables that can '.append' may appear on either side\nof feed operators.";
+                    # `my @x = ...` / `our @x = ...` gets legacy's
+                    # "shaped arrays" wording even without a declared
+                    # shape; other scopes get the generic message.
+                    if nqp::istype($stage, RakuAST::VarDeclaration::Simple)
+                      && $stage.sigil eq '@'
+                      && ($stage.scope eq 'my' || $stage.scope eq 'our') {
+                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
+                    }
+                    self.add-sorry(
+                        $resolver.build-exception: 'X::AdHoc', :payload($error));
                 }
             }
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
+    }
+
+    method IMPL-IS-VALID-FEED-STAGE($stage) {
+        return 1 if nqp::istype($stage, RakuAST::Call);
+        return 1 if nqp::istype($stage, RakuAST::Var);
+        # `my @a <== source`: a bare declaration acts as the Var.
+        # An initializer (`my @a = grep(...)`) or a shape
+        # (`my @a[5]`) makes it a complex expression that legacy
+        # correctly rejects, so we reject too.
+        if nqp::istype($stage, RakuAST::VarDeclaration::Simple) {
+            return 1 unless $stage.initializer || $stage.shape;
+        }
+        0
+    }
+
+    method IMPL-FEED-CODE-OBJECT-NAME($stage) {
+        return $stage.desigilname.canonicalize
+          if nqp::istype($stage, RakuAST::Var::Lexical);
+        return $stage.name.canonicalize
+          if nqp::istype($stage, RakuAST::Var::Package);
+        nqp::can($stage, 'name') ?? ~$stage.name !! ''
     }
 
     method IMPL-CAN-INTERPRET() {

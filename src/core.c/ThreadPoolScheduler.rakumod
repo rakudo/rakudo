@@ -28,7 +28,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     # Infrastructure for non-blocking `await` for code running on the
     # scheduler.
-    my constant THREAD_POOL_PROMPT = Mu.new;
+    my constant THREAD_POOL_PROMPT = nqp::create(Mu);
     my class ContinuationWrapper {
         has $.cont;
         method new(Mu \cont) {

@@ -33,6 +33,7 @@ class RakuAST::CompUnit
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
     has int $.precompilation-mode;
+    has int $!suspend-recording-precompilation-dependencies;
     has Mu $!export-package;
     has Mu $.herestub-queue;
     has int $!explicit-ctxsave;
@@ -119,23 +120,56 @@ class RakuAST::CompUnit
               $precompilation-mode);
         }
         else {
-            $sc := nqp::createsc($comp-unit-name);
-            nqp::pushcompsc($sc);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+            # Runtime AST EVAL inside a precompiling legacy-frontend
+            # compile: bridge through Perl6::World, mirroring
+            # Perl6::Grammar TOP's nested-compile setup.
+            my $outer-world := nqp::getlexdyn('$*W');
+            my $is-legacy-nested := $eval
+                && nqp::isconcrete($outer-world)
+                && nqp::can($outer-world, 'is_precompilation_mode')
+                && $outer-world.is_precompilation_mode;
+
+            if $is-legacy-nested {
+                my $nested-world := $outer-world.create_nested();
+                $sc := $nested-world.sc;
+                nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', 2);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+                my $context := RakuAST::IMPL::QASTContext.new(
+                  :$sc, :$precompilation-mode,
+                  :$setting, :$language-revision);
+                nqp::bindattr_i($context, RakuAST::IMPL::QASTContext,
+                  '$!is-nested', 1);
+                $context.set-world-bridge($nested-world);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!context', $context);
+            }
+            else {
+                $sc := nqp::createsc($comp-unit-name);
+                nqp::pushcompsc($sc);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
+                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+                # Set the SC description to $?FILES only on the
+                # fresh-SC path. The bridged path shares the outer
+                # World's SC, whose description was already set by
+                # the outer's compile and must not be overwritten.
+                my $file := nqp::getlexdyn('$?FILES');
+                nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
+            }
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
-              RakuAST::VarDeclaration::Implicit::Doc::Data.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
-              RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!rakudoc',
-              RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
+            # $=data / $=finish / $=rakudoc are per-compunit, not setting-level;
+            # don't allocate them when this compunit IS the CORE setting, so
+            # they don't get visited by visit-children and end up as lexicals
+            # in `SETTING::`.
+            unless $obj.IMPL-IS-CORE-SETTING {
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
+                  RakuAST::VarDeclaration::Implicit::Doc::Data.new);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
+                  RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
+                nqp::bindattr($obj, RakuAST::CompUnit, '$!rakudoc',
+                  RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
+            }
         }
-
-        my $file := nqp::getlexdyn('$?FILES');
-        nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
 
         $obj
     }
@@ -256,6 +290,13 @@ class RakuAST::CompUnit
     # does not declare its own GLOBAL and so forth.
     method is-eval() { $!is-eval ?? True !! False }
 
+    # The setting context the CompUnit's resolver knows about, if any.
+    method setting() {
+        nqp::isconcrete($!resolver)
+          ?? nqp::getattr($!resolver, RakuAST::Resolver, '$!setting')
+          !! Mu
+    }
+
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['compunit'])
     }
@@ -335,10 +376,24 @@ class RakuAST::CompUnit
         for $!context.cleanup-tasks {
             $_()
         }
+        # Propagate any inner @!load_dependency_tasks to the outer World.
+        my $world := $!context.world-bridge;
+        $world.finish if nqp::isconcrete($world);
     }
 
     method record-precompilation-dependencies() {
-        $!precompilation-mode ?? True !! False
+        $!precompilation-mode && !$!suspend-recording-precompilation-dependencies
+          ?? True !! False
+    }
+
+    method suspend-recording-precompilation-dependencies() {
+        nqp::bindattr_i(self, RakuAST::CompUnit,
+          '$!suspend-recording-precompilation-dependencies', 1);
+    }
+
+    method resume-recording-precompilation-dependencies() {
+        nqp::bindattr_i(self, RakuAST::CompUnit,
+          '$!suspend-recording-precompilation-dependencies', 0);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -393,9 +448,21 @@ class RakuAST::CompUnit
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
+    # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).
+    # Per-compunit lexicals like $?PACKAGE, GLOBALish, EXPORT, $=data, $=finish,
+    # $=rakudoc, !UNIT_MARKER belong to user compunits, not the setting; legacy's
+    # Perl6/World.nqp gates them on the same condition. Without this gate they
+    # leak into SETTING:: at runtime.
+    method IMPL-IS-CORE-SETTING() {
+        nqp::isconcrete($!setting-name)
+            && nqp::eqat($!setting-name, 'NULL.', 0) ?? 1 !! 0
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @decls;
         my sub add(Mu $add) { nqp::push(@decls,$add) }
+
+        my int $core-setting := self.IMPL-IS-CORE-SETTING;
 
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
@@ -414,33 +481,41 @@ class RakuAST::CompUnit
             # After that, we can add the rest.
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '$?PACKAGE', value => $global.compile-time-value
-            ));
+            unless $core-setting {
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?PACKAGE', value => $global.compile-time-value
+                ));
+            }
 
+            # GLOBAL package is always added so generated-global can find it
+            # for the HLL symbol binding done in Actions.nqp lang-setup; the
+            # Package node does not leak into SETTING::'s WHO the way the
+            # GLOBALish/EXPORT constants do.
             add($global);
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-              name => 'GLOBALish', value => $global.compile-time-value
-            ));
-            add(RakuAST::VarDeclaration::Implicit::Constant.new(
-              name => 'EXPORT', value => $!export-package
-            )) unless nqp::eqaddr($!export-package,Mu);
+            unless $core-setting {
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                  name => 'GLOBALish', value => $global.compile-time-value
+                ));
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                  name => 'EXPORT', value => $!export-package
+                )) unless nqp::eqaddr($!export-package,Mu);
+            }
 
             add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
 
-            add($!finish) if $!finish-content;
-            add($!data) if $!data-content;
-            add($!pod) if $!pod-content;
+            add($!finish) if $!finish && $!finish-content;
+            add($!data)   if $!data   && $!data-content;
+            add($!pod)    if $!pod-content;
         }
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name  => '$?SOURCE',
-          value => $!source
+          value => nqp::hllizefor($!source, 'Raku')
         ));
 
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
           name  => '$?CHECKSUM',
-          value => $!checksum
+          value => nqp::hllizefor($!checksum, 'Raku')
         ));
 
         my sub relative-source-filename() {
@@ -466,9 +541,11 @@ class RakuAST::CompUnit
           name => '$?LANGUAGE-REVISION', value => $!language-revision.Int
         ));
         # Various markers
-        add(RakuAST::VarDeclaration::Implicit::Constant.new(
-          name => '!UNIT_MARKER', value => 1
-        ));
+        unless $core-setting {
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name => '!UNIT_MARKER', value => 1
+            ));
+        }
         #TODO remove this when old frontend is gone
         add(RakuAST::VarDeclaration::Implicit::Constant.new(
             name => '!RAKUAST_MARKER', value => 1
@@ -489,6 +566,22 @@ class RakuAST::CompUnit
         $top-level.name('<unit>');
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
         my @pre-deserialize;
+        # When compiling a CORE.<spec>.setting (setting-name shaped like
+        # 'NULL.<spec>'), emit a pre-deserialize task that calls
+        # ModuleLoader.load_module('Perl6::BOOTSTRAP::v6<spec>') so the
+        # runtime registers BOOTSTRAP's SC before our SC tries to deserialize
+        # references to BOOTSTRAP types. The traditional grammar emits this
+        # via World.load_module_early. Pushed before the setting-loading task
+        # so BOOTSTRAP is available when the loaded sub-setting wants it,
+        # matching the order legacy uses in src/Perl6/World.nqp comp_unit.
+        if $!setting-name
+          && nqp::eqat($!setting-name, 'NULL.', 0)
+          && nqp::chars($!setting-name) >= 6
+        {
+            nqp::push(@pre-deserialize,
+                self.IMPL-BOOTSTRAP-LOADING-QAST(
+                    "Perl6::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
+        }
         nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
             if $!setting-name && $!setting-name ne 'NULL.c';
 
@@ -548,7 +641,7 @@ class RakuAST::CompUnit
             :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(@pre-deserialize),
-            :post_deserialize($context.is-nested ?? [] !! $context.post-deserialize()),
+            :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
@@ -561,10 +654,12 @@ class RakuAST::CompUnit
             )),
     }
 
-    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
-        # Use the NQP module loader to load Perl6::ModuleLoader, which
-        # is a normal NQP module.
-        my $module-loading := QAST::Stmt.new(
+    # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is
+    # available: load Perl6/ModuleLoader's bytecode via NQP's ModuleLoader,
+    # then register it under the Raku HLL. Mirrors
+    # World.raku_module_loader_code in src/Perl6/World.nqp.
+    method IMPL-RAKU-MODULE-LOADER-CODE-QAST() {
+        QAST::Stmt.new(
             QAST::Op.new(
                 :op('loadbytecode'),
                 QAST::VM.new(
@@ -580,11 +675,36 @@ class RakuAST::CompUnit
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
                 QAST::SVal.new( :value('Perl6::ModuleLoader') )
-            ));
+            ))
+    }
 
+    # Emit runtime QAST that loads $module-name (a BOOTSTRAP module) via
+    # the Raku ModuleLoader. Mirrors World.raku_module_loader_code +
+    # World.load_module_early's deserialize_ast in src/Perl6/World.nqp;
+    # we add this to @pre-deserialize when compiling CORE.<spec>.setting
+    # so the resulting bytecode registers BOOTSTRAP's SC before the SC
+    # blob deserializes references to BOOTSTRAP-defined types.
+    method IMPL-BOOTSTRAP-LOADING-QAST(Str $module-name) {
+        my $line := QAST::IVal.new( :value(0), :named('line') );
+        QAST::Stmt.new(
+            self.IMPL-RAKU-MODULE-LOADER-CODE-QAST(),
+            QAST::Op.new(
+                :op('callmethod'), :name('load_module'),
+                QAST::Op.new(
+                    :op('getcurhllsym'),
+                    QAST::SVal.new( :value('ModuleLoader') )
+                ),
+                QAST::SVal.new( :value($module-name) ),
+                QAST::Op.new( :op('hash') ),
+                $line
+            )
+        )
+    }
+
+    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
         # Load and put in place the setting after deserialization and on fixup.
         QAST::Stmt.new(
-            $module-loading,
+            self.IMPL-RAKU-MODULE-LOADER-CODE-QAST(),
             QAST::Op.new(
                 :op('forceouterctx'),
                 QAST::BVal.new( :value($top-level) ),
@@ -662,9 +782,13 @@ class RakuAST::CompUnit
 
     method generated-global() {
         nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
-        # GLOBALish is installed as the fourth entry in PRODUCE-IMPLICIT-DECLARATIONS
-        # due to the structural expectations of dynamic compilation fixups
-        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[3].compile-time-value
+        # Find the GLOBAL package among the implicit declarations rather than
+        # relying on a fixed positional index, so gating per-compunit decls in
+        # PRODUCE-IMPLICIT-DECLARATIONS doesn't break this lookup.
+        for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations) -> $decl {
+            return $decl.compile-time-value if nqp::istype($decl, RakuAST::Package);
+        }
+        nqp::die('Could not find generated GLOBAL package in implicit declarations')
     }
 
     method visit-children(Code $visitor) {

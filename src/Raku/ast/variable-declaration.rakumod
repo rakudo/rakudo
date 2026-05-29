@@ -119,8 +119,12 @@ class RakuAST::Initializer::CallAssign
 # Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
 # for the lookup created by IMPL-SIGIL-LOOKUP.
 class RakuAST::ContainerCreator {
-    has Mu $!explicit-container-base-type;
-    has Mu $!conflicting-base-type;
+    # The RakuAST::Type node for an explicit container base type (e.g. `is T`
+    # or `is Array[Str]`). Stored as AST, not just its meta-object, so
+    # callers that need the resolved lookup node (not just the type object)
+    # can reuse it directly.
+    has RakuAST::Type $!explicit-container-base-type-ast;
+    has RakuAST::Type $!conflicting-base-type-ast;
     has Bool $.forced-dynamic;
     has Bool $!initialized;
     has Mu $.container-base-type;
@@ -128,28 +132,36 @@ class RakuAST::ContainerCreator {
     has ContainerDescriptor $.container-descriptor;
     has Mu $.bind-constraint;
 
-    method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(Mu $type) {
+    method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(RakuAST::Type $ast) {
         if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
-            nqp::bindattr(self, RakuAST::ContainerCreator, '$!conflicting-base-type', $!explicit-container-base-type);
+            nqp::bindattr(self, RakuAST::ContainerCreator, '$!conflicting-base-type-ast', $!explicit-container-base-type-ast);
         }
-        nqp::bindattr(self, RakuAST::ContainerCreator, '$!explicit-container-base-type', $type);
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!explicit-container-base-type-ast', $ast);
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', False);
     }
 
+    method IMPL-EXPLICIT-CONTAINER-BASE-TYPE-AST() {
+        $!explicit-container-base-type-ast
+    }
+
     method IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE() {
-        !nqp::eqaddr($!explicit-container-base-type, Mu)
+        nqp::isconcrete($!explicit-container-base-type-ast)
     }
 
     method IMPL-HAS-CONFLICTING-BASE-TYPE() {
-        !nqp::eqaddr($!conflicting-base-type, Mu)
+        nqp::isconcrete($!conflicting-base-type-ast)
     }
 
     method IMPL-EXPLICIT-CONTAINER-BASE-TYPE() {
-        $!explicit-container-base-type
+        self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+            ?? $!explicit-container-base-type-ast.meta-object
+            !! Mu
     }
 
     method IMPL-CONFLICTING-BASE-TYPE() {
-        $!conflicting-base-type
+        self.IMPL-HAS-CONFLICTING-BASE-TYPE
+            ?? $!conflicting-base-type-ast.meta-object
+            !! Mu
     }
 
     method IMPL-SIGIL-LOOKUP() {
@@ -174,7 +186,8 @@ class RakuAST::ContainerCreator {
         my $container-type;
         my $default := Any;
         my $bind-constraint := Mu;
-        if nqp::eqaddr($!explicit-container-base-type, Mu) {
+        my $explicit-base := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE;
+        if !self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
             if $sigil eq '@' {
                 $bind-constraint := self.IMPL-SIGIL-TYPE;
                 $container-base-type := nqp::objprimspec($of) ?? array !! Array;
@@ -216,9 +229,9 @@ class RakuAST::ContainerCreator {
                     }
                     else {
                         $container-type := Hash.HOW.parameterize(
-                            Hash, $!explicit-container-base-type, $key-type);
+                            Hash, $explicit-base, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
-                            $bind-constraint, $!explicit-container-base-type, $key-type);
+                            $bind-constraint, $explicit-base, $key-type);
                     }
                 }
             }
@@ -239,8 +252,8 @@ class RakuAST::ContainerCreator {
         }
         else {
             $container-type := self.type
-                ?? $!explicit-container-base-type.HOW.parameterize($!explicit-container-base-type, $of)
-                !! $!explicit-container-base-type;
+                ?? $explicit-base.HOW.parameterize($explicit-base, $of)
+                !! $explicit-base;
         }
 
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);
@@ -250,14 +263,16 @@ class RakuAST::ContainerCreator {
 
         # Form container descriptor.
 
-        $default := $of if self.type;
+        # A definite-constrained variable (e.g. `my Int:U $a`) should default
+        # to the nominalized base type, not the wrapped type itself. For a
+        # coercive type, the default is the coercion's nominal target so that
+        # an uninitialized `my Coerced(Source) $v` does not store the coercion
+        # type itself as a value.
+        $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
-        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor', (
-                nqp::eqaddr($of, Mu)
-                ?? ContainerDescriptor::Untyped
-                !! ContainerDescriptor
-            ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
-        );
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
+            RakuAST::IMPL::Containers.create-descriptor(
+                :$of, :$default, :$dynamic, :name(self.lexical-name)));
 
         Nil
     }
@@ -286,7 +301,7 @@ class RakuAST::ContainerCreator {
         my $container-type := self.container-type;
         # Form the container.
         my str $sigil := self.sigil;
-        if nqp::eqaddr($!explicit-container-base-type, Mu) {
+        if !self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
             if $sigil ne '@' && $sigil ne '%' {
                 if nqp::objprimspec($of) {
                     nqp::die("Natively typed state variables not yet implemented") if self.scope eq 'state';
@@ -303,7 +318,7 @@ class RakuAST::ContainerCreator {
             $container
         }
         else {
-            $!explicit-container-base-type
+            self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
         }
     }
 }
@@ -888,7 +903,7 @@ class RakuAST::VarDeclaration::Simple
                 if nqp::isconcrete($type) && !$_.argument
                     && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
                 {
-                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type.meta-object);
+                    self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type);
                     next;
                 }
             }
@@ -917,14 +932,30 @@ class RakuAST::VarDeclaration::Simple
                     !! RakuAST::ArgList.new;
                 my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
 
-                my $container-initializer-ast := RakuAST::ApplyPostfix.new(
-                    operand => RakuAST::Declaration::ResolvedConstant.new(
+                my $base-ast := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE-AST;
+                my $operand;
+                if $!sigil ne '$' && nqp::isconcrete($base-ast)
+                    && nqp::can($base-ast.meta-object.HOW, 'archetypes')
+                    && $base-ast.meta-object.HOW.archetypes.generic
+                {
+                    # Generic base type (e.g. `is T` in a parametric role):
+                    # reuse the already-resolved type AST as the operand. Its
+                    # IMPL-EXPR-QAST emits a lexical lookup that role
+                    # specialization re-resolves to the concrete type before
+                    # `.new` is dispatched.
+                    $operand := $base-ast;
+                }
+                else {
+                    $operand := RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(
                             $!sigil eq '$'
                                 ?? self.meta-object
                                 !! self.IMPL-CONTAINER-TYPE($of)
                         )
-                    ),
+                    );
+                }
+                my $container-initializer-ast := RakuAST::ApplyPostfix.new(
+                    :$operand,
                     postfix => RakuAST::Call::Method.new(
                         name => RakuAST::Name.from-identifier('new'),
                         :$args
@@ -1003,7 +1034,7 @@ class RakuAST::VarDeclaration::Simple
                 self.name,
                 nqp::getattr_s(self, RakuAST::Declaration, '$!scope'),
                 $meta,
-                $!block.stubbed-meta-object,
+                $!block ?? $!block.stubbed-meta-object !! Mu,
                 Mu
             );
             # Get around RakuAST compiler deconting all arguments:
@@ -1772,7 +1803,22 @@ class RakuAST::VarDeclaration::Signature
 
             for @params {
                 nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-                $value-list.push: $_.target.IMPL-LOOKUP-QAST($context) if $_.target;
+                if $_.target {
+                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                }
+                elsif $_.type {
+                    # Anonymous typed parameter (e.g. Int or Any:D) in a
+                    # list declaration. Create a typed placeholder container
+                    # so it consumes and type-checks the RHS value at this
+                    # position.
+                    my $of := $_.type.meta-object;
+                    my $desc := RakuAST::IMPL::Containers.create-descriptor(
+                        :$of, :default($of), :dynamic(0), :name('anon'));
+                    $context.ensure-sc($desc);
+                    $value-list.push: QAST::Op.new(
+                        :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
+                    );
+                }
             }
             if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                 my $init-qast := $!initializer.IMPL-TO-QAST($context);
@@ -2033,6 +2079,11 @@ class RakuAST::VarDeclaration::Term
         my $invocant := nqp::defined($!type)
             ?? $!type.meta-object
             !! Mu;
+        # For `.=` initializers, the invocant must be the nominalized base
+        # type (e.g. `my Int:D \b .= new: 42` should call `Int.new`, not
+        # `Int:D.new`, since definite-constrained types are not instantiable).
+        $invocant := RakuAST::Type.IMPL-MAYBE-NOMINALIZE($invocant)
+            if nqp::istype($!initializer, RakuAST::Initializer::CallAssign);
         $context.ensure-sc($invocant);
         my $invocant-qast := QAST::WVal.new(:value($invocant));
         my $init-qast := $!initializer.IMPL-TO-QAST($context, :$invocant-qast);
@@ -2112,26 +2163,30 @@ class RakuAST::VarDeclaration::Implicit::Special
     method PRODUCE-META-OBJECT() {
         # Reuse the container descriptor for the common cases that we expect
         # to have.
+        # Mu nominals use Untyped so Scalar STORE skips the type check that
+        # the regular descriptor would otherwise apply (mirrors
+        # Perl6/World.nqp create_container_descriptor).
         my constant COMMON := nqp::list(
             nqp::hash(),
             nqp::hash(  # 6.c
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
             nqp::hash(  # 6.d
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
             nqp::hash(  # 6.e
-                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+                '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             )
         );
         my $cont-desc := COMMON[nqp::getcomp('Raku').language_revision]{self.name} //
-            ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));
+            RakuAST::IMPL::Containers.create-descriptor(
+                :of(Mu), :default(Any), :dynamic(0), :name(self.name));
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
         nqp::bindattr($container, Scalar, '$!value', $cont-desc.default);
@@ -2329,6 +2384,7 @@ class RakuAST::VarDeclaration::Implicit::Self
 # The implicit `$¢` declaration for the cursor.
 class RakuAST::VarDeclaration::Implicit::Cursor
   is RakuAST::VarDeclaration::Implicit
+  is RakuAST::Meta
 {
     method new() {
         my $obj := nqp::create(self);
@@ -2337,8 +2393,22 @@ class RakuAST::VarDeclaration::Implicit::Cursor
         $obj
     }
 
+    method PRODUCE-META-OBJECT() {
+        my $cont-desc := RakuAST::IMPL::Containers.create-descriptor(
+            :of(Mu), :default(Nil), :dynamic(0), :name('$¢'));
+        my $container := nqp::create(Scalar);
+        nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
+        nqp::bindattr($container, Scalar, '$!value', $cont-desc.default);
+        $container
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Var.new(
+            :decl('contvar'), :scope('lexical'), :name(self.name),
+            :value($container)
+        )
     }
 }
 
@@ -2441,7 +2511,8 @@ class RakuAST::VarDeclaration::Implicit::State
         my str $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Implicit, '$!name');
 
         # Create a container descriptor and attach it to a Scalar container, then set it to Int.new(0)
-        my $descriptor := ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :$name);
+        my $descriptor := RakuAST::IMPL::Containers.create-descriptor(
+            :of(Mu), :default(Any), :dynamic(0), :$name);
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
         if $!init-to-zero {

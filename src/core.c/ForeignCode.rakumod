@@ -87,14 +87,27 @@ $lang = 'Raku' if $lang eq 'perl6';
         }
 
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
-        my $resolver := RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL));
+        # When called from a BEGIN block the captured outer-context chain may
+        # not yet be linked to the setting; in that case thread the setting
+        # through from the currently-compiling CompUnit so lexicals like &say
+        # can still be resolved at compile time.
+        my $outer-setting := $*CU && nqp::istype($*CU, RakuAST::CompUnit)
+            ?? $*CU.setting !! Mu;
+        my $resolver := RakuAST::Resolver::EVAL.new(
+            :context($eval_ctx), :global(GLOBAL), :setting($outer-setting));
         $comp-unit.begin($resolver);
         $comp-unit.check($resolver);
         if $resolver.has-compilation-errors {
             $resolver.produce-compilation-exception.throw;
         }
         my $from := $compiler.exists_stage('optimize') ?? 'optimize' !! 'qast';
-        $compiled := $compiler.compile: :$from, $comp-unit.IMPL-TO-QAST-COMP-UNIT;
+        my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
+        my $context := $comp-unit.context;
+        # Run the qast-stage SC bookkeeping that AST EVAL otherwise skips.
+        my $precomp := $compiler.compile($qast-cu, :$from, :compunit_ok(1));
+        $context.IMPL-FIXUP-COMPILED-CODEREFS(nqp::compunitcodes($precomp));
+        $comp-unit.cleanup;
+        $compiled := $compiler.backend.compunit_mainline($precomp);
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;

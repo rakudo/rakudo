@@ -37,7 +37,6 @@ class RakuAST::Term::Name
             if $name.canonicalize {
                 $resolved := $resolver.resolve-name($name);
                 if $resolved {
-                    my $v := $resolved.compile-time-value;
                     self.set-resolution($resolved);
                 }
             }

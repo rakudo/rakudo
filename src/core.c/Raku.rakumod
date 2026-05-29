@@ -32,6 +32,14 @@ class Raku does Systemic {
     #method legacy(Raku:U: --> False) is implementation-detail { }
 }
 
-class Perl is Raku { }  # indeed :-)
+class Perl is repr('Uninstantiable') {
+    method new() {
+        my $cf := callframe(1);
+        DEPRECATED(
+          "Raku.new", :what('Perl.new'), :file($cf.file), :line($cf.line)
+        );
+        Raku.new(|%_)
+    }
+}
 
 # vim: expandtab shiftwidth=4

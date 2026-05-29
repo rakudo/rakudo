@@ -25,6 +25,45 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # In-source `our` package decls seen in this compunit's BEGIN
+    # walk. Keyed by install target's `nqp::objectid` plus the final
+    # name part so the same trailing name under different `my`-scoped
+    # parents in sibling blocks doesn't collide.
+    has Mu $!our-package-decl-map;
+
+    method in-augment-scope() {
+        my int $i := nqp::elems($!packages);
+        while $i-- {
+            return 1 if $!packages[$i].augmented;
+        }
+        0
+    }
+
+    method declare-our-package(Mu $target, str $final, RakuAST::Package $pkg) {
+        # Skip the 6.d `module Foo::Bar { class Foo::Bar { } }`
+        # pattern: silent-replace at install time, no tracker entry.
+        # Canonical name is only needed when we have an enclosing
+        # package to compare against.
+        my int $i := nqp::elems($!packages);
+        if $i {
+            my str $full-name := $pkg.name.canonicalize(:colonpairs(0));
+            while $i-- {
+                my $enclosing := $!packages[$i].compile-time-value;
+                return NQPMu
+                  if nqp::can($enclosing.HOW, 'name')
+                  && $enclosing.HOW.name($enclosing) eq $full-name;
+            }
+        }
+        my str $key := nqp::objectid($target) ~ '::' ~ $final;
+        my $existed := nqp::atkey($!our-package-decl-map, $key);
+        $!our-package-decl-map{$key} := $pkg;
+        # Allow stub-then-real: `class Foo { ... }` followed by the
+        # real body. Flag only when both sides are non-stub.
+        $existed && !$pkg.is-stub && !$existed.is-stub
+            ?? $existed
+            !! NQPMu
+    }
+
     # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
@@ -32,6 +71,8 @@ class RakuAST::Resolver {
           nqp::clone($!attach-targets));
         nqp::bindattr($clone,RakuAST::Resolver,'$!packages',
           nqp::clone($!packages));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!our-package-decl-map',
+          nqp::clone($!our-package-decl-map));
         $clone
     }
 
@@ -552,37 +593,44 @@ class RakuAST::Resolver {
             # Successfully resolved. Maka sure it is an X::Comp.
             my $type := $type-res.compile-time-value;
             my $XComp := $XComp-res.compile-time-value;
-            unless nqp::istype($type, $XComp) {
-                $type := $type.HOW.mixin($type, $XComp);
-            }
 
-            # Ensure that the options are Raku types.
-            for %opts -> $p {
-                if nqp::islist($p.value) {
-                    my @a := [];
-                    for $p.value {
-                        nqp::push(@a, nqp::hllizefor($_, 'Raku'));
+            # During CORE.setting compilation, the resolved type may be a
+            # forward-declared stub that isn't composed yet. Mixing X::Comp
+            # into an uncomposed type would fail, so bail out to the
+            # BOOTException fallback below.
+            if nqp::can($type.HOW, 'is_composed') && $type.HOW.is_composed($type)
+              && (!nqp::can($type.HOW, 'repr_composed') || $type.HOW.repr_composed($type)) {
+                unless nqp::istype($type, $XComp) {
+                    $type := $type.HOW.mixin($type, $XComp);
+                }
+
+                # Ensure that the options are Raku types.
+                for %opts -> $p {
+                    if nqp::islist($p.value) {
+                        my @a := [];
+                        for $p.value {
+                            nqp::push(@a, nqp::hllizefor($_, 'Raku'));
+                        }
+                        %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
                     }
-                    %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
+                    else {
+                        %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
+                    }
                 }
-                else {
-                    %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
-                }
-            }
 
-            # Construct the exception object and return it.
-            %opts<is-compile-time> := True;
-            $type.new(|%opts)
-        }
-        else {
-            # Could not find exception type, so build a fake (typically happens
-            # during CORE.setting compilation).
-            my $message := $type-name;
-            for %opts {
-                $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+                # Construct the exception object and return it.
+                %opts<is-compile-time> := True;
+                return $type.new(|%opts);
             }
-            RakuAST::BOOTException.new($message, %opts);
         }
+
+        # Could not find or use exception type, so build a fake
+        # (typically happens during CORE.setting compilation).
+        my $message := $type-name;
+        for %opts {
+            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+        }
+        RakuAST::BOOTException.new($message, %opts);
     }
 
     method convert-exception(Mu $ex) {
@@ -819,13 +867,16 @@ class RakuAST::Resolver::EVAL
     # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
-    method new(Mu :$global!, Mu :$context!) {
+    method new(Mu :$global!, Mu :$context!, Mu :$setting) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
-            self.IMPL-SETTING-FROM-CONTEXT($context));
+            nqp::defined($setting)
+              ?? $setting
+              !! self.IMPL-SETTING-FROM-CONTEXT($context));
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package ?? [$cur-package] !! []);
@@ -841,6 +892,7 @@ class RakuAST::Resolver::EVAL
     }
 
     method suggest-routines(str $name) { [] }  # for now
+    method suggest-lexicals(str $name) { [] }  # for now
 
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {
@@ -906,9 +958,34 @@ class RakuAST::Resolver::EVAL
                 return $found if nqp::isconcrete($found);
             }
 
-            # Fallback handling
-            self.resolve-lexical-in-outer($name)
+            # Fallback: try the captured outer context, and if that doesn't
+            # reach the setting (e.g. EVAL from inside a BEGIN block whose
+            # outer chain isn't yet linked to CORE), walk $!setting directly.
+            my $found := self.resolve-lexical-in-outer($name);
+            return $found if nqp::isconcrete($found);
+            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+            nqp::isnull($setting) || !$setting
+              ?? Nil
+              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
         }
+    }
+
+    # Walk a given setting context for $name, returning an External::Setting
+    # on a hit. Setting-only walk: no native/primspec handling, since callers
+    # pass a real setting context. Mirrors the setting branch of
+    # resolve-lexical-in-outer on the base class.
+    method IMPL-RESOLVE-LEXICAL-IN-SETTING(Mu $setting, Str $name) {
+        my $context := $setting;
+        until nqp::isnull($context) {
+            if nqp::existskey($context, $name) {
+                return RakuAST::Declaration::External::Setting.new(
+                  :lexical-name($name),
+                  :compile-time-value(nqp::atkey($context, $name))
+                );
+            }
+            $context := nqp::ctxouter($context);
+        }
+        Nil
     }
 
     # Resolves a lexical to its declaration. The declaration must have a
@@ -952,8 +1029,18 @@ class RakuAST::Resolver::EVAL
                 }
             }
 
-            # Fallback handling
-            self.resolve-lexical-constant-in-outer($name)
+            # Fallback: same shape as resolve-lexical above. Try the captured
+            # outer context; if that doesn't reach the setting (BEGIN-time
+            # EVAL cases), walk $!setting directly. Needed here because
+            # IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK asks for constants via
+            # this method when baking &routine / Nil / Mu etc. into
+            # dynamically-compiled Code bodies.
+            my $found := self.resolve-lexical-constant-in-outer($name);
+            return $found if nqp::isconcrete($found);
+            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+            nqp::isnull($setting) || !$setting
+              ?? Nil
+              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
         }
     }
 }
@@ -982,6 +1069,7 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', $attach-targets // nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);
@@ -1260,11 +1348,15 @@ class RakuAST::Resolver::Compile
         return 0 if $alen == 0 || $blen == 0;
 
         my sub changecost(str $ac, str $bc) {
-            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
-            return 0 if $ac eq $bc;
-            return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
-            return 0.5 if issigil($ac) && issigil($bc);
-            1;
+            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 }
+
+            $ac eq $bc
+              ?? 0
+              !! nqp::fc($ac) eq nqp::fc($bc)
+                ?? 0.1
+                !! issigil($ac) && issigil($bc)
+                  ?? 0.5
+                  !! 1
         }
 
         my sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
@@ -1275,10 +1367,7 @@ class RakuAST::Resolver::Compile
             # if either cursor reached the end of the respective string,
             # the result is the remaining length of the other string.
             my sub check(int $pos1, int $len1, int $pos2, int $len2) {
-                if $pos2 == $len2 {
-                    return $len1 - $pos1;
-                }
-                -1;
+                $pos2 == $len2 ?? $len1 - $pos1 !! -1
             }
 
             my int $check := check($apos, $alen, $bpos, $blen);

@@ -32,7 +32,15 @@ class RakuAST::Package
 
     has RakuAST::CompilerServices $.compiler-services;
 
+    has RakuAST::Resolver $!resolver;
+    has RakuAST::IMPL::QASTContext $!context;
+
     has Mu $!compose-exception;
+
+    # Enclosing parametric role captured at BEGIN-time so the package can
+    # register itself as an instantiation lexical on that role if it ends up
+    # archetypally generic after composition.
+    has Mu $!generics-pad;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -155,6 +163,8 @@ class RakuAST::Package
             }
         }
 
+        nqp::bindattr(self, RakuAST::Package, '$!resolver', $resolver);
+        nqp::bindattr(self, RakuAST::Package, '$!context', $context);
         nqp::bindattr(self, RakuAST::Package, '$!compiler-services', RakuAST::CompilerServices.new(self, $resolver, $context));
     }
 
@@ -215,6 +225,53 @@ class RakuAST::Package
 
         # Apply any traits
         self.apply-traits($resolver, $context, self);
+
+        # Remember the enclosing parametric role, if any, so that we can
+        # register an instantiation lexical with it once the type is composed.
+        # We cannot add to the role's body directly here: for the outer role,
+        # $ast.replace-body(...) in Raku/Actions.nqp has not yet run, so
+        # self.body still refers to the stub body that will be discarded. The
+        # Role collects the request and applies it during additional-body-lexicals
+        # (which runs after the body replacement).
+        unless nqp::istype(self, RakuAST::Role) {
+            my $pad := $resolver.find-attach-target('generics-pad');
+            nqp::bindattr(self, RakuAST::Package, '$!generics-pad', $pad) if $pad;
+        }
+    }
+
+    # Shared archetype filter used by both the declaration side
+    # (IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL below) and the reference
+    # side (RakuAST::Type::Simple.IMPL-EXPR-QAST). A type is eligible for
+    # `!INS_OF_<fullname>` registration exactly when its archetypes are
+    # generic, nominal, and non-parametric. Mirrors the filter traditional
+    # grammar uses in src/Perl6/Actions.nqp package_def.
+    method IMPL-IS-INSTANTIATION-REGISTRABLE(Mu $type) {
+        my $how := $type.HOW;
+        return 0 unless nqp::can($how, 'archetypes');
+        my $archetypes := $how.archetypes($type);
+        $archetypes.generic && $archetypes.nominal
+          && !(nqp::can($archetypes, 'parametric') && $archetypes.parametric)
+            ?? 1
+            !! 0
+    }
+
+    # After the package has been composed, if the type ended up archetypally
+    # generic/nominal/non-parametric, declare a `!INS_OF_<fullname>` lexical
+    # on the enclosing role and register it on the role's
+    # instantiation-lexicals list so resolve_instantiations rebinds it per
+    # specialization. Called from the base IMPL-COMPOSE, so any
+    # RakuAST::Package subclass gets the behavior without its
+    # IMPL-COMPOSE override needing to remember.
+    method IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL() {
+        return Nil unless $!generics-pad;
+        my $type := self.stubbed-meta-object;
+        return Nil unless RakuAST::Package.IMPL-IS-INSTANTIATION-REGISTRABLE($type);
+        my str $ins-name := '!INS_OF_' ~ $type.HOW.name($type);
+        my $decl := RakuAST::VarDeclaration::Implicit::Constant.new(
+            :name($ins-name), :value($type), :scope('my')
+        );
+        $!generics-pad.IMPL-QUEUE-INSTANTIATION-LEXICAL($decl);
+        Nil
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -315,12 +372,17 @@ class RakuAST::Package
             %options<name> := $!name.canonicalize if $!name;
             %options<repr> := $!repr if $!repr;
             if $!name {
-                for $!name.IMPL-UNWRAP-LIST($!name.colonpairs) {
-                    my $value := $_.simple-compile-time-quote-value;
-                    if $_.key eq 'ver' {
-                        $value := Version.new($value);
+                my @colonpairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);
+                if nqp::elems(@colonpairs) {
+                    my $Failure := $!resolver.type-from-setting('Failure');
+                    for @colonpairs {
+                        my $key := $_.key;
+                        my $value := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
+                            $!resolver, $!context, $Failure);
+                        next if $key eq 'auth' && nqp::eqaddr($value, Nil);
+                        $value := Version.new($value) if $key eq 'ver' || $key eq 'api';
+                        %options{$key} := $value;
                     }
-                    %options{$_.key} := $value;
                 }
             }
             my $meta-object := $!how.new_type(|%options);
@@ -377,6 +439,7 @@ class RakuAST::Package
 
     method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
         self.meta-object; # Ensure it's composed
+        self.IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL;
     }
 
     method visit-children(Code $visitor) {
@@ -501,60 +564,63 @@ class RakuAST::Role
   is RakuAST::Package::Attachable
 {
     has Array $.instantiation-lexicals;
+    has Array $!pending-ins-lexicals;
     has RakuAST::LexicalFixup $!fixup;
 
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
 
+    # Called twice: once from Package.new with no real body, then again
+    # from package-def with the parsed body. Only wrap the body when we
+    # have one, since the wrapping calls stubbed-meta-object and that
+    # memoizes; running it before parser state is bound caches a wrong
+    # meta-object.
     method replace-body(RakuAST::Code $role-body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
         # of the role as the signature.  This allows a role to be selected
         # using ordinary dispatch semantics.  The statement list gets a return
         # value added, so that the role's meta-object and lexpad are returned.
-        if $role-body {
-            $signature := $role-body.signature unless $signature;
-        }
-        else {
-            $signature := RakuAST::Signature.new unless $signature;
-            $role-body := RakuAST::RoleBody.new(:$signature);
-        }
-
-        for $signature.IMPL-UNWRAP-LIST($signature.parameters) {
-            $_.set-owner($role-body);
-        }
-
         nqp::bindattr(self, RakuAST::Role, '$!fixup', RakuAST::LexicalFixup.new) unless $!fixup;
-        $role-body.set-fixup($!fixup);
-
-        my $body := $role-body.body;
-
-        my $resolve-instantiations;
         unless nqp::defined($!instantiation-lexicals) {
             nqp::bindattr(self, RakuAST::Role, '$!instantiation-lexicals', []);
         }
-        $body.statement-list.unshift-statement(
-            $resolve-instantiations := RakuAST::Role::ResolveInstantiations.new(
-                $!instantiation-lexicals)
-        );
 
-        $body.statement-list.add-statement(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Nqp.new('list',
-              RakuAST::Declaration::ResolvedConstant.new(
-                compile-time-value => self.stubbed-meta-object
-              ),
-              nqp::elems($!instantiation-lexicals)
-                  ?? RakuAST::Role::TypeEnvVar.new($resolve-instantiations.type-env-var)
-                  !! RakuAST::Nqp.new('curlexpad')
-            )
-          )
-        );
+        unless $signature {
+            $signature := $role-body ?? $role-body.signature !! RakuAST::Signature.new;
+        }
+        my $body-node := $role-body // RakuAST::RoleBody.new(:$signature);
+        $body-node.set-fixup($!fixup);
+        $body-node.replace-name(self.name);
+        $body-node.replace-signature($signature);
 
-        $role-body.replace-name(self.name);
-        $role-body.replace-signature($signature);
+        if $role-body {
+            for $signature.IMPL-UNWRAP-LIST($signature.parameters) {
+                $_.set-owner($role-body);
+            }
 
-        nqp::bindattr(self, RakuAST::Package, '$!body', $role-body);
+            my $body := $role-body.body;
+            my $resolve-instantiations;
+            $body.statement-list.unshift-statement(
+                $resolve-instantiations := RakuAST::Role::ResolveInstantiations.new(
+                    $!instantiation-lexicals)
+            );
+
+            $body.statement-list.add-statement(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Nqp.new('list',
+                  RakuAST::Declaration::ResolvedConstant.new(
+                    compile-time-value => self.stubbed-meta-object
+                  ),
+                  nqp::elems($!instantiation-lexicals)
+                      ?? RakuAST::Role::TypeEnvVar.new($resolve-instantiations.type-env-var)
+                      !! RakuAST::Nqp.new('curlexpad')
+                )
+              )
+            );
+        }
+
+        nqp::bindattr(self, RakuAST::Package, '$!body', $body-node);
         Nil
     }
 
@@ -617,6 +683,46 @@ class RakuAST::Role
             # and to reduce pollution of lexcial namespace.
             RakuAST::VarDeclaration::Implicit::RoleConcretization.new(:name('$?CONCRETIZATION'), :scope('my'))
         );
+
+        # Flush any instantiation-lexicals that nested generic packages
+        # queued during their own compose. The role's body has been
+        # replaced by now (in Raku/Actions.nqp), so adding the lexical
+        # declarations here puts them on the body that will actually be
+        # emitted, and registering them on $!instantiation-lexicals gets
+        # them rebound by resolve_instantiations per specialization.
+        if $!pending-ins-lexicals {
+            for $!pending-ins-lexicals {
+                self.body.add-generated-lexical-declaration($_);
+                self.IMPL-ADD-GENERIC-LEXICAL($_);
+            }
+            nqp::bindattr(self, RakuAST::Role, '$!pending-ins-lexicals', Array);
+        }
+    }
+
+    # Queue an instantiation-lexical declaration requested by a nested
+    # generic-typed package that is being composed before our body has
+    # been replaced. additional-body-lexicals (called during the role's
+    # apply-implicit-block-semantics) drains the queue. Guards against
+    # double-registration by name in case the same package enters
+    # IMPL-COMPOSE more than once, which should not happen in practice
+    # but would otherwise leak duplicate entries into
+    # $!instantiation-lexicals and duplicate lexical decls into the
+    # role body.
+    method IMPL-QUEUE-INSTANTIATION-LEXICAL(Mu $decl) {
+        unless nqp::defined($!pending-ins-lexicals) {
+            nqp::bindattr(self, RakuAST::Role, '$!pending-ins-lexicals', []);
+        }
+        my str $name := $decl.name;
+        for $!pending-ins-lexicals {
+            return Nil if $_.name eq $name;
+        }
+        if $!instantiation-lexicals {
+            for $!instantiation-lexicals {
+                return Nil if $_.name eq $name;
+            }
+        }
+        nqp::push($!pending-ins-lexicals, $decl);
+        Nil
     }
 
     method PRODUCE-META-OBJECT() {
@@ -720,13 +826,6 @@ class RakuAST::Class
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
 
-    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
-        # create POPULATE method if there's something to create,
-        # otherwise put in a generic fallback POPULATE that doesn't
-        # do anything
-        self.meta-object; # Ensure it's composed
-    }
-
     method PRODUCE-META-OBJECT() {
         # Obtain the stubbed meta-object, which is the type object.
         my $type := self.stubbed-meta-object();
@@ -748,12 +847,19 @@ class RakuAST::Class
 
 class RakuAST::Grammar
   is RakuAST::Class
+  is RakuAST::CheckTime
 {
     method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }
 
-    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
-        self.meta-object; # Ensure it's composed
+    method PERFORM-CHECK(
+      RakuAST::Resolver          $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::findmethod(RakuAST::Class, 'PERFORM-CHECK')(self, $resolver, $context);
+        my $sanity-check := self.HOW.find_method(self,"check-sanity");
+        $sanity-check(self) if $sanity-check;
+        True;
     }
 }
 
@@ -763,8 +869,8 @@ class RakuAST::Grammar
 class RakuAST::Module
   is RakuAST::Package
 {
-    method declarator()  { "module"           }
-    method default-how() { Metamodel::KnowHOW }
+    method declarator()  { "module"              }
+    method default-how() { Metamodel::ModuleHOW  }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.meta-object-as-lexicals($resolver, 'PACKAGE');

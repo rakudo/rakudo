@@ -12,7 +12,9 @@ my %allowed = (
     Q{$?BITS},
     Q{$?NL},
     Q{$?TABSTOP},
+    Q{$?CHECKSUM},
     Q{$?LANGUAGE-REVISION},
+    Q{$?SOURCE},
     Q{$_},
     Q{&CLONE-HASH-DECONTAINERIZED},
     Q{&CLONE-LIST-DECONTAINERIZED},
@@ -502,7 +504,6 @@ my %allowed = (
     Q{&wordcase},
     Q{&words},
     Q{&zip},
-    Q{&zprintf},   # TEMPORARY!
     Q{AST},
     Q{Allomorph},
     Q{Any},
@@ -828,6 +829,12 @@ my %nyi-for-backend = (
     'moar' => (),
     'js' => (),
 );
+
+if SETTING::{'!RAKUAST_MARKER'}:exists {
+    %allowed{'!RAKUAST_MARKER'} = 1;
+    %allowed{'$?FILE'}          = 1;
+    %allowed{'!INIT_VALUES'}:delete;
+}
 
 my %allowed-and-implemented = %allowed (-) %nyi-for-backend{$*VM.name};
 

@@ -407,9 +407,17 @@ sub skip-rest($reason = '<unknown>') is export {
     $time_before = nqp::time;
 }
 
-multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
-multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
-multi sub subtest(&subtests, $desc = '') is export {
+proto sub subtest(|) is export {*}
+multi sub subtest(*%_ where *.elems == 1) {
+    subtest(.value, .key) with %_.pairs.head
+}
+multi sub subtest(Pair $what) {
+    subtest($what.value,$what.key)
+}
+multi sub subtest($desc, &subtests) {
+    subtest(&subtests,$desc)
+}
+multi sub subtest(&subtests, $desc = '') {
     _diag "Subtest" ~ ($desc ?? ": " ~ $desc !! ''), :force-informative;
     my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
@@ -553,13 +561,11 @@ multi sub exits-ok(
   Str:D $desc = "Checking for exit($exit)"
 ) is export {
     my $got;
-    my $seen;
+    my $seen = False;
     my &*EXIT = { $seen = True; $got = $_ }
     $time_after = nqp::time;
     code();
-    my $ok = $seen
-      ?? proclaim($got == $exit, "Was the exit code $exit?")
-      !! proclaim(False, "Code did not exit, no exit value to check");
+    my $ok = proclaim($seen && $got == $exit, $desc);
     $time_before = nqp::time;
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
@@ -785,9 +791,28 @@ sub proclaim(
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 1;
 
+        # Walk past frames inside this file. Compare in both directions
+        # because `$?FILE` and `$caller.file` end up in opposite
+        # absolute/relative shapes depending on which frontend built
+        # rakudo and which Repository loaded Test.rakumod:
+        #   RakuAST-built:           $?FILE relative (cwd-stripped, see
+        #                            relative-source-filename in
+        #                            src/Raku/ast/compunit.rakumod);
+        #                            $caller.file absolute.
+        #   legacy-built / install:  $?FILE absolute; $caller.file is
+        #                            the Installation-repo form
+        #                            `core#sources/<sha1> (Test)`,
+        #                            i.e. shorter than $?FILE.
+        # In both cases one string is a suffix of the other, so a
+        # bidirectional ends-with is what we want. The original
+        # `$?FILE.ends-with($caller.file)` alone was right for the
+        # legacy/install path but bailed at the first Test.rakumod
+        # frame under RakuAST, attributing every failure to
+        # Test.rakumod itself.
         repeat {
             $caller = callframe(++$level);
-        } while $?FILE.ends-with($caller.file);
+        } while $?FILE.ends-with($caller.file)
+             || $caller.file.ends-with($?FILE);
 
         # initial level for reporting
         my $tester = $caller;

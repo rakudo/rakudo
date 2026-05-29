@@ -450,7 +450,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         if $short-dir.e {
             for $short-dir.dir -> $dir {
                 $dir.add($dist-id).unlink;
-                $dir.rmdir unless $dir.dir.elems;  # dir-with-entries PR 4848
+                $dir.rmdir unless $dir.dir-with-entries;
             }
         }
 
@@ -898,7 +898,6 @@ See http://design.raku.org/S22.html#provides for more information.\n";
 
         @lines.push: @call-parts.join(" ");
 
-        
         my $text = get-template('posix-runner-tmpl').slurp;
         $text ~= @lines.join("\n");
         $text

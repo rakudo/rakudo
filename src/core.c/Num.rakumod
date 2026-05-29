@@ -6,6 +6,8 @@ my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
     #     has num $!value is box_target;
 
+    method bits(Num:U:) { nqp::objprimbits(self) || nqp::objprimbits(num) }
+
     multi method WHICH(Num:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(

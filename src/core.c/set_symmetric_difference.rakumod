@@ -7,100 +7,16 @@ multi sub infix:<(^)>()               { set() }
 multi sub infix:<(^)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
 multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
-    nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
-        nqp::stmts(                            # both are initialized
-          nqp::if(
-            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
-            nqp::stmts(                        # a smallest, iterate over it
-              (my $iter  := nqp::iterator(araw)),
-              (my $elems := nqp::clone(braw))
-            ),
-            nqp::stmts(                        # b smallest, iterate over that
-              ($iter  := nqp::iterator(braw)),
-              ($elems := nqp::clone(araw))
-            )
-          ),
-          nqp::while(
-            $iter,
-            nqp::if(                           # remove if in both
-              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
-              nqp::deletekey($elems,nqp::iterkey_s($iter)),
-              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
-            )
-          ),
-          nqp::create($a.WHAT).SET-SELF($elems)
-        ),
-        $a                                     # b empty, so a
-      ),
-      nqp::if(                                 # a empty, so b
-        nqp::istype($a,Set), $b.Set, $b.SetHash
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.SET-SYMMETRIC-DIFFERENCE($a, $b)
     )
 }
 multi sub infix:<(^)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (^) $b }
 multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Baggy (^) $b }
 
 multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
-    nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
-        nqp::stmts(                            # both are initialized
-          nqp::if(
-            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
-            nqp::stmts(                        # a smallest, iterate over it
-              (my $iter  := nqp::iterator(my $base := araw)),
-              (my $elems := nqp::clone(braw))
-            ),
-            nqp::stmts(                        # b smallest, iterate over that
-              ($iter  := nqp::iterator($base := braw)),
-              ($elems := nqp::clone(araw))
-            )
-          ),
-          nqp::while(
-            $iter,
-            nqp::if(
-              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
-              nqp::if(
-                (my \diff := nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                  - nqp::getattr(
-                      nqp::atkey($elems,nqp::iterkey_s($iter)),
-                      Pair,
-                      '$!value'
-                    )
-                ),
-                nqp::bindkey(
-                  $elems,
-                  nqp::iterkey_s($iter),
-                  nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($iter)),Pair,'$!value',abs(diff)
-                  )
-                ),
-                nqp::deletekey($elems,nqp::iterkey_s($iter))
-              ),
-              nqp::bindkey(
-                $elems,
-                nqp::iterkey_s($iter),
-                nqp::clone(nqp::iterval($iter))
-              )
-            )
-          ),
-          nqp::create($a.WHAT).SET-SELF($elems)
-        ),
-        nqp::create($a.WHAT).SET-SELF(        # b empty, so a
-          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(araw)
-        )
-      ),
-      nqp::if(
-        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
-        nqp::create($a.WHAT).SET-SELF(        # a empty, so b
-          Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(raw)
-        ),
-        $a                                    # a and b empty
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.BAGGY-SYMMETRIC-DIFFERENCE($a, $b)
     )
 }
 multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { $a (^) $b.Mix }
@@ -108,57 +24,8 @@ multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
 
 multi sub infix:<(^)>(Baggy:D $a, Mixy:D  $b) { $a.Mixy (^) $b }
 multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
-    nqp::if(
-      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::if(
-        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
-        nqp::stmts(                            # both are initialized
-          nqp::if(
-            nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
-            nqp::stmts(                        # a smallest, iterate over it
-              (my $iter  := nqp::iterator(my $base := araw)),
-              (my $elems := nqp::clone(braw))
-            ),
-            nqp::stmts(                        # b smallest, iterate over that
-              ($iter  := nqp::iterator($base := braw)),
-              ($elems := nqp::clone(araw))
-            )
-          ),
-          nqp::while(
-            $iter,
-            nqp::if(                           # remove if in both
-              nqp::existskey($elems,nqp::iterkey_s(nqp::shift($iter))),
-              nqp::if(
-                (my int $diff = nqp::sub_i(
-                  nqp::getattr(nqp::iterval($iter),Pair,'$!value'),
-                  nqp::getattr(
-                    nqp::atkey($elems,nqp::iterkey_s($iter)),
-                    Pair,
-                    '$!value'
-                  )
-                )),
-                nqp::bindkey(
-                  $elems,
-                  nqp::iterkey_s($iter),
-                  nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval($iter)),
-                    Pair,
-                    '$!value',
-                    nqp::abs_i($diff)
-                  )
-                ),
-                nqp::deletekey($elems,nqp::iterkey_s($iter))
-              ),
-              nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
-            )
-          ),
-          nqp::create($a.WHAT).SET-SELF($elems)
-        ),
-        $a                                     # b empty, so a
-      ),
-      nqp::if(                                 # a empty, so b
-        nqp::istype($a,Bag), $b.Bag, $b.BagHash
-      )
+    $a.WHAT.SETUP(
+      Rakudo::QuantHash.BAGGY-SYMMETRIC-DIFFERENCE($a, $b)
     )
 }
 multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
@@ -202,9 +69,9 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
               )
             )
           ),
-          nqp::create(Set).SET-SELF(elems)        # done
+          Set.SETUP(elems)                        # done
         ),
-        nqp::create(Set).SET-SELF(elems)          # nothing right, so make left
+        Set.SETUP(elems)                          # nothing right, so make left
       ),
       b.Set                                       # nothing left, coerce right
     )
@@ -428,7 +295,7 @@ multi sub infix:<(^)>(+@p) {   # also Any
             nqp::if(nqp::eqaddr($type,Bag),BagHash,SetHash)
           )
         ),
-        nqp::create($type).SET-SELF(elems)
+        $type.SETUP(elems)
       )
     )
 }

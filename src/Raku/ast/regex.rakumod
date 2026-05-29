@@ -11,7 +11,9 @@ class RakuAST::Regex
                              str :$name
     ) {
         # Compile the regex.
-        my $regex-qast := $body-qast // self.IMPL-REGEX-QAST($context, %mods);
+        my $regex-qast := $body-qast
+          // self.IMPL-REGEX-QAST($context, %mods)
+          // QAST::Regex.new( :rxtype<anchor>, :subtype<pass> );
 
         # Store its captures and NFA.
         $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
@@ -1179,7 +1181,8 @@ class RakuAST::Regex::Assertion::Named
             else {
                 my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                 my $qast;
-                if nqp::elems($lookups) && (my $lookup := $lookups[0]).is-resolved
+                if $!capturing
+                    && nqp::elems($lookups) && (my $lookup := $lookups[0]).is-resolved
                     && nqp::istype((my $resolution := $lookup.resolution), RakuAST::CompileTimeValue)
                     && nqp::istype($resolution.compile-time-value, Regex)
                 {

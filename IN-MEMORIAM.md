@@ -68,6 +68,18 @@ From the obituary at: https://www.tributearchive.com/obituaries/27062822/benjami
 
 Ben was a talented musician and artist whose passion was for computer programming which he did both as hobby and on occasion for pay and had intended to pursue a degree in. He liked to learn languages and was a brilliant young man who excelled in whatever he set his mind to.
 
+Clifton Bryant Wood (Xliff)
+---------------------------
+Clifton Wood passed away after experiencing a myriad of health issues on July 9. 2025.  Although his contributions to NQP and Rakudo were not numerous, they were vital to fixing a number of deep issues that were hard to trace.
+
+But Clifton was most known for his extensive work (from 2015 onwards) on supporting all sorts of external libraries (GTK comes to mind), resulting in more than 100 repositories.  Clifton was ready to discuss issues and ideas, and was thus very influential in the development of Raku and the Raku ecosystem.
+
+From the obituary at: https://www.legacy.com/legacy/clifton-wood
+
+Cliff was an avid reader and lifelong learner, who honed his passion for computer technology into technical career opportunities with universities, technology companies, and nonprofits as an employee, contractor, and consultant. One of his most rewarding and memorable assignments included working as a computer specialist with Morgan State University's renowned Mitchell School of Engineering.
+
+He gladly shared his computer talent and skills with his neighbors (and family, too) and was always available to troubleshot their computer "crises."
+
 Final words
 -----------
 If you have any suggestions for additions, changes or other comments,

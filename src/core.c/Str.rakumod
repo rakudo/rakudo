@@ -620,16 +620,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method index(Str:D:
       @needles, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
-        my int $i;
-        my int $index = -1;
-        my int $chars = nqp::chars(self);
+
         if $ignorecase {
+            my int $i;
+            my int $index = 0x07fffffff; # max uint value
+
             if $ignoremark {
 #?if moar
-                $chars = $index = $i
-                  if ($i =
-                       nqp::indexicim(nqp::substr(self,0,$chars),.Str,0)
-                     ) > -1
+                $index = $i
+                  if ($i = nqp::indexicim(self,.Str,0)) > -1
+                  && $i < $index
                   for @needles;
 #?endif
 #?if !moar
@@ -638,39 +638,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             else {
 #?if moar
-                $chars = $index = $i
-                  if ($i =
-                        nqp::indexic(nqp::substr(self,0,$chars),.Str,0)
-                     ) > -1
+                $index = $i
+                  if ($i = nqp::indexic(self,.Str,0)) > -1
+                  && $i < $index
                   for @needles;
 #?endif
 #?if !moar
                 my str $str = nqp::fc(self);
-                $chars = $index = $i
-                  if ($i =
-                       nqp::index(nqp::substr(self,0,$chars),nqp::fc(.Str))
-                     ) > -1
+                $index = $i
+                  if ($i = nqp::index(str, nqp::fc(.Str))) > -1
+                  && $i < $index
                   for @needles;
 #?endif
             }
+
+            $index == 0x07fffffff ?? Nil !! $index
         }
         elsif $ignoremark {
 #?if moar
-            $chars = $index = $i
-              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
-              for @needles;
+            self.index(@needles, :ignoremark)
 #?endif
 #?if !moar
             self!die-named('ignoremark')
 #?endif
         }
         else {
-            $chars = $index = $i
-              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str,0)) > -1
-              for @needles;
+            self.index(@needles)
         }
-
-        $index == -1 ?? Nil !! $index
     }
 
     multi method index(Str:D:
@@ -705,29 +699,25 @@ my class Str does Stringy { # declared in BOOTSTRAP
                ),-1
              ) ?? $index !! Nil
     }
-    multi method index(Str:D:
-      @needles, :m(:$ignoremark)!
-    --> Int:D) {
-        my int $i;
-        my int $index = -1;
-        my int $chars = nqp::chars(self);
+    multi method index(Str:D: @needles, :m(:$ignoremark)! --> Int:D) {
         if $ignoremark {
 #?if moar
-            $chars = $index = $i
-              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+            my int $i;
+            my $index = 0x07fffffff; # max uint value
+            $index = $i
+              if ($i = nqp::indexim(self,.Str,0)) > -1
+              && $i < $index
               for @needles;
+            $index == 0x07fffffff ?? Nil !! $index
 #?endif
 #?if !moar
             self!die-named('ignorecase and :ignoremark')
 #?endif
         }
         else {
-            $chars = $index = $i
-              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str)) > -1
-              for @needles;
+            self.index(@needles)
         }
 
-        $index == -1 ?? Nil !! $index
     }
 
     multi method index(Str:D: Str:D $needle --> Int:D) {
@@ -742,12 +732,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method index(Str:D: @needles --> Int:D) {
         my int $i;
-        my int $index = -1;
-        my int $chars = nqp::chars(self);
-        $chars = $index = $i
-          if ($i = nqp::index(nqp::substr(self,0,$chars), .Str)) > -1
+        my $index = 0x07fffffff; # max uint value
+        $index = $i
+          if ($i = nqp::index(self, .Str)) > -1
+          && $i < $index
           for @needles;
-         $index == -1 ?? Nil !! $index
+        $index == 0x07fffffff ?? Nil !! $index
     }
 
     # helper method for failing with out of range exception

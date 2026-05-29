@@ -223,7 +223,7 @@ multi sub trait_mod:<is>(Parameter:D $param, |c ) {
       type       => 'is',
       subtype    => c.hash.keys[0],
       declaring  => 'a parameter',
-      highexpect => <rw readonly copy required raw leading_docs trailing_docs>,
+      highexpect => <rw readonly copy raw required item leading_docs trailing_docs>,
     ).throw;
 }
 multi sub trait_mod:<is>(Parameter:D $param, :readonly($)!) {

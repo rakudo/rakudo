@@ -634,22 +634,22 @@ ERROR
     multi method pick(Map:D:) { self.roll }
 
     multi method Set(Map:D: --> Set:D) {
-        nqp::create(Set).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
+        Set.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
     multi method SetHash(Map:D: --> SetHash:D) {
-        nqp::create(SetHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
+        SetHash.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-SET(self))
     }
     multi method Bag(Map:D: --> Bag:D) {
-        nqp::create(Bag).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+        Bag.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
     multi method BagHash(Map:D: --> BagHash:D) {
-        nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
+        BagHash.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-BAG(self))
     }
     multi method Mix(Map:D: --> Mix:D)     {
-        nqp::create(Mix).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+        Mix.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
     multi method MixHash(Map:D: --> MixHash:D)     {
-        nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
+        MixHash.SETUP(Rakudo::QuantHash.COERCE-MAP-TO-MIX(self))
     }
 }
 

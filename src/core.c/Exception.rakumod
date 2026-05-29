@@ -156,6 +156,14 @@ my class X::AdHoc is Exception {
     has $.payload is default(Nil) = "Unexplained error";
 
     my role SlurpySentry { }
+    method TWEAK(:$without-backtrace) {
+        if $without-backtrace {
+            self does my role without-backtrace {
+                method backtrace()         { Nil  }
+                method without-backtrace() { True }
+            }
+        }
+    }
 
     method message() {
         # Remove spaces for die(*@msg)/fail(*@msg) forms
@@ -303,7 +311,11 @@ my class X::Method::NotFound is Exception {
                   if $method_candidate.^name eq 'Submethod'  # a submethod
                   && !$invocant_methods{$method_name};       # unknown method
 
-                if $.method eq $method_name {
+                if $.method.chars > 5
+                  && $method_name.contains($.method.fc, :i, :m) {
+                    %suggestions{$method_name} = 0;
+                }
+                elsif $.method eq $method_name {
                     $found-types.set($method_candidate.package.^name());
                 }
                 elsif nqp::istype(type, Failure) {
@@ -426,7 +438,7 @@ my class X::Pragma::NoArgs is Exception {
 }
 my class X::Pragma::CannotPrecomp is Exception {
     has $.what = 'This compilation unit';
-    method message { "$.what cannot be pre-compiled and thus cannot be used in a module" }
+    method message { "$.what cannot be precompiled and thus cannot be used in a module" }
 }
 my class X::Pragma::CannotWhat is Exception {
     has $.what;
@@ -603,6 +615,9 @@ do {
             }
             elsif Rakudo::Internals.VERBATIM-EXCEPTION(0) {
                 $err.print($e.Str);
+            }
+            elsif $e.?without-backtrace {
+                $err.say($e.Str);
             }
             else {
                 $err.say("===SORRY!===");
@@ -1417,6 +1432,23 @@ my class X::Redeclaration::Multi does X::Comp {
     }
 }
 
+my class X::Package::SameNameAsEnclosing does X::Comp {
+    has $.kind;            # inner: 'class', 'role', 'grammar', ...
+    has $.enclosing-kind;  # outer: 'module' or 'package'
+    has $.name;
+    method message() {
+        ("Declaring $.kind '$.name' inside an enclosing $.enclosing-kind "
+        ~ "of the same name silently replaces the $.enclosing-kind in the "
+        ~ "outer stash. This is legacy behavior specific to Raku 6.d and "
+        ~ "earlier; in Raku 6.e the same pattern installs the $.kind as a "
+        ~ "nested package instead. Rewrite as 'unit $.kind $.name;' in its "
+        ~ "own file (or otherwise avoid the "
+        ~ "$.enclosing-kind+same-named-$.kind collision) to work the same "
+        ~ "way on either revision."
+        ).naive-word-wrapper
+    }
+}
+
 my class X::Dynamic::Postdeclaration does X::Comp {
     has $.symbol;
     method message() {
@@ -1887,7 +1919,7 @@ my class X::Role::Instantiation is Exception does X::Wrapper {
     has $.role;
     method message() {
         "Could not instantiate role '" ~ $!role.^name ~ "'"
-            ~ (self!is-raku-exception ?? " because it is died" ~ self!exception-name-message !! "")
+            ~ (self!is-raku-exception ?? " because it died" ~ self!exception-name-message !! "")
             ~ self!wrappee-message(:details)
     }
 }
@@ -2021,6 +2053,14 @@ my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
         } else {
             "'=begin' not terminated by matching '$.spaces=end $.type'"
         }
+    }
+}
+
+my class X::Syntax::Pod::DirectiveWithLevel {
+    has $.directive;
+    has $.level;
+    method message() {
+        "Cannot have a level ('$.level') with directive '=$.directive'"
     }
 }
 
@@ -3019,8 +3059,10 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            my $multi = $!signature ~~ /\n/ // '';
-            "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
+            my $multi = $!signature && $!signature.contains("\n");
+            "Calling {$!objname}({
+                .join(', ') with @!arguments
+            }) will never work with " ~ (
                 $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '

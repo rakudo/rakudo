@@ -3,6 +3,15 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
+    # Make sure to return sentinel on empty Mixes
+    multi method SETUP(Mix:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Mix)
+          ?? mix()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Mix,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(
@@ -15,23 +24,21 @@ my class Mix does Mixy {
     multi method STORE(Mix:D: Any:D \keys, :INITIALIZE($)! --> Mix:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('.initialize')
-          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+          !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.OBJECTIFIER
              ))
     }
     multi method STORE(Mix:D: \objects, \values, :INITIALIZE($)! --> Mix:D) {
-        self.SET-SELF(
+        self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator,
-            self.keyof
+            self.OBJECTIFIER
           )
         )
-    }
-
-    multi method DELETE-KEY(Mix:D: $) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
 #--- introspection methods
@@ -60,7 +67,8 @@ my class Mix does Mixy {
         $!total // ($!total := Rakudo::QuantHash.MIX-TOTAL($!elems))
     }
     method !total-positive(Mix:D: --> Real:D) {
-        $!total-positive // ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
+        $!total-positive
+          // ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
     }
 
 #--- selection methods
@@ -93,7 +101,7 @@ my class Mix does Mixy {
 
     multi method raku(Mix:D: --> Str:D) {
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my \pairs := nqp::join(',',
               Rakudo::QuantHash.RAW-VALUES-MAP(self, {
@@ -129,10 +137,7 @@ my class Mix does Mixy {
 #--- coercion methods
     multi method Mix(Mix:D:) { self }
     multi method MixHash(Mix:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(MixHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(MixHash)
+        MixHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
 
     multi method Setty(Mix:U:) { Set }

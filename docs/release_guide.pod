@@ -17,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2026-03-28   Rakudo #191 (Coke)
+  2026-06-27   Rakudo #194 (Coke)
 
 (More planned dates can be generated with F<tools/release-dates.raku>).
 
@@ -119,6 +119,13 @@ that need resolving” is left to your discretion.  Any problem
 that has a large impact on users is worth addressing either
 as a fix or as prominent documentation (the README and/or
 the release announcement).
+
+=item *
+
+Review the 6.c, 6.d errata branches of Raku/roast - you do not
+want to find out about failures on the day of the release, in
+case they are indicators of an actual issue, and not just that
+the test file needs to be updated.
 
 =item *
 
@@ -322,7 +329,7 @@ Once this is done, create the artifact...
 
 ... And test it afterwards. You can manually verify the build worked and shows the correct version with:
 
-    ./temp/rakudo-test/rakudo-$version/install/bin/raku --version
+    ./temp/rakudo-test/rakudo-$VERSION/install/bin/raku --version
 
 Now you can test the built version. Note that this deletes the directory, so after this step you will be
 unable to rerun the previous command.
@@ -611,6 +618,9 @@ Previous releases were bundled as part of monthly Parrot releases.
   2025-12-20   Rakudo #188 "2025.12"           (Coke)
   2026-01-24   Rakudo #189 "2026.01"           (jdv)
   2026-02-28   Rakudo #190 "2026.02"           (jdv)
+  2026-03-28   Rakudo #191 "2026.03"           (Coke)
+  2026-04-25   Rakudo #192 "2026.04"           (Coke)
+  2026-05-23   Rakudo #193 "2026.05"           (Coke)
 
 =head1 COPYRIGHT
 

@@ -1353,6 +1353,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             statementlist_with_handlers($/)
         );
 
+        $world.install_lexical_symbol($unit, '$?SOURCE', $*OMIT-SOURCE
+            ?? $world.find_single_symbol_in_setting('Nil')
+            !! nqp::hllizefor($/.orig, 'Raku'));
+        $world.install_lexical_symbol($unit, '$?CHECKSUM',
+            nqp::hllizefor(nqp::sha1($/.orig), 'Raku'));
+
         # Errors/warnings in sinking pass should ignore highwater mark.
         $/.'!clear_highwater'();
 
@@ -2510,6 +2516,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method statement_prefix:sym<POST>($/)  { make $*W.add_phaser($/, 'POST', wanted($<blorst>.ast,'POST').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<CLOSE>($/) { make $*W.add_phaser($/, 'CLOSE', unwanted($<blorst>.ast,'CLOSE').ann('code_object')); }
 
+    method statement_prefix:sym<TEMP>($/) {
+        $/.worry("The TEMP phaser will never be implemented.\nPlease remove to prevent breakage in future language versions.");
+    }
+
     method statement_prefix:sym<DOC>($/)   {
         if %*COMPILING<%?OPTIONS><doc> {
             make $*W.add_phaser($/, ~$<phase>, ($<blorst>.ast).ann('code_object'), wanted($<blorst>.ast,'DOC').ann('past_block'));
@@ -3121,13 +3131,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $past.name($desigilname);
             $past.unshift(QAST::Var.new( :name('self'), :scope('lexical') ));
-            # Contextualize based on sigil.
+            # Contextualize based on sigil. Mark so assignment can strip
+            # this wrapper (see assign_op); otherwise .item would wrap a
+            # non-rw accessor result in a throwaway Scalar, silently
+            # swallowing `$.foo = ...`. See rakudo/rakudo#5908 and #6113.
             $past := QAST::Op.new(
                 :op('callmethod'),
                 :name($sigil eq '@' ?? 'list' !!
                       $sigil eq '%' ?? 'hash' !!
                       'item'),
                 $past);
+            $past.annotate('public-attr-contextualizer', 1);
         }
         elsif $twigil eq '^' || $twigil eq ':' {
             $past := add_placeholder_parameter($/, $sigil, $desigilname,
@@ -3154,7 +3168,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
               'X::Comp::NYI', feature => 'Pod variable ' ~ $name);
         }
         elsif $name eq '@_' {
-            if $world.nearest_signatured_block_declares('@_') {
+            # Pre-6.e: resolve to an enclosing routine's @_ via the
+            # nearest signatured block. 6.e+: each block is a real block
+            # with its own signature, so auto-declare a fresh placeholder
+            # on the current block instead. See:
+            #   https://github.com/Raku/roast/commit/0b8c717e6
+            #
+            # The "current pad already has @_" check is needed even
+            # under 6.e so that an if/while/etc. CONDITION (which is
+            # parsed in the outer pad, before the body's new pad gets
+            # pushed) doesn't try to redeclare an explicit *@_ parameter.
+            if (nqp::getcomp('Raku').language_revision < 3
+                && $world.nearest_signatured_block_declares('@_'))
+              || +$world.cur_lexpad().symbol('@_') {
                 $past.scope('lexical');
             }
             else {
@@ -3163,7 +3189,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $name eq '%_' {
-            if $world.nearest_signatured_block_declares('%_') || $*METHODTYPE {
+            # Same 6.e gate as @_ above. The $*METHODTYPE check stays
+            # unconditional: methods auto-have *%_ in every revision.
+            if (nqp::getcomp('Raku').language_revision < 3
+                && $world.nearest_signatured_block_declares('%_'))
+              || +$world.cur_lexpad().symbol('%_')
+              || $*METHODTYPE {
                 $past.scope('lexical');
             }
             else {
@@ -3658,8 +3689,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 else {
                     my $world := $*W;
                     $world.handle_OFTYPE_for_pragma($/,'parameters');
+                    my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
+                    if @value_type && $_<defined_only> {
+                        @value_type[0] := $world.create_definite_type(
+                            $world.resolve_mo($/, 'definite'),
+                            @value_type[0], 1);
+                    }
+                    elsif @value_type && $_<undefined_only> {
+                        @value_type[0] := $world.create_definite_type(
+                            $world.resolve_mo($/, 'definite'),
+                            @value_type[0], 0);
+                    }
                     my %cont_info := $world.container_type_info($/, :$post,
-                      $_<sigil> || '$', $*OFTYPE ?? [$*OFTYPE.ast] !! [], []);
+                      $_<sigil> || '$', @value_type, []);
                     $list.push($world.build_container_past(
                       %cont_info,
                       $world.create_container_descriptor(
@@ -7895,6 +7937,16 @@ Did you mean a call like '"
         my $var_sigil;
         $lhs_ast := WANTED($lhs_ast,'assign_op/lhs');
         $rhs_ast := wanted($rhs_ast,'assign_op/rhs');
+
+        # `$.foo = ...` wraps the accessor call in a sigil contextualizer
+        # (.item/.list/.hash). In rvalue position that's correct; in lvalue
+        # position it produces a throwaway container that silently swallows
+        # the assignment. Strip the wrap so assignment lands on the bare
+        # accessor and properly errors for non-rw attributes.
+        if nqp::istype($lhs_ast, QAST::Op)
+          && $lhs_ast.ann('public-attr-contextualizer') {
+            $lhs_ast := $lhs_ast[0];
+        }
         if nqp::istype($lhs_ast, QAST::Var) {
             $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
             if $var_sigil eq '%' {

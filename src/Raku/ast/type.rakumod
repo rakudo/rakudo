@@ -62,6 +62,20 @@ class RakuAST::Type
             !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
     }
 
+    # Like IMPL-MAYBE-NOMINALIZE, but always nominalizes coercive types so the
+    # value used for a Scalar's default is the coercion's nominal target rather
+    # than the coercion type itself. Mirrors legacy's `maybe-nominalize` in
+    # src/Perl6/World.nqp, which the descriptor-build path uses for default_value.
+    method IMPL-NOMINALIZE-FOR-DEFAULT($v) {
+        my $v-how := $v.HOW;
+        !$v-how.archetypes($v).coercive
+            && (nqp::can($v-how, 'language_revision')
+                    ?? $v-how.language_revision($v) < 3
+                    !! nqp::getcomp('Raku').language_revision < 3)
+            ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
+            !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
+    }
+
     method is-native() { False }
     method is-coercive() { False }
 }
@@ -76,6 +90,7 @@ class RakuAST::Type::Simple
     has RakuAST::Name $.name;
     has Mu $!package;
     has RakuAST::Node $!lexical;
+    has str $!ins-lexical-name;
 
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
@@ -103,10 +118,16 @@ class RakuAST::Type::Simple
             self.set-resolution($resolved);
 
             my $value := $resolved.compile-time-value;
-            if $!name.is-multi-part && nqp::can($value.HOW, 'archetypes') && !$value.HOW.archetypes.generic && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
-                my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
-                if $resolved {
-                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $resolved);
+            # Resolve the first-segment lexical whenever the name is multi-part
+            # and the stash walk will be needed at emit time: for generic types
+            # (role instantiation will replace them) and for package stubs
+            # (could be replaced later).
+            if $!name.is-multi-part
+              && (RakuAST::IMPL::Archetypes.is-generic($value)
+                  || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
+                my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
+                if $first-part {
+                    nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $first-part);
                 }
             }
         }
@@ -121,11 +142,18 @@ class RakuAST::Type::Simple
         if self.is-resolved {
             self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
                 if self.sunk && !(self.resolution.compile-time-value =:= Nil);
+
+            my $value := self.resolution.compile-time-value;
+            if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
+                my str $candidate := '!INS_OF_' ~ $value.HOW.name($value);
+                my $found := $resolver.resolve-lexical-constant($candidate);
+                nqp::bindattr_s(self, RakuAST::Type::Simple, '$!ins-lexical-name', $candidate) if $found;
+            }
         }
     }
 
     method PRODUCE-META-OBJECT() {
-        RakuAST::Type.IMPL-MAYBE-NOMINALIZE: self.resolution.compile-time-value
+        self.resolution.compile-time-value
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -150,8 +178,42 @@ class RakuAST::Type::Simple
         }
         else {
             my $value := self.resolution.compile-time-value;
-            if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
-                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+            if RakuAST::IMPL::Archetypes.is-generic($value) {
+                # If the resolved type is a nested package inside a parametric
+                # role, prefer the `!INS_OF_<fullname>` instantiation lexical
+                # that its IMPL-COMPOSE registered with the role. The role's
+                # resolve_instantiations call rebinds that lexical to the
+                # concretization per specialization, so method bodies that
+                # reference the nested package see the specialization's copy.
+                if !nqp::isnull_s($!ins-lexical-name) && $!ins-lexical-name ne '' {
+                    QAST::Var.new( :name($!ins-lexical-name), :scope('lexical') )
+                }
+                elsif $!name.is-multi-part
+                  && RakuAST::Package.IMPL-IS-INSTANTIATION-REGISTRABLE($value) {
+                    # Multi-part generic names whose Type::Simple.IMPL-EXPR-QAST
+                    # fires before PERFORM-CHECK had a chance to stash the
+                    # instantiation-lexical name (happens for attribute-type
+                    # references that are emitted during early class/role
+                    # composition). The matching `!INS_OF_<fullname>` lexical
+                    # was declared on the enclosing role body by the time this
+                    # QAST actually runs. Gated via the shared filter on
+                    # RakuAST::Package; a parametric generic type was never
+                    # queued so would not have a matching `!INS_OF_*` lexical.
+                    QAST::Var.new(
+                        :name('!INS_OF_' ~ $value.HOW.name($value)),
+                        :scope('lexical')
+                    )
+                }
+                elsif $!name.is-multi-part && $!lexical {
+                    # For multi-part names, canonicalize is 'S::G' but only the
+                    # first part is a real lexical; walk into its stash instead.
+                    # Also serves as the fallback for parametric multi-part
+                    # generics that the registrable-filter excluded above.
+                    $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                }
+                else {
+                    QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                }
             }
             elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 # Package stub could be replaced later, thus we need to look it up at runtime.
@@ -251,14 +313,36 @@ class RakuAST::Type::Coercion
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        # If either the base type or constraint is generic (e.g. `T()` inside
+        # a parametric role), the pre-composed CoercionHOW wraps the
+        # un-substituted generic. Emit a runtime CoercionHOW.new_type call so
+        # role specialization sees the concrete type(s).
+        my $base-type := self.base-type;
+        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value)
+         || RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        {
+            $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
+            QAST::Op.new(
+                :op('callmethod'), :name('new_type'),
+                QAST::WVal.new(:value(Perl6::Metamodel::CoercionHOW)),
+                $base-type.IMPL-EXPR-QAST($context),
+                $!constraint.IMPL-EXPR-QAST($context),
+            )
+        }
+        else {
+            my $value := self.meta-object;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
+        # Generic base/constraint must go through IMPL-EXPR-QAST's runtime
+        # branch; interpreting would bake the un-substituted meta-object.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
         && nqp::istype($!constraint, RakuAST::CompileTimeValue)
+        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -324,13 +408,41 @@ class RakuAST::Type::Definedness
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        # If the base type is generic (e.g. `T:D` inside a parametric role),
+        # the pre-composed DefiniteHOW wraps the un-substituted generic. Emit
+        # a runtime DefiniteHOW.new_type call that consumes the base-type's
+        # lexical lookup so role specialization sees the concrete base.
+        my $base-type := self.base-type;
+        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value) {
+            $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
+            my $base-qast := $base-type.IMPL-EXPR-QAST($context);
+            $base-qast.named('base_type');
+            my $definite-qast := QAST::WVal.new(:value($!definite ?? True !! False));
+            $definite-qast.named('definite');
+            QAST::Op.new(
+                :op('callmethod'), :name('new_type'),
+                QAST::WVal.new(:value(Perl6::Metamodel::DefiniteHOW)),
+                $base-qast,
+                $definite-qast,
+            )
+        }
+        else {
+            my $value := self.meta-object;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
+        # Generic base must go through IMPL-EXPR-QAST's runtime branch;
+        # interpreting would bake the un-substituted meta-object. Note: the
+        # cached PRODUCE-META-OBJECT result still reflects the un-substituted
+        # generic, so any caller other than IMPL-EXPR-QAST/IMPL-INTERPRET
+        # that pulls .meta-object on a generic-base node receives the wrong
+        # thing; no such caller is hit on the role specialization paths
+        # currently, but the asymmetry is intentional and bounded here.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
+        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -839,7 +951,7 @@ class RakuAST::Type::Enum
 
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::EnumHOW.new_type(
-            :name($!name.canonicalize),
+            :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
         )
     }
@@ -1018,7 +1130,7 @@ class RakuAST::Type::Subset
 
     method PRODUCE-STUBBED-META-OBJECT() {
         Perl6::Metamodel::SubsetHOW.new_type(
-            :name($!name.canonicalize),
+            :name($!name.canonicalize(:colonpairs(0))),
             :refinee(Any),
             :refinement(nqp::null)
         )
@@ -1029,12 +1141,10 @@ class RakuAST::Type::Subset
         my $block := $!block;
 
         $type.HOW.set_of($type, $!of.meta-object) if $!of;
-        $type.HOW.set_where($type, $block
-          ?? $block.IMPL-CURRIED
+        $type.HOW.set_where($type, $block.IMPL-CURRIED
             ?? $block.IMPL-CURRIED.meta-object
             !! $block.compile-time-value
-          !! Mu
-        );
+        ) if $block;
 
         $type
     }

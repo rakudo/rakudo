@@ -578,7 +578,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::BeginTime
 {
-    has Mu $!value;
+    has Mu  $!value;
+    has int $!has-value;
 
     method type() { "BEGIN" }
 
@@ -601,6 +602,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
             }
             nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
               '$!value', $producer());
+            nqp::bindattr_i(self, RakuAST::StatementPrefix::Phaser::Begin,
+              '$!has-value', 1);
         }
         Nil
     }
@@ -619,6 +622,13 @@ class RakuAST::StatementPrefix::Phaser::Begin
         $context.ensure-sc($value);
         QAST::WVal.new(:$value)
     }
+
+    # `$!has-value` (vs `$!begin-performed`) avoids two false positives:
+    # the recursion-break window where begin-performed is set but `$!value`
+    # is not yet stored, and BEGIN values that are type objects (which
+    # would fail an `nqp::isconcrete` test).
+    method IMPL-CAN-INTERPRET() { $!has-value }
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 # The CHECK phaser.

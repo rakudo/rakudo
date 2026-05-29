@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 106;
+plan 114;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -125,7 +125,8 @@ plan 106;
     is-deeply Q| my Positional:D[Int] $x := Array[Int].new(1, 2) |.AST.EVAL, Array[Int].new(1, 2),
         "Parametarization with DefiniteHOWs works where it should";
 
-    ok Q| my Positional:D[Int] $x; $x.WHAT === Positional:D[Int] |.AST.EVAL,
+    is Q| my Positional:D[Int] $x = Array[Int].new(1, 2); $x.VAR.of.^name |.AST.EVAL,
+        'Positional[Int]:D',
         "Parameterization with DefiniteHOWs is propagated to scalar container";
 }
 
@@ -737,6 +738,89 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo q|ensure that hyper operators prime as expected|
         unless %*ENV<RAKUDO_RAKUAST>;
     ok *>>.fmt("%02x")(42) eq "2a", "postfix hyper primes properly";
+}
+
+# https://github.com/rakudo/rakudo/issues/6134
+# RakuAST node .EVAL used to fail at BEGIN time because the EVAL resolver's
+# captured outer context chain doesn't reach the CORE setting mid-compile.
+{
+    my $sub = BEGIN Q|sub foo { }|.AST.EVAL;
+    isa-ok $sub, Sub, 'BEGIN-time EVAL of a parsed RakuAST sub produces a Sub';
+}
+
+{
+    lives-ok {
+        BEGIN Q||.AST.EVAL;
+    }, 'BEGIN-time EVAL of an empty RakuAST statement list lives';
+}
+
+{
+    my $greeter = BEGIN Q|sub { "hi " ~ "there" }|.AST.EVAL;
+    is $greeter(), "hi there",
+      'BEGIN-time EVAL of a RakuAST sub can resolve setting routines and run';
+}
+
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    is-run q:to/PROG/, :out("foo\n"),
+        my &foo = BEGIN {
+            RakuAST::Sub.new(
+              name => RakuAST::Name.from-identifier("foo"),
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Call::Name::WithoutParentheses.new(
+                      name => RakuAST::Name.from-identifier("say"),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::StrLiteral.new("foo")
+                      )
+                    )
+                  )
+                )
+              )
+            ).EVAL
+        }
+        foo();
+        PROG
+      'synthetic RakuAST::Sub calling a setting routine runs at runtime';
+
+
+}
+
+# https://github.com/rakudo/rakudo/issues/6137
+# Precompiling a module whose BEGIN block returns a synthetic RakuAST Sub
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    is-run 'use lib <t/packages/12-rakuast/lib>; use SyntheticSubAtBegin; foo();',
+      :out("from-precomped-6137\n"),
+      :err(""),
+      'precompiling a module returning a synthetic RakuAST Sub from BEGIN works';
+}
+
+# https://github.com/rakudo/rakudo/issues/6169
+# Precompiling a module that loads another module whose mainline calls
+# .assuming. .assuming uses RakuAST::Sub.new(...).EVAL, which previously
+# failed in the non-nested branch.
+{
+    is-run 'use lib <t/packages/12-rakuast/lib>; use UsesAssumingInPrecomp; say "ok"',
+      :out("ok\n"),
+      :err(""),
+      '.assuming in a precompiled module loaded via another module works';
+}
+
+# A Sub returned from BEGIN-time string EVAL used to infinite-loop on invoke
+# because nested IMPL-LINK-META-OBJECT skipped the runtime $!do fixup, so
+# the cloned IMPL-STUB-CODE stub never got replaced with the compiled
+# coderef.
+{
+    use MONKEY-SEE-NO-EVAL;
+    my $s1 = BEGIN EVAL 'sub { 42 }';
+    is $s1(), 42,
+      'invoking a Sub returned from BEGIN-time string EVAL works';
+
+    my $s2 = BEGIN EVAL 'sub { 1 + 2 }';
+    is $s2(), 3,
+      'BEGIN-time string-EVAL Sub with setting operator runs';
 }
 
 # vim: expandtab shiftwidth=4

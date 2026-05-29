@@ -194,11 +194,18 @@ class RakuAST::Code
         $block.code_object($code-obj);
 
         my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
+        # @!compstuff is null on a re-compile of a shared AST: the
+        # previous compile's cleanup nulled it and $!begin-performed
+        # keeps IMPL-STUB-CODE from re-running.
+        if nqp::isnull(@compstuff) {
+            @compstuff := nqp::list();
+            nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
+        }
         my $cuid := $!cuid;
         $block.set-cuid($!cuid);
 
         my $fixups := QAST::Stmts.new();
-        unless $context.is-precompilation-mode || $context.is-nested {
+        unless $context.is-precompilation-mode {
             # We need to do a fixup of the code block for the non-precompiled case.
             $fixups.push(
                 QAST::Op.new(
@@ -426,8 +433,19 @@ class RakuAST::Code
             $wrapper
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
-        my $precomp := $comp.compile($qast-compunit, :from<qast>, :compunit_ok(1));
+        # Legacy frontend registers `optimize`; RakuAST registers `qast`
+        # (src/main.nqp).  Pick whichever is present.
+        my $from := $comp.exists_stage('optimize') ?? 'optimize' !! 'qast';
+        my $precomp := $comp.compile($qast-compunit, :$from, :compunit_ok(1));
         my $mainline := $comp.backend.compunit_mainline($precomp);
+        # Wire the wrapper's outer to the resolver's setting so :name lookups
+        # for setting symbols resolve instead of returning VMNull.  Anchored
+        # on the setting (always reaches setting symbols) rather than the
+        # dynamic caller (which may not, under nested AST EVAL).  Same trick
+        # ForeignCode::EVAL uses for AST-form EVAL.
+        my $outer-ctx := $resolver.setting;
+        nqp::forceouterctx($mainline, $outer-ctx)
+          unless nqp::isnull($outer-ctx);
         $mainline();
 
         # Fix up Code object associations (including nested blocks).
@@ -436,54 +454,7 @@ class RakuAST::Code
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
         my @coderefs := $comp.backend.compunit_coderefs($precomp);
-        my int $num-subs := nqp::elems(@coderefs);
-        my int $i;
-        my $result;
-        while $i < $num-subs {
-            my $subid := nqp::getcodecuid(@coderefs[$i]);
-
-            # un-stub code objects for blocks we just compiled:
-            my %sub-id-to-code-object := $context.sub-id-to-code-object();
-            if nqp::existskey(%sub-id-to-code-object, $subid) {
-                my $code-obj := %sub-id-to-code-object{$subid};
-                nqp::setcodeobj(@coderefs[$i], $code-obj);
-                nqp::bindattr($code-obj, Code, '$!do', @coderefs[$i]);
-                my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                if $fixups {
-                    $fixups.pop() while $fixups.list;
-                }
-                nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-            }
-
-            # un-stub clones of code objects for blocks we just compiled:
-            my %sub-id-to-cloned-code-objects := $context.sub-id-to-cloned-code-objects();
-            if nqp::existskey(%sub-id-to-cloned-code-objects, $subid) {
-                for %sub-id-to-cloned-code-objects{$subid} -> $code-obj {
-                    my $clone := nqp::clone(@coderefs[$i]);
-                    nqp::setcodeobj($clone, $code-obj);
-                    nqp::bindattr($code-obj, Code, '$!do', $clone);
-                    my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                    if $fixups {
-                        $fixups.pop() while $fixups.list;
-                    }
-                    nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-                }
-            }
-
-            my %sub-id-to-sc-idx := $context.sub-id-to-sc-idx();
-            if nqp::existskey(%sub-id-to-sc-idx, $subid) {
-                nqp::markcodestatic(@coderefs[$i]);
-                nqp::scsetcode($context.sc, %sub-id-to-sc-idx{$subid}, @coderefs[$i]);
-            }
-
-            if $subid eq $block.cuid {
-                # Remember the VM coderef that maps to the thing we were originally
-                # asked to compile.
-                $result := @coderefs[$i];
-            }
-            ++$i;
-        }
-        $result
+        $context.IMPL-FIXUP-COMPILED-CODEREFS(@coderefs, $block.cuid, :drain-compstuff-fixups)
     }
 
 
@@ -1051,7 +1022,7 @@ class RakuAST::ScopePhaser {
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
-        my $phasers := $block ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
+        my $phasers := nqp::isconcrete($block) ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
 
         if $!has-exit-handler || self.needs-result > 1 || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
             $qast.has_exit_handler(1);
@@ -1142,14 +1113,18 @@ class RakuAST::ScopePhaser {
                     %seen{nqp::objectid($_.meta-object)} := 1;
                 }
             }
-            if $block {
-                my $enter-phasers := $block.phasers('ENTER');
+            if nqp::isconcrete($block) && nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
+                my $enter-phasers := nqp::atkey($phasers, 'ENTER');
                 if nqp::isconcrete($enter-phasers) {
-                    for $enter-phasers.FLATTENABLE_LIST {
-                        unless %seen{nqp::objectid($_)} {
-                            $context.ensure-sc($_);
-                            $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                    my int $i := 0;
+                    my int $n := nqp::elems($enter-phasers);
+                    while $i < $n {
+                        my $p := nqp::atpos($enter-phasers, $i);
+                        unless %seen{nqp::objectid($p)} {
+                            $context.ensure-sc($p);
+                            $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($p))));
                         }
+                        $i := $i + 1;
                     }
                 }
             }
@@ -2487,7 +2462,7 @@ class RakuAST::Methodish
             if $package.can-have-methods {
                 $package.ATTACH-METHOD(self) unless self.scope eq 'our';
             }
-            else {
+            elsif self.scope ne 'our' {
                 $resolver.add-worry:  # XXX should be self.add-worry
                   $resolver.build-exception: 'X::Useless::Declaration',
                     name  => $name,
@@ -2505,6 +2480,41 @@ class RakuAST::Methodish
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
             $resolver.outer-scope.add-generated-lexical-declaration(self) if self.scope ne 'has';
         }
+
+        # Install `our` multi/proto methods into the package's OUR stash
+        # with duplicate detection.  Routine.PERFORM-BEGIN's stash install
+        # excludes multi, and Methodish doesn't chain through it; non-multi
+        # `our method` is handled by LexicalScope.PERFORM-CHECK.  Skip
+        # roles and non-method-capable packages: their existing role-scope
+        # / useless-declaration errors already report the issue.
+        if self.lexical-name && self.scope eq 'our'
+                && (self.multiness eq 'multi' || self.multiness eq 'proto') {
+            my $install-pkg := $package;
+            # Mainline (no enclosing package) falls back to GLOBAL.  Skip
+            # during CORE.setting compile: GLOBAL's `.WHO` isn't wired up
+            # that early in bootstrap.
+            if !$install-pkg && !($*COMPILING_CORE_SETTING // 0) {
+                $install-pkg := $resolver.global-package;
+            }
+            # GLOBAL is wrapped in a non-Package Implicit::Constant; only
+            # real RakuAST::Package nodes carry `can-have-methods`.
+            if $install-pkg
+                    && !$package-is-role
+                    && (!nqp::istype($install-pkg, RakuAST::Package)
+                            || $install-pkg.can-have-methods) {
+                my $stash := $install-pkg.stubbed-meta-object.WHO;
+                if nqp::existskey($stash, self.lexical-name) {
+                    self.add-sorry:
+                        $resolver.build-exception: 'X::Redeclaration',
+                            :symbol(self.declaration-name),
+                            :what(self.declaration-kind);
+                }
+                else {
+                    $stash{self.lexical-name} := self.meta-object;
+                }
+            }
+        }
+
         self.IMPL-STUB-PHASERS($resolver, $context);
 
         my $stub := self.IMPL-STUB-CODE($resolver, $context);
@@ -2760,7 +2770,7 @@ class RakuAST::RegexDeclaration
     method IMPL-META-OBJECT-TYPE() { Regex }
 
     method IMPL-INVOCANT-TYPE-CHECK() {
-        self.scope ne 'my'
+        self.scope ne 'my' && self.scope ne 'our'
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -3554,6 +3564,16 @@ class RakuAST::CurryThunk
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
         nqp::bindattr($code, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value, '$!original-expression', $!original-expression)
+    }
+}
+
+class RakuAST::HyperCurryThunk
+  is RakuAST::CurryThunk
+{
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-CLOSURE-QAST($context);
+        $qast.annotate('thunked', 1);
+        QAST::Op.new(:op<call>, :name<&HYPERWHATEVER>, $qast)
     }
 }
 

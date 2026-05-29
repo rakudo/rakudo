@@ -38,7 +38,7 @@ my @lower = <<
   substr-rw succeed sum symlink tail take take-rw tan tanh tc tclc trans trim
   trim-leading trim-trailing truncate uc unimatch uniname
   uninames uniparse uniprop uniprops unique unival univals unlink
-  unpolar unshift val values warn wordcase words zprintf
+  unpolar unshift val values warn wordcase words
 >>;
 
 my @lower-not-implemented = ();

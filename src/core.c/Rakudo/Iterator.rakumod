@@ -3227,13 +3227,13 @@ class Rakudo::Iterator {
         method !SET-SELF($string, $size, $limit, $step, $partial) {
             $!str   = $string;
             $!what := $string.WHAT;
-            $!size  = $size < 1 ?? 1 !! $size;
-            $!step  = $step < 1 ?? 1 !! $step;
+            $!size  = $size < 1 ?? 1 !! $size.Int;
+            $!step  = $step < 1 ?? 1 !! $step.Int;
             $!pos   = -$!step;
             $!todo  = (
               nqp::chars($!str) + $!step - ($partial ?? 1 !! $!size)
             ) div $!step;
-            $!todo  = $limit
+            $!todo  = $limit.Int
               unless nqp::istype($limit,Whatever) || $limit > $!todo;
             ++$!todo;  # starting with --
             self

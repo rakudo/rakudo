@@ -652,6 +652,17 @@ class RakuAST::Call::Method
         SPECIAL-OPS{$name}
     }
 
+    # Special-op postfixes (.WHAT, .HOW, .VAR, .DEFINITE, etc.) compile to
+    # primitive nqp:: ops, not real method calls, so they sit outside the
+    # currying machinery. `(5 ~~ *).WHAT` must therefore evaluate `(5 ~~ *)`
+    # to a WhateverCode and then take its WHAT, rather than being absorbed
+    # into a curried `{ (5 ~~ $_).WHAT }`.
+    method IMPL-CURRIES() {
+        $!name.is-identifier && nqp::istrue(self.IMPL-SPECIAL-OP($!name.canonicalize))
+            ?? 0
+            !! 3
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name := $!name.canonicalize;
         my $call;
@@ -728,7 +739,7 @@ class RakuAST::Call::Method
         $call
     }
 
-    method can-be-used-with-hyper() { !self.macroish }
+    method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := $!name.canonicalize;
@@ -1126,6 +1137,7 @@ class RakuAST::Call::VarMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -1176,6 +1188,12 @@ class RakuAST::Call::VarMethod
         }
 
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            self.PERFORM-BEGIN($resolver, $context);
+        }
     }
 
     method undeclared-symbol-details() {

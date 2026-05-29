@@ -2,6 +2,15 @@ my class Bag does Baggy {
     has ValueObjAt $!WHICH;
     has Int        $!total;
 
+    # Make sure to return sentinel on empty Bags
+    multi method SETUP(Bag:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Bag)
+          ?? bag()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Bag,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(
@@ -41,23 +50,21 @@ my class Bag does Baggy {
     multi method STORE(Bag:D: Any:D \keys, :INITIALIZE($)! --> Bag:D) {
         (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
-          !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-               nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
+          !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.OBJECTIFIER
              ))
     }
     multi method STORE(Bag:D: \objects, \values, :INITIALIZE($)! --> Bag:D) {
-        self.SET-SELF(
+        self.SETUP(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
             objects.iterator,
             values.iterator,
-            self.keyof
+            self.OBJECTIFIER
           )
         )
-    }
-
-    multi method DELETE-KEY(Bag:D: \k) {
-        X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
 #--- selection methods
@@ -87,7 +94,7 @@ my class Bag does Baggy {
 
     multi method raku(Bag:D: --> Str:D) {
         nqp::if(
-          $!elems && nqp::elems($!elems),
+          nqp::elems($!elems),
           nqp::stmts(
             (my \pairs := nqp::join(',',
               Rakudo::QuantHash.RAW-VALUES-MAP(self, {
@@ -123,21 +130,13 @@ my class Bag does Baggy {
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
     multi method BagHash(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(BagHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(BagHash)
+        BagHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
     multi method Mix(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(Mix).SET-SELF($!elems)
-          !! mix()
+        nqp::elems($!elems) ?? Mix.SETUP($!elems) !! mix()
     }
     multi method MixHash(Bag:D:) {
-        $!elems && nqp::elems($!elems)
-          ?? nqp::create(MixHash).SET-SELF(
-               Rakudo::QuantHash.BAGGY-CLONE($!elems))
-          !! nqp::create(MixHash)
+        MixHash.SETUP(Rakudo::QuantHash.BAGGY-CLONE($!elems))
     }
 
     multi method Setty(Bag:U:) { Set      }

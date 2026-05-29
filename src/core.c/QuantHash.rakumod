@@ -1,11 +1,19 @@
 my role QuantHash does Associative {
 
+    multi method new(QuantHash:_:) { self.WHAT.SETUP }
+
     method keyof() { Mu }
 
-    method SET-SELF(QuantHash:D: \elems) is implementation-detail {
-        nqp::bindattr(self,::?CLASS,'$!elems',elems)
-          if nqp::elems(elems);
-        self
+    # Generic handling for setting up a QuantHash
+    proto method SETUP(|) is implementation-detail {*}
+    multi method SETUP(QuantHash:U:) {
+        self.SETUP(nqp::create(Rakudo::Internals::IterationSet))
+    }
+    multi method SETUP(QuantHash:U: \elems) {
+        nqp::create(self).SETUP(elems)
+    }
+    multi method SETUP(QuantHash:D: \elems) {
+        nqp::p6bindattrinvres(self,::?CLASS,'$!elems',nqp::decont(elems))
     }
 
     # provide a proto for QuantHashes from here
@@ -29,10 +37,35 @@ my role QuantHash does Associative {
           !! self.pairs.fmt($format, $sep)
     }
 
+    # Default autovivifying AT-KEY on mutable QuantHashes
     multi method AT-KEY(QuantHash:U \SELF: $key) is raw {
-        nqp::istype(self, Set) || nqp::istype(self, Bag) || nqp::istype(self, Mix)
-          ?? X::AdHoc.new(payload => "Cannot auto-vivify an immutable {SELF.^name}").throw
+        nqp::istype(self, Set)
+          || nqp::istype(self, Bag)
+          || nqp::istype(self, Mix)
+          ?? X::Assignment::RO.new(value => self).throw
           !! (SELF = self.new).AT-KEY($key)
+    }
+
+    # EXISTS-KEY logic is the same for all QuantHashes, but complicated
+    # by the fact that the IterationSet $!elems can not be defined in
+    # this role because of visibility issues.  Hence the extended getattr
+    # syntax used here
+    multi method EXISTS-KEY(QuantHash:D: \k --> Bool:D) {
+        nqp::hllbool(
+          nqp::existskey(
+            nqp::getattr(self,self.WHAT,'$!elems'),
+            self.WHICHIFY(k)
+          )
+        )
+    }
+
+    # Default ASSIGN-KEY not allowing assignments
+    multi method ASSIGN-KEY(QuantHash:D: \k, \v) {
+        X::Assignment::RO.new(value => self).throw;
+    }
+    # Default DELETE-KEY not allowing deletions
+    multi method DELETE-KEY(QuantHash:D: \k) {
+        X::Assignment::RO.new(value => self).throw;
     }
 
     multi method pairs(QuantHash:D:) { Seq.new(self.iterator) }
@@ -44,6 +77,12 @@ my role QuantHash does Associative {
     method hash() { ... }
     method Hash() { ... }
     method Map()  { ... }
+
+    # Objectifier logic for unparameterized quanthashes
+    method OBJECTIFIER() is implementation-detail { -> Mu $value { $value } }
+
+    # WHICH logic for unparameterized quanthashes
+    method WHICHIFY(Mu \value) is implementation-detail { value.WHICH }
 }
 
 my role QuantHash::KeyOf[::CONSTRAINT] {
@@ -51,6 +90,17 @@ my role QuantHash::KeyOf[::CONSTRAINT] {
     method is-generic { CONSTRAINT.^archetypes.generic }
     method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
         self.^parameterize: type-environment.instantiate(CONSTRAINT)
+    }
+
+    # Create the Callable for checking the type of a key value and
+    # potentially coerce the value.  Callable is expected to throw
+    # on a typecheck failure or a failure to coerce
+    my &OBJECTIFIER := Rakudo::QuantHash.MAKE-OBJECTIFIER(CONSTRAINT);
+    method OBJECTIFIER() is implementation-detail { &OBJECTIFIER }
+
+    # Convert value to WHICH string to be used in the IterationSet
+    method WHICHIFY(Mu \value) is implementation-detail {
+        OBJECTIFIER(value).WHICH
     }
 }
 

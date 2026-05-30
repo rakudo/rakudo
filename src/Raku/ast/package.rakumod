@@ -404,17 +404,19 @@ class RakuAST::Package
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
-        # Construct a transient CompilerServices for the MOP if the
-        # caller threaded $resolver/$context through. The CompilerServices
-        # lives only for this method call - it never gets stored on the
-        # AST, so the Resolver and QASTContext it holds (with their
-        # MVMContext frames) cannot reach the SC. We capture the
-        # generated accessor QAST onto $!accessor-qast (serializable
-        # QAST::Stmts) before the CompilerServices goes out of scope, so
-        # IMPL-EXPR-QAST can splice it into the body. Without context we
-        # compose without compiler_services; the MOP then generates
-        # accessors via runtime closures rather than capturing
-        # compile-time QAST - functionally equivalent, slower.
+        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
+        CATCH {
+            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+        }
+        $type
+    }
+
+    # Compose $type via its HOW. When $resolver/$context are present,
+    # hand the MOP a transient CompilerServices and capture the
+    # resulting accessor QAST onto $!accessor-qast before the services
+    # go out of scope. Without context the MOP falls back to runtime
+    # closure accessors; functionally equivalent, slower.
+    method IMPL-COMPOSE-TYPE(Mu $type, :$resolver, :$context) {
         if nqp::isconcrete($resolver) && nqp::isconcrete($context) {
             my $cs := RakuAST::CompilerServices.new(self, $resolver, $context);
             $type.HOW.compose($type, :compiler_services($cs));
@@ -423,10 +425,6 @@ class RakuAST::Package
         else {
             $type.HOW.compose($type);
         }
-        CATCH {
-            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
-        }
-        $type
     }
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
@@ -763,14 +761,7 @@ class RakuAST::Role
             my $how := $type.HOW;
             self.PRODUCE-META-ATTACHABLES($type, $how);
             $how.set_body_block($type, self.body.meta-object(:$resolver, :$context));
-            if nqp::isconcrete($resolver) && nqp::isconcrete($context) {
-                my $cs := RakuAST::CompilerServices.new(self, $resolver, $context);
-                $how.compose($type, :compiler_services($cs));
-                nqp::bindattr(self, RakuAST::Package, '$!accessor-qast', $cs.IMPL-GET-QAST);
-            }
-            else {
-                $how.compose($type);
-            }
+            self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
             CATCH {
                 nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
             }
@@ -860,16 +851,8 @@ class RakuAST::Class
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
-        my $how  := $type.HOW;
-        self.PRODUCE-META-ATTACHABLES($type, $how);
-        if nqp::isconcrete($resolver) && nqp::isconcrete($context) {
-            my $cs := RakuAST::CompilerServices.new(self, $resolver, $context);
-            $how.compose($type, :compiler_services($cs));
-            nqp::bindattr(self, RakuAST::Package, '$!accessor-qast', $cs.IMPL-GET-QAST);
-        }
-        else {
-            $how.compose($type);
-        }
+        self.PRODUCE-META-ATTACHABLES($type, $type.HOW);
+        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
         CATCH {
             nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
         }

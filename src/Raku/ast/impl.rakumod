@@ -31,6 +31,16 @@ class RakuAST::IMPL::QASTContext {
     # to it so the shared $!num_code_refs counter advances.
     has Mu $.world-bridge;
 
+    # Per-cuid parse-time resolver snapshot, used by dynamic-EVAL fallback
+    # and role-body lexical fixup. Held here rather than on the AST so
+    # nodes don't retain Resolver instances (and drag MVMContext into the
+    # SC). Drained at CompUnit cleanup time in precompilation mode so the
+    # serialized bytecode does not pin Resolver state; post-precomp load
+    # of that bytecode then degrades to the call-site scope. Outside
+    # precomp the map lives for the QASTContext's lifetime.
+    has Hash $!cuid-to-parse-time-resolver;
+    has Bool $!parse-time-resolver-cleanup-scheduled;
+
     method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
@@ -45,6 +55,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         $obj
     }
 
@@ -64,6 +75,7 @@ class RakuAST::IMPL::QASTContext {
         # case.
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         $context
     }
 
@@ -156,6 +168,26 @@ class RakuAST::IMPL::QASTContext {
 
     method add-cleanup-task($task) {
         nqp::push($!cleanup-tasks, $task)
+    }
+
+    method record-parse-time-resolver(str $cuid, $resolver) {
+        $!cuid-to-parse-time-resolver{$cuid} := $resolver;
+        if !$!parse-time-resolver-cleanup-scheduled && self.is-precompilation-mode {
+            nqp::bindattr(self, RakuAST::IMPL::QASTContext,
+              '$!parse-time-resolver-cleanup-scheduled', True);
+            my $ctx := self;
+            self.add-cleanup-task({
+                nqp::bindattr($ctx, RakuAST::IMPL::QASTContext,
+                  '$!cuid-to-parse-time-resolver', {})
+            });
+        }
+        Nil
+    }
+
+    method parse-time-resolver(str $cuid) {
+        nqp::existskey($!cuid-to-parse-time-resolver, $cuid)
+          ?? $!cuid-to-parse-time-resolver{$cuid}
+          !! Mu
     }
 
     # Reconnect freshly-compiled code refs to the Code objects and SC slots

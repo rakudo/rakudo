@@ -722,7 +722,6 @@ class RakuAST::StatementPrefix::Phaser::Enter
               // $resolver.find-attach-target('compunit')
             ).add-enter-phaser(self)
         );
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 
@@ -746,7 +745,6 @@ class RakuAST::StatementPrefix::Phaser::End
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-end-phaser(self.meta-object);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 }
@@ -789,7 +787,6 @@ class RakuAST::StatementPrefix::Phaser::Block
               // $resolver.find-attach-target('compunit')
             ).add-phaser(
           self.type, self, :has-exit-handler(self.exit-handler));
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 
@@ -889,7 +886,6 @@ class RakuAST::StatementPrefix::Phaser::Leave
         ($resolver.find-attach-target('block')
               // $resolver.find-attach-target('compunit')
             ).add-leave-phaser(self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 }
@@ -904,7 +900,6 @@ class RakuAST::StatementPrefix::Phaser::Keep
         ($resolver.find-attach-target('block')
               // $resolver.find-attach-target('compunit')
             ).add-keep-phaser(self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 }
@@ -1066,7 +1061,6 @@ class RakuAST::StatementPrefix::Phaser::Undo
         ($resolver.find-attach-target('block')
               // $resolver.find-attach-target('compunit')
             ).add-undo-phaser(self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 }

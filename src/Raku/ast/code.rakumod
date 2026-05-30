@@ -86,11 +86,9 @@ class RakuAST::Code
     has Bool $.custom-args;
     has Mu $!qast-block;
     has str $!cuid;
-    # Only for use by the fallback resolver in dynamically compiled code!
-    has RakuAST::Resolver $!resolver;
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+        Nil
     }
 
     method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -129,17 +127,14 @@ class RakuAST::Code
     }
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Not all objects of certain subclasses will be attached properly,
-        # so get that resolver here
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone)
-            unless $!resolver;
-
         my $code-obj := self.meta-object;
         nqp::bindattr_s(self, RakuAST::Code, '$!cuid', QAST::Block.next-cuid());
 
         # Stash it under the QAST block unique ID.
         my str $cuid := $!cuid;
         $context.sub-id-to-code-object(){$cuid} := $code-obj;
+
+        $context.record-parse-time-resolver($cuid, $resolver.clone);
 
         my $precomp;
         my $compiler-thunk := {
@@ -168,7 +163,6 @@ class RakuAST::Code
         nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
         $context.add-cleanup-task(sub () {
             nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-            nqp::bindattr(self, RakuAST::Code, '$!resolver', RakuAST::Resolver) if $context.is-precompilation-mode;
         });
 
         @compstuff[1] := $compiler-thunk; # Used by multi-dispatcher to force compilation
@@ -258,6 +252,8 @@ class RakuAST::Code
     }
 
     method IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
+        # Parse-time resolver if still cached; else call-site resolver.
+        my $parse-time-resolver := $context.parse-time-resolver($!cuid) || $resolver;
         my $visit-block;
         my $visit-children;
 
@@ -308,7 +304,7 @@ class RakuAST::Code
                         );
                     }
                     elsif $name ne '$_' { #TODO figure out why we specifially don't declare $_ in ExpressionThunks
-                        my $decl := $!resolver.resolve-lexical-constant($name);
+                        my $decl := $parse-time-resolver.resolve-lexical-constant($name);
                         if $decl {
                             $decl.to-begin-time($resolver, $context); # Ensure any required lookups are resolved
                             my $value := $decl.compile-time-value;
@@ -338,7 +334,7 @@ class RakuAST::Code
                     my $op := $visit.op;
                     if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain') && $visit.name {
                         if ! $declared-in-cu($visit.name) {
-                            my $routine := $!resolver.resolve-lexical-constant($visit.name);
+                            my $routine := $parse-time-resolver.resolve-lexical-constant($visit.name);
                             if $routine {
                                 my $value := $routine.compile-time-value;
                                 $context.ensure-sc($value);
@@ -379,7 +375,9 @@ class RakuAST::Code
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
 
-        my $package := $!resolver.current-package;
+        # Parse-time resolver if still cached; else call-site resolver.
+        my $parse-time-resolver := $context.parse-time-resolver($!cuid) || $resolver;
+        my $package := $parse-time-resolver.current-package;
         $context.ensure-sc($package);
 
         my $comp-unit := $resolver.find-attach-target("compunit");
@@ -484,7 +482,10 @@ class RakuAST::Code
         }
         return 0 unless $has_nested_blocks;
 
-        my $resolver := $!resolver;
+        # Parse-time resolver from the QASTContext side table; this path
+        # runs at compile time and the caller doesn't have its own
+        # resolver to fall back to.
+        my $resolver := $context.parse-time-resolver($!cuid);
         my $throwaway_block_ast := RakuAST::Block.new(:!implicit-topic);
         $throwaway_block_ast.set-implicit-topic(0);
         $throwaway_block_ast.to-begin-time($resolver, $context);
@@ -1759,7 +1760,6 @@ class RakuAST::Routine
         nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
         my $block := $resolver.find-attach-target('block', :skip-first);
         nqp::bindattr(self, RakuAST::Routine, '$!outer', $block);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
     method set-need-routine-variable() {
@@ -2413,7 +2413,6 @@ class RakuAST::Methodish
                 nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
             }
         }
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

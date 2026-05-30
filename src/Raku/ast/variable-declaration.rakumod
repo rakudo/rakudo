@@ -2532,11 +2532,9 @@ class RakuAST::VarDeclaration::Implicit::State
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::BeginTime
   is RakuAST::CheckTime
 {
     has Mu $.value;
-    has Mu $!cu;
 
     method new() {
         my $obj := nqp::create(self);
@@ -2544,11 +2542,6 @@ class RakuAST::VarDeclaration::Implicit::Doc
           self.name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
         $obj
-    }
-
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!cu',
-          $resolver.find-attach-target('compunit'));
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
@@ -2574,9 +2567,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Pod
       RakuAST::IMPL::QASTContext $context
     ) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
-          nqp::getattr(
-            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-          ).pod-content
+          $resolver.find-attach-target('compunit').pod-content
         );
     }
 }
@@ -2593,9 +2584,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Data
     ) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
           nqp::ifnull(
-            nqp::getattr(
-              self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-            ).data-content,
+            $resolver.find-attach-target('compunit').data-content,
             Mu
           )
         );
@@ -2613,9 +2602,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Finish
       RakuAST::IMPL::QASTContext $context
     ) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
-          nqp::getattr(
-            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-          ).finish-content,
+          $resolver.find-attach-target('compunit').finish-content,
         );
     }
 }
@@ -2654,9 +2641,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
     ) {
         my $*RAKUDOC := [];
         self.fetch-blocks(
-          nqp::getattr(
-            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-          ).statement-list
+          $resolver.find-attach-target('compunit').statement-list
         );
 
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',

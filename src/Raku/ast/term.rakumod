@@ -293,7 +293,11 @@ class RakuAST::Term::Whatever
   is RakuAST::Term
   is RakuAST::BeginTime
 {
-    has RakuAST::CompUnit $!enclosing-comp-unit;
+    # The Whatever singleton itself, captured at PERFORM-BEGIN. Storing
+    # the singleton rather than the enclosing CompUnit keeps a non
+    # serializable back-reference (CompUnit -> QASTContext -> MVMContext)
+    # off this AST node.
+    has Mu $!whatever;
 
     method new() {
         nqp::create(self)
@@ -302,13 +306,13 @@ class RakuAST::Term::Whatever
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-whatever($resolver);
-        nqp::bindattr(self, RakuAST::Term::Whatever, '$!enclosing-comp-unit', $compunit);
+        nqp::bindattr(self, RakuAST::Term::Whatever, '$!whatever',
+            $compunit.singleton-whatever());
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $whatever := $!enclosing-comp-unit.singleton-whatever();
-        $context.ensure-sc($whatever);
-        QAST::WVal.new( :value($whatever), :returns($whatever) )
+        $context.ensure-sc($!whatever);
+        QAST::WVal.new( :value($!whatever), :returns($!whatever) )
     }
 }
 
@@ -357,7 +361,9 @@ class RakuAST::Term::HyperWhatever
   is RakuAST::Term
   is RakuAST::BeginTime
 {
-    has RakuAST::CompUnit $!enclosing-comp-unit;
+    # See comment on RakuAST::Term::Whatever for why we store the
+    # singleton rather than the enclosing CompUnit.
+    has Mu $!whatever;
 
     method new() {
         nqp::create(self)
@@ -366,13 +372,13 @@ class RakuAST::Term::HyperWhatever
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-hyper-whatever($resolver);
-        nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!enclosing-comp-unit', $compunit);
+        nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!whatever',
+            $compunit.singleton-hyper-whatever());
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $whatever := $!enclosing-comp-unit.singleton-hyper-whatever();
-        $context.ensure-sc($whatever);
-        QAST::WVal.new( :value($whatever) )
+        $context.ensure-sc($!whatever);
+        QAST::WVal.new( :value($!whatever) )
     }
 }
 

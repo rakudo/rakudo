@@ -729,7 +729,7 @@ class RakuAST::ExpressionThunk
             self.IMPL-THUNK-SIGNATURE)
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
         nqp::bindattr($code, Code, '$!signature', $signature.meta-object);
@@ -1414,11 +1414,11 @@ class RakuAST::Block
         Nil
     }
 
-    method PRODUCE-STUBBED-META-OBJECT() {
+    method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
         nqp::create(Block);
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         self.IMPL-PRODUCE-META-OBJECT
     }
 
@@ -1620,7 +1620,7 @@ class RakuAST::PointyBlock
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $block := self.IMPL-PRODUCE-META-OBJECT();
         my $signature := self.signature || self.placeholder-signature;
 
@@ -1782,11 +1782,11 @@ class RakuAST::Routine
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
-    method PRODUCE-STUBBED-META-OBJECT() {
+    method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
         nqp::create(self.IMPL-META-OBJECT-TYPE)
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $routine := self.stubbed-meta-object;
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
@@ -2676,7 +2676,7 @@ class RakuAST::Method::AttributeAccessor
 
     method declarator() { 'submethod' }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);
         $meta.set_rw if $!rw;
         $meta
@@ -2758,7 +2758,7 @@ class RakuAST::RegexDeclaration
         Nil
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);
         nqp::bindattr_s($meta, $meta.WHAT, '$!source',
           self.declarator ~ ' ' ~ $!source
@@ -2830,7 +2830,7 @@ class RakuAST::RegexThunk
   is RakuAST::BeginTime
 {
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
         my $parameter := nqp::create(Parameter);
@@ -3612,7 +3612,7 @@ class RakuAST::BlockThunk
         self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression($!expression));
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
         my $param := nqp::create(Parameter);
         nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');

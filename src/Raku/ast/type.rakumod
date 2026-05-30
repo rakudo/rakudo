@@ -152,7 +152,7 @@ class RakuAST::Type::Simple
         }
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         self.resolution.compile-time-value
     }
 
@@ -305,7 +305,7 @@ class RakuAST::Type::Coercion
 
     method is-coercive() { True }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         Perl6::Metamodel::CoercionHOW.new_type(
             self.base-type.compile-time-value,
             $!constraint.meta-object,
@@ -400,7 +400,7 @@ class RakuAST::Type::Definedness
         $!through-pragma ?? ($!definite ?? ':D' !! ':U') ~ ' by pragma' !! ''
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         Perl6::Metamodel::DefiniteHOW.new_type(
             :base_type(self.base-type.compile-time-value),
             :definite($!definite),
@@ -488,7 +488,7 @@ class RakuAST::Type::Capture
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         Perl6::Metamodel::GenericHOW.new_type(
             :name($!name.canonicalize),
         );
@@ -575,7 +575,7 @@ class RakuAST::Type::Parameterized
         }
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         if !$!args.args {
             self.base-type.compile-time-value
         }
@@ -949,7 +949,7 @@ class RakuAST::Type::Enum
         }
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         Perl6::Metamodel::EnumHOW.new_type(
             :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
@@ -1128,7 +1128,7 @@ class RakuAST::Type::Subset
         self.check-scope($resolver, 'subset');
     }
 
-    method PRODUCE-STUBBED-META-OBJECT() {
+    method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
         Perl6::Metamodel::SubsetHOW.new_type(
             :name($!name.canonicalize(:colonpairs(0))),
             :refinee(Any),
@@ -1136,7 +1136,7 @@ class RakuAST::Type::Subset
         )
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type  := self.stubbed-meta-object;
         my $block := $!block;
 

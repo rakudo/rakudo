@@ -359,7 +359,7 @@ class RakuAST::TraitTarget::Variable
         self.add-trait-sorries;
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $Variable  := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
         my $varvar := nqp::create($Variable);
         nqp::bindattr_s($varvar, $Variable, '$!name', $!name);
@@ -1255,7 +1255,7 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # If it's our-scoped, then container is vivified via. package access.
         my str $scope := self.scope;
 
@@ -2157,7 +2157,7 @@ class RakuAST::VarDeclaration::Implicit::Special
   is RakuAST::VarDeclaration::Implicit
   is RakuAST::Meta
 {
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Reuse the container descriptor for the common cases that we expect
         # to have.
         # Mu nominals use Untyped so Scalar STORE skips the type check that
@@ -2314,7 +2314,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
         QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :value($!value) )
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         self.compile-time-value
     }
 
@@ -2390,7 +2390,7 @@ class RakuAST::VarDeclaration::Implicit::Cursor
         $obj
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $cont-desc := RakuAST::IMPL::Containers.create-descriptor(
             :of(Mu), :default(Nil), :dynamic(0), :name('$¢'));
         my $container := nqp::create(Scalar);
@@ -2504,7 +2504,7 @@ class RakuAST::VarDeclaration::Implicit::State
         ] !! [];
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my str $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Implicit, '$!name');
 
         # Create a container descriptor and attach it to a Scalar container, then set it to Int.new(0)

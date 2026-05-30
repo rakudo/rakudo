@@ -264,7 +264,7 @@ class RakuAST::Signature
         @generated
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Produce meta-objects for each parameter.
         my @parameters;
         if $!implicit-invocant {
@@ -473,7 +473,7 @@ class RakuAST::FakeSignature
         True
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         $!block.meta-object; # To bind block to signature
         $!signature.meta-object
     }
@@ -842,7 +842,7 @@ class RakuAST::Parameter
         False
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $parameter := nqp::create(Parameter);
         if $!target {
             nqp::bindattr_s($parameter, Parameter, '$!variable_name',
@@ -1995,7 +1995,7 @@ class RakuAST::ParameterTarget::Var
         $!declaration.set-where($where) if $!declaration;
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         unless $!declaration {
             nqp::die('Cannot produce meta object for attribute parameter target');
         }
@@ -2177,7 +2177,7 @@ class RakuAST::ParameterTarget::Term
         }
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $of := self.IMPL-OF-TYPE;
         my $default := $of;
         my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($default);

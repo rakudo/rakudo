@@ -251,7 +251,7 @@ class RakuAST::StatementPrefix::Thunky
         # Avoid worries about sink context
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         if nqp::istype(self.blorst, RakuAST::Block) {
             # Block, already has a meta-object.
             self.blorst.meta-object
@@ -366,7 +366,7 @@ class RakuAST::StatementPrefix::Blorst
         self.blorst.apply-sink(False);
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         self.blorst.set-fresh-variables(:match, :exception)
           if nqp::istype(self.blorst, RakuAST::Block);
     }

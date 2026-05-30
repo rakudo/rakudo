@@ -370,7 +370,7 @@ class RakuAST::StatementModifier::Condition::Thunk
         Nil
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         Nil
     }
 

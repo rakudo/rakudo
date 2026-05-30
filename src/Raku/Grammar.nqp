@@ -5735,14 +5735,16 @@ Rakudo significantly on *every* run."
         <.typed-panic: 'X::Syntax::Comment::Embedded'>
     }
 
-    # single / multi-line leading declarator block
-    token comment:sym<#|> { '#|' \h $<attachment>=[\N* \n?] }
+    # Attachment stops before the trailing `\n`; the enclosing
+    # whitespace rule eats it.  Lets `$$` in `end-statement` anchor on
+    # the same line as a block close, matching legacy's ENDSTMT leg in
+    # `Perl6/Grammar.nqp`.
+    token comment:sym<#|> { '#|' \h $<attachment>=[\N*] }
     token comment:sym<#|(...)> {
        '#|' <?opener> <attachment=.quibble(self.Quote)>
     }
 
-    # single / multi-line trailing declarator block
-    token comment:sym<#=> { '#=' \h $<attachment>=[\N* \n?] }
+    token comment:sym<#=> { '#=' \h $<attachment>=[\N*] }
     token comment:sym<#=(...)> {
         '#=' <?opener> <attachment=.quibble(self.Quote)> \n?
     }

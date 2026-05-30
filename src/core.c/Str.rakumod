@@ -2103,8 +2103,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             self.split($needle, |%_)
         }
         else {
-            my $steps = $limit - 1;
-            my @parts = self.split($needle, |%_, :v);
+            my int $steps = $limit - 1;
+            my     @parts = self.split($needle, |%_, :v);
             my @result;
             while @parts > 1 && $steps-- {
                 @result.unshift(@parts.pop);

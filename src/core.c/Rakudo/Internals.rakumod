@@ -217,7 +217,11 @@ my class Rakudo::Internals {
     method EXPORT_SYMBOL(Str:D $name, @tags, Mu \sym) {
         $export-symbol-lock.protect: {
             my @export_packages = $*EXPORT;
-            for $*R ?? $*R.packages.map({$_.meta-object}) !! nqp::hllize(@*PACKAGES).list {
+            for $*R ?? $*R.packages.map({$_.stubbed-meta-object}) !! nqp::hllize(@*PACKAGES).list {
+                # PRODUCE-STUBBED-META-OBJECT returns Nil for augmented
+                # roles (the real X::Augment::Illegal sorry fires later);
+                # skip them so we don't blow up on Nil.WHO first.
+                next if nqp::eqaddr($_, Nil);
                 my $who := .WHO;
                 @export_packages.append: $who.EXISTS-KEY('EXPORT')
                   ?? $who.AT-KEY('EXPORT')

@@ -515,13 +515,18 @@ augment class Code {
             }
 
             # Add current parameter to args (when passing through somehow)
-            my sub add-parameter-to-args(--> Nil) {
+            my sub add-parameter-to-args(:$slip --> Nil) {
                 my $head := $parameter.constraint_list.head;
                 $args.push(
                   nqp::isconcrete($head)
                     && nqp::not_i(nqp::istype($head,Code))
                     ?? RakuAST::Literal.from-value($head)
-                    !! RakuAST::Var::Lexical.new($name)
+                    !! $slip
+                      ?? RakuAST::ApplyPrefix.new(
+                           prefix  => RakuAST::Prefix.new("|"),
+                           operand => RakuAST::Var::Lexical.new($name)
+                         )
+                      !! RakuAST::Var::Lexical.new($name)
                 );
             }
 
@@ -584,6 +589,7 @@ augment class Code {
                 if $parameter.slurpy {
                     curry-all-nameds;
                     add-parameter-to-signature;
+                    add-parameter-to-args(:slip);
                 }
 
                 # A single named argument

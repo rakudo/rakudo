@@ -197,7 +197,7 @@ class RakuAST::Package
             my str $scope := self.scope;
             $scope := 'our' if $scope eq 'unit';
             my $name := $!name;
-            if $name && !$name.is-empty && !$name.is-anonymous {
+            if $name && $name.is-installable {
                 my $type-object := self.stubbed-meta-object(:$resolver, :$context);
                 my $full-name := self.IMPL-FULL-NAME($resolver);
                 $type-object.HOW.set_name(
@@ -370,7 +370,7 @@ class RakuAST::Package
             # present, so callers in the compile pipeline must pass both.
             # Packages without colonpairs work fine without context.
             my %options;
-            %options<name> := $!name.canonicalize if $!name;
+            %options<name> := $!name.canonicalize if $!name && $!name.is-installable;
             %options<repr> := $!repr if $!repr;
             if $!name {
                 my @colonpairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);

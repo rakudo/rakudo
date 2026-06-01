@@ -786,7 +786,7 @@ class RakuAST::Var::Package
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if !self.is-resolved && ($!name.is-empty || $!name.is-anonymous) {
+        if !self.is-resolved && !$!name.is-installable {
             my $name := $!name.canonicalize;
             self.add-sorry:
                 $resolver.build-exception: 'X::Undeclared', :symbol($!sigil ~ $name),

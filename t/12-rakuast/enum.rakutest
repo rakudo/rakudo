@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -207,6 +207,33 @@ subtest 'CHECK-wrapped enum with <words> term' => {
     my package p-ast  { is-deeply EVAL($ast),       $abc, 'AST'  }
     my package p-str  { is-deeply EVAL($deparsed),  $abc, 'Str'  }
     my package p-raku { is-deeply EVAL(EVAL $raku), $abc, 'Raku' }
+}
+
+subtest 'Anonymous enum (enum ::)' => {
+    # AST two-Empty parts. The enum installs no symbol when the name
+    # is not installable. Evaluating the AST still yields the values
+    # Map, matching named-enum behavior.
+    my $ast := RakuAST::Type::Enum.new(
+      scope => 'my',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::Empty.new,
+      ),
+      term => RakuAST::QuotedString.new(
+        segments   => (RakuAST::StrLiteral.new("a b c"),),
+        processors => <words val>
+      )
+    );
+    is $ast.DEPARSE, 'my enum :: <a b c>',
+        'AST two-Empty: deparse uses :: placeholder';
+    is-deeply EVAL($ast), $abc,
+        'AST two-Empty: enum AST evaluates to expected Map';
+
+    # Source forms outside a role. Grammar emits two Empty parts.
+    lives-ok { EVAL 'enum :: <x y z>' },
+        'Source: anonymous enum compiles outside a role';
+    is-deeply EVAL('enum :: <a b c>'), $abc,
+        'Source: anonymous enum yields expected Map';
 }
 
 # vim: expandtab shiftwidth=4

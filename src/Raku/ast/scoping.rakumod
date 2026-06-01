@@ -509,9 +509,24 @@ class RakuAST::Declaration
             $resolver.build-exception: 'X::Declaration::Scope', :$scope, :$declaration
             unless $ok;
 
-        if $scope eq 'our' && nqp::istype($resolver.find-attach-target('package'), RakuAST::Role) {
-            self.add-sorry:
-                $resolver.build-exception: 'X::Declaration::OurScopeInRole', :$declaration;
+        if $scope eq 'our'
+                && nqp::istype($resolver.find-attach-target('package'), RakuAST::Role) {
+            # A RakuAST::PackageInstaller (Package, Type::Subset, Type::Enum,
+            # ...) with a non-installable name installs no symbol. For that
+            # case 'our' has no observable effect and the check would be a
+            # false positive. Routines and variables install through other
+            # paths. The strict check applies to them.
+            my $anonymous-package := False;
+            if nqp::istype(self, RakuAST::PackageInstaller) {
+                my $name := self.name;
+                $anonymous-package := nqp::istype($name, RakuAST::Name)
+                    && nqp::isconcrete($name)
+                    && !$name.is-installable;
+            }
+            unless $anonymous-package {
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Declaration::OurScopeInRole', :$declaration;
+            }
         }
     }
 
@@ -997,6 +1012,8 @@ class RakuAST::PackageInstaller {
         RakuAST::Package $current-package,
         Mu :$meta-object
     ) {
+        # Anonymous declarations install no symbol.
+        return Nil unless $name.is-installable;
         my $orig-scope := $scope;
         my $target;
         my $final;

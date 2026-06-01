@@ -89,6 +89,12 @@ class RakuAST::Name
         nqp::elems($!parts) == 2 && $!parts[0].is-empty && $!parts[1].is-empty # name is just '::'
     }
 
+    # True when this name denotes a symbol that gets installed in a
+    # scope.
+    method is-installable() {
+        !self.is-empty && !self.is-anonymous
+    }
+
     method is-simple() {
         for $!parts {
             return False unless nqp::istype($_, RakuAST::Name::Part::Simple);

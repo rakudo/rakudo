@@ -710,6 +710,10 @@ class RakuAST::Parameter
 
     method set-sub-signature(RakuAST::Expression $sub-signature) {
         nqp::bindattr(self, RakuAST::Parameter, '$!sub-signature', $sub-signature);
+        # A sub signature parameter routes dispatch through the full
+        # binder. Propagate that to the owner so a mutation after the
+        # parameter's PERFORM-BEGIN keeps the flag in sync.
+        $!owner.set-custom-args if nqp::isconcrete($!owner);
         Nil
     }
 
@@ -725,6 +729,13 @@ class RakuAST::Parameter
 
     method set-owner(RakuAST::Code $owner) {
         nqp::bindattr(self, RakuAST::Parameter, '$!owner', $owner);
+        # Propagate the parse-time conditions that need the full
+        # binder. A role parametric signature parameter gets its
+        # owner attached here, after its own PERFORM-BEGIN ran with
+        # no owner to update.
+        $owner.set-custom-args
+            if nqp::isconcrete($owner)
+            && ($!sub-signature || nqp::elems($!names) > 2);
     }
 
     method add-type-capture(RakuAST::Type::Capture $type-capture) {
@@ -1122,6 +1133,16 @@ class RakuAST::Parameter
             if $meta-object.HOW.is_composed
             && !($meta-object.optional || $meta-object.slurpy || $meta-object.capture);
 
+        # Parameters needing the full binder force custom-args on
+        # their owning routine. Conditions decidable from AST state
+        # set the flag here at BEGIN time. The flag must be True by
+        # the time the owning routine compiles, which can happen
+        # during BEGIN (for example, a trait_mod multi applied to
+        # an attribute).
+        $!owner.set-custom-args
+            if nqp::isconcrete($!owner)
+            && ($!sub-signature || nqp::elems($!names) > 2);
+
         $!target.to-begin-time($resolver, $context) if $!target;
     }
 
@@ -1197,13 +1218,13 @@ class RakuAST::Parameter
         my int $is-generic  := $ptype-archetypes.generic;
         my int $is-coercive := $ptype-archetypes.coercive;
 
-        # Cases where we need the full binder
-        if $!sub-signature
-          || nqp::elems($!names) > 2
-          || ($is-generic
-               && !$is-coercive
-               && nqp::can($ptype-archetypes, "parametric")
-               && $ptype-archetypes.parametric) {
+        # Generic parametric parameter types need the full binder.
+        # This branch depends on archetype data so it runs at CHECK
+        # time. Parameter shape conditions are handled in PERFORM-BEGIN.
+        if $is-generic
+          && !$is-coercive
+          && nqp::can($ptype-archetypes, "parametric")
+          && $ptype-archetypes.parametric {
             $!owner.set-custom-args;
         }
 
@@ -1273,7 +1294,8 @@ class RakuAST::Parameter
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::die('shouldnt get here') if $!sub-signature;
+        nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
+            if $!sub-signature;
         # Flag constants we need to pay attention to.
         my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 

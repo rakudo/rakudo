@@ -1461,10 +1461,9 @@ class RakuAST::Block
     }
 
     method IMPL-CHECK-DOUBLE-CLOSURE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if self.find-nodes(
-            RakuAST::Expression,
-            :condition(-> $node { $node.IMPL-CURRIED }),
-            :stopper(RakuAST::LexicalScope))
+        my $stmts := self.body.statement-list;
+        if $stmts.IMPL-IS-SINGLE-EXPRESSION
+            && $stmts.code-statements[0].expression.IMPL-CURRIED
         {
             return $resolver.build-exception: 'X::Syntax::Malformed',
                 :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *');

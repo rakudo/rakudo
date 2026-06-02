@@ -335,6 +335,7 @@ class RakuAST::Infix
           '⚛+=',  False,
           '⚛-=',  False,
           '⚛−=',  False,
+          'xx',   False,
         );
         nqp::atkey(NP,$!operator) // True
     }

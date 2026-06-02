@@ -1166,7 +1166,8 @@ class RakuAST::VarDeclaration::Simple
                 {
                     my $expression := $initializer.expression;
                     my $expression-type := $expression.return-type;
-                    unless $expression-type =:= Mu || nqp::objprimspec($of) || $of.HOW.archetypes.generic {
+                    unless $expression-type =:= Mu || $expression-type =:= Nil
+                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic {
                         unless $expression.has-compile-time-value
                             ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
                             !! nqp::istype($expression-type, $of.IMPL-BASE-TYPE) # bare type can't match definedness

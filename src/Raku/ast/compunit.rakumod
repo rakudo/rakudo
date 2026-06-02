@@ -37,6 +37,12 @@ class RakuAST::CompUnit
     has Mu $!export-package;
     has Mu $.herestub-queue;
     has int $!explicit-ctxsave;
+    # Compile pipeline state. CompUnit itself is never reachable from the
+    # SC graph, so it can hold these. Other AST nodes must NOT capture
+    # $.context or $!resolver as attributes: QASTContext transitively
+    # references non-serializable MVMContext frames via Resolver, and a
+    # serializable AST node holding them drags MVMContext into the SC
+    # and crashes serialize.
     has RakuAST::IMPL::QASTContext $.context;
     has RakuAST::Resolver $!resolver;
 

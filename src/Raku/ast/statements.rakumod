@@ -39,7 +39,7 @@ class RakuAST::Label
         ]
     }
 
-    method PRODUCE-META-OBJECT() {
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $label-type :=
           self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
         # TODO line, prematch, postmatch
@@ -149,7 +149,7 @@ class RakuAST::Statement
 class RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::Node
 {
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
     }
 }
@@ -831,7 +831,7 @@ class RakuAST::Statement::IfWith
           $else // RakuAST::Block);
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         my int $last-was-with;
         if self.IMPL-QAST-TYPE eq 'with' {
             $last-was-with := 1;
@@ -953,7 +953,7 @@ class RakuAST::Statement::Elsif {
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!then.set-implicit-topic(False, :local);
     }
 
@@ -967,7 +967,7 @@ class RakuAST::Statement::Orwith
 {
     method IMPL-QAST-TYPE() { 'with' }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         self.then.set-implicit-topic(True, :required);
     }
 }
@@ -991,7 +991,7 @@ class RakuAST::Statement::Unless
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(False, :local);
     }
 
@@ -1045,7 +1045,7 @@ class RakuAST::Statement::Without
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -1125,7 +1125,7 @@ class RakuAST::Statement::Loop
     # Is the loop always executed once?
     method repeat() { False }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(False, :local);
     }
 
@@ -1415,7 +1415,7 @@ class RakuAST::Statement::Given
         $!body.apply-sink($is-sunk);
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -1454,7 +1454,7 @@ class RakuAST::Statement::When
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(False);
     }
 
@@ -1528,7 +1528,7 @@ class RakuAST::Statement::Whenever
         $!body.apply-sink($is-sunk);
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -1571,7 +1571,7 @@ class RakuAST::Statement::Default
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(1);
     }
 
@@ -1618,7 +1618,7 @@ class RakuAST::Statement::ExceptionHandler
         $obj
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :exception);
         $!body.set-fresh-variables(:match, :exception);
     }

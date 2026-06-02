@@ -2568,7 +2568,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $context := $*CU.context;
             $ast.body.IMPL-BEGIN($R, $context);
             $ast.to-begin-time($R, $context);
-            $ast.IMPL-COMPOSE($context);
+            $ast.IMPL-COMPOSE($R, $context);
         }
 
         self.attach: $/, $ast;

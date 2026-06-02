@@ -3583,7 +3583,7 @@ class RakuAST::Statement::For
         $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
     }
 
-    method apply-implicit-block-semantics() {
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
     }
 

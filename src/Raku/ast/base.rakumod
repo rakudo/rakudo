@@ -102,7 +102,7 @@ class RakuAST::Node {
         }
         # Apply implicit block semantics.
         if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
-            self.apply-implicit-block-semantics();
+            self.apply-implicit-block-semantics(:$resolver, :$context);
         }
         if nqp::istype(self, RakuAST::BeginTime) {
             self.ensure-begin-performed($resolver, $context);
@@ -121,7 +121,7 @@ class RakuAST::Node {
         }
         # Apply implicit block semantics.
         if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
-            self.apply-implicit-block-semantics();
+            self.apply-implicit-block-semantics(:$resolver, :$context);
         }
 
         # Ensure parse time was performed already before visiting children, when it is a

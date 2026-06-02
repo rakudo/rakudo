@@ -30,12 +30,13 @@ class RakuAST::Package
     has Bool $.is-require-stub;
     has Bool $!installed;
 
-    has RakuAST::CompilerServices $.compiler-services;
-
-    has RakuAST::Resolver $!resolver;
-    has RakuAST::IMPL::QASTContext $!context;
-
     has Mu $!compose-exception;
+
+    # MOP-generated accessor QAST, captured from a transient
+    # CompilerServices in PRODUCE-META-OBJECT and spliced into the
+    # package body by IMPL-EXPR-QAST. Holding the QAST rather than the
+    # CompilerServices keeps Resolver/QASTContext off the AST.
+    has QAST::Stmts $!accessor-qast;
 
     # Enclosing parametric role captured at BEGIN-time so the package can
     # register itself as an instantiation lexical on that role if it ends up
@@ -163,9 +164,6 @@ class RakuAST::Package
             }
         }
 
-        nqp::bindattr(self, RakuAST::Package, '$!resolver', $resolver);
-        nqp::bindattr(self, RakuAST::Package, '$!context', $context);
-        nqp::bindattr(self, RakuAST::Package, '$!compiler-services', RakuAST::CompilerServices.new(self, $resolver, $context));
     }
 
     method attach-target-names() { ['package', 'also'] }
@@ -200,7 +198,7 @@ class RakuAST::Package
             $scope := 'our' if $scope eq 'unit';
             my $name := $!name;
             if $name && !$name.is-empty && !$name.is-anonymous {
-                my $type-object := self.stubbed-meta-object;
+                my $type-object := self.stubbed-meta-object(:$resolver, :$context);
                 my $full-name := self.IMPL-FULL-NAME($resolver);
                 $type-object.HOW.set_name(
                     $type-object,
@@ -330,36 +328,36 @@ class RakuAST::Package
 
     # Declare the lexicals for this type of package
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.meta-object-as-lexicals($resolver, 'PACKAGE');
-        self.meta-object-as-lexicals($resolver, 'CLASS')
+        self.meta-object-as-lexicals($resolver, 'PACKAGE', :$context);
+        self.meta-object-as-lexicals($resolver, 'CLASS', :$context)
           unless self.declarator eq 'package';
     }
 
     # Helper method to create $?CLASS ::?CLASS and similar
-    method meta-object-as-lexicals(RakuAST::Resolver $resolver, str $root) {
+    method meta-object-as-lexicals(RakuAST::Resolver $resolver, str $root, :$context) {
         for '$?', '::?' {
-            $resolver.declare-lexical(self.implicit-constant($_ ~ $root));
+            $resolver.declare-lexical(self.implicit-constant($_ ~ $root, :$resolver, :$context));
         }
     }
 
     # Helper method to create $?CLASS ::?CLASS and similar
-    method meta-object-as-body-lexicals(str $root) {
+    method meta-object-as-body-lexicals(str $root, :$resolver, :$context) {
         my $body := self.body;
         for '$?', '::?' {
             $body.add-generated-lexical-declaration(
-              self.implicit-constant($_ ~ $root)
+              self.implicit-constant($_ ~ $root, :$resolver, :$context)
             )
         }
     }
 
     # Helper method to define an implicit constant for the meta object
-    method implicit-constant(str $name) {
+    method implicit-constant(str $name, :$resolver, :$context) {
         RakuAST::VarDeclaration::Implicit::Constant.new(
-          :$name, :value(self.stubbed-meta-object)
+          :$name, :value(self.stubbed-meta-object(:$resolver, :$context))
         )
     }
 
-    method PRODUCE-STUBBED-META-OBJECT() {
+    method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
         if self.is-resolved {
             self.resolution.compile-time-value;
         }
@@ -368,17 +366,24 @@ class RakuAST::Package
         }
         else {
             # Create the type object and return it; this stubs the type.
+            # Colonpair values evaluate against $resolver/$context when
+            # present, so callers in the compile pipeline must pass both.
+            # Packages without colonpairs work fine without context.
             my %options;
             %options<name> := $!name.canonicalize if $!name;
             %options<repr> := $!repr if $!repr;
             if $!name {
                 my @colonpairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);
                 if nqp::elems(@colonpairs) {
-                    my $Failure := $!resolver.type-from-setting('Failure');
+                    nqp::die("RakuAST::Package.stubbed-meta-object: package with colonpairs `"
+                      ~ $!name.canonicalize
+                      ~ "' requires resolver and context, but caller did not pass them")
+                        unless nqp::isconcrete($resolver) && nqp::isconcrete($context);
+                    my $Failure := $resolver.type-from-setting('Failure');
                     for @colonpairs {
                         my $key := $_.key;
                         my $value := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
-                            $!resolver, $!context, $Failure);
+                            $resolver, $context, $Failure);
                         next if $key eq 'auth' && nqp::eqaddr($value, Nil);
                         $value := Version.new($value) if $key eq 'ver' || $key eq 'api';
                         %options{$key} := $value;
@@ -397,27 +402,43 @@ class RakuAST::Package
         }
     }
 
-    method PRODUCE-META-OBJECT() {
-        my $type := self.stubbed-meta-object;
-        $type.HOW.compose($type, :compiler_services($!compiler-services));
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        my $type := self.stubbed-meta-object(:$resolver, :$context);
+        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
         CATCH {
             nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
         }
         $type
     }
 
-    method apply-implicit-block-semantics() {
+    # Compose $type via its HOW. When $resolver/$context are present,
+    # hand the MOP a transient CompilerServices and capture the
+    # resulting accessor QAST onto $!accessor-qast before the services
+    # go out of scope. Without context the MOP falls back to runtime
+    # closure accessors; functionally equivalent, slower.
+    method IMPL-COMPOSE-TYPE(Mu $type, :$resolver, :$context) {
+        if nqp::isconcrete($resolver) && nqp::isconcrete($context) {
+            my $cs := RakuAST::CompilerServices.new(self, $resolver, $context);
+            $type.HOW.compose($type, :compiler_services($cs));
+            nqp::bindattr(self, RakuAST::Package, '$!accessor-qast', $cs.IMPL-GET-QAST);
+        }
+        else {
+            $type.HOW.compose($type);
+        }
+    }
+
+    method apply-implicit-block-semantics(:$resolver, :$context) {
         unless $!block-semantics-applied {
-            self.meta-object-as-body-lexicals('PACKAGE');
-            self.additional-body-lexicals;
+            self.meta-object-as-body-lexicals('PACKAGE', :$resolver, :$context);
+            self.additional-body-lexicals(:$resolver, :$context);
 
             nqp::bindattr(self,RakuAST::Package,'$!block-semantics-applied',1);
         }
     }
 
     # Add any additional lexicals to the body
-    method additional-body-lexicals() {
-        self.meta-object-as-body-lexicals('CLASS')
+    method additional-body-lexicals(:$resolver, :$context) {
+        self.meta-object-as-body-lexicals('CLASS', :$resolver, :$context)
           unless self.declarator eq 'package';
     }
 
@@ -425,7 +446,11 @@ class RakuAST::Package
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
-        $!compiler-services.IMPL-ADD-QAST($body[0]);
+        # Splice in any accessor QAST captured by PRODUCE-META-OBJECT;
+        # absent on the degraded compose path.
+        if nqp::isconcrete($!accessor-qast) && nqp::elems($!accessor-qast.list) {
+            $body[0].push($!accessor-qast);
+        }
         my $result := QAST::Stmts.new(
             $body,
             QAST::WVal.new( :value($type-object) )
@@ -437,8 +462,12 @@ class RakuAST::Package
         self.compile-time-value
     }
 
-    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
-        self.meta-object; # Ensure it's composed
+    method IMPL-COMPOSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # $resolver/$context are mandatory here: this is the first
+        # meta-object access for the package and fills the cache. A bare
+        # call would cache the degraded compose and starve later callers
+        # of accessor QAST.
+        self.meta-object(:$resolver, :$context);
         self.IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL;
     }
 
@@ -627,8 +656,8 @@ class RakuAST::Role
     method parameterization() { self.body.signature }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.meta-object-as-lexicals($resolver, 'PACKAGE');
-        self.meta-object-as-lexicals($resolver, 'ROLE');
+        self.meta-object-as-lexicals($resolver, 'PACKAGE', :$context);
+        self.meta-object-as-lexicals($resolver, 'ROLE', :$context);
 
         for '$?CLASS', '::?CLASS' {
             $resolver.declare-lexical(
@@ -674,8 +703,8 @@ class RakuAST::Role
         $resolver.current-scope.add-generated-lexical-declaration(self.body.fixup) if self.body.fixup;
     }
 
-    method additional-body-lexicals() {
-        self.meta-object-as-body-lexicals('ROLE');
+    method additional-body-lexicals(:$resolver, :$context) {
+        self.meta-object-as-body-lexicals('ROLE', :$resolver, :$context);
 
         self.body.add-generated-lexical-declaration(
             # $?CONCRETIZATION is actually a run-time symbol because it's being initialized when role is
@@ -725,25 +754,17 @@ class RakuAST::Role
         Nil
     }
 
-    method PRODUCE-META-OBJECT() {
-        # Obtain the stubbed meta-object, which is the type object.
-        my $type := self.stubbed-meta-object;
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        my $type := self.stubbed-meta-object(:$resolver, :$context);
 
         unless self.is-stub {
-            my $how  := $type.HOW;
+            my $how := $type.HOW;
             self.PRODUCE-META-ATTACHABLES($type, $how);
-
-            $how.set_body_block($type, self.body.meta-object);
-
-            # The role needs to be composed before we add the possibility
-            # to the group
-            {
-                $how.compose($type, :compiler_services(self.compiler-services));
-                CATCH {
-                    nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
-                }
+            $how.set_body_block($type, self.body.meta-object(:$resolver, :$context));
+            self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
+            CATCH {
+                nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
             }
-
             my $group :=
               nqp::getattr(self, RakuAST::Package::Attachable, '$!role-group');
             $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
@@ -759,8 +780,10 @@ class RakuAST::Role
         nqp::push($!instantiation-lexicals, $lexical);
     }
 
-    method IMPL-COMPOSE(RakuAST::IMPL::QASTContext $context) {
-        self.meta-object;
+    method IMPL-COMPOSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # See Package.IMPL-COMPOSE; $resolver/$context are mandatory and
+        # the first meta-object access fills the cache.
+        self.meta-object(:$resolver, :$context);
         self.body.IMPL-FINISH-ROLE-BODY($context);
     }
 }
@@ -826,17 +849,12 @@ class RakuAST::Class
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
 
-    method PRODUCE-META-OBJECT() {
-        # Obtain the stubbed meta-object, which is the type object.
-        my $type := self.stubbed-meta-object();
-        my $how  := $type.HOW;
-
-        self.PRODUCE-META-ATTACHABLES($type, $how);
-        {
-        $how.compose($type, :compiler_services(self.compiler-services));
-            CATCH {
-                nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
-            }
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        my $type := self.stubbed-meta-object(:$resolver, :$context);
+        self.PRODUCE-META-ATTACHABLES($type, $type.HOW);
+        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
+        CATCH {
+            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
         }
         $type
     }
@@ -873,12 +891,12 @@ class RakuAST::Module
     method default-how() { Metamodel::ModuleHOW  }
 
     method declare-lexicals(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.meta-object-as-lexicals($resolver, 'PACKAGE');
-        self.meta-object-as-lexicals($resolver, 'MODULE');
+        self.meta-object-as-lexicals($resolver, 'PACKAGE', :$context);
+        self.meta-object-as-lexicals($resolver, 'MODULE', :$context);
     }
 
-    method additional-body-lexicals() {
-        self.meta-object-as-body-lexicals('MODULE');
+    method additional-body-lexicals(:$resolver, :$context) {
+        self.meta-object-as-body-lexicals('MODULE', :$resolver, :$context);
     }
 }
 
@@ -939,4 +957,8 @@ class RakuAST::CompilerServices
     method IMPL-ADD-QAST(QAST::Node $target) {
         $target.push: $!qast if nqp::elems($!qast.list);
     }
+
+    # Return the accumulated accessor QAST so Package can keep it and
+    # discard the transient CompilerServices.
+    method IMPL-GET-QAST() { $!qast }
 }

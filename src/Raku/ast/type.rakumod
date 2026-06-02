@@ -586,6 +586,57 @@ class RakuAST::Type::Parameterized
             my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
+        elsif nqp::isconcrete($resolver) && nqp::isconcrete($context)
+          && ($*COMPILING_CORE_SETTING // 0) != 1
+          && nqp::can(self.IMPL-BASE-TYPE.compile-time-value.HOW, 'parameterize') {
+            # Mirror legacy World.compile_time_evaluate. For arguments
+            # without a compile-time value, evaluate the expression via
+            # IMPL-BEGIN-TIME-EVALUATE.
+            my @pos;
+            my %named;
+            my int $usable := 1;
+            my $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
+            my int $sorries-before := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
+                my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
+                my $value;
+                if $expr.has-compile-time-value {
+                    $value := $expr.maybe-compile-time-value;
+                }
+                elsif nqp::istype($expr, RakuAST::Expression) {
+                    # IMPL-BEGIN-TIME-EVALUATE attaches a thunk to the
+                    # expression by mutating its `$!thunks` attribute.
+                    # Save and restore so this evaluation does not change
+                    # later runtime emission for the same node.
+                    my $saved := nqp::getattr($expr, RakuAST::Expression, '$!thunks');
+                    $value := self.IMPL-BEGIN-TIME-EVALUATE($expr, $resolver, $context);
+                    nqp::bindattr($expr, RakuAST::Expression, '$!thunks', $saved);
+                }
+                else {
+                    $usable := 0;
+                    last;
+                }
+
+                if nqp::istype($arg, RakuAST::NamedArg) {
+                    %named{$arg.named-arg-name} := $value;
+                }
+                else {
+                    nqp::push(@pos, $value);
+                }
+            }
+
+            # IMPL-BEGIN-TIME-EVALUATE on a CheckTime traps errors as
+            # add-sorry on self. A sorry delta means the loop failed.
+            $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
+            my int $sorries-after := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            if $usable && $sorries-after == $sorries-before {
+                my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
+                $ptype.HOW.parameterize($ptype, |@pos, |%named)
+            }
+            else {
+                nqp::die('Cannot do compile time parameterization with these args');
+            }
+        }
         else {
             my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
             if nqp::istype($args[0], RakuAST::QuotedString) {
@@ -644,7 +695,9 @@ class RakuAST::Type::Parameterized
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.meta-object
+        # Forward resolver/context from the interp ctx so PRODUCE-META-OBJECT
+        # can evaluate arguments without compile-time values.
+        self.meta-object(:resolver($ctx.resolver), :context($ctx.context))
     }
 
     method IMPL-VALUE-TYPE() {

@@ -104,7 +104,7 @@ class RakuAST::Initializer::CallAssign
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
     {
-        self.postfixish.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new, $invocant-compiler)
+        self.postfixish.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context), $invocant-compiler)
     }
 
     method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -1,6 +1,6 @@
 use Test;
 
-plan 9;
+plan 12;
 
 # Parameter sub signature destructure must compile under both
 # frontends, including when the owning routine is compiled at BEGIN.
@@ -73,5 +73,33 @@ is EVAL(q:to/CODE/),
         foo()
         CODE
     '3|4', 'sub signature parameter default thunk runs';
+
+# 10. Parametric role with a sub signature parameter, applied with an
+# inline array literal as the parameterization argument.
+is EVAL(q:to/CODE/),
+        role R[@a ($x, $y)] { method values { "$x|$y" } }
+        my class C does R[[7, 9]] { }
+        C.new.values
+        CODE
+    '7|9', 'parametric role with sub signature param accepts inline array';
+
+# 11. Parametric role with a named sub signature parameter, applied
+# with a named argument whose value is an inline array literal.
+is EVAL(q:to/CODE/),
+        role R[:@a! ($x, $y)] { method values { "$x|$y" } }
+        my class C does R[:a([7, 9])] { }
+        C.new.values
+        CODE
+    '7|9', 'parametric role with named sub signature param accepts inline array via named arg';
+
+# 12. Parameterization with a non-interpretable argument (`self` in a
+# typename context with no enclosing object) must fail at compile
+# time, not crash or silently proceed.
+dies-ok {
+    EVAL q:to/CODE/
+        role R[$x] { method val { $x } }
+        my class C does R[self] { }
+        CODE
+}, 'role parameterization with self outside object dies cleanly';
 
 # vim: expandtab shiftwidth=4

@@ -32,12 +32,6 @@ class RakuAST::Package
 
     has Mu $!compose-exception;
 
-    # MOP-generated accessor QAST, captured from a transient
-    # CompilerServices in PRODUCE-META-OBJECT and spliced into the
-    # package body by IMPL-EXPR-QAST. Holding the QAST rather than the
-    # CompilerServices keeps Resolver/QASTContext off the AST.
-    has QAST::Stmts $!accessor-qast;
-
     # Enclosing parametric role captured at BEGIN-time so the package can
     # register itself as an instantiation lexical on that role if it ends up
     # archetypally generic after composition.
@@ -435,11 +429,6 @@ class RakuAST::Package
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
-        # Splice in any accessor QAST captured by PRODUCE-META-OBJECT;
-        # absent on the degraded compose path.
-        if nqp::isconcrete($!accessor-qast) && nqp::elems($!accessor-qast.list) {
-            $body[0].push($!accessor-qast);
-        }
         my $result := QAST::Stmts.new(
             $body,
             QAST::WVal.new( :value($type-object) )

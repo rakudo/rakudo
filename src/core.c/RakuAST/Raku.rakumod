@@ -41,7 +41,7 @@ augment class RakuAST::Node {
         $_ = .chomp($spaces) given $*INDENT
     }
 
-    our sub rakufy($value) {
+    our sub rakufy(Mu $value) {
         if nqp::istype($value,List) && $value -> @elements {
             if nqp::istype(@elements.are,Int) {
                 "(@elements.join(',')" ~ (@elements == 1 ?? ',)' !! ')')

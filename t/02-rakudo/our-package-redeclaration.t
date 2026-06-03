@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 9;
 
 is-run q:to/CODE/,
     EVAL q[class A {}];
@@ -56,6 +56,22 @@ is-run q:to/CODE/,
     :err(/'Redeclaration of symbol' .* "'B'"/),
     :exitcode(1), :out(''),
     'augment-body nested class redecl is a Redeclaration';
+
+is-run q:to/CODE/,
+    package A::B { our sub helper() { 42 } };
+    role A::B { has $.x };
+    print "no-error";
+    CODE
+    :out('no-error'), :err(''),
+    'in-source `package A::B` then `role A::B` silent-replaces';
+
+is-run q:to/CODE/,
+    package A::B { our sub helper() { 42 } };
+    role A::B { has $.x };
+    print A::B::helper;
+    CODE
+    :out('42'), :err(''),
+    'silent-replaced role keeps the package WHO (our sub stays reachable)';
 
 is-run q:to/CODE/,
     my $a = $*TMPDIR.add("rakuast-reload-a-{$*PID}.rakumod");

@@ -909,14 +909,11 @@ class RakuAST::Class
 
         # Helper sub to create the default value for a given type
         my sub makeDefault($attribute) {
-            my int $primspec :=
-              nqp::objprimspec($attribute.type.resolution.compile-time-value);
-
-            $primspec
+            (my int $primspec := nqp::objprimspec($attribute.IMPL-OF-TYPE))
               ?? RakuAST::Literal.from-value(
                    $primspec == 3 ?? "" !! $primspec == 2 ?? 0e0 !! 0
                  )
-              !! RakuAST::Type::Simple.new(makeName("Nil"))
+              !! makeType("Nil")
         }
 
 #- process all attributes ------------------------------------------------------

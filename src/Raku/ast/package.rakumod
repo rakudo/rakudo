@@ -827,10 +827,6 @@ class RakuAST::Class
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
-        $resolver.push-scope(self.body);
-        $resolver.push-package(self);
-
-        self.PRODUCE-ACCESSORS-POPULATE($resolver, $context);
         self.PRODUCE-META-ATTACHABLES($type, $type.HOW);
 
         {
@@ -840,8 +836,6 @@ class RakuAST::Class
             }
         }
 
-        $resolver.pop-package();
-        $resolver.pop-scope();
         $type
     }
 
@@ -852,6 +846,10 @@ class RakuAST::Class
                  RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context
     ) {
+
+        # Make the resolver aware of outselves
+        $resolver.push-scope(self.body);
+        $resolver.push-package(self);
 
 #- initializations -------------------------------------------------------------
 
@@ -1118,6 +1116,22 @@ class RakuAST::Class
         );
 
         $method.IMPL-BEGIN($resolver, $context);
+
+        # Remove knowledge of ourselves from the resolver
+        $resolver.pop-package();
+        $resolver.pop-scope();
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver          $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::findmethod(RakuAST::Package::Attachable, 'PERFORM-CHECK')(
+          self, $resolver, $context
+        );
+
+        # Create accessors and POPULATE now
+        self.PRODUCE-ACCESSORS-POPULATE($resolver, $context);
     }
 }
 
@@ -1135,7 +1149,9 @@ class RakuAST::Grammar
       RakuAST::Resolver          $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        nqp::findmethod(RakuAST::Class, 'PERFORM-CHECK')(self, $resolver, $context);
+        nqp::findmethod(RakuAST::Class, 'PERFORM-CHECK')(
+          self, $resolver, $context
+        );
         my $sanity-check := self.HOW.find_method(self,"check-sanity");
         $sanity-check(self) if $sanity-check;
         True;

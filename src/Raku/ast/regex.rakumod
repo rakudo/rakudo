@@ -98,6 +98,10 @@ class RakuAST::Regex::Branching
         my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
         for $!branches {
             my $branch-qast := $_.IMPL-REGEX-QAST($context, %mods);
+            # An internal modifier (e.g. :i) as a sole branch compiles to
+            # Nil. Emit an empty concat so the alternation has a real QAST
+            # child for the NFA and capnames helpers.
+            $branch-qast := QAST::Regex.new(:rxtype<concat>) unless $branch-qast;
             $branch-qast.backtrack('r') if %mods<r> && !$branch-qast.backtrack;
             $qast.push($branch-qast);
         }

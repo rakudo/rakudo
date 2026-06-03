@@ -26,7 +26,7 @@ class RakuAST::ParseTime
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $code.IMPL-CAN-INTERPRET {
-            $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
+            $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context))
         }
         elsif nqp::istype($code, RakuAST::Code) {
             my $code-obj := $code.meta-object;
@@ -58,7 +58,7 @@ class RakuAST::ParseTime
         if $callee.is-resolved && nqp::istype($callee.resolution, RakuAST::CompileTimeValue) &&
                 $args.IMPL-CAN-INTERPRET {
             my $resolved := $callee.resolution.compile-time-value;
-            my @args := $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            my @args := $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context));
             my @pos := @args[0];
             my %named := @args[1];
             return $resolved(|@pos, |%named);

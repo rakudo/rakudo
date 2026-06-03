@@ -249,8 +249,19 @@ class RakuAST::IMPL::QASTContext {
 # Rakudo-specific class used for holding state used during interpretation of
 # simple code at BEGIN time.
 class RakuAST::IMPL::InterpContext {
-    method new() {
-        nqp::create(self)
+    # Optional compile pipeline state. IMPL-BEGIN-TIME-CALL and
+    # IMPL-BEGIN-TIME-EVALUATE set these when they have them. A node's
+    # IMPL-INTERPRET can read them to forward to meta-object, so
+    # subclasses like RakuAST::Type::Parameterized can evaluate
+    # arguments without compile-time values via IMPL-BEGIN-TIME-EVALUATE.
+    has Mu $.resolver;
+    has Mu $.context;
+
+    method new(:$resolver, :$context) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::IMPL::InterpContext, '$!resolver', $resolver);
+        nqp::bindattr($obj, RakuAST::IMPL::InterpContext, '$!context', $context);
+        $obj
     }
 }
 

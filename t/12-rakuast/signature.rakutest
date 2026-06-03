@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 15;
 
 my $ast;
 my $deparsed;
@@ -563,6 +563,87 @@ CODE
         is-deeply $sub("foo", :bar<baz>), \("foo", bar => 'baz'),
           "$type: Passing a mix of positional and named arguments gets correct capture";
     }
+}
+
+subtest 'Parameter with sub-signature destructure' => {
+    # sub ($pair ($k, $v)) { "$k|$v" }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$pair>),
+            sub-signature => RakuAST::Signature.new(
+              parameters => (
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$k>),
+                ),
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$v>),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::QuotedString.new(
+              segments => (
+                RakuAST::Var::Lexical.new('$k'),
+                RakuAST::StrLiteral.new('|'),
+                RakuAST::Var::Lexical.new('$v'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
+        is $sub([10, 20]), '10|20',
+          "$type: positional sub-signature destructure binds";
+    }
+}
+
+subtest 'set-sub-signature mutator on a Parameter' => {
+    # Build the Parameter without sub-signature, then attach one via
+    # the mutator before wrapping it in a Sub. Locks in the mutator
+    # path that propagates custom-args to the owning routine.
+    my $param := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$pair>),
+    );
+    $param.set-sub-signature(RakuAST::Signature.new(
+      parameters => (
+        RakuAST::Parameter.new(
+          target => RakuAST::ParameterTarget::Var.new(:name<$k>),
+        ),
+        RakuAST::Parameter.new(
+          target => RakuAST::ParameterTarget::Var.new(:name<$v>),
+        ),
+      ),
+    ));
+    my $sub := EVAL RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(parameters => ($param,)),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::QuotedString.new(
+              segments => (
+                RakuAST::Var::Lexical.new('$k'),
+                RakuAST::StrLiteral.new('|'),
+                RakuAST::Var::Lexical.new('$v'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    is $sub([10, 20]), '10|20', 'mutator path: destructure binds';
 }
 
 # vim: expandtab shiftwidth=4

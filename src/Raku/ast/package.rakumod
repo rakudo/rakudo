@@ -838,6 +838,7 @@ class RakuAST::Class
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
+        $resolver.push-scope(self.body);
         $resolver.push-package(self);
 
         self.PRODUCE-ACCESSORS-POPULATE($resolver, $context);
@@ -851,6 +852,7 @@ class RakuAST::Class
         }
 
         $resolver.pop-package();
+        $resolver.pop-scope();
         $type
     }
 
@@ -871,21 +873,10 @@ class RakuAST::Class
             nqp::bindkey($methods,$name,1);
         }
 
-        # Lookups for proper "getattr" usage depending on primspec
-        # and whether a decont is needed
-        my $getattrs := nqp::list_s(
-          'getattr', 'getattr_i', 'getattr_n', 'getattr_s',
-          '', '', '', '', '', '', 'getattr_u'
-        );
-        my $getattrrefs := nqp::list_s(
-          'getattr', 'getattrref_i', 'getattrref_n', 'getattrref_s',
-          '', '', '', '', '', '', 'getattrref_u'
-        );
-
         # The body of the POPULATE method to be
         my $statements := RakuAST::StatementList.new;
         my $ast-self   := RakuAST::Term::Self.new;
-        my $ast-type   := RakuAST::Nqp.new("what",$ast-self);
+        my $ast-type   := RakuAST::Var::Compiler::Lookup.new('$?CLASS');
         my $ast-is-raw := RakuAST::Trait::Is.new(
           name => RakuAST::Name.from-identifier("raw")
         );
@@ -916,6 +907,18 @@ class RakuAST::Class
             RakuAST::ColonPair::Value.new(key => $name, value => $ast)
         }
 
+        # Helper sub to create the default value for a given type
+        my sub makeDefault($attribute) {
+            my int $primspec :=
+              nqp::objprimspec($attribute.type.resolution.compile-time-value);
+
+            $primspec
+              ?? RakuAST::Literal.from-value(
+                   $primspec == 3 ?? "" !! $primspec == 2 ?? 0e0 !! 0
+                 )
+              !! RakuAST::Type::Simple.new(makeName("Nil"))
+        }
+
 #- process all attributes ------------------------------------------------------
         my int $are-built;
         my @attributes := self.attached-attributes;
@@ -929,10 +932,9 @@ class RakuAST::Class
             my int $is-built     := $twigil eq ".";
             my int $has-accessor := $is-built;
             my int $is-bound;
-            my int $is-raw;
+            my int $is-rw;
 
-            my $default  := RakuAST::Type::Simple.new(makeName("Nil"));
-
+            my $default;
             for self.IMPL-UNWRAP-LIST($attribute.traits) -> $trait {
                 my str $trait-name := $trait.IMPL-TRAIT-NAME;
 
@@ -1018,9 +1020,9 @@ class RakuAST::Class
                         }
                     }
 
-                    # is rw | raw
-                    elsif $name eq 'rw' || $name eq 'raw' {
-                        $is-raw := 1;
+                    # is rw
+                    elsif $name eq 'rw' {
+                        $is-rw := 1;
                     }
 
                     # is huh?
@@ -1037,25 +1039,18 @@ class RakuAST::Class
 
             # need to create an accessor
             if $has-accessor  && nqp::not_i(nqp::existskey($methods,$key)) {
-                my int $primspec := nqp::objprimspec($attribute.type);
 
-                # nqp::getattr(self,$type,$name)
-                my $expression := RakuAST::Nqp.new(
-                  nqp::atpos_s($is-raw ?? $getattrrefs !! $getattrs, $primspec),
-                  $ast-self,
-                  $ast-type,
-                  RakuAST::StrLiteral.new($sigil ~ '!' ~ $key)
-                );
-                $expression := RakuAST::Nqp.new('decont', $expression)
-                  unless $primspec || $is-raw;
-
-                # method $key () { $gettattr }
+                # method $key () { $!attribute }
                 my $method := RakuAST::Method.new(
                   name   => makeName($key),
-                  traits => ($ast-is-raw,),
+                  traits => $is-rw ?? ($ast-is-raw,) !! (),
                   body   => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
-                      RakuAST::Statement::Expression.new(:$expression)
+                      RakuAST::Statement::Expression.new(
+                       expression => RakuAST::Var::Attribute.new(
+                                       $sigil ~ '!' ~ $key
+                                     )
+                      )
                     )
                   )
                 );
@@ -1066,14 +1061,7 @@ class RakuAST::Class
             if $is-built {
                 ++$are-built;
 
-                # nqp::atkey($nameds,$key)
-                my $value := RakuAST::Nqp.new(
-                  "atkey",
-                  RakuAST::Var::Lexical.new('$nameds'),
-                  RakuAST::StrLiteral.new($key)
-                );
-
-                # $!a = nqp::ifnull($value,$default)
+                # $!a = nqp::ifnull(nqp::atkey($nameds,$key),$default)
                 add-statement(RakuAST::ApplyInfix.new(
                   left  => RakuAST::Var::Attribute.new(
                              $attribute.sigil ~ '!' ~ $key
@@ -1081,12 +1069,24 @@ class RakuAST::Class
                   infix => $is-bound
                     ?? RakuAST::Infix.new(":=")
                     !! RakuAST::Assignment.new,
-                  right => RakuAST::Nqp.new("ifnull", $value, $default)
+                  right => RakuAST::Nqp.new(
+                             "ifnull",
+                             RakuAST::Nqp.new(
+                               "atkey",
+                               RakuAST::Var::Lexical.new('$nameds'),
+                               RakuAST::StrLiteral.new($key)
+                             ),
+                             $default // makeDefault($attribute)
+                           )
                 ));
             }
         }
 
 #- wrap it up ------------------------------------------------------------------
+
+        # Mu.POPULATE for now already contains a POPULATE method,
+        # and some naughty people may have added their own.
+        return Nil if nqp::existskey($methods,'POPULATE');
 
         # at least one attribute to be built
         if $are-built {
@@ -1193,47 +1193,4 @@ class RakuAST::Native
 {
     method declarator()  { "native"             }
     method default-how() { Metamodel::NativeHOW }
-}
-
-# For generating accessors
-class RakuAST::CompilerServices
-{
-    has RakuAST::Package $!package;
-    has RakuAST::Resolver $!resolver;
-    has RakuAST::IMPL::QASTContext $!context;
-    has QAST::Stmts $!qast;
-
-    method new(RakuAST::Package $package, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::CompilerServices, '$!package', $package);
-        nqp::bindattr($obj, RakuAST::CompilerServices, '$!resolver', $resolver);
-        nqp::bindattr($obj, RakuAST::CompilerServices, '$!context', $context);
-        nqp::bindattr($obj, RakuAST::CompilerServices, '$!qast', QAST::Stmts.new);
-        $obj
-    }
-
-    method generate_accessor(str $meth_name, $package_type, str $attr_name, Mu $type, int $rw) {
-        my $accessor := RakuAST::Method::AttributeAccessor.new(
-            :name(RakuAST::Name.from-identifier($meth_name)),
-            :attr-name($attr_name),
-            :type($type),
-            :package-type($package_type),
-            :rw($rw),
-        );
-        $!resolver.push-scope($!package);
-        $!resolver.push-scope($accessor);
-        $accessor.to-begin-time($!resolver, $!context); # TODO maybe also check?
-        $!resolver.pop-scope();
-        $!resolver.pop-scope();
-        $!qast.push: $accessor.IMPL-QAST-BLOCK($!context);
-        $accessor.meta-object
-    }
-
-    method IMPL-ADD-QAST(QAST::Node $target) {
-        $target.push: $!qast if nqp::elems($!qast.list);
-    }
-
-    # Return the accumulated accessor QAST so Package can keep it and
-    # discard the transient CompilerServices.
-    method IMPL-GET-QAST() { $!qast }
 }

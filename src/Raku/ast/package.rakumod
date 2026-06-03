@@ -847,7 +847,7 @@ class RakuAST::Class
         RakuAST::IMPL::QASTContext $context
     ) {
 
-        # Make the resolver aware of outselves
+        # Make the resolver aware the invocant class
         $resolver.push-scope(self.body);
         $resolver.push-package(self);
 
@@ -1070,54 +1070,55 @@ class RakuAST::Class
 
         # Mu.POPULATE for now already contains a POPULATE method,
         # and some naughty people may have added their own.
-        return Nil if nqp::existskey($methods,'POPULATE');
+        unless nqp::existskey($methods,'POPULATE') {
 
-        # at least one attribute to be built
-        if $are-built {
-            # Try to do everything as low level as possible, so extract the
-            # NQP hash from the positional argument
-            # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
-            $statements.unshift-statement(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::VarDeclaration::Simple.new(
-                  sigil       => '$',
-                  desigilname => makeName("nameds"),
-                  initializer => RakuAST::Initializer::Bind.new(
-                    # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
-                    RakuAST::Nqp.new(
-                      "getattr",
-                      RakuAST::Var::Lexical.new('%nameds'),
-                      makeType("Map"),
-                      RakuAST::StrLiteral.new('$!storage')
+            # at least one attribute to be built
+            if $are-built {
+                # Try to do everything as low level as possible, so extract the
+                # NQP hash from the positional argument
+                # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
+                $statements.unshift-statement(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::VarDeclaration::Simple.new(
+                      sigil       => '$',
+                      desigilname => makeName("nameds"),
+                      initializer => RakuAST::Initializer::Bind.new(
+                        # my $nameds := nqp::getattr(%nameds,Map,'$!storage')
+                        RakuAST::Nqp.new(
+                          "getattr",
+                          RakuAST::Var::Lexical.new('%nameds'),
+                          makeType("Map"),
+                          RakuAST::StrLiteral.new('$!storage')
+                        )
+                      )
                     )
                   )
+                );
+            }
+
+            # self
+            add-statement($ast-self);
+
+            # method POPULATE(%nameds) { $statements }
+            my $method := RakuAST::Method.new(
+              name      => makeName("POPULATE"),
+              signature => RakuAST::Signature.new(
+                parameters => (
+                  RakuAST::Parameter.new(
+                    target   => RakuAST::ParameterTarget::Var.new(
+                      name => "\%nameds"
+                    ),
+                    optional => False
+                  )
                 )
-              )
+              ),
+              body      => RakuAST::Blockoid.new($statements)
             );
+
+            $method.IMPL-BEGIN($resolver, $context);
         }
 
-        # self
-        add-statement($ast-self);
-
-        # method POPULATE(%nameds) { $statements }
-        my $method := RakuAST::Method.new(
-          name      => makeName("POPULATE"),
-          signature => RakuAST::Signature.new(
-            parameters => (
-              RakuAST::Parameter.new(
-                target   => RakuAST::ParameterTarget::Var.new(
-                  name => "\%nameds"
-                ),
-                optional => False
-              )
-            )
-          ),
-          body      => RakuAST::Blockoid.new($statements)
-        );
-
-        $method.IMPL-BEGIN($resolver, $context);
-
-        # Remove knowledge of ourselves from the resolver
+        # Remove knowledge of invocant class from the resolver
         $resolver.pop-package();
         $resolver.pop-scope();
     }

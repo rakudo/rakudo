@@ -919,9 +919,7 @@ class RakuAST::Type::Enum
         self.apply-traits($resolver, $context, self);
         $meta.HOW.compose($meta);
 
-        # Don't install an anonymous enum
-        my $anonymous := !$!name.canonicalize;
-        if !$anonymous {
+        if $!name.is-installable {
             self.IMPL-INSTALL-PACKAGE(
                 $resolver, self.scope, $!name, $!current-package, :meta-object(Mu)
             );
@@ -1151,17 +1149,18 @@ class RakuAST::Type::Subset
         # set up the meta object
         my $package := $!current-package;
         my $type    := self.stubbed-meta-object;
-        $type.HOW.set_name(
-          $type,
-          $!name.qualified-with(
-            RakuAST::Name.from-identifier-parts(
-              |nqp::split('::', $package.HOW.name($package))
-            )
-          ).canonicalize(:colonpairs(0))
-        ) unless nqp::eqaddr($package, $resolver.get-global);
-        # Update the Stash's name, too.
-        nqp::bindattr_s($type.WHO, Stash, '$!longname', $type.HOW.name($type));
-
+        if $!name.is-installable {
+            $type.HOW.set_name(
+              $type,
+              $!name.qualified-with(
+                RakuAST::Name.from-identifier-parts(
+                  |nqp::split('::', $package.HOW.name($package))
+                )
+              ).canonicalize(:colonpairs(0))
+            ) unless nqp::eqaddr($package, $resolver.get-global);
+            # Update the Stash's name, too.
+            nqp::bindattr_s($type.WHO, Stash, '$!longname', $type.HOW.name($type));
+        }
         self.IMPL-INSTALL-PACKAGE(
           $resolver, self.scope, $!name, $package, :meta-object(Mu)
         );
@@ -1182,11 +1181,12 @@ class RakuAST::Type::Subset
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::SubsetHOW.new_type(
-            :name($!name.canonicalize(:colonpairs(0))),
-            :refinee(Any),
-            :refinement(nqp::null)
-        )
+        my %options;
+        %options<refinee>    := Any;
+        %options<refinement> := nqp::null;
+        %options<name> := $!name.canonicalize(:colonpairs(0))
+          if $!name.is-installable;
+        Perl6::Metamodel::SubsetHOW.new_type(|%options)
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

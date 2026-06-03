@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -222,6 +222,69 @@ subtest 'Subset with a where literal' => {
         nok 41    ~~ $subset, "$type: subset does not accept 41";
         nok "foo" ~~ $subset, "$type: subset does not accept foo";
     }
+}
+
+subtest 'Anonymous subset (subset ::)' => {
+    # my subset :: of Str where /42/
+    my $two-ast := RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::Empty.new,
+      ),
+      of    => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Str")
+        ),
+      where => RakuAST::QuotedRegex.new(
+        body => RakuAST::Regex::Literal.new('42')
+      )
+    );
+
+    is $two-ast.DEPARSE, 'my subset :: of Str where /42/',
+        'AST two-Empty: deparse uses :: placeholder';
+    my $subset := EVAL $two-ast;
+    is $subset.^name, '<anon>', 'AST two-Empty: anonymous name';
+
+    # Single-Empty-part Name shape. Only constructible via the
+    # RakuAST API. The grammar always emits two empty parts for `::`.
+    my $single := EVAL RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.new(RakuAST::Name::Part::Empty.new),
+      of    => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        ),
+    );
+    is $single.^name, '<anon>', 'AST single-Empty: anonymous name';
+
+    lives-ok {
+        EVAL 'class C { has Str %.bla{subset :: of Str where any("ble", "blob")} }';
+    }, 'Source: anonymous subset as hash typed-key constraint compiles';
+
+    # An anonymous subset inside a role installs no symbol, so the
+    # 'our' default scope is harmless.
+    lives-ok {
+        EVAL 'role R { subset :: of Int where * > 0; method m() { 42 } }';
+    }, 'Source: anonymous subset inside role compiles';
+
+    # Anonymous package declarations (class/role/module/grammar ::)
+    # get a default name from their HOW. The SubsetHOW default is the
+    # literal '<anon>' while ClassHOW/RoleHOW/ModuleHOW/GrammarHOW
+    # default to '<anon|N>'. This pins both formats.
+    is (class :: { }).^name.starts-with('<anon|'),   True,
+        'class :: .^name uses HOW anon default';
+    is (role :: { }).^name.starts-with('<anon|'),    True,
+        'role :: .^name uses HOW anon default';
+    is (module :: { }).^name.starts-with('<anon|'),  True,
+        'module :: .^name uses HOW anon default';
+    is (grammar :: { }).^name.starts-with('<anon|'), True,
+        'grammar :: .^name uses HOW anon default';
+
+    # The OurScopeInRole exemption is gated on RakuAST::PackageInstaller.
+    # RakuAST::Sub is not a PackageInstaller, so anonymous 'our sub' in
+    # a role throws regardless of name shape.
+    throws-like { EVAL 'role R { our sub :: () { } }' },
+        X::Declaration::OurScopeInRole,
+        'our sub :: in role throws (exemption is PackageInstaller-only)';
 }
 
 subtest 'Subset with a where regex' => {

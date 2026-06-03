@@ -1249,7 +1249,7 @@ CODE
 #- N ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Name:D $ast --> Str:D) {
-        $ast.canonicalize
+        $ast.is-installable ?? $ast.canonicalize !! '::'
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {

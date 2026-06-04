@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 114;
+plan 113;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -31,12 +31,6 @@ plan 114;
 # https://github.com/rakudo/rakudo/issues/5454
 {
     is Q| $_="0X"; m/\d/ ~ m/X/ |.AST.EVAL, "0X", "multiple m// works correctly";
-}
-
-# t/spec/S09-hashes/objecthash.t
-# https://github.com/rakudo/rakudo/issues/5419
-{
-    is Q| my %h{Int}; %h.of |.AST.EVAL, Mu, "creating an object hash without specifying an 'of type' defaults to Mu";
 }
 
 # t/spec/S06-currying/misc.t (?)

@@ -1028,9 +1028,12 @@ class RakuAST::Parameter
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+            # Match legacy: store the bare element type and treat `:D`/`:U`
+            # as a separate definedness flag. Role parameterisation is
+            # invariant, so the wrapped form would reject `my Str @x` defaults.
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
-                        $!type.meta-object)
+                        RakuAST::Type.IMPL-MAYBE-NOMINALIZE($!type.meta-object))
                 !! $sigil-type
         }
         else {

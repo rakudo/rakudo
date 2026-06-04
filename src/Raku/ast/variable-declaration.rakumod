@@ -228,10 +228,11 @@ class RakuAST::ContainerCreator {
                             $bind-constraint, $of, $key-type);
                     }
                     else {
+                        my $value-default := nqp::getcomp('Raku').language_revision >= 3 ?? Mu !! Any;
                         $container-type := Hash.HOW.parameterize(
-                            Hash, $explicit-base, $key-type);
+                            Hash, $value-default, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
-                            $bind-constraint, $explicit-base, $key-type);
+                            $bind-constraint, $value-default, $key-type);
                     }
                 }
             }

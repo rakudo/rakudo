@@ -2058,7 +2058,9 @@ class Perl6::World is HLL::World {
                 %info<bind_constraint> := self.find_single_symbol_in_setting('Associative');
             }
             if $shape {
-                @value_type[0] := self.find_single_symbol_in_setting('Any') unless +@value_type;
+                @value_type[0] := self.find_single_symbol_in_setting(
+                    nqp::getcomp('Raku').language_revision >= 3 ?? 'Mu' !! 'Any'
+                ) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
                 if nqp::istype($shape_ast, QAST::Stmts) {
                     if +@($shape_ast) == 1 {

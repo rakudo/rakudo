@@ -639,6 +639,8 @@ class RakuAST::CompUnit
             $top-level.set_children([$run-main]);
         }
 
+        $context.cleanup-orphan-stubs();
+
         QAST::CompUnit.new:
             $top-level,
             :hll('Raku'),

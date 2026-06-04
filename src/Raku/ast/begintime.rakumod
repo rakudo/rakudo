@@ -47,6 +47,7 @@ class RakuAST::BeginTime
             my $thunk := RakuAST::ExpressionThunk.new;
             $code.wrap-with-thunk($thunk);
             $thunk.IMPL-STUB-CODE($resolver, $context);
+            $code.apply-sink(False);
             $thunk.IMPL-QAST-BLOCK($context, :expression($code));
             $thunk.meta-object()()
         }

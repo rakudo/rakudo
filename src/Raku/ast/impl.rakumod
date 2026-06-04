@@ -41,6 +41,19 @@ class RakuAST::IMPL::QASTContext {
     has Hash $!cuid-to-parse-time-resolver;
     has Bool $!parse-time-resolver-cleanup-scheduled;
 
+    # Code objects whose IMPL-STUB-CODE bound a freshcoderef to
+    # Code.$!do but whose IMPL-LINK-META-OBJECT has not yet registered
+    # that coderef with the SC. If the owning AST is discarded before
+    # QAST emission (e.g. block-or-hash repurposing a Block as a Hash
+    # composer), the code object is left with a non-SC'd coderef that
+    # breaks serialization if anything else pulls it into the SC.
+    # cleanup-orphan-stubs nulls Code.$!do for whatever still sits here
+    # right before the QAST::CompUnit is handed to the backend.
+    # Keyed by code object identity so AST nodes that share a meta-object
+    # (a phaser StatementPrefix and its blorst Block) produce one entry
+    # that either node's finalize call clears.
+    has Hash $!stubbed-code-objects;
+
     method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
@@ -56,6 +69,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
         $obj
     }
 
@@ -76,6 +90,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
         $context
     }
 
@@ -112,6 +127,27 @@ class RakuAST::IMPL::QASTContext {
             nqp::scsetobj($sc, $idx, $obj);
         }
         $obj
+    }
+
+    method register-stubbed-code-object(Mu $code-obj) {
+        my str $key := ~nqp::objectid($code-obj);
+        $!stubbed-code-objects{$key} := $code-obj;
+        Nil
+    }
+
+    method mark-code-object-finalized(Mu $code-obj) {
+        my str $key := ~nqp::objectid($code-obj);
+        nqp::deletekey($!stubbed-code-objects, $key);
+        Nil
+    }
+
+    # Null Code.$!do on every still-unfinalized code object so the
+    # serializer cannot follow it to the orphan stub freshcoderef.
+    method cleanup-orphan-stubs() {
+        for $!stubbed-code-objects {
+            nqp::bindattr(nqp::iterval($_), Code, '$!do', nqp::null());
+        }
+        Nil
     }
 
     method add-code-ref(Mu $code-ref, Mu $block) {

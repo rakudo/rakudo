@@ -175,6 +175,8 @@ class RakuAST::Code
             $context.add-clone-for-cuid($clone, $cuid);
         }
 
+        $context.register-stubbed-code-object($code-obj);
+
         $stub
     }
 
@@ -249,6 +251,8 @@ class RakuAST::Code
         $context.add-fixup-task(-> {
             $fixups
         });
+
+        $context.mark-code-object-finalized($code-obj);
     }
 
     method IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {

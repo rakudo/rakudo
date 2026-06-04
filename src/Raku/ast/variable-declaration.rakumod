@@ -228,10 +228,13 @@ class RakuAST::ContainerCreator {
                             $bind-constraint, $of, $key-type);
                     }
                     else {
+                        # No explicit value type with a shape: legacy defaults
+                        # the value type to Any so `my %h{K}` parameterises as
+                        # `Hash[Any, K]`, not `Hash[Mu, K]`.
                         $container-type := Hash.HOW.parameterize(
-                            Hash, $explicit-base, $key-type);
+                            Hash, Any, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
-                            $bind-constraint, $explicit-base, $key-type);
+                            $bind-constraint, Any, $key-type);
                     }
                 }
             }

@@ -1917,6 +1917,14 @@ class RakuAST::Statement::Use
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        CATCH {
+            my $ex := $resolver.convert-exception($_);
+            if nqp::can($ex, 'SET_FILE_LINE') && self && my $origin := self.origin {
+                my $origin-match := $origin.as-match;
+                $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
+            }
+            $ex.rethrow;
+        }
         # Evaluate the argument to the module load, if any.
         my $arglist := $!argument
             ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST

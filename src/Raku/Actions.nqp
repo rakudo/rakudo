@@ -2425,6 +2425,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $ast := Nodify('VarDeclaration::Anonymous').new(
                   :$sigil, :scope<state>
                 );
+                $*R.declare-lexical($ast);
             }
 
             # simple variable

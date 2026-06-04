@@ -155,7 +155,8 @@ class RakuAST::ArgList
     method IMPL-IS-FLATTENING(RakuAST::Node $arg) {
         nqp::istype($arg, RakuAST::ApplyPrefix) &&
             nqp::istype($arg.prefix, RakuAST::Prefix) &&
-            $arg.prefix.operator eq '|'
+            $arg.prefix.operator eq '|' &&
+            !$arg.IMPL-CURRIED
     }
 
     method IMPL-CAN-INTERPRET() {

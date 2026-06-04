@@ -1135,13 +1135,16 @@ class RakuAST::PackageInstaller {
         # Catch in-source dupes the install-collision check below
         # silent-replaces: multi-part names (lexical-decl merge only
         # sees the leading identifier) and identifier dupes inside
-        # an augment body (augment opens a fresh lexical scope).
+        # an augment body (augment opens a fresh lexical scope). A
+        # prior `package` declarator is itself a silent-replace target,
+        # so do not flag it here either.
         if $orig-scope eq 'our' || $orig-scope eq 'unit' {
             my $existed := $resolver.declare-our-package($target, $final, self);
             $resolver.add-sorry($resolver.build-exception:
                 'X::Redeclaration', :symbol($name.canonicalize(:colonpairs(0))))
               if $existed
-              && (!$name.is-identifier || $resolver.in-augment-scope);
+              && (!$name.is-identifier || $resolver.in-augment-scope)
+              && $existed.declarator ne 'package';
         }
 
         my %stash := $resolver.IMPL-STASH-HASH($target);

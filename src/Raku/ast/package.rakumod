@@ -550,17 +550,10 @@ class RakuAST::Package::Attachable
             elsif $_.multiness eq 'multi' {
                 $how.add_multi_method($type, $name, $meta-object);
             }
-
-            # TEMPORARY FIX to get the setting building further
-            elsif $name eq 'POPULATE'
-              && nqp::existskey($how.method_table($type),$name) {
-            }
-
             else {
                 $how.add_method($type, $name, $meta-object);
             }
         }
-
         for $!attached-attributes {
 
             # attribute defined means we don't need to check it anymore

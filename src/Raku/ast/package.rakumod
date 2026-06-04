@@ -878,7 +878,7 @@ class RakuAST::Class
         my sub makeName(str $name) {
             nqp::index($name,"::") == -1
               ?? RakuAST::Name.from-identifier($name)
-              !! RakuAST::Name.from-identifier-parts(|$name.split("::"))
+              !! RakuAST::Name.from-identifier-parts(|nqp::split("::",$name))
         }
 
         # Helper sub to create AST representation of a type by name
@@ -923,7 +923,7 @@ class RakuAST::Class
                 if $trait-name eq 'will' {
                     my $expr := $trait.expr;
                     $default := nqp::istype($expr,RakuAST::Method::Initializer)
-                      ?? $expr.body.statement-list.statements[0].expression.args
+                      ?? $expr.body.statement-list.statements.head.expression
                       !! $expr;
                 }
 
@@ -1005,16 +1005,6 @@ class RakuAST::Class
                     elsif $name eq 'rw' {
                         $is-rw := 1;
                     }
-
-                    # is huh?
-                    else {
-                        nqp::die("unknown trait: 'is $name");
-                    }
-                }
-
-                # huh?
-                else {
-                    nqp::die("unknown trait: $trait-name");
                 }
             }
 

@@ -842,10 +842,7 @@ class RakuAST::Class
     # Produce any accessor methods as well as the POPULATE method from
     # the attributes that are known at this time, and add them as methods
     # for later processing
-    method PRODUCE-ACCESSORS-POPULATE(
-                 RakuAST::Resolver $resolver,
-        RakuAST::IMPL::QASTContext $context
-    ) {
+    method PRODUCE-ACCESSORS-POPULATE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
 
         # Make the resolver aware the invocant class
         $resolver.push-scope(self.body);

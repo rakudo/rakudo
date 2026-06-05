@@ -1,6 +1,6 @@
 use Test;
 
-plan 5;
+plan 8;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -35,6 +35,18 @@ for <... ??? !!!> -> $yada {
     my $err = stderr-of qq[role R \{ method foo(--> Nil) \{ $yada \} \}];
     nok useless-of($err, $yada),
         "`$yada` is not a useless-use subject for a stubbed method body";
+}
+
+# `rand` is an impure call, `*` is the Whatever singleton, and `**`
+# is the HyperWhatever singleton. None of them are useless values in
+# sink context: `rand` has side effects and the two singletons carry
+# meaning even when their result is discarded. Legacy stays silent on
+# all three at statement level.
+
+for 'rand', '*', '**' -> $term {
+    my $err = stderr-of "sub f \{ $term; 42 \}; f()";
+    nok useless-of($err, $term),
+        "`$term` is not a useless-use subject at statement level";
 }
 
 # vim: expandtab shiftwidth=4

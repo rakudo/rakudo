@@ -2357,7 +2357,10 @@ class RakuAST::ApplyListInfix
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
+            if self.infix.is-pure
+            && self.sunk
+            && !self.infix.short-circuit
+            && !self.IMPL-IS-LIST-LITERAL;
     }
 
     method IMPL-IS-VALID-FEED-STAGE($stage) {

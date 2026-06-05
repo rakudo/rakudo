@@ -286,6 +286,10 @@ class RakuAST::Term::Rand
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
 }
 
 # The whatever (*) term.
@@ -313,6 +317,10 @@ class RakuAST::Term::Whatever
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $context.ensure-sc($!whatever);
         QAST::WVal.new( :value($!whatever), :returns($!whatever) )
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
     }
 }
 
@@ -379,6 +387,10 @@ class RakuAST::Term::HyperWhatever
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $context.ensure-sc($!whatever);
         QAST::WVal.new( :value($!whatever) )
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
     }
 }
 

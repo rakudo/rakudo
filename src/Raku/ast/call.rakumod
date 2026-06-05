@@ -1331,6 +1331,10 @@ class RakuAST::Stub
         $obj
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
             RakuAST::Type::Simple.new(

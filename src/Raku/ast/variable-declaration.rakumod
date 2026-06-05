@@ -849,9 +849,12 @@ class RakuAST::VarDeclaration::Simple
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
                     $attribute-package);
                 if self.is-attribute && !$!attribute-package.can-have-attributes {
+                    my $pkgdecl := nqp::getlexdyn('$*PKGDECL');
                     my $ex := $resolver.build-exception: 'X::Attribute::Package',
                         name         => self.name,
-                        package-kind => $!attribute-package.declarator;
+                        package-kind => nqp::isconcrete($pkgdecl)
+                            ?? ~$pkgdecl
+                            !! $!attribute-package.declarator;
                     if nqp::istype($!attribute-package, RakuAST::Declaration::External::Package) {
                         self.add-worry: $ex;
                     }

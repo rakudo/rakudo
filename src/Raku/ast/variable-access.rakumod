@@ -267,14 +267,22 @@ class RakuAST::Var::Attribute
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         if $package {
-            # We can't check attributes exist until we compose the
-            # package, since they may come from roles. Thus we need to
-            # attach them to the package.
-            $package.ATTACH-ATTRIBUTE-USAGE(self);
-            nqp::bindattr(self, RakuAST::Var::Attribute, '$!package', $package);
-        }
-        else {
-            # TODO check-time error
+            if nqp::istype($package, RakuAST::Package::Attachable) {
+                # We can't check attributes exist until we compose the
+                # package, since they may come from roles. Thus we need to
+                # attach them to the package.
+                $package.ATTACH-ATTRIBUTE-USAGE(self);
+                nqp::bindattr(self, RakuAST::Var::Attribute, '$!package', $package);
+            }
+            else {
+                my $pkgdecl := nqp::getlexdyn('$*PKGDECL');
+                self.add-sorry:
+                    $resolver.build-exception: 'X::Attribute::Package',
+                        package-kind => nqp::isconcrete($pkgdecl)
+                            ?? ~$pkgdecl
+                            !! $package.declarator,
+                        name         => $!name;
+            }
         }
     }
 

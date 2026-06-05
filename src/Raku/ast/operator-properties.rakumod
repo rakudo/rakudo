@@ -620,6 +620,8 @@ class OperatorProperties {
           'xx', 'replication-xx',
 
           '~', 'concatenation',
+          '∘', 'concatenation',
+          'o', 'concatenation',
 
           '(&)', 'junctive-and',
           '∩',   'junctive-and',

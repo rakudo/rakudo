@@ -2468,7 +2468,7 @@ class RakuAST::Methodish
                 $resolver.add-worry:  # XXX should be self.add-worry
                   $resolver.build-exception: 'X::Useless::Declaration',
                     name  => $name,
-                    where => "a " ~ $package.declarator
+                    where => "a " ~ $package.parsed-declarator
             }
         }
         elsif self.scope eq 'has' {

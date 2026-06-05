@@ -1286,9 +1286,10 @@ class RakuAST::Call::BlockMethod
                 $!block.IMPL-EXPR-QAST($context),
             )
             !! QAST::Op.new(
-                :op<call>,
+                :op('callmethod'),
+                :name('dispatch:<var>'),
+                $invocant-qast,
                 $!block.IMPL-EXPR-QAST($context),
-                $invocant-qast
             );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call

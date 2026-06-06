@@ -994,7 +994,10 @@ my class Array { # declared in BOOTSTRAP
         self.is-lazy
           ?? self.fail-iterator-cannot-be-lazy('pop from')
           !! nqp::isconcrete($reified) && nqp::elems($reified)
-            ?? nqp::pop($reified)
+            ?? nqp::ifnull(
+                 nqp::pop($reified),
+                 nqp::getattr($!descriptor,ContainerDescriptor,'$!default')
+               )
             !! self.fail-cannot-be-empty('pop')
     }
 

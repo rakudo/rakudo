@@ -15,7 +15,7 @@ nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-confi
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');
-if nqp::getenvhash()<RAKUDO_RAKUAST> {
+if +nqp::getenvhash()<RAKUDO_RAKUAST> {
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);

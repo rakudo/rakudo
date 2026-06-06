@@ -361,6 +361,70 @@ my class Array { # declared in BOOTSTRAP
             nqp::decont($!descriptor))
     }
 
+    # Other signaturs of Array.fmt are handled by List.fmt
+    multi method fmt(Array:D: --> Str:D) {
+        nqp::if(
+          (my int $elems = self.elems),             # reifies
+          nqp::stmts(
+            (my $strings := nqp::setelems(nqp::list_s,$elems)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::bindpos_s($strings,$i,self.AT-POS($i).Str)
+            ),
+            nqp::join(' ',$strings)
+          ),
+          ''
+        )
+    }
+
+    multi method fmt(Array:D: Str(Cool) $format, $separator --> Str:D) {
+        nqp::if(
+          nqp::iseq_s($format,'%s') && nqp::iseq_s($separator,' '),
+          self.fmt,
+          nqp::if(
+            (my int $elems = self.elems),             # reifies
+            nqp::stmts(
+              (my $strings := nqp::setelems(nqp::list_s,$elems)),
+              (my int $i = -1),
+              nqp::if(
+                nqp::iseq_i(                          # only one % in format?
+                  nqp::elems(nqp::split('%',$format)),
+                  2
+                ) && nqp::iseq_i(                     # only one %s in format
+                       nqp::elems(my $parts := nqp::split('%s',$format)),
+                       2
+                     ),
+                nqp::while(                           # only a single %s
+                  nqp::islt_i(++$i,$elems),
+                  nqp::bindpos_s(
+                    $strings,
+                    $i,
+                    nqp::if(
+                      nqp::istype((my $elem := self.AT-POS($i)),List),
+                      $elem.fmt($format, $separator),
+                      nqp::join($elem.Str,$parts)
+                    )
+                  )
+                ),
+                nqp::while(                           # something else
+                  nqp::islt_i(++$i,$elems),
+                  nqp::bindpos_s($strings,$i,
+                    nqp::if(
+                      nqp::istype(($elem := self.AT-POS($i)),List),
+                      $elem.fmt($format, $separator),
+                      $elem.fmt($format)
+                    )
+                  )
+                )
+              ),
+              nqp::join($separator,$strings)
+            ),
+            ''
+          )
+        )
+    }
+
     multi method Slip(Array:D: --> Slip:D) {
 
        # A Slip-With-Descripto is a special kind of Slip that also has a

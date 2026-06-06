@@ -23,6 +23,7 @@ class RakuAST::Package
     has Mu            $.how;
     has Str           $.repr;
     has Bool          $.augmented;
+    has str           $!parsed-declarator;
 
     has Mu   $!block-semantics-applied;
     has Bool $.is-stub;
@@ -53,6 +54,7 @@ class RakuAST::Package
                          Str :$repr,
                         Bool :$augmented,
                         Bool :$is-require-stub,
+                         str :$parsed-declarator,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -65,6 +67,7 @@ class RakuAST::Package
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
         nqp::bindattr($obj, RakuAST::Package, '$!is-require-stub',$is-require-stub // False);
+        nqp::bindattr_s($obj, RakuAST::Package, '$!parsed-declarator', $parsed-declarator);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
@@ -75,6 +78,12 @@ class RakuAST::Package
 
         $obj
     }
+
+    # The literal declarator string the parser saw, e.g. `monitor` for a
+    # custom `EXPORTHOW::DECLARE` keyword. Diagnostics that want to echo
+    # what the user typed prefer this over `declarator`, which returns
+    # the AST class's static name.
+    method parsed-declarator() { $!parsed-declarator || self.declarator }
 
     # Informational methods
     method declarator()  { "package"             }
@@ -131,14 +140,14 @@ class RakuAST::Package
                 else {
                     self.add-sorry:
                         $resolver.build-exception: 'X::Augment::NoSuchType',
-                            :package(self.name.canonicalize), :package-kind(self.declarator);
+                            :package(self.name.canonicalize), :package-kind(self.parsed-declarator);
                     $resolver.add-node-with-check-time-problems(self);
                 }
             }
             else {
                 self.add-sorry:
                     $resolver.build-exception: 'X::Anon::Augment',
-                        :package-kind(self.declarator);
+                        :package-kind(self.parsed-declarator);
                 $resolver.add-node-with-check-time-problems(self);
             }
         }
@@ -505,6 +514,7 @@ class RakuAST::Package::Attachable
                           Mu :$how,
                          Str :$repr,
                         Bool :$augmented,
+                         str :$parsed-declarator,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -516,6 +526,7 @@ class RakuAST::Package::Attachable
           nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
+        nqp::bindattr_s($obj, RakuAST::Package, '$!parsed-declarator', $parsed-declarator);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);

@@ -851,7 +851,7 @@ class RakuAST::VarDeclaration::Simple
                 if self.is-attribute && !$!attribute-package.can-have-attributes {
                     my $ex := $resolver.build-exception: 'X::Attribute::Package',
                         name         => self.name,
-                        package-kind => $!attribute-package.declarator;
+                        package-kind => $!attribute-package.parsed-declarator;
                     if nqp::istype($!attribute-package, RakuAST::Declaration::External::Package) {
                         self.add-worry: $ex;
                     }

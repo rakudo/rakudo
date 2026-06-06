@@ -46,6 +46,8 @@ class RakuAST::Declaration::External::Package
                         !! nqp::die("Unexpected HOW: " ~ $how.HOW.name($how));
     }
 
+    method parsed-declarator() { self.declarator }
+
     method stubbed-meta-object() {
         self.compile-time-value
     }

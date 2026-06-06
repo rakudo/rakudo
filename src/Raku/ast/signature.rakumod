@@ -2087,7 +2087,7 @@ class RakuAST::ParameterTarget::Var
                     self.add-sorry:
                       $resolver.build-exception: 'X::Attribute::Undeclared',
                         symbol       => $!name,
-                        package-kind => $!attribute-package.declarator,
+                        package-kind => $!attribute-package.parsed-declarator,
                         package-name => $!attribute-package.name.canonicalize,
                         what         => 'attribute';
                 }

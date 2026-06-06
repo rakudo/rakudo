@@ -2601,8 +2601,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             'knowhow', 'Knowhow',
             'native', 'Native',
         );
-        my $package := Nodify(nqp::existskey(%special, $declarator) ?? %special{$declarator} !! 'Package').new(
-          :$how, :$name, :$scope, :$augmented
+        my str $ast-class;
+        if nqp::existskey(%special, $declarator) {
+            $ast-class := %special{$declarator};
+        }
+        else {
+            # A custom declarator registered via EXPORTHOW::DECLARE. Route to
+            # RakuAST::Class when the HOW can take attributes so the body's
+            # `has` declarations have an attach target; otherwise to bare
+            # RakuAST::Package so attribute usage emits the typed
+            # `cannot have attributes` error rather than a method-missing
+            # crash. The HOW handles compose either way.
+            $ast-class := nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
+        }
+        my $package := Nodify($ast-class).new(
+          :$how, :$name, :$scope, :$augmented, :parsed-declarator($declarator)
         );
 
         $package.to-parse-time($*R, $*CU.context);

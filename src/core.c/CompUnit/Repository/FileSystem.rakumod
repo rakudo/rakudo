@@ -14,7 +14,7 @@ class CompUnit::Repository::FileSystem
     has $!files-prefix;
     has @.extensions;
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         $!loaded-lock := Lock.new;
         $!seen-lock := Lock.new;
         $!seen := nqp::hash;

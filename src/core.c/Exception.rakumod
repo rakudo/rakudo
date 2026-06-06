@@ -156,7 +156,7 @@ my class X::AdHoc is Exception {
     has $.payload is default(Nil) = "Unexplained error";
 
     my role SlurpySentry { }
-    method TWEAK(:$without-backtrace) {
+    submethod TWEAK(:$without-backtrace) {
         if $without-backtrace {
             self does my role without-backtrace {
                 method backtrace()         { Nil  }
@@ -955,7 +955,7 @@ class X::Comp::Group is Exception {
     has @.sorrows;
     has @.worries;
 
-    method TWEAK(Mu :$sorries --> Nil) {
+    submethod TWEAK(Mu :$sorries --> Nil) {
         @!sorrows := $sorries<> if $sorries;
     }
 

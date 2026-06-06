@@ -28,7 +28,7 @@ class BB {
     my constant $prefix = 'unspecialized ';
     my constant $offset = $prefix.chars;
 
-    method TWEAK() {
+    submethod TWEAK() {
         if $!name.starts-with($prefix) {
             $!name        := $!name.substr($offset);
             $!specialized := False;

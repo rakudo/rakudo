@@ -2,7 +2,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
     has $!lock;
     has $!loaded;
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         $!loaded := nqp::hash;
         $!lock   := Lock.new;
     }

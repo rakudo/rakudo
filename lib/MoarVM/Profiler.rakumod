@@ -135,7 +135,7 @@ class Callee does OnHash[<
   osr
 >] {
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         self!mogrify-to-slip(
           Allocation, 'allocations', 'callee');
         self!mogrify-to-slip(
@@ -336,7 +336,7 @@ class GC does OnHash[<
   time
 >] {
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         self!mogrify-to-slip(Deallocation, 'deallocs', 'gc');
     }
 
@@ -361,7 +361,7 @@ class Type does OnHash[<
         %hash.BIND-KEY("id",$id);
         self.POPULATE(%hash)
     }
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         # link to originating profile
         %!hash.BIND-KEY("profile",$_) with $*PROFILE;
     }
@@ -422,7 +422,7 @@ class Thread does OnHash[<
   total_time
 >] {
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         self!mogrify-to-object(Callee,'call_graph','caller');
         self!mogrify-to-slip(GC,'gcs','thread');
 

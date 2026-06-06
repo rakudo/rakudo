@@ -327,7 +327,7 @@ my class IO::Handle {
         has int $!searching = 1;
         has int $!pos;
 
-        method TWEAK() { self!next-chunk }
+        submethod TWEAK() { self!next-chunk }
         method !next-chunk() {
             my int $chars = nqp::chars($!str);
             $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";

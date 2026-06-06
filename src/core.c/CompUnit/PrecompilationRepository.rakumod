@@ -30,7 +30,7 @@ class CompUnit::PrecompilationRepository::Default
     has $!RMD;
     has $!RRD;
 
-    method TWEAK() {
+    submethod TWEAK() {
         $!RMD := $*RAKUDO_MODULE_DEBUG;
         $!RRD :=
           nqp::ifnull(nqp::atkey(%*ENV,'RAKUDO_RERESOLVE_DEPENDENCIES'),1);

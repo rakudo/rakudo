@@ -16,7 +16,7 @@ class CompUnit::DependencySpecification {
     # Sadly this is needed because we have a spectest that explicitly
     # passes True for unspecified matchers.  Hopefully this can go when
     # we accept that an undefined value indicates no interest in matching.
-    method TWEAK() {
+    submethod TWEAK() {
         $!version-matcher := Any if nqp::eqaddr($!version-matcher,True);
         $!auth-matcher    := Any if nqp::eqaddr($!auth-matcher,True);
         $!api-matcher     := Any if nqp::eqaddr($!api-matcher,True);

@@ -7,8 +7,14 @@ my class IO::Pipe is IO::Handle {
     has $!eof = False;
     has $!closed = False;
 
-    method TWEAK(:$!on-close!, :$enc, :$bin, :$!on-read, :$!on-write,
-                 :$!on-native-descriptor --> Nil) {
+    submethod TWEAK(
+      :$!on-close!,
+      :$enc,
+      :$bin,
+      :$!on-read,
+      :$!on-write,
+      :$!on-native-descriptor
+    --> Nil) {
         if $bin {
             X::IO::BinaryAndEncoding.new.throw if nqp::isconcrete($enc)
         }
@@ -16,7 +22,7 @@ my class IO::Pipe is IO::Handle {
             my $encoding = Encoding::Registry.find($enc || 'utf-8');
             nqp::bindattr(self, IO::Handle, '$!encoding', $encoding.name);
             my $decoder := $encoding.decoder(:translate-nl);
-            $decoder.set-line-separators($.nl-in.list);
+            $decoder.set-line-separators(self.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);
             nqp::bindattr(self, IO::Handle, '$!encoder', $encoding.encoder(:translate-nl))
         }

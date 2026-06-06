@@ -20,7 +20,7 @@
         has $!queue;
         has $!exception;
 
-        method TWEAK(:$supply) {
+        submethod TWEAK(:$supply) {
             $!queue     := nqp::create(ConcQueue);
             $!exception := Nil;
             $supply.tap: {

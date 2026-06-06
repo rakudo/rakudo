@@ -7,7 +7,7 @@ class CompUnit::Repository::Distribution does Distribution {
     has              $.repo-name is built(:bind);
     has              %.meta      is built(False);
 
-    method TWEAK(--> Nil) {
+    submethod TWEAK(--> Nil) {
         my %meta := $!dist.meta.hash;
         %meta<ver>  //= %meta<version> // '';
         %meta<auth> //= %meta<authority> // %meta<author> // '';

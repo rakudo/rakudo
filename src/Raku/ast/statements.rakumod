@@ -1282,6 +1282,7 @@ class RakuAST::Statement::Loop
                     $!condition.IMPL-TO-QAST($context),
                 );
                 $qast.push: $!increment.IMPL-TO-QAST($context) if $!increment;
+                $qast.push: QAST::IVal.new(:value(1), :named('repeat')) if self.repeat;
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');

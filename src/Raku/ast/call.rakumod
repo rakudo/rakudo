@@ -347,6 +347,20 @@ class RakuAST::Call::Name
             self.PERFORM-BEGIN($resolver, $context);
         }
 
+        # A `sub foo { }` declaration is hoisted to the start of its
+        # lexical scope. When the existing resolution is an `External`
+        # (typically `CORE`), re-query and adopt the closer non-`External`
+        # match if one is present.
+        if $!name.is-identifier
+            && self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::Declaration::External)
+        {
+            my $lexical := $resolver.resolve-lexical('&' ~ $name);
+            if $lexical && !nqp::istype($lexical, RakuAST::Declaration::External) {
+                self.set-resolution($lexical);
+            }
+        }
+
         if !self.is-resolved && ($name eq 'pi' || $name eq 'tau' || $name eq 'e') {
             self.add-sorry:
                 $resolver.build-exception: 'X::Undeclared',

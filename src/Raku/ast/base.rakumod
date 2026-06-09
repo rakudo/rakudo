@@ -672,7 +672,11 @@ class RakuAST::Node {
     method IMPL-OPTIMIZE-EXPRESSION(RakuAST::Resolver $resolver, Mu $expr) {
         return $expr unless nqp::isconcrete($expr);
 
-        my $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
+        my $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+
+        if $result =:= $expr {
+            $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
+        }
 
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
@@ -682,6 +686,44 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # A ternary with a constant condition becomes the branch the condition
+    # selects. The branches are expressions, so the value is preserved, and the
+    # unselected branch is one the running program would not have evaluated.
+    method IMPL-COLLAPSE-TERNARY(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::istype($expr, RakuAST::Ternary);
+        my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $expr.condition);
+        return $expr if $truth < 0;
+        my $keep := $truth ?? $expr.then !! $expr.else;
+        my $drop := $truth ?? $expr.else !! $expr.then;
+        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+    }
+
+    # Raku truth value of a node, or -1 when it cannot be determined safely.
+    # Folding only ever evaluates pure operators on foldable operands, while
+    # truthiness has to consider any constant, so this is deliberately narrow:
+    # the value must be a concrete Cool or Bool, whose .Bool is pure and
+    # well-defined. Type objects (not concrete) are declined, since a type used
+    # here is not the instance the running program would test. Resolving the
+    # guard types also declines during early bootstrap, before they are
+    # available.
+    method IMPL-CONSTANT-TRUTH(RakuAST::Resolver $resolver, Mu $expr) {
+        return -1 unless $expr.has-compile-time-value;
+        my $value := $expr.maybe-compile-time-value;
+        return -1 unless nqp::isconcrete($value);
+
+        my $Cool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Cool');
+        my $Bool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
+        return -1 if nqp::isnull($Cool) || nqp::isnull($Bool);
+        return -1 unless nqp::istype($value, $Cool) || nqp::istype($value, $Bool);
+
+        # A constant whose .Bool itself throws keeps that throw at runtime,
+        # where the program put it, so the collapse declines.
+        CATCH {
+            return -1;
+        }
+        nqp::istrue($value.Bool) ?? 1 !! 0
     }
 
     # Whether an expression may serve as an operand for compile-time

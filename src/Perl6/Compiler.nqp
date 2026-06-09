@@ -234,6 +234,17 @@ class Perl6::Compiler is HLL::Compiler {
         $super(self, |@args, |%options);
     }
 
+    # The stage whose output is the finished QAST tree. Compilation that
+    # starts with an already-built QAST tree passes this as the :from stage.
+    # The legacy frontend produces its final QAST in its optimize stage, the
+    # RakuAST frontend in its qast stage (src/main.nqp). This is keyed on the
+    # qast stage so that a frontend can grow a stage named optimize without
+    # changing the answer, and so a change to either pipeline has a single
+    # definition to update.
+    method qast-stage() {
+        self.exists_stage('qast') ?? 'qast' !! 'optimize'
+    }
+
     method optimize($past, *%adverbs) {
         # Apply optimizations.
         my $result := %adverbs<optimize> eq 'off'

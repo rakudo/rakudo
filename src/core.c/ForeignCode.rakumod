@@ -100,7 +100,7 @@ $lang = 'Raku' if $lang eq 'perl6';
         if $resolver.has-compilation-errors {
             $resolver.produce-compilation-exception.throw;
         }
-        my $from := $compiler.exists_stage('optimize') ?? 'optimize' !! 'qast';
+        my $from := $compiler.qast-stage;
         my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
         my $context := $comp-unit.context;
         # Run the qast-stage SC bookkeeping that AST EVAL otherwise skips.

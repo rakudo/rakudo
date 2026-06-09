@@ -675,6 +675,10 @@ class RakuAST::Node {
         my $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
 
         if $result =:= $expr {
+            $result := self.IMPL-COLLAPSE-SHORT-CIRCUIT($resolver, $expr);
+        }
+
+        if $result =:= $expr {
             $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
         }
 
@@ -697,6 +701,35 @@ class RakuAST::Node {
         return $expr if $truth < 0;
         my $keep := $truth ?? $expr.then !! $expr.else;
         my $drop := $truth ?? $expr.else !! $expr.then;
+        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+    }
+
+    # A boolean short-circuit (&& and ||, or their loose forms `and` and `or`)
+    # with a constant left operand becomes the side the operator yields: an
+    # `and` gives the right side when the left is true and the left otherwise,
+    # an `or` the mirror. The dropped side is one the running program would not
+    # have evaluated, so its code is removed too.
+    method IMPL-COLLAPSE-SHORT-CIRCUIT(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return $expr
+            unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved && $infix.short-circuit;
+        my str $op := $infix.operator;
+        my int $is-and := $op eq '&&' || $op eq 'and';
+        return $expr unless $is-and || $op eq '||' || $op eq 'or';
+
+        my $left  := $expr.left;
+        my $right := $expr.right;
+        return $expr unless nqp::isconcrete($left) && nqp::isconcrete($right);
+
+        my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $left);
+        return $expr if $truth < 0;
+
+        my $keep := $is-and
+            ?? ($truth ?? $right !! $left)
+            !! ($truth ?? $left  !! $right);
+        my $drop := $keep =:= $left ?? $right !! $left;
         self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
     }
 

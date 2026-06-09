@@ -547,6 +547,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $COMPUNIT.check($RESOLVER);
         self.report-problems();
 
+        # Have optimize time, unless the optimize option turns it off. With it
+        # off, --target=ast also shows the tree as parsed and checked, before
+        # any optimization rewrites it.
+        my %compiling := nqp::getlexdyn('%*COMPILING');
+        my $optimize := nqp::isnull(%compiling)
+            ?? NQPMu
+            !! nqp::atkey(nqp::ifnull(nqp::atkey(%compiling, '%?OPTIONS'), nqp::hash()), 'optimize');
+        unless nqp::defined($optimize) && ($optimize eq 'off' || $optimize eq '0') {
+            $COMPUNIT.optimize($RESOLVER);
+        }
+
         $RESOLVER.leave-scope();
     }
 

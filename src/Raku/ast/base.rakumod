@@ -205,6 +205,69 @@ class RakuAST::Node {
         Nil
     }
 
+    # Drives the optimize phase, an AST-to-AST pass that runs after check (which
+    # only analyses) and before QAST generation. The walk is post-order: a
+    # node's children are optimized before the node itself. Each child the node
+    # visits is then offered to IMPL-OPTIMIZE-EXPRESSION and a differing result
+    # replaces the child in place, so every node that exposes a child through
+    # visit-children gets the expression-level optimizations without any code
+    # of its own. A node may be replaced by its parent this way, never by
+    # itself. The resolver tracks scopes and packages the same way the check
+    # walk does, so a rewrite may resolve names in the scope of the node it is
+    # looking at. The replacement pass for a node's children runs in the scope
+    # the node lives in, not the scope it defines.
+    method IMPL-OPTIMIZE(RakuAST::Resolver $resolver) {
+        my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
+        my int $is-package := nqp::istype(self, RakuAST::Package);
+        $resolver.push-scope(self) if $is-scope;
+        $resolver.push-package(self) if $is-package;
+        self.visit-children(-> $child { $child.IMPL-OPTIMIZE($resolver) });
+        $resolver.pop-scope() if $is-scope;
+        $resolver.pop-package() if $is-package;
+
+        my @children;
+        self.visit-children(-> $child { nqp::push(@children, $child) });
+        for @children -> $child {
+            my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
+            self.IMPL-REPLACE-CHILD($child, $result) unless $result =:= $child;
+        }
+        Nil
+    }
+
+    # Replace a directly held child node with another node, locating the slot
+    # that holds it by identity: any object attribute bound to the child, and
+    # any element of any list attribute. All occurrences are replaced. A child
+    # that is visited but not stored on the node itself (for example one a
+    # visit reaches through a computed value) has no slot to find, and the
+    # replacement is then quietly skipped, which only costs the rewrite.
+    method IMPL-REPLACE-CHILD(Mu $old, Mu $new) {
+        # The scan introspects every node class the walk meets, so a surprise
+        # from an unusual meta-object must not break compilation. Skipping the
+        # replacement only costs the rewrite.
+        CATCH {
+            return Nil;
+        }
+        for self.IMPL-UNWRAP-LIST(self.HOW.mro(self)) -> $class {
+            for self.IMPL-UNWRAP-LIST($class.HOW.attributes($class, :local)) -> $attr {
+                next if nqp::objprimspec($attr.type);
+                my $value := nqp::getattr(self, $class, $attr.name);
+                if nqp::eqaddr($value, $old) {
+                    nqp::bindattr(self, $class, $attr.name, $new);
+                }
+                elsif nqp::islist($value) {
+                    my int $i := 0;
+                    my int $n := nqp::elems($value);
+                    while $i < $n {
+                        nqp::bindpos($value, $i, $new)
+                            if nqp::eqaddr(nqp::atpos($value, $i), $old);
+                        $i++;
+                    }
+                }
+            }
+        }
+        Nil
+    }
+
     method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new;
         my @code-todo := [self];
@@ -590,6 +653,65 @@ class RakuAST::Node {
     # If has-compile-time-value is True, the node must also have a maybe-compile-time-value method.
     method has-compile-time-value() {
         False
+    }
+
+    # Optimize a child expression, returning a node to use in its place (the
+    # same node if nothing applies). The optimize walk offers every visited
+    # child to this method, and this is where the expression-level
+    # optimizations are registered. Each is tried in turn and declines by
+    # returning its input unchanged. The walk is post-order, so a child's own
+    # subexpressions are already optimized when this runs.
+    # A rewrite added here must honour three rules so it stays correct in every
+    # context the phase runs in, including CORE setting compilation. It declines,
+    # returning its input, whenever it is not certain the change preserves the
+    # value. If it evaluates anything at compile time it resolves a setting type
+    # with IMPL-OPTIMIZE-SETTING-TYPE first and declines when that is null, since
+    # during early bootstrap the machinery it relies on is not ready. And it
+    # removes a subtree only when IMPL-DROPPABLE is true of it, so a
+    # declaration's lexical effect is never lost.
+    method IMPL-OPTIMIZE-EXPRESSION(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::isconcrete($expr);
+
+        my $result := $expr;
+
+        # A replacement stands where the original stood, so it must carry the
+        # original's sunk state for any sink-sensitive code generation.
+        if !($result =:= $expr)
+          && nqp::istype($expr, RakuAST::Sinkable) && $expr.sunk
+          && nqp::istype($result, RakuAST::Sinkable) && !$result.sunk {
+            $result.mark-sunk();
+        }
+        $result
+    }
+
+    # Whether a branch can be removed from the tree. The running program would
+    # not evaluate a dropped branch, so its runtime code is safe to remove, but
+    # a declaration in it has a lexical effect that outlives the branch and must
+    # be kept, so a branch containing one is not dropped. The declaration test
+    # comes first because a node can be both a declaration and a scope, the way
+    # a named sub installs itself in the surrounding scope while its body is a
+    # scope of its own. A node that is only a lexical scope confines anything
+    # declared inside it, so there is no need to look further down.
+    method IMPL-DROPPABLE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Declaration);
+        return 1 if nqp::istype($node, RakuAST::LexicalScope);
+        my int $droppable := 1;
+        $node.visit-children(-> $child {
+            $droppable := 0 unless self.IMPL-DROPPABLE($child);
+        });
+        $droppable
+    }
+
+    # Resolve a setting type by name for use as an optimization guard, or return
+    # null when it is not available. A null result is how a compile-time rewrite
+    # detects early bootstrap, where the type it would test against does not yet
+    # exist, and declines rather than acting on incomplete information.
+    method IMPL-OPTIMIZE-SETTING-TYPE(RakuAST::Resolver $resolver, str $name) {
+        my $decl := $resolver.resolve-lexical($name);
+        nqp::isconcrete($decl) && nqp::can($decl, 'compile-time-value')
+            ?? $decl.compile-time-value
+            !! nqp::null
     }
 }
 

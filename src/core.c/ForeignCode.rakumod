@@ -100,6 +100,14 @@ $lang = 'Raku' if $lang eq 'perl6';
         if $resolver.has-compilation-errors {
             $resolver.produce-compilation-exception.throw;
         }
+        # Run the optimize phase the comp-unit action would run for parsed
+        # code, so a synthetic AST compiles the same way, honouring the
+        # process's optimize option just as the string form forwards it
+        # below. Note the phase rewrites the tree being EVALled in place,
+        # just as begin and check resolve and annotate it in place.
+        my $optimize-option = nqp::getcomp('Raku').cli-options<optimize> // '';
+        $comp-unit.optimize($resolver)
+            unless $optimize-option eq 'off' || $optimize-option eq '0';
         my $from := $compiler.qast-stage;
         my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
         my $context := $comp-unit.context;

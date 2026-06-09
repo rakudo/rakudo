@@ -214,6 +214,13 @@ class RakuAST::CompUnit
         }
     }
 
+    # Run the optimize phase over the compilation unit. This is a transforming
+    # AST-to-AST pass, run after check and before QAST generation.
+    method optimize(RakuAST::Resolver $resolver) {
+        $!mainline.IMPL-OPTIMIZE($resolver);
+        self.IMPL-OPTIMIZE($resolver);
+    }
+
     # Add the AST for handling legacy doc generation, essentially:
     # INIT {
     #     use Pod::To::$type;

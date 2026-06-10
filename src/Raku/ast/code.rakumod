@@ -58,10 +58,21 @@ class RakuAST::OnlyStar
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('dispatch'),
-            QAST::SVal.new( :value('boot-resume') ),
-            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ));
+        # The dispatch op is the only code in an onlystar body, and a
+        # frame's location, as reported by Code.file and Code.line, comes
+        # from its first annotation. Carry the origin on a statement node
+        # so the frame is annotated at all. Without one the location
+        # degrades to the bytecode file, which breaks consumers that
+        # recognize setting routines by the SETTING:: file prefix, the
+        # way Routine.IS-SETTING-ONLY-D does for the smartmatch
+        # dispatcher's junction handling.
+        self.IMPL-SET-NODE(
+            QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('boot-resume') ),
+                    QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ))),
+            :key);
     }
 
     method IMPL-REGEX-TOP-LEVEL-QAST(

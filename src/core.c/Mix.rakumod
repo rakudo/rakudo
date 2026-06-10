@@ -3,6 +3,15 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
+    # Make sure to return sentinel on empty Mixes
+    multi method SETUP(Mix:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Mix)
+          ?? mix()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Mix,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(

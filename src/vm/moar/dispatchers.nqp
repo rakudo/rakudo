@@ -1984,7 +1984,7 @@ class ProxyReaderFactory {
 
         # Compile and return it.
         my $comp := nqp::getcomp('Raku');
-        $comp.compile($block, :from($comp.exists_stage('optimize') ?? 'optimize' !! 'qast'))
+        $comp.compile($block, :from($comp.qast-stage))
     }
 }
 my $PROXY-READERS := ProxyReaderFactory.new;

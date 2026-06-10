@@ -205,6 +205,69 @@ class RakuAST::Node {
         Nil
     }
 
+    # Drives the optimize phase, an AST-to-AST pass that runs after check (which
+    # only analyses) and before QAST generation. The walk is post-order: a
+    # node's children are optimized before the node itself. Each child the node
+    # visits is then offered to IMPL-OPTIMIZE-EXPRESSION and a differing result
+    # replaces the child in place, so every node that exposes a child through
+    # visit-children gets the expression-level optimizations without any code
+    # of its own. A node may be replaced by its parent this way, never by
+    # itself. The resolver tracks scopes and packages the same way the check
+    # walk does, so a rewrite may resolve names in the scope of the node it is
+    # looking at. The replacement pass for a node's children runs in the scope
+    # the node lives in, not the scope it defines.
+    method IMPL-OPTIMIZE(RakuAST::Resolver $resolver) {
+        my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
+        my int $is-package := nqp::istype(self, RakuAST::Package);
+        $resolver.push-scope(self) if $is-scope;
+        $resolver.push-package(self) if $is-package;
+        self.visit-children(-> $child { $child.IMPL-OPTIMIZE($resolver) });
+        $resolver.pop-scope() if $is-scope;
+        $resolver.pop-package() if $is-package;
+
+        my @children;
+        self.visit-children(-> $child { nqp::push(@children, $child) });
+        for @children -> $child {
+            my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
+            self.IMPL-REPLACE-CHILD($child, $result) unless $result =:= $child;
+        }
+        Nil
+    }
+
+    # Replace a directly held child node with another node, locating the slot
+    # that holds it by identity: any object attribute bound to the child, and
+    # any element of any list attribute. All occurrences are replaced. A child
+    # that is visited but not stored on the node itself (for example one a
+    # visit reaches through a computed value) has no slot to find, and the
+    # replacement is then quietly skipped, which only costs the rewrite.
+    method IMPL-REPLACE-CHILD(Mu $old, Mu $new) {
+        # The scan introspects every node class the walk meets, so a surprise
+        # from an unusual meta-object must not break compilation. Skipping the
+        # replacement only costs the rewrite.
+        CATCH {
+            return Nil;
+        }
+        for self.IMPL-UNWRAP-LIST(self.HOW.mro(self)) -> $class {
+            for self.IMPL-UNWRAP-LIST($class.HOW.attributes($class, :local)) -> $attr {
+                next if nqp::objprimspec($attr.type);
+                my $value := nqp::getattr(self, $class, $attr.name);
+                if nqp::eqaddr($value, $old) {
+                    nqp::bindattr(self, $class, $attr.name, $new);
+                }
+                elsif nqp::islist($value) {
+                    my int $i := 0;
+                    my int $n := nqp::elems($value);
+                    while $i < $n {
+                        nqp::bindpos($value, $i, $new)
+                            if nqp::eqaddr(nqp::atpos($value, $i), $old);
+                        $i++;
+                    }
+                }
+            }
+        }
+        Nil
+    }
+
     method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new;
         my @code-todo := [self];
@@ -590,6 +653,334 @@ class RakuAST::Node {
     # If has-compile-time-value is True, the node must also have a maybe-compile-time-value method.
     method has-compile-time-value() {
         False
+    }
+
+    # Optimize a child expression, returning a node to use in its place (the
+    # same node if nothing applies). The optimize walk offers every visited
+    # child to this method, and this is where the expression-level
+    # optimizations are registered. Each is tried in turn and declines by
+    # returning its input unchanged. The walk is post-order, so a child's own
+    # subexpressions are already optimized when this runs.
+    # A rewrite added here must honour three rules so it stays correct in every
+    # context the phase runs in, including CORE setting compilation. It declines,
+    # returning its input, whenever it is not certain the change preserves the
+    # value. If it evaluates anything at compile time it resolves a setting type
+    # with IMPL-OPTIMIZE-SETTING-TYPE first and declines when that is null, since
+    # during early bootstrap the machinery it relies on is not ready. And it
+    # removes a subtree only when IMPL-DROPPABLE is true of it, so a
+    # declaration's lexical effect is never lost.
+    method IMPL-OPTIMIZE-EXPRESSION(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::isconcrete($expr);
+
+        my $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+
+        if $result =:= $expr {
+            $result := self.IMPL-COLLAPSE-SHORT-CIRCUIT($resolver, $expr);
+        }
+
+        if $result =:= $expr {
+            $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
+        }
+
+        # A replacement stands where the original stood, so it must carry the
+        # original's sunk state for any sink-sensitive code generation.
+        if !($result =:= $expr)
+          && nqp::istype($expr, RakuAST::Sinkable) && $expr.sunk
+          && nqp::istype($result, RakuAST::Sinkable) && !$result.sunk {
+            $result.mark-sunk();
+        }
+        $result
+    }
+
+    # A ternary with a constant condition becomes the branch the condition
+    # selects. The branches are expressions, so the value is preserved, and the
+    # unselected branch is one the running program would not have evaluated.
+    method IMPL-COLLAPSE-TERNARY(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::istype($expr, RakuAST::Ternary);
+        my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $expr.condition);
+        return $expr if $truth < 0;
+        my $keep := $truth ?? $expr.then !! $expr.else;
+        my $drop := $truth ?? $expr.else !! $expr.then;
+        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+    }
+
+    # A boolean short-circuit (&& and ||, or their loose forms `and` and `or`)
+    # with a constant left operand becomes the side the operator yields: an
+    # `and` gives the right side when the left is true and the left otherwise,
+    # an `or` the mirror. The dropped side is one the running program would not
+    # have evaluated, so its code is removed too.
+    method IMPL-COLLAPSE-SHORT-CIRCUIT(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return $expr
+            unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved && $infix.short-circuit;
+        my str $op := $infix.operator;
+        my int $is-and := $op eq '&&' || $op eq 'and';
+        return $expr unless $is-and || $op eq '||' || $op eq 'or';
+
+        my $left  := $expr.left;
+        my $right := $expr.right;
+        return $expr unless nqp::isconcrete($left) && nqp::isconcrete($right);
+
+        my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $left);
+        return $expr if $truth < 0;
+
+        my $keep := $is-and
+            ?? ($truth ?? $right !! $left)
+            !! ($truth ?? $left  !! $right);
+        my $drop := $keep =:= $left ?? $right !! $left;
+        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+    }
+
+    # Raku truth value of a node, or -1 when it cannot be determined safely.
+    # Folding only ever evaluates pure operators on foldable operands, while
+    # truthiness has to consider any constant, so this is deliberately narrow:
+    # the value must be a concrete Cool or Bool, whose .Bool is pure and
+    # well-defined. Type objects (not concrete) are declined, since a type used
+    # here is not the instance the running program would test. Resolving the
+    # guard types also declines during early bootstrap, before they are
+    # available.
+    method IMPL-CONSTANT-TRUTH(RakuAST::Resolver $resolver, Mu $expr) {
+        return -1 unless $expr.has-compile-time-value;
+        my $value := $expr.maybe-compile-time-value;
+        return -1 unless nqp::isconcrete($value);
+
+        my $Cool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Cool');
+        my $Bool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
+        return -1 if nqp::isnull($Cool) || nqp::isnull($Bool);
+        return -1 unless nqp::istype($value, $Cool) || nqp::istype($value, $Bool);
+
+        # A constant whose .Bool itself throws keeps that throw at runtime,
+        # where the program put it, so the collapse declines.
+        CATCH {
+            return -1;
+        }
+        nqp::istrue($value.Bool) ?? 1 !! 0
+    }
+
+    # Whether an expression may serve as an operand for compile-time
+    # evaluation: a literal, an enumeration value such as True, or a quoted
+    # string whose value is known at compile time, which is how a plain string
+    # literal parses. Any of these holds no variable reference, so replacing
+    # it cannot orphan a lowered lexical.
+    method IMPL-FOLDABLE-OPERAND(Mu $operand) {
+        nqp::isconcrete($operand)
+          && (nqp::istype($operand, RakuAST::Literal)
+               || (nqp::istype($operand, RakuAST::QuotedString)
+                    || nqp::istype($operand, RakuAST::Term::Enum))
+                  && $operand.has-compile-time-value)
+            ?? 1 !! 0
+    }
+
+    # Whether a branch can be removed from the tree. The running program would
+    # not evaluate a dropped branch, so its runtime code is safe to remove, but
+    # a declaration in it has a lexical effect that outlives the branch and must
+    # be kept, so a branch containing one is not dropped. The declaration test
+    # comes first because a node can be both a declaration and a scope, the way
+    # a named sub installs itself in the surrounding scope while its body is a
+    # scope of its own. A node that is only a lexical scope confines anything
+    # declared inside it, so there is no need to look further down.
+    method IMPL-DROPPABLE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Declaration);
+        return 1 if nqp::istype($node, RakuAST::LexicalScope);
+        my int $droppable := 1;
+        $node.visit-children(-> $child {
+            $droppable := 0 unless self.IMPL-DROPPABLE($child);
+        });
+        $droppable
+    }
+
+    # Constant folding. Given a child expression, if it is a pure operator
+    # applied to constant operands, evaluate it now and return a
+    # RakuAST::Literal holding the result. Otherwise the expression is
+    # returned unchanged. Operands must satisfy IMPL-FOLDABLE-OPERAND (never
+    # variables, even constant ones) so folding never removes a variable
+    # reference, which keeps the later lexical-to-local lowering consistent.
+    # The optimize walk is post-order, so a nested operator that has already
+    # folded is itself a literal here, and nested constant arithmetic folds
+    # up. Evaluation is guarded: a throw keeps the original runtime behaviour,
+    # one-shot or failure-like results are not folded, and folding is declined
+    # before the guard types are available (early bootstrap).
+    method IMPL-FOLD-CONSTANT(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr unless nqp::isconcrete($expr);
+
+        # Grouping parentheses around a single constant are transparent, so a
+        # parenthesized literal folds into the expression that holds it.
+        my $unparen := self.IMPL-FOLD-PARENS($expr);
+        return $unparen unless $unparen =:= $expr;
+
+        my int $foldable := 0;
+        if nqp::istype($expr, RakuAST::ApplyInfix) {
+            my $infix := $expr.infix;
+            # A chaining comparison (a < b < c) means (a < b) && (b < c), so it
+            # reuses the middle operand and is not the binary operation its
+            # nesting suggests. Folding the inner comparison to a literal would
+            # drop that operand and change the result, so chaining infixes are
+            # left for runtime.
+            $foldable := nqp::istype($infix, RakuAST::Infix)
+                && $infix.is-resolved
+                && self.IMPL-PURE-ROUTINE($infix)
+                && !$infix.properties.chain
+                && !nqp::isconcrete($expr.args.arg-at-pos(2))
+                && self.IMPL-FOLDABLE-OPERAND($expr.left)
+                && self.IMPL-FOLDABLE-OPERAND($expr.right);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPrefix) {
+            my $prefix := $expr.prefix;
+            # An adverb on the operator (zpre 4 :x(5)) is a named argument the
+            # interpreter does not pass on, so an operator carrying one is left
+            # for runtime. The infix case is covered by the arg-at-pos check
+            # above, which sees the adverb as a further argument.
+            $foldable := nqp::istype($prefix, RakuAST::Prefix)
+                && $prefix.is-resolved
+                && self.IMPL-PURE-ROUTINE($prefix)
+                && nqp::elems($prefix.colonpairs) == 0
+                && self.IMPL-FOLDABLE-OPERAND($expr.operand);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix) {
+            my $infix := $expr.infix;
+            # The comma is skipped without evaluating: it is marked pure, but
+            # its list result would only be declined by the Iterable guard
+            # below, after building a list for every literal list in the
+            # program.
+            if nqp::istype($infix, RakuAST::Infix)
+              && $infix.operator ne ','
+              && $infix.is-resolved
+              && self.IMPL-PURE-ROUTINE($infix)
+              && !$infix.properties.chain
+              && nqp::elems(nqp::getattr($expr, RakuAST::ApplyListInfix, '$!adverbs')) == 0 {
+                my @operands := self.IMPL-UNWRAP-LIST($expr.operands);
+                if nqp::elems(@operands) {
+                    $foldable := 1;
+                    for @operands {
+                        $foldable := 0 unless self.IMPL-FOLDABLE-OPERAND($_);
+                    }
+                }
+            }
+        }
+        return $expr unless $foldable;
+
+        # Evaluation and the value checks rely on setting types, so during
+        # early bootstrap, before Failure resolves, folding declines.
+        return $expr
+            if nqp::isnull(self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Failure'));
+
+        my @result := self.IMPL-CONSTANT-FOLD-EVALUATE($expr);
+        return $expr unless @result[0];
+        my $value := @result[1];
+        return $expr unless self.IMPL-FOLDABLE-VALUE($resolver, $value);
+
+        my $literal := RakuAST::Literal.from-value($value);
+        $literal.set-origin($expr.origin) if nqp::isconcrete($expr.origin);
+        $literal
+    }
+
+    # Interpret the expression at compile time, returning a (success, value)
+    # pair. A throw means folding is declined and the original runtime behaviour
+    # is kept. The handler is a block here rather than nqp::handle, which does
+    # not lower cleanly in this source.
+    method IMPL-CONSTANT-FOLD-EVALUATE(Mu $expr) {
+        CATCH {
+            return nqp::list(0, nqp::null);
+        }
+        nqp::list(1, $expr.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new))
+    }
+
+    # Whether a resolved operator's routine carries the `is pure` trait, the
+    # declaration that calling it with the same arguments always gives the same
+    # result and has no side effects. The trait mixes in an is-pure method, so
+    # its presence is the signal, the same one the legacy optimizer uses. Only
+    # such a routine may be evaluated at compile time. The operator node's own
+    # is-pure is a name table that claims purity for any unknown operator, which
+    # is fine for the sink warnings it serves but must not license running a
+    # user-defined routine during compilation.
+    method IMPL-PURE-ROUTINE(Mu $operator) {
+        # Asking a resolution without a compile-time value, the way an
+        # operator bound to a lexical variable resolves, throws. Declining
+        # keeps such operators at runtime.
+        CATCH {
+            return 0;
+        }
+        my $routine := $operator.resolution.compile-time-value;
+        nqp::can($routine, 'is-pure') ?? 1 !! 0
+    }
+
+    # Whether a computed value is reasonable to embed in the compilation
+    # unit. Each restriction carries its own explanation, and a new one
+    # belongs here with the same treatment.
+    method IMPL-FOLDABLE-VALUE(RakuAST::Resolver $resolver, Mu $value) {
+        CATCH {
+            return 0;
+        }
+
+        # A Failure stands for an error the runtime raises where the value
+        # is used, so it stays a runtime result. It is marked handled before
+        # declining, since an unused Failure warns when it is destroyed.
+        my $Failure := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Failure');
+        if !nqp::isnull($Failure) && nqp::istype($value, $Failure) {
+            $value.Bool;
+            return 0;
+        }
+
+        # An Iterable result is potentially lazy or one-shot, so consuming
+        # it at compile time would not preserve the program.
+        my $Iterable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Iterable');
+        return 0 if !nqp::isnull($Iterable) && nqp::istype($value, $Iterable);
+
+        # An oversized string stays a runtime computation: the runtime can
+        # represent an enormous repetition cheaply, while a folded constant
+        # is serialized flattened with the unit. This serves the same
+        # purpose as the QAST optimizer's refusal to fold the x operator on
+        # a large count, but measures the result rather than that one
+        # operator's arguments, so any route to an oversized string
+        # declines. The probes stay cheap at any size: the grapheme count
+        # does not flatten a repetition strand, and the codepoint count,
+        # which catches a repetition of bare combiners that is few graphemes
+        # but arbitrarily many codepoints, only runs on strings the grapheme
+        # limit already passed. 1024 is the threshold the QAST optimizer's
+        # own check uses, described there as just a heuristic rather than a
+        # measured boundary, and a larger value may well be fine.
+        if nqp::istype($value, Str) {
+            my str $str := nqp::unbox_s($value);
+            return 0 if nqp::chars($str) > 1024 || nqp::codes($str) > 1024;
+        }
+
+        1
+    }
+
+    # Resolve a setting type by name for use as an optimization guard, or return
+    # null when it is not available. A null result is how a compile-time rewrite
+    # detects early bootstrap, where the type it would test against does not yet
+    # exist, and declines rather than acting on incomplete information.
+    method IMPL-OPTIMIZE-SETTING-TYPE(RakuAST::Resolver $resolver, str $name) {
+        my $decl := $resolver.resolve-lexical($name);
+        nqp::isconcrete($decl) && nqp::can($decl, 'compile-time-value')
+            ?? $decl.compile-time-value
+            !! nqp::null
+    }
+
+    # If the expression is grouping parentheses around a single constant with
+    # no statement modifier, return that constant. Otherwise return the
+    # expression unchanged. A multi-element or comma list does not qualify, so
+    # list parentheses are left alone. The optimize walk is post-order, so a
+    # parenthesized constant expression has already folded by the time this
+    # runs.
+    method IMPL-FOLD-PARENS(Mu $expr) {
+        return $expr unless nqp::istype($expr, RakuAST::Circumfix::Parentheses);
+        # Some constructs build grouping parentheses around a bare expression
+        # rather than a semilist, such as a regex assertion's argument, so the
+        # payload's shape is checked rather than assumed.
+        my $semilist := $expr.semilist;
+        return $expr unless nqp::istype($semilist, RakuAST::SemiList)
+            && $semilist.IMPL-IS-SINGLE-EXPRESSION;
+        my $statement := self.IMPL-UNWRAP-LIST($semilist.statements)[0];
+        return $expr
+            if nqp::isconcrete($statement.condition-modifier)
+            || nqp::isconcrete($statement.loop-modifier);
+        my $inner := $statement.expression;
+        self.IMPL-FOLDABLE-OPERAND($inner) ?? $inner !! $expr
     }
 }
 

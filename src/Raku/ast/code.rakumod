@@ -435,9 +435,7 @@ class RakuAST::Code
             $wrapper
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
-        # Legacy frontend registers `optimize`; RakuAST registers `qast`
-        # (src/main.nqp).  Pick whichever is present.
-        my $from := $comp.exists_stage('optimize') ?? 'optimize' !! 'qast';
+        my $from := $comp.qast-stage;
         my $precomp := $comp.compile($qast-compunit, :$from, :compunit_ok(1));
         my $mainline := $comp.backend.compunit_mainline($precomp);
         # Wire the wrapper's outer to the resolver's setting so :name lookups

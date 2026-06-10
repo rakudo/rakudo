@@ -1,6 +1,15 @@
 my class Set does Setty {
     has ValueObjAt $!WHICH;
 
+    # Make sure to return sentinel on empty Sets
+    multi method SETUP(Set:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Set)
+          ?? set()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Set,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(

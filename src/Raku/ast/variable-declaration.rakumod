@@ -1365,12 +1365,16 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
-                    my $value := self.IMPL-CONTAINER-TYPE($of);
-                    $context.ensure-sc($value);
-                    $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
-                        :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :$value )
-                    ) );
+                    my $class := self.IMPL-CONTAINER-TYPE($of);
+                    my $wval  := QAST::WVal.new(:value($class));
+                    $context.ensure-sc($class);
+
+                    my str $name := $class.HOW.name($class); # XXX needs lookup solution
+                    $qast := QAST::Op.new( :op('bind'), $qast,
+                      $name eq 'Set' || $name eq 'Bag' || $name eq 'Mix'
+                        ?? QAST::Op.new(:op<create>, $wval)
+                        !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
+                    );
                 }
                 $qast
             }

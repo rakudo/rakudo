@@ -2,6 +2,15 @@ my class Bag does Baggy {
     has ValueObjAt $!WHICH;
     has Int        $!total;
 
+    # Make sure to return sentinel on empty Bags
+    multi method SETUP(Bag:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Bag)
+          ?? bag()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Bag,'$!elems',nqp::decont(elems)
+             )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(

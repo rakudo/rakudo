@@ -2004,7 +2004,19 @@ class Perl6::World is HLL::World {
             else {
                 $new-ast := QAST::WVal.new( :value($cont_type) );
             }
-            my $ast := QAST::Op.new( :op('callmethod'), :name('new'), $new-ast );
+
+            # is Set/Bag/Mix need special handling to make sure their
+            # sentinel values for empty Set/Bag/Mix remain pristine
+            # see https://github.com/rakudo/rakudo/issues/6246
+            my $class := $new-ast.value;
+            my $ast := nqp::eqaddr(
+              $class, self.find_single_symbol_in_setting('Set')
+            ) || nqp::eqaddr(
+              $class, self.find_single_symbol_in_setting('Bag')
+            ) || nqp::eqaddr(
+              $class, self.find_single_symbol_in_setting('Mix')
+            ) ?? QAST::Op.new(:op<create>, $new-ast)
+              !! QAST::Op.new(:op<callmethod>, :name<new>, $new-ast );
             $ast.annotate('is-generic', $is-generic);
             $ast
         }

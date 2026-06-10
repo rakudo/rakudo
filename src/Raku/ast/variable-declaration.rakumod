@@ -165,16 +165,15 @@ class RakuAST::ContainerCreator {
     }
 
     method IMPL-SIGIL-LOOKUP() {
-        my $types := nqp::hash(
-            '@', 'Positional',
-            '%', 'Associative',
-            '&', 'Callable',
+        my constant SIGIL-LOOKUP := nqp::hash(
+          '@', 'Positional',
+          '%', 'Associative',
+          '&', 'Callable',
         );
-        my $sigil := self.sigil;
 
-        nqp::existskey($types, $sigil)
-            ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($types{$sigil}))
-            !! nqp::null
+        (my str $name := nqp::atkey(SIGIL-LOOKUP,self.sigil))
+          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($name))
+          !! nqp::null
     }
 
     method IMPL-CALCULATE-TYPES(Mu $of, Mu :$key-type) {

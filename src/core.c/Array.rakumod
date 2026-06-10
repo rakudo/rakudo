@@ -1006,7 +1006,7 @@ my class Array { # declared in BOOTSTRAP
           && nqp::elems($reified)
           ?? nqp::ifnull(  # handle holes
                nqp::shift($reified),
-               Nil
+               nqp::getattr($!descriptor,ContainerDescriptor,'$!default')
              )
           !! nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo'))
                && $todo.reify-at-least(1)

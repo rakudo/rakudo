@@ -2077,11 +2077,11 @@ class RakuAST::ApplyInfix
         my $left  := self.left;
         my $right := self.right;
 
-        my %worrisome-range := nqp::hash(
-            '..', 1,
-            '^..', 1,
-            '..^', 1,
-            '^..^', 1,
+        my constant WORRISOME-RANGE := nqp::hash(
+          '..', 1,
+          '^..', 1,
+          '..^', 1,
+          '^..^', 1,
         );
 
         # handle op=
@@ -2103,7 +2103,8 @@ class RakuAST::ApplyInfix
         }
 
         elsif nqp::istype($infix, RakuAST::MetaInfix::Reverse) && nqp::istype($infix.infix, RakuAST::Infix) {
-            if nqp::existskey(%worrisome-range, $infix.infix.operator) && nqp::istype($left, RakuAST::ApplyPrefix) {
+            if nqp::existskey(WORRISOME-RANGE, $infix.infix.operator)
+              && nqp::istype($left, RakuAST::ApplyPrefix) {
                 if $left.prefix.operator eq '|' {
                     self.add-worry:
                       $resolver.build-exception:
@@ -2134,7 +2135,7 @@ class RakuAST::ApplyInfix
                     'X::WhateverCode::SmartMatch::LHS';
             }
 
-            if nqp::existskey(%worrisome-range, $infix-op)
+            if nqp::existskey(WORRISOME-RANGE, $infix-op)
               && nqp::istype($left, RakuAST::ApplyPrefix) {
                 my $prefix-op := $left.prefix.operator;
                 if $prefix-op eq '|' {

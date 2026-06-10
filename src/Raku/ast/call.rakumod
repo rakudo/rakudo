@@ -311,15 +311,16 @@ class RakuAST::Call::Name
             self.args.set-on-return(True);
         }
 
-        my %returnish := nqp::hash(
-            'return', 1,
+        my constant RETURNISH := nqp::hash(
+            'return',    1,
             'return-rw', 1,
-            'fail', 1,
-            'nextsame', 1,
-            'nextwith', 1,
-            'EVAL', 1,
-            'EVALFILE', 1);
-        if nqp::existskey(%returnish, $name) {
+            'fail',      1,
+            'nextsame',  1,
+            'nextwith',  1,
+            'EVAL',      1,
+            'EVALFILE',  1
+        );
+        if nqp::existskey(RETURNISH, $name) {
             my $routine := $!routine;
             if $routine {
                 $routine.set-may-use-return(True);
@@ -844,15 +845,16 @@ class RakuAST::Call::Method
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my %returnish := nqp::hash(
-            'return', 1,
-            'return-rw', 1,
-            'fail', 1,
-            'nextsame', 1,
-            'nextwith', 1,
-            'EVAL', 1,
-            'EVALFILE', 1);
-        if nqp::existskey(%returnish, $!name.canonicalize) {
+        my constant RETURNISH := nqp::hash(
+          'return',    1,
+          'return-rw', 1,
+          'fail',      1,
+          'nextsame',  1,
+          'nextwith',  1,
+          'EVAL',      1,
+          'EVALFILE',  1
+        );
+        if nqp::existskey(RETURNISH, $!name.canonicalize) {
             my $routine := $resolver.find-attach-target('routine');
             if $routine {
                 $routine.set-may-use-return(True);
@@ -1188,15 +1190,16 @@ class RakuAST::Call::VarMethod
             self.set-resolution($resolved);
         }
 
-        my %returnish := nqp::hash(
-            'return', 1,
-            'return-rw', 1,
-            'fail', 1,
-            'nextsame', 1,
-            'nextwith', 1,
-            'EVAL', 1,
-            'EVALFILE', 1);
-        if nqp::existskey(%returnish, $!name.canonicalize) {
+        my constant RETURNISH := nqp::hash(
+          'return',    1,
+          'return-rw', 1,
+          'fail',      1,
+          'nextsame',  1,
+          'nextwith',  1,
+          'EVAL',      1,
+          'EVALFILE',  1
+        );
+        if nqp::existskey(RETURNISH, $!name.canonicalize) {
             my $routine := $resolver.find-attach-target('routine');
             if $routine {
                 $routine.set-may-use-return(True);

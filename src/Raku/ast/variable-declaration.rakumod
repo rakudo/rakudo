@@ -600,7 +600,6 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Name        $.desigilname;
     has str                  $.sigil;
     has str                  $.twigil;
-    has str                  $!storage-name;
     has RakuAST::Initializer $.initializer;
     has RakuAST::Method      $.initializer-method;
     has RakuAST::SemiList    $.shape;

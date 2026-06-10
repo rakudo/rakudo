@@ -2869,6 +2869,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<method-def>.ast;
     }
 
+    # An onlystar body is created directly rather than through an action
+    # method of its own, so position information is attached here. The
+    # body's dispatch op is the only code in the proto's frame, making
+    # this origin the source of the code object's reported file and line.
+    method onlystar-body($/) {
+        my $body := Nodify('OnlyStar').new;
+        self.SET-NODE-ORIGIN($/, $body);
+        $body
+    }
+
     method routine-def($/) {
         my $routine := $*BLOCK;
 
@@ -2886,7 +2896,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $routine.replace-body($<onlystar>
-          ?? Nodify('OnlyStar').new
+          ?? self.onlystar-body($<onlystar>)
           !! $<blockoid>
             ?? $<blockoid>.ast
             !! Nodify("Blockoid").new($<statementlist>.ast)  # unit sub MAIN
@@ -2915,7 +2925,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         $method.replace-body($<onlystar>
-          ?? Nodify('OnlyStar').new
+          ?? self.onlystar-body($<onlystar>)
           !! $<blockoid>.ast
         );
         # Entering scope again to ensure implicits are attached to the method
@@ -2942,7 +2952,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<signature> {
             $regex.replace-signature($<signature>.ast);
         }
-        $regex.replace-body($<onlystar> ?? Nodify('OnlyStar').new !! $<nibble>.ast);
+        $regex.replace-body($<onlystar>
+          ?? self.onlystar-body($<onlystar>)
+          !! $<nibble>.ast
+        );
         # Entering scope again to ensure implicits are attached to the method
         $*R.enter-scope($regex);
         self.attach: $/, $regex;

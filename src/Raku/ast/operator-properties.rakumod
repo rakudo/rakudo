@@ -343,7 +343,11 @@ class OperatorProperties {
     # Informational method to check whether valid category
     method known-category(str $category) {
         my constant CATEGORIES := nqp::hash(
-          'infix',1, 'prefix',1, 'postfix',1, 'postcircumfix',1, 'circumfix',1
+          'infix',         1,
+          'prefix',        1,
+          'postfix',       1,
+          'postcircumfix', 1,
+          'circumfix',     1,
         );
         nqp::existskey(CATEGORIES,$category)
     }

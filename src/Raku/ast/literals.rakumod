@@ -174,7 +174,14 @@ class RakuAST::QuotedString
     }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
-        my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', Mu, 'heredoc', Mu, 'format', Mu);
+        my constant VALID := nqp::hash(
+          'words',      Mu,
+          'quotewords', Mu,
+          'val',        Mu,
+          'exec',       Mu,
+          'heredoc',    Mu,
+          'format',     Mu
+        );
         my @result;
         for self.IMPL-UNWRAP-LIST($processors // []) {
             if nqp::existskey(VALID, $_) {
@@ -269,16 +276,16 @@ class RakuAST::QuotedString
         my int $pos := 0;
         my int $eos := nqp::chars($str);
         my int $ws;
-        my $nbsp := nqp::hash(
-            "\x00A0", True,
-            "\x2007", True,
-            "\x202F", True,
-            "\xFEFF", True,
+        my constant NBSP := nqp::hash(
+          "\x00A0", True,
+          "\x2007", True,
+          "\x202F", True,
+          "\xFEFF", True,
         );
         while ($pos := nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, $str, $pos, $eos)) < $eos {
             # Search for another white space character as long as we hit non-breakable spaces.
             $ws := $pos;
-            $ws++ while nqp::existskey($nbsp,
+            $ws++ while nqp::existskey(NBSP,
                 nqp::substr($str, $ws := nqp::findcclass(nqp::const::CCLASS_WHITESPACE,
                     $str, $ws, $eos), 1));
             nqp::push($result, nqp::box_s(nqp::substr($str, $pos, $ws - $pos), Str));

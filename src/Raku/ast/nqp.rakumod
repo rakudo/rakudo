@@ -161,7 +161,7 @@ class RakuAST::Nqp::Const
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $context) {
         # Stolen from nqp/src/vm/moar/QAST/QASTOperationsMAST.nqp
-        nqp::hash(
+        my constant CONSTANTS := nqp::hash(
             'CCLASS_ANY',           65535,
             'CCLASS_UPPERCASE',     1,
             'CCLASS_LOWERCASE',     2,
@@ -442,6 +442,8 @@ class RakuAST::Nqp::Const
             'TYPE_CHECK_CACHE_DEFINITIVE',  0,
             'TYPE_CHECK_CACHE_THEN_METHOD', 1,
             'TYPE_CHECK_NEEDS_ACCEPTS',     2,
-        ){$!name}
+        );
+
+        CONSTANTS{$!name}
     }
 }

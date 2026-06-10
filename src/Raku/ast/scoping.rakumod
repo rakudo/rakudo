@@ -426,22 +426,30 @@ class RakuAST::LexicalScope
         my &FATALIZE := self.IMPL-FATALIZE;
         # comes from setting, so guaranteed to be in an SC
         my $FATALIZE := QAST::WVal.new(:value(&FATALIZE));
-        my %boolify_first_child_ops := nqp::hash(
-            'if', 1, 'unless', 1, 'defor', 1, 'hllbool', 1,
-            'while', 1, 'until', 1, 'repeat_while', 1, 'repeat_until', 1,
+        my constant BOOLIFY_FIRST_CHILD_OPS := nqp::hash(
+            'if',           1,
+            'unless',       1,
+            'defor',        1,
+            'hllbool',      1,
+            'while',        1,
+            'until',        1,
+            'repeat_while', 1,
+            'repeat_until', 1,
         );
-        my %boolify_first_child_calls := nqp::hash(
-            '&prefix:<?>', 1, '&prefix:<so>', 1,
-            '&prefix:<!>', 1, '&prefix:<not>', 1,
-            '&defined', 1
+        my constant BOOLIFY_FIRST_CHILD_CALLS := nqp::hash(
+            '&prefix:<?>',   1,
+            '&prefix:<so>',  1,
+            '&prefix:<!>',   1,
+            '&prefix:<not>', 1,
+            '&defined',      1
         );
         if nqp::istype($qast, QAST::Op) {
             my str $op := $qast.op;
             if $op eq 'call' && nqp::istype($qast[0], QAST::WVal) && $qast[0].value =:= &FATALIZE {
                 # We've been here before (tree with shared bits, presumably).
             }
-            elsif nqp::existskey(%boolify_first_child_ops, $op) ||
-                    $op eq 'call' && nqp::existskey(%boolify_first_child_calls, $qast.name) {
+            elsif nqp::existskey(BOOLIFY_FIRST_CHILD_OPS, $op) ||
+                    $op eq 'call' && nqp::existskey(BOOLIFY_FIRST_CHILD_CALLS, $qast.name) {
                 my int $first := 1;
                 for @($qast) {
                     if $first {

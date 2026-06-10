@@ -1553,7 +1553,7 @@ class RakuAST::Resolver::Compile
 
     method suggest-typename(Str $name) {
         # Set up lookup for newbie type errors in typenames
-        my $newbies := nqp::hash(
+        my constant NEWBIES := nqp::hash(
           'Integer',   ('Int',),
           'integer',   ('Int','int'),
           'Float',     ('Num',),
@@ -1570,7 +1570,7 @@ class RakuAST::Resolver::Compile
         my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
         my @suggestions;
 
-        if (my @alternates := nqp::atkey($newbies, $name)) {
+        if (my @alternates := nqp::atkey(NEWBIES, $name)) {
             for @alternates {
                 nqp::push(@suggestions, $_);
             }
@@ -1588,7 +1588,7 @@ class RakuAST::Resolver::Compile
 
         self.levenshtein_candidate_heuristic(@candidates, @suggestions);
 
-        return @suggestions;
+        @suggestions
     }
 }
 

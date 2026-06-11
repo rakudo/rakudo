@@ -58,6 +58,21 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
+    # Compile a RakuAST comp-unit the rest of the way to a code object.
+    # IMPL-TO-QAST-COMP-UNIT runs outside the compiler's qast stage here,
+    # so bind the dynamic that stage provides, and run the comp-unit's
+    # cleanup even when a later stage throws.
+    my sub compile-rakuast-comp-unit($comp-unit) {
+        LEAVE $comp-unit.cleanup;
+        my $*COMPILING_CORE_SETTING := 0;
+        my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
+        my $eval-context := $comp-unit.context;
+        # Run the qast-stage SC bookkeeping that compiling from QAST skips.
+        my $precomp := $compiler.compile($qast-cu, :from($compiler.qast-stage), :compunit_ok(1));
+        $eval-context.IMPL-FIXUP-COMPILED-CODEREFS(nqp::compunitcodes($precomp));
+        $compiler.backend.compunit_mainline($precomp)
+    }
+
     if nqp::istype($code, RakuAST::Node) {
         # Wrap as required to get compilation unit.
         my $comp-unit := do if nqp::istype($code, RakuAST::CompUnit) {
@@ -108,14 +123,7 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $optimize-option = nqp::getcomp('Raku').cli-options<optimize> // '';
         $comp-unit.optimize($resolver)
             unless $optimize-option eq 'off' || $optimize-option eq '0';
-        my $from := $compiler.qast-stage;
-        my $qast-cu := $comp-unit.IMPL-TO-QAST-COMP-UNIT;
-        my $context := $comp-unit.context;
-        # Run the qast-stage SC bookkeeping that AST EVAL otherwise skips.
-        my $precomp := $compiler.compile($qast-cu, :$from, :compunit_ok(1));
-        $context.IMPL-FIXUP-COMPILED-CODEREFS(nqp::compunitcodes($precomp));
-        $comp-unit.cleanup;
-        $compiled := $compiler.backend.compunit_mainline($precomp);
+        $compiled := compile-rakuast-comp-unit($comp-unit);
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
@@ -124,13 +132,22 @@ $lang = 'Raku' if $lang eq 'perl6';
 
         my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
         my $*INSIDE-EVAL := 1;
-        $compiled := $compiler.compile:
+        # The RakuAST frontend (the only frontend with a qast stage) stops
+        # at the AST so the comp-unit can take the same finishing path as
+        # AST EVAL, fixing up code objects to survive an enclosing
+        # compilation's precomp and wrapping nested EVAL output.
+        my $rakuast-frontend := $compiler.exists_stage('qast');
+        my $result := $compiler.compile:
             $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
             :language_version(nqp::getcomp('Raku').language_version),
+            |(%(:target('ast'), :compunit_ok(1)) if $rakuast-frontend),
             |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
             |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
+        $compiled := $rakuast-frontend
+            ?? compile-rakuast-comp-unit($result)
+            !! $result;
     }
 
     if $check {

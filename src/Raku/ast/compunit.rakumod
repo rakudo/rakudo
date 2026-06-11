@@ -646,10 +646,24 @@ class RakuAST::CompUnit
             $top-level.set_children([$run-main]);
         }
 
+        # Nested EVAL: wrap the inner mainline in an anonymous QAST::Block.
+        # With no Code object and no SC entry, the wrapper's static_code
+        # stays NULL, so the parent's serializer terminates body.outer
+        # walks here instead of reaching the enclosing frame's lexpad and
+        # any non-serializable state it holds (Locks, ConditionVariables,
+        # tap closures). The wrapper declares no symbols of its own and is
+        # marked DYN_COMP_WRAPPER, so lexical lookups from the EVAL'd code
+        # stay late-bound and resolve through the forced outer context to
+        # the caller's `$_`, `$/`, and `$?PACKAGE`. Mirrors legacy's
+        # World.compile_in_context.
+        my $outermost := $!is-eval && $context.is-nested
+            ?? self.IMPL-EVAL-WRAPPER-BLOCK($top-level)
+            !! $top-level;
+
         $context.cleanup-orphan-stubs();
 
         QAST::CompUnit.new:
-            $top-level,
+            $outermost,
             :hll('Raku'),
             :sc($!sc),
             :is_nested($!is-eval == 2),
@@ -665,8 +679,22 @@ class RakuAST::CompUnit
             # have occurred.
             :load(QAST::Op.new(
                 :op('call'),
-                QAST::BVal.new( :value($top-level) ),
+                QAST::BVal.new( :value($outermost) ),
             )),
+    }
+
+    method IMPL-EVAL-WRAPPER-BLOCK($inner) {
+        # `immediate_static` makes the inner mainline auto-invoke when the
+        # wrapper runs and pass its return value through, so EVAL still
+        # returns the user's last-expression value.
+        $inner.blocktype('immediate_static');
+
+        my $wrapper := QAST::Block.new($inner);
+        $wrapper.name('<eval-wrapper>');
+        $wrapper.blocktype('declaration_static');
+        $wrapper.annotate('DYN_COMP_WRAPPER', 1);
+
+        $wrapper
     }
 
     # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is

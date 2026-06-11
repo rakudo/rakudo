@@ -307,61 +307,76 @@ class RakuAST::Node {
     # if it satisfies the specified type, but its children shall not be
     # visited. The search is strict - that is to say, it starts at the children
     # of the current node, but doesn't consider the current one.
-    method find-nodes(Mu $type, Code :$condition, Mu :$stopper) {
-        # Walk the tree searching for matching nodes.
-        my int $have-stopper := !nqp::eqaddr($stopper, Mu);
-        my @visit-queue := [self];
-        my @result;
-        my $collector := sub collector($node) {
-            if nqp::istype($node, $type) {
-                unless $condition && !$condition($node) {
-                    nqp::push(@result, $node);
-                }
-            }
-            unless $have-stopper && nqp::istype($node, $stopper) {
-                nqp::push(@visit-queue, $node);
-            }
-        }
-        while @visit-queue {
-            nqp::shift(@visit-queue).visit-children($collector);
-        }
-        self.IMPL-WRAP-LIST(@result)
-    }
+    method find-nodes(
+        Mu  $type,       # type to select on
+      Code :$condition,  # condition to perform (if concrete)
+        Mu :$stopper     # type/code to prevent going deeper
+    ) {
 
-    # Recursively walks the tree finding nodes of the specified type that are
-    # beneath this one. A node that matches the stopper type will *not* be returned
-    # even if it satisfies the specified type and its children shall not be
-    # visited. The search is strict - that is to say, it starts at the children
-    # of the current node, but doesn't consider the current one.
-    # Note: this is more expensive than find-nodes due to calling $stopper on
-    #       each node, instead of doing a simple type check.
-    method find-nodes-exclusive(Mu $type, Code :$condition, Code :$stopper) {
-        # Walk the tree searching for matching nodes.;
+        # Variables that need visibility from collectors
         my @visit-queue := [self];
         my @result;
-        my $collector := sub collector($node) {
-            if nqp::isconcrete($stopper) {
-                my $do-stop := $stopper($node);
-                if nqp::istype($node, $type) && !$do-stop {
-                    unless $condition && !$condition($node) {
-                        nqp::push(@result, $node);
-                    }
-                }
-                unless $do-stop {
-                    nqp::push(@visit-queue, $node)
-                }
-            } else {
-                if nqp::istype($node, $type) {
-                    unless $condition && !$condition($node) {
-                        nqp::push(@result, $node);
-                    }
-                }
+
+        # Different types of collectors
+        my sub collector-no-stopper-condition($node) {
+            nqp::push(@result, $node)
+              if nqp::istype($node, $type)
+              && $condition($node);
+            nqp::push(@visit-queue, $node);
+        }
+        my sub collector-no-stopper-no-condition($node) {
+            nqp::push(@result, $node)
+              if nqp::istype($node, $type);
+            nqp::push(@visit-queue, $node);
+        }
+        my sub collector-run-stopper-condition($node) {
+            unless $stopper($node) {
+                nqp::push(@result, $node)
+                  if nqp::istype($node, $type)
+                  && $condition($node);
                 nqp::push(@visit-queue, $node);
             }
         }
+        my sub collector-run-stopper-no-condition($node) {
+            unless $stopper($node) {
+                nqp::push(@result, $node)
+                  if nqp::istype($node, $type);
+                nqp::push(@visit-queue, $node);
+            }
+        }
+        my sub collector-is-stopper-condition($node) {
+            nqp::push(@result, $node)
+              if nqp::istype($node, $type)
+              && $condition($node);
+            nqp::push(@visit-queue, $node)
+              unless nqp::istype($node, $stopper);
+        }
+        my sub collector-is-stopper-no-condition($node) {
+            nqp::push(@result, $node)
+              if nqp::istype($node, $type);
+            nqp::push(@visit-queue, $node)
+              unless nqp::istype($node, $stopper);
+        }
+
+        # Set up the collector
+        my $collector := nqp::eqaddr($stopper,Mu)
+          ?? $condition
+            ?? &collector-no-stopper-condition
+            !! &collector-no-stopper-no-condition
+          !! nqp::isconcrete($stopper)
+            ?? $condition
+              ?? &collector-run-stopper-condition
+              !! &collector-run-stopper-no-condition
+            !! $condition
+              ?? &collector-is-stopper-condition
+              !! &collector-is-stopper-no-condition;
+
+        # Walk the tree, also handling any elements added on the way
         while @visit-queue {
             nqp::shift(@visit-queue).visit-children($collector);
         }
+
+        # Return the result in HLL format
         self.IMPL-WRAP-LIST(@result)
     }
 

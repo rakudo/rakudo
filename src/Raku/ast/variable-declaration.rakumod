@@ -1105,7 +1105,7 @@ class RakuAST::VarDeclaration::Simple
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
         if (self.initializer) {
-            my @found := self.IMPL-UNWRAP-LIST(self.find-nodes-exclusive(
+            my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
                 RakuAST::Var::Lexical,
                 :condition(-> $node {
                     $node.is-resolved && $node.resolution =:= self

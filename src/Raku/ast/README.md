@@ -7,8 +7,8 @@ it - in `t/12-rakuast/` so far - to become specification tests.
 
 ## Status
 
-RakuAST is currently in the early design/implementation phase. Absolutely
-everything is, at this point, speculative. More is missing than is done.
+RakuAST is currently in the early phase 7, which could be described as
+"almost production-ready".
 
 The files in this directory are translated into NQP. The bodies of the
 methods *are* NQP, while the signatures and class bits are parsed and

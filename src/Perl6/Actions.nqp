@@ -10721,7 +10721,7 @@ Did you mean a call like '"
             if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil' {
                 if nqp::elems($args) {
                     $*W.throw($/, 'X::Comp::AdHoc',
-                        payload => "No return arguments allowed when return value {$ret.perl} is already specified in the signature");
+                        payload => "No return arguments allowed when return value {$ret.raku} is already specified in the signature");
                 }
                 $args.push(QAST::WVal.new( :value($ret) ));
             }

@@ -79,6 +79,27 @@ class RakuAST::Circumfix::Parentheses
         $!semilist.maybe-compile-time-value;
     }
 
+    # Grouping parentheses around a single modifier-free expression forward
+    # its type, so an enclosing operator sees a parenthesized native result
+    # as native. A statement modifier changes what the parentheses produce:
+    # a loop modifier yields a List and a condition modifier can yield
+    # Empty. Some constructs build grouping parentheses around a bare
+    # expression rather than a semilist, so the payload's shape is checked
+    # rather than assumed.
+    method return-type() {
+        if nqp::istype($!semilist, RakuAST::SemiList)
+          && $!semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $statement := self.IMPL-UNWRAP-LIST($!semilist.statements)[0];
+            nqp::isconcrete($statement.condition-modifier)
+              || nqp::isconcrete($statement.loop-modifier)
+                ?? Mu
+                !! $statement.expression.return-type
+        }
+        else {
+            Mu
+        }
+    }
+
     method IMPL-CAN-INTERPRET() {
         $!semilist.IMPL-CAN-INTERPRET
     }

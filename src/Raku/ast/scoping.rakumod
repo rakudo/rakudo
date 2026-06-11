@@ -935,6 +935,59 @@ class RakuAST::Lookup
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
     }
 
+    # Given a resolved routine and the compile-time argument types and native
+    # flags, return the routine's declared return type when the call settles to
+    # a single candidate with a native return type. Returns NQPMu otherwise.
+    # A native return type lets a native-typed assignment coerce the result
+    # with the matching unbox.
+    method IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags) {
+        # A flag carrying the literal bit means the argument only counts as
+        # native because a literal could compile that way. The emitted call
+        # still passes the boxed value, so the runtime dispatcher can answer
+        # with a different candidate than the analysis settled on.
+        my int $ARG_IS_LITERAL := 32;
+        for @flags {
+            return NQPMu if $_ +& $ARG_IS_LITERAL;
+        }
+        my $callee := NQPMu;
+        if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
+            if $routine.onlystar {
+                my @result := $routine.analyze_dispatch(@types, @flags);
+                $callee := @result && @result[0] == 1 ?? @result[1] !! NQPMu;
+            }
+        }
+        elsif nqp::can($routine, 'signature') {
+            $callee := nqp::p6trialbind($routine.signature, @types, @flags) == 1
+                ?? $routine
+                !! NQPMu;
+        }
+        if $callee && nqp::can($callee, 'returns') {
+            # An `is rw` routine yields an assignable container, not a value to
+            # unbox. Leave its result alone so lvalue use keeps working.
+            return NQPMu if nqp::can($callee, 'rw') && $callee.rw;
+            my $ret := $callee.returns;
+            return $ret if !nqp::isnull($ret) && nqp::objprimspec($ret);
+        }
+        NQPMu
+    }
+
+    # Attach a settled native return type to a call. The bare call stays
+    # the default of a QAST::Want, so a context that wants the boxed object
+    # never unboxes and escape values like a Failure or Nil flow through.
+    # Every native-want flavour takes the alternative, which carries the
+    # return type: the call unboxes directly into its native return kind
+    # and the QAST compiler's kind coercion widens from there (an int
+    # result wanted as num converts natively, with no boxed round trip).
+    method IMPL-NATIVE-RETURN-WANT(Mu $call, Mu $type) {
+        my $native := $call.shallow_clone;
+        $native.returns($type);
+        QAST::Want.new(:named($call.named),
+            $call,
+            'Ii', $native,
+            'Nn', $native,
+            'Ss', $native)
+    }
+
     # Returns information to report in an X::Undeclared::Symbols exception.
     # Returns Nil if it should not be reported there, otherwise should be
     # an instance of RakuAST::UndeclaredSymbolDescription.

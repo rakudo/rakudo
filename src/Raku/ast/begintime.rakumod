@@ -49,7 +49,7 @@ class RakuAST::BeginTime
             else {
                 if nqp::can($ex,'SET_FILE_LINE')
                   && self
-                  && self.origin -> $origin {
+                  && my $origin := self.origin {
                     my $origin-match := $origin.as-match;
                     $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
                 }

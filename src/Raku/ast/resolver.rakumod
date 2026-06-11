@@ -1084,9 +1084,13 @@ class RakuAST::Resolver::Compile
         my $setting := $resolver
             ?? nqp::getattr($resolver, RakuAST::Resolver, '$!setting')
             !! self.IMPL-SETTING-FROM-CONTEXT($context);
+        # The cloned scopes of an enclosing compilation are consulted
+        # first, but lexicals living in an already-running caller frame
+        # (like $/ and $!) are only reachable through the runtime context
+        # chain, which also ends in the setting.
         self.new(
             :$setting,
-            :outer($resolver ?? $setting !! $context),
+            :outer($context),
             :$global,
             :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
             :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),

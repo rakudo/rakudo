@@ -318,7 +318,12 @@ class RakuAST::Code
                             QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
                         );
                     }
-                    elsif $name ne '$_' { #TODO figure out why we specifially don't declare $_ in ExpressionThunks
+                    # The specials $_, $/, $! and $¢ live in a frame of the
+                    # calling code, but the declaration they resolve to
+                    # produces a fresh container as its compile-time value.
+                    # Skipping them keeps their references late-bound, so
+                    # the runtime lookup reaches the caller's container.
+                    elsif $name ne '$_' && $name ne '$/' && $name ne '$!' && $name ne '$¢' {
                         my $decl := $parse-time-resolver.resolve-lexical-constant($name);
                         if $decl {
                             $decl.to-begin-time($resolver, $context); # Ensure any required lookups are resolved

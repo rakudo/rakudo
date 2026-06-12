@@ -16,12 +16,14 @@ nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-confi
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');
 if +nqp::getenvhash()<RAKUDO_RAKUAST> {
+    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'rakuast');
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('qast', :after<ast>);
 }
 else {
+    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
     $comp.parsegrammar(Perl6::Grammar);
     $comp.parseactions(Perl6::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);

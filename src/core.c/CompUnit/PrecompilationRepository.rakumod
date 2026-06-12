@@ -42,8 +42,14 @@ class CompUnit::PrecompilationRepository::Default
     my $resolved-lock := Lock.new;
     my $first-repo-id;
 
-    my constant $compiler-id =
-      CompUnit::PrecompilationId.new-without-check(Compiler.id);
+    # The compiler id incorporates the active frontend, which is only
+    # known at run time, so it cannot be captured while the setting is
+    # being compiled.
+    my $compiler-id;
+    sub compiler-id() {
+        $compiler-id //=
+          CompUnit::PrecompilationId.new-without-check(Compiler.id)
+    }
 
     # If $loaded{$key} has a Promise in it, await it. If it's broken, try
     # again, return the result if it's kept. If there's nothing there at
@@ -136,7 +142,7 @@ class CompUnit::PrecompilationRepository::Default
     ) {
         $!RMD("Trying to load $id.repo-id") if $!RMD;
         for @precomp-stores -> $store {
-            with $store.load-repo-id($compiler-id, $id) {
+            with $store.load-repo-id(compiler-id(), $id) {
                 $!RMD("  Loaded from $store.prefix()") if $!RMD;
                 return $_;
             }
@@ -150,7 +156,7 @@ class CompUnit::PrecompilationRepository::Default
     ) {
         $!RMD("Trying to load $id") if $!RMD;
         for @precomp-stores -> $store {
-            with $store.load-unit($compiler-id, $id) {
+            with $store.load-unit(compiler-id(), $id) {
                 $!RMD("  Loaded from $store.prefix()") if $!RMD;
                 return $_;
             }
@@ -165,7 +171,7 @@ class CompUnit::PrecompilationRepository::Default
         $!RMD("Trying to load refreshed $id") if $!RMD;
         for @precomp-stores -> $store {
             $store.remove-from-cache($id);
-            with $store.load-unit($compiler-id, $id) {
+            with $store.load-unit(compiler-id(), $id) {
                 $!RMD("  Loaded from $store.prefix()") if $!RMD;
                 return $_;
             }
@@ -229,7 +235,7 @@ Need to re-check dependencies.")
             }
 
             my $dependency-precomp := @precomp-stores
-                .map({ $_.load-unit($compiler-id, $dependency.id) })
+                .map({ $_.load-unit(compiler-id(), $dependency.id) })
                 .first(*.defined)
                 or do {
                     $!RMD("Could not find $dependency.spec()") if $!RMD;
@@ -281,12 +287,12 @@ Need to re-check dependencies.")
 
         if $resolve {
             if self.store.destination(
-                 $compiler-id,
+                 compiler-id(),
                  $precomp-unit.id,
                  :extension<.repo-id>
             ) {
                 self.store.store-repo-id(
-                  $compiler-id,
+                  compiler-id(),
                   $precomp-unit.id,
                   :repo-id($REPO-id)
                 );
@@ -409,7 +415,7 @@ Need to re-check dependencies.")
 
         # obtain destination, lock the store for other processes
         my $store := self.store;
-        my $io    := $store.destination($compiler-id, $id);
+        my $io    := $store.destination(compiler-id(), $id);
         return False unless $io;
 
         if $force {
@@ -579,9 +585,9 @@ Need to re-check dependencies.")
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 
-        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
+        $store.store-repo-id(compiler-id(), $id, :repo-id($REPO.id));
         $store.store-unit(
-            $compiler-id,
+            compiler-id(),
             $id,
             $store.new-unit(
               :$id,

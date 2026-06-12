@@ -2,14 +2,27 @@ class Compiler does Systemic {
     my constant $compiler = nqp::getcomp("Raku");
     my constant $config =
       nqp::gethllsym('default','SysConfig').rakudo-build-config;
-    my constant $compilation-id = nqp::box_s(
+    my constant $compilation-base-id = nqp::box_s(
       nqp::sha1((nqp::getlexdyn('$*CU') ?? $*CU.comp-unit-name !! $*W.handle.Str) ~ nqp::atkey($config,'source-digest')),Str
     );
+    # The id also distinguishes the frontend the process compiles with.
+    # Bytecode produced by one frontend must not be loaded by a process
+    # compiling with the other, so everything keyed by the compiler id,
+    # the precompilation stores in particular, is kept per frontend. The
+    # frontend is only known at run time, from the symbol the compiler
+    # entry point binds, so the id is computed on first use.
+    my $compilation-id;
+    sub compilation-id() {
+        $compilation-id //= nqp::box_s(nqp::sha1(
+          $compilation-base-id
+            ~ nqp::ifnull(nqp::gethllsym('Raku','COMPILER-FRONTEND'),'')
+        ),Str)
+    }
     my constant $backend = $compiler.backend;
     my constant $name    = $backend.name;
 
     # XXX Various issues with this stuff on JVM
-    has $.id       is built(:bind) = $compilation-id;
+    has $.id       is built(:bind) = compilation-id();
     has $.release  is built(:bind) =
       BEGIN nqp::ifnull(nqp::atkey($config,'release-number'),"");
     has $.codename is built(:bind) =
@@ -30,8 +43,8 @@ class Compiler does Systemic {
     method flavor()  { #RAKUDO_FLAVOR# }
 
     proto method id(|) {*}
-    multi method id(Compiler:U:) { $compilation-id }
-    multi method id(Compiler:D:) { $!id            }
+    multi method id(Compiler:U:) { compilation-id() }
+    multi method id(Compiler:D:) { $!id             }
 
     method verbose-config(:$say) {
 

@@ -470,6 +470,17 @@ class RakuAST::VarDeclaration::Constant
                     nqp::rethrow($ex);
                 }
             }
+            # BEGIN-time evaluation of the initializer runs before the
+            # CompUnit's CHECK-time sink propagation, so a nested
+            # StatementList in the initializer would otherwise leave
+            # non-final statements unsunk and a side-effecting expression
+            # like a `while` loop would emit as a lazy Seq that gets
+            # discarded without iterating. Propagate sink here as if the
+            # initializer's value were wanted. A `.=` initializer carries
+            # a method call rather than an expression and needs no sink
+            # treatment.
+            $!initializer.expression.apply-sink(False)
+                if nqp::istype($!initializer, RakuAST::Initializer::Expression);
             $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
                 $resolver, $context, :invocant-compiler(-> { $!type ?? $!type.IMPL-VALUE-TYPE.meta-object !! Mu }));
         };

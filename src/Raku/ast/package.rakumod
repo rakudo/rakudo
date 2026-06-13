@@ -430,6 +430,7 @@ class RakuAST::Package
             my $cs := RakuAST::CompilerServices.new(self, $resolver, $context);
             $type.HOW.compose($type, :compiler_services($cs));
             nqp::bindattr(self, RakuAST::Package, '$!accessor-qast', $cs.IMPL-GET-QAST);
+            $cs.IMPL-RELEASE;
         }
         else {
             $type.HOW.compose($type);
@@ -972,4 +973,18 @@ class RakuAST::CompilerServices
     # Return the accumulated accessor QAST so Package can keep it and
     # discard the transient CompilerServices.
     method IMPL-GET-QAST() { $!qast }
+
+    # Drop all compile-time state. The services land in the slurpy
+    # named arguments of metamodel compose methods, and a closure
+    # created in such a frame, as a custom HOW adding methods during
+    # compose does, keeps the frame - and so this object - in the
+    # serialized output. The resolver reaches the setting context,
+    # which cannot be serialized.
+    method IMPL-RELEASE() {
+        nqp::bindattr(self, RakuAST::CompilerServices, '$!package', RakuAST::Package);
+        nqp::bindattr(self, RakuAST::CompilerServices, '$!resolver', RakuAST::Resolver);
+        nqp::bindattr(self, RakuAST::CompilerServices, '$!context', RakuAST::IMPL::QASTContext);
+        nqp::bindattr(self, RakuAST::CompilerServices, '$!qast', QAST::Stmts);
+        Nil
+    }
 }

@@ -556,6 +556,33 @@ class RakuAST::StatementSequence
             $stmts
         }
     }
+
+    # Mirror IMPL-TO-QAST rather than inherit StatementList's sink-value
+    # logic, which reaches a second implicit lookup this node does not have.
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @statements;
+        for self.code-statements {
+            nqp::push(@statements, $_)
+              unless nqp::istype($_, RakuAST::Statement::Empty);
+        }
+
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-INTERPRET($ctx)
+        }
+        elsif $n == 0 {
+            my $empty-list :=
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+            $empty-list()
+        }
+        else {
+            my $result;
+            for @statements {
+                $result := $_.IMPL-INTERPRET($ctx);
+            }
+            $result
+        }
+    }
 }
 
 # Done by all classes that always produce Nil

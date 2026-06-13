@@ -1156,8 +1156,14 @@ class RakuAST::PackageInstaller {
         }
 
         my %stash := $resolver.IMPL-STASH-HASH($target);
-        # upgrade a lexically imported package stub to package scope if it exists
-        if $lexical {
+        # Upgrade a lexically imported package stub to package scope if it
+        # exists, but only an actual PackageHOW stub. A name resolving to a
+        # concrete builtin (e.g. `grammar Grammar` finding the CORE Grammar)
+        # is shadowed by this declaration, not adopted; injecting it makes
+        # the silent-replace below steal the builtin's WHO out of the
+        # setting's serialization context, which breaks precompilation.
+        if $lexical
+          && nqp::istype($lexical.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
             %stash{$final} := $lexical.compile-time-value;
         }
         if $scope eq 'our' {

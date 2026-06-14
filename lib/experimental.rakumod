@@ -23,7 +23,11 @@ package EXPORT::cached {
 }
 
 package EXPORT::macros {
-    OUR::<EXPERIMENTAL-MACROS> := True;
+    nqp::getcomp('Raku').language_revision < 3
+      ?? (OUR::<EXPERIMENTAL-MACROS> := True)
+      !! die "Experimental macro support not available in Raku {
+           Raku.version
+         }.";
 }
 
 package EXPORT::smallnatives {

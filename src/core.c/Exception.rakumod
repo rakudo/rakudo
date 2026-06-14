@@ -1110,7 +1110,12 @@ my class X::NYI::BigInt is Exception {  # XXX not used in core
 my class X::Experimental does X::Comp {
     has $.feature;
     has $.use = $!feature;
-    method message() { "Use of $.feature is experimental; please 'use experimental :$.use'" }
+    method message() {
+        my $version := ~Raku.version;
+        $version eq '6.e' && $.use eq 'macros'
+          ?? "Experimental $.feature are no longer supported in Raku $version."
+          !! "Use of $.feature is experimental; please 'use experimental :$.use;'"
+    }
 }
 
 my class X::Worry is Exception { }

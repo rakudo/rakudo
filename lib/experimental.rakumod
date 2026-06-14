@@ -23,7 +23,7 @@ package EXPORT::cached {
 }
 
 package EXPORT::macros {
-    OUR::<EXPERIMENTAL-MACROS> := True;
+    OUR::<EXPERIMENTAL-MACROS> := nqp::getcomp('Raku').language_revision < 3;
 }
 
 package EXPORT::smallnatives {

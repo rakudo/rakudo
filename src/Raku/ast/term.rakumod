@@ -169,7 +169,11 @@ class RakuAST::Term::Self
     method IMPL-IS-CONSTANT() { True }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.resolution.IMPL-LOOKUP-QAST($context)
+        # The lookup is the lexical `self` whether or not a resolution
+        # was recorded, so emit it directly when there is none.
+        self.is-resolved
+            ?? self.resolution.IMPL-LOOKUP-QAST($context)
+            !! QAST::Var.new( :name('self'), :scope('lexical') )
     }
 }
 

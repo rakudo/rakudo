@@ -52,6 +52,11 @@ class RakuAST::Regex
         )
     }
 
+    # The node a named capture of this one would capture. Quantification
+    # and backtrack modifiers are transparent to capturing, so those
+    # wrappers return the target of the atom they wrap.
+    method IMPL-CAPTURE-TARGET() { self }
+
     method IMPL-APPLY-LITERAL-MODS(Mu $qast, %mods) {
         if %mods<i> && %mods<m> {
             $qast.subtype('ignorecase+ignoremark')
@@ -475,7 +480,17 @@ class RakuAST::Regex::NamedCapture
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := $!regex.IMPL-REGEX-QAST($context, %mods);
-        if ($qast.rxtype eq 'quant' || $qast.rxtype eq 'dynquant') &&
+        if nqp::istype($!regex.IMPL-CAPTURE-TARGET, RakuAST::Regex::Group) {
+            # A bracketed group is captured as a whole, no matter its content,
+            # also when quantified or backtrack-modified. Its QAST cannot be
+            # told apart from that of its content, since the group compiles
+            # as a pass-through, so decide by the AST node: the subrule
+            # aliasing below must only apply to bare assertions like
+            # $<x>=<foo> and their quantified forms.
+
+            $qast := QAST::Regex.new( :rxtype<subcapture>, :name($!name), $qast );
+        }
+        elsif ($qast.rxtype eq 'quant' || $qast.rxtype eq 'dynquant') &&
                 $qast[0].rxtype eq 'subrule' {
             self.IMPL-SUBRULE-ALIAS($qast[0], $!name);
         }
@@ -1959,6 +1974,8 @@ class RakuAST::Regex::QuantifiedAtom
         Nil
     }
 
+    method IMPL-CAPTURE-TARGET() { $!atom.IMPL-CAPTURE-TARGET }
+
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!atom.quantifiable {
             self.add-sorry:
@@ -2154,6 +2171,8 @@ class RakuAST::Regex::BacktrackModifiedAtom
         my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
         $atom.backtrack ?? $atom !! $!backtrack.IMPL-QAST-APPLY($atom, %mods)
     }
+
+    method IMPL-CAPTURE-TARGET() { $!atom.IMPL-CAPTURE-TARGET }
 
     method visit-children(Code $visitor) {
         $visitor($!atom);

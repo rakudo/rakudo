@@ -87,7 +87,9 @@ class RakuAST::Constant
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
-    method native-type-flag() { 1 }
+    # A value too wide for a native int is not a native-int literal, so it
+    # cannot take part in a native dispatch.
+    method native-type-flag() { nqp::isbig_I(self.value) ?? Nil !! 1 }
 
     method type-name() { 'integer' }
 

@@ -4519,6 +4519,48 @@ class Perl6::Optimizer {
         if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
             $call.op('callstatic');
         }
+
+        # Carry the chosen candidate's native return type on a native-want
+        # alternative of the call. The bare call stays the default, so a
+        # context that wants the boxed object never unboxes and escape
+        # values like a Failure flow through. Every native-want flavour
+        # takes the alternative: the call unboxes directly into its native
+        # return kind and the QAST compiler's kind coercion widens from
+        # there, with no boxed round trip.
+        #
+        # A soft proto can be wrapped at run time, in which case the chosen
+        # candidate's return type does not bind the call. Unlike the
+        # callstatic conversion this is not restricted to outer scopes: a
+        # closure clone of a nested routine still runs the same candidates.
+        #
+        # A literal argument is excluded: it only counts as native in the
+        # dispatch analysis because a literal could compile that way, but
+        # the call passes the boxed value, so the runtime dispatcher can
+        # answer with a different candidate than the analysis settled on.
+        if $scopes == 0 || nqp::can($proto, 'soft') && !$proto.soft {
+            my int $literal-args := 0;
+            for @($call) {
+                $literal-args := 1
+                    if nqp::istype($_, QAST::Want) && $_.has_compile_time_value;
+            }
+            if !$literal-args
+            && nqp::can($chosen, 'returns') && !(nqp::can($chosen, 'rw') && $chosen.rw) {
+                if nqp::objprimspec($chosen.returns) {
+                    my $native := $call.shallow_clone;
+                    $native.returns($chosen.returns);
+                    $call := QAST::Want.new(
+                        :named($call.named),
+                        $call,
+                        'Ii', $native,
+                        'Nn', $native,
+                        'Ss', $native);
+                    # The annotation on the Want itself carries the type to
+                    # the argument analysis of an enclosing call; codegen
+                    # picks per context between the children above.
+                    $call.returns($chosen.returns);
+                }
+            }
+        }
 #?endif
         $call
     }

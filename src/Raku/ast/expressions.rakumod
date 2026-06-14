@@ -2019,6 +2019,7 @@ class RakuAST::ApplyInfix
 {
     has RakuAST::Infixish $.infix;
     has RakuAST::ArgList  $.args;
+    has Mu $!native-return-type;
 
     method new(
       RakuAST::Infixish   :$infix!,
@@ -2194,7 +2195,52 @@ class RakuAST::ApplyInfix
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
 
+        self.IMPL-RECORD-NATIVE-RETURN-TYPE;
+
         True
+    }
+
+    # When the operator resolves to a single candidate with a native return
+    # type, record it. This lets a native-typed assignment coerce the result
+    # with the matching unbox, and lets an enclosing operator see this result
+    # as native.
+    method IMPL-RECORD-NATIVE-RETURN-TYPE() {
+        my $infix := $!infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infix) && $infix.is-resolved;
+
+        # Each link of a chain-associative operator dispatches on the
+        # original operands at run time, while this node's left operand is
+        # the preceding link, so the candidate analysis would settle on the
+        # wrong link signature.
+        return Nil if $infix.properties.chain;
+
+        return Nil unless nqp::can($infix.resolution, 'compile-time-value');
+        my $routine := $infix.resolution.compile-time-value;
+        return Nil unless nqp::isconcrete($routine) && nqp::istype($routine, Code);
+
+        my $left := self.left;
+        my $right := self.right;
+        return Nil unless nqp::isconcrete($left) && nqp::isconcrete($right);
+        my $left-type := $left.return-type;
+        return Nil if $left-type =:= Mu
+          || nqp::istype($left-type.HOW, Perl6::Metamodel::SubsetHOW)
+          || nqp::istype($left-type.HOW, Perl6::Metamodel::GenericHOW);
+        my $right-type := $right.return-type;
+        return Nil if $right-type =:= Mu
+          || nqp::istype($right-type.HOW, Perl6::Metamodel::SubsetHOW)
+          || nqp::istype($right-type.HOW, Perl6::Metamodel::GenericHOW);
+
+        my $ret := $infix.IMPL-NATIVE-RETURN-TYPE($routine,
+            [$left-type, $right-type],
+            [nqp::objprimspec($left-type), nqp::objprimspec($right-type)]);
+        nqp::bindattr(self, RakuAST::ApplyInfix, '$!native-return-type', $ret)
+            unless nqp::isnull($ret);
+        Nil
+    }
+
+    method return-type() {
+        my $type := $!native-return-type;
+        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
     }
 
     method IMPL-IS-XX() {
@@ -2206,7 +2252,14 @@ class RakuAST::ApplyInfix
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $adverb := $!args.arg-at-pos(2) // RakuAST::ColonPairish;
-        $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right, :$adverb)
+        my $qast := $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right, :$adverb);
+        my $type := $!native-return-type;
+        if !nqp::isnull($type) && nqp::objprimspec($type)
+          && nqp::istype($qast, QAST::Op)
+          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
+            $qast := $!infix.IMPL-NATIVE-RETURN-WANT($qast, $type);
+        }
+        $qast
     }
 
     method visit-children(Code $visitor) {
@@ -2702,6 +2755,7 @@ class RakuAST::ApplyPrefix
 {
     has RakuAST::Prefixish $.prefix;
     has RakuAST::Expression $.operand;
+    has Mu $!native-return-type;
 
     method new(:$prefix!, :$operand!) {
         my $obj := nqp::create(self);
@@ -2728,10 +2782,49 @@ class RakuAST::ApplyPrefix
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.prefix.is-pure && self.sunk;
+
+        self.IMPL-RECORD-NATIVE-RETURN-TYPE;
+    }
+
+    # When the operator resolves to a single candidate with a native return
+    # type, record it. This lets a native-typed assignment coerce the result
+    # with the matching unbox, and lets an enclosing operator see this result
+    # as native.
+    method IMPL-RECORD-NATIVE-RETURN-TYPE() {
+        my $prefix := $!prefix;
+        return Nil unless nqp::istype($prefix, RakuAST::Prefix) && $prefix.is-resolved;
+        return Nil unless nqp::can($prefix.resolution, 'compile-time-value');
+        my $routine := $prefix.resolution.compile-time-value;
+        return Nil unless nqp::isconcrete($routine) && nqp::istype($routine, Code);
+
+        my $operand := $!operand;
+        return Nil unless nqp::isconcrete($operand);
+        my $type := $operand.return-type;
+        return Nil if $type =:= Mu
+          || nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW)
+          || nqp::istype($type.HOW, Perl6::Metamodel::GenericHOW);
+
+        my $ret := $prefix.IMPL-NATIVE-RETURN-TYPE($routine,
+            [$type], [nqp::objprimspec($type)]);
+        nqp::bindattr(self, RakuAST::ApplyPrefix, '$!native-return-type', $ret)
+            unless nqp::isnull($ret);
+        Nil
+    }
+
+    method return-type() {
+        my $type := $!native-return-type;
+        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
+        my $qast := $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
+        my $type := $!native-return-type;
+        if !nqp::isnull($type) && nqp::objprimspec($type)
+          && nqp::istype($qast, QAST::Op)
+          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
+            $qast := $!prefix.IMPL-NATIVE-RETURN-WANT($qast, $type);
+        }
+        $qast
     }
 
     method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET }

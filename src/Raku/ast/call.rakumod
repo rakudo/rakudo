@@ -248,6 +248,7 @@ class RakuAST::Call::Name
     has RakuAST::Routine $!routine;
     has Mu $!lexical; # For top-level package if we can only partially resolve
     has Mu $!package;
+    has Mu $!native-return-type;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
@@ -427,6 +428,14 @@ class RakuAST::Call::Name
                                 :$protoguilt,
                         );
                     }
+                    else {
+                        # The call is settled at compile time. Record a native
+                        # return type so code gen can coerce the result with the
+                        # right unbox when it lands in a native-typed container.
+                        my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags);
+                        nqp::bindattr(self, RakuAST::Call::Name,
+                            '$!native-return-type', $ret) unless nqp::isnull($ret);
+                    }
                 }
             }
         }
@@ -503,6 +512,13 @@ class RakuAST::Call::Name
             && (nqp::isconcrete($ret.maybe-compile-time-value) || nqp::istype($ret.maybe-compile-time-value, Nil))
         {
             $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
+        }
+
+        # A native return type known at check time lets a native-typed
+        # assignment coerce the result with the matching unbox.
+        my $native-return := $!native-return-type;
+        if !nqp::isnull($native-return) && nqp::objprimspec($native-return) {
+            $call := self.IMPL-NATIVE-RETURN-WANT($call, $native-return);
         }
 
         $call

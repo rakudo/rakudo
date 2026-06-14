@@ -199,6 +199,11 @@ class RakuAST::Signature
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
                             $type.set-resolution($Class.resolution);
+                        } elsif $!method-package.declarator eq 'role' {
+                            # An anon or my method in a role is not a role method
+                            # and may be added to an unrelated type, so it takes
+                            # an unconstrained invocant.
+                            $type := Mu;
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);

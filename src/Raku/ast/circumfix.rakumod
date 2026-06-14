@@ -239,6 +239,19 @@ class RakuAST::Circumfix::HashComposer
         $op
     }
 
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved
+          && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+          && (!$!expression || $!expression.IMPL-CAN-INTERPRET)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $composer := self.resolution.compile-time-value;
+        $!expression
+          ?? $composer($!expression.IMPL-INTERPRET($ctx))
+          !! $composer()
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!expression) if $!expression;
     }

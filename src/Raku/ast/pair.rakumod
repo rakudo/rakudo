@@ -49,6 +49,14 @@ class RakuAST::FatArrow
         )
     }
 
+    method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value.new(
+          $!key, $!value.IMPL-INTERPRET($ctx)
+        )
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!value);
     }

@@ -19,6 +19,13 @@ class RakuAST::Contextualizer
         )
     }
 
+    method IMPL-CAN-INTERPRET() { $!target.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my str $method := self.IMPL-METHOD;
+        $!target.IMPL-INTERPRET($ctx)."$method"()
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!target);
     }

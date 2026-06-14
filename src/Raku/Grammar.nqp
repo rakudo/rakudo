@@ -1517,9 +1517,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token unit-block($decl, $kind = 'Block', :$parameterization) {
         :my $*BLOCK;
         {                                           # entry check
-            unless $*SCOPE eq 'unit' {
-                $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
-            }
+            $/.typed_panic("X::UnitScope::MustHaveUnit",:what($decl))
+              unless $*SCOPE eq 'unit';
         }
         { $*IN-DECL := ''; }                        # not inside declaration
         <.enter-block-scope($kind, $parameterization)>
@@ -4171,7 +4170,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           || ';'
              {
-                 if $<deflongname> ne 'MAIN' {
+                 # Allow all subs with ; but require "unit" scope from 6.e
+                 if nqp::getcomp('Raku').language_revision >= 3 {
+                     $/.typed_panic("X::UnitScope::MustHaveUnit","sub")
+                       unless $*SCOPE eq 'unit';
+                 }
+
+                 # 6.c/d behaviour, doesn't check for "unit", only allows MAIN
+                 elsif $<deflongname> ne 'MAIN' {
                      $/.typed-panic: "X::UnitScope::Invalid",
                         what       => "sub",
                         where      => "except on a MAIN sub",

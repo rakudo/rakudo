@@ -1,6 +1,6 @@
 use Test;
 
-plan 8;
+plan 14;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -48,5 +48,36 @@ for 'rand', '*', '**' -> $term {
     nok useless-of($err, $term),
         "`$term` is not a useless-use subject at statement level";
 }
+
+# An operator is useless in sink context only when its routine carries the
+# `is pure` trait, matching the legacy frontend.
+
+# `temp` and `let` localize a variable and restore it when the scope leaves,
+# so they have an effect even though their result is discarded.
+nok useless-lines(stderr-of 'my $x = 1; sub f { temp $x; 42 }; f()').elems,
+    '`temp` is not a useless-use subject in sink context';
+
+nok useless-lines(stderr-of 'my $x = 1; sub f { let $x; 42 }; f()').elems,
+    '`let` is not a useless-use subject in sink context';
+
+nok useless-lines(
+        stderr-of 'sub prefix:<sidef>($x) { $x }; my $y = 1; sub f { sidef $y; 42 }; f()'
+    ).elems,
+    'a user-defined prefix without `is pure` is not a useless-use subject';
+
+nok useless-lines(
+        stderr-of 'sub infix:<sidef>($a, $b) { $a }; my $y = 1; sub f { $y sidef $y; 42 }; f()'
+    ).elems,
+    'a user-defined infix without `is pure` is not a useless-use subject';
+
+ok useless-lines(
+        stderr-of 'sub prefix:<puref>($x) is pure { $x }; my $y = 1; sub f { puref $y; 42 }; f()'
+    ).elems,
+    'a user-defined prefix declared `is pure` is a useless-use subject';
+
+ok useless-lines(
+        stderr-of 'sub infix:<puref>($a, $b) is pure { $a }; my $y = 1; sub f { $y puref $y; 42 }; f()'
+    ).elems,
+    'a user-defined infix declared `is pure` is a useless-use subject';
 
 # vim: expandtab shiftwidth=4

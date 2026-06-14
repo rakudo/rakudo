@@ -2192,7 +2192,9 @@ class RakuAST::ApplyInfix
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.infix.is-pure && self.sunk && !self.infix.short-circuit;
+            if self.sunk
+            && !self.infix.short-circuit
+            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
 
         True
     }
@@ -2358,10 +2360,10 @@ class RakuAST::ApplyListInfix
         }
 
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.infix.is-pure
-            && self.sunk
+            if self.sunk
             && !self.infix.short-circuit
-            && !self.IMPL-IS-LIST-LITERAL;
+            && !self.IMPL-IS-LIST-LITERAL
+            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
     }
 
     method IMPL-IS-VALID-FEED-STAGE($stage) {
@@ -2727,7 +2729,7 @@ class RakuAST::ApplyPrefix
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.prefix.is-pure && self.sunk;
+            if self.sunk && self.IMPL-SUNK-OPERATOR-PURE(self.prefix);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

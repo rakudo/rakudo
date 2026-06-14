@@ -922,6 +922,20 @@ class RakuAST::Node {
         nqp::can($routine, 'is-pure') ?? 1 !! 0
     }
 
+    # Whether an operator is pure. A pure operator has no effect, so the
+    # sink-context warning flags discarding its result as useless. A resolved
+    # simple operator answers from its routine's `is pure` trait, the basis
+    # the legacy frontend uses, so a user-defined operator with side effects
+    # is not flagged. A meta operator or one not yet resolved keeps the
+    # operator node's own classification.
+    method IMPL-SUNK-OPERATOR-PURE(Mu $operator) {
+        (nqp::istype($operator, RakuAST::Infix)
+          || nqp::istype($operator, RakuAST::Prefix))
+          && $operator.is-resolved
+            ?? self.IMPL-PURE-ROUTINE($operator)
+            !! $operator.is-pure
+    }
+
     # Whether a computed value is reasonable to embed in the compilation
     # unit. Each restriction carries its own explanation, and a new one
     # belongs here with the same treatment.

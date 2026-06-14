@@ -48,6 +48,13 @@ class RakuAST::TraitTarget {
     # Apply all traits (and already applied will not be applied again).
     method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         if $!traits {
+            # The parser leaves the dynamic $*PACKAGE bound to the package's
+            # AST node, whose .HOW is not the metaclass the type is composed
+            # with. Bind it to the package type object so a trait that mixes
+            # into $*PACKAGE.HOW reaches the composed metaclass.
+            my $*PACKAGE := nqp::istype(self, RakuAST::Package)
+                ?? self.compile-time-value
+                !! $resolver.current-package;
             my constant is-traits-to-warn-on-duplicate := nqp::hash(
                 'tighter',  1,  'looser', 1,  'equiv', 1,  'rw',   1,  'default', 1,
                 'readonly', 1,  'raw',    1,  'assoc', 1,  'pure', 1,  'export',  1,

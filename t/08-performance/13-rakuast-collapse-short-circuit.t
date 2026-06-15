@@ -3,7 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 12;
+plan 13;
 
 # A boolean short-circuit with a constant left operand collapses to the side
 # the operator yields, and the dropped side's code is removed. Each scenario
@@ -29,9 +29,12 @@ ok tree(Q[my $y = (False or 7)]).contains('= 7'),
     'the loose form or collapses the same way';
 
 # The collapse declines when the left operand's truth is not a known
-# constant, or when dropping the other side would lose a declaration.
+# constant, when dropping the other side would lose a declaration, or when
+# the left operand itself declares one.
 ok tree(Q[my $a = 1; my $y = $a && 7]).contains('&&'),
     'a runtime left operand is left for runtime';
+ok tree(Q[sub e() {9}; my $y = (my @a := (3, 7)) && e()]).contains('&&'),
+    'a left operand that declares a variable is left for runtime';
 ok tree(Q[my $y = False && (my $x = 5)]).contains('&&'),
     'a side holding a declaration keeps the branch';
 nok tree(Q[my $y = False && do { my $t = 5; $t }]).contains('do'),

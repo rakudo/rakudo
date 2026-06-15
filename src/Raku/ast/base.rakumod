@@ -709,21 +709,24 @@ class RakuAST::Node {
 
     # A ternary with a constant condition becomes the branch the condition
     # selects. The branches are expressions, so the value is preserved, and the
-    # unselected branch is one the running program would not have evaluated.
+    # unselected branch is one the running program would not have evaluated. The
+    # condition is removed as well, so it too must be droppable.
     method IMPL-COLLAPSE-TERNARY(RakuAST::Resolver $resolver, Mu $expr) {
         return $expr unless nqp::istype($expr, RakuAST::Ternary);
         my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $expr.condition);
         return $expr if $truth < 0;
         my $keep := $truth ?? $expr.then !! $expr.else;
         my $drop := $truth ?? $expr.else !! $expr.then;
-        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+        self.IMPL-DROPPABLE($expr.condition) && self.IMPL-DROPPABLE($drop)
+          ?? $keep !! $expr
     }
 
     # A boolean short-circuit (&& and ||, or their loose forms `and` and `or`)
     # with a constant left operand becomes the side the operator yields: an
     # `and` gives the right side when the left is true and the left otherwise,
     # an `or` the mirror. The dropped side is one the running program would not
-    # have evaluated, so its code is removed too.
+    # have evaluated, so its code is removed too. The left's constant truth
+    # stands in for the runtime test only when the left is droppable.
     method IMPL-COLLAPSE-SHORT-CIRCUIT(RakuAST::Resolver $resolver, Mu $expr) {
         return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
@@ -745,7 +748,8 @@ class RakuAST::Node {
             ?? ($truth ?? $right !! $left)
             !! ($truth ?? $left  !! $right);
         my $drop := $keep =:= $left ?? $right !! $left;
-        self.IMPL-DROPPABLE($drop) ?? $keep !! $expr
+        self.IMPL-DROPPABLE($left) && self.IMPL-DROPPABLE($drop)
+          ?? $keep !! $expr
     }
 
     # Raku truth value of a node, or -1 when it cannot be determined safely.

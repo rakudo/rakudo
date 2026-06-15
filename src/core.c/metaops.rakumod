@@ -3,53 +3,53 @@ sub METAOP_ASSIGN(\op) is implementation-detail {
     Rakudo::Internals.METAOP_ASSIGN(op)
 }
 
-sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<//>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs // (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<||>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs || (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<&&>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs && (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<or>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<or>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs or (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<and>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<and>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs and (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<andthen>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs andthen (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<notandthen>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<notandthen>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs notandthen (lhs = $rhs())
 }
-sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN:<orelse>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs orelse (lhs = $rhs())
 }
 
-sub METAOP_TEST_ASSIGN_VALUE:<//>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<//>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs // (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<||>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<||>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs || (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<&&>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<&&>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs && (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<or>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<or>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs or (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<and>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<and>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs and (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<andthen>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<andthen>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs andthen (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<notandthen>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<notandthen>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs notandthen (lhs = $rhs)
 }
-sub METAOP_TEST_ASSIGN_VALUE:<orelse>(\lhs, $rhs) is raw is implementation-detail {
+sub METAOP_TEST_ASSIGN_VALUE:<orelse>(Mu \lhs, Mu $rhs) is raw is implementation-detail {
     lhs orelse (lhs = $rhs)
 }
 

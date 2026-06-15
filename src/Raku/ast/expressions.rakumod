@@ -443,6 +443,19 @@ class RakuAST::Infix
         {
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
+        elsif nqp::existskey(OP-SMARTMATCH, $op) {
+            # A constant or variable right side does not reference the topic, so
+            # it needs no topicalization. The dispatcher still reduces a type
+            # object whose ACCEPTS comes from the setting to a type check.
+            my int $negate := nqp::atkey(OP-SMARTMATCH, $op);
+            QAST::Op.new(
+                :op<dispatch>,
+                QAST::SVal.new( :value<raku-smartmatch> ),
+                $left.IMPL-TO-QAST($context),
+                $right.IMPL-TO-QAST($context),
+                QAST::IVal.new( :value( $negate ?? -1 !! 1 ) )
+            )
+        }
         else {
             my $qast := self.IMPL-INFIX-QAST:
                 $context,
@@ -628,38 +641,20 @@ class RakuAST::Infix
                 $sm-call);
         }
 
-        my $accepts-call;
-        if $negate {
-            $accepts-call := QAST::Op.new(
-                :op<callmethod>, :name<not>,
-                QAST::Op.new(
-                    :op('callmethod'), :name('ACCEPTS'),
-                    $right.IMPL-TO-QAST($context),
-                    QAST::Var.new(:name<$_>, :scope<lexical>)));
-        }
-        else {
-            my $rhs-local := QAST::Node.unique('!sm-rhs');
-            $accepts-call := QAST::Op.new(
-                :op('callmethod'), :name('ACCEPTS'),
-                QAST::Var.new( :name($rhs-local), :scope<local> ),
-                QAST::Var.new(:name<$_>, :scope<lexical>));
-            $accepts-call := QAST::Op.new(
-                :op<if>,
-                QAST::Op.new(
-                    :op<istype>,
-                    QAST::Op.new(
-                        :op<bind>,
-                        QAST::Var.new( :name($rhs-local), :scope<local>, :decl<var> ),
-                        $right.IMPL-TO-QAST($context),
-                    ),
-                    QAST::WVal.new( :value(Regex) )),
-                $accepts-call,
-                QAST::Op.new(
-                    :op<callmethod>,
-                    :name<Bool>,
-                    $accepts-call ));
-        }
-        self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $accepts-call )
+        # The topic is bound to the left side so the right side can reference
+        # it. The dispatcher reduces a type object whose ACCEPTS comes from the
+        # setting to a type check, and handles a regex or junction right side.
+        # The boolification flag boolifies a non-regex result, or negates.
+        my $sm-call := QAST::Op.new(
+            :op<dispatch>,
+            QAST::SVal.new( :value<raku-smartmatch> ),
+            QAST::Var.new( :name('$_'), :scope('lexical') ),
+            $right.IMPL-TO-QAST($context),
+            QAST::IVal.new( :value( $negate ?? -1 !! 1 ) )
+        );
+        $sm-call.annotate('smartmatch_accepts', 1);
+        $sm-call.annotate('smartmatch_negated', $negate);
+        self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $sm-call )
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

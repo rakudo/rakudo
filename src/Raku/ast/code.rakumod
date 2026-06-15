@@ -2021,6 +2021,11 @@ class RakuAST::Routine
                     nqp::push(@declarations, $_);
                 }
             }
+            # A special variable bound inside a sub-signature, such as the $_ in
+            # `(:value($_))`, is not a top-level parameter, so catch it too.
+            $slash := 0            if $slash && $!signature.IMPL-HAS-PARAMETER('$/');
+            $exclamation-mark := 0 if $exclamation-mark && $!signature.IMPL-HAS-PARAMETER('$!');
+            $underscore := 0       if $underscore && $!signature.IMPL-HAS-PARAMETER('$_');
         }
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'))) if $slash;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;

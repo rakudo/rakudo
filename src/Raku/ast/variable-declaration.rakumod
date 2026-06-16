@@ -920,9 +920,9 @@ class RakuAST::VarDeclaration::Simple
         my $subset;
         if my $where := $!where {
             my $type := $of-type // self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
-            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
-            $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type || Mu), :$where;
+            # An unnamed subset reports as <anon> in a failed type check,
+            # matching the legacy frontend.
+            $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || Mu), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
         }

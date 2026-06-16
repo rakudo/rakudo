@@ -1,6 +1,6 @@
 use Test;
 
-plan 12;
+plan 15;
 
 # Parameter sub signature destructure must compile under both
 # frontends, including when the owning routine is compiled at BEGIN.
@@ -101,5 +101,33 @@ dies-ok {
         my class C does R[self] { }
         CODE
 }, 'role parameterization with self outside object dies cleanly';
+
+# 13. An untyped sub signature parameter takes the same default nominal
+# type as a routine parameter, so an unfilled named key binds to Any.
+is EVAL(q:to/CODE/),
+        sub foo(%h (:$x!, :$y)) { $y.^name }
+        foo({:x(1)})
+        CODE
+    'Any', 'unfilled named sub signature parameter binds to Any';
+
+# 14. The same holds for a missing optional positional element.
+is EVAL(q:to/CODE/),
+        sub foo(@a ($p, $q?)) { $q.^name }
+        foo([1])
+        CODE
+    'Any', 'unfilled positional sub signature parameter binds to Any';
+
+# 15. Because the unfilled value is Any rather than Mu, a downstream
+# call constrained to Any resolves rather than failing to find a
+# candidate.
+is EVAL(q:to/CODE/),
+        my class C {
+            multi method handle(Str:D $_) { "str" }
+            multi method handle($)        { "any" }
+            method run(%h (:$x!, :$comment)) { self.handle($comment) }
+        }
+        C.new.run({:x(1)})
+        CODE
+    'any', 'unfilled sub signature value resolves to an Any candidate';
 
 # vim: expandtab shiftwidth=4

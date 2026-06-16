@@ -5084,9 +5084,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN-DECL := '';
         :dba('constraint')
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
 
           | <.constraint-where> <EXPR('i=')>
         ]

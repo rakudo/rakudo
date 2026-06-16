@@ -1495,6 +1495,21 @@ augment class RakuAST::Postfix::Power {
 
 augment class RakuAST::Grammar {
 
+    # Did a named assertion resolve to a lexically visible regex, as a
+    # capturing <foo> does when there is a `my token foo` in scope? Such
+    # an assertion compiles to a call to that lexical rather than to a
+    # method of the grammar.
+    my sub resolved-lexically($node) {
+        my $lookups := $node.get-implicit-lookups;
+        $lookups.elems
+          && (my $lookup := $lookups[0]).is-resolved
+          && nqp::istype(
+               (my $resolution := $lookup.resolution),
+               RakuAST::CompileTimeValue
+             )
+          && nqp::istype($resolution.compile-time-value, Regex)
+    }
+
     # Check general sanity of the grammar
     method check-sanity() {
         my $grammar := self.meta-object;
@@ -1503,7 +1518,8 @@ augment class RakuAST::Grammar {
         self.map: -> $node {
             if nqp::istype($node,RakuAST::Regex::Assertion::Named) {
                 if $node.name.simple-identifier -> $name {
-                    unless nqp::isconcrete($grammar.^find_method($name)) {
+                    unless nqp::isconcrete($grammar.^find_method($name))
+                      || resolved-lexically($node) {
                         my int $i;
                         nqp::while(
                           (my $parent := $node.parent(++$i))

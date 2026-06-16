@@ -179,6 +179,7 @@ class RakuAST::Signature
         if $!parameters {
             for $!parameters {
                 return True if $_.target && $_.target.lexical-name eq $name;
+                return True if $_.sub-signature && $_.sub-signature.IMPL-HAS-PARAMETER($name);
             }
         }
         False

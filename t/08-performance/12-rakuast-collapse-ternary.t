@@ -3,7 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 7;
+plan 8;
 
 # A ternary with a constant condition collapses to the branch the condition
 # selects. Each scenario asserts the shape of the tree the program compiles
@@ -25,6 +25,11 @@ ok tree(Q[my $a = 1; my $x = $a ?? "t" !! "f"]).contains('??'),
     'a runtime condition is left for runtime';
 ok tree(Q[my constant C = class :: is Cool { method Bool { die } }.new; my $x = C ?? 1 !! 2]).contains('??'),
     'a condition whose truthiness throws is left for runtime';
+
+# The condition is removed by the collapse, so it must be droppable. A
+# condition that declares a variable keeps its binding.
+ok tree(Q[my $x = (my @a := (3, 7)) ?? "t" !! "f"]).contains('??'),
+    'a condition that declares a variable is left for runtime';
 
 # The unoptimized tree still holds the ternary, so the scenarios above are
 # known to be testing the optimizer rather than something upstream.

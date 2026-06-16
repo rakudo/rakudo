@@ -12,6 +12,14 @@ my class Mix does Mixy {
              )
     }
 
+    # See Set.ATTRIBUTE-new for reasons why
+    method ATTRIBUTE-new() is implementation-detail {
+        nqp::p6bindattrinvres(
+          nqp::create(Mix),Mix,'$!elems',
+          nqp::create(Rakudo::Internals::IterationSet)
+        )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(

@@ -2015,7 +2015,9 @@ class Perl6::World is HLL::World {
               $class, self.find_single_symbol_in_setting('Bag')
             ) || nqp::eqaddr(
               $class, self.find_single_symbol_in_setting('Mix')
-            ) ?? QAST::Op.new(:op<create>, $new-ast)
+            ) ?? $*SCOPE eq 'has'
+                ?? QAST::Op.new(:op<callmethod>,:name<ATTRIBUTE-new>, $new-ast )
+                !! QAST::Op.new(:op<create>, $new-ast)
               !! QAST::Op.new(:op<callmethod>, :name<new>, $new-ast );
             $ast.annotate('is-generic', $is-generic);
             $ast

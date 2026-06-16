@@ -10,6 +10,17 @@ my class Set does Setty {
              )
     }
 
+    # Special version of .new that does *not* return the empty set.
+    # This is needed because "has %.a is Set" will either potentially
+    # override the empty set, *or* it will create a bare "Set" object
+    # that doesn't have the $!elems attribute properly initialized.
+    method ATTRIBUTE-new() is implementation-detail {
+        nqp::p6bindattrinvres(
+          nqp::create(Set),Set,'$!elems',
+          nqp::create(Rakudo::Internals::IterationSet)
+        )
+    }
+
     method ^parameterize(Mu \base, Mu \type) {
         my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(

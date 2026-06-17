@@ -1013,6 +1013,9 @@ class RakuAST::PackageInstaller {
     ### Consuming classes must define:
     #    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) { ... }
 
+    method is-stub() { False }
+    method defuse-stub() { }
+
     method IMPL-INSTALL-PACKAGE(
         RakuAST::Resolver $resolver,
         str $scope,

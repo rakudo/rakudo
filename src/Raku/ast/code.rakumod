@@ -57,6 +57,10 @@ class RakuAST::OnlyStar
         nqp::findmethod(RakuAST::Expression, 'IMPL-TO-QAST')(self, $context)
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True  # `{*}` dispatches to candidates, so it is never useless when sunk
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # The dispatch op is the only code in an onlystar body, and a
         # frame's location, as reported by Code.file and Code.line, comes

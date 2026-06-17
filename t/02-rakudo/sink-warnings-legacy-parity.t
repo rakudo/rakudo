@@ -1,6 +1,6 @@
 use Test;
 
-plan 14;
+plan 15;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -79,5 +79,14 @@ ok useless-lines(
         stderr-of 'sub infix:<puref>($a, $b) is pure { $a }; my $y = 1; sub f { $y puref $y; 42 }; f()'
     ).elems,
     'a user-defined infix declared `is pure` is a useless-use subject';
+
+# `{*}` performs the proto dispatch to its candidates, so it has an effect
+# even in a non-tail (sunk) position in a proto body. Legacy never warns.
+
+nok useless-of(
+        stderr-of('class C { proto method m($x) { {*}; 42 }; multi method m(Int $x) { $x } }; C.m(1)'),
+        '{*}'
+    ),
+    '`{*}` is not a useless-use subject in a non-tail proto body';
 
 # vim: expandtab shiftwidth=4

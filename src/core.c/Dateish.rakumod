@@ -157,6 +157,17 @@ my role Dateish {
         nqp::join($sep,$parts)
     }
 
+    method mm-dd(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::join($sep,$parts)
+    }
+
     method yyyy-mm-dd(str $sep = "-" --> Str:D) {
         my $parts := nqp::list_s;
         nqp::push_s($parts, $!year < 1000 || $!year > 9999

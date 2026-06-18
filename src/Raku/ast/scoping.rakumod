@@ -527,9 +527,9 @@ class RakuAST::Declaration
             my $anonymous-package := False;
             if nqp::istype(self, RakuAST::PackageInstaller) {
                 my $name := self.name;
-                $anonymous-package := nqp::istype($name, RakuAST::Name)
+                $anonymous-package := !(nqp::istype($name, RakuAST::Name)
                     && nqp::isconcrete($name)
-                    && !$name.is-installable;
+                    && $name.is-installable);
             }
             unless $anonymous-package {
                 self.add-sorry:

@@ -442,7 +442,7 @@ my class Rakudo::Internals::JSON {
                       $adder
                     )),
                     (die "invalid hexadecimal char {
-                        nqp::chr($ordinal).perl
+                        nqp::chr($ordinal).raku
                     } in \\u sequence at $pos")
                   )
                 ),
@@ -501,7 +501,7 @@ my class Rakudo::Internals::JSON {
             nqp::if(                                           # not an escape
               nqp::iseq_i($ordinal, 9) || nqp::iseq_i($ordinal, 10),  # \t \n
               (die "this kind of whitespace is not allowed in a string: '{
-                  nqp::chr($ordinal).perl
+                  nqp::chr($ordinal).raku
               }' near $pos"),
               nqp::push_i($output, $ordinal)                   # ok codepoint
             )
@@ -695,7 +695,7 @@ my class Rakudo::Internals::JSON {
         }
         else {
             die "at $pos: expected a json object, but got '{
-              nqp::substr($text, $pos, 8).perl
+              nqp::substr($text, $pos, 8).raku
             }'";
         }
     }

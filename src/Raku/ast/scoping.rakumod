@@ -1059,9 +1059,17 @@ class RakuAST::PackageInstaller {
                 $target := $current-package;
 
                 my %stash := $resolver.IMPL-STASH-HASH($target);
-                if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object || nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW)) {
+                if nqp::existskey(%stash, $final) {
+                    my $existing := %stash{$final};
+                    # An uncomposed existing type is an incomplete declaration
+                    # (a stub, or one whose body failed to compile); the new one
+                    # replaces it rather than colliding.
                     $resolver.add-sorry: $resolver.build-exception:
-                        'X::Redeclaration', :symbol($final);
+                        'X::Redeclaration', :symbol($final)
+                      unless $existing =:= $type-object
+                          || nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+                          || (nqp::can($existing.HOW, 'is_composed')
+                              && !$existing.HOW.is_composed($existing));
                 }
             }
         }

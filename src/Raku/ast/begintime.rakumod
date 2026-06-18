@@ -43,6 +43,7 @@ class RakuAST::BeginTime
             # Can handle it properly
             if nqp::istype(self,RakuAST::CheckTime) {
                 self.add-sorry: $ex;
+                $resolver.note-deferred-begin-sorry;
             }
 
             # Alas, need to rethrow wil line info if possible

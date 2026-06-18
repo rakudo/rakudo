@@ -31,6 +31,19 @@ class RakuAST::Resolver {
     # parents in sibling blocks doesn't collide.
     has Mu $!our-package-decl-map;
 
+    # Count of begin-time errors that were deferred as sorries rather than
+    # aborting (a trait that died, or a begin-time evaluation on a CheckTime
+    # node). A package whose body raises one must not be composed, so a later
+    # redeclaration of the same name silently replaces the incomplete one.
+    has int $!deferred-begin-sorries;
+
+    method note-deferred-begin-sorry() {
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!deferred-begin-sorries',
+          nqp::add_i($!deferred-begin-sorries, 1));
+        Nil
+    }
+    method deferred-begin-sorries() { $!deferred-begin-sorries }
+
     method in-augment-scope() {
         my int $i := nqp::elems($!packages);
         while $i-- {

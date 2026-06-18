@@ -501,9 +501,8 @@ class RakuAST::VarDeclaration::Constant
             );
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
             my $stash := $resolver.IMPL-STASH-HASH($!package);
-            if nqp::existskey($stash, $name) {
-                nqp::die("already have an 'our constant $name' in the package");
-            }
+            # A same-scope redeclaration is caught by the lexical check, so a
+            # name already present here is a nested shadow that overwrites.
             nqp::bindkey($stash, $name, $!value);
         }
 

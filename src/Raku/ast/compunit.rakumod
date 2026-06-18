@@ -498,6 +498,9 @@ class RakuAST::CompUnit
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?PACKAGE', value => $global.compile-time-value
                 ));
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?PACKAGE', value => $global.compile-time-value
+                ));
             }
 
             # GLOBAL package is always added so generated-global can find it

@@ -832,10 +832,19 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!block', $block);
 
         if self.is-attribute {
+            # $_ is the attribute's current value; type it Mu so a value
+            # outside Any (e.g. a Junction) can bind. Resolve to the Mu type
+            # object directly, since the name is not resolvable this early
+            # during CORE setting compilation.
+            my $topic-type := RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Mu'));
+            $topic-type.set-resolution(
+              RakuAST::Declaration::ResolvedConstant.new(:compile-time-value(Mu)));
             my $method := RakuAST::Method::Initializer.new(
               :signature(RakuAST::Signature.new(
                 :parameters([
                   RakuAST::Parameter.new(
+                    :type($topic-type),
                     target => RakuAST::ParameterTarget::Var.new(:name<$_>)
                   )
                 ])

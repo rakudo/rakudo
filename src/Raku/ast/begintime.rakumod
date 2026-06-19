@@ -111,8 +111,8 @@ class RakuAST::BeginTime
 
         # Not ready, wrap in a call and evaluate that
         else {
-            my $call := RakuAST::ApplyPostfix(
-              :postfix(RakuAST::Call::Term.new($args)),
+            my $call := RakuAST::ApplyPostfix.new(
+              :postfix(RakuAST::Call::Term.new(:$args)),
               :operand($callee)
             );
             $call.to-begin-time($resolver, $context);

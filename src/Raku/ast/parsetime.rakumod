@@ -64,7 +64,9 @@ class RakuAST::ParseTime
             return $resolved(|@pos, |%named);
         }
         else {
-            nqp::die('BEGIN time calls only supported for simple constructs so far')
+            # Args we cannot interpret (e.g. a WhateverCode like `*.flip`) need
+            # the call compiled and evaluated, which the BeginTime version does.
+            RakuAST::BeginTime.IMPL-BEGIN-TIME-CALL($callee, $args, $resolver, $context)
         }
     }
 }

@@ -283,32 +283,32 @@ my class Routine { # declared in BOOTSTRAP
           !! self.Mu::iterator
     }
 
-    # Return 1 if all candidates of the given proto have a :U invocant
-    # constraint, else 0.
+    # Return 1 if every candidate that can run for an undefined invocant comes
+    # from the setting, else 0. The invocant's definiteness lives in the
+    # parameter flags, not in its type, which carries no smiley.
     method IS-SETTING-ONLY-U() is implementation-detail {
         for self.candidates(:!local, :with-proto) -> &cand {
             next unless nqp::istype(&cand, Method)
                      || nqp::istype(&cand, Submethod);
 
-            my $invocant-type := &cand.signature.params[0].type;
-            next unless $invocant-type.^archetypes.definite
-                     && $invocant-type.^definite;
+            next if nqp::getattr_i(nqp::decont(&cand.signature.params[0]),
+                      Parameter, '$!flags') +& nqp::const::SIG_ELEM_DEFINED_ONLY;
 
             return 0 unless &cand.file.starts-with: 'SETTING::';
         }
         1
     }
 
-    # Return 1 if all candidates of the given proto have a :D invocant
-    # constraint, else 0.
+    # Return 1 if every candidate that can run for a defined invocant comes
+    # from the setting, else 0. The invocant's definiteness lives in the
+    # parameter flags, not in its type, which carries no smiley.
     method IS-SETTING-ONLY-D() is implementation-detail {
         for self.candidates(:!local, :with-proto) -> &cand {
             next unless nqp::istype(&cand, Method)
                      || nqp::istype(&cand, Submethod);
 
-            my $invocant-type := &cand.signature.params[0].type;
-            next if $invocant-type.^archetypes.definite
-                 && $invocant-type.^definite;
+            next if nqp::getattr_i(nqp::decont(&cand.signature.params[0]),
+                      Parameter, '$!flags') +& nqp::const::SIG_ELEM_UNDEFINED_ONLY;
 
             return 0 unless &cand.file.starts-with: 'SETTING::';
         }

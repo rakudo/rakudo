@@ -4078,28 +4078,21 @@ my $hllbool_not := nqp::getstaticcode(
   -> $prim { nqp::hllboolfor(nqp::isfalse($prim), 'Raku') }
 );
 
-# Return whether all candidates of the given method name on the
-# given type have an :U constraint on the invocant, and whether
-# the method is part of the coe setting.
-sub is-method-setting-only-U($type, str $method-name) {
-    my $method := nqp::tryfindmethod($type, $method-name);
-    nqp::defined($method) && nqp::istype($method, Routine)
-      ?? $method.IS-SETTING-ONLY-U
-      !! nqp::istype($method, Code)
-        ?? nqp::istrue($method.file.starts-with('SETTING::'))
-        !! 1 # Non-Raku code objects are considered coming from setting
-}
-
-# Return whether all candidates of the given method name on the
-# given type have an :D constraint on the invocant, and whether
-# the method is part of the core setting.
-sub is-method-setting-only-D($type, str $method-name) {
-    my $method := nqp::tryfindmethod($type, $method-name);
-    nqp::defined($method) && nqp::istype($method, Routine)
-      ?? $method.IS-SETTING-ONLY-D
-      !! nqp::istype($method, Code)
-        ?? nqp::istrue($method.file.starts-with('SETTING::'))
-        !! 1 # Non-Raku code objects are considered coming from setting
+# Return 1 if all candidates of the given method name on the given type
+# have an :U or :D constraint on the invocant (depending on the third
+# argument), and whether the method is part of the core setting.  Else
+# returns 0.
+sub is-method-setting-only($type, str $method-name, int $defined) {
+    nqp::defined(my $method := nqp::tryfindmethod($type, $method-name))
+      ?? nqp::istype($method, Routine)
+        ?? $method.IS-SETTING-ONLY($defined
+             ?? nqp::const::SIG_ELEM_DEFINED_ONLY    # :D
+             !! nqp::const::SIG_ELEM_UNDEFINED_ONLY  # :U
+           )
+        !! nqp::istype($method, Code)
+          ?? nqp::istrue($method.file.starts-with('SETTING::'))
+          !! 1 # Non-Raku code objects are considered coming from setting
+      !! 1 # method not found
 }
 
 # The actual boolification dispatcher: expects a value to boolify, and
@@ -4151,7 +4144,7 @@ nqp::register('raku-boolify', -> $capture {
 
     # For non-concrete objects default method Bool candidate would always
     # produce False if it's a setting object
-    elsif is-method-setting-only-U($arg, 'Bool') {
+    elsif is-method-setting-only($arg, 'Bool', 0) {
         nqp::guard('concreteness', $Targ);
         nqp::guard('type', $Targ);
         nqp::delegate('boot-value',
@@ -4291,7 +4284,7 @@ nqp::register('raku-boolify', -> $capture {
             && nqp::isconcrete_nd($lhs)
             && (nqp::isconcrete_nd($rhs) || !nqp::istype($rhs, Junction))
             && !(nqp::isconcrete_nd($rhs) && $boolification == 1 && nqp::istype_nd($rhs, Regex))
-            && is-method-setting-only-D($rhs, 'ACCEPTS')
+            && is-method-setting-only($rhs, 'ACCEPTS', 1)
         {
             # nqp::guard('literal', $track-boolification);
             nqp::guard('type', $track-lhs);
@@ -4348,7 +4341,7 @@ nqp::register('raku-boolify', -> $capture {
                     $explicit-accepts := 0;
                 }
             }
-            elsif is-method-setting-only-U($rhs, 'ACCEPTS') { # Non-concrete RHS
+            elsif is-method-setting-only($rhs, 'ACCEPTS', 0) { # Non-concrete RHS
                 # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction.
                 nqp::guard('concreteness', $track-rhs);
                 nqp::guard('type', $track-rhs);

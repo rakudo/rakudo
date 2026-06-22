@@ -283,36 +283,27 @@ my class Routine { # declared in BOOTSTRAP
           !! self.Mu::iterator
     }
 
-    # Return 1 if every candidate that can run for an undefined invocant comes
-    # from the setting, else 0. The invocant's definiteness lives in the
-    # parameter flags, not in its type, which carries no smiley.
-    method IS-SETTING-ONLY-U() is implementation-detail {
+    # Return 1 if every candidate that can run for an (un)defined invocant
+    # comes from the setting, else 0. Note that the invocant's definiteness
+    # lives in the Parameter flags (rather than its type, sadly enough).
+    # The arguments specifies the flag bit to check.
+    method IS-SETTING-ONLY(int $flag) is implementation-detail {
         for self.candidates(:!local, :with-proto) -> &cand {
-            next unless nqp::istype(&cand, Method)
-                     || nqp::istype(&cand, Submethod);
-
-            next if nqp::getattr_i(nqp::decont(&cand.signature.params[0]),
-                      Parameter, '$!flags') +& nqp::const::SIG_ELEM_DEFINED_ONLY;
-
-            return 0 unless &cand.file.starts-with: 'SETTING::';
+            return 0
+              if (nqp::istype(&cand,Method)          # a (sub)method
+                    || nqp::istype(&cand,Submethod)
+                 ) && nqp::not_i(nqp::bitand_i(      # not matching definiteness
+                        nqp::getattr_i(
+                          nqp::decont(&cand.signature.params.head),
+                          Parameter,
+                         '$!flags'
+                        ),
+                        $flag
+                      ))
+                   && !&cand.file.starts-with('SETTING::');  # not from setting
         }
-        1
-    }
 
-    # Return 1 if every candidate that can run for a defined invocant comes
-    # from the setting, else 0. The invocant's definiteness lives in the
-    # parameter flags, not in its type, which carries no smiley.
-    method IS-SETTING-ONLY-D() is implementation-detail {
-        for self.candidates(:!local, :with-proto) -> &cand {
-            next unless nqp::istype(&cand, Method)
-                     || nqp::istype(&cand, Submethod);
-
-            next if nqp::getattr_i(nqp::decont(&cand.signature.params[0]),
-                      Parameter, '$!flags') +& nqp::const::SIG_ELEM_UNDEFINED_ONLY;
-
-            return 0 unless &cand.file.starts-with: 'SETTING::';
-        }
-        1
+        1  # All candidates are either :U or :D
     }
 
 #-------------------------------------------------------------------------------

@@ -334,6 +334,16 @@ class RakuAST::Code
                                 QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
                             );
                         }
+                        elsif nqp::eqat($name, '!__REGEX_CAPTURE_', 0) {
+                            # A regex capture lexical is bound and used within
+                            # this compiled unit, but its declaration lives in
+                            # an enclosing scope outside the unit. Declare it
+                            # here, as that scope otherwise would.
+                            %seen{$name} := 1;
+                            $block[0].push(
+                                QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
+                            );
+                        }
                         else {
                             nqp::die("Could not find a compile-time-value for lexical $name");
                         }

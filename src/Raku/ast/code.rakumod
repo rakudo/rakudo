@@ -2320,10 +2320,11 @@ class RakuAST::Sub
         return Nil if nqp::can($meta, 'default');
         return Nil if $*COMPILING_CORE_SETTING == 1; # No chance in early bootstrap
 
-        my int $has-post-constraints;
-        for self.IMPL-UNWRAP-LIST($signature.params) {
-            $has-post-constraints := 1 if $_.constraint_list;
-        }
+        # Checking two candidates for equivalence smartmatches their signatures,
+        # which runs each parameter type's ACCEPTS. A where-clause constraint or
+        # a type whose ACCEPTS is defined outside the setting would run user code
+        # at compile time, so a signature carrying either is left out of the check.
+        return Nil unless self.IMPL-SIGNATURE-STATICALLY-COMPARABLE($signature);
 
         # If there is a revision gated proto, we don't want to worry about throwing
         # re-declaration exceptions. Otherwise, crawl the candidates and ensure that
@@ -2340,15 +2341,11 @@ class RakuAST::Sub
 
                 my $other-signature := $_.signature;
                 next unless $signature.arity == $other-signature.arity;
-
-                my $other-has-post-constraints;
-                for self.IMPL-UNWRAP-LIST($other-signature.params) {
-                    $other-has-post-constraints := 1 if $_.constraint_list
-                }
+                next unless self.IMPL-SIGNATURE-STATICALLY-COMPARABLE($other-signature);
 
                 @seen-accepts.push($_)
-                    if !($has-post-constraints || $other-has-post-constraints)
-                            && (try $other-signature.ACCEPTS($signature) && try $signature.ACCEPTS($other-signature));
+                    if try $other-signature.ACCEPTS($signature)
+                        && try $signature.ACCEPTS($other-signature);
 
                 if @seen-accepts > 0 {
                     my %args;
@@ -2365,6 +2362,21 @@ class RakuAST::Sub
                 }
             }
         }
+    }
+
+    method IMPL-SIGNATURE-STATICALLY-COMPARABLE($signature) {
+        for self.IMPL-UNWRAP-LIST($signature.params) {
+            return False if $_.constraint_list;
+            my $type := $_.type;
+            unless nqp::isnull($type) {
+                my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
+                return False
+                  if nqp::defined($accepts)
+                  && nqp::istype($accepts, Code)
+                  && !$accepts.file.starts-with('SETTING::');
+            }
+        }
+        True
     }
 }
 

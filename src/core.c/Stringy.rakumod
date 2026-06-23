@@ -32,12 +32,6 @@ multi sub infix:<eq>(    --> Bool::True) { }
 multi sub infix:<eq>(Any --> Bool::True) { }
 multi sub infix:<eq>(\a, \b) { a.Stringy eq b.Stringy }
 
-proto sub infix:<ne>(Mu $?, Mu $?, *%) is pure {*}
-multi sub infix:<ne>(    --> Bool::True) { }
-multi sub infix:<ne>(Any --> Bool::True) { }
-multi sub infix:<ne>(Mu \a, Mu \b)   { not a eq b }
-multi sub infix:<ne>(\a, \b) { a.Stringy ne b.Stringy }
-
 proto sub infix:<lt>($?, $?, *%) is pure {*}
 multi sub infix:<lt>(    --> Bool::True) { }
 multi sub infix:<lt>(Any --> Bool::True) { }

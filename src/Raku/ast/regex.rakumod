@@ -1048,9 +1048,15 @@ class RakuAST::Regex::Interpolation
         if nqp::istype($!var, RakuAST::Lookup) && $!var.is-resolved {
             my $resolution := $!var.resolution;
             if nqp::istype($resolution, RakuAST::VarDeclaration::Constant) {
-                return self.IMPL-APPLY-LITERAL-MODS:
-                    QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($resolution.compile-time-value) ),
-                    %mods
+                my $value := $resolution.compile-time-value;
+                # Only a string constant becomes a regex literal. A constant
+                # that is not a string (e.g. a list) interpolates at runtime
+                # via the slow path below.
+                if nqp::istype($value, Str) {
+                    return self.IMPL-APPLY-LITERAL-MODS:
+                        QAST::Regex.new( :rxtype<literal>, nqp::unbox_s($value) ),
+                        %mods
+                }
             }
             if !%mods<m> && nqp::istype($resolution, RakuAST::VarDeclaration::Simple) &&
                     $resolution.sigil eq '$' {

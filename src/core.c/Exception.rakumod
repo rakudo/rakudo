@@ -3718,6 +3718,13 @@ my class X::UnitScope::Invalid does X::Syntax {
     }
 }
 
+my class X::UnitScope::MustHaveUnit does X::Syntax {
+    has $.what;
+    method message() {
+        "Semicolon form of '$.what' without 'unit' is illegal. You probably want to use 'unit $.what'"
+    }
+}
+
 my class X::UnitScope::TooLate does X::Syntax {
     has $.what;
     method message() {

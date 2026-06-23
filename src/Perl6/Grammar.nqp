@@ -2209,18 +2209,18 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 [
                 || <?{ $*begin_compunit }>
                     {
-                        unless $longname {
-                            $/.panic("Compilation unit cannot be anonymous");
-                        }
-                        unless $*SCOPE eq 'unit' {
-                            if $*PKGDECL eq 'package' {
-                                $/.panic('This appears to be Perl code. If you intended it to be Raku code, please use a Raku style declaration like "unit package Foo;" or "unit module Foo;", or use the block form instead of the semicolon form.');
-                            }
-                            $/.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal.  You probably want to use 'unit $*PKGDECL'");
-                        }
-                        unless $outer =:= $*UNIT {
-                            $/.typed_panic("X::UnitScope::Invalid", what => $*PKGDECL, where => "in a subscope");
-                        }
+                        $/.panic("Compilation unit cannot be anonymous")
+                          unless $longname;
+
+                        $/.typed_panic("X::UnitScope::MustHaveUnit",
+                          what => $*PKGDECL
+                        ) unless $*SCOPE eq 'unit';
+
+                        $/.typed_panic("X::UnitScope::Invalid",
+                          what  => $*PKGDECL,
+                          where => "in a subscope"
+                        ) unless $outer =:= $*UNIT;
+
                         $*begin_compunit := 0;
                     }
                     { $*IN_DECL := ''; }
@@ -2475,12 +2475,20 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
         || ';'
             {
-                if $<deflongname> ne 'MAIN' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
-                        where => "except on a MAIN sub", suggestion =>
-                        'Please use the block form. If you did not mean to '
-                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
-                        ~ "placed a semicolon after routine's definition?"
+                # Allow all subs with ; but require "unit" scope from 6.e
+                if nqp::getcomp('Raku').language_revision >= 3 {
+                    $/.typed_panic("X::UnitScope::MustHaveUnit", :what<sub>)
+                      unless $*SCOPE eq 'unit';
+                }
+
+                # 6.c/d behaviour, doesn't check for "unit", only allows MAIN
+                elsif $<deflongname> ne 'MAIN' {
+                    $/.typed_panic("X::UnitScope::Invalid",
+                      what       => "sub",
+                      where      => "except on a MAIN sub",
+                      suggestion =>
+"Please use the block form. If you did not mean to declare a unit-scoped
+sub, perhaps you accidentally placed a semicolon after routine's definition?"
                     );
                 }
                 unless $*begin_compunit {

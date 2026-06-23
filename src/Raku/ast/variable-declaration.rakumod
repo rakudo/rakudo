@@ -992,7 +992,10 @@ class RakuAST::VarDeclaration::Simple
 
             if $!initializer {
                 my $initializer := $!initializer;
-                if nqp::istype($initializer, RakuAST::Initializer::Assign) && $initializer.expression.has-compile-time-value && nqp::isconcrete($initializer.expression.maybe-compile-time-value) && !nqp::istype($initializer.expression, RakuAST::Code) {
+                if nqp::istype($initializer, RakuAST::Initializer::Assign)
+                  && (my $expression := $initializer.expression).has-compile-time-value
+                  && nqp::isconcrete($expression.maybe-compile-time-value)
+                  && !nqp::istype($expression, RakuAST::Code) {
                     # Only a concrete default known at compile time becomes the
                     # build value directly. A default that is a type object would
                     # leave the build not concrete. Then the attribute is not
@@ -1000,7 +1003,7 @@ class RakuAST::VarDeclaration::Simple
                     # which races under concurrency. Such a default goes through
                     # the method below, which makes the build concrete.
                     self.add-trait(
-                        RakuAST::Trait::WillBuild.new($initializer.expression).to-begin-time($resolver, $context)
+                        RakuAST::Trait::WillBuild.new($expression).to-begin-time($resolver, $context)
                     );
                 }
                 else {

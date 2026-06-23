@@ -226,11 +226,22 @@ class RakuAST::Term::Named
   is RakuAST::ParseTime
 {
     has str $.name;
+    has RakuAST::ArgList $.args;
 
     method new(str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Term::Named, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Term::Named, '$!args', RakuAST::ArgList.new);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!args.push($pair);
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!args);
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -242,7 +253,9 @@ class RakuAST::Term::Named
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+        my $call := QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) );
+        $!args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
     }
 }
 

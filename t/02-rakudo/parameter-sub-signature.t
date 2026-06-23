@@ -1,6 +1,6 @@
 use Test;
 
-plan 15;
+plan 19;
 
 # Parameter sub signature destructure must compile under both
 # frontends, including when the owning routine is compiled at BEGIN.
@@ -129,5 +129,43 @@ is EVAL(q:to/CODE/),
         C.new.run({:x(1)})
         CODE
     'any', 'unfilled sub signature value resolves to an Any candidate';
+
+# 16. A `where` and a sub signature on the same parameter both apply.
+# The parser kept only the first post constraint, so a `where` after a
+# sub signature was silently dropped.
+is EVAL(q:to/CODE/),
+        sub foo(@a (*@items) where { @a.elems == 2 }) { @a.join("|") }
+        foo([3, 4])
+        CODE
+    '3|4', 'where after a sub signature binds the destructure and accepts a valid value';
+
+# 17. The same `where` rejects a value failing the constraint.
+throws-like {
+    EVAL q:to/CODE/
+        sub foo(@a (*@items) where { @a.elems == 2 }) { }
+        foo([1, 2, 3])
+        CODE
+}, X::TypeCheck::Binding::Parameter,
+    'where after a sub signature rejects a value failing the constraint';
+
+# 18. Multiple `where` clauses on one parameter all apply: 0 fails the
+# first, 9 fails the second, 3 passes both.
+is EVAL(q:to/CODE/),
+        sub foo($x where { $_ > 0 } where { $_ < 5 }) { "ok" }
+        ((try foo(0)) // "a") ~ ((try foo(3)) // "b") ~ ((try foo(9)) // "c")
+        CODE
+    'aokc', 'every where clause on a parameter is enforced';
+
+# 19. A where-guarded scalar trait_mod candidate must not shadow the
+# sub signature candidate. A named-pair argument list selects the
+# latter, the dispatch AccessorFacade relies on.
+lives-ok {
+    EVAL q:to/CODE/
+        multi sub trait_mod:<is>(Method $m, :$tag! (*@a) where { so any(@a) !~~ Code }) { die "wrong candidate" }
+        multi sub trait_mod:<is>(Method $m, :@tag! (:&getter!, :&setter!)) { }
+        my sub g($) { 1 }; my sub s($, $) { }
+        my class C { method m() is tag(getter => &g, setter => &s) { } }
+        CODE
+}, 'where-guarded scalar trait candidate does not shadow the named sub signature candidate';
 
 # vim: expandtab shiftwidth=4

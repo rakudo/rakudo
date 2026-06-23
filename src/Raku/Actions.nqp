@@ -3763,12 +3763,29 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $parameter.set-default($<default-value>.ast);
         }
         if $<post-constraint> {
-            my $post-constraint := $<post-constraint>[0];
-            if $post-constraint<EXPR> {
-                $parameter.set-where($post-constraint<EXPR>.ast);
+            my @wheres;
+            my $sub-signature;
+            my int $have-sub-sig;
+            for $<post-constraint> {
+                if $_<EXPR> {
+                    nqp::push(@wheres, $_<EXPR>.ast);
+                }
+                elsif $_<signature> {
+                    $/.panic('Cannot have more than one sub-signature for a parameter')
+                        if $have-sub-sig;
+                    $sub-signature := $_<signature>.ast;
+                    $have-sub-sig := 1;
+                }
             }
-            elsif $post-constraint<signature> {
-                $parameter.set-sub-signature($post-constraint<signature>.ast);
+            $parameter.set-sub-signature($sub-signature) if $have-sub-sig;
+            # Every `where` must hold. Combine multiples into one all-junction.
+            if nqp::elems(@wheres) == 1 {
+                $parameter.set-where(@wheres[0]);
+            }
+            elsif nqp::elems(@wheres) > 1 {
+                $parameter.set-where(Nodify('Call::Name').new(
+                    name => Nodify('Name').from-identifier('all'),
+                    args => Nodify('ArgList').new(|@wheres)));
             }
         }
         if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {

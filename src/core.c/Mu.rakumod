@@ -71,17 +71,18 @@ my class Mu { # declared in BOOTSTRAP
         take self;
     }
 
-    # Check signature of caller Routine for definite value being returned
+    # Check signature of lexically enclosing Routine for definite value being returned
     my sub check-signature(Mu $value, str $method) {
-        my int $index = 2;
+        my $ctx := nqp::ctxcallerskipthunks(nqp::ctxcallerskipthunks(nqp::ctx()));
+        my $callable;
         nqp::until(
-          nqp::isnull(my $cf := callframe($index))
-            || nqp::istype((my $callable := $cf.code),Routine),
-          ++$index
+          nqp::isnull($ctx)
+            || nqp::istype(($callable := nqp::getcodeobj(nqp::ctxcode($ctx))),Routine),
+          $ctx := nqp::ctxouterskipthunks($ctx)
         );
 
         die "Cannot return $value.raku() with $method when return value $_.raku() is already specified in the signature of $callable.raku.subst(/ "(" .* /)".naive-word-wrapper
-          with $callable.signature.returns;
+          with (nqp::isnull($ctx) ?? Nil !! $callable.signature.returns);
     }
     method return-rw(Mu \SELF: |) {  # same code as control.rakumod's return-rw
         check-signature(SELF, '.return-rw');

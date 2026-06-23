@@ -42,8 +42,9 @@ class CompUnit::PrecompilationRepository::Default
     my $resolved-lock := Lock.new;
     my $first-repo-id;
 
-    my constant $compiler-id =
-      CompUnit::PrecompilationId.new-without-check(Compiler.id);
+    # This needs to be done at runtime so that the correct compiler ID
+    # is used during the transition period towards a RakuAST based frontend
+    my $compiler-id = CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
     # If $loaded{$key} has a Promise in it, await it. If it's broken, try
     # again, return the result if it's kept. If there's nothing there at

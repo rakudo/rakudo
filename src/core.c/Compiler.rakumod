@@ -2,11 +2,28 @@ class Compiler does Systemic {
     my constant $compiler = nqp::getcomp("Raku");
     my constant $config =
       nqp::gethllsym('default','SysConfig').rakudo-build-config;
-    my constant $compilation-id = nqp::box_s(
-      nqp::sha1((nqp::getlexdyn('$*CU') ?? $*CU.comp-unit-name !! $*W.handle.Str) ~ nqp::atkey($config,'source-digest')),Str
-    );
     my constant $backend = $compiler.backend;
     my constant $name    = $backend.name;
+
+    # This needs to be done at compile time to be able to access the correct
+    # frontend specific dynamic variables
+    my constant $compilation-base-id = nqp::box_s(
+      nqp::sha1(
+        (nqp::getlexdyn('$*CU') ?? $*CU.comp-unit-name !! $*W.handle.Str)
+          ~ nqp::atkey($config,'source-digest')
+      ),
+      Str
+    );
+
+    # This needs to be done at runtime so that the correct compiler ID
+    # is used during the transition period towards a RakuAST based frontend
+    my $compilation-id = nqp::box_s(
+      nqp::sha1(
+        $compilation-base-id
+          ~ nqp::ifnull(nqp::gethllsym('Raku','COMPILER-FRONTEND'),'')
+      ),
+      Str
+    );
 
     # XXX Various issues with this stuff on JVM
     has $.id       is built(:bind) = $compilation-id;

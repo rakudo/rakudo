@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 9;
+plan 11;
 
 is-run q:to/CODE/,
     EVAL q[class A {}];
@@ -85,5 +85,22 @@ is-run q:to/CODE/,
     CODE
     :out('ok'), :err(''),
     'cross-compunit $*REPO.load reload silent-replaces';
+
+is-run q:to/CODE/,
+    enum E::Vol <Lo Hi>;
+    class E { method greet { "cls" } };
+    print E::Vol::Hi ~ "-" ~ E.greet;
+    CODE
+    :out('Hi-cls'), :err(''),
+    'compound named enum vivifies a prefix stub that a later class fills';
+
+is-run q:to/CODE/,
+    subset S::Sub of Int;
+    role S { method tag { "role" } };
+    my S::Sub $n = 42;
+    print "$n-{S.tag}";
+    CODE
+    :out('42-role'), :err(''),
+    'compound named subset vivifies a prefix stub that a later role fills';
 
 # vim: expandtab shiftwidth=4

@@ -47,9 +47,11 @@ class RakuAST::Label
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $label := self.meta-object;
+        $context.ensure-sc($label);
         QAST::Var.new(
             :scope('lexical'), :decl('static'), :name($!name),
-            :value(self.meta-object)
+            :value($label)
         )
     }
 

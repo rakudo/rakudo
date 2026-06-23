@@ -466,7 +466,10 @@ class RakuAST::LexicalScope
             }
             else {
                  self.IMPL-FATALIZE-QAST($_, 0) for @($qast);
-                 if !$bool-context && ($op eq 'call' || $op eq 'callmethod') {
+                 # Don't wrap a flattening arg (the synthetic FLATTENABLE_LIST/
+                 # HASH calls): :flat must stay on the real result, not on a
+                 # FATALIZE wrapper. The operand is still fatalized above.
+                 if !$bool-context && ($op eq 'call' || $op eq 'callmethod') && !$qast.flat {
                     if $qast.name eq '&fail' {
                         $qast.name('&die');
                     }

@@ -197,6 +197,17 @@ augment class RakuAST::Node {
 
         ""
     }
+
+    method SOURCE() {
+        with self.origin -> $origin {
+            with $origin.source -> $source {
+                my $from := $origin.from;
+                return $source.orig.substr($from, $origin.to - $from);
+            }
+        }
+
+        Nil
+    }
 }
 
 my class RakuAST::Doc::LegacyRow is RakuAST::Node {

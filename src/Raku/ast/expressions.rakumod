@@ -2319,21 +2319,18 @@ class RakuAST::ApplyListInfix
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-CURRY($resolver, $context);
 
+        if nqp::istype($!infix, RakuAST::Feed) {
+            for self.IMPL-FEED-STAGES {
+                $_.set-feed-stage if nqp::istype($_, RakuAST::Call);
+            }
+        }
+
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |self.IMPL-UNWRAP-LIST($!operands));
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!infix, RakuAST::Feed) {
-            my $op := $!infix.operator;
-            my @stages;
-            if $op eq '==>' || $op eq '==>>' {
-                for $!operands { @stages.push($_) }
-            }
-            else {
-                for $!operands { @stages.unshift($_) }
-            }
-            @stages.shift;  # source operand, not a stage to validate
-            for @stages {
+            for self.IMPL-FEED-STAGES {
                 my $stage := $_;
                 if nqp::istype($stage, RakuAST::Var) && $stage.sigil eq '&' {
                     self.add-sorry(
@@ -2364,6 +2361,23 @@ class RakuAST::ApplyListInfix
             && !self.infix.short-circuit
             && !self.IMPL-IS-LIST-LITERAL
             && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
+    }
+
+    # The operands of a feed in flow order, with the source operand
+    # removed, leaving just the stages. A rightward feed (`==>`, `==>>`)
+    # takes its source from the front; a leftward feed (`<==`, `<<==`)
+    # from the back, so its operands are reversed into flow order first.
+    method IMPL-FEED-STAGES() {
+        my $op := $!infix.operator;
+        my @stages;
+        if $op eq '==>' || $op eq '==>>' {
+            for $!operands { @stages.push($_) }
+        }
+        else {
+            for $!operands { @stages.unshift($_) }
+        }
+        @stages.shift;  # drop the source operand
+        @stages
     }
 
     method IMPL-IS-VALID-FEED-STAGE($stage) {

@@ -2309,6 +2309,8 @@ class RakuAST::Sub
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        # A stub body sets the yada bit so .yada and .raku report it as a stub.
+        self.meta-object.set_yada if self.is-stub;
         self.IMPL-CALCULATE-SINK unless self.sink-calculated;
         self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,

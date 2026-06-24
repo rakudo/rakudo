@@ -3982,6 +3982,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | [
               :my $*DEFAULT-RW := 1;
+              [ $<sig-literal>=':' ]?
               '(' ~ ')' <signature(:ON-VARDECLARATION)> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
           ]
 

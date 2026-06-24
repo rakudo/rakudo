@@ -2749,7 +2749,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               !! Nodify('Initializer');
 
             $ast := Nodify('VarDeclaration::Signature').new:
-              :signature($<signature>.ast), :$scope, :$type, :$initializer;
+              :signature($<signature>.ast), :$scope, :$type, :$initializer,
+              :sig-literal($<sig-literal> ?? 1 !! 0);
             for $<trait> {
                 $ast.add-trait($_.ast);
             }

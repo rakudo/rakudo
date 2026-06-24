@@ -1674,15 +1674,20 @@ class RakuAST::VarDeclaration::Signature
     has RakuAST::Initializer $.initializer;
     has RakuAST::Package $!attribute-package;
     has Mu $!package;
+    # True for the signature literal form `my :($a, $b)`, which binds only
+    # and requires an initializer, versus the list form `my ($a, $b)`.
+    has Bool $.sig-literal;
 
     method new(RakuAST::Signature :$signature!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
-               str :$scope) {
+               str :$scope, Bool :$sig-literal) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
             $initializer // RakuAST::Initializer);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!sig-literal',
+            $sig-literal ?? True !! False);
         $obj
     }
 
@@ -1805,12 +1810,23 @@ class RakuAST::VarDeclaration::Signature
         self.add-trait-sorries;
 
         unless $!initializer {
-            for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-                if nqp::istype($param.target, RakuAST::ParameterTarget::Term) {
-                    self.add-sorry($resolver.build-exception: 'X::Syntax::Term::MissingInitializer');
-                    last;
+            if $!sig-literal {
+                self.add-sorry($resolver.build-exception:
+                    'X::Syntax::Variable::SignatureWithoutInitializer');
+            }
+            else {
+                for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+                    if nqp::istype($param.target, RakuAST::ParameterTarget::Term) {
+                        self.add-sorry($resolver.build-exception: 'X::Syntax::Term::MissingInitializer');
+                        last;
+                    }
                 }
             }
+        }
+
+        if $!sig-literal && nqp::istype($!initializer, RakuAST::Initializer::Assign) {
+            self.add-sorry($resolver.build-exception:
+                'X::Syntax::Variable::SignatureAssignment');
         }
     }
 

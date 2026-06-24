@@ -326,23 +326,11 @@ class RakuAST::Name
         my @parts := self.IMPL-LOOKUP-PARTS;
         my $final := @parts[nqp::elems(@parts) - 1];
         my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
-        my $result;
-        #TODO Look at Perl6::World::symbol_lookup. Has a separate implementation for compiling the setting
-        if $*IMPL-COMPILE-DYNAMICALLY && !$*COMPILING_CORE_SETTING && $!parts[0].name eq 'CORE' {
-            my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
-            my $package := Perl6::Metamodel::ModuleHOW.new_type(:name('CORE'));
-            my $found-ctx := $context.setting;
-            my $stash := $PseudoStash.new-from-ctx($found-ctx, :$package);
-            $context.ensure-sc($stash);
-            $result := QAST::WVal.new(:value($stash));
-        }
-        else {
-            $result := QAST::Op.new(
-              :op<callmethod>,
-              :name<new>,
-              $PseudoStash-lookup.IMPL-TO-QAST($context)
-            );
-        }
+        my $result := QAST::Op.new(
+          :op<callmethod>,
+          :name<new>,
+          $PseudoStash-lookup.IMPL-TO-QAST($context)
+        );
         my int $first := 1;
         for @parts {
             if $first { # don't call .WHO on the pseudo package itself, index into it instead

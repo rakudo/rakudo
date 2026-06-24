@@ -288,11 +288,13 @@ class RakuAST::LexicalScope
             my $lexical-name := $_.lexical-name;
             if $lexical-name && !($_ =:= self) {
                 if nqp::existskey(%lookup, $lexical-name) {
+                    my $prev := %lookup{$lexical-name};
                     self.add-worry:
                       $resolver.build-exception: 'X::Redeclaration',
                         :symbol($_.declaration-name), :what($_.declaration-kind)
                     # It will be two worries for var declaration, so skip one, not sure about others.
-                    unless nqp::istype($_, RakuAST::VarDeclaration);
+                    unless nqp::istype($_, RakuAST::VarDeclaration)
+                        || (nqp::istype($prev, RakuAST::Routine) && $prev.is-stub);
                 }
                 else {
                     %lookup{$lexical-name} := $_;

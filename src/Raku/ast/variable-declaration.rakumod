@@ -828,6 +828,12 @@ class RakuAST::VarDeclaration::Simple
       RakuAST::IMPL::QASTContext $context
     ) {
         my $block := $resolver.find-attach-target('block');
+        unless $block {
+            # The mainline block is not on the attach-target stack, so at the
+            # top level fall back to it as the enclosing block.
+            my $compunit := $resolver.find-attach-target('compunit');
+            $block := $compunit.mainline if $compunit;
+        }
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!block', $block);
 
         if self.is-attribute {

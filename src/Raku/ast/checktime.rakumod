@@ -54,11 +54,13 @@ class RakuAST::CheckTime
 
     # Called when fatal is active in our lexical scope.
     method promote-worries-to-sorries() {
-        nqp::bindattr(self, RakuAST::CheckTime, '$!sorries', []) unless nqp::isconcrete($!sorries);
-        for $!worries {
-            nqp::push($!sorries, $_);
+        if nqp::isconcrete($!worries) {
+            nqp::bindattr(self, RakuAST::CheckTime, '$!sorries', []) unless nqp::isconcrete($!sorries);
+            for $!worries {
+                nqp::push($!sorries, $_);
+            }
+            nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
         }
-        nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
     }
 
     # Called when no worries is active in our lexical scope.

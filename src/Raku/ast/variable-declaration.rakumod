@@ -131,6 +131,10 @@ class RakuAST::ContainerCreator {
     has Mu $.container-type;
     has ContainerDescriptor $.container-descriptor;
     has Mu $.bind-constraint;
+    # 1 when the explicit base type is one of the immutable QuantHashes that
+    # must be bare-created. Resolved by identity at BEGIN time, where a
+    # resolver is available, and read at code-gen.
+    has int $!explicit-base-bare-create;
 
     method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(RakuAST::Type $ast) {
         if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
@@ -322,15 +326,36 @@ class RakuAST::ContainerCreator {
         }
     }
 
+    # Resolve, by identity against the setting's Set/Bag/Mix, whether the
+    # explicit base type is one of the immutable QuantHashes that must be
+    # bare-created. A resolver is only available at BEGIN time, so the result
+    # is cached for code-gen to read. In-setting resolution finds the core
+    # type even when a same-named lexical shadows it; the lexical fallback
+    # covers compiling the setting itself, where the core type is not yet in
+    # an outer setting.
+    method IMPL-RESOLVE-CONTAINER-VIVIFY-MODE(RakuAST::Resolver $resolver) {
+        my $base := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE;
+        my int $bare := 0;
+        for nqp::list_s('Set', 'Bag', 'Mix') -> str $type-name {
+            my $name  := RakuAST::Name.from-identifier($type-name);
+            my $found := $resolver.resolve-name-constant-in-setting($name)
+                      || $resolver.resolve-name-constant($name);
+            if $found && nqp::eqaddr($base, $found.compile-time-value) {
+                $bare := 1;
+                last;
+            }
+        }
+        nqp::bindattr_i(self, RakuAST::ContainerCreator, '$!explicit-base-bare-create', $bare);
+    }
+
     # QAST that produces a fresh instance of an explicit container base type.
-    # Set/Bag/Mix keep pristine empty sentinels, so create rather than run
-    # their .new (see issue #6246).
+    # Set/Bag/Mix keep pristine empty sentinels, so bare-create them rather
+    # than run their .new (see issue #6246).
     method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
         my $class := self.IMPL-CONTAINER-TYPE($of);
         $context.ensure-sc($class);
-        my str $name := $class.HOW.name($class); # XXX needs lookup solution
         my $wval := QAST::WVal.new(:value($class));
-        $name eq 'Set' || $name eq 'Bag' || $name eq 'Mix'
+        $!explicit-base-bare-create
             ?? QAST::Op.new(:op<create>, $wval)
             !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
     }
@@ -956,6 +981,9 @@ class RakuAST::VarDeclaration::Simple
 
         # Apply any traits.
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
+
+        self.IMPL-RESOLVE-CONTAINER-VIVIFY-MODE($resolver)
+            if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
 
         if self.is-attribute {
             if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {

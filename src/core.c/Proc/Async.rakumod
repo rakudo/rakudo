@@ -135,7 +135,9 @@ my class Proc::Async {
     method resize-pty(Int :$cols, Int :$rows) {
         $!pty-cols := $cols;
         $!pty-rows := $rows;
-        nqp::syscall('pty-resize', $!process_handle, nqp::unbox_i($!pty-cols), nqp::unbox_i($!pty-rows));
+        if $!started {
+            nqp::syscall('pty-resize', $!process_handle, nqp::unbox_i($!pty-cols), nqp::unbox_i($!pty-rows));
+        }
     }
 
     proto method new(|) {*}

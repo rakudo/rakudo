@@ -721,9 +721,10 @@ class RakuAST::Role
     # being compiled there is no outer setting, so its own declarations are not
     # shadowable.
     method IMPL-SYMBOL-FROM-SETTING(RakuAST::Resolver $resolver, RakuAST::Name $full-name, Mu $symbol) {
-        return False if $*COMPILING_CORE_SETTING;
-        my $setting := $resolver.resolve-name-constant-in-setting($full-name);
-        $setting && nqp::eqaddr($setting.compile-time-value, $symbol)
+        $*COMPILING_CORE_SETTING
+          ?? False
+          !! (my $setting := $resolver.resolve-name-constant-in-setting($full-name))
+               && nqp::eqaddr($setting.compile-time-value, $symbol)
     }
 
     method install-extra-declarations(RakuAST::Resolver $resolver) {

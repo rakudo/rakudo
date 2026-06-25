@@ -1401,6 +1401,17 @@ class RakuAST::Block
         if $!fresh-exception {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
         }
+        # Declare a parameter's type captures block-local, so they shadow
+        # rather than rebind an outer same-named capture.
+        my $signature := self.signature;
+        if $signature {
+            for self.IMPL-UNWRAP-LIST($signature.parameters) {
+                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
+                for $type-captures {
+                    nqp::push(@implicit, $_);
+                }
+            }
+        }
         @implicit
     }
 

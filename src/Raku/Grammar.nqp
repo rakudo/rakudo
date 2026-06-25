@@ -3833,6 +3833,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*BLOCK;
         :my $*PACKAGE;
+        :my $*PACKAGE-BEGIN-SORRY-BASE := $*R.deferred-begin-sorries;
         :my $scope;
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}

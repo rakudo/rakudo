@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 11;
+plan 12;
 
 is-run q:to/CODE/,
     EVAL q[class A {}];
@@ -102,5 +102,15 @@ is-run q:to/CODE/,
     CODE
     :out('42-role'), :err(''),
     'compound named subset vivifies a prefix stub that a later role fills';
+
+is-run q:to/CODE/,
+    use MONKEY-SEE-NO-EVAL;
+    multi sub trait_mod:<is>(Method $m, :$bad!) { die 'trait-died' }
+    sub kind($c) { try EVAL $c; $!.^name }
+    my $code = 'class Bar { method m() is bad {} }';
+    print kind($code) eq kind($code) ?? 'same' !! 'diff';
+    CODE
+    :out('same'), :err(''),
+    'a class whose body trait dies re-throws on a same-name retry, not X::Redeclaration';
 
 # vim: expandtab shiftwidth=4

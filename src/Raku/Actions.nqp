@@ -2619,7 +2619,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $context := $*CU.context;
             $ast.body.IMPL-BEGIN($R, $context);
             $ast.to-begin-time($R, $context);
-            $ast.IMPL-COMPOSE($R, $context);
+            # A begin-time error while declaring a body member (a trait that
+            # died, or a begin-time evaluation) defers rather than aborting, so
+            # leave the package uncomposed when that happened, as the legacy
+            # frontend does by unwinding before package composition.
+            # $*PACKAGE-BEGIN-SORRY-BASE is the count at package open.
+            $ast.IMPL-COMPOSE($R, $context)
+              if nqp::iseq_i($R.deferred-begin-sorries, $*PACKAGE-BEGIN-SORRY-BASE);
         }
 
         self.attach: $/, $ast;

@@ -80,6 +80,7 @@ class RakuAST::TraitTarget {
                             unless nqp::isconcrete($ex);
                     }
                     nqp::push($!sorries, $ex);
+                    $resolver.note-deferred-begin-sorry;
                 }
                 CONTROL {
                     if nqp::getextype($_) == nqp::const::CONTROL_WARN {

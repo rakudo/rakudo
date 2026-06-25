@@ -285,11 +285,11 @@ class RakuAST::Name
 
     method contains-pseudo-package-illegal-for-declaration() {
         return 'GLOBAL' if self.is-identifier && $!parts[0].name eq 'GLOBAL';
-        for $!parts {
-            return $_.name
-                if $_.is-pseudo-package
-                || nqp::istype($_, RakuAST::Name::Part::Simple) && $_.name eq 'PROCESS';
-        }
+        # Only a leading pseudo-package is illegal; nested it is an ordinary part.
+        my $first := $!parts[0];
+        return $first.name
+            if nqp::istype($first, RakuAST::Name::Part::Simple)
+            && ($first.is-pseudo-package || $first.name eq 'PROCESS');
         Nil
     }
 

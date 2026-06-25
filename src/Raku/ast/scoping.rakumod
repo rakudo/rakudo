@@ -288,11 +288,13 @@ class RakuAST::LexicalScope
             my $lexical-name := $_.lexical-name;
             if $lexical-name && !($_ =:= self) {
                 if nqp::existskey(%lookup, $lexical-name) {
+                    my $prev := %lookup{$lexical-name};
                     self.add-worry:
                       $resolver.build-exception: 'X::Redeclaration',
                         :symbol($_.declaration-name), :what($_.declaration-kind)
                     # It will be two worries for var declaration, so skip one, not sure about others.
-                    unless nqp::istype($_, RakuAST::VarDeclaration);
+                    unless nqp::istype($_, RakuAST::VarDeclaration)
+                        || (nqp::istype($prev, RakuAST::Routine) && $prev.is-stub);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -304,12 +306,25 @@ class RakuAST::LexicalScope
             my $lexical-name := $_.lexical-name;
             if $lexical-name {
                 if nqp::existskey(%lookup, $lexical-name) {
-                    self.add-sorry:
-                      $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($_.declaration-name),
-                        :what($_.declaration-kind),
-                        :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '')
-                    unless %lookup{$lexical-name} =:= $_;
+                    my $shadower := %lookup{$lexical-name};
+                    unless $shadower =:= $_ {
+                        my $imported := nqp::istype($_, RakuAST::Declaration::Import)
+                          ?? $_.compile-time-value !! Nil;
+                        if $imported && nqp::can($imported, 'yada') && $imported.yada
+                          && nqp::can($shadower, 'set-replace-stub') {
+                            # A routine declaration that shadows an imported stub of
+                            # the same name reuses the imported lexical slot rather
+                            # than declaring its own.
+                            $shadower.set-replace-stub(1);
+                        }
+                        else {
+                            self.add-sorry:
+                              $resolver.build-exception: 'X::Redeclaration',
+                                :symbol($_.declaration-name),
+                                :what($_.declaration-kind),
+                                :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '');
+                        }
+                    }
                 }
                 else {
                     %lookup{$lexical-name} := $_;

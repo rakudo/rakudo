@@ -3134,15 +3134,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         return self.handle-is-repr($/) if ~$longname eq 'repr';
 
         my $circumfix := $<circumfix>;
-        my $trait := $<typename>
-            ?? Nodify('Trait::Is').new-from-type(
-                :type($<typename>.ast),
-                :argument($circumfix ?? $circumfix.ast !! Mu)
-            )
-            !! Nodify('Trait::Is').new(
-                :name($longname.trait-is2ast),
-                :argument($circumfix ?? $circumfix.ast !! Mu)
-            );
+        my $argument := $circumfix ?? $circumfix.ast !! Mu;
+        my $trait;
+        if $<typename> {
+            $trait := Nodify('Trait::Is').new-from-type(
+                :type($<typename>.ast), :$argument);
+        }
+        # `is ::Foo` names an existing type indirectly. The typename above
+        # rejects the `::` form as a capture, so resolve it here as a type,
+        # like a plain `is Foo`.
+        elsif nqp::eqat(~$longname, '::', 0)
+          && $*R.resolve-name-constant($longname.trait-is2ast) {
+            my $type := Nodify('Type::Simple').new($longname.trait-is2ast);
+            self.SET-NODE-ORIGIN($/, $type);
+            $type.to-begin-time($*R, $*CU.context);
+            $trait := Nodify('Trait::Is').new-from-type(:$type, :$argument);
+        }
+        else {
+            $trait := Nodify('Trait::Is').new(
+                :name($longname.trait-is2ast), :$argument);
+        }
 
         self.attach: $/, $trait;
     }

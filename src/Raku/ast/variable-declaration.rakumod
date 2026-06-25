@@ -321,6 +321,19 @@ class RakuAST::ContainerCreator {
             self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
         }
     }
+
+    # QAST that produces a fresh instance of an explicit container base type.
+    # Set/Bag/Mix keep pristine empty sentinels, so create rather than run
+    # their .new (see issue #6246).
+    method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
+        my $class := self.IMPL-CONTAINER-TYPE($of);
+        $context.ensure-sc($class);
+        my str $name := $class.HOW.name($class); # XXX needs lookup solution
+        my $wval := QAST::WVal.new(:value($class));
+        $name eq 'Set' || $name eq 'Bag' || $name eq 'Mix'
+            ?? QAST::Op.new(:op<create>, $wval)
+            !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
+    }
 }
 
 class RakuAST::TraitTarget::Variable
@@ -1398,16 +1411,8 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
-                    my $class := self.IMPL-CONTAINER-TYPE($of);
-                    my $wval  := QAST::WVal.new(:value($class));
-                    $context.ensure-sc($class);
-
-                    my str $name := $class.HOW.name($class); # XXX needs lookup solution
                     $qast := QAST::Op.new( :op('bind'), $qast,
-                      $name eq 'Set' || $name eq 'Bag' || $name eq 'Mix'
-                        ?? QAST::Op.new(:op<create>, $wval)
-                        !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
-                    );
+                      self.IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST($context, $of) );
                 }
                 $qast
             }
@@ -1559,9 +1564,24 @@ class RakuAST::VarDeclaration::Simple
                                 $method-call.args.IMPL-ADD-QAST-ARGS($context, $perform-init-qast);
                             }
                             else {
+                                my $invocant := $var-access;
+                                # At BEGIN time the declaration's own
+                                # vivification has not run, so an `is SomeType`
+                                # container is still a type object here. A
+                                # custom Associative STORE needs a defined
+                                # invocant, so vivify it when undefined.
+                                if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+                                    $invocant := QAST::Op.new( :op('if'),
+                                      QAST::Op.new( :op('isconcrete'),
+                                        QAST::Var.new( :$name, :scope<lexical> ) ),
+                                      QAST::Var.new( :$name, :scope<lexical> ),
+                                      QAST::Op.new( :op('bind'),
+                                        QAST::Var.new( :$name, :scope<lexical> ),
+                                        self.IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST($context, $of) ) );
+                                }
                                 $perform-init-qast := QAST::Op.new(
                                   :op('callmethod'), :name('STORE'),
-                                  $var-access,
+                                  $invocant,
                                   $init-qast,
                                   QAST::WVal.new( :named('INITIALIZE'), :value(True) )
                                 );

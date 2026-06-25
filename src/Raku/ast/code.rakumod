@@ -2386,12 +2386,20 @@ class RakuAST::Sub
             return False if $_.constraint_list;
             my $type := $_.type;
             unless nqp::isnull($type) {
+                # A coercion type erases to its target under the smartmatch,
+                # so distinct coercions would compare as equivalent.
+                return False if $type.HOW.archetypes.coercive;
                 my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
                 return False
                   if nqp::defined($accepts)
                   && nqp::istype($accepts, Code)
                   && !$accepts.file.starts-with('SETTING::');
             }
+            # Apply the same checks through a sub-signature destructure.
+            my $sub-signature := $_.sub_signature;
+            return False
+              if nqp::isconcrete($sub-signature)
+              && !self.IMPL-SIGNATURE-STATICALLY-COMPARABLE($sub-signature);
         }
         True
     }

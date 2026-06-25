@@ -224,6 +224,15 @@ class RakuAST::ArgList
 class RakuAST::Call {
     has RakuAST::ArgList $.args;
 
+    # Set when this call is a stage of a feed operator. The fed value is
+    # appended as an extra argument at QAST time, so the argument count
+    # visible at the AST level is short by one and cannot be trial-bound.
+    has Bool $.feed-stage;
+
+    method set-feed-stage() {
+        nqp::bindattr(self, RakuAST::Call, '$!feed-stage', True);
+    }
+
     method add-colonpair(RakuAST::ColonPair $pair) {
         $!args.push($pair);
         Nil
@@ -369,7 +378,7 @@ class RakuAST::Call::Name
                     :symbol($name);
         }
 
-        if self.is-resolved && (
+        if self.is-resolved && !self.feed-stage && (
             nqp::istype(self.resolution, RakuAST::CompileTimeValue)
             || nqp::can(self.resolution, 'maybe-compile-time-value')
         ) {

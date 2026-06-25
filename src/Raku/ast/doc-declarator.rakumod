@@ -15,7 +15,10 @@ class RakuAST::Doc::Declarator
         $obj.set-leading($leading);
         $obj.set-trailing($trailing);
 
-        if nqp::isconcrete($*LEGACY-POD-INDEX) {
+        # A target that does not surface its documentation in $=pod must
+        # not reserve a position there, as it would never be filled in.
+        if nqp::isconcrete($*LEGACY-POD-INDEX)
+          && (!nqp::isconcrete($WHEREFORE) || $WHEREFORE.podifiable) {
             nqp::bindattr_i($obj,RakuAST::Doc::Declarator,
               '$!pod-index', $*LEGACY-POD-INDEX++);
         }
@@ -54,11 +57,13 @@ class RakuAST::Doc::Declarator
     method PERFORM-CHECK(RakuAST::Resolver $resolver,
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
-            my $meta := $!WHEREFORE.meta-object;
-            if $meta.HOW.name($meta) ne 'Any' {
-                $resolver.find-attach-target('compunit').set-pod-content(
-                  $!pod-index, self.podify($meta)
-                );
+            if $!WHEREFORE.podifiable {
+                my $meta := $!WHEREFORE.meta-object;
+                if $meta.HOW.name($meta) ne 'Any' {
+                    $resolver.find-attach-target('compunit').set-pod-content(
+                      $!pod-index, self.podify($meta)
+                    );
+                }
             }
         }
         else {
@@ -72,6 +77,14 @@ class RakuAST::Doc::Declarator
 # Role for objects that can have a Doc::Declarator attached
 class RakuAST::Doc::DeclaratorTarget {
     has RakuAST::Doc::Declarator $.WHY;
+
+    # Whether the documentation on this target is surfaced through the
+    # legacy pod system: turned into a Pod::Block::Declarator in $=pod
+    # and set as the .WHY of the target's meta-object.  Targets without
+    # a runtime meta-object to carry the documentation, such as lexical
+    # variable declarations, return False: their documentation lives on
+    # the AST node only and is available through $=rakudoc.
+    method podifiable() { True }
 
     # A special method to create a a Declarator and connect it to the
     # target.  Intended to be used for a .raku representation

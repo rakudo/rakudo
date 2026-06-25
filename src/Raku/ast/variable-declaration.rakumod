@@ -842,6 +842,11 @@ class RakuAST::VarDeclaration::Simple
         $scope eq 'has' || $scope eq 'HAS'
     }
 
+    # Only an attribute has a meta-object that can carry documentation
+    # at runtime. The documentation of other variable declarations is
+    # only available through $=rakudoc.
+    method podifiable() { self.is-attribute }
+
     method IMPL-OF-TYPE() {
         $!type
             ?? (nqp::istype($!type, RakuAST::Lookup)

@@ -768,7 +768,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Helper method to connect any leading declarator doc that was
-    # collected already to the given declarand
+    # collected already to the given declarand.  A declarand that does
+    # not surface documentation in $=pod, such as a lexical, does not
+    # consume the leading doc: it stays collected for the next declarand
+    # that does, e.g. an anon sub in the lexical's initializer.
     method set-declarand($/, $it) {
 
         # Ignoring this one
@@ -790,7 +793,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*DECLARAND          := $it;
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
 
-            if @*LEADING-DOC -> @leading {
+            if $it.podifiable && @*LEADING-DOC -> @leading {
                 $it.set-leading(@leading);
                 @*LEADING-DOC := [];
             }
@@ -2920,7 +2923,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $decl.set-already-declared;
             }
 
-            self.set-declarand($/, $decl) if $scope eq 'has';
+            self.set-declarand($/, $decl);
         }
         else {
             $scope ne 'my' && $scope ne 'state'

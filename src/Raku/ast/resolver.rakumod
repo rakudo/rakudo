@@ -1002,8 +1002,10 @@ class RakuAST::Resolver::EVAL
         Nil
     }
 
-    # Resolves a lexical to its declaration. The declaration must have a
-    # compile-time value.
+    # Resolves a name to its lexical declaration if that declaration has a
+    # compile-time value, otherwise Nil. A name bound to a non-constant
+    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
+    # innermost such binding yields Nil rather than an outer constant.
     method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
 
         # No need to look further
@@ -1017,15 +1019,9 @@ class RakuAST::Resolver::EVAL
             my $found := nqp::elems(@scopes)
                 ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
                 !! Nil;
-            if nqp::isconcrete($found) {
-                if nqp::istype($found,RakuAST::CompileTimeValue) {
-                    return $found;
-                }
-                else {
-                    nqp::die("Symbol '$name' does not have a compile-time value");
-                }
-            }
-            Nil
+            nqp::isconcrete($found) && nqp::istype($found, RakuAST::CompileTimeValue)
+              ?? $found
+              !! Nil
         }
 
         # Walk active scopes, most nested first.
@@ -1035,11 +1031,7 @@ class RakuAST::Resolver::EVAL
             while $i-- {
                 my $found := @scopes[$i].find-lexical($name);
                 if nqp::isconcrete($found) {
-                    nqp::istype($found,RakuAST::CompileTimeValue)
-                      ?? (return $found)
-                      !! nqp::die(
-                           "Symbol '$name' does not have a compile-time value"
-                         );
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
                 }
             }
 
@@ -1268,8 +1260,10 @@ class RakuAST::Resolver::Compile
         self.resolve-lexical-in-outer($name)
     }
 
-    # Resolves a lexical to its declaration. The declaration must have a
-    # compile-time value.
+    # Resolves a name to its lexical declaration if that declaration has a
+    # compile-time value, otherwise Nil. A name bound to a non-constant
+    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
+    # innermost such binding yields Nil rather than an outer constant.
     method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
         if $name eq 'GLOBAL' {
             return self.global-package;
@@ -1281,13 +1275,8 @@ class RakuAST::Resolver::Compile
             my int $i := nqp::elems(@scopes);
             if ($i > 0) {
                 my $found := @scopes[$i - 1].find-lexical($name);
-                if nqp::isconcrete($found) {
-                    if nqp::istype($found, RakuAST::CompileTimeValue) {
-                        return $found;
-                    }
-                    else {
-                        nqp::die("Symbol '$name' does not have a compile-time value");
-                    }
+                if nqp::isconcrete($found) && nqp::istype($found, RakuAST::CompileTimeValue) {
+                    return $found;
                 }
             }
             return Nil;
@@ -1300,12 +1289,7 @@ class RakuAST::Resolver::Compile
             my $scope := @scopes[$i];
             my $found := $scope.find-lexical($name);
             if nqp::isconcrete($found) {
-                if nqp::istype($found, RakuAST::CompileTimeValue) {
-                    return $found;
-                }
-                else {
-                    nqp::die("Symbol '$name' does not have a compile-time value");
-                }
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
             }
         }
 

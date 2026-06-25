@@ -309,7 +309,11 @@ class RakuAST::Call::Name
         }
 
         if !$resolved && $!name.is-multi-part {
-            my $resolved := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
+            # The leading part may be a runtime lexical (the package is only
+            # known at runtime, e.g. `my \t := SomeType; t::foo()`); codegen
+            # takes .WHO on its value, so resolve it without requiring a
+            # compile-time value.
+            my $resolved := $resolver.resolve-lexical($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
             if $resolved {
                 nqp::bindattr(self, RakuAST::Call::Name, '$!lexical', $resolved);
             }

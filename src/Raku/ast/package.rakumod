@@ -153,8 +153,12 @@ class RakuAST::Package
         }
         elsif $!name {
             my $full-name := self.IMPL-FULL-NAME($resolver);
-            # First try to find it using the fully qualified name
-            my $resolved := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
+            # First try to find it using the fully qualified name. A bare
+            # GLOBAL declaration reduces to an empty name here, which is not a
+            # resolvable constant; the illegal-name check reports it later.
+            my $resolved := $full-name.is-empty
+                ?? Nil
+                !! $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
             # If not found try locally using just the declared name
             $resolved := $resolver.resolve-name-constant($!name, :current-scope-only)
                 unless nqp::isconcrete($resolved);

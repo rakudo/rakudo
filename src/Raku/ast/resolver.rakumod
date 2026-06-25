@@ -327,6 +327,7 @@ class RakuAST::Resolver {
         my $name     := $root.name;
         my str $setting-rev;
         if ($name eq 'CORE') {
+            return Nil unless @parts;  # bare CORE has nothing to resolve
             $root := nqp::shift(@parts);
             if nqp::istype($root, RakuAST::Name::Part::Empty) {
                 return Nil;

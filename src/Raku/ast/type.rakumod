@@ -770,6 +770,10 @@ class RakuAST::Type::Enum
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
 
+    # IMPL-EXPR-QAST yields null in void context, where a sink call would
+    # instead run ENUM_VALUES.
+    method needs-sink-call() { False }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(:op('call'), :name('&ENUM_VALUES'), $!term.IMPL-EXPR-QAST($context));
         QAST::Want.new(
@@ -932,6 +936,11 @@ class RakuAST::Type::Enum
         for @values -> $pair {
             my $key   := $pair[0];
             my $value := $pair[1];
+
+            # An enum value's name is a string, so coerce a non-Str key.
+            unless nqp::istype($key, Str) {
+                $key := $key.Str;
+            }
 
             unless nqp::defined($value) {
                 $resolver.build-exception('X::NYI',

@@ -1265,36 +1265,38 @@ class RakuAST::Resolver::Compile
     # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
     # innermost such binding yields Nil rather than an outer constant.
     method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
+
+        # Only one GLOBAL
         if $name eq 'GLOBAL' {
-            return self.global-package;
+            self.global-package
         }
 
         # If it's in the current scope only, just look at the top one, if any
-        if $current-scope-only {
+        elsif $current-scope-only {
+            (my @scopes := $!scopes)
+              && (my $found := @scopes[nqp::elems(@scopes) - 1].find-lexical($name))
+              && nqp::isconcrete($found)
+              && nqp::istype($found, RakuAST::CompileTimeValue)
+              ?? $found
+              !! Nil
+        }
+
+        # Walk active scopes, most nested first
+        else {
             my @scopes := $!scopes;
-            my int $i := nqp::elems(@scopes);
-            if ($i > 0) {
-                my $found := @scopes[$i - 1].find-lexical($name);
-                if nqp::isconcrete($found) && nqp::istype($found, RakuAST::CompileTimeValue) {
-                    return $found;
+            my int $i  := nqp::elems(@scopes);
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue)
+                      ?? $found
+                      !! Nil;
                 }
             }
-            return Nil;
-        }
 
-        # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $found := $scope.find-lexical($name);
-            if nqp::isconcrete($found) {
-                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
-            }
+            # Fall back to looking in outer scopes
+            self.resolve-lexical-constant-in-outer($name)
         }
-
-        # Fall back to looking in outer scopes.
-        self.resolve-lexical-constant-in-outer($name);
     }
 
     # Add a sorry check-time problem produced by the compiler.

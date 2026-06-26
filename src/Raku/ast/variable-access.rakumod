@@ -98,7 +98,17 @@ class RakuAST::Var::Lexical
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.resolution.IMPL-LOOKUP-QAST($context)
+        # An unresolved lookup only reaches code generation in an eager
+        # (compose-time) context such as a role body, where a forward reference
+        # to a declaration made later cannot be resolved yet. Emit a late-bound
+        # lexical lookup rather than dying, as RakuAST::Call::Name does for an
+        # unresolved call; finalizing the dynamically-compiled body binds it to
+        # a declaration that is in scope by then, and a name that is not in
+        # scope by then errors there. In ordinary code an undeclared lookup is
+        # caught at check time, before this point.
+        self.is-resolved
+            ?? self.resolution.IMPL-LOOKUP-QAST($context)
+            !! QAST::Var.new(:name(self.name), :scope('lexical'))
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {

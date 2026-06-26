@@ -800,7 +800,7 @@ class RakuAST::Role
         # See Package.IMPL-COMPOSE; $resolver/$context are mandatory and
         # the first meta-object access fills the cache.
         self.meta-object(:$resolver, :$context);
-        self.body.IMPL-FINISH-ROLE-BODY($context);
+        self.body.IMPL-FINISH-ROLE-BODY($resolver, $context);
     }
 }
 

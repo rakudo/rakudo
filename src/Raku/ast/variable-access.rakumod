@@ -812,9 +812,17 @@ class RakuAST::Var::Package
                 if self.is-resolved {
                     my $name := self.resolution.lexical-name;
                     nqp::shift(@parts);
-                    $result := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
-                        ?? QAST::WVal.new(:value(self.resolution.compile-time-value))
-                        !! QAST::Var.new(:$name, :scope<lexical>);
+                    if nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
+                        # The leading package may be one we vivified for our own
+                        # name (`Foo` for a `unit class Foo::Bar`), which has no
+                        # serialization context yet, so make sure it gets one.
+                        my $value := self.resolution.compile-time-value;
+                        $context.ensure-sc($value);
+                        $result := QAST::WVal.new(:$value);
+                    }
+                    else {
+                        $result := QAST::Var.new(:$name, :scope<lexical>);
+                    }
                 }
                 else {
                     $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));

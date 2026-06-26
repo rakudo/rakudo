@@ -852,6 +852,11 @@ role Raku::Common {
 
         return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
 
+        # In a declaration context the variable is not a use of a lexical and
+        # need not be declared. This covers the argument list of `use`/`import`,
+        # where `:$foo` names an import to select rather than reading a lexical.
+        return Nil if $*IN-DECL;
+
         # Nothing to do?
         $ast.ensure-parse-performed($*R, $*CU.context);
         return Nil if $ast.is-resolved;
@@ -1752,6 +1757,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Pragma and module loading related statements
 
     token statement-control:sym<no> {
+        :my $*IN-DECL := 'no';
         <.use-no>
         <.ws>
         <module-name=.longname> [ <.spacey> <arglist> ]?
@@ -1759,6 +1765,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token statement-control:sym<use> {
+        :my $*IN-DECL := 'use';
         # TODO this is massively simplified
         <.use-use>
         <.ws>

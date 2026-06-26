@@ -2321,9 +2321,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                      key => $key, value => $<coloncircumfix>.ast
                    )
                 !! $<var>
-                  ?? Nodify('ColonPair::Variable').new(
-                       key => $key, value => $<var>.ast
-                     )
+                  ?? (($*IN-DECL eq 'use' || $*IN-DECL eq 'import' || $*IN-DECL eq 'no')
+                       # In a `use`/`import`/`no` argument list `:$foo` selects
+                       # an import by name rather than reading a lexical `$foo`,
+                       # so build the tag and not a variable lookup that would
+                       # demand `$foo` be declared.
+                       ?? Nodify('ColonPair::True').new($key)
+                       !! Nodify('ColonPair::Variable').new(
+                            key => $key, value => $<var>.ast
+                          ))
                   !! Nodify(
                        $<neg> ?? 'ColonPair::False' !! 'ColonPair::True'
                      ).new($key);

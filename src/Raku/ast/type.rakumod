@@ -770,6 +770,10 @@ class RakuAST::Type::Enum
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
 
+    # An enum installs its enumerated values into the enclosing scope even
+    # when the enum itself is `anon`-scoped.
+    method IMPL-INSTALLS-ENCLOSING-SYMBOL() { True }
+
     # IMPL-EXPR-QAST yields null in void context, where a sink call would
     # instead run ENUM_VALUES.
     method needs-sink-call() { False }

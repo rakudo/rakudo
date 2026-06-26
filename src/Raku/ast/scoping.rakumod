@@ -586,6 +586,15 @@ class RakuAST::Declaration
         self.is-lexical
     }
 
+    # Whether this declaration installs a symbol into the enclosing scope.
+    # Used by the block-or-hash disambiguation: a `{ }` with a leading pair is
+    # a block if it declares a symbol. An `anon`-scoped declaration installs
+    # none, so it does not, unless it installs more than its own name (an enum
+    # installs its values) and overrides this.
+    method IMPL-INSTALLS-ENCLOSING-SYMBOL() {
+        self.scope ne 'anon'
+    }
+
     method report-redeclaration() {
         True
     }

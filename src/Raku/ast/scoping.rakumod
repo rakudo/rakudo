@@ -1041,8 +1041,10 @@ class RakuAST::PackageInstaller {
         RakuAST::Package $current-package,
         Mu :$meta-object
     ) {
-        # Anonymous declarations install no symbol.
+        # Anonymous declarations install no symbol, whether the name itself
+        # is anonymous or the declaration is `anon`-scoped.
         return Nil unless $name.is-installable;
+        return Nil if $scope eq 'anon';
         my $orig-scope := $scope;
         my $target;
         my $final;

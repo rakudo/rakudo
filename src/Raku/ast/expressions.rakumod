@@ -2934,6 +2934,20 @@ class RakuAST::Postfix::Power
         Nil
     }
 
+    # Unlike the vulgar postfix (which is really an infix `+` and which the
+    # legacy frontend rejects under a hyper), the power postfix is a real
+    # postfix routine that hypers element-wise (`(1,2,3)>>²` is `(1,4,9)`).
+    method can-be-used-with-hyper() { True }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        $context.ensure-sc(self.power);
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
+            $operand-qast,
+            QAST::WVal.new( :value(self.power) ),
+            self.resolution.IMPL-LOOKUP-QAST($context)
+    }
+
     method power() { nqp::getattr(self,RakuAST::Postfix::Literal,'$!value') }
 }
 

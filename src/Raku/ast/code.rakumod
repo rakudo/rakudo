@@ -328,28 +328,63 @@ class RakuAST::Code
                     # Skipping them keeps their references late-bound, so
                     # the runtime lookup reaches the caller's container.
                     elsif $name ne '$_' && $name ne '$/' && $name ne '$!' && $name ne '$¢' {
-                        my $decl := $parse-time-resolver.resolve-lexical-constant($name);
-                        if $decl {
-                            $decl.to-begin-time($resolver, $context); # Ensure any required lookups are resolved
-                            my $value := $decl.compile-time-value;
-                            $context.ensure-sc($value);
-                            %seen{$name} := 1;
-                            $block[0].push(
-                                QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
-                            );
-                        }
-                        elsif nqp::eqat($name, '!__REGEX_CAPTURE_', 0) {
-                            # A regex capture lexical is bound and used within
-                            # this compiled unit, but its declaration lives in
-                            # an enclosing scope outside the unit. Declare it
-                            # here, as that scope otherwise would.
-                            %seen{$name} := 1;
-                            $block[0].push(
-                                QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
-                            );
+                        my $lexical := $parse-time-resolver.resolve-lexical($name);
+                        if $lexical
+                          && !nqp::istype($lexical, RakuAST::Declaration::External)
+                          && !nqp::istype($lexical, RakuAST::CompileTimeValue)
+                          && !nqp::eqat($name, '!__REGEX_CAPTURE_', 0)
+                          # A dynamic variable (a `*` twigil) resolves by a
+                          # runtime stack-walk, not from a lexical container, so
+                          # leave it to the handling below.
+                          && nqp::substr($name, 1, 1) ne '*' {
+                            # A declared but non-constant lexical in an active
+                            # scope (for example a sigilless `my \x` or a `my
+                            # $x`), unbound at this BEGIN point. Reproduce the
+                            # value it holds there, as the legacy frontend does
+                            # by referring to it in place.
+                            if nqp::index('$@%&', nqp::substr($name, 0, 1)) >= 0 {
+                                # A sigil'd variable has a container; leaving the
+                                # reference late-bound lets the runtime lookup
+                                # reach that container for its default value (Any,
+                                # an empty Array, an empty Hash).
+                            }
+                            else {
+                                # A sigilless binding has no container, so a
+                                # late-bound lookup would yield a raw VMNull. Its
+                                # unbound value is Mu, so inline that.
+                                my $mu := $parse-time-resolver.resolve-lexical-constant('Mu');
+                                my $value := $mu ?? $mu.compile-time-value !! Mu;
+                                $context.ensure-sc($value);
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                                );
+                            }
                         }
                         else {
-                            nqp::die("Could not find a compile-time-value for lexical $name");
+                            my $decl := $parse-time-resolver.resolve-lexical-constant($name);
+                            if $decl {
+                                $decl.to-begin-time($resolver, $context); # Ensure any required lookups are resolved
+                                my $value := $decl.compile-time-value;
+                                $context.ensure-sc($value);
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                                );
+                            }
+                            elsif nqp::eqat($name, '!__REGEX_CAPTURE_', 0) {
+                                # A regex capture lexical is bound and used within
+                                # this compiled unit, but its declaration lives in
+                                # an enclosing scope outside the unit. Declare it
+                                # here, as that scope otherwise would.
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
+                                );
+                            }
+                            else {
+                                nqp::die("Could not find a compile-time-value for lexical $name");
+                            }
                         }
                     }
                 }

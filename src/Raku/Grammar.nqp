@@ -1281,6 +1281,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
 
         :my $*IN-TYPENAME;      # fallback for inside typename flag
+        :my $*COLONPAIR-AS-TERM; # fallback for standalone colonpair term flag
         :my $*ADVERB-AS-INFIX;  # fallback for fake infix handling
 
         :my @*LEADING-DOC := [];         # temp storage leading declarator doc
@@ -3221,7 +3222,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <key=.identifier> <.fatty> <.ws> <val=.EXPR('i<=')>
     }
 
-    token term:sym<colonpair> { <colonpair> }
+    token term:sym<colonpair> { :my $*COLONPAIR-AS-TERM := 1; <colonpair> }
 
     token term:sym<variable> {
         <variable>
@@ -3535,7 +3536,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $*KEY := $<identifier> }
             [
               <.unspace>?
-              <?{ !$*IN-TYPENAME && !self.type-smiley(~$*KEY) }>
+              # A standalone colonpair always takes its value, so `:D(1)` is the
+              # pair D => 1. After a type name a smiley takes no value, leaving
+              # `(...)` as the coercion target of `Str:D(...)`.
+              <?{ $*COLONPAIR-AS-TERM || (!$*IN-TYPENAME && !self.type-smiley(~$*KEY)) }>
               :dba('pair value')
               <coloncircumfix($*KEY)>
             ]?
@@ -5285,6 +5289,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token longname($*IN-TYPENAME = 0) {
+        # A colonpair here is attached to a name, so a smiley takes no value
+        # even when the name appears as the value of a standalone colonpair.
+        :my $*COLONPAIR-AS-TERM := 0;
         <name>
         {}
         [

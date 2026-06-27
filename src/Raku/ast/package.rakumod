@@ -683,17 +683,28 @@ class RakuAST::Role
     }
 
     method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
-        # Find an appropriate existing role group
-        my $group := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
-        if $group && !nqp::istype($group.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
-            $group := $group.compile-time-value;
+        my $found    := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
+        my $existing := $found ?? $found.compile-time-value !! Mu;
+        # A name resolving only to the setting's symbol is shadowed; one
+        # declared in this compilation unit is joined (when it is a role group)
+        # or, failing that, a redeclaration.
+        my $from-setting := $found && self.IMPL-SYMBOL-FROM-SETTING($resolver, $full-name, $existing);
+
+        my $group;
+        if !$from-setting && nqp::can($existing.HOW, 'add_possibility') {
+            # An existing role group in this compilation unit: add ourselves to it.
+            $group := $existing;
+        }
+        else {
+            # A non-package symbol declared in this compilation unit is a
+            # redeclaration. A plain package or a setting symbol is instead
+            # shadowed by the fresh role group.
             $resolver.panic(
                 $resolver.build-exception('X::Redeclaration', :symbol(self.name.canonicalize))
-            ) unless nqp::can($group.HOW, 'add_possibility');
-        }
+            ) if $found
+              && !$from-setting
+              && !nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW);
 
-        # No existing one found - create a role group
-        else {
             my $group-name := $full-name.canonicalize(:colonpairs(0));
             $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
@@ -707,6 +718,17 @@ class RakuAST::Role
         my $type-object := self.stubbed-meta-object;
         $type-object.HOW.set_group($type-object, $group);
         nqp::bindattr(self,RakuAST::Package::Attachable,'$!role-group',$group);
+    }
+
+    # Whether $symbol is the symbol the name resolves to in the setting, i.e.
+    # nothing in this compilation unit shadows it. While the setting itself is
+    # being compiled there is no outer setting, so its own declarations are not
+    # shadowable.
+    method IMPL-SYMBOL-FROM-SETTING(RakuAST::Resolver $resolver, RakuAST::Name $full-name, Mu $symbol) {
+        $*COMPILING_CORE_SETTING
+          ?? False
+          !! (my $setting := $resolver.resolve-name-constant-in-setting($full-name))
+               && nqp::eqaddr($setting.compile-time-value, $symbol)
     }
 
     method install-extra-declarations(RakuAST::Resolver $resolver) {

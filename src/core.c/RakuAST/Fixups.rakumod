@@ -1499,7 +1499,7 @@ augment class RakuAST::Postfix::Power {
     method from-superscripts(Mu $/) {
         self.new:
           val(
-            nqp::hllize($/).Str.trans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺ⁱ" => "0123456789-+i")
+            nqp::hllize($/).Str.trans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻¯⁺ⁱ" => "0123456789--+i")
           ).Numeric
     }
 }

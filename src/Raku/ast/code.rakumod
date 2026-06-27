@@ -2488,12 +2488,40 @@ class RakuAST::RoleBody
         Nil
     }
 
-    method IMPL-FINISH-ROLE-BODY(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-FINISH-ROLE-BODY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-stub {
+            self.IMPL-RESOLVE-FORWARD-LEXICALS($resolver);
             my $*IMPL-COMPILE-DYNAMICALLY := 1;
             my $body-qast := self.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
             self.IMPL-BEGIN-TIME-LEXICAL-FIXUP($context, $body-qast, $!fixup);
         }
+    }
+
+    # The body is code-generated here, ahead of the compilation unit's check
+    # pass, so a forward reference inside it (for example a parameter or
+    # attribute default naming a `sub` declared later in the body) is still
+    # unresolved from its parse-time lookup. Resolve those now, pushing each
+    # lexical scope as we descend so a lookup is re-resolved against its own
+    # scope chain. This reaches declarations hoisted into a method, a nested
+    # block, or a package nested in the body, not only body-level ones. Only
+    # lookups that are still unresolved are touched, so an outer or CORE match
+    # is never replaced and a role-local declaration still shadows an outer one.
+    method IMPL-RESOLVE-FORWARD-LEXICALS(RakuAST::Resolver $resolver) {
+        self.IMPL-RESOLVE-FORWARD-LEXICALS-IN($resolver, self);
+    }
+
+    method IMPL-RESOLVE-FORWARD-LEXICALS-IN(RakuAST::Resolver $resolver, $node) {
+        my int $is-scope := nqp::istype($node, RakuAST::LexicalScope);
+        $resolver.push-scope($node) if $is-scope;
+        $node.visit-children(-> $child {
+            if nqp::istype($child, RakuAST::Var::Lexical)
+              && $child.needs-resolution && !$child.is-resolved {
+                my $resolved := $resolver.resolve-lexical($child.name);
+                $child.set-resolution($resolved) if $resolved;
+            }
+            self.IMPL-RESOLVE-FORWARD-LEXICALS-IN($resolver, $child);
+        });
+        $resolver.pop-scope() if $is-scope;
     }
 }
 

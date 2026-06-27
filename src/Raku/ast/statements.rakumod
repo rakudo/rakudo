@@ -684,7 +684,36 @@ class RakuAST::Statement::Expression
         else {
             $qast := $!expression.IMPL-TO-QAST($context);
             if self.sunk && $!expression.needs-sink-call {
-                $qast := QAST::Op.new( :op('p6sink'), $qast );
+                # A routine strips the container off a containerized return;
+                # an `is rw` one skips that strip; a bare block does neither.
+                # So a sunk postfix `()` call of a block must decont its
+                # result, else a returned Failure stays wrapped in a Scalar
+                # and sinking a container is a no-op. A routine callee has a
+                # `rw` method and is left alone.
+                if nqp::istype($!expression, RakuAST::ApplyPostfix)
+                  && nqp::istype($!expression.postfix, RakuAST::Call::Term)
+                  && nqp::istype($qast, QAST::Op) && $qast.op eq 'call' {
+                    my $callee := $qast.shift;
+                    my str $tc  := QAST::Node.unique('sink_callee');
+                    my str $tr  := QAST::Node.unique('sink_result');
+                    $qast.unshift(QAST::Var.new(:name($tc), :scope<local>));
+                    $qast := QAST::Stmts.new(
+                        QAST::Op.new(:op('bind'),
+                            QAST::Var.new(:name($tc), :scope<local>, :decl<var>), $callee),
+                        QAST::Op.new(:op('bind'),
+                            QAST::Var.new(:name($tr), :scope<local>, :decl<var>), $qast),
+                        QAST::Op.new(:op('p6sink'),
+                            QAST::Op.new(:op('if'),
+                                QAST::Op.new(:op('can'),
+                                    QAST::Var.new(:name($tc), :scope<local>),
+                                    QAST::SVal.new(:value('rw'))),
+                                QAST::Var.new(:name($tr), :scope<local>),
+                                QAST::Op.new(:op('decont'),
+                                    QAST::Var.new(:name($tr), :scope<local>)))));
+                }
+                else {
+                    $qast := QAST::Op.new( :op('p6sink'), $qast );
+                }
             }
             $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast)
                 if $!condition-modifier && (!$!loop-modifier || !$!loop-modifier.handles-condition);

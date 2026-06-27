@@ -2036,9 +2036,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if nqp::istype($node, RakuAST::LexicalScope) {
                 0
             }
-            # If it's a declaration, it blocks; walk no futher
+            # A declaration that installs an enclosing symbol blocks; an `anon`
+            # one that installs none (e.g. an anon subset) is just a value.
             elsif nqp::istype($node, RakuAST::Declaration) {
-                $seen-decl-or-topic := 1;
+                if $node.IMPL-INSTALLS-ENCLOSING-SYMBOL {
+                    $seen-decl-or-topic := 1;
+                }
                 0
             }
             # If it's a usage of the topic, it also blocks; walk no further

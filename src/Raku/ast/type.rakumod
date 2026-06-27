@@ -770,6 +770,10 @@ class RakuAST::Type::Enum
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
 
+    # An enum installs its enumerated values into the enclosing scope even
+    # when the enum itself is `anon`-scoped.
+    method IMPL-INSTALLS-ENCLOSING-SYMBOL() { True }
+
     # IMPL-EXPR-QAST yields null in void context, where a sink call would
     # instead run ENUM_VALUES.
     method needs-sink-call() { False }
@@ -1069,7 +1073,7 @@ class RakuAST::Type::Subset
 
     method default-scope() { 'our' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['anon', 'my', 'our']) }
 
     method dba() { 'subset' }
 

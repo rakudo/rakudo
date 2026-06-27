@@ -1008,9 +1008,7 @@ class RakuAST::Call::PrivateMethod
 
     method needs-resolution() { False }
 
-    method can-be-used-with-hyper() {
-        $!name && $!name.is-multi-part
-    }
+    method can-be-used-with-hyper() { True }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::PrivateMethod, '$!package', $resolver.current-package);
@@ -1116,19 +1114,29 @@ class RakuAST::Call::PrivateMethod
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := $!name.canonicalize;
-        my $call;
-        my @parts := nqp::split('::', $name);
-
-        $name := @parts[ nqp::elems(@parts)-1 ];
-
-        $call := QAST::Op.new:
+        my $name := $!name.last-part.name;
+        # The package to look the private method up in: a qualified name
+        # resolves it directly, an unqualified name uses the current package
+        # (the parametric form going through the `::?CLASS` lookup, as the
+        # non-hyper path does).
+        my $package-qast;
+        if $!name.is-multi-part {
+            $package-qast := self.resolution.IMPL-TO-QAST($context);
+        }
+        elsif $!package.HOW.archetypes.parametric {
+            $package-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+        }
+        else {
+            $context.ensure-sc($!package);
+            $package-qast := QAST::WVal.new( :value($!package) );
+        }
+        my $call := QAST::Op.new:
             :op('callmethod'), :name('dispatch:<hyper>'),
             $operand-qast,
             QAST::SVal.new( :value($name) ),
             QAST::SVal.new( :value('dispatch:<!>') ),
             QAST::SVal.new( :value($name) ),
-            self.resolution.IMPL-TO-QAST($context);
+            $package-qast;
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -1159,6 +1167,15 @@ class RakuAST::Call::MetaMethod
         my $call := QAST::Op.new( :op('p6callmethodhow'), :name($!name), $invocant-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
+    }
+
+    method can-be-used-with-hyper() { True }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        # A meta-method acts on the meta-object, so the hyper has no effect: it
+        # calls the meta-method once on the operand, matching the legacy
+        # frontend (`@a>>.^name` is `@a.^name`).
+        self.IMPL-POSTFIX-QAST($context, $invocant-qast)
     }
 }
 

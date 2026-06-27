@@ -719,12 +719,11 @@ class RakuAST::Call::Method
                 }
             }
             else {
-# TODO: In base behavior, the attempt to dispatch is performed before
-# determining whether the type actually exists in this scope (throwing
-# a X::Method::InvalidQualifier).  The resolution below will die if the
-# type object cannot be found, deviating from base.
-                my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
-                $context.ensure-sc($Qualified);
+                # Emit the qualifier through its own QAST so a name that does
+                # not resolve at compile time (for example a type only loaded
+                # by the consuming program) becomes a runtime lookup rather
+                # than a compile-time failure.
+                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -735,7 +734,7 @@ class RakuAST::Call::Method
                         QAST::SVal.new( :value('dispatch:<::>') ),
                         $invocant-qast,
                         QAST::SVal.new(:value($name)),
-                        QAST::WVal.new(:value($Qualified));
+                        $qualified-qast;
                 }
                 else {
                     my $temp := QAST::Node.unique('inv_once');
@@ -753,7 +752,7 @@ class RakuAST::Call::Method
                                 QAST::Var.new( :name($temp), :scope('local') ),
                             ),
                             QAST::SVal.new(:value($name)),
-                            QAST::WVal.new(:value($Qualified)),
+                            $qualified-qast,
                             QAST::Var.new( :name($temp), :scope('local') ),
                         )
                     );
@@ -794,8 +793,7 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($name) );
             }
             else {
-                my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
-                $context.ensure-sc($Qualified);
+                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -807,14 +805,14 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($dispatcher) ),
                        QAST::SVal.new( :value('dispatch:<::>') ),
                        QAST::SVal.new( :value($name) ),
-                       QAST::WVal.new( :value($Qualified) )
+                       $qualified-qast
                   !! QAST::Op.new:
                        :op('callmethod'), :name('dispatch:<hyper>'),
                        $operand-qast,
                        QAST::SVal.new( :value($name) ),
                        QAST::SVal.new( :value('dispatch:<::>') ),
                        QAST::SVal.new( :value($name) ),
-                       QAST::WVal.new( :value($Qualified) );
+                       $qualified-qast;
             }
         }
         else {

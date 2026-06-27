@@ -2,7 +2,7 @@ use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 7;
+plan 9;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -44,5 +44,12 @@ is EVAL(q/enum E199 <a b c>; my \t := E199; ~t::<b>/), 'b',
 # The same holds for a call qualified by a runtime lexical package.
 is EVAL(q/class K200 { our sub gv { 42 } }; my \t := K200; t::gv()/), 42,
     'call qualified by a runtime lexical package';
+
+# A package-qualified compile-time variable such as $?CALLER::PACKAGE
+# resolves $?<name> through the pseudo-package, like CALLER::<$?PACKAGE>.
+is EVAL('$?CALLER::PACKAGE').^name, 'Nil',
+    '$?CALLER::PACKAGE compiles and resolves through the CALLER pseudo-package';
+is EVAL('$?FOO::PACKAGE').^name, 'Any',
+    '$?PACKAGE through an unknown package is Any';
 
 # vim: expandtab shiftwidth=4

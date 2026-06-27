@@ -689,11 +689,17 @@ class RakuAST::Var::PositionalCapture
   is RakuAST::ImplicitLookups
 {
     has Int $.index;
+    has Mu $!colonpairs;
 
     method new(Int $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::PositionalCapture, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Var::PositionalCapture, '$!colonpairs', []);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        nqp::push($!colonpairs, $pair);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -707,12 +713,24 @@ class RakuAST::Var::PositionalCapture
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $index := $!index;
         $context.ensure-sc($index);
-        QAST::Op.new(
+        my $op := QAST::Op.new(
             :op('call'),
             :name($lookups[0].is-resolved ?? $lookups[0].resolution.lexical-name !! '&postcircumfix:<[ ]>'),
             $lookups[1].IMPL-TO-QAST($context),
             QAST::WVal.new( :value($index) )
-        )
+        );
+        for $!colonpairs {
+            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($_.named-arg-name);
+            $op.push($val-ast);
+        }
+        $op
+    }
+
+    method visit-children(Code $visitor) {
+        for $!colonpairs {
+            $visitor($_);
+        }
     }
 }
 
@@ -722,11 +740,17 @@ class RakuAST::Var::NamedCapture
   is RakuAST::ImplicitLookups
 {
     has RakuAST::QuotedString $.index;
+    has Mu $!colonpairs;
 
     method new(RakuAST::QuotedString $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!colonpairs', []);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        nqp::push($!colonpairs, $pair);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -744,11 +768,19 @@ class RakuAST::Var::NamedCapture
             $lookups[1].IMPL-TO-QAST($context),
         );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        for $!colonpairs {
+            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($_.named-arg-name);
+            $op.push($val-ast);
+        }
         $op
     }
 
     method visit-children(Code $visitor) {
         $visitor($!index);
+        for $!colonpairs {
+            $visitor($_);
+        }
     }
 }
 

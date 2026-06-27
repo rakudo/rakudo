@@ -518,9 +518,10 @@ class RakuAST::Name::Part::Expression
     }
 
     method is-empty() {
-        return False unless nqp::can($!expr, 'literalize');
-        my $name := $!expr.literalize;
-        nqp::defined($!expr) && $!expr eq ''
+        my $name := try $!expr.literalize;
+        nqp::defined($name)
+          && (nqp::istype($name, Str) || nqp::isstr($name))
+          && $name eq ''
     }
 }
 

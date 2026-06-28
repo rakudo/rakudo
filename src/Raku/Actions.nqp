@@ -64,26 +64,52 @@ sub print-topic() {
     )
 }
 
-# Provide the functionality of '-n' and '-p'
+# Provide the functionality of '-n' and '-p'. Returns a 2-element list of the
+# wrapping statement list and the per-line loop body block; the caller hoists
+# the body's declarations after begin time (see hoist-loop-body-declarations).
 sub wrap-in-for-loop($ast) {
-    Nodify('StatementList').new(
+    my $body := Nodify('PointyBlock').new(
+      signature => Nodify('Signature').new(
+        parameters => (Nodify('Parameter').new(
+          target => Nodify('ParameterTarget::Var').new(name => '$_'),
+          traits => Nodify('Trait::Is').new(
+            name => Nodify('Name').from-identifier('copy')
+          )
+        ))
+      ),
+      body => Nodify('Blockoid').new($ast)
+    );
+    my $statement-list := Nodify('StatementList').new(
       Nodify('Statement::For').new(
         source => Nodify('Call::Name').new(
           name => Nodify('Name').from-identifier('lines')
         ),
-        body   => Nodify('PointyBlock').new(
-          signature => Nodify('Signature').new(
-            parameters => (Nodify('Parameter').new(
-              target => Nodify('ParameterTarget::Var').new(name => '$_'),
-              traits => Nodify('Trait::Is').new(
-                name => Nodify('Name').from-identifier('copy')
-              )
-            ))
-          ),
-          body => Nodify('Blockoid').new($ast)
-        )
+        body   => $body
       )
-    )
+    );
+    nqp::list($statement-list, $body)
+}
+
+# Move the -n/-p program's lexical declarations from the per-line loop body
+# into the compunit mainline, so they persist across iterations and are
+# visible to BEGIN/END and friends, matching the legacy frontend. The loop
+# topic $_ and the body's implicit declarations (e.g. the FIRST-phaser flag,
+# added later at begin time) stay in the loop body. Done before begin time and
+# without forcing the body's declaration cache, so the implicit declarations
+# are not disturbed.
+sub hoist-loop-body-declarations($body, $compunit) {
+    $body.visit-dfs: -> $node {
+        if nqp::istype($node, Nodify('Declaration'))
+          && !nqp::istype($node, Nodify('VarDeclaration::Implicit'))
+          && $node.lexical-name ne '$_'
+          && $node.is-simple-lexical-declaration {
+            $node.set-hoisted-to-outer;
+            $compunit.add-generated-lexical-declaration($node);
+        }
+        # Descend through everything except inner lexical scopes, which own
+        # their own declarations; always descend into the loop body itself.
+        $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+    }
 }
 
 sub monkey-see-no-eval($/) {
@@ -513,7 +539,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $statement-list := $<statementlist>.ast;
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
-            $statement-list := wrap-in-for-loop($statement-list);
+            my @wrapped := wrap-in-for-loop($statement-list);
+            $statement-list := @wrapped[0];
+            hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
             # Give the wrapper nodes a chance to do BEGIN time effects
             $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }

@@ -111,7 +111,8 @@ class RakuAST::LexicalScope
             my %variables-seen;
             my @not-if-duplicate;
             self.visit-dfs: -> $node {
-                if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
+                if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration
+                  && !$node.is-hoisted-to-outer {
                     unless %declarations-seen{nqp::objectid($node)} {
                         nqp::push(@declarations, $node);
                         nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
@@ -511,6 +512,19 @@ class RakuAST::Declaration
   is RakuAST::Node
 {
     has str $!scope;
+
+    # When set, this declaration's lexpad slot is provided by an outer scope
+    # (as a generated lexical) rather than the scope that textually contains
+    # it. Used by -n/-p so a program's declarations live in the compunit
+    # mainline and persist across the per-line loop, like the legacy frontend.
+    has int $!hoisted-to-outer;
+
+    method set-hoisted-to-outer() {
+        nqp::bindattr_i(self, RakuAST::Declaration, '$!hoisted-to-outer', 1);
+        Nil
+    }
+
+    method is-hoisted-to-outer() { $!hoisted-to-outer ?? True !! False }
 
     # Returns the default scope of this kind of declaration.
     method default-scope() {

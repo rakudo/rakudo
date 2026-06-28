@@ -1249,6 +1249,12 @@ class RakuAST::Statement::Loop
                 $!condition.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', $thunk);
+                # A `repeat` loop has no afterwards slot, but it checks its
+                # condition after each iteration (and on an explicit `next`), so
+                # fold the body's NEXT phasers into the condition thunk there.
+                if self.repeat {
+                    $thunk.IMPL-SET-PRELUDE-PRODUCER(-> $ctx { self.IMPL-NEXT-PHASER-QAST($ctx) });
+                }
             }
 
             if ($!increment) {
@@ -1256,8 +1262,32 @@ class RakuAST::Statement::Loop
                 $!increment.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!increment-thunk', $thunk);
+                # Fold the body's NEXT phasers into the increment thunk so they
+                # run each iteration, including on an explicit `next`.
+                $thunk.IMPL-SET-PRELUDE-PRODUCER(-> $ctx { self.IMPL-NEXT-PHASER-QAST($ctx) });
             }
         }
+    }
+
+    # QAST that calls each of the body's NEXT phasers, or Mu if there are none.
+    method IMPL-NEXT-PHASER-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
+        my @next-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'NEXT') ?? $phasers<NEXT> !! [];
+        return Mu unless @next-phasers;
+        my $qast := QAST::Stmts.new;
+        for @next-phasers {
+            $context.ensure-sc($_);
+            $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+        }
+        $qast
+    }
+
+    # A Code that runs each of the given NEXT phasers, for use as a from-loop
+    # afterwards argument.
+    method IMPL-NEXT-PHASER-AFTERWARDS-QAST(RakuAST::IMPL::QASTContext $context, @next-phasers) {
+        my $run-phasers := -> { $_() for @next-phasers };
+        $context.ensure-sc($run-phasers);
+        QAST::WVal.new(:value($run-phasers))
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1324,6 +1354,12 @@ class RakuAST::Statement::Loop
                     $Seq,
                     $!body.IMPL-TO-QAST($context),
                 );
+                if @next-phasers {
+                    # No real condition or increment, so pass the "no condition"
+                    # sentinel to make room for a phaser-running afterwards thunk.
+                    $loop-qast.push(QAST::WVal.new(:value(Code)));
+                    $loop-qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                }
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
@@ -1340,13 +1376,19 @@ class RakuAST::Statement::Loop
                     $!condition.IMPL-TO-QAST($context),
                 );
                 $qast.push: $!increment.IMPL-TO-QAST($context) if $!increment;
+                # A plain while or until has no increment or condition thunk to
+                # fold the NEXT phasers into, so here they become a dedicated
+                # afterwards thunk, which the iterator runs each iteration and on
+                # an explicit `next`.
+                if @next-phasers && !$!increment && !self.repeat {
+                    $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                }
                 $qast.push: QAST::IVal.new(:value(1), :named('repeat')) if self.repeat;
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
                     $qast.push($label-qast);
                 }
-                #TODO next-phasers
                 if @last-phasers {
                     $qast := QAST::Stmts.new(:resultchild(0), $qast);
                     for @last-phasers {
@@ -1384,9 +1426,7 @@ class RakuAST::Statement::Loop
                 $qast.push($label-qast);
             }
             if @next-phasers {
-                my $run-phasers := -> { $_() for @next-phasers };
-                $context.ensure-sc($run-phasers);
-                $qast.push(QAST::WVal.new(:value($run-phasers)));
+                $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
             }
             if @last-phasers {
                 $qast := QAST::Stmts.new(:resultchild(0), $qast);

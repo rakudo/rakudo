@@ -653,12 +653,22 @@ class RakuAST::ExpressionThunk
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
 
+    # A callback producing QAST (or Mu) to run at the start of the thunk body,
+    # before the wrapped expression. A callback, not stored QAST, because its
+    # content (a loop's NEXT phasers) is only known once the body compiles.
+    has Mu $!prelude-producer;
+
     method new() {
         nqp::create(self)
     }
 
     method set-next(RakuAST::ExpressionThunk $next) {
         nqp::bindattr(self, RakuAST::ExpressionThunk, '$!next', $next);
+        Nil
+    }
+
+    method IMPL-SET-PRELUDE-PRODUCER(Mu $producer) {
+        nqp::bindattr(self, RakuAST::ExpressionThunk, '$!prelude-producer', $producer);
         Nil
     }
 
@@ -744,6 +754,11 @@ class RakuAST::ExpressionThunk
 
         $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);
+
+        if nqp::isconcrete($!prelude-producer) {
+            my $prelude := $!prelude-producer($context);
+            $block.push($prelude) if nqp::isconcrete($prelude);
+        }
 
         # If there's an inner thunk the body evaluates to that.
         if $!next {

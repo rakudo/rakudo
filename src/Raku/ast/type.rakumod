@@ -726,6 +726,9 @@ class RakuAST::Type::Enum
     # Note: Not using RakuAST::Type::Derived because we don't always know
     # the base-type ahead of time
     has Mu                  $!base-type;
+    # Value names that clashed with an existing lexical, collected at BEGIN
+    # time so a redeclaration worry can be reported at CHECK time.
+    has Mu                  $!redeclared-values;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -937,6 +940,7 @@ class RakuAST::Type::Enum
         my %package-stash := $resolver.IMPL-STASH-HASH($!current-package);
         my int $index;
         my $last-type := Mu;
+        my @redeclared;
         for @values -> $pair {
             my $key   := $pair[0];
             my $value := $pair[1];
@@ -971,20 +975,25 @@ class RakuAST::Type::Enum
             $context.ensure-sc($val-meta);
             $meta.HOW.add_enum_value($meta, $val-meta);
 
-            # Make sure it is not already defined, eg 'enum Day<Mon Mon>' or 'class Day::Foo {}; enum Day<Mon Foo>'
-            # TODO: Base allows both. First raises a 'Potential Difficulties', second succeeds silently.
-            #   But perhaps 6.e and moving forward, we could make the logic below the default behavior.
-#            if nqp::existskey(%stash, $key) {
-#                nqp::die("Redeclaration of symbol '" ~ $key ~ "'.");
-#            }
+            # A value name that already names a different generated lexical in
+            # this scope is a redeclaration, e.g. `enum Day <Mon Mon>` or
+            # `enum A <X Y>; enum B <X Z>`. The merge below poisons the lexical
+            # with an X::PoisonedAlias; collect the name so a worry is reported
+            # as well. A name that only clashes with a nested package (e.g.
+            # `class Day::Foo {}; enum Day <Mon Foo>`) is not a lexical here, so
+            # it stays silent, matching the legacy frontend.
+            my $existing := $resolver.current-scope.find-generated-lexical($key);
+            if nqp::isconcrete($existing)
+              && nqp::can($existing, 'compile-time-value')
+              && !(nqp::decont($existing.compile-time-value) =:= nqp::decont($val-meta)) {
+                nqp::push(@redeclared, $key);
+            }
             %meta-stash{$key} := $val-meta;
             unless self.scope eq 'my' {
                 %package-stash{$key} := $val-meta;
             }
 
-            # Declare these values into the lexical scope
-            # TODO: Bind an X::PoisonedAlias when a lexical already exists
-            #   (Which is tricky, because base only does it when there is a clash in the current lexpad...)
+            # Declare these values into the lexical scope.
             $resolver.current-scope.merge-generated-lexical-declaration:
                 :resolver($resolver),
                 RakuAST::VarDeclaration::Implicit::EnumValue.new(
@@ -993,6 +1002,8 @@ class RakuAST::Type::Enum
                     :value($val-meta)
                 );
         }
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!redeclared-values', @redeclared)
+          if nqp::elems(@redeclared);
         $meta.HOW.compose_values($meta);
     }
 
@@ -1009,6 +1020,23 @@ class RakuAST::Type::Enum
                         "No values supplied to enum (does $var need to be declared constant?)"
                     );
             }
+        }
+
+        if nqp::isconcrete($!redeclared-values) {
+            my @redeclared := $!redeclared-values;
+            my int $amount := nqp::elems(@redeclared);
+            my str $symbol;
+            if $amount > 2 {
+                @redeclared[$amount - 2] := @redeclared[$amount - 2] ~ ' and ' ~ nqp::pop(@redeclared);
+                $symbol := nqp::join(', ', @redeclared);
+            }
+            elsif $amount > 1 {
+                $symbol := nqp::join(' and ', @redeclared);
+            }
+            else {
+                $symbol := @redeclared[0];
+            }
+            self.add-worry: $resolver.build-exception: 'X::Redeclaration', :$symbol;
         }
     }
 

@@ -155,11 +155,9 @@ class RakuAST::Node {
 
     # Drive CHECK-time activities on this node and its children. Assumes that BEGIN time and
     # parse time has already completely happened.
-    method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
-        unless $resolve-only {
-            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
-                self.calculate-sink();
-            }
+    method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
+            self.calculate-sink();
         }
 
         # Visit children and do their CHECK time.
@@ -167,29 +165,25 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
-        # Unless in resolve-only mode, do other check-time activities.
-        # TODO eliminate resolve-only, since that's just check time.
-        unless $resolve-only {
-            if nqp::istype(self, RakuAST::CheckTime) {
-                self.PERFORM-CHECK($resolver, $context);
-                if self.has-check-time-problems {
-                    if $resolver.find-scope-property(-> $scope { $scope.fatal }) {
-                        self.promote-worries-to-sorries;
-                    }
-                    my $worries := $resolver.find-scope-property(-> $scope { $scope.tell-worries });
-                    if nqp::isconcrete($worries) && !$worries {
-                        self.clear-worries;
-                    }
-                    $resolver.add-node-with-check-time-problems(self) if self.has-check-time-problems;
+        if nqp::istype(self, RakuAST::CheckTime) {
+            self.PERFORM-CHECK($resolver, $context);
+            if self.has-check-time-problems {
+                if $resolver.find-scope-property(-> $scope { $scope.fatal }) {
+                    self.promote-worries-to-sorries;
                 }
+                my $worries := $resolver.find-scope-property(-> $scope { $scope.tell-worries });
+                if nqp::isconcrete($worries) && !$worries {
+                    self.clear-worries;
+                }
+                $resolver.add-node-with-check-time-problems(self) if self.has-check-time-problems;
             }
-            if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
-                $resolver.add-node-unresolved-after-check-time(self);
-            }
+        }
+        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+            $resolver.add-node-unresolved-after-check-time(self);
         }
 
         Nil

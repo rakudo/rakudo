@@ -199,8 +199,8 @@ class RakuAST::CompUnit
                 :position<leading>;
         }
 
-        $!mainline.IMPL-CHECK($resolver, $!context, False);
-        self.IMPL-CHECK($resolver, $!context, False);
+        $!mainline.IMPL-CHECK($resolver, $!context);
+        self.IMPL-CHECK($resolver, $!context);
 
         # Not all RakuAST::Doc objects actually have their PERFORM-CHECK
         # method called on them, causing holes to occur in $=pod (albeit

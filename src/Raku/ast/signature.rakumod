@@ -1116,7 +1116,7 @@ class RakuAST::Parameter
                 ),
             );
             $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context, False);
+            $block.IMPL-CHECK($resolver, $context);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
 
@@ -1149,7 +1149,7 @@ class RakuAST::Parameter
                 ),
             );
             $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context, False);
+            $block.IMPL-CHECK($resolver, $context);
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 

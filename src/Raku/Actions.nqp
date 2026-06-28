@@ -970,7 +970,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             my $args := $<arglist><EXPR>.ast;
-            $args.IMPL-CHECK($*R, $*CU.context, False);
+            $args.IMPL-CHECK($*R, $*CU.context);
             self.report-problems();
             nqp::die("Don't know how to 'no " ~ $name ~ "'")
         }

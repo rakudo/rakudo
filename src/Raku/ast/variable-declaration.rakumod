@@ -2730,6 +2730,14 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
                   && $expression.WHY {
                     nqp::push($RAKUDOC,$expression);
                 }
+                # Descend into a package or routine/block body so docs declared
+                # inside, such as in a `unit class`, are collected too.
+                if nqp::can($expression,'body') {
+                    my $body := $expression.body;
+                    $body := $body.body if nqp::istype($body,RakuAST::Block);
+                    self.fetch-blocks($body.statement-list)
+                      if nqp::istype($body,RakuAST::Blockoid);
+                }
             }
             elsif nqp::istype($_,RakuAST::Blockoid) {
                 self.fetch-blocks($_.statement-list);

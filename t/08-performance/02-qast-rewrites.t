@@ -56,7 +56,6 @@ subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
 }
 
 
-todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
 subtest '.dispatch:<.=> gets rewritten to simple ops' => {
     plan +my @codes :=
       ｢(my Int $x .=new).="{"new"}"(42);｣,

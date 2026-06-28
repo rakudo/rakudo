@@ -2551,10 +2551,18 @@ class RakuAST::DottyInfix::Call
 class RakuAST::DottyInfix::CallAssign
   is RakuAST::DottyInfixish
 {
+    # Set when the optimize pass has marked this dot-assignment for inlining the
+    # method-call-and-assign dispatcher away.
+    has int $!inline;
+
     method operator() { '.=' }
 
     method default-operator-properties() {
         OperatorProperties.infix('.=')
+    }
+
+    method IMPL-SET-INLINE() {
+        nqp::bindattr_i(self, RakuAST::DottyInfix::CallAssign, '$!inline', 1)
     }
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
@@ -2566,7 +2574,8 @@ class RakuAST::DottyInfix::CallAssign
         $call.name('dispatch:<.=>');
         $call.op('callmethod');
         $call.nosink(1);
-        $call;
+        return $call unless $!inline;
+        self.IMPL-INLINE-DOT-ASSIGN($call)
     }
 }
 

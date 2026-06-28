@@ -705,6 +705,7 @@ class RakuAST::Node {
             self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
             self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
             self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
+            self.IMPL-MARK-DOT-ASSIGN($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -829,6 +830,52 @@ class RakuAST::Node {
         || (nqp::istype($node, RakuAST::ApplyInfix)
           && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
           && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
+    }
+
+    # Mark a dot-assignment for inlining the dispatcher away. It is always a
+    # method call whose result is stored back, with no operator routine to
+    # shadow, so unlike the numeric marks no core-operator guard applies.
+    # Two forms reach it. An explicit target is an ApplyDottyInfix whose infix is
+    # the call-assign operator. A bare call on the topic is a Term::TopicCall
+    # whose call carries the `.=` dispatcher; only a plain Call::Method honors
+    # the inline at code generation, so a quoted or private method is left out.
+    method IMPL-MARK-DOT-ASSIGN(RakuAST::Resolver $resolver, Mu $expr) {
+        if nqp::istype($expr, RakuAST::ApplyDottyInfix) {
+            my $infix := $expr.infix;
+            $infix.IMPL-SET-INLINE if nqp::istype($infix, RakuAST::DottyInfix::CallAssign);
+        }
+        elsif nqp::istype($expr, RakuAST::Term::TopicCall) {
+            my $call := $expr.call;
+            if nqp::istype($call, RakuAST::Call::Method) {
+                my $dispatcher := $call.dispatcher;
+                $call.IMPL-SET-INLINE if $dispatcher && $dispatcher eq 'dispatch:<.=>';
+            }
+        }
+        Nil
+    }
+
+    # Inline a dot-assignment to an assignment of the method call's result,
+    # dropping the dispatcher. The call arrives as a `dispatch:<.=>` callmethod
+    # whose first child is the target and whose second is the method name. The
+    # method name is kept as that second child, so clearing the op name leaves a
+    # plain method call whose result is stored back. A target that is not a plain
+    # variable is bound to a temporary so it is evaluated once.
+    method IMPL-INLINE-DOT-ASSIGN(Mu $call) {
+        my $target := $call[0];
+        $call.name('');
+        if nqp::istype($target, QAST::Var) {
+            QAST::Op.new(:op<p6store>, $target, $call)
+        }
+        else {
+            $target := $call.shift;
+            my str $name := QAST::Node.unique('dot_assign');
+            $call.unshift(QAST::Var.new(:name($name), :scope<local>));
+            QAST::Stmt.new(
+                QAST::Op.new(:op<bind>,
+                    QAST::Var.new(:name($name), :scope<local>, :decl<var>), $target),
+                QAST::Op.new(:op<p6store>,
+                    QAST::Var.new(:name($name), :scope<local>), $call))
+        }
     }
 
     # True when the `soft` pragma is in effect in the enclosing scope. It keeps

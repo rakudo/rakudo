@@ -21,6 +21,7 @@ if +nqp::getenvhash()<RAKUDO_RAKUAST> {
     $comp.parseactions(Raku::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('qast', :after<ast>);
+    $comp.addstage('optimize', :before<qast>);
 }
 else {
     nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');

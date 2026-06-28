@@ -246,6 +246,18 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method optimize($past, *%adverbs) {
+        # The RakuAST frontend optimizes the AST in place between the ast and
+        # qast stages. Its input is a RakuAST::CompUnit, not QAST. The pass
+        # manages its own scope, so the stage just hands it the resolver.
+        if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+            my $optimize := %adverbs<optimize>;
+            unless nqp::defined($optimize)
+              && ($optimize eq 'off' || $optimize eq '0') {
+                $past.optimize($past.resolver);
+            }
+            return $past;
+        }
+
         # Apply optimizations.
         my $result := %adverbs<optimize> eq 'off'
             ?? $past

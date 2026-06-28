@@ -52,7 +52,7 @@ sub qast-descendable (Mu $qast --> Bool:D) is export {
     || nqp::istype($qast, QAST::Want)
 }
 
-my constant $default-target = nqp::getcomp('Raku').exists_stage('optimize') ?? 'optimize' !! 'qast';
+my constant $default-target = nqp::getcomp('Raku').qast-stage;
 sub qast-is (Str:D $code is copy, &test, Str:D $desc,
     Bool:D :$full = False,
     Str:D  :$target where 'optimize'|'qast'|'ast' = $default-target,

@@ -3,21 +3,23 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 5;
+plan 7;
 
 # The optimize phase transforms the tree between check and QAST generation.
 # These tests cover where the phase runs and how it is turned off, with
 # constant folding as the observable rewrite.
 
-# The compilation tree shows the rewrite, and --optimize=off prevents it.
-# The --target=ast dump is a RakuAST frontend observable, so the children
-# are pinned to that frontend.
+# --target=optimize shows the rewrite, --optimize=off prevents it, and
+# --target=ast (before the optimize stage) still holds the operator. These
+# dumps are RakuAST frontend output, so the block is pinned to that frontend.
 {
     temp %*ENV<RAKUDO_RAKUAST> = '1';
-    is-run 'my $x = 2 + 3', 'the compilation tree holds no operator application',
-        :compiler-args['--target=ast'], :out({ not .contains('ApplyInfix') });
+    is-run 'my $x = 2 + 3', 'the optimize stage tree holds no operator application',
+        :compiler-args['--target=optimize'], :out({ not .contains('ApplyInfix') });
     is-run 'my $x = 2 + 3', '--optimize=off leaves the operator in the tree',
-        :compiler-args['--optimize=off', '--target=ast'], :out(*.contains('ApplyInfix'));
+        :compiler-args['--optimize=off', '--target=optimize'], :out(*.contains('ApplyInfix'));
+    is-run 'my $x = 2 + 3', 'the ast stage tree holds the operator before optimize',
+        :compiler-args['--target=ast'], :out(*.contains('ApplyInfix'));
 }
 
 # A synthetic AST compiled with EVAL goes through the phase too. The phase
@@ -31,6 +33,16 @@ plan 5;
             right => RakuAST::IntLiteral.new(3))));
     is $ast.EVAL, 5, 'a synthetic AST EVALs to the right value';
     ok $ast.DEPARSE.contains('5'), 'EVAL runs the optimize phase over a synthetic tree';
+}
+
+# Running the pass again over an already-optimized tree is a no-op, so it is
+# safe to re-run (EVAL of a reflected AST optimizes it again).
+{
+    my $cu = Q[my $x = (2 + 3) ?? 4 * 5 !! 0].AST(:compunit);
+    $cu.optimize($cu.resolver);
+    my $once = $cu.DEPARSE;
+    $cu.optimize($cu.resolver);
+    is $cu.DEPARSE, $once, 'the optimize pass is idempotent';
 }
 
 # The same program runs identically with and without optimization.

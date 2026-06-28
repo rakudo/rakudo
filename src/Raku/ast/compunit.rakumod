@@ -214,11 +214,15 @@ class RakuAST::CompUnit
         }
     }
 
-    # Run the optimize phase over the compilation unit. This is a transforming
-    # AST-to-AST pass, run after check and before QAST generation.
+    # Run the optimize phase: a transforming AST-to-AST pass between check and
+    # QAST generation. It pushes the unit scope itself in batch resolve mode
+    # (the tree is already checked, nothing is being declared), so a caller just
+    # hands over a resolver.
     method optimize(RakuAST::Resolver $resolver) {
+        $resolver.push-scope(self);
         $!mainline.IMPL-OPTIMIZE($resolver);
         self.IMPL-OPTIMIZE($resolver);
+        $resolver.pop-scope;
     }
 
     # Add the AST for handling legacy doc generation, essentially:
@@ -302,6 +306,10 @@ class RakuAST::CompUnit
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
     method is-eval() { $!is-eval ?? True !! False }
+
+    # The resolver used to compile this CompUnit, exposed so a later pipeline
+    # stage (the optimize stage) can run an AST pass that resolves names.
+    method resolver() { $!resolver }
 
     # The setting context the CompUnit's resolver knows about, if any.
     method setting() {

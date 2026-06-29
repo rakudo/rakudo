@@ -707,6 +707,12 @@ class RakuAST::Node {
         $result
     }
 
+    # True when the `soft` pragma is in effect in the enclosing scope. It keeps
+    # routines wrappable, so the routine-bypassing lowerings stand down.
+    method IMPL-IN-SOFT-SCOPE(RakuAST::Resolver $resolver) {
+        nqp::istrue($resolver.find-scope-property(-> $scope { $scope.soft }))
+    }
+
     # A ternary with a constant condition becomes the branch the condition
     # selects. The branches are expressions, so the value is preserved, and the
     # unselected branch is one the running program would not have evaluated. The

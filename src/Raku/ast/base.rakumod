@@ -703,6 +703,7 @@ class RakuAST::Node {
         # which keeps routines wrappable, turns them off.
         if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
             self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
+            self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -747,6 +748,41 @@ class RakuAST::Node {
         # A prefix yields the stepped value directly, so it needs no such guard.
         return Nil if $is-postfix && nqp::objprimbits($operand.return-type) != 64;
         $expr.IMPL-SET-NATIVE-INCDEC($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $op-node);
+        Nil
+    }
+
+    # Mark a native int or num add, subtract, or multiply compound assignment
+    # on a simple lexical with a native operand for lowering to a raw op. Gated
+    # in the optimize pass like the increment case. Only the CORE operator is
+    # lowered.
+    method IMPL-MARK-NATIVE-METAOP(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Assign);
+        my $base := $infix.infix;
+        return Nil unless nqp::istype($base, RakuAST::Infix);
+        my str $op := $base.operator;
+        return Nil unless $op eq '+' || $op eq '-' || $op eq '*';
+        my $left := $expr.left;
+        return Nil unless nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved;
+        my int $spec := nqp::objprimspec($left.return-type);
+        return Nil unless $spec == 1 || $spec == 2;
+        # The right operand must be a native value: a native variable of the
+        # same flavour, or a float literal. An integer literal is an `Int`, so
+        # `$i += 1` is an int + Int step that overflows to a bignum the native
+        # cannot hold and throws, like `my int $r = $i + 1`; leave it to the
+        # metaop. A float literal never overflows that way.
+        my $right := $expr.right;
+        my int $rhs-ok := 0;
+        if nqp::istype($right, RakuAST::Var::Lexical) && $right.is-resolved
+          && nqp::objprimspec($right.return-type) == $spec {
+            $rhs-ok := 1;
+        }
+        elsif $spec == 2 && nqp::istype($right, RakuAST::NumLiteral) {
+            $rhs-ok := 1;
+        }
+        return Nil unless $rhs-ok;
+        $infix.IMPL-SET-NATIVE-STEP($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
         Nil
     }
 

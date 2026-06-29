@@ -1252,6 +1252,9 @@ class RakuAST::MetaInfix::Assign
   is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
+    # The operand's native primitive spec when the optimize pass has marked a
+    # native compound assignment for lowering to a raw op; 0 when it has not.
+    has int $!native-step;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
@@ -1319,6 +1322,46 @@ class RakuAST::MetaInfix::Assign
 
     method IMPL-OPERATOR() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+    }
+
+    method IMPL-SET-NATIVE-STEP(int $primspec) {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!native-step', $primspec)
+    }
+
+    # The base assigns operands to QAST then calls IMPL-INFIX-QAST. When the
+    # optimize pass marked a native compound assignment, emit the raw op
+    # instead; that path needs the operand ASTs, not their QAST, to take the
+    # left as a lexicalref.
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+        return self.IMPL-NATIVE-STEP-QAST($context, $left, $right) if $!native-step;
+
+        my $qast := self.IMPL-INFIX-QAST($context, $left.IMPL-TO-QAST($context),
+            $right.IMPL-TO-QAST($context));
+        if $adverb {
+            my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($adverb.named-arg-name);
+            $qast.push($val-ast);
+        }
+        $qast
+    }
+
+    # A native int or num compound assignment the optimize pass marked: assign
+    # the result of the raw op back to the left, which is a simple native
+    # lexicalref read and written in place.
+    method IMPL-NATIVE-STEP-QAST(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right) {
+        my int $is-int := $!native-step == 1;
+        my str $base   := $!infix.operator;
+        my str $op;
+        if $base eq '+'    { $op := $is-int ?? 'add_i' !! 'add_n' }
+        elsif $base eq '-' { $op := $is-int ?? 'sub_i' !! 'sub_n' }
+        else               { $op := $is-int ?? 'mul_i' !! 'mul_n' }
+        my $var     := $left.resolution.IMPL-LOOKUP-QAST($context);
+        my $returns := $var.returns;
+        my $rhs     := $right.IMPL-TO-QAST($context);
+        QAST::Op.new(:op($is-int ?? 'assign_i' !! 'assign_n'), :$returns, $var,
+            QAST::Op.new(:op($op), :$returns, $var, $rhs))
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {

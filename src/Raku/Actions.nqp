@@ -2356,12 +2356,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<index> -> $index {
             self.attach: $/,
               Nodify('Var::PositionalCapture').new(
-                $*LITERALS.intern-Int(~$index)
+                $*LITERALS.intern-Int(~$index), :sigil(~$<sigil>)
               );
         }
         elsif $<postcircumfix> -> $postcircumfix {
             self.attach: $/,
-              Nodify('Var::NamedCapture').new($postcircumfix.ast.index);
+              Nodify('Var::NamedCapture').new($postcircumfix.ast.index, :sigil(~$<sigil>));
         }
         elsif $<contextualizer> -> $contextualizer {
             self.attach: $/, $contextualizer.ast;

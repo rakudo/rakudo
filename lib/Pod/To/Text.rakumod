@@ -84,6 +84,9 @@ sub table2text($pod) {
 
 sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
+    # A parameter's declarator doc is already shown inline in its routine's
+    # signature, so don't emit it again as a standalone block.
+    next if $pod.WHEREFORE ~~ Parameter;
     my $what = do given $pod.WHEREFORE {
         when Method {
             my @params = $_.signature.params.skip;

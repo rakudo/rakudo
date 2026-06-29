@@ -4908,6 +4908,17 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         elsif $name eq 'w' {
             $ast := Nodify('Regex::Assertion::Named').new(:name(Nodify('Name').from-identifier('wb')));
         }
+        else {
+            # Only `w` and `c` are real boundaries, so any other name is a typo.
+            # Pre-6.e code already compiles it as a silent no-op, so the error is
+            # gated on 6.e to keep that working.
+            if nqp::getcomp('Raku').language_revision >= 3 {
+                $/.typed-panic: 'X::Syntax::Regex::UnrecognizedBoundary', :boundary($name);
+            }
+            else {
+                $ast := Nodify('Regex::Assertion::Pass').new;
+            }
+        }
         make $ast;
     }
 

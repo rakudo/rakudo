@@ -11651,6 +11651,32 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
+    # Duplicates the QRegex::P6Regex::Actions base, adding the 6.e gate below.
+    # It lives here, not in the base, so NQP's own regexes stay ungated. Keep
+    # the c/w handling in sync with the base.
+    method assertion:sym<|>($/) {
+        my $qast;
+        my $name := ~$<identifier>;
+        if $name eq 'c' {
+            # codepoint boundaries always match in
+            # our current Unicode abstraction level
+            $qast := 0;
+        }
+        elsif $name eq 'w' {
+            $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<method>,
+                                     :node($/), :name(''),
+                                     QAST::NodeList.new(QAST::SVal.new( :value('wb') )) );
+        }
+        else {
+            # Any name other than w/c is a typo: an error from 6.e. Before then
+            # $qast stays null, which the base matches as the empty string.
+            if nqp::getcomp('Raku').language_revision >= 3 {
+                $/.typed_panic('X::Syntax::Regex::UnrecognizedBoundary', :boundary($name));
+            }
+        }
+        make $qast;
+    }
+
     method metachar:sym<:my>($/) {
         my $past := $<statement>.ast;
         make QAST::Regex.new( $past, :rxtype('qastnode'), :subtype('declarative') );

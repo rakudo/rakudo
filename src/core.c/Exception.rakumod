@@ -2252,6 +2252,14 @@ my class X::Syntax::Regex::UnrecognizedModifier does X::Syntax {
     method message() { "Unrecognized regex modifier :$.modifier" }
 }
 
+my class X::Syntax::Regex::UnrecognizedBoundary does X::Syntax {
+    has $.boundary;
+    method message() {
+        "Unrecognized regex boundary '<|$.boundary>'. The known boundaries are "
+          ~ "'<|w>' (word) and '<|c>' (codepoint)."
+    }
+}
+
 my class X::Syntax::Regex::NullRegex does X::Syntax {
     method message() { "Null regex not allowed.  Please use .comb if you wanted to produce a sequence of characters from a string.".naive-word-wrapper }
 }

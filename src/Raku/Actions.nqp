@@ -4909,9 +4909,15 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             $ast := Nodify('Regex::Assertion::Named').new(:name(Nodify('Name').from-identifier('wb')));
         }
         else {
-            # An unrecognized boundary name matches the empty string, same as
-            # legacy, rather than leaving the AST null and dying later.
-            $ast := Nodify('Regex::Assertion::Pass').new;
+            # Only `w` and `c` are real boundaries, so any other name is a typo.
+            # Pre-6.e code already compiles it as a silent no-op, so the error is
+            # gated on 6.e to keep that working.
+            if nqp::getcomp('Raku').language_revision >= 3 {
+                $/.typed-panic: 'X::Syntax::Regex::UnrecognizedBoundary', :boundary($name);
+            }
+            else {
+                $ast := Nodify('Regex::Assertion::Pass').new;
+            }
         }
         make $ast;
     }

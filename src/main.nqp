@@ -15,20 +15,20 @@ nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-confi
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');
-if +nqp::getenvhash()<RAKUDO_RAKUAST> {
+if +nqp::getenvhash()<RAKUDO_NO_RAKUAST> {
+    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
+    $comp.parsegrammar(Perl6::Grammar);
+    $comp.parseactions(Perl6::Actions);
+    $comp.addstage('syntaxcheck', :before<ast>);
+    $comp.addstage('optimize', :after<ast>);
+}
+else {
     nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'rakuast');
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('qast', :after<ast>);
     $comp.addstage('optimize', :before<qast>);
-}
-else {
-    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
-    $comp.parsegrammar(Perl6::Grammar);
-    $comp.parseactions(Perl6::Actions);
-    $comp.addstage('syntaxcheck', :before<ast>);
-    $comp.addstage('optimize', :after<ast>);
 }
 
 my $*OMIT-SOURCE := nqp::getenvhash()<RAKUDO_OMIT_SOURCE>;

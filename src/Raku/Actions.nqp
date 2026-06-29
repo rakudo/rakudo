@@ -4908,6 +4908,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         elsif $name eq 'w' {
             $ast := Nodify('Regex::Assertion::Named').new(:name(Nodify('Name').from-identifier('wb')));
         }
+        else {
+            # An unrecognized boundary name matches the empty string, same as
+            # legacy, rather than leaving the AST null and dying later.
+            $ast := Nodify('Regex::Assertion::Pass').new;
+        }
         make $ast;
     }
 

@@ -697,6 +697,13 @@ class RakuAST::Node {
             $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
         }
 
+        # Lowerings that direct code generation rather than replacing the
+        # node register their marks here, gated on the optimize pass running.
+        # They each drop a layer of operator dispatch, so the `soft` pragma,
+        # which keeps routines wrappable, turns them off.
+        if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
+        }
+
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
         if !($result =:= $expr)
@@ -708,9 +715,33 @@ class RakuAST::Node {
     }
 
     # True when the `soft` pragma is in effect in the enclosing scope. It keeps
-    # routines wrappable, so the routine-bypassing lowerings stand down.
+    # routines wrappable, so the lowerings stand down.
     method IMPL-IN-SOFT-SCOPE(RakuAST::Resolver $resolver) {
         nqp::istrue($resolver.find-scope-property(-> $scope { $scope.soft }))
+    }
+
+    # True when the operator resolves to the CORE routine itself. An operator
+    # bound to a lexical variable has no compile-time value and throws, which
+    # declines the lowering. A user `multi` or `sub` that shadows or extends the
+    # operator produces a distinct routine object whose file may still read
+    # SETTING::, so the file alone is not enough: when the setting provides the
+    # name, the resolved routine must be the setting's very own. When it does not
+    # (the operator is being defined as CORE itself compiles), the file vouches.
+    method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
+        CATCH {
+            return False;
+        }
+        my $routine := $operator.resolution.compile-time-value;
+        return False
+          unless nqp::can($routine, 'file') && $routine.file.starts-with('SETTING::');
+        my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
+                         !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
+                         !! '&infix';
+        my $setting := $resolver.resolve-lexical-constant-in-setting(
+          $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator));
+        nqp::istype($setting, RakuAST::Declaration::External::Constant)
+          ?? nqp::eqaddr($routine, $setting.compile-time-value)
+          !! True
     }
 
     # A ternary with a constant condition becomes the branch the condition

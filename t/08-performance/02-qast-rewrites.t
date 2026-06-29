@@ -3,7 +3,6 @@ use Test::Helpers::QAST;
 use Test;
 plan 4;
 
-todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
     qast-is ｢my int $i; $i++｣, -> \v {

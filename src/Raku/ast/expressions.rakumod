@@ -2737,6 +2737,14 @@ class RakuAST::ApplyPrefix
 
     method operator() { $!prefix }
 
+    # Set by the optimize pass to the native primitive spec when this is a
+    # native increment or decrement to lower to a raw op.
+    has int $!native-incdec;
+
+    method IMPL-SET-NATIVE-INCDEC(int $primspec) {
+        nqp::bindattr_i(self, RakuAST::ApplyPrefix, '$!native-incdec', $primspec)
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-CURRY($resolver, $context);
     }
@@ -2747,7 +2755,25 @@ class RakuAST::ApplyPrefix
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-NATIVE-INCDEC-QAST($context) if $!native-incdec;
         $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
+    }
+
+    # A native int/num ++ or -- the optimize pass marked: emit the raw op on a
+    # lexicalref instead of calling the operator. A prefix yields the stepped
+    # value, which the assignment already returns, so it needs no reverse step.
+    method IMPL-NATIVE-INCDEC-QAST(RakuAST::IMPL::QASTContext $context) {
+        my int $is-int := $!native-incdec == 1;
+        my str $assign := $is-int ?? 'assign_i' !! 'assign_n';
+        my str $add    := $is-int ?? 'add_i'    !! 'add_n';
+        my str $sub    := $is-int ?? 'sub_i'    !! 'sub_n';
+        my int $is-dec := $!prefix.operator eq '--';
+        my $var     := $!operand.resolution.IMPL-LOOKUP-QAST($context);
+        my $returns := $var.returns;
+        my $one     := $is-int ?? QAST::IVal.new(:value(1)) !! QAST::NVal.new(:value(1.0));
+
+        my $step := QAST::Op.new: :op($is-dec ?? $sub !! $add), :$returns, $var, $one;
+        QAST::Op.new: :op($assign), :$returns, $var, $step
     }
 
     method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET }
@@ -3420,6 +3446,9 @@ class RakuAST::ApplyPostfix
 {
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
+    # The operand's native primitive spec when the optimize pass has marked a
+    # native ++/-- for lowering to a raw op; 0 when it has not.
+    has int $!native-incdec;
 
     method new(RakuAST::Postfixish :$postfix!, RakuAST::Expression :$operand!) {
         my $obj := nqp::create(self);
@@ -3486,13 +3515,40 @@ class RakuAST::ApplyPostfix
         }
     }
 
+    method IMPL-SET-NATIVE-INCDEC(int $primspec) {
+        nqp::bindattr_i(self, RakuAST::ApplyPostfix, '$!native-incdec', $primspec)
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-NATIVE-INCDEC-QAST($context) if $!native-incdec;
+
         my $postfix-ast := $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
         # Method calls may be to a foreign language, and thus return
         # values may need type mapping into Raku land.
         nqp::istype($!postfix, RakuAST::Call::Methodish)
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
             !! $postfix-ast
+    }
+
+    # A native int/num ++ or -- the optimize pass marked: emit the raw op on a
+    # lexicalref instead of calling the operator. In sink context just assign
+    # the stepped value; otherwise reverse the step on the assigned value to
+    # yield the original, which a postfix returns, without a temporary.
+    method IMPL-NATIVE-INCDEC-QAST(RakuAST::IMPL::QASTContext $context) {
+        my int $is-int := $!native-incdec == 1;
+        my str $assign := $is-int ?? 'assign_i' !! 'assign_n';
+        my str $add    := $is-int ?? 'add_i'    !! 'add_n';
+        my str $sub    := $is-int ?? 'sub_i'    !! 'sub_n';
+        my int $is-dec := $!postfix.operator eq '--';
+        my $var     := $!operand.resolution.IMPL-LOOKUP-QAST($context);
+        my $returns := $var.returns;
+        my $one     := $is-int ?? QAST::IVal.new(:value(1)) !! QAST::NVal.new(:value(1.0));
+
+        my $step := QAST::Op.new: :op($is-dec ?? $sub !! $add), :$returns, $var, $one;
+        my $store := QAST::Op.new: :op($assign), :$returns, $var, $step;
+        self.sunk
+            ?? $store
+            !! QAST::Op.new(:op($is-dec ?? $add !! $sub), :$returns, $store, $one)
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {

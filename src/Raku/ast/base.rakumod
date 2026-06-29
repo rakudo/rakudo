@@ -702,6 +702,7 @@ class RakuAST::Node {
         # They each drop a layer of operator dispatch, so the `soft` pragma,
         # which keeps routines wrappable, turns them off.
         if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
+            self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -712,6 +713,41 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # Mark a native int or num increment or decrement on a simple lexical for
+    # lowering to a raw op at code generation. Both the postfix (`$i++`) and
+    # prefix (`++$i`) forms qualify. Doing it here, in the optimize pass, gates
+    # it on optimization being on. Only the CORE operator is lowered; a
+    # user-redefined one must still run.
+    method IMPL-MARK-NATIVE-INCDEC(RakuAST::Resolver $resolver, Mu $expr) {
+        my int $is-postfix := nqp::istype($expr, RakuAST::ApplyPostfix);
+        my $op-node;
+        if $is-postfix {
+            $op-node := $expr.postfix;
+            return Nil unless nqp::istype($op-node, RakuAST::Postfix);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPrefix) {
+            $op-node := $expr.prefix;
+            return Nil unless nqp::istype($op-node, RakuAST::Prefix);
+        }
+        else {
+            return Nil;
+        }
+        my str $op := $op-node.operator;
+        return Nil unless $op eq '++' || $op eq '--';
+        my $operand := $expr.operand;
+        return Nil unless nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved;
+        my int $spec := nqp::objprimspec($operand.return-type);
+        return Nil unless $spec == 1 || $spec == 2;
+        # A post-increment recovers the original by reversing the step on the
+        # assigned value, which round-trips only at the full native width. A
+        # narrower type (int8, int16, num32) truncates on assignment, so the
+        # reverse would not give the original back; leave those to the routine.
+        # A prefix yields the stepped value directly, so it needs no such guard.
+        return Nil if $is-postfix && nqp::objprimbits($operand.return-type) != 64;
+        $expr.IMPL-SET-NATIVE-INCDEC($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $op-node);
+        Nil
     }
 
     # True when the `soft` pragma is in effect in the enclosing scope. It keeps

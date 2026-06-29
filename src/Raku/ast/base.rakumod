@@ -704,6 +704,7 @@ class RakuAST::Node {
         if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
             self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
             self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
+            self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -784,6 +785,50 @@ class RakuAST::Node {
         return Nil unless $rhs-ok;
         $infix.IMPL-SET-NATIVE-STEP($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
         Nil
+    }
+
+    # Mark a compound assignment on a boxed scalar lexical for inlining to an
+    # assignment of the operator's result, dropping the metaop dispatch. The
+    # left may also be another compound assignment, so chains inline in full;
+    # code generation binds the left to a temporary, so it is evaluated once.
+    method IMPL-MARK-SCALAR-METAOP(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Assign);
+        return Nil if $infix.IMPL-WRAPS-LIST-META;
+        my $base := $infix.infix;
+        return Nil unless nqp::istype($base, RakuAST::Infix);
+        # `orelse`, `andthen`, and `notandthen` compile to a call with a thunked
+        # right, so the inline, which evaluates the right eagerly, cannot keep
+        # them lazy. Leave them to the metaop.
+        my str $op := $base.operator;
+        return Nil if $op eq 'orelse' || $op eq 'andthen' || $op eq 'notandthen';
+        # `^^` and `xor` compile to the `xor` QAST op, which yields a VMNull
+        # when neither operand is the result. The metaop calls the routine,
+        # which returns a Nil there, so leave them to it as well.
+        return Nil if $op eq '^^' || $op eq 'xor';
+        return Nil unless self.IMPL-SCALAR-METAOP-LHS-OK($expr.left);
+        $infix.IMPL-SET-INLINE if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
+        Nil
+    }
+
+    # True when the left of a compound assignment is a boxed scalar the inline
+    # may assign through: a plain scalar lexical, or another compound assignment
+    # whose result is itself such a scalar. Grouping parentheses are seen
+    # through, so a parenthesized chain qualifies.
+    method IMPL-SCALAR-METAOP-LHS-OK(Mu $lhs) {
+        my $node := $lhs;
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses)
+          && $node.semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $stmt := self.IMPL-UNWRAP-LIST($node.semilist.code-statements)[0];
+            return False if $stmt.condition-modifier || $stmt.loop-modifier;
+            $node := $stmt.expression;
+        }
+        (nqp::istype($node, RakuAST::Var::Lexical) && $node.is-resolved
+          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0)
+        || (nqp::istype($node, RakuAST::ApplyInfix)
+          && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
+          && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
     }
 
     # True when the `soft` pragma is in effect in the enclosing scope. It keeps

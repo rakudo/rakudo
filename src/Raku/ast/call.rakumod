@@ -700,6 +700,35 @@ class RakuAST::Call::Method
             my @parts := nqp::split('::', $name);
             if nqp::elems(@parts) == 1 {
                 my $dispatcher := self.dispatcher;
+                if $dispatcher eq 'dispatch:<.?>' && $!name.is-identifier {
+                    # A maybe-method call ($obj.?meth) with a known method
+                    # name. Resolve the method through the invocant's
+                    # metaclass and call it, or produce Nil. Going through the
+                    # raku-meth-call-me-maybe dispatcher rather than a
+                    # dispatch:<.?> method call lets this reach any object with
+                    # a metaclass, not only Mu-rooted ones.
+                    my $temp := QAST::Node.unique('inv_once');
+                    my $stmts := QAST::Stmts.new(
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+                            $invocant-qast
+                        ),
+                        $call := QAST::Op.new(
+                            :op('dispatch'),
+                            QAST::SVal.new( :value('raku-meth-call-me-maybe') ),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($temp), :scope('local') ),
+                            ),
+                            QAST::SVal.new( :value($name) ),
+                            QAST::Var.new( :name($temp), :scope('local') ),
+                        )
+                    );
+                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
+                    return $stmts;
+                }
+
                 if $dispatcher {
                     # A method call going through a dispatch: method
                     $call := QAST::Op.new(

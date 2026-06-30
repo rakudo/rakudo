@@ -199,10 +199,38 @@ class RakuAST::Regex::Sequence
         self.IMPL-WRAP-LIST($!terms)
     }
 
+    # A `\r` directly followed by `\n` matches the single `\r\n` grapheme, so
+    # fuse the pair into one literal. As separate atoms neither half matches the
+    # combined grapheme. Mirrors the legacy frontend's handling in
+    # QRegex::P6Regex::Actions.termish.
+    method IMPL-FUSE-CRLF($terms) {
+        my @fused;
+        my int $i := 0;
+        my int $n := nqp::elems($terms);
+        while $i < $n {
+            my $term := nqp::atpos($terms, $i);
+            if $i + 1 < $n
+              && nqp::istype($term, RakuAST::Regex::CharClass::CarriageReturn)
+              && !$term.negated
+              && nqp::istype((my $next := nqp::atpos($terms, $i + 1)),
+                   RakuAST::Regex::CharClass::Newline)
+              && !$next.negated
+            {
+                @fused.push(RakuAST::Regex::Literal.new("\r\n"));
+                $i := $i + 2;
+            }
+            else {
+                @fused.push($term);
+                $i := $i + 1;
+            }
+        }
+        @fused
+    }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my str $collect-literals := '';
         my @terms;
-        for $!terms {
+        for self.IMPL-FUSE-CRLF($!terms) {
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 $collect-literals := $collect-literals ~ $_.text;
             }

@@ -22,9 +22,14 @@ class RakuAST::LexicalScope
     # Scope pragmas. Note that the default for these is undefined!
     has Bool $.fatal;
     has Bool $.tell-worries;
+    has Bool $.soft;
 
     method set-fatal(Bool $on) {
         nqp::bindattr(self, RakuAST::LexicalScope, '$!fatal', $on);
+    }
+
+    method set-soft(Bool $on) {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!soft', $on);
     }
 
     method set-worries(Bool $on) {

@@ -3,7 +3,6 @@ use Test::Helpers::QAST;
 use Test;
 plan 4;
 
-todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
     plan 8;
     qast-is ｢my int $i; $i++｣, -> \v {
@@ -57,7 +56,6 @@ subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
 }
 
 
-todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
 subtest '.dispatch:<.=> gets rewritten to simple ops' => {
     plan +my @codes :=
       ｢(my Int $x .=new).="{"new"}"(42);｣,
@@ -109,9 +107,7 @@ subtest 'for {}' => {
 # https://github.com/rakudo/rakudo/issues/1981
 subtest 'nested metaops get fully rewritten away from &METAOP sub calls' => {
     plan 2;
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
     qast-is ｢my $a; ($a //= 0) += 1｣, -> \v { not qast-contains-call v, /METAOP/ }, '(//=)+=';
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
     qast-is ｢my $a; (((($a //= 0) += 1) //= 0) += 1)｣, -> \v { not qast-contains-call v, /METAOP/ },
       '((((//=)+=) //=) +=)';
 }

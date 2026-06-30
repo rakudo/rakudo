@@ -67,7 +67,11 @@ plan 113;
 
 # t/spec/S06-advanced/wrap.t
 # https://github.com/rakudo/rakudo/issues/1561
-# XXX: Almost certainly just due to lack of optimizations
+# A native increment is lowered to a raw op, which bypasses the operator
+# routine and so does not see a wrap. The `soft` pragma keeps the routine in
+# place, so the wrap applies; legacy does not honor `soft` for this lowering.
+# `soft` is set on the scope it appears in (the unit at the mainline), so this
+# keeps the whole unit with `:compunit`; a bare statement list would drop it.
 # The wrap handlers do not call the original operator, so while a wrap
 # is active the operator is broken for every caller in the process.
 # Compiling any code dispatches postfix:<++> internally, and an
@@ -81,8 +85,8 @@ plan 113;
     is-deeply @result, ["ok"], "wrapping infix:<|> works";
 
     @result = [];
-    Q§ my $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++; &postfix:<++>.unwrap($handle) §.AST.EVAL;
-    is-deeply @result, ["ok2"], "wrapping postfix:<++> works";
+    Q§ use soft; my $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++; &postfix:<++>.unwrap($handle) §.AST(:compunit).EVAL;
+    is-deeply @result, ["ok2"], "wrapping postfix:<++> works under soft";
 }
 
 # ???

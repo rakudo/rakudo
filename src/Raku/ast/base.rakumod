@@ -697,6 +697,17 @@ class RakuAST::Node {
             $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
         }
 
+        # Lowerings that direct code generation rather than replacing the
+        # node register their marks here, gated on the optimize pass running.
+        # They each drop a layer of operator dispatch, so the `soft` pragma,
+        # which keeps routines wrappable, turns them off.
+        if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
+            self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
+            self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
+            self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
+            self.IMPL-MARK-DOT-ASSIGN($resolver, $expr);
+        }
+
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
         if !($result =:= $expr)
@@ -705,6 +716,196 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # Mark a native int or num increment or decrement on a simple lexical for
+    # lowering to a raw op at code generation. Both the postfix (`$i++`) and
+    # prefix (`++$i`) forms qualify. Doing it here, in the optimize pass, gates
+    # it on optimization being on. Only the CORE operator is lowered; a
+    # user-redefined one must still run.
+    method IMPL-MARK-NATIVE-INCDEC(RakuAST::Resolver $resolver, Mu $expr) {
+        my int $is-postfix := nqp::istype($expr, RakuAST::ApplyPostfix);
+        my $op-node;
+        if $is-postfix {
+            $op-node := $expr.postfix;
+            return Nil unless nqp::istype($op-node, RakuAST::Postfix);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPrefix) {
+            $op-node := $expr.prefix;
+            return Nil unless nqp::istype($op-node, RakuAST::Prefix);
+        }
+        else {
+            return Nil;
+        }
+        my str $op := $op-node.operator;
+        return Nil unless $op eq '++' || $op eq '--';
+        my $operand := $expr.operand;
+        return Nil unless nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved;
+        my int $spec := nqp::objprimspec($operand.return-type);
+        return Nil unless $spec == 1 || $spec == 2;
+        # A post-increment recovers the original by reversing the step on the
+        # assigned value, which round-trips only at the full native width. A
+        # narrower type (int8, int16, num32) truncates on assignment, so the
+        # reverse would not give the original back; leave those to the routine.
+        # A prefix yields the stepped value directly, so it needs no such guard.
+        return Nil if $is-postfix && nqp::objprimbits($operand.return-type) != 64;
+        $expr.IMPL-SET-NATIVE-INCDEC($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $op-node);
+        Nil
+    }
+
+    # Mark a native int or num add, subtract, or multiply compound assignment
+    # on a simple lexical with a native operand for lowering to a raw op. Gated
+    # in the optimize pass like the increment case. Only the CORE operator is
+    # lowered.
+    method IMPL-MARK-NATIVE-METAOP(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Assign);
+        my $base := $infix.infix;
+        return Nil unless nqp::istype($base, RakuAST::Infix);
+        my str $op := $base.operator;
+        return Nil unless $op eq '+' || $op eq '-' || $op eq '*';
+        my $left := $expr.left;
+        return Nil unless nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved;
+        my int $spec := nqp::objprimspec($left.return-type);
+        return Nil unless $spec == 1 || $spec == 2;
+        # The right operand must be a native value: a native variable of the
+        # same flavour, or a float literal. An integer literal is an `Int`, so
+        # `$i += 1` is an int + Int step that overflows to a bignum the native
+        # cannot hold and throws, like `my int $r = $i + 1`; leave it to the
+        # metaop. A float literal never overflows that way.
+        my $right := $expr.right;
+        my int $rhs-ok := 0;
+        if nqp::istype($right, RakuAST::Var::Lexical) && $right.is-resolved
+          && nqp::objprimspec($right.return-type) == $spec {
+            $rhs-ok := 1;
+        }
+        elsif $spec == 2 && nqp::istype($right, RakuAST::NumLiteral) {
+            $rhs-ok := 1;
+        }
+        return Nil unless $rhs-ok;
+        $infix.IMPL-SET-NATIVE-STEP($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
+        Nil
+    }
+
+    # Mark a compound assignment on a boxed scalar lexical for inlining to an
+    # assignment of the operator's result, dropping the metaop dispatch. The
+    # left may also be another compound assignment, so chains inline in full;
+    # code generation binds the left to a temporary, so it is evaluated once.
+    method IMPL-MARK-SCALAR-METAOP(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Assign);
+        return Nil if $infix.IMPL-WRAPS-LIST-META;
+        my $base := $infix.infix;
+        return Nil unless nqp::istype($base, RakuAST::Infix);
+        # `orelse`, `andthen`, and `notandthen` compile to a call with a thunked
+        # right, so the inline, which evaluates the right eagerly, cannot keep
+        # them lazy. Leave them to the metaop.
+        my str $op := $base.operator;
+        return Nil if $op eq 'orelse' || $op eq 'andthen' || $op eq 'notandthen';
+        # `^^` and `xor` compile to the `xor` QAST op, which yields a VMNull
+        # when neither operand is the result. The metaop calls the routine,
+        # which returns a Nil there, so leave them to it as well.
+        return Nil if $op eq '^^' || $op eq 'xor';
+        return Nil unless self.IMPL-SCALAR-METAOP-LHS-OK($expr.left);
+        $infix.IMPL-SET-INLINE if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
+        Nil
+    }
+
+    # True when the left of a compound assignment is a boxed scalar the inline
+    # may assign through: a plain scalar lexical, or another compound assignment
+    # whose result is itself such a scalar. Grouping parentheses are seen
+    # through, so a parenthesized chain qualifies.
+    method IMPL-SCALAR-METAOP-LHS-OK(Mu $lhs) {
+        my $node := $lhs;
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses)
+          && $node.semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $stmt := self.IMPL-UNWRAP-LIST($node.semilist.code-statements)[0];
+            return False if $stmt.condition-modifier || $stmt.loop-modifier;
+            $node := $stmt.expression;
+        }
+        (nqp::istype($node, RakuAST::Var::Lexical) && $node.is-resolved
+          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0)
+        || (nqp::istype($node, RakuAST::ApplyInfix)
+          && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
+          && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
+    }
+
+    # Mark a dot-assignment for inlining the dispatcher away. It is always a
+    # method call whose result is stored back, with no operator routine to
+    # shadow, so unlike the numeric marks no core-operator guard applies.
+    # Two forms reach it. An explicit target is an ApplyDottyInfix whose infix is
+    # the call-assign operator. A bare call on the topic is a Term::TopicCall
+    # whose call carries the `.=` dispatcher; only a plain Call::Method honors
+    # the inline at code generation, so a quoted or private method is left out.
+    method IMPL-MARK-DOT-ASSIGN(RakuAST::Resolver $resolver, Mu $expr) {
+        if nqp::istype($expr, RakuAST::ApplyDottyInfix) {
+            my $infix := $expr.infix;
+            $infix.IMPL-SET-INLINE if nqp::istype($infix, RakuAST::DottyInfix::CallAssign);
+        }
+        elsif nqp::istype($expr, RakuAST::Term::TopicCall) {
+            my $call := $expr.call;
+            if nqp::istype($call, RakuAST::Call::Method) {
+                my $dispatcher := $call.dispatcher;
+                $call.IMPL-SET-INLINE if $dispatcher && $dispatcher eq 'dispatch:<.=>';
+            }
+        }
+        Nil
+    }
+
+    # Inline a dot-assignment to an assignment of the method call's result,
+    # dropping the dispatcher. The call arrives as a `dispatch:<.=>` callmethod
+    # whose first child is the target and whose second is the method name. The
+    # method name is kept as that second child, so clearing the op name leaves a
+    # plain method call whose result is stored back. A target that is not a plain
+    # variable is bound to a temporary so it is evaluated once.
+    method IMPL-INLINE-DOT-ASSIGN(Mu $call) {
+        my $target := $call[0];
+        $call.name('');
+        if nqp::istype($target, QAST::Var) {
+            QAST::Op.new(:op<p6store>, $target, $call)
+        }
+        else {
+            $target := $call.shift;
+            my str $name := QAST::Node.unique('dot_assign');
+            $call.unshift(QAST::Var.new(:name($name), :scope<local>));
+            QAST::Stmt.new(
+                QAST::Op.new(:op<bind>,
+                    QAST::Var.new(:name($name), :scope<local>, :decl<var>), $target),
+                QAST::Op.new(:op<p6store>,
+                    QAST::Var.new(:name($name), :scope<local>), $call))
+        }
+    }
+
+    # True when the `soft` pragma is in effect in the enclosing scope. It keeps
+    # routines wrappable, so the lowerings stand down.
+    method IMPL-IN-SOFT-SCOPE(RakuAST::Resolver $resolver) {
+        nqp::istrue($resolver.find-scope-property(-> $scope { $scope.soft }))
+    }
+
+    # True when the operator resolves to the CORE routine itself. An operator
+    # bound to a lexical variable has no compile-time value and throws, which
+    # declines the lowering. A user `multi` or `sub` that shadows or extends the
+    # operator produces a distinct routine object whose file may still read
+    # SETTING::, so the file alone is not enough: when the setting provides the
+    # name, the resolved routine must be the setting's very own. When it does not
+    # (the operator is being defined as CORE itself compiles), the file vouches.
+    method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
+        CATCH {
+            return False;
+        }
+        my $routine := $operator.resolution.compile-time-value;
+        return False
+          unless nqp::can($routine, 'file') && $routine.file.starts-with('SETTING::');
+        my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
+                         !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
+                         !! '&infix';
+        my $setting := $resolver.resolve-lexical-constant-in-setting(
+          $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator));
+        nqp::istype($setting, RakuAST::Declaration::External::Constant)
+          ?? nqp::eqaddr($routine, $setting.compile-time-value)
+          !! True
     }
 
     # A ternary with a constant condition becomes the branch the condition

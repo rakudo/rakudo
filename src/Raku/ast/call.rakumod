@@ -597,6 +597,10 @@ class RakuAST::Call::Methodish
 {
     has str $!dispatcher;
 
+    # Set when the optimize pass has marked a `.=` call on the topic for inlining
+    # the method-call-and-assign dispatcher away.
+    has int $!inline;
+
     # expected to be '.?' | '.+' | '.*' | '.=' but custom ones will be codegenned also
     method set-dispatcher($dispatch) {
         nqp::bindattr_s(self, RakuAST::Call::Methodish, '$!dispatcher',
@@ -609,6 +613,11 @@ class RakuAST::Call::Methodish
           ?? nqp::substr($!dispatcher, 10, nqp::chars($!dispatcher) - 11)
           !! ""
     }
+
+    method IMPL-SET-INLINE() {
+        nqp::bindattr_i(self, RakuAST::Call::Methodish, '$!inline', 1)
+    }
+    method IMPL-INLINE() { $!inline }
 
     method default-properties(str $default) {
         OperatorProperties.postfix(self.dispatch || $default)
@@ -696,6 +705,7 @@ class RakuAST::Call::Method
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name := $!name.canonicalize;
         my $call;
+        my int $inline-dot;
         if $name {
             my @parts := nqp::split('::', $name);
             if nqp::elems(@parts) == 1 {
@@ -708,6 +718,7 @@ class RakuAST::Call::Method
                         $invocant-qast,
                         QAST::SVal.new(:value($name))
                     );
+                    $inline-dot := self.IMPL-INLINE && $dispatcher eq 'dispatch:<.=>';
                 }
                 else {
                     my $op := self.IMPL-SPECIAL-OP($name);
@@ -765,7 +776,7 @@ class RakuAST::Call::Method
             nqp::die('Qualified method calls NYI');
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        $call
+        $inline-dot ?? self.IMPL-INLINE-DOT-ASSIGN($call) !! $call
     }
 
     method can-be-used-with-hyper() { True }

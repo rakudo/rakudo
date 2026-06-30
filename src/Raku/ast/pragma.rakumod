@@ -162,12 +162,16 @@ class RakuAST::Pragma
             }
         }
         elsif $name eq 'soft' {
-            nqp::islist($arglist)
-              ?? $resolver.build-exception(
+            if nqp::islist($arglist) {
+                $resolver.build-exception(
                    'X::NYI',
                    :feature("Arguments to '{$on ?? 'use' !! 'no' } soft'"),
                  ).throw
-              !! $LANG.set_pragma($name, $on);
+            }
+            else {
+                $LANG.set_pragma($name, $on);
+                $resolver.current-scope.set-soft($on ?? True !! False);
+            }
         }
         elsif $name eq 'attributes'
            || $name eq 'invocant'

@@ -435,9 +435,7 @@ class RakuAST::Infix
             self.IMPL-ASSIGN-OP($left-qast, $right-qast);
         }
         elsif nqp::existskey(OP-SMARTMATCH, $op)
-            && (
-                !nqp::istype($right, RakuAST::Var)
-                || (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-topic))
+            && !nqp::istype($right, RakuAST::Var)
             && !$right.IMPL-IS-CONSTANT
             && (!nqp::istype($left, RakuAST::ApplyInfix) || !nqp::istype($left.infix, RakuAST::OperatorProperties) || !$left.infix.properties.chain)
         {

@@ -77,10 +77,6 @@ class RakuAST::Var::Lexical
             !! Nil
     }
 
-    method is-topic() {
-        self.name eq '$_'
-    }
-
     method return-type() {
         self.is-resolved
             ?? self.resolution.return-type

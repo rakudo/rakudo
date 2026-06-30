@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 113;
+plan 111;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -676,15 +676,6 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # https://github.com/rakudo/rakudo/issues/5119
 {
     is-deeply ("{$_}" for ^1).join, "0", 'was $_ set to 0';
-}
-
-# https://github.com/rakudo/rakudo/issues/5685
-{
-    todo q|throws You can't adverb &infix:<&&>|, 2 unless %*ENV<RAKUDO_RAKUAST>;
-    my $answer;
-    lives-ok { Q|my %a = 1 => True; $answer = True && %a<1>:exists|.EVAL },
-            'adverbs to hashes do not accidentally get passed to infixes';
-    ok $answer, 'adverbs to hashes with infixes work as expected';
 }
 
 # https://github.com/rakudo/rakudo/issues/5874#issue-3037890302

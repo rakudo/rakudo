@@ -2077,6 +2077,16 @@ class RakuAST::ApplyInfix
         my $left  := self.left;
         my $right := self.right;
 
+        if nqp::elems(self.colonpairs)
+          && nqp::istype($infix, RakuAST::Infix)
+          && ($infix.short-circuit
+                || nqp::chars($infix.properties.thunky)
+                || $infix.properties.chain) {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Syntax::Adverb',
+                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($infix.operator);
+        }
+
         my constant WORRISOME-RANGE := nqp::hash(
           '..', 1,
           '^..', 1,
@@ -2329,6 +2339,16 @@ class RakuAST::ApplyListInfix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::elems($!adverbs)
+          && nqp::istype($!infix, RakuAST::Infix)
+          && ($!infix.short-circuit
+                || nqp::chars($!infix.properties.thunky)
+                || $!infix.properties.chain) {
+            self.add-sorry:
+              $resolver.build-exception: 'X::Syntax::Adverb',
+                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!infix.operator);
+        }
+
         if nqp::istype($!infix, RakuAST::Feed) {
             for self.IMPL-FEED-STAGES {
                 my $stage := $_;

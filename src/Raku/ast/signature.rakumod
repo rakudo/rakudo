@@ -1037,7 +1037,9 @@ class RakuAST::Parameter
             # Match legacy: store the bare element type and treat `:D`/`:U`
             # as a separate definedness flag. Role parameterisation is
             # invariant, so the wrapped form would reject `my Str @x` defaults.
-            $!type
+            # Only a real `@`/`%`/`&` variable parameterises the role; a
+            # sub-signature only forces the sigil and binds the bare role.
+            $!type && $!target.sigil eq $sigil
                 ?? $sigil-type.HOW.parameterize($sigil-type,
                         RakuAST::Type.IMPL-MAYBE-NOMINALIZE($!type.meta-object))
                 !! $sigil-type

@@ -31,6 +31,17 @@ class RakuAST::Resolver {
     # parents in sibling blocks doesn't collide.
     has Mu $!our-package-decl-map;
 
+    # Parametric role groups created in this compunit, keyed by object id.
+    has Mu $!compunit-role-groups;
+
+    method register-compunit-role-group(Mu $group) {
+        $!compunit-role-groups{nqp::objectid($group)} := $group;
+        Nil
+    }
+    method is-compunit-role-group(Mu $group) {
+        nqp::existskey($!compunit-role-groups, nqp::objectid($group))
+    }
+
     # Count of begin-time errors that were deferred as sorries rather than
     # aborting (a trait that died, or a begin-time evaluation on a CheckTime
     # node). A package whose body raises one must not be composed, so a later
@@ -86,6 +97,8 @@ class RakuAST::Resolver {
           nqp::clone($!packages));
         nqp::bindattr($clone,RakuAST::Resolver,'$!our-package-decl-map',
           nqp::clone($!our-package-decl-map));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!compunit-role-groups',
+          nqp::clone($!compunit-role-groups));
         $clone
     }
 
@@ -891,6 +904,7 @@ class RakuAST::Resolver::EVAL
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package ?? [$cur-package] !! []);
@@ -1076,6 +1090,7 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);

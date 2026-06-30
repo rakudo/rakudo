@@ -287,6 +287,43 @@ class RakuAST::Regex::Literal
     }
 }
 
+# The `<sym>` token of a proto regex candidate whose sym is an expression
+# (`token foo:sym(EXPR) {...}`) rather than a literal. The matched text is the
+# stringified value of the expression, evaluated at BEGIN time like the legacy
+# frontend does when forming the candidate name.
+class RakuAST::Regex::Sym
+  is RakuAST::Regex::Atom
+  is RakuAST::CheckTime
+{
+    has RakuAST::ColonPair $.colonpair;
+
+    method new(RakuAST::ColonPair $colonpair) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Sym, '$!colonpair', $colonpair);
+        $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Force the sym value now, BEGIN-evaluating it if it is not a simple
+        # compile-time value, so code generation has it. A value that cannot be
+        # produced even at BEGIN time throws here, as it does on legacy.
+        $!colonpair.IMPL-EVAL-COLONPAIR-VALUE($resolver, $context);
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        self.IMPL-APPLY-LITERAL-MODS:
+            QAST::Regex.new(
+                :rxtype<literal>,
+                nqp::unbox_s(~$!colonpair.IMPL-INTERPRETED-VALUE-OR-NIL)
+            ),
+            %mods
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!colonpair);
+    }
+}
+
 # A quoted string appearing in the regex. Covers both standard single/double
 # quotes which compile into a literal match of the evaluated string, or
 # quote words, which compile into an LTM alternation of literals.

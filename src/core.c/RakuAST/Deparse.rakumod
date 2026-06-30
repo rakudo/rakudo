@@ -1621,6 +1621,10 @@ CODE
         self.hsyn('literal', self.quote-if-needed($ast.text))
     }
 
+    multi method deparse(RakuAST::Regex::Sym:D $ast --> Str:D) {
+        self.hsyn('assertion', '<sym>')
+    }
+
     multi method deparse(RakuAST::Regex::Alternation:D $ast --> Str:D) {
         self.branches($ast, $.regex-alternation)
     }

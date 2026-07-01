@@ -4983,7 +4983,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
              )
           !! !$name.is-multi-part && $name.canonicalize eq 'sym' && %*RX<name>
             ?? (my $sym:= %*RX<name>.first-colonpair('sym'))
-                ?? Nodify('Regex::Literal').new($sym.simple-compile-time-quote-value)
+                ?? (nqp::isconcrete(my $sym-value := $sym.simple-compile-time-quote-value)
+                     ?? Nodify('Regex::Literal').new($sym-value)
+                     !! Nodify('Regex::Sym').new($sym))
                 !! $/.panic('Can only use <sym> token in a proto regex')
             !! $<arglist>
               ?? Nodify('Regex::Assertion::Named::Args').new(

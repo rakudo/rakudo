@@ -381,6 +381,9 @@ class RakuAST::Name
 
     method IMPL-QAST-INDIRECT-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
         my @parts   := self.IMPL-LOOKUP-PARTS;
+        # A trailing `::` designates the package itself and adds no lookup chunk,
+        # so drop the empty final part.
+        nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::Empty);
         my $final   := @parts[nqp::elems(@parts) - 1];
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $result  := QAST::Op.new(

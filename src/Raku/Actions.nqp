@@ -3149,13 +3149,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $circumfix := $<circumfix>;
         if $circumfix {
             my $ast  := $circumfix.ast;
-            my $repr := nqp::istype($ast,Nodify('Circumfix'))
-                ?? $ast.IMPL-UNWRAP-LIST($ast.semilist.statements)[0]
-                !! nqp::istype($ast,Nodify('QuotedString'))
-                    ?? $ast
-                    !! nqp::die(
-                         "NYI trait_mod circumfix " ~ $ast.HOW.name($ast)
-                       );
+            my $repr;
+            if nqp::istype($ast,Nodify('Circumfix')) {
+                # A leading pod block parses into the circumfix as a Doc::Block.
+                # The circumfix is consumed here, so hand the block back for
+                # attachment to the following declaration, else it never reaches
+                # $=pod. The repr value is the remaining code statement.
+                for $ast.IMPL-UNWRAP-LIST($ast.semilist.statements) {
+                    $*DOC-BLOCKS-COLLECTED.push($_)
+                        if nqp::istype($_, Nodify('Doc::Block'));
+                }
+                $repr := $ast.semilist.code-statements[0];
+            }
+            elsif nqp::istype($ast,Nodify('QuotedString')) {
+                $repr := $ast;
+            }
+            else {
+                nqp::die("NYI trait_mod circumfix " ~ $ast.HOW.name($ast));
+            }
 
             unless $repr.IMPL-CAN-INTERPRET {
                 $/.typed-panic: 'X::Value::Dynamic',

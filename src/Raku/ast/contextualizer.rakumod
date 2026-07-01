@@ -12,7 +12,6 @@ class RakuAST::Contextualizer
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # TODO 6.c semantics with $/
         QAST::Op.new(
             :op('callmethod'), :name(self.IMPL-METHOD),
             $!target.IMPL-TO-QAST($context)

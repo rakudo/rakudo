@@ -2545,7 +2545,35 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method contextualizer($/) {
-        self.contextualizer-for-sigil($/, ~$<sigil>, $<coercee>.ast);
+        my $sigil := ~$<sigil>;
+        # In 6.c an empty contextualizer operates on $/. `$()` yields the
+        # smartmatch result of $/ (its made AST if any, else its matched
+        # string), while `@()` and `%()` coerce $/ itself.
+        if nqp::getcomp('Raku').language_revision < 2 && $<coercee> eq '' {
+            if $sigil eq '$' {
+                self.attach: $/, Nodify('Ternary').new(
+                    condition => self.IMPL-MATCH-VAR-METHOD-CALL('ast'),
+                    then      => self.IMPL-MATCH-VAR-METHOD-CALL('ast'),
+                    else      => self.IMPL-MATCH-VAR-METHOD-CALL('Str'),
+                );
+            }
+            else {
+                self.contextualizer-for-sigil($/, $sigil, Nodify('Var::Lexical').new('$/'));
+            }
+        }
+        else {
+            self.contextualizer-for-sigil($/, $sigil, $<coercee>.ast);
+        }
+    }
+
+    # A method call on the match variable $/, e.g. `$/.ast`.
+    method IMPL-MATCH-VAR-METHOD-CALL($name) {
+        Nodify('ApplyPostfix').new(
+            operand => Nodify('Var::Lexical').new('$/'),
+            postfix => Nodify('Call::Method').new(
+                name => Nodify('Name').from-identifier($name)
+            )
+        )
     }
 
     method contextualizer-for-sigil($/, $sigil, $target) {

@@ -691,8 +691,12 @@ class RakuAST::Role
         my $from-setting := $found && self.IMPL-SYMBOL-FROM-SETTING($resolver, $full-name, $existing);
 
         my $group;
-        if !$from-setting && nqp::can($existing.HOW, 'add_possibility') {
-            # An existing role group in this compilation unit: add ourselves to it.
+        if nqp::can($existing.HOW, 'add_possibility')
+          && (!$from-setting || $resolver.is-compunit-role-group($existing)) {
+            # An existing role group: add ourselves to it. A group created in
+            # this compilation unit is joined even when it lives in a setting
+            # package's WHO and so resolves as a setting symbol. A genuine
+            # setting group is instead shadowed below.
             $group := $existing;
         }
         else {
@@ -709,6 +713,7 @@ class RakuAST::Role
             $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
             );
+            $resolver.register-compunit-role-group($group);
             self.IMPL-INSTALL-PACKAGE(
               $resolver, $scope, $name, $resolver.current-package,
               :meta-object($group),

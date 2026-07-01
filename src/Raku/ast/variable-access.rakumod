@@ -3,6 +3,21 @@ class RakuAST::Var
   is RakuAST::Term
 {
     method sigil() { '' }
+
+    # A capture variable (`$<foo>`, `@0`, ...) is a `$/` subscript. The `@` and
+    # `%` sigils put the result into list / hash context (its positional / named
+    # subcaptures); `$`, `&`, or an absent sigil leave it the raw Match.
+    method IMPL-CONTEXTUALIZE-CAPTURE(str $sigil, Mu $qast) {
+        if $sigil eq '@' {
+            QAST::Op.new(:op('callmethod'), :name('list'), $qast)
+        }
+        elsif $sigil eq '%' {
+            QAST::Op.new(:op('callmethod'), :name('hash'), $qast)
+        }
+        else {
+            $qast
+        }
+    }
 }
 
 # A typical lexical variable lookup (e.g. $foo).
@@ -699,11 +714,13 @@ class RakuAST::Var::PositionalCapture
   is RakuAST::ImplicitLookups
 {
     has Int $.index;
+    has str $.sigil;
     has Mu $!colonpairs;
 
-    method new(Int $index) {
+    method new(Int $index, str :$sigil) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::PositionalCapture, '$!index', $index);
+        nqp::bindattr_s($obj, RakuAST::Var::PositionalCapture, '$!sigil', $sigil);
         nqp::bindattr($obj, RakuAST::Var::PositionalCapture, '$!colonpairs', []);
         $obj
     }
@@ -729,12 +746,16 @@ class RakuAST::Var::PositionalCapture
             $lookups[1].IMPL-TO-QAST($context),
             QAST::WVal.new( :value($index) )
         );
-        for $!colonpairs {
-            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
-            $val-ast.named($_.named-arg-name);
-            $op.push($val-ast);
+        # In list / hash context an adverb is dropped, matching legacy; only the
+        # raw `$<foo>:adverb` form keeps its adverbs.
+        unless $!sigil eq '@' || $!sigil eq '%' {
+            for $!colonpairs {
+                my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+                $val-ast.named($_.named-arg-name);
+                $op.push($val-ast);
+            }
         }
-        $op
+        self.IMPL-CONTEXTUALIZE-CAPTURE($!sigil, $op)
     }
 
     method visit-children(Code $visitor) {
@@ -750,11 +771,13 @@ class RakuAST::Var::NamedCapture
   is RakuAST::ImplicitLookups
 {
     has RakuAST::QuotedString $.index;
+    has str $.sigil;
     has Mu $!colonpairs;
 
-    method new(RakuAST::QuotedString $index) {
+    method new(RakuAST::QuotedString $index, str :$sigil) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
+        nqp::bindattr_s($obj, RakuAST::Var::NamedCapture, '$!sigil', $sigil);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!colonpairs', []);
         $obj
     }
@@ -778,12 +801,16 @@ class RakuAST::Var::NamedCapture
             $lookups[1].IMPL-TO-QAST($context),
         );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
-        for $!colonpairs {
-            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
-            $val-ast.named($_.named-arg-name);
-            $op.push($val-ast);
+        # In list / hash context an adverb is dropped, matching legacy; only the
+        # raw `$<foo>:adverb` form keeps its adverbs.
+        unless $!sigil eq '@' || $!sigil eq '%' {
+            for $!colonpairs {
+                my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+                $val-ast.named($_.named-arg-name);
+                $op.push($val-ast);
+            }
         }
-        $op
+        self.IMPL-CONTEXTUALIZE-CAPTURE($!sigil, $op)
     }
 
     method visit-children(Code $visitor) {

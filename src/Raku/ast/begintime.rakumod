@@ -65,6 +65,13 @@ class RakuAST::BeginTime
             )
         }
 
+        # A deferred phaser like INIT has not run at BEGIN time, so its value
+        # is whatever its cache holds, which is undefined until it runs. Hand
+        # that back rather than the block itself.
+        elsif nqp::istype($code, RakuAST::StatementPrefix::Phaser::Init) {
+            nqp::ifnull(nqp::decont($code.container), Mu)
+        }
+
         # It's already code
         elsif nqp::istype($code, RakuAST::Code) {
             $code.meta-object

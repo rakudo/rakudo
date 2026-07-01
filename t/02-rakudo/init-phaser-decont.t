@@ -1,6 +1,6 @@
 use Test;
 
-plan 6;
+plan 8;
 
 # The value of an `INIT` statement prefix is the value the block produced, not
 # the Scalar the phaser caches it in. `my $x = INIT $y` must see the same thing
@@ -28,5 +28,17 @@ is $from-dyn.poke, 'poked', 'INIT of a dynamic variable yields its value';
 my $c = 7;
 my $block-init = INIT { $c };
 isnt $block-init.WHAT.^name, 'Scalar', 'the INIT block form also yields the value';
+
+# A block that bound no value (it read a variable not yet bound when INIT ran)
+# yields Mu, not a raw VMNull that dies on use.
+my $src = 42;
+my $alias := $src;
+my $unbound = INIT $alias;
+is $unbound.raku, 'Mu', 'INIT of a not-yet-bound variable yields Mu, not a VMNull';
+
+# A constant initialized from INIT is evaluated at BEGIN, before INIT runs, so
+# it is Mu rather than the phaser block itself.
+my $const = EVAL 'constant K = INIT 42; K';
+is $const.raku, 'Mu', 'a constant from INIT is Mu at BEGIN, not the block';
 
 # vim: expandtab shiftwidth=4

@@ -190,15 +190,20 @@ class RakuAST::ForLoopImplementation
             $source-qast
         );
 
-        # Produce the map call.
+        # Produce the map call. A source in a container iterates as a single
+        # item, except a Slip, which flattens. Wrapping it with `infix:<,>`
+        # gives both: `($x,)` is one element for an ordinary value and the
+        # flattened elements for a Slip.
         my $map-call := QAST::Op.new(
             :op('if'),
             QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
             QAST::Op.new(
                 :op<callmethod>, :name<map>,
-                QAST::Var.new( :name($for-list-name), :scope('local') ),
-                $body-qast,
-                QAST::IVal.new( :value(1), :named('item') )
+                QAST::Op.new(
+                    :op<callstatic>, :name('&infix:<,>'),
+                    QAST::Var.new( :name($for-list-name), :scope('local') )
+                ),
+                $body-qast
             ),
             QAST::Op.new(
                 :op<callmethod>, :name<map>,

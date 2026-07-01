@@ -42,8 +42,20 @@ class RakuAST::Label
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $label-type :=
           self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
-        # TODO line, prematch, postmatch
-        $label-type.new(:name($!name), :line(0), :prematch(''), :postmatch(''))
+        my int $line;
+        my str $prematch  := '';
+        my str $postmatch := '';
+        my $origin := self.origin;
+        if nqp::isconcrete($origin) && nqp::isconcrete($origin.source) {
+            my $source   := $origin.source;
+            my str $orig := $source.orig;
+            my int $from := $origin.from;
+            my int $to   := $from + nqp::chars($!name);
+            $line      := $source.line-of-pos($from);
+            $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, $from > 20 ?? 20 !! $from);
+            $postmatch := nqp::substr($orig, $to, 20);
+        }
+        $label-type.new(:name($!name), :$line, :$prematch, :$postmatch)
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {

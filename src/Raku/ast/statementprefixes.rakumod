@@ -690,7 +690,14 @@ class RakuAST::StatementPrefix::Phaser::Init
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $container := $!container;
         $context.ensure-sc($container);
-        QAST::WVal.new( :value($container) )
+        # The cached result lives in a Scalar; hand back its value, not the
+        # container itself, so `my $x = INIT $y` sees the value like the
+        # unphased expression does. A block that bound nothing (e.g. it read a
+        # variable not yet bound at INIT time) leaves a null, so map that to Mu
+        # rather than leak a raw VMNull.
+        QAST::Op.new( :op<ifnull>,
+            QAST::Op.new( :op<decont>, QAST::WVal.new( :value($container) ) ),
+            QAST::WVal.new( :value(Mu) ) )
     }
 
     method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {

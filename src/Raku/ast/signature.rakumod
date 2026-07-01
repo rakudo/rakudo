@@ -999,7 +999,11 @@ class RakuAST::Parameter
             );
         }
         if $!type.is-coercive {
-            $flags := $flags +| nqp::const::SIG_ELEM_IS_COERCIVE;
+            # An `@`/`%`/`&` sigil wraps the coercion in a role, so the parameter
+            # type is `Positional[T()]` etc., not itself a coercion.
+            my str $sigil := self.IMPL-SIGIL;
+            $flags := $flags +| nqp::const::SIG_ELEM_IS_COERCIVE
+              if $sigil ne '@' && $sigil ne '%' && $sigil ne '&';
         }
         if $!type {
             my $meta-object := self.IMPL-NOMINAL-TYPE;

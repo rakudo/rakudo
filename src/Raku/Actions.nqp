@@ -3063,8 +3063,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method type-declarator:sym<enum>($/) {
-        # TODO: <variable> being defined means we should throw an NYI
-        # Need to support anonymous enums
+        if $<variable> {
+            $/.typed-panic('X::Comp::NYI', feature => "Variable case of enums");
+        }
         my $name := $<longname>
           ?? $<longname>.ast
           !! Nodify('Name').from-identifier('');

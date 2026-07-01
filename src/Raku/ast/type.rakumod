@@ -603,6 +603,15 @@ class RakuAST::Type::Parameterized
                 if $expr.has-compile-time-value {
                     $value := $expr.maybe-compile-time-value;
                 }
+                elsif nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-CURRIED {
+                    # A WhateverCode argument. Compile the curry as a static
+                    # block so it is one code object with an outer frame the
+                    # compunit can serialize, rather than one built by running a
+                    # throwaway BEGIN-time thunk. Mirrors the subset `where` path.
+                    $expr.IMPL-CURRIED.IMPL-QAST-BLOCK(
+                      $context, :blocktype<declaration_static>, :expression($expr));
+                    $value := $expr.IMPL-CURRIED.meta-object;
+                }
                 elsif nqp::istype($expr, RakuAST::Expression) {
                     # IMPL-BEGIN-TIME-EVALUATE attaches a thunk to the
                     # expression by mutating its `$!thunks` attribute.
@@ -691,7 +700,25 @@ class RakuAST::Type::Parameterized
 
     method IMPL-CAN-INTERPRET() {
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
-        && $!args.IMPL-CAN-INTERPRET
+        && ($!args.IMPL-CAN-INTERPRET || self.IMPL-ARGS-COMPILE-TIME-OR-CURRIED)
+    }
+
+    # Whether every argument either has a compile-time value or is a curryable
+    # WhateverCode, which PRODUCE-META-OBJECT can compile as a static block.
+    # This lets a `does Role[* op *]` application interpret the parameterization
+    # rather than run it through a BEGIN-time thunk, whose WhateverCode closure
+    # would not survive precompilation. Any other argument (a runtime
+    # expression, a flattening `|@a`, an unresolved variable) satisfies neither
+    # branch, so the whole parameterization falls back to the thunk path
+    # unchanged. Kept next to the PRODUCE-META-OBJECT loop it must agree with.
+    method IMPL-ARGS-COMPILE-TIME-OR-CURRIED() {
+        for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
+            my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
+            return False
+              unless $expr.has-compile-time-value
+                  || (nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-CURRIED);
+        }
+        True
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

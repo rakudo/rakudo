@@ -1154,6 +1154,10 @@ class RakuAST::Type::Subset
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;
+        if $block {
+            $block := $block.IMPL-UNWRAP-WHERE-PARENS;
+            nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
+        }
         if $block
           && !$block.IMPL-CURRIED
           && (!nqp::istype($block, RakuAST::Code)

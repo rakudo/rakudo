@@ -683,7 +683,12 @@ class RakuAST::Role
     }
 
     method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
-        my $found    := $resolver.resolve-name-constant($full-name, :current-scope-only(self.scope eq 'my'));
+        # Look up the group under the name this role installs with: a `my` role
+        # is lexical under its simple name, else it is in the package under its
+        # qualified name.
+        my $lexical  := $scope eq 'my';
+        my $found    := $resolver.resolve-name-constant(
+          $lexical ?? $name !! $full-name, :current-scope-only($lexical));
         my $existing := $found ?? $found.compile-time-value !! Mu;
         # A name resolving only to the setting's symbol is shadowed; one
         # declared in this compilation unit is joined (when it is a role group)

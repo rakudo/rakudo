@@ -3170,11 +3170,12 @@ class RakuAST::Postcircumfix::ArrayIndex
     method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
-            $operand-qast,
-            $!index.IMPL-TO-QAST($context),
-            self.resolution.IMPL-LOOKUP-QAST($context)
+            $operand-qast;
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
+        $op
     }
 }
 
@@ -3256,11 +3257,12 @@ class RakuAST::Postcircumfix::HashIndex
     method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
-            $operand-qast,
-            $!index.IMPL-TO-QAST($context),
-            self.resolution.IMPL-LOOKUP-QAST($context)
+            $operand-qast;
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
+        $op
     }
 }
 
@@ -3338,11 +3340,12 @@ class RakuAST::Postcircumfix::LiteralHashIndex
     }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
-            $operand-qast,
-            $!index.IMPL-TO-QAST($context),
-            self.resolution.IMPL-LOOKUP-QAST($context)
+            $operand-qast;
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
+        $op
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,

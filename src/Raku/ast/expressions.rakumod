@@ -154,6 +154,17 @@ class RakuAST::Expression
     method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
         $qast
     }
+
+    # Strip grouping parens from around a single curried expression, so
+    # `where (* > 0)` is used as the WhateverCode it is, like `where * > 0`.
+    # Otherwise a caller wraps it in an ACCEPTS block whose body re-curries and
+    # trips the double-closure check.
+    method IMPL-UNWRAP-WHERE-PARENS() {
+        nqp::istype(self, RakuAST::Circumfix::Parentheses)
+          && (my $curried := self.IMPL-SINGULAR-CURRIED-EXPRESSION)
+            ?? $curried
+            !! self
+    }
 }
 
 #-------------------------------------------------------------------------------

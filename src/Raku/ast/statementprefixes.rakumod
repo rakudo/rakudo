@@ -690,7 +690,10 @@ class RakuAST::StatementPrefix::Phaser::Init
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $container := $!container;
         $context.ensure-sc($container);
-        QAST::WVal.new( :value($container) )
+        # The cached result lives in a Scalar; hand back its value, not the
+        # container itself, so `my $x = INIT $y` sees the value like the
+        # unphased expression does.
+        QAST::Op.new( :op<decont>, QAST::WVal.new( :value($container) ) )
     }
 
     method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -266,6 +266,27 @@ class RakuAST::StatementPrefix::Thunky
         }
     }
 
+    # True for a thunk that runs once per program (a compile or init phaser).
+    method IMPL-THUNK-RUNS-ONCE() { False }
+
+    # Gather the state variables the thunked statement declares, without
+    # descending into a nested block, which keeps its own state.
+    method IMPL-COLLECT-THUNK-STATE-DECLS($node, @decls) {
+        return Nil if nqp::istype($node, RakuAST::Block);
+        if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
+                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State)
+                    && $decl.is-simple-lexical-declaration {
+                    nqp::push(@decls, $decl);
+                }
+            }
+        }
+        $node.visit-children(-> $child {
+            self.IMPL-COLLECT-THUNK-STATE-DECLS($child, @decls) if nqp::isconcrete($child);
+        });
+        Nil
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
             str :$blocktype, RakuAST::Expression :$expression) {
         if nqp::istype(self.blorst, RakuAST::Block) {
@@ -288,6 +309,15 @@ class RakuAST::StatementPrefix::Thunky
                     if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
                         nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                     }
+                }
+            }
+            # Declare that state here. Left in the enclosing scope, its
+            # p6stateinit never fires for the thunk call and `once` is skipped.
+            if self.IMPL-THUNK-RUNS-ONCE {
+                my @state-decls := nqp::list();
+                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, @state-decls);
+                for @state-decls -> $decl {
+                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                 }
             }
             $stmts.push(self.IMPL-QAST-NESTED-BLOCK-DECLS($context));
@@ -413,22 +443,35 @@ class RakuAST::StatementPrefix::Once
   is RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
+    has RakuAST::VarDeclaration::Implicit::State $!state-decl;
 
     method type() { "once" }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $state-name := QAST::Node.unique('once_');
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Once, '$!state-name', $state-name);
+        my $state-decl := RakuAST::VarDeclaration::Implicit::State.new($state-name, :sentinel);
+        nqp::bindattr(self, RakuAST::StatementPrefix::Once, '$!state-decl', $state-decl);
 
         [
-            RakuAST::VarDeclaration::Implicit::State.new($state-name)
+            $state-decl
         ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        # The state variable starts out holding a private sentinel. Testing
+        # its value rather than nqp::p6stateinit makes the once fire exactly
+        # once per clone of the frame that owns the variable, even when the
+        # once runs inside a phaser or other thunk with a frame of its own.
+        my $sentinel := $!state-decl.sentinel-value;
+        $context.ensure-sc($sentinel);
         QAST::Op.new(:op<decont>,
           QAST::Op.new(:op<if>,
-            QAST::Op.new(:op<p6stateinit>),
+            QAST::Op.new(:op<eqaddr>,
+              QAST::Op.new(:op<decont>,
+                QAST::Var.new(:name($!state-name), :scope<lexical>)),
+              QAST::WVal.new(:value($sentinel))
+            ),
             QAST::Op.new(:op<p6store>,
               QAST::Var.new(:name($!state-name), :scope<lexical>),
               QAST::Op.new(:op<call>, self.IMPL-CLOSURE-QAST($context))
@@ -583,6 +626,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
     method type() { "BEGIN" }
 
+    method IMPL-THUNK-RUNS-ONCE() { True }
+
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
@@ -641,6 +686,8 @@ class RakuAST::StatementPrefix::Phaser::Check
 
     method type() { "CHECK" }
 
+    method IMPL-THUNK-RUNS-ONCE() { True }
+
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
@@ -674,6 +721,8 @@ class RakuAST::StatementPrefix::Phaser::Init
     has Scalar $.container;
 
     method type() { "INIT" }
+
+    method IMPL-THUNK-RUNS-ONCE() { True }
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
@@ -729,6 +778,16 @@ class RakuAST::StatementPrefix::Phaser::Enter
         $!result-name
     }
 
+    # Call the phaser's code object directly rather than a fresh clone per
+    # entry, so state a `once` or `state` in the body holds persists across
+    # entries. The outer frame is resolved from the running enclosing frame,
+    # so the body still sees the current entry's lexicals.
+    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $block := self.meta-object;
+        $context.ensure-sc($block);
+        QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::die("ENTER phaser not attached but result accessed") unless $!result-name;
         QAST::Var.new(:name($!result-name), :scope<lexical>)
@@ -742,6 +801,8 @@ class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::BeginTime
 {
     method type() { "END" }
+
+    method IMPL-THUNK-RUNS-ONCE() { True }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-end-phaser(self.meta-object);

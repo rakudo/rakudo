@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 111;
+plan 114;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -805,6 +805,29 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $s2 = BEGIN EVAL 'sub { 1 + 2 }';
     is $s2(), 3,
       'BEGIN-time string-EVAL Sub with setting operator runs';
+}
+
+# A once fires once per clone of the scope that holds its state. The legacy
+# frontend re-runs a once in a LEAVE or UNDO body on every exit, because the
+# exit handler clones the phaser fresh each time, and shares one ENTER once
+# across all clones of the enclosing routine, because it never clones the
+# phaser at all.
+{
+    my $n = 0;
+    Q| sub f { LEAVE once { $n++ } }; f() for ^3 |.AST.EVAL;
+    is $n, 1, 'a once in a LEAVE body fires once across calls of one clone';
+}
+
+{
+    my $n = 0;
+    Q| sub f { UNDO once { $n++ }; fail 'x' }; (try f()) for ^3 |.AST.EVAL;
+    is $n, 1, 'a once in an UNDO body fires once across calls of one clone';
+}
+
+{
+    my @fires;
+    Q| sub mk { sub { ENTER once { @fires.push('x') } } }; my $a = mk; my $b = mk; $a(); $a(); $b() |.AST.EVAL;
+    is +@fires, 2, 'each clone of a routine runs its ENTER once independently';
 }
 
 # vim: expandtab shiftwidth=4

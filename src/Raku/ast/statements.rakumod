@@ -2037,9 +2037,7 @@ class RakuAST::Statement::Use
             $ex.rethrow;
         }
         # Evaluate the argument to the module load, if any.
-        my $arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
-            !! Nil;
+        my $arglist := self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
 
         my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $context, $!module-name);
         self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist, :module($!module-name.canonicalize));
@@ -2125,9 +2123,7 @@ class RakuAST::Statement::Import
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Evaluate the argument to the import, if any.
-        my $arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
-            !! Nil;
+        my $arglist := self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
 
         my $module := self.resolution.compile-time-value;
         my $CompUnitHandle := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].compile-time-value;
@@ -2175,9 +2171,7 @@ class RakuAST::Statement::Require
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Evaluate the argument to the import, if any.
-        my @arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
-            !! Nil;
+        my @arglist := self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
         nqp::bindattr(self, RakuAST::Statement::Require, '$!arglist', @arglist);
 
         my $target-scope := $resolver.current-scope;

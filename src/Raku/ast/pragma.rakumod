@@ -80,11 +80,8 @@ class RakuAST::Pragma
         my $name    := $!name;
         my $LANG    := $*LANG;
         my int $on  := nqp::not_i($!off);
-        my $arglist := $!argument
-          ?? self.IMPL-BEGIN-TIME-EVALUATE(
-               $!argument, $resolver, $context
-             ).List.FLATTENABLE_LIST
-          !! Nil;
+        my $arglist :=
+          self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
 
         if self.IS-NYI($name) {
             $resolver.build-exception(

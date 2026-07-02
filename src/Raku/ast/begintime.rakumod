@@ -84,6 +84,21 @@ class RakuAST::BeginTime
         }
     }
 
+    # Evaluate the argument of a pragma, use, import, or require into an
+    # argument list, boxing the result, which is consumed as a Raku List.
+    method IMPL-BEGIN-TIME-ARGLIST(
+                   RakuAST::Node $argument,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        $argument
+          ?? nqp::hllizefor(
+               self.IMPL-BEGIN-TIME-EVALUATE($argument, $resolver, $context),
+               'Raku'
+             ).List.FLATTENABLE_LIST
+          !! Nil
+    }
+
     # Called when a BEGIN-time construct wants to evaluate a resolved code
     # with a set of arguments.
     method IMPL-BEGIN-TIME-CALL(

@@ -23,13 +23,16 @@ class RakuAST::Regex
         QRegex::P6Regex::Actions.alt_nfas($code-object, $regex-qast, $context.sc-handle);
 
         # Wrap in scan/pass as appropriate.
+        my $pass-qast := $name
+          ?? QAST::Regex.new(:rxtype('pass'), :$name)
+          !! QAST::Regex.new(:rxtype('pass'));
+        # A ratchet regex leaves no backtrack point, so its cursor keeps no
+        # restart continuation and is not re-entered for a further match.
+        $pass-qast.backtrack('r') if %mods<r>;
         my $wrap-qast := QAST::Regex.new(
             :rxtype('concat'),
             $regex-qast,
-            ($name
-              ?? QAST::Regex.new(:rxtype('pass'), :$name)
-              !! QAST::Regex.new(:rxtype('pass'))
-            )
+            $pass-qast
         );
         unless $no-scan {
             $wrap-qast.unshift(QAST::Regex.new( :rxtype('scan') ));

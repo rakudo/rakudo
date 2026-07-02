@@ -266,6 +266,27 @@ class RakuAST::StatementPrefix::Thunky
         }
     }
 
+    # True for a thunk that runs once per program (a compile or init phaser).
+    method IMPL-THUNK-RUNS-ONCE() { False }
+
+    # Gather the state variables the thunked statement declares, without
+    # descending into a nested block, which keeps its own state.
+    method IMPL-COLLECT-THUNK-STATE-DECLS($node, @decls) {
+        return Nil if nqp::istype($node, RakuAST::Block);
+        if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
+                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State)
+                    && $decl.is-simple-lexical-declaration {
+                    nqp::push(@decls, $decl);
+                }
+            }
+        }
+        $node.visit-children(-> $child {
+            self.IMPL-COLLECT-THUNK-STATE-DECLS($child, @decls) if nqp::isconcrete($child);
+        });
+        Nil
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
             str :$blocktype, RakuAST::Expression :$expression) {
         if nqp::istype(self.blorst, RakuAST::Block) {
@@ -288,6 +309,15 @@ class RakuAST::StatementPrefix::Thunky
                     if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
                         nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                     }
+                }
+            }
+            # Declare that state here. Left in the enclosing scope, its
+            # p6stateinit never fires for the thunk call and `once` is skipped.
+            if self.IMPL-THUNK-RUNS-ONCE {
+                my @state-decls := nqp::list();
+                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, @state-decls);
+                for @state-decls -> $decl {
+                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                 }
             }
             $stmts.push(self.IMPL-QAST-NESTED-BLOCK-DECLS($context));
@@ -583,6 +613,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
     method type() { "BEGIN" }
 
+    method IMPL-THUNK-RUNS-ONCE() { True }
+
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
@@ -641,6 +673,8 @@ class RakuAST::StatementPrefix::Phaser::Check
 
     method type() { "CHECK" }
 
+    method IMPL-THUNK-RUNS-ONCE() { True }
+
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
@@ -674,6 +708,8 @@ class RakuAST::StatementPrefix::Phaser::Init
     has Scalar $.container;
 
     method type() { "INIT" }
+
+    method IMPL-THUNK-RUNS-ONCE() { True }
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
@@ -742,6 +778,8 @@ class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::BeginTime
 {
     method type() { "END" }
+
+    method IMPL-THUNK-RUNS-ONCE() { True }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').add-end-phaser(self.meta-object);

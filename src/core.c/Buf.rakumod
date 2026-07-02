@@ -1454,10 +1454,6 @@ my constant buf16 = Buf[uint16];
 my constant buf32 = Buf[uint32];
 my constant buf64 = Buf[uint64];
 
-multi sub prefix:<~>(Blob:D \a) {
-    X::Buf::AsStr.new(object => a, method => '~' ).throw
-}
-
 multi sub infix:<~>(Blob:D $a) { $a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := nqp::create(nqp::eqaddr($a.WHAT,$b.WHAT) ?? $a !! Buf.^pun);

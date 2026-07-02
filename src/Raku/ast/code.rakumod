@@ -110,6 +110,21 @@ class RakuAST::Code
         []
     }
 
+    # Collect the type captures a signature's parameters declare, descending
+    # into sub-signatures, which can declare captures of their own.
+    method IMPL-COLLECT-TYPE-CAPTURES($signature, @captures) {
+        my $parameters := $signature.parameters;
+        if $parameters {
+            for self.IMPL-UNWRAP-LIST($parameters) -> $param {
+                for self.IMPL-UNWRAP-LIST($param.type-captures) {
+                    nqp::push(@captures, $_);
+                }
+                my $sub := $param.sub-signature;
+                self.IMPL-COLLECT-TYPE-CAPTURES($sub, @captures) if $sub;
+            }
+        }
+    }
+
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
     }
@@ -1452,16 +1467,10 @@ class RakuAST::Block
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
         }
         # Declare a parameter's type captures block-local, so they shadow
-        # rather than rebind an outer same-named capture.
+        # rather than rebind an outer same-named capture. A sub-signature can
+        # declare captures too, so descend into it.
         my $signature := self.signature;
-        if $signature {
-            for self.IMPL-UNWRAP-LIST($signature.parameters) {
-                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
-                for $type-captures {
-                    nqp::push(@implicit, $_);
-                }
-            }
-        }
+        self.IMPL-COLLECT-TYPE-CAPTURES($signature, @implicit) if $signature;
         @implicit
     }
 
@@ -2091,11 +2100,8 @@ class RakuAST::Routine
                     $exclamation-mark := 0 if $name eq '$!';
                     $underscore := 0       if $name eq '$_';
                 }
-                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
-                for $type-captures {
-                    nqp::push(@declarations, $_);
-                }
             }
+            self.IMPL-COLLECT-TYPE-CAPTURES($!signature, @declarations);
             # A special variable bound inside a sub-signature, such as the $_ in
             # `(:value($_))`, is not a top-level parameter, so catch it too.
             $slash := 0            if $slash && $!signature.IMPL-HAS-PARAMETER('$/');

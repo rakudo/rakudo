@@ -1452,16 +1452,10 @@ class RakuAST::Block
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
         }
         # Declare a parameter's type captures block-local, so they shadow
-        # rather than rebind an outer same-named capture.
+        # rather than rebind an outer same-named capture. A sub-signature can
+        # declare captures too, so descend into it.
         my $signature := self.signature;
-        if $signature {
-            for self.IMPL-UNWRAP-LIST($signature.parameters) {
-                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
-                for $type-captures {
-                    nqp::push(@implicit, $_);
-                }
-            }
-        }
+        $signature.IMPL-COLLECT-TYPE-CAPTURES(@implicit) if $signature;
         @implicit
     }
 
@@ -2091,11 +2085,8 @@ class RakuAST::Routine
                     $exclamation-mark := 0 if $name eq '$!';
                     $underscore := 0       if $name eq '$_';
                 }
-                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
-                for $type-captures {
-                    nqp::push(@declarations, $_);
-                }
             }
+            $!signature.IMPL-COLLECT-TYPE-CAPTURES(@declarations);
             # A special variable bound inside a sub-signature, such as the $_ in
             # `(:value($_))`, is not a top-level parameter, so catch it too.
             $slash := 0            if $slash && $!signature.IMPL-HAS-PARAMETER('$/');

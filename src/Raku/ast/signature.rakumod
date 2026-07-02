@@ -399,6 +399,20 @@ class RakuAST::Signature
         $visitor($!returns) if $!returns;
     }
 
+    # Push the type captures declared by this signature's parameters onto
+    # @captures, descending into sub-signatures, which can declare captures of
+    # their own. Used to surface them as block-local declarations so they
+    # shadow rather than rebind an outer same-named capture.
+    method IMPL-COLLECT-TYPE-CAPTURES(@captures) {
+        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
+            for self.IMPL-UNWRAP-LIST($param.type-captures) {
+                nqp::push(@captures, $_);
+            }
+            my $sub := $param.sub-signature;
+            $sub.IMPL-COLLECT-TYPE-CAPTURES(@captures) if $sub;
+        }
+    }
+
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
         my $i := 0;
         my $found := 0;

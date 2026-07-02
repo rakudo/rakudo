@@ -1728,6 +1728,7 @@ class RakuAST::VarDeclaration::Auto
 class RakuAST::VarDeclaration::Signature
   is RakuAST::Declaration
   is RakuAST::ImplicitLookups
+  is RakuAST::ImplicitDeclarations
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
   is RakuAST::Term
@@ -1780,6 +1781,15 @@ class RakuAST::VarDeclaration::Signature
         # Overridden here because our-scoped variables are really lexical aliases.
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+    }
+
+    # A list declaration such as `my (::T, $x) := ...` binds its type captures
+    # into the enclosing scope. Surface them so they get a frame slot, matching
+    # how a routine or block declares its own signature's captures.
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        my @declarations;
+        self.signature.IMPL-COLLECT-TYPE-CAPTURES(@declarations);
+        @declarations
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

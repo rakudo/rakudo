@@ -1,6 +1,6 @@
 use Test;
 
-plan 7;
+plan 10;
 
 # A type capture declared in a sub-signature (`$p (::T, ...)`) must create a
 # block-local `T`, both so the binder can store into it and so the body can
@@ -38,5 +38,18 @@ is nested(((1,), 'z')), 'Int Str', 'nested sub-signature captures each resolve';
 # A top-level capture still works alongside.
 sub both(::Top $x, $p ($n, ::T)) { Top.^name ~ ' ' ~ T.^name }
 is both(1, (2, 'w')), 'Int Str', 'top-level and sub-signature captures coexist';
+
+# List declaration `my (::T, ...) := ...` binds its captures into the
+# enclosing scope.
+my (::LT, $lx) := (Int, 5);
+is LT, Int, 'a list-declaration type capture is visible';
+
+# The captured type is usable as a constraint on a later declaration.
+my LT $constrained = 3;
+is $constrained, 3, 'a list-declaration type capture works as a constraint';
+
+# Nested list declaration captures each resolve.
+my (::NT, (::NU, $ny)) := (Int, (Str, 'x'));
+is NT.^name ~ ' ' ~ NU.^name, 'Int Str', 'nested list-declaration captures each resolve';
 
 # vim: expandtab shiftwidth=4

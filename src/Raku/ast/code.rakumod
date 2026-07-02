@@ -110,21 +110,6 @@ class RakuAST::Code
         []
     }
 
-    # Collect the type captures a signature's parameters declare, descending
-    # into sub-signatures, which can declare captures of their own.
-    method IMPL-COLLECT-TYPE-CAPTURES($signature, @captures) {
-        my $parameters := $signature.parameters;
-        if $parameters {
-            for self.IMPL-UNWRAP-LIST($parameters) -> $param {
-                for self.IMPL-UNWRAP-LIST($param.type-captures) {
-                    nqp::push(@captures, $_);
-                }
-                my $sub := $param.sub-signature;
-                self.IMPL-COLLECT-TYPE-CAPTURES($sub, @captures) if $sub;
-            }
-        }
-    }
-
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
     }
@@ -1470,7 +1455,7 @@ class RakuAST::Block
         # rather than rebind an outer same-named capture. A sub-signature can
         # declare captures too, so descend into it.
         my $signature := self.signature;
-        self.IMPL-COLLECT-TYPE-CAPTURES($signature, @implicit) if $signature;
+        $signature.IMPL-COLLECT-TYPE-CAPTURES(@implicit) if $signature;
         @implicit
     }
 
@@ -2101,7 +2086,7 @@ class RakuAST::Routine
                     $underscore := 0       if $name eq '$_';
                 }
             }
-            self.IMPL-COLLECT-TYPE-CAPTURES($!signature, @declarations);
+            $!signature.IMPL-COLLECT-TYPE-CAPTURES(@declarations);
             # A special variable bound inside a sub-signature, such as the $_ in
             # `(:value($_))`, is not a top-level parameter, so catch it too.
             $slash := 0            if $slash && $!signature.IMPL-HAS-PARAMETER('$/');

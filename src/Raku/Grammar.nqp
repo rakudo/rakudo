@@ -3150,8 +3150,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<circumfix> { <circumfix> }
 
     token term:sym<self> { <.term-self> <.end-keyword> }
-    token term:sym<now>  { <.term-now>  <.end-keyword> }
-    token term:sym<time> { <.term-time> <.end-keyword> }
+    token term:sym<now>  { <!{ $*R.is-identifier-known('now')  }> <.term-now>  <.end-keyword> }
+    token term:sym<time> { <!{ $*R.is-identifier-known('time') }> <.term-time> <.end-keyword> }
 
     token term:sym<nano> {
         <?{ self.language-revision >= 3

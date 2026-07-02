@@ -732,6 +732,17 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
+        # A `my`-scoped anonymous variable declared in the expression can never
+        # be named from outside, so it belongs to this thunk. Emit its
+        # declaration here rather than leaving it in the enclosing scope, where a
+        # thunk compiled on its own (as a constant's value is) would not find its
+        # storage. State variables keep their own persistence machinery.
+        my $anon-decl := -> $node {
+            nqp::istype($node, RakuAST::VarDeclaration::Anonymous) && $node.scope eq 'my'
+        };
+        if $anon-decl($expression) {
+            nqp::push($stmts, $expression.IMPL-QAST-DECL($context));
+        }
         my @code-todo := [$expression];
         while @code-todo {
             my $visit := @code-todo.shift;
@@ -742,6 +753,9 @@ class RakuAST::ExpressionThunk
                             nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                         }
                     }
+                }
+                if $anon-decl($node) {
+                    nqp::push($stmts, $node.IMPL-QAST-DECL($context));
                 }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);

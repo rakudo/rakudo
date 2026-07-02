@@ -278,6 +278,17 @@ class RakuAST::Call::Name
 
     method needs-resolution() { $!name.is-identifier }
 
+    method needs-sink-call() {
+        # The built-in `take` and `take-rw` hand back the same value they
+        # stash into the enclosing gather, so sinking the result would drain a
+        # value that is not ours to consume. A same-named user routine has no
+        # such aliasing and is sunk like any other call.
+        my $name := $!name.canonicalize;
+        !(($name eq 'take' || $name eq 'take-rw')
+            && self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::Declaration::External::Setting))
+    }
+
     method undeclared-symbol-details() {
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }

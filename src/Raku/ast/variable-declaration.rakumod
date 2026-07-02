@@ -2142,7 +2142,7 @@ class RakuAST::VarDeclaration::Term
     has RakuAST::Initializer $.initializer;
 
     method new(str :$scope, RakuAST::Type :$type, RakuAST::Name :$name!,
-            RakuAST::Initializer :$initializer!) {
+            RakuAST::Initializer :$initializer) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!type', $type // RakuAST::Type);
@@ -2150,6 +2150,13 @@ class RakuAST::VarDeclaration::Term
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!initializer',
             $initializer // RakuAST::Initializer);
         $obj
+    }
+
+    # The declaration is installed before its initializer is parsed, so the
+    # term is visible within its own initializer (a self-referential lazy
+    # binding such as `my \S := gather { ... S ... }`).
+    method set-initializer(RakuAST::Initializer $initializer) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Term, '$!initializer', $initializer);
     }
 
     method lexical-name() {

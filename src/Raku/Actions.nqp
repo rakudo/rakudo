@@ -2801,15 +2801,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast := $<regex-declarator>.ast;
         }
         elsif $<defterm> {
-            my str $scope   := $*SCOPE;
-            my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
-            my     $name    := $<defterm>.ast;
-            my $initializer := $<term-init>.ast;
-
-            $ast := Nodify('VarDeclaration::Term').new:
-              :$scope, :$type, :$name, :$initializer;
-            $/.typed-sorry('X::Redeclaration', :symbol($name))
-              if $*R.declare-lexical($ast);
+            # The declaration was installed after <defterm> so it could be
+            # seen within its own initializer; here we just complete it.
+            $ast := $*TERM-DECL;
+            $ast.set-initializer($<term-init>.ast);
         }
         else {
             nqp::die('Unimplemented declarator');

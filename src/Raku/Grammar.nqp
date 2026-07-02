@@ -3983,9 +3983,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token declarator {
         :my $*LEFTSIGIL := '';
+        :my $*TERM-DECL;
         [
           | '\\'
             <defterm>
+            { $*TERM-DECL := self.declare-defterm($<defterm>.ast) }
             [    <.ws> <term-init=initializer>
               || <.typed-panic: "X::Syntax::Term::MissingInitializer">
             ]
@@ -4318,6 +4320,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             my $canname := $cat ~ ':sym' ~ $canop;
             self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0], :current-scope);
         }
+    }
+
+    # Install a sigilless term declaration before its initializer is parsed,
+    # so the term resolves within its own initializer.
+    method declare-defterm($name) {
+        my $decl := self.Nodify('VarDeclaration::Term').new(
+          :scope($*SCOPE),
+          :type($*OFTYPE ?? $*OFTYPE.ast !! self.Nodify('Type')),
+          :$name,
+        );
+        self.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
+          if $*R.declare-lexical($decl);
+        $decl
     }
 
     token type-declarator:sym<constant> {

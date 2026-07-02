@@ -1711,7 +1711,9 @@ my class Rakudo::Internals {
           &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! "infix:<%>".no-zero-arg },
           &[-], -> Mu \a, Mu \b { a = a.DEFINITE ?? a - b !! -b },
           &[*], -> Mu \a, Mu \b { a = a.DEFINITE ?? a * b !! +b },
-          &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },
+          # '' ~ b rather than ~b, mirroring the generic case, which
+          # concatenates the zero-arg identity with b
+          &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! '' ~ b },
         ) -> \op, \metaop {
             metaop.set_name(op.name ~ ' + {assigning}');
             nqp::bindkey($metaop_assign, nqp::objectid(op), metaop);

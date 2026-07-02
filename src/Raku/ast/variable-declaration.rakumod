@@ -2591,14 +2591,21 @@ class RakuAST::VarDeclaration::Implicit::State
   is RakuAST::Meta
 {
     has int $!init-to-zero;
+    has Mu $!sentinel-value;
 
-    method new(str $name, int :$init-to-zero) {
+    method new(str $name, int :$init-to-zero, int :$sentinel) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
         nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', $init-to-zero // 0);
+        # A private initial value no user code can produce, so a first read of
+        # the variable is recognizable by value.
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::State, '$!sentinel-value',
+            $sentinel ?? nqp::create(Mu) !! Mu);
         $obj
     }
+
+    method sentinel-value() { $!sentinel-value }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         $!init-to-zero ?? [
@@ -2617,6 +2624,8 @@ class RakuAST::VarDeclaration::Implicit::State
         if $!init-to-zero {
             my $Int := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
             nqp::bindattr($container, Scalar, '$!value', nqp::box_i(0, $Int));
+        } elsif nqp::isconcrete($!sentinel-value) {
+            nqp::bindattr($container, Scalar, '$!value', $!sentinel-value);
         } else {
             nqp::bindattr($container, Scalar, '$!value', $descriptor.default);
         }

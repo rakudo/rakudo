@@ -443,22 +443,35 @@ class RakuAST::StatementPrefix::Once
   is RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
+    has RakuAST::VarDeclaration::Implicit::State $!state-decl;
 
     method type() { "once" }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $state-name := QAST::Node.unique('once_');
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Once, '$!state-name', $state-name);
+        my $state-decl := RakuAST::VarDeclaration::Implicit::State.new($state-name, :sentinel);
+        nqp::bindattr(self, RakuAST::StatementPrefix::Once, '$!state-decl', $state-decl);
 
         [
-            RakuAST::VarDeclaration::Implicit::State.new($state-name)
+            $state-decl
         ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        # The state variable starts out holding a private sentinel. Testing
+        # its value rather than nqp::p6stateinit makes the once fire exactly
+        # once per clone of the frame that owns the variable, even when the
+        # once runs inside a phaser or other thunk with a frame of its own.
+        my $sentinel := $!state-decl.sentinel-value;
+        $context.ensure-sc($sentinel);
         QAST::Op.new(:op<decont>,
           QAST::Op.new(:op<if>,
-            QAST::Op.new(:op<p6stateinit>),
+            QAST::Op.new(:op<eqaddr>,
+              QAST::Op.new(:op<decont>,
+                QAST::Var.new(:name($!state-name), :scope<lexical>)),
+              QAST::WVal.new(:value($sentinel))
+            ),
             QAST::Op.new(:op<p6store>,
               QAST::Var.new(:name($!state-name), :scope<lexical>),
               QAST::Op.new(:op<call>, self.IMPL-CLOSURE-QAST($context))
@@ -763,6 +776,16 @@ class RakuAST::StatementPrefix::Phaser::Enter
 
     method IMPL-RESULT-NAME() {
         $!result-name
+    }
+
+    # Call the phaser's code object directly rather than a fresh clone per
+    # entry, so state a `once` or `state` in the body holds persists across
+    # entries. The outer frame is resolved from the running enclosing frame,
+    # so the body still sees the current entry's lexicals.
+    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $block := self.meta-object;
+        $context.ensure-sc($block);
+        QAST::Op.new( :op('call'), QAST::WVal.new( :value($block) ) )
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

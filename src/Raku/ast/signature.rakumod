@@ -2380,10 +2380,11 @@ class RakuAST::Parameter::Slurpy::Flattened
                 )
             ));
         }
-        elsif $sigil eq '$' {
-            # Slurpiness on scalar parameters does not actually have any effect.
-            # That this is allowed is probably from some early design and should
-            # have been forbidden, but there are spec tests that use this syntax.
+        elsif $sigil eq '$' || $sigil eq '&' {
+            # Slurpiness on scalar and callable parameters does not actually have
+            # any effect. That this is allowed is probably from some early design
+            # and should have been forbidden, but there are spec tests that use
+            # this syntax.
         }
         else {
             nqp::die("Parameter * quantifier not applicable to sigil '$sigil'");

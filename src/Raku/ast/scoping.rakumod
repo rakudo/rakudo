@@ -1077,9 +1077,19 @@ class RakuAST::PackageInstaller {
         if $name.is-identifier {
             $final := $name.canonicalize(:colonpairs(0));
             $lexical := $resolver.resolve-lexical-constant($final);
-            $resolver.current-scope.merge-generated-lexical-declaration:
-                :$resolver,
-                self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
+            # `my package EXPORT` names a package the compunit already declares
+            # implicitly. Reuse that lexical, pointing it at the new package,
+            # rather than declaring a second of the same name and colliding.
+            if $scope eq 'my'
+              && nqp::istype($lexical, RakuAST::VarDeclaration::Implicit::Constant)
+              && nqp::istype($lexical.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
+                $lexical.set-value($type-object);
+            }
+            else {
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    :$resolver,
+                    self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
+            }
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {
                 $target := $current-package;

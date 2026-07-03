@@ -1371,7 +1371,10 @@ class RakuAST::Parameter
             ));
         }
 
-        # We may need to decontainerize it; produce that lazily if so.
+        # We may need to decontainerize it; produce that lazily if so. The
+        # hllize above only maps a bare foreign value, so map the value taken
+        # out of a container too, both for the type checks and as what a
+        # value parameter binds.
         my $decont-qast-var := $was-slurpy ?? $temp-qast-var !! Nil;
         my $get-decont-var := -> {
             unless $decont-qast-var {
@@ -1379,7 +1382,8 @@ class RakuAST::Parameter
                 $param-qast.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :$name, :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('decont'), $temp-qast-var )
+                    QAST::Op.new( :op('hllize'),
+                        QAST::Op.new( :op('decont'), $temp-qast-var ))
                 ));
                 $decont-qast-var := QAST::Var.new( :$name, :scope('local') );
             }

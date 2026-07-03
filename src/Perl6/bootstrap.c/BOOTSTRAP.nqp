@@ -406,6 +406,18 @@ my class Binder {
             # HLL-ize.
             $oval := nqp::hllizefor($oval, 'Raku');
 
+            # A foreign value inside a container is out of reach of both the
+            # argument mapping and the hllize above, which only map a bare
+            # value. For a parameter that binds the value rather than the
+            # container, map the content instead.
+            if nqp::iscont($oval) && nqp::not_i($flags +& (
+                nqp::const::SIG_ELEM_IS_RAW +| nqp::const::SIG_ELEM_IS_RW
+            )) {
+                my $decont  := nqp::decont($oval);
+                my $hllized := nqp::hllizefor($decont, 'Raku');
+                $oval := $hllized unless nqp::eqaddr($hllized, $decont);
+            }
+
             # Skip nominal type check if not needed.
             unless $no_param_type_check {
                 # Is the nominal type generic and in need of instantiation?

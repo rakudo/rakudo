@@ -9665,15 +9665,19 @@ Did you mean a call like '"
                 return NQPMu if $decont_name_invalid;
                 unless $decont_name {
                     # We decont it once before checks that need a decont value,
-                    # to avoid doing so repeatedly.
+                    # to avoid doing so repeatedly. The hllize maps a foreign
+                    # value taken out of a container, which the argument
+                    # handling only does for a bare one.
                     $decont_name := QAST::Node.unique("__lowered_param_decont_");
                     $var.push(QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($decont_name), :scope('local'), :decl('var') ),
                         QAST::Op.new(
-                            :op('decont'),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        )));
+                            :op('hllize'),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Var.new( :name($name), :scope('local') )
+                            ))));
                 }
                 $decont_name
             }

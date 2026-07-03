@@ -2677,6 +2677,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name       := $name-match ?? $name-match.ast !! Nodify('Name');
 
         my str $scope := $*SCOPE || ($name-match eq '::' ?? 'anon' !! 'our');
+        # EXPORTHOW is a compile-time directive package, read from a module's
+        # lexical scope through its handle to override declarator HOWs. Default
+        # it to `my` rather than `our` so it does not leak into GLOBAL, where on
+        # load it would clash with the setting's own EXPORTHOW. This matches the
+        # setting, which declares `my module EXPORTHOW`.
+        $scope := 'my' if !$*SCOPE && $name-match && $name.canonicalize eq 'EXPORTHOW';
         my $augmented := $scope eq 'augment';
         $/.typed-panic('X::Syntax::Augment::WithoutMonkeyTyping')
           if $augmented && !$*LANG.pragma('MONKEY-TYPING');

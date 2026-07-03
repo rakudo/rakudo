@@ -2,6 +2,19 @@
 class RakuAST::Regex
   is RakuAST::Node
 {
+    # In a ratchet regex each atom position carries the ratchet on its
+    # outermost compiled node, once any significant whitespace is attached, so
+    # a quantifier inside can still give its match back across that whitespace
+    # while the position as a whole does not backtrack. Callers hand this the
+    # compiled QAST of a nested body they embed: a sequence or an alternation
+    # overrides it to do nothing, since those ratchet their own terms and
+    # branches and stay re-enterable for a further match themselves.
+    method IMPL-APPLY-ATOM-RATCHET(Mu $qast, %mods) {
+        $qast.backtrack('r')
+          if %mods<r> && nqp::istype($qast, QAST::Regex) && !$qast.backtrack;
+        $qast
+    }
+
     method IMPL-REGEX-TOP-LEVEL-QAST(
       RakuAST::IMPL::QASTContext  $context,
                               Mu  $code-object,
@@ -14,6 +27,7 @@ class RakuAST::Regex
         my $regex-qast := $body-qast
           // self.IMPL-REGEX-QAST($context, %mods)
           // QAST::Regex.new( :rxtype<anchor>, :subtype<pass> );
+        self.IMPL-APPLY-ATOM-RATCHET($regex-qast, %mods);
 
         # Store its captures and NFA.
         $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
@@ -101,6 +115,9 @@ class RakuAST::Regex::Branching
     method branches() {
         self.IMPL-WRAP-LIST($!branches)
     }
+
+    # The branches carry the ratchet below.
+    method IMPL-APPLY-ATOM-RATCHET(Mu $qast, %mods) { $qast }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
@@ -201,6 +218,9 @@ class RakuAST::Regex::Sequence
     method terms() {
         self.IMPL-WRAP-LIST($!terms)
     }
+
+    # The terms carry the ratchet below.
+    method IMPL-APPLY-ATOM-RATCHET(Mu $qast, %mods) { $qast }
 
     # A `\r` directly followed by `\n` matches the single `\r\n` grapheme, so
     # fuse the pair into one literal. As separate atoms neither half matches the
@@ -454,8 +474,10 @@ class RakuAST::Regex::Nested
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new(
             :rxtype<goal>,
-            $!goal.IMPL-REGEX-QAST($context, nqp::clone(%mods)),
-            $!expr.IMPL-REGEX-QAST($context, nqp::clone(%mods)),
+            $!goal.IMPL-APPLY-ATOM-RATCHET(
+                $!goal.IMPL-REGEX-QAST($context, nqp::clone(%mods)), %mods),
+            $!expr.IMPL-APPLY-ATOM-RATCHET(
+                $!expr.IMPL-REGEX-QAST($context, nqp::clone(%mods)), %mods),
             QAST::Regex.new(
                 :rxtype<subrule>, :subtype<method>,
                 QAST::NodeList.new(
@@ -515,7 +537,8 @@ class RakuAST::Regex::CapturingGroup
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $body-qast := $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods));
+        my $body-qast := $!regex.IMPL-APPLY-ATOM-RATCHET(
+            $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods)), %mods);
         nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
         QAST::Regex.new(
             :rxtype('subrule'), :subtype('capture'),
@@ -547,7 +570,8 @@ class RakuAST::Regex::NamedCapture
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        my $qast := $!regex.IMPL-APPLY-ATOM-RATCHET(
+            $!regex.IMPL-REGEX-QAST($context, %mods), %mods);
         if nqp::istype($!regex.IMPL-CAPTURE-TARGET, RakuAST::Regex::Group) {
             # A bracketed group is captured as a whole, no matter its content,
             # also when quantified or backtrack-modified. Its QAST cannot be
@@ -1434,6 +1458,7 @@ class RakuAST::Regex::Assertion::Named::RegexArg
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $body-qast := $!regex-arg.IMPL-REGEX-QAST($context, %mods);
         $body-qast := self.IMPL-FLIP-QAST($body-qast) if self.name.canonicalize eq 'after';
+        $!regex-arg.IMPL-APPLY-ATOM-RATCHET($body-qast, %mods);
         nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast', $body-qast);
         my $qast := self.IMPL-REGEX-QAST-CALL($context);
         my str $name := self.IMPL-UNIQUE-NAME;
@@ -2082,7 +2107,8 @@ class RakuAST::Regex::QuantifiedAtom
         my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
         my $quantified := $!quantifier.IMPL-QAST-QUANTIFY($context, $atom, %mods);
         if $!separator {
-            my $separator-qast := $!separator.IMPL-REGEX-QAST($context, %mods);
+            my $separator-qast := $!separator.IMPL-APPLY-ATOM-RATCHET(
+                $!separator.IMPL-REGEX-QAST($context, %mods), %mods);
             $quantified.push($separator-qast);
             if $!trailing-separator {
                 QAST::Regex.new(
@@ -2288,7 +2314,9 @@ class RakuAST::Regex::Backtrack
     method new() { self }
 
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
-        $quant-qast.backtrack('r') if %mods<r>;
+        # A default quantifier carries no backtrack of its own. In a ratchet
+        # regex the enclosing atom position applies the ratchet via
+        # IMPL-APPLY-ATOM-RATCHET, once any significant whitespace is attached.
         $quant-qast
     }
 }

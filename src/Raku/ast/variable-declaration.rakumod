@@ -1041,7 +1041,12 @@ class RakuAST::VarDeclaration::Simple
                 if nqp::istype($initializer, RakuAST::Initializer::Assign)
                   && (my $expression := $initializer.expression).has-compile-time-value
                   && nqp::isconcrete($expression.maybe-compile-time-value)
-                  && !nqp::istype($expression, RakuAST::Code) {
+                  && !nqp::istype($expression, RakuAST::Code)
+                  # A heredoc's body is spliced in at the end of the line, after
+                  # this attribute has begun. Reading its value now would capture
+                  # the placeholder, so leave it to the method path, which compiles
+                  # the expression once the body is present.
+                  && !nqp::istype($expression, RakuAST::Heredoc) {
                     # Only a concrete default known at compile time becomes the
                     # build value directly. A default that is a type object would
                     # leave the build not concrete. Then the attribute is not

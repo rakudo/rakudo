@@ -1982,9 +1982,13 @@ class ProxyReaderFactory {
         }
         $block.push($dispatch);
 
-        # Compile and return it.
+        # Compile and return it. The CompUnit carries the HLL: a dispatch
+        # resumed from inside the reader boxes a native result using the
+        # reader frame's HLL, so without it a native call with a Proxy
+        # argument returns a BOOT type (a BOOTInt for an int) rather than
+        # the Raku type.
         my $comp := nqp::getcomp('Raku');
-        $comp.compile($block, :from($comp.qast-stage))
+        $comp.compile(QAST::CompUnit.new($block, :hll('Raku')), :from($comp.qast-stage))
     }
 }
 my $PROXY-READERS := ProxyReaderFactory.new;

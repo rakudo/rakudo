@@ -157,9 +157,14 @@ class RakuAST::ContainerCreator {
     }
 
     method IMPL-EXPLICIT-CONTAINER-BASE-TYPE() {
-        self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
-            ?? $!explicit-container-base-type-ast.meta-object
-            !! Mu
+        return Mu unless self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
+        # A container cannot be an instance of a definite type, so `@a is List:D`
+        # uses List as the base. This holds in every language version, unlike the
+        # definite semantics elsewhere, so it is not version-gated.
+        my $type := $!explicit-container-base-type-ast.meta-object;
+        nqp::eqaddr($type.HOW, Perl6::Metamodel::DefiniteHOW)
+            ?? $type.HOW.base_type($type)
+            !! $type
     }
 
     method IMPL-CONFLICTING-BASE-TYPE() {
@@ -255,6 +260,7 @@ class RakuAST::ContainerCreator {
             }
         }
         else {
+            # $explicit-base is already the base type of any `is Type:D`.
             $container-type := self.type
                 ?? $explicit-base.HOW.parameterize($explicit-base, $of)
                 !! $explicit-base;

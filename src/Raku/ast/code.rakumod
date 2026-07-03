@@ -2554,11 +2554,18 @@ class RakuAST::Methodish
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $package := $resolver.find-attach-target('package');
         if self.scope eq 'has' || self.scope eq 'our' {
-            my $package := $resolver.find-attach-target('package');
             if $package {
                 nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
             }
+        }
+        else {
+            # An anonymous or lexical method literal still records its enclosing
+            # package, matching a sub and the legacy frontend. It is not attached
+            # as a method of that package (see PERFORM-BEGIN).
+            nqp::bindattr(self, RakuAST::Routine, '$!package',
+                $package // $resolver.global-package);
         }
     }
 
@@ -2566,7 +2573,10 @@ class RakuAST::Methodish
         self.body.to-begin-time($resolver, $context); # In case it's the default created in the ctor.
 
         my $package := nqp::getattr(self, RakuAST::Routine, '$!package');
-        my $package-is-role := $package && $package.declarator eq 'role';
+        # `has`/`our` are the scopes that make this a method of the package;
+        # `my`/`anon` merely record the enclosing package for `.package`.
+        my $is-package-method := self.scope eq 'has' || self.scope eq 'our';
+        my $package-is-role := $package && $is-package-method && $package.declarator eq 'role';
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.set-is-on-method(True);
@@ -2604,11 +2614,11 @@ class RakuAST::Methodish
 
         my str $name := self.name ?? self.name.canonicalize !! '';
 
-        if $package {
+        if $package && nqp::can($package, 'can-have-methods') {
             if $package.can-have-methods {
-                $package.ATTACH-METHOD(self) unless self.scope eq 'our';
+                $package.ATTACH-METHOD(self) if self.scope eq 'has';
             }
-            elsif self.scope ne 'our' {
+            elsif self.scope eq 'has' {
                 $resolver.add-worry:  # XXX should be self.add-worry
                   $resolver.build-exception: 'X::Useless::Declaration',
                     name  => $name,

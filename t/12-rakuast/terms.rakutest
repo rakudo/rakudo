@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -104,6 +104,55 @@ given "argh" {
 CODE
 
     is-deeply $_, 'ARGH', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Topic call can be bound to' => {
+    # given %(:a(1)) { .<c> := .<a>; $_ }
+    ast RakuAST::Statement::Given.new(
+      source => RakuAST::Contextualizer::Hash.new(
+        RakuAST::StatementSequence.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ColonPair::Value.new(
+              key   => 'a',
+              value => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left  => RakuAST::Term::TopicCall.new(
+                  RakuAST::Postcircumfix::LiteralHashIndex.new(
+                    index => RakuAST::QuotedString.new(
+                      processors => <words val>,
+                      segments   => (RakuAST::StrLiteral.new('c'),)
+                    )
+                  )
+                ),
+                infix => RakuAST::Infix.new(':='),
+                right => RakuAST::Term::TopicCall.new(
+                  RakuAST::Postcircumfix::LiteralHashIndex.new(
+                    index => RakuAST::QuotedString.new(
+                      processors => <words val>,
+                      segments   => (RakuAST::StrLiteral.new('a'),)
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$_')
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $_, {:a(1), :c(1)}, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

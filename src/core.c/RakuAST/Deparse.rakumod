@@ -2601,7 +2601,12 @@ CODE
     }
 
     multi method deparse(RakuAST::Term::TopicCall:D $ast --> Str:D) {
-        self.deparse($ast.call)
+        my $call := $ast.call;
+        # A methodish call deparses with its own leading dot (.foo); a postfix
+        # such as a postcircumfix (.<k>, .[0], .{...}) does not, so supply it.
+        nqp::istype($call, RakuAST::Call::Methodish)
+          ?? self.deparse($call)
+          !! '.' ~ self.deparse($call)
     }
 
     multi method deparse(RakuAST::Term::Whatever:D $ --> Str:D) {

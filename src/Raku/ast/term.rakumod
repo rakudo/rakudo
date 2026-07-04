@@ -214,6 +214,22 @@ class RakuAST::Term::TopicCall
             !! $postfix-ast
     }
 
+    method can-be-bound-to() {
+        $!call.can-be-bound-to
+    }
+
+    method build-bind-exception(RakuAST::Resolver $resolver) {
+        $!call.build-bind-exception($resolver)
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        $!call.IMPL-BIND-POSTFIX-QAST(
+          $context,
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0],
+          $source-qast
+        )
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!call);
     }

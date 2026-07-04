@@ -67,8 +67,12 @@ ok optimized-deparse(Q[my $y = 1 / 0]) ~~ / '¹/₀' | '<1/0>' /, 'division by z
 { my $y = 1 / 0; dies-ok { $y.Str }, 'using a folded zero-denominator Rat throws' }
 
 # Declining a Failure result, the way 1 div 0 produces one, marks it handled
-# so compiling the program stays warning free.
-is-run 'my $y = 1 div 0; print "compiled"', 'a declined Failure does not warn at compile time',
+# so compiling the program stays warning free. The runtime Failure is marked
+# handled explicitly: a garbage collection may otherwise legitimately collect
+# the abandoned Failure mid-run and warn, which is not the compile-time
+# behavior this asserts.
+is-run 'my $y = 1 div 0; $y.handled = True; print "compiled"',
+    'a declined Failure does not warn at compile time',
     :out<compiled>, :err('');
 
 # A throw during compile-time evaluation declines the fold, keeping the

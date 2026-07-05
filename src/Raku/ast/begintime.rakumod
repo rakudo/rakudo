@@ -72,8 +72,14 @@ class RakuAST::BeginTime
             nqp::ifnull(nqp::decont($code.container), Mu)
         }
 
-        # It's already code
-        elsif nqp::istype($code, RakuAST::Code) {
+        # A code literal's begin-time value is its own code object,
+        elsif nqp::istype($code, RakuAST::Code)
+          # unless it is a value-producing statement prefix (gather, start, and
+          # friends), whose value is what running it produces, not the code,
+          && (!nqp::istype($code, RakuAST::StatementPrefix)
+              # though a phaser is a statement prefix whose caller runs the
+              # code object we hand back, so keep those.
+              || nqp::istype($code, RakuAST::StatementPrefix::Phaser)) {
             $code.meta-object
         }
 

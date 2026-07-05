@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 114;
+plan 116;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -832,6 +832,34 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my @fires;
     Q| sub mk { sub { ENTER once { @fires.push('x') } } }; my $a = mk; my $b = mk; $a(); $a(); $b() |.AST.EVAL;
     is +@fires, 2, 'each clone of a routine runs its ENTER once independently';
+}
+
+# A native argument bound to a raw parameter must be a snapshot when no
+# candidate can write back through it, or the stored reference reads the
+# variable's current value on every later access. The legacy optimizer
+# only boxes native arguments for calls it can resolve, so an undecided
+# multi or a call mixing named and positional arguments still leaks the
+# reference. The cases both frontends get right are covered in
+# t/02-rakudo/native-argument-snapshot.t.
+{
+    my $s;
+    multi keep(Mu \v) { $s := v }
+    multi keep(Str \v) { }
+    my int $c = 5;
+    keep($c);
+    $c = 8;
+    todo "undecided multi leaks the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    is $s, 5, 'a native argument to a multi where no candidate is rw is a snapshot';
+}
+
+{
+    my $s;
+    sub hold(Mu \v, :$k) { $s := v }
+    my int $c = 5;
+    hold(k => 1, $c);
+    $c = 8;
+    todo "mixed named and positional args leak the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    is $s, 5, 'a native argument following a named argument is a snapshot';
 }
 
 # vim: expandtab shiftwidth=4

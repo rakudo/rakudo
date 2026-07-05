@@ -504,12 +504,12 @@ class RakuAST::Infix
           ?? QAST::Op.new(:$op, $left-qast, $right-qast)
           # Otherwise, it's called by finding the lexical sub to call, and
           # compiling it as chaining if required.
-          !! QAST::Op.new(
+          !! self.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
                :op(self.properties.chain ?? 'chain' !! 'call'),
                :$name,
                $left-qast,
                $right-qast
-             )
+             ))
     }
 
     method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
@@ -2761,7 +2761,7 @@ class RakuAST::Prefix
         }
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        $op
+        self.IMPL-SIMPLIFY-REF-ARGS($op)
     }
 
     method IMPL-HOP-PREFIX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -3034,7 +3034,7 @@ class RakuAST::Postfix
           :op('call'), :name(self.resolution.lexical-name), $operand-qast
         );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        $op
+        self.IMPL-SIMPLIFY-REF-ARGS($op)
     }
 
     method IMPL-OPERATOR() {

@@ -987,6 +987,89 @@ class RakuAST::Lookup
     method undeclared-symbol-details() {
         Nil
     }
+
+    # Native variable arguments compile to lexicalref/attributeref scope so
+    # a callee with an "is rw" parameter can write back through them. When
+    # this lookup resolves to a routine and no candidate declares the
+    # matching parameter rw, the argument is compiled as a value read
+    # instead. Otherwise a reference bound to a raw parameter, such as the
+    # value of infix:«=>», would be stored as a live view of the variable
+    # rather than a snapshot of it.
+    method IMPL-SIMPLIFY-REF-ARGS(Mu $call) {
+        unless $*COMPILING_CORE_SETTING {
+            if self.is-resolved
+                && nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
+                my $routine := self.resolution.compile-time-value;
+                if nqp::isconcrete($routine) && nqp::istype($routine, Code) {
+                    # The callee is the first child when the call is not
+                    # made by name.
+                    my int $child := $call.name ?? 0 !! 1;
+                    my int $n := nqp::elems($call.list);
+                    my int $pos := 0;
+                    while $child < $n {
+                        my $arg := $call.list[$child];
+                        # A flattened argument makes the positions of the
+                        # remaining arguments unknowable at compile time.
+                        last if $arg.flat;
+                        unless $arg.named {
+                            if nqp::istype($arg, QAST::Var)
+                                && nqp::objprimspec($arg.returns) {
+                                my str $scope := $arg.scope;
+                                if ($scope eq 'lexicalref' || $scope eq 'attributeref')
+                                    && self.IMPL-PARAM-NEVER-RW($routine, $pos) {
+                                    $arg.scope($scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
+                                }
+                            }
+                            ++$pos;
+                        }
+                        ++$child;
+                    }
+                }
+            }
+        }
+        $call
+    }
+
+    # Whether the parameter binding positional argument $i is known to be
+    # non-rw in every candidate of $routine. Any candidate that cannot be
+    # introspected, or whose signature has optional, slurpy, or capture
+    # parameters, means the reference must be kept.
+    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i) {
+        my @candidates;
+        if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
+            return 0 unless nqp::can($routine, 'onlystar') && $routine.onlystar;
+            for nqp::getattr($routine, Routine, '@!dispatchees') {
+                nqp::push(@candidates, $_);
+            }
+        }
+        else {
+            nqp::push(@candidates, $routine);
+        }
+        for @candidates {
+            return 0 unless nqp::can($_, 'signature');
+            my $sig := $_.signature;
+            return 0 unless nqp::isconcrete($sig)
+                && nqp::iseq_n($sig.arity, $sig.count);
+            my $param;
+            my int $pos := 0;
+            for nqp::getattr($sig, Signature, '@!params') {
+                my int $flags := nqp::getattr_i($_, Parameter, '$!flags');
+                unless nqp::getattr($_, Parameter, '@!named_names')
+                    || $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED
+                        +| nqp::const::SIG_ELEM_IS_CAPTURE) {
+                    if $pos == $i {
+                        $param := $_;
+                        last;
+                    }
+                    ++$pos;
+                }
+            }
+            return 0 unless nqp::isconcrete($param);
+            return 0 if nqp::getattr_i($param, Parameter, '$!flags')
+                +& nqp::const::SIG_ELEM_IS_RW;
+        }
+        1
+    }
 }
 
 # Details about an undeclared symbol.

@@ -529,7 +529,7 @@ class RakuAST::Call::Name
             $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
         }
 
-        $call
+        self.IMPL-SIMPLIFY-REF-ARGS($call)
     }
 
     method IMPL-CAN-INTERPRET() {

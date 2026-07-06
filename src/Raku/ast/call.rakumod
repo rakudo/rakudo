@@ -1077,7 +1077,7 @@ class RakuAST::Call::PrivateMethod
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
             my $package := $!package;
-            if nqp::can($package.HOW, 'archetypes') && !$package.HOW.archetypes.generic && !$package.HOW.archetypes.parametric && nqp::can($package.HOW, 'find_private_method') {
+            if self.IMPL-PRIVATE-RESOLVABLE-AT-COMPILE($package) {
                 my $meth := $package.HOW.find_private_method($package, $name);
                 unless nqp::defined($meth) && $meth {
                     self.add-sorry:
@@ -1087,6 +1087,20 @@ class RakuAST::Call::PrivateMethod
                 }
             }
         }
+    }
+
+    # A private method can be resolved at compile time only from a concrete,
+    # non-generic package that has already composed. A package still composing
+    # (a trait applied at BEGIN compiles wrapper methods before its class
+    # composes) may gain the method later, so those calls fall back to the
+    # runtime private-method dispatch instead.
+    method IMPL-PRIVATE-RESOLVABLE-AT-COMPILE(Mu $package) {
+        nqp::can($package.HOW, 'archetypes')
+          && !$package.HOW.archetypes.generic
+          && !$package.HOW.archetypes.parametric
+          && nqp::can($package.HOW, 'find_private_method')
+          && (!nqp::can($package.HOW, 'is_composed')
+                || $package.HOW.is_composed($package))
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1100,7 +1114,7 @@ class RakuAST::Call::PrivateMethod
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
             my $package := $!package;
-            if nqp::can($package.HOW, 'archetypes') && !$package.HOW.archetypes.generic && !$package.HOW.archetypes.parametric && nqp::can($package.HOW, 'find_private_method') {
+            if self.IMPL-PRIVATE-RESOLVABLE-AT-COMPILE($package) {
                 my $meth := $package.HOW.find_private_method($package, $name);
                 if nqp::defined($meth) && $meth {
                     $context.ensure-sc($meth);

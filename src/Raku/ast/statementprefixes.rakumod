@@ -829,6 +829,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
 
         if nqp::istype(self.blorst, RakuAST::Block) {
             self.blorst.set-needs-result(True);
+            self.blorst.set-nil-on-succeed();
             self.blorst.body.statement-list.add-statement(
                 RakuAST::Statement::Expression.new(
                     :expression(

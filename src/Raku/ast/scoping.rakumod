@@ -16,6 +16,7 @@ class RakuAST::LexicalScope
 
     # Handlers related to this scope.
     has int $!need-succeed-handler;
+    has int $!nil-on-succeed;
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
@@ -268,6 +269,15 @@ class RakuAST::LexicalScope
         Nil
     }
 
+    # A QUIT phaser reports whether it handled the exception by what it
+    # returns: Nil after a when/default succeeds, the exception otherwise.
+    # Its block's succeed handler therefore produces Nil, with the payload
+    # sunk, rather than the payload a succeed normally evaluates to.
+    method set-nil-on-succeed() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!nil-on-succeed', 1);
+        Nil
+    }
+
     method attach-catch-handler(RakuAST::Statement::Catch $catch) {
         if $!catch-handlers {
             nqp::push($!catch-handlers, $catch);
@@ -405,7 +415,12 @@ class RakuAST::LexicalScope
             my $handle := QAST::Op.new( :op('handle'), $statements );
             if $!need-succeed-handler {
                 $handle.push('SUCCEED');
-                $handle.push(QAST::Op.new( :op('p6return'), QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ) ));
+                my $payload := QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) );
+                $handle.push(QAST::Op.new( :op('p6return'), $!nil-on-succeed
+                    ?? QAST::Stmts.new(
+                           QAST::Op.new( :op('p6sink'), $payload ),
+                           QAST::WVal.new( :value(Nil) ))
+                    !! $payload ));
             }
             if $!catch-handlers {
                 self.IMPL-ADD-HANDLER($handle, 'CATCH');

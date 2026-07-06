@@ -1,6 +1,6 @@
 use Test;
 
-plan 11;
+plan 13;
 
 # A parenthesized WhateverCode in a `where` is the same closure as the
 # unparenthesized form. `where (* > 0)` must not be mistaken for an explicit
@@ -34,6 +34,14 @@ dies-ok  { my Positive $s = -1 }, 'subset where (* > 0) rejects an invalid value
 # And in a variable constraint, which routes through the subset machinery.
 lives-ok { my $v where (1 <= * <= 4) = 3 }, 'variable where (1 <= * <= 4) accepts';
 dies-ok  { my $v where (1 <= * <= 4) = 9 }, 'variable where (1 <= * <= 4) rejects';
+
+# A bare `where *` is a Whatever constraint that accepts anything (as in
+# IUP's `Bool :$copy where *`). Its synthetic ACCEPTS wrapper must not be
+# mistaken for a user-written double closure.
+sub bare($x where *) { $x }
+is bare(-99), -99, 'where * accepts any value';
+sub named(Bool :$flag where *) { $flag }
+is named(:flag), True, 'a named parameter where * accepts any value';
 
 # An explicit block wrapping a whatever is still a double closure error.
 throws-like 'sub f($x where { * > 0 }) { }', X::Syntax::Malformed,

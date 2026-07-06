@@ -1083,6 +1083,15 @@ class RakuAST::Parameter
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
             if $!where;
+
+        # Catch a double closure in the user's own where block, before it is
+        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
+        # block, so it is left alone and its wrapper is not mistaken for one.
+        if $!where && nqp::istype($!where, RakuAST::Block) {
+            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
+            self.add-sorry: $sorry if $sorry;
+        }
+
         if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
@@ -1257,11 +1266,6 @@ class RakuAST::Parameter
           && nqp::can($ptype-archetypes, "parametric")
           && $ptype-archetypes.parametric {
             $!owner.set-custom-args;
-        }
-
-        if $!where && nqp::istype($!where, RakuAST::Block) {
-            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
-            self.add-sorry: $sorry if $sorry;
         }
 
         if $!type {

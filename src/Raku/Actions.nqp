@@ -2699,6 +2699,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? $/.how($declarator)
           !! $/.panic("Cannot resolve meta-object for $declarator");
 
+        # A custom declarator can register a companion attribute meta-object
+        # under `<declarator>-attr`, used for the `has` declarations in its
+        # body. A `value-class` declarator pairs with `value-class-attr`. With
+        # no companion registered, attributes use the standard Attribute.
+        my str $attr-declarator := $declarator ~ '-attr';
+        my $attribute-type := $/.know_how($attr-declarator)
+          ?? $/.how($attr-declarator)
+          !! NQPMu;
+
         # Stub the package AST node.
 
         my $name-match := $*PACKAGE-NAME;
@@ -2738,7 +2747,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast-class := nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
         }
         my $package := Nodify($ast-class).new(
-          :$how, :$name, :$scope, :$augmented, :parsed-declarator($declarator)
+          :$how, :$name, :$scope, :$augmented, :$attribute-type,
+          :parsed-declarator($declarator)
         );
 
         $package.to-parse-time($*R, $*CU.context);

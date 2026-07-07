@@ -427,18 +427,13 @@ role Raku::Common {
         \h*
         <?before \n | '#'>
 
-        :my $R;
-        :my $scope;
-        {
-            $R     := $*R;
-            # <.ws> is where the heredoc body splices in. Leave this scope for
-            # it, then restore the same one. Re-entering a fresh scope would
-            # drop the declarations already registered into it, so begin-time
-            # code later could not resolve any enclosing lexical.
-            $scope := $R.leave-scope;
-        }
+        # <.ws> is where the heredoc body splices in. Leave this scope for
+        # it, then restore the same one. Re-entering a fresh scope would
+        # drop the declarations already registered into it, so begin-time
+        # code later could not resolve any enclosing lexical.
+        :my $scope := $*R.leave-scope;
         <.ws>
-        { $R.re-enter-scope($scope) }
+        { $*R.re-enter-scope($scope) }
         <?MARKER('end-statement')>
     }
 

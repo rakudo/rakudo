@@ -244,7 +244,11 @@ my sub return_hash_for(
 }
 
 my sub type_code_for(Mu ::T) {
-    nqp::ifnull(
+    # A definiteness-constrained type such as `--> Foo:D` carries a DefiniteHOW;
+    # it maps to the same native code as its base type.
+    nqp::istype(T.HOW, Metamodel::DefiniteHOW)
+      ?? type_code_for(T.HOW.base_type(T))
+      !! nqp::ifnull(
       nqp::atkey($type_map,T.^shortname),
       nqp::ifnull(
         nqp::atkey($repr_map,T.REPR),
@@ -315,6 +319,7 @@ our role Native[
 ] {
     has Callsite $!call is box_target;
     has Mu       $!rettype;
+    has Mu       $!ret-constraint;
     has          $!cpp-name-mangler;
     has Pointer  $!entry-point;
     has int      $!arity;
@@ -325,8 +330,9 @@ our role Native[
 
     method CUSTOM-DISPATCHER(--> str) { 'raku-nativecall' }
 
-    method call()    { $!call    }
-    method rettype() { $!rettype }
+    method call()           { $!call           }
+    method rettype()        { $!rettype        }
+    method ret-constraint() { $!ret-constraint }
 
     INIT my Lock $setup-lock .= new;
     method !setup() {
@@ -357,8 +363,17 @@ our role Native[
             my Mu $arg_info := param_list_for($signature, $!variadic, $routine);
             my str $conv     = self.?native_call_convention || '';
 
-            $!rettype := nqp::decont(map_return_type($routine.returns))
+            my $returns := $routine.returns;
+            $!rettype := nqp::decont(map_return_type($returns))
               unless $!rettype;
+
+            # A definiteness-constrained return type such as `--> Foo:D`
+            # is mapped to its base type for the native call itself, so
+            # keep the constraint for checking the returned value. Mu
+            # marks an unconstrained return.
+            $!ret-constraint := nqp::istype($returns.HOW,Metamodel::DefiniteHOW)
+              ?? nqp::decont($returns)
+              !! Mu;
             $!arity    = $signature.arity;
 
             my int $m = nqp::elems($params);
@@ -440,7 +455,13 @@ our role Native[
                         ++$i;
                     }
                 }
-                nqp::nativecall($!rettype, self, $args)
+                my $result := nqp::nativecall($!rettype, self, $args);
+                nqp::eqaddr(nqp::decont($!ret-constraint), Mu)
+                  || $!ret-constraint.ACCEPTS($result)
+                  ?? $result
+                  !! X::TypeCheck::Return.new(
+                       :got($result), :expected($!ret-constraint)
+                     ).throw
             }
 
             my $do := nqp::getattr($replacement, Code, '$!do');

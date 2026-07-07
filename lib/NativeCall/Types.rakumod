@@ -10,7 +10,13 @@ my constant $ok-REPRs = nqp::hash(
 #- helper subs -----------------------------------------------------------------
 # Helper sub for type mapping, also used in NativeCall
 my proto sub map_return_type(|) is export {*}
-my multi sub map_return_type(Mu $type) { $type }
+my multi sub map_return_type(Mu $type) {
+    # A definiteness-constrained return type such as `--> Foo:D` maps as its
+    # base type; its own REPR is Uninstantiable and cannot back a native call.
+    nqp::istype($type.HOW, Metamodel::DefiniteHOW)
+      ?? map_return_type($type.HOW.base_type($type))
+      !! $type
+}
 my multi sub map_return_type(Int     ) { Int   }
 my multi sub map_return_type(Num     ) { Num   }
 

@@ -41,6 +41,22 @@ my $do-resume := nqp::getattr(&raku-nativecall-deproxy-resume, Code, '$!do');
 nqp::forceouterctx($do-resume, nqp::getattr(MY::, PseudoStash, '$!ctx'));
 nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 
+#- raku-nativecall-check-return ------------------------------------------------
+
+# Invoked (via boot-code-constant) in place of the plain tail delegation to
+# 'boot-foreign-code' when the return type carries a definiteness constraint.
+# The resumption (raku-nativecall-core's resume callback) performs the native
+# call, so its result arrives back here where it can be checked before being
+# handed to the caller.
+my sub raku-nativecall-check-return(Mu $type is raw) {
+    my $result := nqp::dispatch('boot-resume', nqp::const::DISP_DECONT);
+    $type.ACCEPTS($result)
+      ?? $result
+      !! X::TypeCheck::Return.new(:got($result), :expected($type)).throw
+}
+my $check-return-do := nqp::getattr(&raku-nativecall-check-return, Code, '$!do');
+nqp::forceouterctx($check-return-do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+
 #- raku-nativecall -------------------------------------------------------------
 
 my $PROXY-READERS := nqp::gethllsym('Raku', 'PROXY-READERS');
@@ -111,7 +127,11 @@ nqp::register('raku-nativecall', $do);
 
 #- raku-nativecall-core --------------------------------------------------------
 
-my sub raku-nativecall-core(Mu $capture is raw) {
+# Marshals the arguments of the given capture (with the callee as argument
+# 0) and tail-delegates to the VM's native call dispatcher. Called when
+# recording the initial dispatch for an unconstrained return type, and when
+# recording the return checker's resumption for a constrained one.
+my sub marshal-and-delegate-native-call(Mu $capture is raw) {
     my $callee      := nqp::captureposarg($capture, 0);
     my $params      := nqp::getattr($callee.signature.params, List, '$!reified');
     my $param-elems := nqp::elems($params);
@@ -206,6 +226,26 @@ my sub raku-nativecall-core(Mu $capture is raw) {
                 $arg := nqp::decont($arg);
             }
 
+            # The signature binder never runs for a native sub, so a
+            # definiteness constraint such as `Foo:D $x` must be enforced
+            # here, on the decontainerized argument.
+            unless $variadic {
+                my str $modifier = $param.modifier;
+                if $modifier eq ':D' || $modifier eq ':U' {
+                    nqp::guard('concreteness', $Tvalue);
+                    my int $definite = $modifier eq ':D';
+                    if nqp::isconcrete_nd($arg) != $definite {
+                        X::Parameter::InvalidConcreteness.new(
+                          :expected($param.type.^name),
+                          :got($arg.^name),
+                          :routine($callee.name),
+                          :param($param.name),
+                          :should-be-concrete(?$definite),
+                        ).throw
+                    }
+                }
+            }
+
             # Get to the actual low-level code if Code
             set-arg-i-value(
               $Tvalue := nqp::track('attr', $Tvalue, Code, '$!do')
@@ -292,9 +332,57 @@ my sub raku-nativecall-core(Mu $capture is raw) {
     );
 }
 
+my sub raku-nativecall-core(Mu $capture is raw) {
+    my $ret-constraint :=
+      nqp::decont(nqp::captureposarg($capture, 0).ret-constraint);
+
+    # No constraint on the returned value: straight to the native call.
+    if nqp::eqaddr($ret-constraint, Mu) {
+        marshal-and-delegate-native-call($capture);
+    }
+
+    # The return type carries a definiteness constraint, and a tail
+    # delegation to the native call gives no seam to check the value it
+    # produces. Instead stash the arguments as the resumption state (they
+    # must remain unmarshalled: resume init args cannot contain tracked
+    # values) and invoke the checker, which resumes into the native call
+    # and receives its result.
+    else {
+        nqp::syscall('dispatcher-set-resume-init-args', $capture);
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-insert-arg-literal-obj',
+              nqp::syscall('dispatcher-drop-n-args',
+                $capture, 0, nqp::unbox_i(nqp::captureposelems($capture))
+              ),
+              0, $ret-constraint
+            ),
+            0, $check-return-do
+          )
+        );
+    }
+}
+
+my sub raku-nativecall-core-resume(Mu $capture is raw) {
+    nqp::guard('literal', nqp::track('arg', $capture, 0));
+
+    if nqp::captureposarg_i($capture, 0) == nqp::const::DISP_DECONT {
+        my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
+
+        # The return checker is shared by all natives with a constrained
+        # return type, so the resumption must be pinned to this callee for
+        # its native call to be the one recorded in the dispatch program.
+        nqp::guard('literal', nqp::track('arg', $orig-capture, 0));
+
+        marshal-and-delegate-native-call($orig-capture);
+    }
+}
+
 # Set up actual dispatcher and its context
 $do := nqp::getattr(&raku-nativecall-core, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
-nqp::register('raku-nativecall-core', $do);
+$do-resume := nqp::getattr(&raku-nativecall-core-resume, Code, '$!do');
+nqp::forceouterctx($do-resume, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::register('raku-nativecall-core', $do, $do-resume);
 
 # vim: expandtab shiftwidth=4

@@ -482,6 +482,11 @@ class RakuAST::StatementPrefix::Once
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        # A once in a sub in a role body reaches code generation before the
+        # enclosing scope has produced this once's implicit state declaration,
+        # so produce it now. The declaration itself is emitted afterwards, when
+        # the block gathers its declarations.
+        self.get-implicit-declarations unless nqp::isconcrete($!state-decl);
         # The state variable starts out holding a private sentinel. Testing
         # its value rather than nqp::p6stateinit makes the once fire exactly
         # once per clone of the frame that owns the variable, even when the

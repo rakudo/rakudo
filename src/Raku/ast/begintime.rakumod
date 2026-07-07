@@ -59,8 +59,9 @@ class RakuAST::BeginTime
         }
 
         # Can interprete, so do that
+        my $result;
         if $code.IMPL-CAN-INTERPRET {
-            $code.IMPL-INTERPRET(
+            $result := $code.IMPL-INTERPRET(
               RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
             )
         }
@@ -69,7 +70,7 @@ class RakuAST::BeginTime
         # is whatever its cache holds, which is undefined until it runs. Hand
         # that back rather than the block itself.
         elsif nqp::istype($code, RakuAST::StatementPrefix::Phaser::Init) {
-            nqp::ifnull(nqp::decont($code.container), Mu)
+            $result := nqp::ifnull(nqp::decont($code.container), Mu)
         }
 
         # A code literal's begin-time value is its own code object,
@@ -80,7 +81,7 @@ class RakuAST::BeginTime
               # though a phaser is a statement prefix whose caller runs the
               # code object we hand back, so keep those.
               || nqp::istype($code, RakuAST::StatementPrefix::Phaser)) {
-            $code.meta-object
+            $result := $code.meta-object
         }
 
         # Wrap an expression in a thunk
@@ -90,11 +91,27 @@ class RakuAST::BeginTime
             $thunk.IMPL-STUB-CODE($resolver, $context);
             $code.apply-sink(False);
             $thunk.IMPL-QAST-BLOCK($context, :expression($code));
-            $thunk.meta-object()()
+            $result := $thunk.meta-object()()
         }
         else {
             nqp::die('BEGIN time evaluation only supported for simple constructs so far')
         }
+
+        # A native-typed expression evaluates to a bare VM-level box (for
+        # example a BOOTInt) where the same expression at run time would
+        # produce an Int. Such a box has no Raku method table and a null
+        # WHO, so letting it escape into a stash breaks stash consumers
+        # like the compunit GLOBAL merge. Box VM-level scalars into their
+        # Raku types; leave VM-level aggregates alone, as constants holding
+        # nqp hashes and lists rely on staying unboxed.
+        unless nqp::isnull($result) {
+            my $type := nqp::what($result);
+            $result := nqp::hllizefor($result, 'Raku')
+              if nqp::eqaddr($type, nqp::bootint())
+              || nqp::eqaddr($type, nqp::bootnum())
+              || nqp::eqaddr($type, nqp::bootstr());
+        }
+        $result
     }
 
     # Evaluate the argument of a pragma, use, import, or require into an

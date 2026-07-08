@@ -1570,28 +1570,36 @@ class RakuAST::Block
             nqp::bindattr($signature.meta-object, Signature, '$!code', $block);
         }
         elsif $!implicit-topic-mode > 0 {
-            my constant REQUIRED-TOPIC-SIG := -> {
+            my constant REQUIRED-TOPIC-PARAM := -> {
                 my $param := nqp::create(Parameter);
                 nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
-                my $sig := nqp::create(Signature);
-                nqp::bindattr($sig, Signature, '@!params', [$param]);
-                nqp::bindattr_i($sig, Signature, '$!arity', 1);
-                nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
-                $sig
+                nqp::bindattr($param, Parameter, '$!type', Mu);
+                nqp::bindattr_i($param, Parameter, '$!flags',
+                    nqp::const::SIG_ELEM_IS_RAW);
+                $param
             }();
-            my constant OPTIONAL-TOPIC-SIG := -> {
+            my constant OPTIONAL-TOPIC-PARAM := -> {
                 my $param := nqp::create(Parameter);
                 nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
-                nqp::bindattr_i($param, Parameter, '$!flags', 2048 + 16384); # Optional + default from outer
-                my $sig := nqp::create(Signature);
-                nqp::bindattr($sig, Signature, '@!params', [$param]);
-                nqp::bindattr_i($sig, Signature, '$!arity', 0);
-                nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
-                $sig
+                nqp::bindattr($param, Parameter, '$!type', Mu);
+                nqp::bindattr_i($param, Parameter, '$!flags',
+                    nqp::const::SIG_ELEM_IS_RAW
+                    +| nqp::const::SIG_ELEM_IS_OPTIONAL
+                    +| nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER);
+                $param
             }();
-            nqp::bindattr($block, Code, '$!signature', $!implicit-topic-mode == 1
-                ?? OPTIONAL-TOPIC-SIG
-                !! REQUIRED-TOPIC-SIG);
+            # The Parameter holds no per-block state and can be shared, but
+            # each block needs its own Signature: the Binder's trial bind
+            # invokes under the signature's $!code, so the backlink must
+            # point at this block.
+            my int $optional := $!implicit-topic-mode == 1;
+            my $sig := nqp::create(Signature);
+            nqp::bindattr($sig, Signature, '@!params',
+                [$optional ?? OPTIONAL-TOPIC-PARAM !! REQUIRED-TOPIC-PARAM]);
+            nqp::bindattr_i($sig, Signature, '$!arity', $optional ?? 0 !! 1);
+            nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
+            nqp::bindattr($sig, Signature, '$!code', $block);
+            nqp::bindattr($block, Code, '$!signature', $sig);
         }
         self.add-phasers-to-code-object($block);
         $block

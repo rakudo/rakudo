@@ -1462,7 +1462,11 @@ class RakuAST::Regex::Assertion::Named::RegexArg
         nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast', $body-qast);
         my $qast := self.IMPL-REGEX-QAST-CALL($context);
         my str $name := self.IMPL-UNIQUE-NAME;
-        $qast[0].push(QAST::Var.new( :$name, :scope('lexical') ));
+        my $arg-qast := QAST::Var.new( :$name, :scope('lexical') );
+        # QRegex::NFA reads this annotation to inline a <before ...>
+        # argument's regex into the caller's declarative prefix for LTM.
+        $arg-qast.annotate('orig_qast', $body-qast);
+        $qast[0].push($arg-qast);
         $qast
     }
 

@@ -1919,78 +1919,89 @@ class RakuAST::VarDeclaration::Signature
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        if nqp::isconcrete($!initializer) {
-            my $perform-init-qast;
-            my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-            my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
-            my @terms;
+        my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+        my @terms;
 
-            for @params {
-                nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-                if $_.target {
-                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
-                }
-                elsif $_.type {
-                    # Anonymous typed parameter (e.g. Int or Any:D) in a
-                    # list declaration. Create a typed placeholder container
-                    # so it consumes and type-checks the RHS value at this
-                    # position.
-                    my $of := $_.type.meta-object;
-                    my $desc := RakuAST::IMPL::Containers.create-descriptor(
-                        :$of, :default($of), :dynamic(0), :name('anon'));
-                    $context.ensure-sc($desc);
-                    $value-list.push: QAST::Op.new(
-                        :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
-                    );
-                }
+        for @params {
+            nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
+            if $_.target {
+                $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
             }
-            if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
-                my $init-qast := $!initializer.IMPL-TO-QAST($context);
-                my $list := QAST::Op.new( :op('p6store'), $value-list, $init-qast);
-                if 0 < nqp::elems(@terms) {
-                    my $stmts := QAST::Stmts.new(:resultchild(0), $list);
-                    for @terms {
-                        $stmts.push(
-                            $_.IMPL-BIND-QAST(
-                                $context,
-                                QAST::Op.new(:op('decont'), $_.IMPL-LOOKUP-QAST($context))
-                            )
-                        );
-                    }
-                    $perform-init-qast := $stmts;
-                }
-                else {
-                    $perform-init-qast := $list;
-                }
-            }
-            elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
-                my $signature := $!signature.meta-object;
-                $context.ensure-sc($signature);
-                my $init-qast := $!initializer.IMPL-TO-QAST($context);
-                $perform-init-qast := QAST::Op.new(
-                    :op('p6bindcaptosig'),
-                    QAST::WVal.new( :value($signature) ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('Capture'),
-                        $init-qast
-                    )
+            elsif $_.type {
+                # Anonymous typed parameter (e.g. Int or Any:D) in a
+                # list declaration. Create a typed placeholder container
+                # so it consumes and type-checks the RHS value at this
+                # position.
+                my $of := $_.type.meta-object;
+                my $desc := RakuAST::IMPL::Containers.create-descriptor(
+                    :$of, :default($of), :dynamic(0), :name('anon'));
+                $context.ensure-sc($desc);
+                $value-list.push: QAST::Op.new(
+                    :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
                 );
             }
-            else {
-                nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
-            }
-            if self.scope eq 'state' {
-                $perform-init-qast := QAST::Op.new(
-                  :op('if'),
-                  QAST::Op.new( :op('p6stateinit') ),
-                  $perform-init-qast,
-                  $value-list
-                )
-            }
-            return $perform-init-qast;
         }
 
-        QAST::Op.new(:op<null>);
+        # With no initializer a lexical declaration's value is the list of its
+        # own containers, so it can be used as an rvalue, e.g. bound on the
+        # right of `:=` in `my (\a, \b) := my ($x, $y)`. A sunk declaration
+        # wants nothing, so it keeps the null it used to always return. An
+        # attribute declaration has no container to hand back at class-body
+        # time, so it also stays null.
+        unless nqp::isconcrete($!initializer) {
+            my str $scope := self.scope;
+            my $attribute := $scope eq 'has' || $scope eq 'HAS';
+            return self.sunk || $attribute
+                ?? QAST::Op.new(:op<null>)
+                !! $value-list;
+        }
+
+        my $perform-init-qast;
+        if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
+            my $init-qast := $!initializer.IMPL-TO-QAST($context);
+            my $list := QAST::Op.new( :op('p6store'), $value-list, $init-qast);
+            if 0 < nqp::elems(@terms) {
+                my $stmts := QAST::Stmts.new(:resultchild(0), $list);
+                for @terms {
+                    $stmts.push(
+                        $_.IMPL-BIND-QAST(
+                            $context,
+                            QAST::Op.new(:op('decont'), $_.IMPL-LOOKUP-QAST($context))
+                        )
+                    );
+                }
+                $perform-init-qast := $stmts;
+            }
+            else {
+                $perform-init-qast := $list;
+            }
+        }
+        elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
+            my $signature := $!signature.meta-object;
+            $context.ensure-sc($signature);
+            my $init-qast := $!initializer.IMPL-TO-QAST($context);
+            $perform-init-qast := QAST::Op.new(
+                :op('p6bindcaptosig'),
+                QAST::WVal.new( :value($signature) ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('Capture'),
+                    $init-qast
+                )
+            );
+        }
+        else {
+            nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
+        }
+        if self.scope eq 'state' {
+            $perform-init-qast := QAST::Op.new(
+              :op('if'),
+              QAST::Op.new( :op('p6stateinit') ),
+              $perform-init-qast,
+              $value-list
+            )
+        }
+        $perform-init-qast
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

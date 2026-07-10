@@ -23,7 +23,11 @@ package EXPORT::cached {
 }
 
 package EXPORT::macros {
-    OUR::<EXPERIMENTAL-MACROS> := nqp::getcomp('Raku').language_revision < 3;
+    # A load-independent marker. This our-symbol is GLOBAL-merged into every
+    # consumer, so a value that varies by language revision collides on merge
+    # once a 6.e consumer is precompiled. The 6.e macro ban lives in the
+    # grammar's experimental token instead.
+    OUR::<EXPERIMENTAL-MACROS> := True;
 }
 
 package EXPORT::smallnatives {

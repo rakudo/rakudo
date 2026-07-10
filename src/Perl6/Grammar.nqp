@@ -347,7 +347,10 @@ role STD {
     }
 
     token experimental($feature) {
-        <?{ $*COMPILING_CORE_SETTING || try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
+        <?{ $*COMPILING_CORE_SETTING
+            || ((try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)))
+                && ($feature ne 'macros'
+                    || nqp::getcomp('Raku').language_revision < 3)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 

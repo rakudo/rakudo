@@ -551,6 +551,7 @@ class RakuAST::Parameter
     has RakuAST::Expression        $.array-shape;
     has RakuAST::Node              $.owner;
     has RakuAST::Package           $!package;
+    has Mu                         $!attr-package;
     has RakuAST::Signature         $.sub-signature;
     has List                       $!type-captures;
     has RakuAST::Signature         $.signature-constraint;
@@ -824,6 +825,15 @@ class RakuAST::Parameter
             $resolver.find-attach-target('block'));
         nqp::bindattr(self, RakuAST::Parameter, '$!package',
             $resolver.find-attach-target('package'));
+        # A private attributive parameter binds into an attribute, and the full
+        # binder reaches it through the parameter's attr_package. Capture $?CLASS
+        # now, while a resolver is available, so a role keeps its generic package
+        # and is instantiated to the pun on composition.
+        if nqp::istype($!target, RakuAST::ParameterTarget::Var) && $!target.attribute {
+            my $found := $resolver.resolve-lexical-constant('$?CLASS');
+            nqp::bindattr(self, RakuAST::Parameter, '$!attr-package',
+                $found.compile-time-value) if $found;
+        }
     }
 
     method visit-children(Code $visitor) {
@@ -914,6 +924,9 @@ class RakuAST::Parameter
                 $!target.set-rw if $rw eq 'rw';
                 $!target.set-ro(False);
             }
+        }
+        unless nqp::isnull($!attr-package) {
+            nqp::bindattr($parameter, Parameter, '$!attr_package', $!attr-package);
         }
         my @post_constraints;
         if nqp::defined($!value) {

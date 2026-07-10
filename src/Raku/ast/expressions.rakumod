@@ -336,6 +336,9 @@ class RakuAST::Infix
         SC{$!operator} // False
     }
 
+    # A pure operator's sink call rides on this classification, so an impure
+    # operator whose result is a lazy producer must also be listed in
+    # IMPL-RESULT-NEEDS-ITERATION to keep being sunk.
     method is-pure() {
         my constant NP := nqp::hash(
           ':=',   False,
@@ -350,6 +353,11 @@ class RakuAST::Infix
         );
         nqp::atkey(NP,$!operator) // True
     }
+
+    # `A xx *` returns a lazy Seq, so a sunk result must be iterated to run its
+    # side effects. A finite count reifies eagerly and would run them without a
+    # sink, but the count is not always known at compile time.
+    method IMPL-RESULT-NEEDS-ITERATION() { $!operator eq 'xx' }
 
     method IMPL-OPERATOR() {
         self.resolution.compile-time-value

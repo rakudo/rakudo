@@ -2617,13 +2617,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym<⚛++> { <sym> }
     token postfix:sym<⚛--> { <sym> }
 
-    # TODO: report the correct bracket in error message
     token postfix:sym«->» {
         <sym>
         [
-          | ['[' | '{' | '(' ]
-            <.obs: '->(), ->{} or ->[] as postfix dereferencer',
-              '.(), .[] or .{} to deref, or whitespace to delimit a pointy block'>
+          | $<bracket>=['[' | '{' | '(' ]
+            {
+                my str $open := ~$<bracket>;
+                my str $pair := $open eq '['
+                  ?? '[]'
+                  !! $open eq '{' ?? '{}' !! '()';
+                $/.obs(
+                  '->' ~ $pair ~ ' as postfix dereferencer',
+                  '.' ~ $pair ~ ' to deref'
+                    ~ ($open eq '['
+                        ?? ''
+                        !! ', or whitespace to delimit a pointy block')
+                );
+            }
 
           | <.obs: '-> as postfix',
               'either . to call a method, or whitespace to delimit a pointy block'>

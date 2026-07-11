@@ -2003,6 +2003,25 @@ class RakuAST::WhateverApplicable
         }
     }
 
+    # A curried expression's value is its WhateverCode, and a BEGIN-time
+    # call may interpret it: the curry compiles as a static block whose
+    # outer is the compunit, so the closure survives serialization into
+    # a precompiled unit. Building it by running a dynamically compiled
+    # thunk instead gives it a throwaway outer frame that no longer
+    # matches after precompilation. Other interpret consumers, such as
+    # constant folding, must not treat the curry as a constant and have
+    # no QAST context to compile the block with, so this is gated by the
+    # dynamic flag the BEGIN-time call paths set.
+    method IMPL-CURRIED-CAN-INTERPRET() {
+        ($*IMPL-INTERPRET-CURRIED // 0) && self.IMPL-CURRIED ?? True !! False
+    }
+
+    method IMPL-CURRIED-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $curry := self.IMPL-CURRIED;
+        $curry.IMPL-QAST-BLOCK($ctx.context, :blocktype<declaration_static>, :expression(self));
+        $curry.meta-object
+    }
+
     method IMPL-IS-XX() {
         False
     }
@@ -2330,11 +2349,14 @@ class RakuAST::ApplyInfix
     method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     method IMPL-CAN-INTERPRET() {
-        $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
+        self.IMPL-CURRIED-CAN-INTERPRET
+          || $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args) );
+        self.IMPL-CURRIED-CAN-INTERPRET
+          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+          !! $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args) );
     }
 }
 
@@ -2518,6 +2540,7 @@ class RakuAST::ApplyListInfix
     }
 
     method IMPL-CAN-INTERPRET() {
+        return True if self.IMPL-CURRIED-CAN-INTERPRET;
         if $!infix.IMPL-CAN-INTERPRET {
             for self.IMPL-UNWRAP-LIST($!operands) {
                 return False unless $_.IMPL-CAN-INTERPRET;
@@ -2530,7 +2553,9 @@ class RakuAST::ApplyListInfix
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        $!infix.IMPL-INTERPRET($ctx, $!operands)
+        self.IMPL-CURRIED-CAN-INTERPRET
+          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+          !! $!infix.IMPL-INTERPRET($ctx, $!operands)
     }
 }
 
@@ -2901,9 +2926,13 @@ class RakuAST::ApplyPrefix
         QAST::Op.new: :op($assign), :$returns, $var, $step
     }
 
-    method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() {
+        self.IMPL-CURRIED-CAN-INTERPRET
+          || $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET
+    }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        return self.IMPL-CURRIED-INTERPRET($ctx) if self.IMPL-CURRIED-CAN-INTERPRET;
         my $op := $!prefix.IMPL-INTERPRET($ctx);
         $op($!operand.IMPL-INTERPRET($ctx))
     }
@@ -3688,10 +3717,15 @@ class RakuAST::ApplyPostfix
         $visitor($!postfix);
     }
 
-    method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() {
+        self.IMPL-CURRIED-CAN-INTERPRET
+          || $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET
+    }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
+        self.IMPL-CURRIED-CAN-INTERPRET
+          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+          !! $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
     }
 }
 

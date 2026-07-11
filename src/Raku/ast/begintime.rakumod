@@ -139,6 +139,10 @@ class RakuAST::BeginTime
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
 
+        # A curried argument (a WhateverCode) may be interpreted here, as
+        # its static block compiles against a real QAST context.
+        my $*IMPL-INTERPRET-CURRIED := 1;
+
         # Ready to call
         if $callee.is-resolved
           && nqp::istype($callee.resolution, RakuAST::CompileTimeValue)

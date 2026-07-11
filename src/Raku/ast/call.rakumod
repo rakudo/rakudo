@@ -939,15 +939,6 @@ class RakuAST::Call::Method
               $resolver.build-exception: 'X::AdHoc',
                   payload => 'Cannot use ' ~ self.dispatch ~ ' on a non-identifier method call';
         }
-
-        if $!name && $!name.is-multi-part {
-            my $Qualified := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-            unless $Qualified.is-resolved {
-                # Give it a second chance to resolve.
-                #FIXME Calling IMPL-BEGIN seems like the wrong tool though.
-                $Qualified.IMPL-BEGIN($resolver, $context);
-            }
-        }
     }
 }
 

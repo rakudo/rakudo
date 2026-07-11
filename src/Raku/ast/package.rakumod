@@ -560,7 +560,6 @@ class RakuAST::Package::Attachable
         Nil
     }
 
-    # TODO also list-y declarations
     method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
         nqp::push($!attached-attributes, $attribute);
         my $type := self.stubbed-meta-object;

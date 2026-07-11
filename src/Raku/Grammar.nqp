@@ -623,6 +623,13 @@ role Raku::Common {
         }
 
         my $cursor := %opts<precursor> ?? self.PRECURSOR !! self;
+        # A failed cursor's position is a negative sentinel. Report from the
+        # furthest position the parse reached instead. A cursor positioned
+        # deliberately, like a check time error pointing at a name, is left
+        # alone.
+        if $cursor.pos < 0 && $cursor.'!highwater'() >= 0 {
+            $cursor.'!cursor_pos'($cursor.'!highwater'());
+        }
         my @prepost := self.prepost($cursor);
         my $pre := @prepost[0];
         my $post := @prepost[1];
@@ -728,8 +735,9 @@ role Raku::Common {
         my int $prestart := $pos - $distance;
         $prestart := 0 if $prestart < 0;
 
-        # FIXME workaround for when $pos is -3. Need to figure out how to
-        # get the real pos
+        # A failed cursor's position is a negative sentinel; the caller
+        # normally repositions such a cursor to its highwater mark first.
+        # When even that was unavailable, fall back to the source start.
         $pos := 0 if $pos < 0;
 
         my $pre := nqp::substr($orig,$prestart,$pos - $prestart);

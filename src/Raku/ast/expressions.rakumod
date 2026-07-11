@@ -1427,7 +1427,9 @@ class RakuAST::MetaInfix::Assign
             )
         }
         elsif nqp::istype($!infix, RakuAST::Infix) && $!infix.short-circuit {
-            # TODO case-analyzed assignments
+            # The general path. The optimize pass marks targets that can
+            # assign directly, which IMPL-INLINE-METAOP-QAST handles; here
+            # the temporary keeps the left evaluated once whatever it is.
             my $temp := QAST::Node.unique('meta_assign');
             my $bind-lhs := QAST::Op.new(
               :op<bind>,

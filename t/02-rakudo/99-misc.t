@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 12;
+plan 13;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -163,5 +163,14 @@ subtest 'DOC use loads only when compiling documentation', {
     is-run ｢DOC use NoSuchModuleAnywhere;｣,
         :compiler-args['--doc'], :err(/'Could not find NoSuchModuleAnywhere'/), :exitcode(1),
         'a DOC-prefixed use loads the module under --doc';
+}
+
+subtest 'trailing paren declarator doc directly after a block', {
+    plan 1;
+    use MONKEY-SEE-NO-EVAL;
+    is EVAL(｢sub f() {} #=( attached )
+&f.WHY｣),
+        'attached',
+        'the doc attaches without a separating semicolon';
 }
 # vim: expandtab shiftwidth=4

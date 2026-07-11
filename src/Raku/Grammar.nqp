@@ -5798,7 +5798,7 @@ Rakudo significantly on *every* run."
 
     token comment:sym<#=> { '#=' \h $<attachment>=[\N*] }
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.Quote)> \n?
+        '#=' <?opener> <attachment=.quibble(self.Quote)>
     }
 
 #-------------------------------------------------------------------------------

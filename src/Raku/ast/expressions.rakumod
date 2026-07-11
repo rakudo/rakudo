@@ -370,7 +370,8 @@ class RakuAST::Infix
             $thunk.to-begin-time($resolver, $context);
             $expression.wrap-with-thunk($thunk);
         }
-        # TODO implement other thunk types
+        # 'b', 't' and the no-thunk '.' the caller skips are the entire
+        # thunky vocabulary of OperatorProperties.
     }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,

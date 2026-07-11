@@ -1965,9 +1965,10 @@ class RakuAST::Routine
         }
 
         # Make sure that any OperatorProperties are set on the meta-object
-        # if it is some kind of operator.  This feels pretty hackish way
-        # to do this, perhaps better done with dedicated subclasses of
-        # RakuAST::Sub.  But it will do for now.
+        # if it is some kind of operator. The category of an operator sub is
+        # only expressed in its name, so reading it from the name is not a
+        # workaround: a dedicated node class per category would still have
+        # to parse the name to know which class to construct.
         if $!name {
             my @parts;
             for $!name.IMPL-UNWRAP-LIST($!name.colonpairs) {

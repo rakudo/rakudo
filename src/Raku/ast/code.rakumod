@@ -1815,7 +1815,6 @@ class RakuAST::PointyBlock
         $context.ensure-sc($block);
 
         # Add return type check if needed.
-        # TODO also infer body type
         my $returns := nqp::ifnull($signature.returns, Mu);
         unless $returns =:= Mu || $returns =:= Nil || nqp::isconcrete($returns) {
             $context.ensure-sc($returns);
@@ -2216,7 +2215,6 @@ class RakuAST::Routine
         }
 
         # Add return type check if needed.
-        # TODO also infer body type
         my $returns := nqp::ifnull($signature.returns, Mu);
         unless $returns =:= Mu || $returns =:= Nil || nqp::isconcrete($returns) {
             $context.ensure-sc($returns);

@@ -533,6 +533,10 @@ role Raku::Common {
     method missing($what) {
         self.typed-panic: 'X::Syntax::Missing', :$what;
     }
+    # The $has-mystery argument would enable the undeclared-routine hint
+    # below; no caller sets it yet. The legacy frontend never sets its
+    # equivalent either: it declares %*MYSTERY but tests $*MYSTERY, which
+    # is a different dynamic, so the hint is unreachable there as well.
     method missing-block($borg, $has-mystery) {
         my $marked := self.MARKED('ws');
         my $pos    := $marked ?? $marked.from !! self.pos;
@@ -1412,10 +1416,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Helper token to parse until the end of a statement
     token eat-terminator {
         || ';'                         # a real end of statement
-        || <?MARKED('end-statement')> <.ws>  # OR XXX
+        || <?MARKED('end-statement')> <.ws>  # OR a line-ending block already marked the end
         || <?before <.[)\]}]> >        # OR bumping into  ) ] }
         || $                           # OR end of text
-        || <?stopper>                  # OR XXX
+        || <?stopper>                  # OR an enclosing construct stops here
         || <?before [                  # OR looks like leaking into next
                <.block-for>
              | <.block-if>
@@ -1437,7 +1441,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token pointy-block {
         :dba('block or pointy block')
         :my $borg := $*BORG;                        # keep current context
-        :my $has-mystery := 0; # TODO
+        :my $has-mystery := 0;  # never set, see missing-block
         { $*BORG := {} }                            # initialize new context
         :my $*BLOCK;                                # localize block to here
         [
@@ -1472,7 +1476,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token block($kind = 'Block', :$parameterization) {
         :dba('scoped block')
         :my $borg := $*BORG;                        # keep current context
-        :my $has-mystery := 0; # TODO
+        :my $has-mystery := 0;  # never set, see missing-block
         { $*BORG := {} }                            # initialize new context
         :my $*BLOCK;                                # localize block to here
         [
@@ -1492,7 +1496,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing the statements between { }
     token blockoid {
         :my $borg := $*BORG;                        # keep current context
-        :my $has-mystery := 0; # TODO
+        :my $has-mystery := 0;  # never set, see missing-block
         :my $*MULTINESS := '';
         :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
         :my @*ORIGIN-NESTINGS := [];
@@ -1503,7 +1507,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '{'                                     # actual block start
             <statementlist=.key-origin('statementlist')>
             [<.cheat-heredoc> || '}']               # actual block end
-            <?end-statement>                        # XXX
+            <?end-statement>              # mark line-ending } as a terminator
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
     }

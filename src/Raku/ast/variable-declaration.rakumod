@@ -1868,12 +1868,13 @@ class RakuAST::VarDeclaration::Signature
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!attribute-package',
                     $attribute-package);
+                # The declarator scope is only known here on the owning
+                # declaration; push it into each target before their begin
+                # time turns them into attribute declarations. The targets
+                # find their own attribute package at parse time.
                 for self.IMPL-UNWRAP-LIST(self.signature.parameters) {
-                    #TODO this should probably live in the target's attach method
                     if $_.target && nqp::istype($_.target, RakuAST::ParameterTarget::Var) {
                         $_.target.replace-scope($scope);
-                        nqp::bindattr($_.target, RakuAST::ParameterTarget::Var, '$!attribute-package',
-                            $attribute-package);
                     }
                 }
             }

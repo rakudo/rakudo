@@ -563,7 +563,7 @@ class RakuAST::Node {
     method DEPARSE(*@roles) {
         my $class := my $core := nqp::gethllsym('Raku','DEPARSE');
         for @roles {
-            if $_.HOW.name($_) eq 'Str' {  # XXX better way to detect HLL Str?
+            if nqp::istype($_, Str) {
                 $class := self.mixin-role($class, $core.slang($_));
             }
             elsif nqp::can($_.HOW,'pun') {  # it's a role

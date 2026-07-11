@@ -881,7 +881,17 @@ class RakuAST::Var::Package
                 if self.is-resolved {
                     my $name := self.resolution.lexical-name;
                     nqp::shift(@parts);
-                    if nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
+                    if $name eq 'GLOBAL' {
+                        # Each compilation unit has its own GLOBAL package,
+                        # and they merge into the process-wide one as units
+                        # load. A serialized reference to the compilation's
+                        # own GLOBAL would keep addressing that unit's copy,
+                        # whose stash nobody else sees, so the merged package
+                        # must be looked up at run time instead.
+                        $result := QAST::Op.new(
+                            :op<getcurhllsym>, QAST::SVal.new( :value<GLOBAL> ));
+                    }
+                    elsif nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
                         # The leading package may be one we vivified for our own
                         # name (`Foo` for a `unit class Foo::Bar`), which has no
                         # serialization context yet, so make sure it gets one.

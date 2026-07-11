@@ -1214,7 +1214,8 @@ class RakuAST::Type::Subset
                 ),
             );
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
-            $block.IMPL-BEGIN($resolver, $context); # TODO maybe also check?
+            # Check time reaches the block through visit-children.
+            $block.IMPL-BEGIN($resolver, $context);
         }
 
         # set up the meta object

@@ -993,7 +993,9 @@ class RakuAST::CompilerServices
         );
         $!resolver.push-scope($!package);
         $!resolver.push-scope($accessor);
-        $accessor.to-begin-time($!resolver, $!context); # TODO maybe also check?
+        # No check time: the accessor is fully synthetic, with no user
+        # code a check could diagnose.
+        $accessor.to-begin-time($!resolver, $!context);
         $!resolver.pop-scope();
         $!resolver.pop-scope();
         $!qast.push: $accessor.IMPL-QAST-BLOCK($!context);

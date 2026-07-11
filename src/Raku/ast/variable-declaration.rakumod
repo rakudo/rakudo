@@ -1126,7 +1126,10 @@ class RakuAST::VarDeclaration::Simple
             );
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
-            $target.to-begin-time($resolver, $context); # TODO maybe also check?
+            # No check time: the target's PERFORM-CHECK would only replay
+            # trait sorries, and the apply-traits call below records those
+            # on the declaration itself.
+            $target.to-begin-time($resolver, $context);
 
             if self.twigil eq '.' {
                 my $variable-access := RakuAST::Var::Lexical.new(self.name);
@@ -1142,7 +1145,8 @@ class RakuAST::VarDeclaration::Simple
                 );
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!accessor', $accessor);
                 $resolver.push-scope($accessor);
-                $accessor.to-begin-time($resolver, $context); # TODO maybe also check?
+                # Check time reaches the accessor through visit-children.
+                $accessor.to-begin-time($resolver, $context);
                 $resolver.pop-scope();
             }
 

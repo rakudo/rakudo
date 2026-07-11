@@ -159,11 +159,13 @@ role Raku::CommonActions {
     }
 
     method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
-        # XXX This is a temporary stub to avoid unimplemented nodes.
-        # Must be replaced with exception throwing when RakuAST is
-        # considered ready for this.
+        # A non-concrete node means an action failed to construct its AST
+        # node; report that right away instead of letting it surface as a
+        # confusing failure later in the pipeline.
         unless nqp::isconcrete($node) {
-            return
+            nqp::die('Unexpected undefined ' ~ $node.HOW.name($node)
+              ~ ' node at position ' ~ $/.from ~ ' near "'
+              ~ nqp::escape(nqp::substr($/.orig, $/.from, 30)) ~ '"');
         }
         if nqp::istype($node, Nodify('Node')) {
             unless nqp::isconcrete($node.origin) {
@@ -188,7 +190,7 @@ role Raku::CommonActions {
     }
 
     method quibble($/) {
-        self.attach: $/, $<nibble>.ast // Nodify('Node');
+        self.attach: $/, $<nibble>.ast // Nodify('StrLiteral').new('');
     }
 
     # Grammars also need to be able to lookup RakuAST nodes.  Historically
@@ -4720,7 +4722,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method atom($/) {
         self.attach: $/, (my $metachar := $<metachar>)
-          ?? $metachar.ast // Nodify('Regex') # We'll error out later if no real AST
+          ?? $metachar.ast // Nodify('Regex::Assertion::Fail').new # a sorry is already recorded
           !! Nodify('Regex::Literal').new(~$/);
     }
 
@@ -4836,7 +4838,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method metachar:sym<bs>($/) {
         # If we don't get an AST for backslash it means we're reporting an error.
-        self.attach: $/, $<backslash>.ast // Nodify('Regex::Assertion::Fail');
+        self.attach: $/, $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
     }
 
     method metachar:sym<mod>($/) {

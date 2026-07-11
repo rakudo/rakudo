@@ -3074,15 +3074,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*VAR;
 
         :dba('term')
-        # TODO try to use $/ for lookback to check for erroneous
-        #      use of pod6 trailing declarator block, e.g.:
-        #
-        #        #=!
-        #
-        #      instead of
-        #
-        #        #=(
-        #
         [
           || [
                | <prefixish>+

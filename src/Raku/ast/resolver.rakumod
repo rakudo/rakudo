@@ -548,7 +548,6 @@ class RakuAST::Resolver {
     }
 
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
-        # TODO locate the setting frame
         until nqp::isnull($context) {
             nqp::existskey(nqp::ctxlexpad($context),'CORE-SETTING-REV')
               ?? (return $context)

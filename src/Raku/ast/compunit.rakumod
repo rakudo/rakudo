@@ -904,6 +904,8 @@ class RakuAST::LiteralBuilder {
     has Mu $!interned-int;
     has Mu $!interned-num;
     has Mu $!interned-str;
+    has Mu $!interned-rat;
+    has Mu $!interned-complex;
 
     method new(RakuAST::Resolver :$resolver) {
         my $obj := nqp::create(self);
@@ -911,6 +913,8 @@ class RakuAST::LiteralBuilder {
         nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-int', nqp::hash);
         nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-num', nqp::hash);
         nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-str', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-rat', nqp::hash);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!interned-complex', nqp::hash);
 
         $obj
     }
@@ -992,12 +996,18 @@ class RakuAST::LiteralBuilder {
 
     # Build a Rat constant from whole.fraction and intern it.
     method intern-decimal($whole-part, $fractional-part) {
-        # TODO interning
-        self.build-decimal($whole-part, $fractional-part)
+        my $parts := self.decimal-parts($whole-part, $fractional-part);
+        self.intern-rat(nqp::atpos($parts,0), nqp::atpos($parts,1))
     }
 
     # Build a Rat constant from whole.fraction, but do not intern it.
     method build-decimal(Mu $whole-part, Mu $fractional-part) {
+        my $parts := self.decimal-parts($whole-part, $fractional-part);
+        self.build-rat(nqp::atpos($parts,0), nqp::atpos($parts,1))
+    }
+
+    # Convert whole.fraction parts into a numerator/denominator list
+    method decimal-parts(Mu $whole-part, Mu $fractional-part) {
         # Whole part may be provided as an Int already, or may be missing.
         my $parti;
         if nqp::isconcrete($whole-part) {
@@ -1028,13 +1038,23 @@ class RakuAST::LiteralBuilder {
             $partf := self.intern-Int('1');
         }
 
-        self.build-rat($parti, $partf)
+        nqp::list($parti, $partf)
     }
 
     # Build a Rat constant from numerator/denominator and intern it.
     method intern-rat($numerator, $denominator) {
-        # TODO interning
-        self.build-rat($numerator, $denominator)
+        # Either part may be a native int rather than an Int.
+        my sub stringify($value) {
+            nqp::istype($value,Int) ?? nqp::tostr_I($value) !! ~$value
+        }
+
+        my str $key := stringify($numerator) ~ '/' ~ stringify($denominator);
+        nqp::ifnull(
+          nqp::atkey($!interned-rat,$key),
+          nqp::bindkey($!interned-rat,$key,
+            self.build-rat($numerator, $denominator)
+          )
+        )
     }
 
     # Build a Rat constant from integer numerator / denominator
@@ -1049,8 +1069,13 @@ class RakuAST::LiteralBuilder {
 
     # Build a Complex constant and intern it.
     method intern-complex($real-part, $imaginary-part) {
-        # TODO interning
-        self.build-complex($real-part, $imaginary-part)
+        my str $key := $real-part ~ ',' ~ $imaginary-part;
+        nqp::ifnull(
+          nqp::atkey($!interned-complex,$key),
+          nqp::bindkey($!interned-complex,$key,
+            self.build-complex($real-part, $imaginary-part)
+          )
+        )
     }
 
     # Build a Complex constant, but do not intern it.

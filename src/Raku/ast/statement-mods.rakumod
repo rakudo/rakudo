@@ -358,7 +358,12 @@ class RakuAST::StatementModifier::Condition::Thunk
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 
-        #TODO handle inner thunks
+        # Statement::Expression wraps this thunk before any loop thunk, so it
+        # is always innermost and the expression can be emitted directly. A
+        # caller that chained it over another thunk would silently lose that
+        # thunk, so refuse it.
+        nqp::die('Condition modifier thunk cannot wrap an inner thunk')
+            if self.next;
         $target.push($!condition.IMPL-WRAP-QAST($context, $expression.IMPL-EXPR-QAST($context)));
     }
 

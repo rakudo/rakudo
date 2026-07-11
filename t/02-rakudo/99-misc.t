@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 11;
+plan 12;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -153,5 +153,15 @@ subtest 'Temporal', {
     my $posix = 915148800.999_999_999_999_9;
     todo 'Needs more time or expertise';
     is Instant.from-posix-nanos( ($posix * 10**9).Int ), Instant.from-posix( $posix), '.from-posix-nanos vs .from-posix';
+}
+
+subtest 'DOC use loads only when compiling documentation', {
+    plan 2;
+    is-run ｢DOC use NoSuchModuleAnywhere; print "ran"｣,
+        :out<ran>,
+        'a DOC-prefixed use is inert without --doc';
+    is-run ｢DOC use NoSuchModuleAnywhere;｣,
+        :compiler-args['--doc'], :err(/'Could not find NoSuchModuleAnywhere'/), :exitcode(1),
+        'a DOC-prefixed use loads the module under --doc';
 }
 # vim: expandtab shiftwidth=4

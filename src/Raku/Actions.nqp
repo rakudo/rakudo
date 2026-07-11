@@ -977,6 +977,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<use>($/) {
+        # A DOC-prefixed use is inert unless compiling documentation.
+        if nqp::chars(~$<doc>) && !%*COMPILING<%?OPTIONS><doc> {
+            self.attach: $/, Nodify('Statement::Empty').new;
+            return;
+        }
+
         my str $name := $/.pragma2str(~$<module-name>);
         my $Pragma   := Nodify('Pragma');
         my $argument := $<arglist><EXPR>;

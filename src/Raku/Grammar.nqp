@@ -1763,9 +1763,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
+    # Unlike the legacy grammar, this does not re-enter the parse through the
+    # braid when a loaded module replaces the MAIN slang, so a module that
+    # switches the language mid-parse is not supported yet.
     token statement-control:sym<use> {
         :my $*IN-DECL := 'use';
-        # TODO this is massively simplified
+        # A DOC-prefixed use loads the module only when compiling
+        # documentation.
+        $<doc>=[ <.phaser-DOC> \h+ ]?
         <.use-use>
         <.ws>
         [

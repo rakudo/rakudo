@@ -1391,11 +1391,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  <statement-mod-loop>
                  {
                      unless $*LANG.pragma('p5isms') {
+                         # The do prefix captures its keyword token, which
+                         # a translation may override, so its presence is
+                         # what identifies a do rather than the text.
                          my $sp := $<EXPR><statement-prefix>;
                          $/.obs(
-                           "do..." ~ $<statement-mod-loop><sym>,
+                           "do..."
+                             ~ nqp::atpos(nqp::split(' ', ~$<statement-mod-loop>), 0),
                            "repeat...while or repeat...until"
-                         ) if $sp && $sp<sym> eq 'do';
+                         ) if $sp && $sp<stmt-prefix-do>;
                      }
                  }
             ]?
@@ -1907,8 +1911,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Simple prefixes that just take a blorst
     token statement-prefix:sym<do> {
-        <.sym> <.kok> <blorst>
-#        <.stmt-prefix-do> <.kok> <blorst>  # XXX needs fixing
+        <stmt-prefix-do> <.kok> <blorst>
     }
     token statement-prefix:sym<eager> {
         <.stmt-prefix-eager> <.kok> <blorst>

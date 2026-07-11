@@ -340,8 +340,11 @@ class RakuAST::Resolver {
         nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
 
         my $root := @parts.shift;
-        # TODO pseudo-packages
-        # TODO GLOBALish fallback
+        # Only CORE, GLOBAL and EXPORT roots get special treatment here; any
+        # other root resolves as a lexical or not at all. A Nil from here is
+        # not final: the code generation of an unresolved name falls back to
+        # a run time lookup, which is where pseudo-package roots and symbols
+        # only present in GLOBAL's stash are found, as in the legacy frontend.
         if nqp::istype($root, RakuAST::Name::Part::Empty) {
             return Nil;
         }

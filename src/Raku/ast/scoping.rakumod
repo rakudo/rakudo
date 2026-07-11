@@ -1329,7 +1329,9 @@ class RakuAST::PackageInstaller {
                         :compile-time-value($target),
                         :package(self);
                 if $scope eq 'our' {
-                    # TODO conflicts
+                    # The slot is empty: the partial resolution above covers
+                    # the lexical scopes, GLOBAL, and the enclosing package's
+                    # stash, and an occupied slot takes the resolved branch.
                     self.IMPL-STASH-BIND($current-package, $first, $target);
                 }
                 $scope := 'our'; # Ensure we install the package into the generated stub

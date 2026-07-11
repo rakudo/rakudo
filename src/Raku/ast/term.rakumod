@@ -530,13 +530,30 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # Make a call to form the meta-op.
-        # TODO Cache it using a dispatcher when UNIT/SETTING operator
-        my $form-meta := QAST::Op.new(
-            :op<call>, :name($!infix.reducer-name),
-            $!infix.IMPL-HOP-INFIX-QAST($context));
-        if $!triangle {
-            $form-meta.push(QAST::WVal.new( :value(True) ));
+        # A reduce of a setting operator forms its meta-op once at compile
+        # time: the operator lookup yields the same code object at run time,
+        # so the formed meta-op is a constant. This is skipped while
+        # compiling a CORE setting itself, where compiler-formed closures
+        # must not be serialized into the bootstrap. Anything else (lexical
+        # operators, meta-infixes) makes a call to form the meta-op at run
+        # time.
+        my $form-meta;
+        if nqp::istype($!infix, RakuAST::Infix)
+            && $!infix.is-resolved
+            && nqp::istype($!infix.resolution, RakuAST::Declaration::External::Setting)
+            && !($*COMPILING_CORE_SETTING // 0)
+        {
+            my $meta-op := self.IMPL-HOP-INFIX;
+            $context.ensure-sc($meta-op);
+            $form-meta := QAST::WVal.new( :value($meta-op) );
+        }
+        else {
+            $form-meta := QAST::Op.new(
+                :op<call>, :name($!infix.reducer-name),
+                $!infix.IMPL-HOP-INFIX-QAST($context));
+            if $!triangle {
+                $form-meta.push(QAST::WVal.new( :value(True) ));
+            }
         }
 
         # Invoke it with the arguments.

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 123;
+plan 126;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -898,6 +898,16 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         print ?G.parse("(123")|.AST.EVAL
     ｣, :out("False"), :err("paren expr\n"),
         ':dba names the regex region and FAILGOAL receives it';
+}
+
+# src/Raku/ast/expressions.rakumod
+# The S sequencing meta-operator crashes at runtime under the legacy
+# frontend. Under RakuAST it also chained with reversed associativity
+# and could not be used with the reduce meta-operator.
+{
+    is Q| 1 S+ 2 |.AST.EVAL, 3, 'S applies the base operator';
+    is Q| 1 S- 2 S- 3 |.AST.EVAL, -4, 'chained S keeps the base associativity';
+    is Q| [S+] 1, 2, 3 |.AST.EVAL, 6, 'a sequenced operator can be reduced';
 }
 
 # vim: expandtab shiftwidth=4

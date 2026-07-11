@@ -1668,14 +1668,16 @@ class RakuAST::MetaInfix::Sequence
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Sequence, '$!infix', $infix);
+        # Sequencing only pins the evaluation order of the operands; the
+        # operator itself keeps its precedence and associativity.
         nqp::bindattr($obj, RakuAST::MetaInfix::Sequence, '$!properties',
-          $infix.properties.associative-reversed);
+          $infix.properties);
         $obj
     }
 
     method action { 'sequence the args of' }
 
-    method reducer-name() { '' } # NYI
+    method reducer-name() { $!infix.reducer-name }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);

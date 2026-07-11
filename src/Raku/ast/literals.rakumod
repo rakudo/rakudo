@@ -294,25 +294,21 @@ class RakuAST::QuotedString
         $result
     }
 
-    method IMPL-PROCESS-PART($result, $part) {
+    method IMPL-PROCESS-PART($result, $part, :$protected) {
         return Nil if $part =:= Nil;
         for $!processors {
-            if $_ eq 'words' {
-                return Nil unless nqp::istype($part, Str);
-                my @parts;
-                for self.IMPL-WORDS-AUTODEREF($part) {
-                    nqp::push(@parts, $_);
+            if $_ eq 'words' || $_ eq 'quotewords' {
+                # A part that came from a quoted atom is protected: quote
+                # words splitting keeps it whole, while later processors
+                # such as val still apply to it.
+                unless $protected {
+                    return Nil unless nqp::istype($part, Str);
+                    my @parts;
+                    for self.IMPL-WORDS-AUTODEREF($part) {
+                        nqp::push(@parts, $_);
+                    }
+                    $part := @parts;
                 }
-                $part := @parts;
-            }
-            elsif $_ eq 'quotewords' {
-                return Nil unless nqp::istype($part, Str);
-                #TODO actually implement special handling of « »
-                my @parts;
-                for self.IMPL-WORDS-AUTODEREF($part) {
-                    nqp::push(@parts, $_);
-                }
-                $part := @parts;
             }
             elsif $_ eq 'val' {
                 my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
@@ -358,15 +354,7 @@ class RakuAST::QuotedString
                 && my $nested-str := $_.atom.literal-value
             {
                 return Nil if $nested-str =:= Nil;
-
-                if nqp::istype($nested-str, Str) {
-                    nqp::push(@parts, $nested-str);
-                }
-                elsif nqp::istype($nested-str, List) {
-                    for $nested-str.FLATTENABLE_LIST {
-                        nqp::push(@parts, $_);
-                    }
-                }
+                self.IMPL-PROCESS-PART(@parts, $nested-str, :protected) || return Nil;
             }
             elsif nqp::istype($_, RakuAST::Var::Lexical)
                 && $_.is-resolved

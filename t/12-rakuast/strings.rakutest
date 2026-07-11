@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -207,6 +207,26 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
 
     is-deeply $deparsed, 'qq:w:v/ba$stuff 66/', 'deparse';
     is-deeply $_, ('bar', 'baz', <66>), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Using the quotewords and val processor' => {
+    # <<1 "2" 3.5>>
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('1 '),
+        RakuAST::QuoteWordsAtom.new(
+          RakuAST::QuotedString.new(
+            :segments[RakuAST::StrLiteral.new('2')]
+          )
+        ),
+        RakuAST::StrLiteral.new(' 3.5')
+      ],
+      :processors['quotewords', 'val']
+    );
+
+    is-deeply $deparsed, '<<1 "2" 3.5>>', 'deparse';
+    is-deeply $_, (val("1"), val("2"), val("3.5")), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

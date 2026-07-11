@@ -563,8 +563,9 @@ class RakuAST::Term::Reduce
             QAST::Op.new( :op<call>, $form-meta, $arg.IMPL-TO-QAST($context) )
         }
         else {
-            # Form a List of the argumnets and pass it to the reducer
-            # TODO thunk case
+            # Form a List of the arguments and pass it to the reducer. A
+            # thunky operator's arguments were already rewritten into thunks
+            # by the IMPL-THUNK-ARGUMENTS call at begin time.
             my $name :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
             my $form-list := QAST::Op.new(:op('call'), :$name);

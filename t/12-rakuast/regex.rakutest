@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
+use nqp;
 use Test;
 
-plan 55;
+plan 56;
 
 my $ast;
 my $deparsed;
@@ -755,6 +756,22 @@ subtest 'Match without sigspace' => {
     is-deeply $deparsed, '/o :!s o/', 'deparse';
 
     match-ok "Foo", 'oo';
+}
+
+subtest 'Match with a dba name' => {
+    # /:dba("digits") \d+/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::Dba.new(name => "digits"),
+      RakuAST::Regex::QuantifiedAtom.new(
+        atom       => RakuAST::Regex::CharClass::Digit.new,
+        quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+      )
+    );
+    is-deeply $deparsed, '/:dba("digits") \d+/', 'deparse';
+
+    todo('the legacy frontend breaks matching on :dba', 1)
+        unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+    match-ok "42", '42';
 }
 
 # vim: expandtab shiftwidth=4

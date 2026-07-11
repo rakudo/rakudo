@@ -873,6 +873,10 @@ augment class RakuAST::Node {
 
 #- Regex::I --------------------------------------------------------------------
 
+    multi method raku(RakuAST::Regex::InternalModifier::Dba:D: --> Str:D) {
+        self!nameds: <name>
+    }
+
     # Generic handler for all RakuAST::Regex::InternalModifier::xxx classes
     multi method raku( RakuAST::Regex::InternalModifier:D: --> Str:D) {
         self!nameds: <modifier negated>

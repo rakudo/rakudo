@@ -472,6 +472,11 @@ class RakuAST::Regex::Nested
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $failgoal := QAST::NodeList.new(
+            QAST::SVal.new( :value('FAILGOAL') ),
+            QAST::SVal.new( :value($!goal.DEPARSE) ));
+        $failgoal.push(QAST::SVal.new( :value(%mods<dba>) ))
+            if nqp::existskey(%mods, 'dba');
         QAST::Regex.new(
             :rxtype<goal>,
             $!goal.IMPL-APPLY-ATOM-RATCHET(
@@ -480,10 +485,7 @@ class RakuAST::Regex::Nested
                 $!expr.IMPL-REGEX-QAST($context, nqp::clone(%mods)), %mods),
             QAST::Regex.new(
                 :rxtype<subrule>, :subtype<method>,
-                QAST::NodeList.new(
-                    QAST::SVal.new( :value('FAILGOAL') ),
-                    QAST::SVal.new( :value($!goal.DEPARSE) ),
-                    ) ) ); #TODO: |@dba) ) );
+                $failgoal ) );
     }
 
     method visit-children(Code $visitor) {
@@ -2068,6 +2070,30 @@ class RakuAST::Regex::InternalModifier::Sigspace
   is RakuAST::Regex::InternalModifier
 {
     method key() { 's' }
+}
+
+# The dba internal modifier, which names the current part of the regex
+# for error reporting purposes.
+class RakuAST::Regex::InternalModifier::Dba
+  is RakuAST::Regex::InternalModifier
+{
+    has Str $.name;
+
+    method new(str :$name!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Regex::InternalModifier, '$!modifier', 'dba');
+        nqp::bindattr($obj, RakuAST::Regex::InternalModifier, '$!negated', False);
+        nqp::bindattr($obj, RakuAST::Regex::InternalModifier::Dba, '$!name',
+            nqp::box_s($name, Str));
+        $obj
+    }
+
+    method key() { 'dba' }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods<dba> := self.name;
+        QAST::Regex.new( :rxtype<dba>, :name(self.name) )
+    }
 }
 
 # A quantified atom in a regex - that is, an atom with a quantifier and

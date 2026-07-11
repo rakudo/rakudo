@@ -4856,13 +4856,23 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
               modifier => $modifier, negated => $*NEGATED
             );
         }
+        elsif $modifier eq 'dba' {
+            my $quoted := $<qstr>;
+            $quoted := $quoted[0] if nqp::islist($quoted);
+            if nqp::isconcrete($quoted) {
+                self.attach: $/, Nodify('Regex::InternalModifier::Dba').new(
+                  name => ~$quoted
+                );
+            }
+            else {
+                $/.panic('Internal modifier strings must be literals');
+            }
+        }
         else {
             $/.typed-panic: 'X::Syntax::Regex::UnrecognizedModifier',
               modifier => $modifier;
         }
     }
-
-    method metachar:sym<dba>($/) { Nil }
 
     method metachar:sym<assert>($/) {
         self.attach: $/, $<assertion>.ast;

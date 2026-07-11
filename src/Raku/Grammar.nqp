@@ -6620,8 +6620,8 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
             '('
                 [
                 | $<n>=[\d+]
-                | <?[']> <quote_EXPR: ':q'>
-                | <?["]> <quote_EXPR: ':qq'>
+                | \' $<qstr>=[<-[']>*] \'
+                | \" $<qstr>=[<-["]>*] \"
                 ]
                 ')'
             ]**0..1

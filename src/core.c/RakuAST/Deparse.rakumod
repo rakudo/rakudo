@@ -1897,6 +1897,11 @@ CODE
 #- Regex::I --------------------------------------------------------------------
 
     multi method deparse(
+      RakuAST::Regex::InternalModifier::Dba:D $ast --> Str:D) {
+        ':' ~ self.xsyn('adverb-rx', 'dba') ~ '(' ~ $ast.name.raku ~ ') '
+    }
+
+    multi method deparse(
       RakuAST::Regex::InternalModifier:D $ast --> Str:D) {
         ':'
           ~ ($ast.negated ?? '!' !! '')

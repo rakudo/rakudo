@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 122;
+plan 123;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -884,6 +884,20 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     todo "the legacy grammar ignores an unsatisfiable :auth on require" unless %*ENV<RAKUDO_RAKUAST>;
     dies-ok { require Test:auth<nobody> },
         'require fails on an unsatisfiable :auth constraint';
+}
+
+# src/Raku/ast/regex.rakumod
+# The legacy frontend parses :dba but the regex it produces fails to match
+# at all, and FAILGOAL never receives the name.
+{
+    is-run ｢
+        Q|grammar G {
+            method FAILGOAL($goal, $dba?) { note $dba; callsame }
+            token TOP { :dba("paren expr") "(" ~ ")" \d+ }
+        };
+        print ?G.parse("(123")|.AST.EVAL
+    ｣, :out("False"), :err("paren expr\n"),
+        ':dba names the regex region and FAILGOAL receives it';
 }
 
 # vim: expandtab shiftwidth=4

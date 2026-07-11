@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 126;
+plan 129;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -908,6 +908,20 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is Q| 1 S+ 2 |.AST.EVAL, 3, 'S applies the base operator';
     is Q| 1 S- 2 S- 3 |.AST.EVAL, -4, 'chained S keeps the base associativity';
     is Q| [S+] 1, 2, 3 |.AST.EVAL, 6, 'a sequenced operator can be reduced';
+}
+
+# A custom postcircumfix parsed a single statement between its delimiters,
+# so a semicolon separated subscript (and an empty one) failed to parse in
+# the legacy grammar. The subscript is now a semilist like the core
+# postcircumfix operators use.
+{
+    my $decl = Q| sub postcircumfix:<⌊ ⌋>($obj, *@i) { $obj => @i }; |;
+    is-deeply ($decl ~ Q| 10⌊1;2⌋ |).AST.EVAL, 10 => [1, 2],
+        'a custom postcircumfix parses a semicolon separated subscript';
+    is-deeply ($decl ~ Q| 10⌊⌋ |).AST.EVAL, 10 => [],
+        'a custom postcircumfix parses an empty subscript';
+    is-deeply ($decl ~ Q| 10⌊3⌋ |).AST.EVAL, 10 => [3],
+        'a custom postcircumfix passes the operand as the first argument';
 }
 
 # vim: expandtab shiftwidth=4

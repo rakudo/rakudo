@@ -5548,16 +5548,14 @@ Rakudo significantly on *every* run."
             );
         }
 
-        # Find opener and closer and parse an EXPR between them.
-        # XXX One day semilist would be nice, but right now that
-        # runs us into fun with terminators.
+        # Find opener and closer and parse a semilist between them.
         elsif $category eq 'postcircumfix' {
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
                     :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
-                    $starter ~ $stopper [ <.ws> <statement> ]
+                    $starter ~ $stopper <semilist>
                 }
             }
             $grammar-mixin := Postcircumfix.HOW.curry(
@@ -5565,7 +5563,7 @@ Rakudo significantly on *every* run."
             );
         }
 
-        # Find opener and closer and parse an EXPR between them.
+        # Find opener and closer and parse a semilist between them.
         else {  # $category eq 'circumfix'
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -5610,7 +5608,7 @@ Rakudo significantly on *every* run."
                 method ::($meth)($/) {
                     my $ast := self.r('Call::Name').new(
                         :name(self.r('Name').from-identifier($subname)),
-                        :args(self.r('ArgList').new($<statement>.ast))
+                        :args(self.r('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
                     );
                     self.attach: $/, $ast;
                 }

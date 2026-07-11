@@ -1388,7 +1388,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         elsif nqp::istype($ast, Nodify('Call::Name')) {
-            $ast.args.push: $operand;
+            # A custom postcircumfix's subscript args are already in place, so
+            # the operand must go first to become the sub's invocant argument.
+            $ast.args.unshift: $operand;
             self.attach: $/, $ast;
         }
 

@@ -982,7 +982,6 @@ class RakuAST::Parameter
             }
             nqp::bindattr($parameter, Parameter, '@!type_captures', @type-captures);
         }
-        # TODO further setup
         $parameter
     }
 

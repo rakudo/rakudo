@@ -5144,9 +5144,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             :dba('shape declaration')
             :my $*IN-DECL := '';
             [
-               # XXX allow fakesig parsed as subsig for the moment
-#              | <?before ':('>  ':'
-
                | <?before '('>
                  <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
 

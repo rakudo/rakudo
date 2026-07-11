@@ -255,7 +255,7 @@ class RakuAST::ContainerCreator {
             }
             else {
                 $container-base-type := Scalar;
-                $container-type := $of; #FIXME pretty sure container-type should also be Scalar
+                $container-type := Scalar;
                 $bind-constraint := $of;
             }
         }
@@ -1376,7 +1376,13 @@ class RakuAST::VarDeclaration::Simple
 
             my $meta-object := $!attribute-package.attribute-type.new(
               name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
-              type => $scope eq 'HAS' ?? self.IMPL-CONTAINER-TYPE($of) !! $type,
+              # An inlined attribute with an explicit container type (e.g.
+              # `HAS ... is CArray[int32]`) needs the parameterized container
+              # as its type for the REPR to lay it out; the bind constraint
+              # is a bare Mu on that path.
+              type => $scope eq 'HAS' && self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+                ?? self.IMPL-CONTAINER-TYPE($of)
+                !! $type,
               has_accessor          => self.twigil eq '.',
               container_descriptor  => $descriptor,
               auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor, :attribute),

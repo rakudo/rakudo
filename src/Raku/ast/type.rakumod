@@ -915,8 +915,12 @@ class RakuAST::Type::Enum
                             }
                             nqp::push(@values, [$_.key, $_.value]);
                         } elsif nqp::istype($_, Str) {
+                            # A bare key without a declared base type makes
+                            # this an Int enum counting from 0, like the
+                            # legacy frontend. With a declared base type the
+                            # keys still take the incrementing values, and
+                            # conformance is the composition's problem.
                             if !$has-base-type {
-                                # TODO: Again, uncertain what to do when user provides a base type but then only hands a list of Str
                                 $base-type := Int;
                                 $has-base-type := True;
                             }

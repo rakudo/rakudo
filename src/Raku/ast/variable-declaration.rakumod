@@ -921,27 +921,44 @@ class RakuAST::VarDeclaration::Simple
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
                     $attribute-package);
                 if self.is-attribute && !$!attribute-package.can-have-attributes {
-                    my $ex := $resolver.build-exception: 'X::Attribute::Package',
-                        name         => self.name,
-                        package-kind => $!attribute-package.parsed-declarator;
                     if nqp::istype($!attribute-package, RakuAST::Declaration::External::Package) {
-                        self.add-worry: $ex;
+                        # The external package's compile time is over. When
+                        # its kind takes attributes (class, role), spec tests
+                        # require silently ignoring the declaration; when it
+                        # does not, report a missing package like the legacy
+                        # frontend does.
+                        unless nqp::istype(
+                            $!attribute-package.compile-time-value.HOW,
+                            Perl6::Metamodel::AttributeContainer
+                        ) {
+                            self.add-sorry: $resolver.build-exception:
+                                'X::Attribute::NoPackage', name => self.name;
+                        }
                     }
                     else {
-                        self.add-sorry: $ex;
+                        self.add-sorry: $resolver.build-exception:
+                            'X::Attribute::Package',
+                            name         => self.name,
+                            package-kind => $!attribute-package.parsed-declarator;
                     }
                 }
             }
             else {
-                # TODO check-time error
-                my $package := nqp::getlexdyn('$?PACKAGE');
-                # In class Foo { EVAL q[has $.foo] } we won't find a package attach target
-                # because compile time is long over, yet there will be a $?PACKAGE. Throwing
-                # a NoPackage here would be confusing. It would be better to throw an error
-                # explaining that the package is already composed. Alas there's a spec test
-                # that requires this to be silently ignored, so that's what we do for now.
-                if self.is-attribute && !nqp::can($package.HOW, 'add_attribute') {
-                    $resolver.build-exception('X::Attribute::NoPackage', name => self.name).throw;
+                # An EVAL like class Foo { EVAL q[has $.foo] } has no package
+                # attach target because compile time of the class is long
+                # over, yet its outer scope still provides a $?PACKAGE. A
+                # spec test requires that declaration to be silently ignored
+                # (throwing NoPackage would be confusing there anyway). Only
+                # consult $?PACKAGE when compiling an EVAL: a getlexdyn in a
+                # direct compilation walks into the compiler's own frames and
+                # finds an unrelated $?PACKAGE that can take attributes.
+                my $package := nqp::istype($resolver, RakuAST::Resolver::EVAL)
+                    ?? nqp::getlexdyn('$?PACKAGE')
+                    !! nqp::null;
+                if self.is-attribute
+                    && (nqp::isnull($package) || !nqp::can($package.HOW, 'add_attribute')) {
+                    self.add-sorry:
+                        $resolver.build-exception('X::Attribute::NoPackage', name => self.name);
                 }
             }
         }
@@ -1861,7 +1878,8 @@ class RakuAST::VarDeclaration::Signature
                 }
             }
             else {
-                # TODO check-time error
+                # Each named parameter target declares its own attribute,
+                # whose begin time reports the missing package.
             }
         }
         elsif $scope eq 'our' {

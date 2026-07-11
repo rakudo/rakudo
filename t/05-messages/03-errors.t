@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 26;
+plan 28;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -186,5 +186,13 @@ is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
 # https://github.com/rakudo/rakudo/issues/4178
 is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
 'An attempt to use a closed handle results in a proper error message';
+
+is-run ｢has $.x; print "ran"｣,
+    'attribute declaration in the mainline is a compile time error',
+    :err(/'You cannot declare attribute' .*? '$.x'/), :exitcode(1);
+
+is-run ｢has ($.a, $.b); print "ran"｣,
+    'signature attribute declaration in the mainline is a compile time error',
+    :err(/'You cannot declare attribute' .*? '$.a'/), :exitcode(1);
 
 # vim: expandtab shiftwidth=4

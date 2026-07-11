@@ -1664,8 +1664,10 @@ class RakuAST::Block
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         if $immediate {
-            # For now, assume we never need a code object for such a block. The
-            # closure clone is done for us by the QAST compiler.
+            # The QAST compiler gives an immediate block correct closure
+            # semantics itself, so unlike the branch below, no closure clone
+            # of the code object is emitted. The meta-object is still linked:
+            # constructs like &?BLOCK reach it through getcodeobj at run time.
             my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype<immediate>);
             self.IMPL-LINK-META-OBJECT($context, $block);
             $block

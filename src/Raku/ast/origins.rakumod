@@ -48,9 +48,8 @@ class RakuAST::Origin {
 # usable as QAST::Node.node value.  For this it would suffice to
 # provide methods .orig, .from, and coercer .Str.
 
-# TODO after merging rakuast and master branches into main it would
-# make sense to add support for .file in NQP backend compilation code.
-# It currently relies upon HLL::Compiler.linefileof method which might
+# TODO add support for .file in NQP backend compilation code. It
+# currently relies upon HLL::Compiler.linefileof method which might
 # be unreliable.
 class RakuAST::Origin::Match {
     has str $.file;

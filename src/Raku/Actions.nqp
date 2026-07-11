@@ -320,7 +320,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Not EVALling and explicit setting requested
         if $setting-name && !$is-EVAL {
-            # TODO This branch is for when we start compiling the CORE.
+            # A NULL.x setting name means a CORE setting itself is being
+            # compiled. NULL.d and later build on the previous CORE
+            # revision, while NULL.c has no setting below it.
             if nqp::eqat($setting-name, 'NULL.', 0) {
                 if $setting-name ne 'NULL.c' {
                     my $loader := nqp::gethllsym('Raku', 'ModuleLoader');

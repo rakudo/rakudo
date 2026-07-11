@@ -1244,7 +1244,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Set up the language to be used, possibly specified by "use vxxx"
     rule lang-setup($*OUTER-CU) {
-        # TODO validate this and pay attention to it in actions
         [ <.ws>? use <version> ';'? ]?
     }
 

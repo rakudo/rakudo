@@ -1863,7 +1863,6 @@ class RakuAST::ModuleLoading {
         my $EXPORT := $handle.export-package;
         if nqp::isconcrete($EXPORT) {
             $EXPORT := $EXPORT.FLATTENABLE_HASH();
-            # TODO deal with non-default imports due to tags
             my @to-import := ['MANDATORY'];
             my @positional-imports;
             if nqp::isconcrete($arglist) {

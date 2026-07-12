@@ -74,9 +74,27 @@ $lang = 'Raku' if $lang eq 'perl6';
     }
 
     if nqp::istype($code, RakuAST::Node) {
-        # Wrap as required to get compilation unit.
+        # Wrap as required to get compilation unit. A unit that already
+        # exists (rather than the wrapper created below, whose creation
+        # pushes its fresh SC) needs its SC put back on the compiling-SC
+        # stack, which the backend pops after each non-nested compile.
+        my $reused-comp-unit := False;
         my $comp-unit := do if nqp::istype($code, RakuAST::CompUnit) {
+            $reused-comp-unit := True;
             $code
+        }
+        # A statement list from Cool.AST was already begun as part of its
+        # parse's compilation unit; begin-time state such as an implicit
+        # proto or require's symbol captures lives on that unit's mainline
+        # scope, not in the statement list. Compile that unit, as wrapping
+        # the (begun, so begin cannot run again) statements in a fresh one
+        # would lose the state. Only when the statement list is still the
+        # unit's own: one transplanted into a user-built tree is theirs.
+        elsif nqp::istype($code, RakuAST::StatementList)
+          && nqp::isconcrete(my $origin := $code.IMPL-ORIGIN-COMP-UNIT)
+          && nqp::eqaddr(nqp::decont($origin.statement-list), nqp::decont($code)) {
+            $reused-comp-unit := True;
+            $origin
         }
         else {
             my $statement-list := do if nqp::istype($code, RakuAST::StatementList) {
@@ -123,6 +141,7 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $optimize-option = nqp::getcomp('Raku').cli-options<optimize> // '';
         $comp-unit.optimize($resolver)
             unless $optimize-option eq 'off' || $optimize-option eq '0';
+        $comp-unit.IMPL-PUSH-COMPILING-SC if $reused-comp-unit;
         $compiled := compile-rakuast-comp-unit($comp-unit);
     }
     else {

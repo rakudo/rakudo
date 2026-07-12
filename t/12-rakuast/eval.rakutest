@@ -6,7 +6,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 1;
+plan 7;
 
 # A tree parsed by Str.AST has its code objects stubbed in the parse's
 # abandoned context, so EVALing it at BEGIN time used to leak compiler
@@ -18,6 +18,40 @@ plan 1;
       :out("42\n"),
       :err(""),
       'precompiling a module returning a Str.AST.EVAL Sub from BEGIN works';
+}
+
+# Declaring a multi inside a Str.AST tree used to die at the call site with
+# "lang-call cannot invoke object of type 'VMNull'": the implicit proto's
+# generated declaration lives on the parse unit's mainline scope, which the
+# fresh unit EVAL wrapped the (already begun) statements in did not have.
+# EVAL now compiles the unit the tree was parsed as.
+{
+    is Q| multi keep(Int \v) { v }; multi keep(Str \v) { "s" ~ v }; keep(5) ~ keep("x") |.AST.EVAL,
+      "5sx", 'multis declared inside .AST.EVAL dispatch';
+
+    my $ast = Q| multi keep(Int \v) { v * 2 }; keep(21) |.AST;
+    is $ast.EVAL, 42, 'an .AST tree declaring a multi EVALs';
+    is $ast.EVAL, 42, 'the same .AST tree EVALs a second time';
+}
+
+# require inside a Str.AST tree used to die for the same lost-mainline
+# reason: bare require with "bindkey_o requires a concrete object",
+# require-with-import with "Lexical '&ok' does not exist in this frame".
+{
+    is Q| require Test; 1 |.AST.EVAL, 1,
+      'require inside .AST.EVAL works';
+    is Q| require Test <&ok>; &ok.name |.AST.EVAL, 'ok',
+      'require with import inside .AST.EVAL works';
+}
+
+# The same lost state broke precompilation when the EVAL happened at BEGIN
+# time, since the multi's compiled unit is part of the module's output.
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    is-run 'use lib <t/packages/12-rakuast/lib>; use ParsedMultiAtBegin; say ParsedMultiAtBegin::bump(41);',
+      :out("42\n"),
+      :err(""),
+      'precompiling a module returning a Str.AST.EVAL multi from BEGIN works';
 }
 
 # vim: expandtab shiftwidth=4

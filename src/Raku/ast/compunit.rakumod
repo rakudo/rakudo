@@ -307,6 +307,15 @@ class RakuAST::CompUnit
     # does not declare its own GLOBAL and so forth.
     method is-eval() { $!is-eval ?? True !! False }
 
+    # Put this unit's SC back on the compiling-SC stack before compiling it
+    # again. Creating the unit pushed the SC, but the backend pops it after
+    # every non-nested compile, so a reused unit (an .AST tree EVALed a
+    # second time) would otherwise compile with no compiling SC. A nested
+    # unit shares the enclosing compilation's SC, which is already current.
+    method IMPL-PUSH-COMPILING-SC() {
+        nqp::pushcompsc($!sc) unless $!is-eval == 2;
+    }
+
     # The resolver used to compile this CompUnit, exposed so a later pipeline
     # stage (the optimize stage) can run an AST pass that resolves names.
     method resolver() { $!resolver }

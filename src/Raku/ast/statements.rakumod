@@ -533,6 +533,19 @@ class RakuAST::StatementList
     has List $!statements;
     has int $!is-sunk;
     has Mu   $.code-statements;  # internal only: actual code statements
+    has Mu   $!origin-comp-unit; # internal only: set by Cool.AST, see below
+
+    # A statement list handed out by Cool.AST was already begun as part of
+    # its parse's compilation unit, so begin-time state that lives on that
+    # unit's mainline scope (an implicit proto, require's symbol captures)
+    # is not part of the statement list itself. Cool.AST records the unit
+    # here so EVAL can compile it rather than wrap the statement list in a
+    # fresh unit whose mainline lacks that state.
+    method IMPL-SET-ORIGIN-COMP-UNIT(Mu $comp-unit) {
+        nqp::bindattr(self, RakuAST::StatementList, '$!origin-comp-unit',
+          $comp-unit);
+    }
+    method IMPL-ORIGIN-COMP-UNIT() { nqp::ifnull($!origin-comp-unit, Mu) }
 
     method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);

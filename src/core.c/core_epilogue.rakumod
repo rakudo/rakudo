@@ -817,11 +817,20 @@ augment class Cool {
           |(:optimize($_) with $compiler.cli-options<optimize>),
           :target<ast>, :compunit_ok(1), :$grammar, :$actions;
 
-        $expression
-          ?? $ast.statement-list.statements.head.expression
-          !! $compunit
-            ?? $ast
-            !! $ast.statement-list
+        if $expression {
+            $ast.statement-list.statements.head.expression
+        }
+        elsif $compunit {
+            $ast
+        }
+        else {
+            # The statements were already begun as part of $ast; record it
+            # so EVAL can compile the unit that holds their begin-time
+            # scope state instead of wrapping them in a fresh one.
+            my $statement-list := $ast.statement-list;
+            $statement-list.IMPL-SET-ORIGIN-COMP-UNIT($ast);
+            $statement-list
+        }
     }
 }
 

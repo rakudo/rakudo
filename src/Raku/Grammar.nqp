@@ -5466,9 +5466,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             return 0;
         }
 
-        # Work out what default precedence we want, or if it's more special
-        # than just an operator.
-        my %prec;
+        # Precedence needs no attention here: at expression parse time an
+        # operator's properties are resolved from the operator's sub itself,
+        # which is how traits like "is tighter" take effect.
         my int $is-operator;
         my @parts := nqp::split(' ', $opname);
 
@@ -5480,7 +5480,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               :$category, :needs(1)
             ) unless @parts == 1;
 
-            %prec := $OperatorProperties."$category"().prec;  # XXX for now
             $is-operator := 1;
         }
 
@@ -5527,15 +5526,6 @@ only have 1 MAIN grammar, otherwise it will slow down loading of
 Rakudo significantly on *every* run."
         ) if $*COMPILING_CORE_SETTING;
 
-        $declarand := $declarand.compile-time-value if $declarand;
-
-        # when importing, reuse known precedence overrides
-        if %prec && nqp::can($declarand,'prec') {
-            for $declarand.prec.FLATTENABLE_HASH {
-                %prec{$_.key} := $_.value;
-            }
-        }
-
         # Mix an appropriate role into the grammar for parsing the new term
         my $grammar-mixin;
         if $category eq 'term' {
@@ -5547,14 +5537,12 @@ Rakudo significantly on *every* run."
 
         # Mix an appropriate role into the grammar for parsing the new op
         elsif $is-operator {
-            my role Oper[$meth-name, $op, $precedence, $declarand] {
+            my role Oper[$meth-name, $op] {
                 token ::($meth-name) {
                     $<sym>=[$op]
                 }
             }
-            $grammar-mixin := Oper.HOW.curry(
-              Oper, $canname, $opname, %prec, $declarand
-            );
+            $grammar-mixin := Oper.HOW.curry(Oper, $canname, $opname);
         }
 
         # Find opener and closer and parse an EXPR between them.
@@ -5596,21 +5584,6 @@ Rakudo significantly on *every* run."
         # This also becomes the current MAIN. Also place it in %?LANG.
         self.HOW.mixin(self, $grammar-mixin);
         %*LANG<MAIN> := self.WHAT;
-
-        # Declarand should get precedence traits.
-        if $is-operator && nqp::isconcrete($declarand) {
-            my $base_prec := %prec<prec>;
-            #$declarand.add-trait(self.Nodify('Trait::Is').new(
-            #    :name(self.Nodify('Name').from-lexical('prec')),
-            #    :argument(self.Nodify('Circumfix::Parentheses').new(
-            #        self.Nodify('SemiList').new(
-            #            self.action.r('')
-            #        )
-            #    )),
-            #));
-            #$*W.apply_trait(self.MATCH, '&trait_mod:<is>', $declarand,
-            #    :prec(nqp::hash('prec', $base_prec)));
-        }
 
         # May also need to add to the actions.
         my $actions-mixin := nqp::null;

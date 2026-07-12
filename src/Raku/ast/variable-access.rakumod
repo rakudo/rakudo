@@ -649,6 +649,7 @@ class RakuAST::Var::Compiler::Lookup
   is RakuAST::Var::Compiler
   is RakuAST::Lookup
   is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.name;
 
@@ -665,17 +666,19 @@ class RakuAST::Var::Compiler::Lookup
         if $resolved {
             self.set-resolution($resolved);
         }
-        else {
+    }
+
+    # The undeclared sorry waits until check time for two reasons: computing
+    # suggestions at parse time walks scopes that are still being parsed,
+    # and when this node serves as an implicit lookup, for example $?CLASS
+    # outside of a class, going unresolved is normal and check time never
+    # reaches it, since implicit lookups are not children of their node.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
             self.add-sorry:
               $resolver.build-exception: 'X::Undeclared',
                 symbol          => $!name,
-# This appears to tickle an issue with some resolvers, resulting in
-# hard to trace:
-#   lang-call cannot invoke object of type 'VMNull' belonging to no language
-# and
-#   Cannot invoke object of type 'NQPMu'
-# errors.  So don't try to come up with suggestions for now
-#                suggestions     => $resolver.suggest-lexicals($!name),
+                suggestions     => $resolver.suggest-lexicals($!name),
                 is-compile-time => 1;
         }
     }

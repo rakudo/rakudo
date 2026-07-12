@@ -889,6 +889,240 @@ class RakuAST::Resolver {
         }
         RakuAST::Node.IMPL-WRAP-LIST(@exceptions)
     }
+
+    # this levenshtein implementation is used to suggest good alternatives
+    # when deriving from an unknown/typo'd class.
+    method levenshtein($a, $b) {
+        my %memo;
+        my int $alen := nqp::chars($a);
+        my int $blen := nqp::chars($b);
+
+        return 0 if $alen == 0 || $blen == 0;
+
+        my sub changecost(str $ac, str $bc) {
+            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 }
+
+            $ac eq $bc
+              ?? 0
+              !! nqp::fc($ac) eq nqp::fc($bc)
+                ?? 0.1
+                !! issigil($ac) && issigil($bc)
+                  ?? 0.5
+                  !! 1
+        }
+
+        my sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
+            my $key := "$apos:$bpos";
+
+            return %memo{$key} if nqp::existskey(%memo, $key);
+
+            # if either cursor reached the end of the respective string,
+            # the result is the remaining length of the other string.
+            my sub check(int $pos1, int $len1, int $pos2, int $len2) {
+                $pos2 == $len2 ?? $len1 - $pos1 !! -1
+            }
+
+            my int $check := check($apos, $alen, $bpos, $blen);
+            return $check unless $check == -1;
+            $check := check($bpos, $blen, $apos, $alen);
+            return $check unless $check == -1;
+
+            my str $achar := nqp::substr($a, $apos, 1);
+            my str $bchar := nqp::substr($b, $bpos, 1);
+
+            my num $cost := changecost($achar, $bchar);
+
+            # hyphens and underscores cost half when adding/deleting.
+            my num $addcost := 1;
+            $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
+
+            my num $delcost := 1;
+            $delcost := 0.5 if $achar eq "-" || $achar eq "_";
+
+            my num $ca := nqp::add_n(levenshtein_impl($apos+1, $bpos,   nqp::add_n($estimate, $delcost)), $delcost); # what if we remove the current letter from A?
+            my num $cb := nqp::add_n(levenshtein_impl($apos,   $bpos+1, nqp::add_n($estimate, $addcost)), $addcost); # what if we add the current letter from B?
+            my num $cc := nqp::add_n(levenshtein_impl($apos+1, $bpos+1, nqp::add_n($estimate, $cost)), $cost); # what if we change/keep the current letter?
+
+            # the result is the shortest of the three sub-tasks
+            my num $distance;
+            $distance := $ca if nqp::isle_n($ca, $cb) && nqp::isle_n($ca, $cc);
+            $distance := $cb if nqp::isle_n($cb, $ca) && nqp::isle_n($cb, $cc);
+            $distance := $cc if nqp::isle_n($cc, $ca) && nqp::isle_n($cc, $cb);
+
+            # switching two letters costs only 1 instead of 2.
+            if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
+               nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
+                my num $cd := nqp::add_n(levenshtein_impl($apos+2, $bpos+2, nqp::add_n($estimate, 1)), 1);
+                $distance := $cd if nqp::islt_n($cd, $distance);
+            }
+
+            %memo{$key} := $distance;
+        }
+
+        return levenshtein_impl(0, 0, 0e0);
+    }
+
+    method make_levenshtein_evaluator($orig_name, @candidates) {
+        my int $find-count;
+        my int $try-count;
+        my &inner := my sub ($name) {
+            # difference in length is a good lower bound.
+            ++$try-count;
+            return 0 if $find-count > 20 || $try-count > 1000;
+            my $parlen := nqp::chars($orig_name);
+            my $lendiff := nqp::chars($name) - $parlen;
+            $lendiff := -$lendiff if $lendiff < 0;
+            return 1 if nqp::isge_n($lendiff, nqp::mul_n($parlen, 0.3));
+
+            my num $dist := nqp::div_n(self.levenshtein($orig_name, $name), $parlen);
+            my $target := -1;
+            $target := @candidates[0] if nqp::isle_n($dist, 0.1);
+            $target := @candidates[1] if nqp::islt_n(0.1, $dist) && nqp::isle_n($dist, 0.2);
+            $target := @candidates[2] if nqp::islt_n(0.2, $dist) && nqp::isle_n($dist, 0.35);
+            if $target != -1 {
+                my $name-str := nqp::box_s($name, Str);
+                nqp::push($target, $name-str);
+                ++$find-count;
+            }
+            1;
+        }
+        return &inner;
+    }
+
+    method levenshtein_candidate_heuristic(@candidates, $target) {
+        # only take a few suggestions
+        my $to-add := 5;
+        for @candidates[0] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 1 if +@candidates[0] > 0;
+        for @candidates[1] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 2 if +@candidates[1] > 0;
+        for @candidates[2] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+    }
+
+    method suggest-lexicals(Str $name) {
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+
+        self.walk-scopes(%seen, &inner-evaluator);
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+        return @suggestions;
+    }
+
+    method suggest-routines(Str $name) {
+        my $with_sigil := nqp::eqat($name, '&', 0);
+        $name := '&' ~ $name unless $with_sigil;
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+
+        # RT 126264
+        # Since there's no programmatic way to get a list of all phasers
+        # applicable to the current scope, just check against this list
+        # of all of them that aren't already the names of routines
+        for <&BEGIN &CHECK &INIT &ENTER &LEAVE &KEEP &UNDO &PRE &POST &CATCH &CONTROL> -> $phaser {
+            &inner-evaluator($phaser);
+        }
+
+        self.walk-scopes(%seen, &inner-evaluator);
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+        if !$with_sigil {
+            my @no_sigils;  # can't do in-place $_ alteration
+            for @suggestions {
+                nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
+            }
+            @suggestions := @no_sigils;
+        }
+        if $name eq '&length' {
+            @suggestions.push: $with_sigil ?? '&elems'  !! 'elems';
+            @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
+            @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
+        }
+        elsif $name eq '&bytes' {
+            @suggestions.push: '.encode($encoding).bytes';
+        }
+        elsif $name eq '&break' {
+            @suggestions.push: 'last';
+        }
+        elsif $name eq '&skip' {
+            @suggestions.push: 'next';
+        }
+        elsif $name eq '&continue' {
+            @suggestions.push: 'NEXT';
+            @suggestions.push: 'proceed';
+            @suggestions.push: 'succeed';
+        }
+        return @suggestions;
+    }
+
+    method suggest-typename(Str $name) {
+        # Set up lookup for newbie type errors in typenames
+        my constant NEWBIES := nqp::hash(
+          'Integer',   ('Int',),
+          'integer',   ('Int','int'),
+          'Float',     ('Num',),
+          'float',     ('Num','num'),
+          'Number',    ('Num',),
+          'number',    ('Num','num'),
+          'String',    ('Str',),
+          'string',    ('Str','str'),
+        );
+
+        my %seen;
+        %seen{$name} := 1;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my @suggestions;
+
+        if (my @alternates := nqp::atkey(NEWBIES, $name)) {
+            for @alternates {
+                nqp::push(@suggestions, $_);
+            }
+        }
+
+        my &evaluator := -> $name {
+            # only care about type objects
+            my $first := nqp::substr($name, 0, 1);
+            unless $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':' {
+                #unless !$has_object || (nqp::isconcrete($object) && !nqp::istype($object.HOW, Perl6::Metamodel::EnumHOW)) {
+                &inner-evaluator($name);
+            }
+        }
+        self.walk-scopes(%seen, &evaluator);
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+
+        @suggestions
+    }
+
+    # Walk the lexicals of the outer context chain. Subclasses that model
+    # compile-time scopes extend this with those scopes' declarations.
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
+        my $ctx := $!outer;
+        while !nqp::isnull($ctx) {
+            for $ctx -> $name {
+                next if nqp::existskey($seen, $name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -926,8 +1160,22 @@ class RakuAST::Resolver::EVAL
         $clone
     }
 
-    method suggest-routines(str $name) { [] }  # for now
-    method suggest-lexicals(str $name) { [] }  # for now
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            for @scopes[$i].lexical-declarations {
+                my $name := $_.lexical-name;
+                next if nqp::existskey($seen, $name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
+            }
+        }
+
+        nqp::findmethod(RakuAST::Resolver, 'walk-scopes')(
+          self, $seen, $inner-evaluator);
+    }
 
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {
@@ -1364,124 +1612,6 @@ class RakuAST::Resolver::Compile
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
 
-    # this levenshtein implementation is used to suggest good alternatives
-    # when deriving from an unknown/typo'd class.
-    method levenshtein($a, $b) {
-        my %memo;
-        my int $alen := nqp::chars($a);
-        my int $blen := nqp::chars($b);
-
-        return 0 if $alen == 0 || $blen == 0;
-
-        my sub changecost(str $ac, str $bc) {
-            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 }
-
-            $ac eq $bc
-              ?? 0
-              !! nqp::fc($ac) eq nqp::fc($bc)
-                ?? 0.1
-                !! issigil($ac) && issigil($bc)
-                  ?? 0.5
-                  !! 1
-        }
-
-        my sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
-            my $key := "$apos:$bpos";
-
-            return %memo{$key} if nqp::existskey(%memo, $key);
-
-            # if either cursor reached the end of the respective string,
-            # the result is the remaining length of the other string.
-            my sub check(int $pos1, int $len1, int $pos2, int $len2) {
-                $pos2 == $len2 ?? $len1 - $pos1 !! -1
-            }
-
-            my int $check := check($apos, $alen, $bpos, $blen);
-            return $check unless $check == -1;
-            $check := check($bpos, $blen, $apos, $alen);
-            return $check unless $check == -1;
-
-            my str $achar := nqp::substr($a, $apos, 1);
-            my str $bchar := nqp::substr($b, $bpos, 1);
-
-            my num $cost := changecost($achar, $bchar);
-
-            # hyphens and underscores cost half when adding/deleting.
-            my num $addcost := 1;
-            $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
-
-            my num $delcost := 1;
-            $delcost := 0.5 if $achar eq "-" || $achar eq "_";
-
-            my num $ca := nqp::add_n(levenshtein_impl($apos+1, $bpos,   nqp::add_n($estimate, $delcost)), $delcost); # what if we remove the current letter from A?
-            my num $cb := nqp::add_n(levenshtein_impl($apos,   $bpos+1, nqp::add_n($estimate, $addcost)), $addcost); # what if we add the current letter from B?
-            my num $cc := nqp::add_n(levenshtein_impl($apos+1, $bpos+1, nqp::add_n($estimate, $cost)), $cost); # what if we change/keep the current letter?
-
-            # the result is the shortest of the three sub-tasks
-            my num $distance;
-            $distance := $ca if nqp::isle_n($ca, $cb) && nqp::isle_n($ca, $cc);
-            $distance := $cb if nqp::isle_n($cb, $ca) && nqp::isle_n($cb, $cc);
-            $distance := $cc if nqp::isle_n($cc, $ca) && nqp::isle_n($cc, $cb);
-
-            # switching two letters costs only 1 instead of 2.
-            if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
-               nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
-                my num $cd := nqp::add_n(levenshtein_impl($apos+2, $bpos+2, nqp::add_n($estimate, 1)), 1);
-                $distance := $cd if nqp::islt_n($cd, $distance);
-            }
-
-            %memo{$key} := $distance;
-        }
-
-        return levenshtein_impl(0, 0, 0e0);
-    }
-
-    method make_levenshtein_evaluator($orig_name, @candidates) {
-        my int $find-count;
-        my int $try-count;
-        my &inner := my sub ($name) {
-            # difference in length is a good lower bound.
-            ++$try-count;
-            return 0 if $find-count > 20 || $try-count > 1000;
-            my $parlen := nqp::chars($orig_name);
-            my $lendiff := nqp::chars($name) - $parlen;
-            $lendiff := -$lendiff if $lendiff < 0;
-            return 1 if nqp::isge_n($lendiff, nqp::mul_n($parlen, 0.3));
-
-            my num $dist := nqp::div_n(self.levenshtein($orig_name, $name), $parlen);
-            my $target := -1;
-            $target := @candidates[0] if nqp::isle_n($dist, 0.1);
-            $target := @candidates[1] if nqp::islt_n(0.1, $dist) && nqp::isle_n($dist, 0.2);
-            $target := @candidates[2] if nqp::islt_n(0.2, $dist) && nqp::isle_n($dist, 0.35);
-            if $target != -1 {
-                my $name-str := nqp::box_s($name, Str);
-                nqp::push($target, $name-str);
-                ++$find-count;
-            }
-            1;
-        }
-        return &inner;
-    }
-
-    method levenshtein_candidate_heuristic(@candidates, $target) {
-        # only take a few suggestions
-        my $to-add := 5;
-        for @candidates[0] {
-            $target.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 1 if +@candidates[0] > 0;
-        for @candidates[1] {
-            $target.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-        $to-add := $to-add - 2 if +@candidates[1] > 0;
-        for @candidates[2] {
-            $target.push($_) if $to-add > 0;
-            $to-add := $to-add - 1;
-        }
-    }
-
     method walk-scopes(Hash $seen, Code $inner-evaluator) {
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
@@ -1504,118 +1634,10 @@ class RakuAST::Resolver::Compile
             }
         }
 
-        my $ctx := nqp::getattr(self, RakuAST::Resolver, '$!outer');
-        while !nqp::isnull($ctx) {
-            for $ctx -> $name {
-                next if nqp::existskey($seen, $name);
-                $seen{$name} := 1;
-                $inner-evaluator($name);
-            }
-            $ctx := nqp::ctxouter($ctx);
-        }
+        nqp::findmethod(RakuAST::Resolver, 'walk-scopes')(
+          self, $seen, $inner-evaluator);
     }
 
-    method suggest-lexicals(Str $name) {
-        my @suggestions;
-        my @candidates := [[], [], []];
-        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
-        my %seen;
-        %seen{$name} := 1;
-
-        self.walk-scopes(%seen, &inner-evaluator);
-
-        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
-        return @suggestions;
-    }
-
-    method suggest-routines(Str $name) {
-        my $with_sigil := nqp::eqat($name, '&', 0);
-        $name := '&' ~ $name unless $with_sigil;
-        my @suggestions;
-        my @candidates := [[], [], []];
-        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
-        my %seen;
-        %seen{$name} := 1;
-
-        # RT 126264
-        # Since there's no programmatic way to get a list of all phasers
-        # applicable to the current scope, just check against this list
-        # of all of them that aren't already the names of routines
-        for <&BEGIN &CHECK &INIT &ENTER &LEAVE &KEEP &UNDO &PRE &POST &CATCH &CONTROL> -> $phaser {
-            &inner-evaluator($phaser);
-        }
-
-        self.walk-scopes(%seen, &inner-evaluator);
-
-        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
-        if !$with_sigil {
-            my @no_sigils;  # can't do in-place $_ alteration
-            for @suggestions {
-                nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
-            }
-            @suggestions := @no_sigils;
-        }
-        if $name eq '&length' {
-            @suggestions.push: $with_sigil ?? '&elems'  !! 'elems';
-            @suggestions.push: $with_sigil ?? '&chars'  !! 'chars';
-            @suggestions.push: $with_sigil ?? '&codes'  !! 'codes';
-        }
-        elsif $name eq '&bytes' {
-            @suggestions.push: '.encode($encoding).bytes';
-        }
-        elsif $name eq '&break' {
-            @suggestions.push: 'last';
-        }
-        elsif $name eq '&skip' {
-            @suggestions.push: 'next';
-        }
-        elsif $name eq '&continue' {
-            @suggestions.push: 'NEXT';
-            @suggestions.push: 'proceed';
-            @suggestions.push: 'succeed';
-        }
-        return @suggestions;
-    }
-
-    method suggest-typename(Str $name) {
-        # Set up lookup for newbie type errors in typenames
-        my constant NEWBIES := nqp::hash(
-          'Integer',   ('Int',),
-          'integer',   ('Int','int'),
-          'Float',     ('Num',),
-          'float',     ('Num','num'),
-          'Number',    ('Num',),
-          'number',    ('Num','num'),
-          'String',    ('Str',),
-          'string',    ('Str','str'),
-        );
-
-        my %seen;
-        %seen{$name} := 1;
-        my @candidates := [[], [], []];
-        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
-        my @suggestions;
-
-        if (my @alternates := nqp::atkey(NEWBIES, $name)) {
-            for @alternates {
-                nqp::push(@suggestions, $_);
-            }
-        }
-
-        my &evaluator := -> $name {
-            # only care about type objects
-            my $first := nqp::substr($name, 0, 1);
-            unless $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':' {
-                #unless !$has_object || (nqp::isconcrete($object) && !nqp::istype($object.HOW, Perl6::Metamodel::EnumHOW)) {
-                &inner-evaluator($name);
-            }
-        }
-        self.walk-scopes(%seen, &evaluator);
-
-        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
-
-        @suggestions
-    }
 }
 
 #-------------------------------------------------------------------------------

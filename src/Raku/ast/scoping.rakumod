@@ -1118,14 +1118,18 @@ class RakuAST::UndeclaredSymbolDescription::Routine
   is RakuAST::UndeclaredSymbolDescription
 {
     method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
-        nqp::bindkey($routines, self.name, [try $node.origin.as-match.line]);
+        # A synthesized node has no origin to take a line number from, so
+        # fall back to the first line rather than derailing the report.
+        my $line := try $node.origin.as-match.line;
+        nqp::bindkey($routines, self.name, [$line ?? $line !! 1]);
     }
 }
 class RakuAST::UndeclaredSymbolDescription::Type
   is RakuAST::UndeclaredSymbolDescription
 {
     method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
-        nqp::bindkey($types, self.name, [$node.origin.as-match.line]);
+        my $line := try $node.origin.as-match.line;
+        nqp::bindkey($types, self.name, [$line ?? $line !! 1]);
     }
 }
 

@@ -1,7 +1,15 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 1;
+plan 2;
 
 throws-like { EVAL(RakuAST::Term::Self.new) },
     X::Syntax::Self::WithoutObject;
+
+{
+    my sub hello() { }
+    throws-like { EVAL RakuAST::Call::Name.new(name => RakuAST::Name.from-identifier('helo')) },
+        X::Undeclared::Symbols,
+        message => *.contains(Q[Did you mean 'hello']),
+        'an undeclared routine in a synthesized AST is reported with a suggestion';
+}

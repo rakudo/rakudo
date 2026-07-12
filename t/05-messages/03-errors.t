@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 28;
+plan 29;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -194,5 +194,9 @@ is-run ｢has $.x; print "ran"｣,
 is-run ｢has ($.a, $.b); print "ran"｣,
     'signature attribute declaration in the mainline is a compile time error',
     :err(/'You cannot declare attribute' .*? '$.a'/), :exitcode(1);
+
+throws-like ｢my $FILA = 1; say $?FILA｣, X::Undeclared,
+    message => *.contains(Q[Did you mean '$FILA']),
+    'an unknown compiler variable is reported with suggestions';
 
 # vim: expandtab shiftwidth=4

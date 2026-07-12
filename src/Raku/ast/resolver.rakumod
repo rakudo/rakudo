@@ -278,11 +278,11 @@ class RakuAST::Resolver {
 
     # Resolve a constant in the currently known packages, or GLOBAL
     method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil, Bool :$partial) {
-        # Try looking in the packages
+        # Try looking in the packages. The name is looked up without the
+        # sigil: this loop serves bare package and type names, sigiled
+        # symbols are handled by the GLOBAL walk below which applies the
+        # sigil to the final name part.
         my str $name := $Rname.canonicalize;
-# This breaks "our &foo" lookup.  But if the sigil isn't needed, why is
-# it being passed as an argument then???   XXX
-#        $name := $sigil ~ $name if $sigil;
 
         for $!packages {
             my $stash := self.IMPL-STASH-HASH($_.compile-time-value);

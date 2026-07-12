@@ -1,0 +1,23 @@
+# Tests for the machinery that compiles RakuAST trees handed to EVAL:
+# Str.AST parsing, EVAL of the resulting nodes, and their interaction
+# with an enclosing compilation such as a precompiling module.
+
+use lib <t/packages/Test-Helpers>;
+use Test;
+use Test::Helpers;
+
+plan 1;
+
+# A tree parsed by Str.AST has its code objects stubbed in the parse's
+# abandoned context, so EVALing it at BEGIN time used to leak compiler
+# stub state into the enclosing precompilation, which then died with
+# "missing static code ref for closure".
+{
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    is-run 'use lib <t/packages/12-rakuast/lib>; use ParsedSubAtBegin; say ParsedSubAtBegin::bump(41);',
+      :out("42\n"),
+      :err(""),
+      'precompiling a module returning a Str.AST.EVAL Sub from BEGIN works';
+}
+
+# vim: expandtab shiftwidth=4

@@ -135,6 +135,10 @@ class RakuAST::IMPL::QASTContext {
         Nil
     }
 
+    method has-stubbed-code-object(Mu $code-obj) {
+        nqp::existskey($!stubbed-code-objects, ~nqp::objectid($code-obj))
+    }
+
     method mark-code-object-finalized(Mu $code-obj) {
         my str $key := ~nqp::objectid($code-obj);
         nqp::deletekey($!stubbed-code-objects, $key);

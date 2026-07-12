@@ -215,6 +215,26 @@ class RakuAST::Code
         my $cuid := $!cuid;
         $block.set-cuid($!cuid);
 
+        # A code object stubbed during another compilation (a tree from
+        # Str.AST handed to EVAL, for example) is unknown to this context,
+        # so IMPL-FIXUP-COMPILED-CODEREFS would never bind its freshly
+        # compiled code ref. Register it here so the fixup finds it.
+        my %sub-id-to-code-object := $context.sub-id-to-code-object();
+        unless nqp::existskey(%sub-id-to-code-object, $cuid) {
+            %sub-id-to-code-object{$cuid} := $code-obj;
+        }
+
+        # The stubbing context schedules the cleanup that nulls @!compstuff.
+        # When another compilation links the code object, that task lives on
+        # a context that never finalizes (Str.AST abandons its parse context)
+        # or already ran, so this compilation must null the compiler state
+        # itself or the compiler thunk leaks into the serialized graph.
+        unless $context.has-stubbed-code-object($code-obj) {
+            $context.add-cleanup-task(sub () {
+                nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+            });
+        }
+
         my $fixups := QAST::Stmts.new();
         unless $context.is-precompilation-mode {
             # We need to do a fixup of the code block for the non-precompiled case.

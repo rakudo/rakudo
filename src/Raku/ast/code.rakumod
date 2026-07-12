@@ -2187,11 +2187,24 @@ class RakuAST::Routine
             $exclamation-mark := 0 if $exclamation-mark && $!signature.IMPL-HAS-PARAMETER('$!');
             $underscore := 0       if $underscore && $!signature.IMPL-HAS-PARAMETER('$_');
         }
+
+        # An onlystar body only ever runs the dispatcher, so it has no use
+        # for the special variables. A regex declaration's {*} instead calls
+        # the proto regex machinery, which does need them.
+        my int $cursor := 1;
+        if nqp::istype(self.body, RakuAST::OnlyStar)
+          && !nqp::istype(self, RakuAST::RegexDeclaration) {
+            $slash            := 0;
+            $exclamation-mark := 0;
+            $underscore       := 0;
+            $cursor           := 0;
+        }
+
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'))) if $slash;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Routine.new()) if $!need-routine-variable;
-        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Cursor.new()); #TODO maybe we can rule out cases where we don't need it
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Cursor.new()) if $cursor;
         @declarations
     }
 
@@ -2412,6 +2425,13 @@ class RakuAST::Sub
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Sub, '$!body', $new-body);
+        # The implicit declarations were produced and cached when this
+        # routine's scope was entered during parsing, before the body was
+        # known. An onlystar body prunes the special variables from them,
+        # so drop the cache to have them produced anew.
+        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
+          '$!implicit-declarations-cache', Mu)
+          if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
 
@@ -2819,6 +2839,10 @@ class RakuAST::Method
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);
+        # See RakuAST::Sub::replace-body for why the cache is dropped.
+        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
+          '$!implicit-declarations-cache', Mu)
+          if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
 

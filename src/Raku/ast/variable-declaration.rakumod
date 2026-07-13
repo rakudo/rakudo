@@ -610,7 +610,40 @@ class RakuAST::VarDeclaration::Constant
     method compile-time-value() { $!value }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new(:name($!name), :scope<lexical>)
+        nqp::isnull(my $native := self.IMPL-NATIVE-VALUE-QAST)
+          ?? QAST::Var.new(:name($!name), :scope<lexical>)
+          !! $native
+    }
+
+    # A native-typed constant references a compile-time-known value, so emit
+    # that value as a native primitive rather than a lexical lookup of the
+    # boxed object. A lexical lookup produces an object even for a native
+    # type, which passes the constant as its boxed type at call sites and so
+    # never selects a native candidate; the native primitive passes as native
+    # and auto-boxes wherever an object is wanted. Returns nqp::null when the
+    # value is not the plain native type, in which case the boxed value (which
+    # a native-typed constant keeps unchanged) has to be looked up as-is.
+    method IMPL-NATIVE-VALUE-QAST() {
+        return nqp::null unless $!type;
+        my $native-type := $!type.meta-object;
+        my int $primspec := nqp::objprimspec($native-type);
+        return nqp::null unless $primspec == nqp::const::BIND_VAL_INT
+          || $primspec == nqp::const::BIND_VAL_NUM
+          || $primspec == nqp::const::BIND_VAL_STR;
+        # The boxed companion of a native type sits directly above it in the
+        # MRO (int -> Int, num -> Num, str -> Str); only unbox a value that is
+        # actually one of those.
+        my $mro := $native-type.HOW.mro($native-type);
+        return nqp::null unless nqp::elems($mro) > 1;
+        my $value := nqp::decont($!value);
+        return nqp::null unless nqp::istype($value, nqp::atpos($mro, 1));
+        $primspec == nqp::const::BIND_VAL_INT
+          ?? (nqp::isbig_I($value)
+                ?? nqp::null
+                !! QAST::IVal.new(:value(nqp::unbox_i($value))))
+          !! $primspec == nqp::const::BIND_VAL_NUM
+            ?? QAST::NVal.new(:value(nqp::unbox_n($value)))
+            !! QAST::SVal.new(:value(nqp::unbox_s($value)))
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -618,7 +651,7 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new(:name($!name), :scope<lexical>);
+        self.IMPL-LOOKUP-QAST($context)
     }
 }
 

@@ -1184,7 +1184,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Trait::Will:D: --> Str:D) {
-        self!nameds: <type expr>
+        self!nameds: <phase block>
     }
 
     multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {

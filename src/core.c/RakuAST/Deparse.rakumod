@@ -2705,10 +2705,10 @@ CODE
         self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
     }
 
-    multi method deparse(RakuAST::Trait::Will:D $ast --> Str:D) {
+    multi method raku(RakuAST::Trait::Will:D $ast --> Str:D) {
         self.syn-trait("will")
-          ~ ' ' ~ $ast.phase
-          ~ ' ' ~ self.deparse($ast.block)
+          ~ ' ' ~ self.deparse($ast.type)
+          ~ ' ' ~ self.deparse($ast.expr)
     }
 
     multi method deparse(RakuAST::Trait::WillBuild:D $ast --> Str:D) {

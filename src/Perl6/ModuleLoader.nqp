@@ -12,7 +12,6 @@ sub DEBUG(*@strs) {
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
-    my $absolute_path_func;
 
     my %language_module_loaders := nqp::hash(
         'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
@@ -24,13 +23,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
           !! nqp::bindkey(%language_module_loaders, $lang, $loader);
     }
 
-    method register_absolute_path_func($func) {
-        $absolute_path_func := $func;
-    }
-
-    method absolute_path($path) {
-        $absolute_path_func ?? $absolute_path_func($path) !! $path;
-    }
+    method absolute_path($path) { $path }
 
     method ctxsave() {
         $*MAIN_CTX := nqp::ctxcaller(nqp::ctx);
@@ -404,34 +397,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
 
         $setting
-    }
-
-    # Handles any object repossession conflicts that occurred during module
-    # load, or complains about any that cannot be resolved.
-    method resolve_repossession_conflicts(@conflicts) {
-        my int $m := nqp::elems(@conflicts);
-        my int $i;
-        while $i < $m {
-            my $original := nqp::atpos(@conflicts, $i);
-
-            # If it's a Stash in conflict, we make sure any original entries
-            # get appropriately copied.
-            if $original.HOW.name($original) eq 'Stash' {  # XXX typecheck??
-                my %current := nqp::atpos(@conflicts, $i + 1);
-
-                for $original.FLATTENABLE_HASH {
-                    my str $key := $_.key;
-
-                    nqp::bindkey(%current, $key, $_.value)
-                      if nqp::eqat($key, '&', 0);
-                      || nqp::not_i(nqp::existskey(%current, $key))
-                }
-            }
-            # We could complain about anything else, and may in the future; for
-            # now, we let it pass by with "latest wins" semantics.
-
-            $i := $i + 2;
-        }
     }
 
     sub stash_hash($pkg) {

@@ -165,8 +165,10 @@ augment class RakuAST::Node {
 
 #- N ---------------------------------------------------------------------------
 
+    # A node with no more specific candidate is one we cannot turn into a
+    # literal, which is the not-literalizable outcome, not an error.
     multi method literalize(RakuAST::Node:D:) {
-        nqp::die('literalize on ' ~ self.HOW.name(self) ~ ' NYI');
+        alas;
     }
 
 #- Q ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 13;
+plan 14;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -172,5 +172,17 @@ subtest 'trailing paren declarator doc directly after a block', {
 &f.WHY｣),
         'attached',
         'the doc attaches without a separating semicolon';
+}
+
+subtest 'a stash reference used as a compile-time value is the stash', {
+    plan 4;
+    my class Misc99 { class Inner { } }
+    my constant S = Misc99::;
+    ok S ~~ Stash, 'a trailing :: on a class name gives its stash';
+    ok S<Inner>:exists, 'the stash holds the nested package';
+    my constant G = GLOBAL::;
+    ok G ~~ Stash, 'a trailing :: on GLOBAL gives a stash';
+    my constant T = Int;
+    ok T =:= Int, 'a name without a trailing :: keeps its own value';
 }
 # vim: expandtab shiftwidth=4

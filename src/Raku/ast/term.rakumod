@@ -23,8 +23,12 @@ class RakuAST::Term::Name
         self.is-resolved && self.resolution.has-compile-time-value
     }
 
+    # A name with a trailing :: is a stash reference: evaluating it produces
+    # the .WHO of the resolved package, so the compile-time value is that
+    # stash, not the package itself.
     method maybe-compile-time-value() {
-        self.resolution.compile-time-value
+        my $value := self.resolution.compile-time-value;
+        $!name.is-package-lookup ?? nqp::who($value) !! $value
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

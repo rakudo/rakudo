@@ -698,6 +698,10 @@ class RakuAST::Node {
             $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
         }
 
+        if $result =:= $expr {
+            $result := self.IMPL-COLLAPSE-TYPEMATCH($resolver, $expr);
+        }
+
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
@@ -954,6 +958,108 @@ class RakuAST::Node {
         !nqp::isnull($nearest)
             && nqp::eqaddr($nearest, $outermost)
             && nqp::eqaddr($outermost.find-lexical($name), $decl)
+    }
+
+    # A smartmatch against a compile-time-known type object reduces to a type
+    # check. The setting's ACCEPTS for a type object is nqp::istype of the
+    # topic against it, and istype itself runs a subset's refinement and
+    # honors definite and coercion types, so the reduction preserves the
+    # match. It is only valid when no user ACCEPTS candidate could dispatch
+    # instead, which the setting's own IS-SETTING-ONLY answers, ignoring
+    # candidates that need a defined invocant since the matcher here is a
+    # type object. A concrete Junction topic autothreads over ACCEPTS, so
+    # code generation guards the fast path with a runtime Junction test,
+    # unless the matcher is Junction itself, which istype answers directly.
+    # A topic that is itself a compile-time value decides the match here and
+    # the whole expression becomes that constant; a subset is excluded from
+    # that, since its refinement may depend on runtime state. Only a lone
+    # match qualifies: a link of a longer comparison chain must stay a chain
+    # op. The soft pragma turns the reduction off, since it bypasses the
+    # operator and ACCEPTS routines that wrapping relies on.
+    method IMPL-COLLAPSE-TYPEMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        # The checks introspect meta-objects the walk has no say over, so a
+        # surprise from an unusual one declines rather than breaks the build.
+        CATCH {
+            return $expr;
+        }
+
+        # A lone application of the smartmatch operator.
+        return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return $expr unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved;
+        my str $op := $infix.operator;
+        my int $negated := $op eq '!~~';
+        return $expr unless $negated || $op eq '~~';
+        my $left := $expr.left;
+        return $expr if nqp::istype($left, RakuAST::ApplyInfix)
+            && nqp::istype($left.infix, RakuAST::Infix)
+            && $left.infix.properties.chain;
+        return $expr if nqp::istype(self, RakuAST::ApplyInfix)
+            && nqp::istype(self.infix, RakuAST::Infix)
+            && self.infix.properties.chain
+            && nqp::eqaddr(self.left, $expr);
+
+        # A compile-time-known, non-generic type object on the right.
+        my $right := $expr.right;
+        return $expr unless $right.has-compile-time-value;
+        my $type := $right.maybe-compile-time-value;
+        return $expr if nqp::isconcrete($type);
+        my $how := $type.HOW;
+        return $expr unless nqp::can($how, 'archetypes');
+        my $archetypes := $how.archetypes($type);
+        return $expr if $archetypes.generic;
+
+        my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
+        my $Bool     := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
+        return $expr if nqp::isnull($Junction) || nqp::isnull($Bool);
+
+        return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
+        return $expr if self.IMPL-IN-SOFT-SCOPE($resolver);
+
+        # No user ACCEPTS candidate may be able to dispatch for the matcher.
+        my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
+        return $expr unless nqp::isconcrete($accepts)
+            && nqp::can($accepts, 'IS-SETTING-ONLY')
+            && nqp::istrue($accepts.IS-SETTING-ONLY(
+                nqp::const::SIG_ELEM_DEFINED_ONLY));
+
+        # A native topic would need boxing the plain call already provides.
+        return $expr if nqp::objprimspec($left.return-type);
+
+        # A topic known to be a concrete Junction keeps the full smartmatch.
+        my int $left-known := $left.has-compile-time-value;
+        my $left-value;
+        if $left-known {
+            $left-value := $left.maybe-compile-time-value;
+            return $expr if nqp::isconcrete($left-value)
+                && nqp::istype($left-value, $Junction);
+        }
+
+        my int $is-subset := $archetypes.nominalizable
+            && nqp::can($how, 'wrappee-lookup')
+            && !nqp::isnull($how.wrappee-lookup($type, :subset));
+
+        # A known topic decides the match now, unless a subset's refinement
+        # would need to run. The topic must be a foldable operand, the same
+        # bound constant folding uses: a name lookup may claim a compile-time
+        # value that differs from what evaluating it produces, so only a
+        # literal-like topic is trusted.
+        if $left-known && !$is-subset
+            && self.IMPL-FOLDABLE-OPERAND($left)
+            && nqp::can($left-value.HOW, 'archetypes')
+            && !$left-value.HOW.archetypes($left-value).generic
+            && self.IMPL-DROPPABLE($left) && self.IMPL-DROPPABLE($right) {
+            my int $matches := nqp::istype($left-value, $type);
+            $matches := nqp::not_i($matches) if $negated;
+            return RakuAST::Literal.from-value(nqp::hllboolfor($matches, 'Raku'));
+        }
+
+        # Mark for code generation; the matcher being a Junction needs no
+        # runtime guard.
+        $infix.IMPL-SET-TYPEMATCH($type,
+            nqp::istype($type, $Junction) ?? nqp::null() !! $Junction);
+        $expr
     }
 
     # Inline a dot-assignment to an assignment of the method call's result,

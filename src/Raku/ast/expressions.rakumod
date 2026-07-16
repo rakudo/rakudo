@@ -493,11 +493,65 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!chainstatic', 1)
     }
 
+    # Set by the optimize pass when this smartmatch reduces to a type check:
+    # the type matched against, and the Junction type for the runtime topic
+    # guard, or null when the matcher is Junction itself and needs no guard.
+    has int $!typematch;
+    has Mu $!typematch-type;
+    has Mu $!typematch-junction;
+
+    method IMPL-SET-TYPEMATCH(Mu $type, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!typematch', 1);
+        nqp::bindattr(self, RakuAST::Infix, '$!typematch-type', $type);
+        nqp::bindattr(self, RakuAST::Infix, '$!typematch-junction', $junction);
+    }
+
+    # A smartmatch the optimize pass reduced to a type check. The topic is
+    # bound to a local so the Junction guard and the check evaluate it once.
+    # A concrete Junction topic autothreads over the matcher's ACCEPTS, so it
+    # takes BOOLIFY-ACCEPTS, as the setting's smartmatch does for that case;
+    # any other topic takes the plain type check.
+    method IMPL-TYPEMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast) {
+        my int $negated := $!operator eq '!~~';
+        $context.ensure-sc($!typematch-type);
+        my str $tmp := QAST::Node.unique('typematch_topic');
+        my $topic := QAST::Var.new( :name($tmp), :scope<local> );
+        my $istype := QAST::Op.new( :op<istype>, $topic,
+            QAST::WVal.new( :value($!typematch-type) ) );
+        $istype := QAST::Op.new( :op<not_i>, $istype ) if $negated;
+        my $check := QAST::Op.new( :op<hllbool>, $istype );
+        unless nqp::isnull($!typematch-junction) {
+            $context.ensure-sc($!typematch-junction);
+            my $negate-value := nqp::hllboolfor($negated, 'Raku');
+            $context.ensure-sc($negate-value);
+            $check := QAST::Op.new(
+                :op<if>,
+                QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new( :op<istype>, $topic,
+                        QAST::WVal.new( :value($!typematch-junction) ) ),
+                    QAST::Op.new( :op<isconcrete>, $topic )),
+                QAST::Op.new(
+                    :op<callmethod>, :name<BOOLIFY-ACCEPTS>,
+                    $topic,
+                    QAST::WVal.new( :value($!typematch-type) ),
+                    QAST::WVal.new( :value($negate-value) )),
+                $check);
+        }
+        QAST::Stmts.new(
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+                $left-qast),
+            $check)
+    }
+
     method IMPL-INFIX-QAST(
       RakuAST::IMPL::QASTContext $context,
                               Mu $left-qast,
                               Mu $right-qast
     ) {
+        return self.IMPL-TYPEMATCH-QAST($context, $left-qast) if $!typematch;
+
         # Operators that map directly into a QAST op
         my constant QAST-OP := nqp::hash(
           '||',  'unless',

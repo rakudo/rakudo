@@ -1389,45 +1389,47 @@ our class Formatter {
         self.AST($format).EVAL
     }
 
-    # actual workhorse for sprintf()
-    my $FORMATS    := nqp::hash;  # where we keep our formats
-    my $DIRECTIVES := nqp::hash;  # the directives seen for each format
-    method new(Str:D $format) {
+    # Cache where we keep our formats/directives. Key is the format string,
+    # and the value is an IterationBuffer with the code and directivces.
+    my $FORMATS := nqp::hash;
+
+    # Convert a format string into a Callable
+    method new(Str:D $format) { nqp::atpos(self.fetch($format),0) }
+
+    # Actual workhorse for sprintf()
+    method fetch(Str:D $format) is implementation-detail {
         nqp::ifnull(
           nqp::atkey($FORMATS,$format),
           self!fetch-new-format($format)
         )
     }
 
-    # The directives seen while producing the format's code, cached
-    # alongside the code so they are also available on a cache hit
-    method directives(Str:D $format) is implementation-detail {
-        self.new($format) unless nqp::existskey($DIRECTIVES,$format);
-        nqp::atkey($DIRECTIVES,$format)
-    }
-
     # Threadsafe cache updater, don't care about multiple threads trying
     # to do the same format, but this way we don't have a lock if the
-    # same format is called *many* times over
+    # same format is called *many* times over.  Returns an IterationBuffer
+    # with the code and directives.
     method !fetch-new-format(Str:D $format) {
-        my @*DIRECTIVES := my str @;  # the directives seen
-        my @*COERCIONS  := my str @;  # any coercions on parameters
-        my $new-formats    := nqp::clone($FORMATS);
-        my $new-directives := nqp::clone($DIRECTIVES);
+        my @*DIRECTIVES := my str @directives;  # the directives seen
+        my @*COERCIONS  := my str @;            # any coercions on parameters
 
-        # remove the first key we encounter if max reached
-        if nqp::isge_i(nqp::elems($new-formats),100) {  # XXX  should be settable
-            my str $evict =
-              nqp::iterkey_s(nqp::shift(nqp::iterator($new-formats)));
-            nqp::deletekey($new-formats,$evict);
-            nqp::deletekey($new-directives,$evict);
-        }
+        # Set up initial state of new cache
+        my $new := nqp::clone($FORMATS);
+        nqp::deletekey($new,nqp::iterkey_s(nqp::shift(nqp::iterator($new))))
+          if nqp::isge_i(nqp::elems($new),100);  # XXX should be settable
 
-        nqp::bindkey($new-formats,$format,my $code := self.CODE($format));
-        nqp::bindkey($new-directives,$format,@*DIRECTIVES);
-        $DIRECTIVES := $new-directives;
-        $FORMATS    := $new-formats;
-        $code
+        # Obtain the info for this format
+        my $info := nqp::create(IterationBuffer);
+        nqp::push($info,self.CODE($format));
+        nqp::push($info,@directives);
+
+        # Add new format info to cache and install the updated cache
+        # Note that the bindkey *MUST* be done before installing to
+        # prevent the shared hash being altered, which could cause a
+        # producing wrong results and/or a segfault.
+        nqp::bindkey($new,$format,$info);
+        $FORMATS := $new;
+
+        $info
     }
 }
 

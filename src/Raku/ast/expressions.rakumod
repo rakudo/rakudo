@@ -443,6 +443,19 @@ class RakuAST::Infix
         PRIMED{$!operator} // 3
     }
 
+    # Set by the optimize pass when this smartmatch against a junction of
+    # types, in a position that only tests truth, reduces to a chain of
+    # type checks.
+    has int $!juncmatch;
+    has Mu $!juncmatch-data;
+    has Mu $!juncmatch-junction;
+
+    method IMPL-SET-JUNCTION-TYPEMATCH(Mu $data, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!juncmatch', 1);
+        nqp::bindattr(self, RakuAST::Infix, '$!juncmatch-data', $data);
+        nqp::bindattr(self, RakuAST::Infix, '$!juncmatch-junction', $junction);
+    }
+
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
         # Hash value is negation flag
@@ -462,6 +475,7 @@ class RakuAST::Infix
             self.IMPL-ASSIGN-OP($left-qast, $right-qast);
         }
         elsif nqp::existskey(OP-SMARTMATCH, $op)
+            && !$!juncmatch
             && !nqp::istype($right, RakuAST::Var)
             && !$right.IMPL-IS-CONSTANT
             && (!nqp::istype($left, RakuAST::ApplyInfix) || !nqp::istype($left.infix, RakuAST::OperatorProperties) || !$left.infix.properties.chain)
@@ -545,6 +559,7 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!pairmatch', 0);
         nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold', 0);
         nqp::bindattr_i(self, RakuAST::Infix, '$!smartmatch-folded', 0);
+        nqp::bindattr_i(self, RakuAST::Infix, '$!juncmatch', 0);
     }
 
     # Set by the optimize pass when the smartmatch is decided outright in
@@ -556,6 +571,7 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!smartmatch-folded', 1);
         nqp::bindattr(self, RakuAST::Infix, '$!smartmatch-fold-value', $value);
     }
+
 
     # Set by the optimize pass on the assignment of a comma list to a plain
     # array variable, for lowering to a direct build of the list internals.
@@ -631,6 +647,9 @@ class RakuAST::Infix
             $!operator eq '!~~' ?? 1 !! 0) if $!litmatch;
         return self.IMPL-PAIRMATCH-QAST($context, $left-qast, $!pairmatch-data,
             $!operator eq '!~~' ?? 1 !! 0) if $!pairmatch;
+        return self.IMPL-JUNCTION-TYPEMATCH-QAST($context, $left-qast,
+            $!juncmatch-data, $!juncmatch-junction,
+            $!operator eq '!~~' ?? 1 !! 0) if $!juncmatch;
 
         # Operators that map directly into a QAST op
         my constant QAST-OP := nqp::hash(

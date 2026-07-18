@@ -1630,27 +1630,27 @@ class RakuAST::Node {
             return Nil;
         }
         if nqp::istype($expr, RakuAST::Statement::Loop) {
-            self.IMPL-TRY-JUNCTION-FOLD($resolver, $expr.condition)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
                 if nqp::isconcrete($expr.condition);
         }
         elsif nqp::istype($expr, RakuAST::Statement::IfWith) {
-            self.IMPL-TRY-JUNCTION-FOLD($resolver, $expr.condition)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
                 if $expr.IMPL-QAST-TYPE eq 'if';
             for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
-                self.IMPL-TRY-JUNCTION-FOLD($resolver, $_.condition)
+                self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $_.condition)
                     if $_.IMPL-QAST-TYPE eq 'if';
             }
         }
         elsif nqp::istype($expr, RakuAST::Statement::Unless) {
-            self.IMPL-TRY-JUNCTION-FOLD($resolver, $expr.condition);
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition);
         }
         elsif nqp::istype($expr, RakuAST::Statement::Expression) {
             my $loop := $expr.loop-modifier;
-            self.IMPL-TRY-JUNCTION-FOLD($resolver, $loop.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $loop.expression)
                 if nqp::isconcrete($loop)
                 && nqp::istype($loop, RakuAST::StatementModifier::WhileUntil);
             my $cond := $expr.condition-modifier;
-            self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $cond.expression)
                 if nqp::isconcrete($cond)
                 && (nqp::istype($cond, RakuAST::StatementModifier::If)
                     && !nqp::istype($cond, RakuAST::StatementModifier::When)
@@ -1662,11 +1662,93 @@ class RakuAST::Node {
                 my str $op := $prefix.operator;
                 if ($op eq '?' || $op eq '!' || $op eq 'so' || $op eq 'not')
                     && self.IMPL-OPERATOR-IS-CORE($resolver, $prefix) {
-                    self.IMPL-TRY-JUNCTION-FOLD($resolver, $expr.operand);
+                    self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.operand);
                 }
             }
         }
         Nil
+    }
+
+    # A condition in a truth-only position may take either boolean-form
+    # reduction: a junction comparison unfolds, and a smartmatch against
+    # a junction of types becomes a chain of type checks.
+    method IMPL-TRY-BOOLEAN-CONDITION(RakuAST::Resolver $resolver, Mu $cond) {
+        self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond);
+        self.IMPL-TRY-JUNCTION-TYPEMATCH($resolver, $cond);
+        Nil
+    }
+
+    # A smartmatch against a junction of type objects, in a position that
+    # only tests truth, comes down to whether the topic is any, or all,
+    # of the types. The topic itself turning out to be a concrete
+    # Junction takes the full match instead, which threads the matcher's
+    # eigenstates over it.
+    method IMPL-TRY-JUNCTION-TYPEMATCH(RakuAST::Resolver $resolver, Mu $cond) {
+        CATCH {
+            return Nil;
+        }
+        return Nil unless nqp::istype($cond, RakuAST::ApplyInfix);
+        my $infix := $cond.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved;
+        my str $op := $infix.operator;
+        return Nil unless $op eq '~~' || $op eq '!~~';
+        my $left := $cond.left;
+        return Nil if nqp::istype($left, RakuAST::ApplyInfix)
+            && nqp::istype($left.infix, RakuAST::Infix)
+            && $left.infix.properties.chain;
+        return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
+        return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
+        return Nil if nqp::objprimspec($left.return-type);
+        my $data := self.IMPL-JUNCTION-OF-TYPES($resolver, $cond.right);
+        return Nil if nqp::isnull($data);
+        my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
+        return Nil if nqp::isnull($Junction);
+        $infix.IMPL-SET-JUNCTION-TYPEMATCH($data, $Junction);
+        Nil
+    }
+
+    # A reduced junction-of-types match: the topic, bound to a local so
+    # the guard and the checks evaluate it once, tested against each type
+    # in a short-circuit chain, disjunctive for an any junction and
+    # conjunctive for an all one. A topic that turns out to be a
+    # concrete Junction matches the junction matcher in full instead.
+    method IMPL-JUNCTION-TYPEMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $topic-qast, Mu @data, Mu $Junction, int $negated) {
+        my $matcher := @data[0];
+        my int $all := @data[1];
+        my @types := @data[2];
+        $context.ensure-sc($matcher);
+        $context.ensure-sc($Junction);
+        my $neg-bool := nqp::hllboolfor($negated ?? 1 !! 0, 'Raku');
+        $context.ensure-sc($neg-bool);
+        my str $tmp := QAST::Node.unique('juncmatch_topic');
+        my $topic := QAST::Var.new( :name($tmp), :scope<local> );
+        my $check := nqp::null();
+        my int $i := nqp::elems(@types);
+        while --$i >= 0 {
+            my $type := nqp::atpos(@types, $i);
+            $context.ensure-sc($type);
+            my $istype := QAST::Op.new( :op<istype>, $topic,
+                QAST::WVal.new( :value($type) ));
+            $check := nqp::isnull($check)
+                ?? $istype
+                !! QAST::Op.new( :op($all ?? 'if' !! 'unless'), $istype, $check );
+        }
+        $check := QAST::Op.new( :op<not_i>, $check ) if $negated;
+        QAST::Stmts.new(
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+                $topic-qast),
+            QAST::Op.new( :op<if>,
+                QAST::Op.new( :op<if>,
+                    QAST::Op.new( :op<istype>, $topic,
+                        QAST::WVal.new( :value($Junction) ) ),
+                    QAST::Op.new( :op<isconcrete>, $topic )),
+                QAST::Op.new( :op<callmethod>, :name<BOOLIFY-ACCEPTS>,
+                    $topic,
+                    QAST::WVal.new( :value($matcher) ),
+                    QAST::WVal.new( :value($neg-bool) )),
+                QAST::Op.new( :op<hllbool>, $check )))
     }
 
     method IMPL-TRY-JUNCTION-FOLD(RakuAST::Resolver $resolver, Mu $cond) {
@@ -1842,6 +1924,82 @@ class RakuAST::Node {
             $result)
     }
 
+    # A junction of type objects a node reduces to, or null: either a
+    # compile-time concrete any or all Junction whose eigenstates are all
+    # reducible type matchers, or a core | or & construction over such
+    # types, evaluated to the junction it builds. Returns the junction
+    # value, whether it is conjunctive, and the types.
+    method IMPL-JUNCTION-OF-TYPES(RakuAST::Resolver $resolver, Mu $node) {
+        CATCH {
+            return nqp::null();
+        }
+        my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
+        return nqp::null() if nqp::isnull($Junction);
+        my @types;
+        my int $all := 0;
+        my $junction;
+        if $node.has-compile-time-value {
+            $junction := nqp::decont($node.maybe-compile-time-value);
+            return nqp::null() unless nqp::isconcrete($junction)
+                && nqp::eqaddr($junction.WHAT, $Junction);
+            my str $jtype := nqp::getattr($junction, $Junction, '$!type');
+            return nqp::null() unless $jtype eq 'any' || $jtype eq 'all';
+            $all := $jtype eq 'all';
+            my $states := nqp::getattr($junction, $Junction, '$!eigenstates');
+            my int $n := nqp::elems($states);
+            return nqp::null() if $n < 2;
+            my int $i := -1;
+            while ++$i < $n {
+                my $state := nqp::atpos($states, $i);
+                return nqp::null() if nqp::isconcrete($state);
+                my $how := $state.HOW;
+                return nqp::null() unless nqp::can($how, 'archetypes')
+                    && !$how.archetypes($state).generic;
+                my $accepts := nqp::tryfindmethod($state, 'ACCEPTS');
+                return nqp::null() unless nqp::isconcrete($accepts)
+                    && nqp::can($accepts, 'IS-SETTING-ONLY')
+                    && nqp::istrue($accepts.IS-SETTING-ONLY(
+                        nqp::const::SIG_ELEM_DEFINED_ONLY));
+                nqp::push(@types, $state);
+            }
+        }
+        else {
+            my $constructor;
+            my $operands;
+            if nqp::istype($node, RakuAST::ApplyListInfix) {
+                $constructor := $node.infix;
+                $operands := $node.IMPL-UNWRAP-LIST($node.operands);
+            }
+            elsif nqp::istype($node, RakuAST::ApplyInfix) {
+                $constructor := $node.infix;
+                $operands := [$node.left, $node.right];
+            }
+            else {
+                return nqp::null();
+            }
+            return nqp::null() unless nqp::istype($constructor, RakuAST::Infix)
+                && ((my str $op := $constructor.operator) eq '|' || $op eq '&')
+                && nqp::elems($operands) >= 2
+                && self.IMPL-OPERATOR-IS-CORE($resolver, $constructor);
+            $all := $op eq '&';
+            for $operands {
+                my $type := self.IMPL-TYPEMATCH-MATCHER-TYPE($_);
+                return nqp::null() if nqp::isnull($type);
+                nqp::push(@types, $type);
+            }
+            # The junction a topic that turns out to be a concrete
+            # Junction falls back to matching against.
+            my $routine := $constructor.resolution.compile-time-value;
+            return nqp::null() unless nqp::isconcrete($routine);
+            my @args;
+            for @types {
+                nqp::push(@args, $_);
+            }
+            $junction := $routine(|@args);
+        }
+        [$junction, $all, @types]
+    }
+
     # Mark a parameter whose where constraint is a junction of type
     # objects for an inline type check per eigenstate: the constraint
     # closure's ACCEPTS comes down to asking whether the argument is any,
@@ -1879,59 +2037,9 @@ class RakuAST::Node {
         return Nil unless nqp::istype($accepts-call, RakuAST::ApplyPostfix);
         my $written := $accepts-call.operand;
 
-        my @types;
-        my int $all := 0;
-        if $written.has-compile-time-value {
-            my $value := nqp::decont($written.maybe-compile-time-value);
-            return Nil unless nqp::isconcrete($value)
-                && nqp::eqaddr($value.WHAT, $Junction);
-            my str $jtype := nqp::getattr($value, $Junction, '$!type');
-            return Nil unless $jtype eq 'any' || $jtype eq 'all';
-            $all := $jtype eq 'all';
-            my $states := nqp::getattr($value, $Junction, '$!eigenstates');
-            my int $n := nqp::elems($states);
-            return Nil if $n < 2;
-            my int $i := -1;
-            while ++$i < $n {
-                my $state := nqp::atpos($states, $i);
-                return Nil if nqp::isconcrete($state);
-                my $how := $state.HOW;
-                return Nil unless nqp::can($how, 'archetypes')
-                    && !$how.archetypes($state).generic;
-                my $accepts := nqp::tryfindmethod($state, 'ACCEPTS');
-                return Nil unless nqp::isconcrete($accepts)
-                    && nqp::can($accepts, 'IS-SETTING-ONLY')
-                    && nqp::istrue($accepts.IS-SETTING-ONLY(
-                        nqp::const::SIG_ELEM_DEFINED_ONLY));
-                nqp::push(@types, $state);
-            }
-        }
-        else {
-            my $constructor;
-            my $operands;
-            if nqp::istype($written, RakuAST::ApplyListInfix) {
-                $constructor := $written.infix;
-                $operands := $written.IMPL-UNWRAP-LIST($written.operands);
-            }
-            elsif nqp::istype($written, RakuAST::ApplyInfix) {
-                $constructor := $written.infix;
-                $operands := [$written.left, $written.right];
-            }
-            else {
-                return Nil;
-            }
-            return Nil unless nqp::istype($constructor, RakuAST::Infix)
-                && ((my str $op := $constructor.operator) eq '|' || $op eq '&')
-                && nqp::elems($operands) >= 2
-                && self.IMPL-OPERATOR-IS-CORE($resolver, $constructor);
-            $all := $op eq '&';
-            for $operands {
-                my $type := self.IMPL-TYPEMATCH-MATCHER-TYPE($_);
-                return Nil if nqp::isnull($type);
-                nqp::push(@types, $type);
-            }
-        }
-        $expr.IMPL-SET-WHERE-JUNCTION(@types, $all);
+        my $data := self.IMPL-JUNCTION-OF-TYPES($resolver, $written);
+        return Nil if nqp::isnull($data);
+        $expr.IMPL-SET-WHERE-JUNCTION($data[2], $data[1]);
         Nil
     }
 
@@ -2317,6 +2425,14 @@ class RakuAST::Node {
             elsif nqp::istype($matcher, RakuAST::ColonPair) {
                 my $data := self.IMPL-PAIRMATCH-DATA($resolver, $matcher);
                 $when.IMPL-SET-PAIRMATCH($data) unless nqp::isnull($data);
+            }
+            else {
+                my $data := self.IMPL-JUNCTION-OF-TYPES($resolver, $matcher);
+                unless nqp::isnull($data) {
+                    my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
+                    $when.IMPL-SET-JUNCTION-TYPEMATCH($data, $Junction)
+                        unless nqp::isnull($Junction);
+                }
             }
             return Nil;
         }

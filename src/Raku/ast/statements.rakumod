@@ -2011,6 +2011,18 @@ class RakuAST::Statement::When
         nqp::bindattr(self, RakuAST::Statement::When, '$!pairmatch-data', $data);
     }
 
+    # Set by the optimize pass when the matcher is a junction of types
+    # that reduces to a chain of type checks on the topic.
+    has int $!juncmatch;
+    has Mu $!juncmatch-data;
+    has Mu $!juncmatch-junction;
+
+    method IMPL-SET-JUNCTION-TYPEMATCH(Mu $data, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::Statement::When, '$!juncmatch', 1);
+        nqp::bindattr(self, RakuAST::Statement::When, '$!juncmatch-data', $data);
+        nqp::bindattr(self, RakuAST::Statement::When, '$!juncmatch-junction', $junction);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $topic-qast :=
             self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
@@ -2021,11 +2033,14 @@ class RakuAST::Statement::When
                 ?? self.IMPL-LITMATCH-QAST($context, $topic-qast, $!litmatch-data, 0)
                 !! $!pairmatch
                     ?? self.IMPL-PAIRMATCH-QAST($context, $topic-qast, $!pairmatch-data, 0)
-                    !! QAST::Op.new(
-                        :op('callmethod'), :name('ACCEPTS'),
-                        $!condition.IMPL-TO-QAST($context),
-                        $topic-qast
-                    );
+                    !! $!juncmatch
+                        ?? self.IMPL-JUNCTION-TYPEMATCH-QAST($context, $topic-qast,
+                            $!juncmatch-data, $!juncmatch-junction, 0)
+                        !! QAST::Op.new(
+                            :op('callmethod'), :name('ACCEPTS'),
+                            $!condition.IMPL-TO-QAST($context),
+                            $topic-qast
+                        );
         QAST::Op.new(
             :op('if'),
             $sm-qast,

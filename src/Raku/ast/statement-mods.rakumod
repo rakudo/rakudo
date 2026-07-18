@@ -122,6 +122,18 @@ class RakuAST::StatementModifier::When
         nqp::bindattr(self, RakuAST::StatementModifier::When, '$!pairmatch-data', $data);
     }
 
+    # Set by the optimize pass when the matcher is a junction of types
+    # that reduces to a chain of type checks on the topic.
+    has int $!juncmatch;
+    has Mu $!juncmatch-data;
+    has Mu $!juncmatch-junction;
+
+    method IMPL-SET-JUNCTION-TYPEMATCH(Mu $data, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::StatementModifier::When, '$!juncmatch', 1);
+        nqp::bindattr(self, RakuAST::StatementModifier::When, '$!juncmatch-data', $data);
+        nqp::bindattr(self, RakuAST::StatementModifier::When, '$!juncmatch-junction', $junction);
+    }
+
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('if'),
@@ -137,11 +149,15 @@ class RakuAST::StatementModifier::When
                         ?? self.IMPL-PAIRMATCH-QAST($context,
                             QAST::Var.new( :name('$_'), :scope('lexical') ),
                             $!pairmatch-data, 0)
-                        !! QAST::Op.new(
-                            :op('callmethod'), :name('ACCEPTS'),
-                            self.expression.IMPL-TO-QAST($context),
-                            QAST::Var.new( :name('$_'), :scope('lexical') )
-                        ),
+                        !! $!juncmatch
+                            ?? self.IMPL-JUNCTION-TYPEMATCH-QAST($context,
+                                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                                $!juncmatch-data, $!juncmatch-junction, 0)
+                            !! QAST::Op.new(
+                                :op('callmethod'), :name('ACCEPTS'),
+                                self.expression.IMPL-TO-QAST($context),
+                                QAST::Var.new( :name('$_'), :scope('lexical') )
+                            ),
             $statement-qast,
             self.IMPL-EMPTY($context)
         )

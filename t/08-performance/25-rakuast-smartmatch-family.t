@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 31;
+plan 39;
 
 # The helper's walk does not descend a ParamTypeCheck, and a local name
 # identifies the unfolded junction more precisely than any op, so these
@@ -149,4 +149,67 @@ else {
     is ($x ~~ Int ~~ Bool), False,
         'a fold withdrawn from a chain link passes the middle operand along';
     is (0 ~~ 0 == 0), True, 'a reduced link mixed with a comparison chains correctly';
+}
+
+# A smartmatch against a junction of type objects, in a position that
+# only tests truth, checks the topic against each type instead of
+# threading the matcher and collapsing the boolean junction.
+
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    qast-is 'my $x = 5; if $x ~~ Int|Str { say 1 }', :full, -> \v {
+        qast-deep-contains-op(v, 'istype')
+            and not qast-contains-call(v, '&infix:<~~>')
+    }, 'a boolean-position junction-of-types match checks istype with no smartmatch';
+
+    qast-is 'my $x = 5; my $r = $x ~~ Int|Str', :full, -> \v {
+        qast-contains-call(v, '&infix:<~~>')
+            or qast-contains-callmethod(v, 'ACCEPTS')
+    }, 'a junction-of-types match whose value is used keeps the full match';
+}
+else {
+    skip 'the junction-of-types shapes are specific to the RakuAST frontend', 2;
+}
+
+{
+    my $x = 5;
+    my @r;
+    @r.push('any') if $x ~~ Int|Str;
+    @r.push('none') if $x ~~ Str|Num;
+    @r.push('all') if $x ~~ Cool & Numeric;
+    @r.push('not-all') if $x ~~ Str & Numeric;
+    @r.push('neg') if $x !~~ Str|Num;
+    is @r.join(','), 'any,all,neg', 'junction-of-types conditions branch like the full match';
+}
+
+{
+    my $j = any(1, 2.5e0);
+    my @r;
+    @r.push('jt') if $j ~~ Int|Num;
+    @r.push('no') if $j ~~ Str|Bool;
+    is @r.join, 'jt', 'a concrete Junction topic still threads through the matcher';
+}
+
+{
+    my @r;
+    given 5 { when Int|Str { @r.push('is') }; default { @r.push('no') } }
+    given 2.5e0 { when Int|Str { @r.push('is') }; default { @r.push('no') } }
+    $_ = 's';
+    @r.push('mod') when Int|Str;
+    is @r.join(','), 'is,no,mod', 'when with a junction-of-types matcher picks the right arms';
+}
+
+{
+    subset TinyInt of Int where * < 10;
+    my @r;
+    @r.push('sub') if 4 ~~ TinyInt|Str;
+    @r.push('big') if 50 ~~ TinyInt|Str;
+    is @r.join, 'sub', 'a subset eigenstate runs its refinement in the type check';
+}
+
+{
+    my class WithAccepts { method ACCEPTS($x) { True } }
+    my $x = 5;
+    ok ?($x ~~ WithAccepts|Str), 'a user-ACCEPTS eigenstate keeps the full match';
+    my constant IntOrStr = Int|Str;
+    ok ?($x ~~ IntOrStr), 'a constant junction matcher reduces and matches';
 }

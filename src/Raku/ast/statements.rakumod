@@ -1262,6 +1262,21 @@ class RakuAST::Statement::IfWith
             !! $body.IMPL-TO-QAST($context, :immediate)
     }
 
+    # Set by the optimize pass, allowing a native-int condition of a
+    # plain if part to be tested directly.
+    has int $!native-condition;
+
+    method IMPL-SET-NATIVE-CONDITION() {
+        nqp::bindattr_i(self, RakuAST::Statement::IfWith, '$!native-condition', 1)
+    }
+
+    method IMPL-CONDITION-QAST(RakuAST::IMPL::QASTContext $context, Mu $condition, str $type) {
+        my $qast := $condition.IMPL-TO-QAST($context);
+        $qast := self.IMPL-NATIVE-CONDITION-QAST($qast)
+            if $!native-condition && $type eq 'if';
+        $qast
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         # Start with the else (or Empty).
         my $cur-end;
@@ -1279,7 +1294,7 @@ class RakuAST::Statement::IfWith
             my $branch := $!elsifs[$i];
             $cur-end := QAST::Op.new(
                 :op($branch.IMPL-QAST-TYPE),
-                $branch.condition.IMPL-TO-QAST($context),
+                self.IMPL-CONDITION-QAST($context, $branch.condition, $branch.IMPL-QAST-TYPE),
                 self.IMPL-BRANCH-QAST($context, $branch.then),
                 $cur-end
             );
@@ -1288,7 +1303,7 @@ class RakuAST::Statement::IfWith
         # Finally, the initial condition.
         QAST::Op.new(
             :op(self.IMPL-QAST-TYPE),
-            $!condition.IMPL-TO-QAST($context),
+            self.IMPL-CONDITION-QAST($context, $!condition, self.IMPL-QAST-TYPE),
             self.IMPL-BRANCH-QAST($context, $!then),
             $cur-end
         )
@@ -1403,10 +1418,21 @@ class RakuAST::Statement::Unless
         ]
     }
 
+    # Set by the optimize pass, allowing a native-int condition to be
+    # tested directly.
+    has int $!native-condition;
+
+    method IMPL-SET-NATIVE-CONDITION() {
+        nqp::bindattr_i(self, RakuAST::Statement::Unless, '$!native-condition', 1)
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $cond-qast := $!condition.IMPL-TO-QAST($context);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            if $!native-condition;
         QAST::Op.new(
             :op('unless'),
-            $!condition.IMPL-TO-QAST($context),
+            $cond-qast,
             $!body.IMPL-FLATTEN-APPROVED
                 ?? $!body.IMPL-QAST-FLATTENED($context)
                 !! $!body.IMPL-TO-QAST($context, :immediate),
@@ -1496,6 +1522,14 @@ class RakuAST::Statement::Loop
   is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::ImplicitBlockSemanticsProvider
 {
+    # Set by the optimize pass, allowing a native-int condition to be
+    # tested directly.
+    has int $!native-condition;
+
+    method IMPL-SET-NATIVE-CONDITION() {
+        nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!native-condition', 1)
+    }
+
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 
@@ -1647,9 +1681,14 @@ class RakuAST::Statement::Loop
             my str $op := self.repeat
                 ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
                 !! (self.negate ?? 'until' !! 'while');
+            my $cond-qast := $!condition
+                ?? $!condition.IMPL-TO-QAST($context)
+                !! QAST::IVal.new( :value(1) );
+            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+                if $!native-condition && $!condition;
             my $loop-qast := QAST::Op.new(
                 :$op,
-                $!condition ?? $!condition.IMPL-TO-QAST($context) !! QAST::IVal.new( :value(1) ),
+                $cond-qast,
                 $!body.IMPL-FLATTEN-APPROVED
                     ?? $!body.IMPL-QAST-FLATTENED($context)
                     !! $!body.IMPL-TO-QAST($context, :immediate),

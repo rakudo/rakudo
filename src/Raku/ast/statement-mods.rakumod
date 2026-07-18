@@ -26,6 +26,16 @@ class RakuAST::StatementModifier::Condition
   is RakuAST::StatementModifier
   is RakuAST::ImplicitLookups
 {
+    # Set by the optimize pass, allowing a native-int condition to be
+    # tested directly.
+    has int $!native-condition;
+
+    method IMPL-SET-NATIVE-CONDITION() {
+        nqp::bindattr_i(self, RakuAST::StatementModifier::Condition, '$!native-condition', 1)
+    }
+
+    method IMPL-NATIVE-CONDITION() { $!native-condition }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))
@@ -46,9 +56,12 @@ class RakuAST::StatementModifier::If
   is RakuAST::StatementModifier::Condition
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+        my $cond-qast := self.expression.IMPL-TO-QAST($context);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            if self.IMPL-NATIVE-CONDITION;
         QAST::Op.new(
             :op('if'),
-            self.expression.IMPL-TO-QAST($context),
+            $cond-qast,
             $statement-qast,
             self.IMPL-EMPTY($context)
         )
@@ -60,9 +73,12 @@ class RakuAST::StatementModifier::Unless
   is RakuAST::StatementModifier::Condition
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+        my $cond-qast := self.expression.IMPL-TO-QAST($context);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            if self.IMPL-NATIVE-CONDITION;
         QAST::Op.new(
             :op('unless'),
-            self.expression.IMPL-TO-QAST($context),
+            $cond-qast,
             $statement-qast,
             self.IMPL-EMPTY($context)
         )
@@ -222,11 +238,22 @@ class RakuAST::StatementModifier::WhileUntil
         ]
     }
 
+    # Set by the optimize pass, allowing a native-int condition to be
+    # tested directly.
+    has int $!native-condition;
+
+    method IMPL-SET-NATIVE-CONDITION() {
+        nqp::bindattr_i(self, RakuAST::StatementModifier::WhileUntil, '$!native-condition', 1)
+    }
+
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block, Mu :$expression) {
         if $sink {
+            my $cond-qast := self.expression.IMPL-TO-QAST($context);
+            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+                if $!native-condition;
             QAST::Op.new(
                 :op(self.negate ?? 'until' !! 'while'),
-                self.expression.IMPL-TO-QAST($context),
+                $cond-qast,
                 $statement-qast
             )
         }

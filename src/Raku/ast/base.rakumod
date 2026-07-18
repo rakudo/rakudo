@@ -732,6 +732,7 @@ class RakuAST::Node {
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
+            self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -1112,6 +1113,92 @@ class RakuAST::Node {
             $init.nosink(1);
         }
         $init
+    }
+
+    # Mark a conditional or loop statement so code generation may test a
+    # native-int condition directly: the boolification over a native-int
+    # computation is dropped, and a bare native-int variable is compared
+    # against zero. Registering the mark here gates the rewrite on the
+    # optimize pass running. A with or when part tests something other
+    # than truth, so code generation only rewrites plain if parts.
+    method IMPL-MARK-NATIVE-CONDITION(RakuAST::Resolver $resolver, Mu $expr) {
+        if nqp::istype($expr, RakuAST::Statement::Loop)
+            || nqp::istype($expr, RakuAST::Statement::IfWith)
+            || nqp::istype($expr, RakuAST::Statement::Unless) {
+            $expr.IMPL-SET-NATIVE-CONDITION();
+        }
+        elsif nqp::istype($expr, RakuAST::Statement::Expression) {
+            my $loop := $expr.loop-modifier;
+            $loop.IMPL-SET-NATIVE-CONDITION()
+                if nqp::isconcrete($loop)
+                && nqp::istype($loop, RakuAST::StatementModifier::WhileUntil);
+            my $cond := $expr.condition-modifier;
+            $cond.IMPL-SET-NATIVE-CONDITION()
+                if nqp::isconcrete($cond)
+                && (nqp::istype($cond, RakuAST::StatementModifier::If)
+                    || nqp::istype($cond, RakuAST::StatementModifier::Unless));
+        }
+        Nil
+    }
+
+    # A condition rewritten to branch on the native int it computes. A
+    # boolified native-int computation loses the boolification, and with
+    # it a return-type check the boolification satisfied statically. A
+    # bare native-int variable reference is read as a value and compared
+    # against zero, which is what its boolification comes down to.
+    method IMPL-NATIVE-CONDITION-QAST(Mu $cond) {
+        my $stripped := self.IMPL-STRIP-BOOL-CONDITION($cond);
+        return $stripped unless nqp::isnull($stripped);
+        if nqp::istype($cond, QAST::Var)
+            && nqp::objprimspec($cond.returns) == 1 {
+            my str $scope := $cond.scope;
+            if $scope eq 'lexicalref' {
+                $cond.scope('lexical');
+            }
+            elsif $scope eq 'attributeref' {
+                $cond.scope('attribute');
+            }
+            else {
+                return $cond unless $scope eq 'lexical' || $scope eq 'local';
+            }
+            return QAST::Op.new( :op('isne_i'), $cond, QAST::IVal.new( :value(0) ) );
+        }
+        $cond
+    }
+
+    # Descend a condition's value path through statement wrappers, and
+    # through a return-type check, to a boolification of a provably
+    # native-int child, and return the condition with the boolification
+    # dropped, or null when the shape is anything else. Only a child the
+    # compiler already treats as a native int qualifies: the
+    # boolification coerces any other operand itself, and dropping it
+    # would change what the branch tests.
+    method IMPL-STRIP-BOOL-CONDITION(Mu $node) {
+        if nqp::istype($node, QAST::Op) {
+            my str $op := $node.op;
+            if $op eq 'hllbool' {
+                my $child := nqp::atpos($node.list, 0);
+                return $child
+                    if nqp::istype($child, QAST::IVal)
+                    || nqp::istype($child, QAST::Op) && nqp::eqat($child.op, '_i', -2);
+            }
+            elsif $op eq 'p6typecheckrv' {
+                return self.IMPL-STRIP-BOOL-CONDITION(nqp::atpos($node.list, 0));
+            }
+        }
+        elsif nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt) {
+            my int $n := nqp::elems($node.list);
+            if $n {
+                my $rc := $node.resultchild;
+                my int $idx := nqp::defined($rc) ?? $rc !! $n - 1;
+                my $inner := self.IMPL-STRIP-BOOL-CONDITION(nqp::atpos($node.list, $idx));
+                unless nqp::isnull($inner) {
+                    nqp::bindpos($node.list, $idx, $inner);
+                    return $node;
+                }
+            }
+        }
+        nqp::null()
     }
 
     # Mark a call whose argument types decide the dispatch at compile time.

@@ -1978,12 +1978,30 @@ class RakuAST::Statement::When
         ]
     }
 
+    # Set by the optimize pass when the matcher reduces to a type check:
+    # the type matched against, and the Junction type for the runtime
+    # topic guard, or null when the matcher is Junction itself.
+    has int $!typematch;
+    has Mu $!typematch-type;
+    has Mu $!typematch-junction;
+
+    method IMPL-SET-TYPEMATCH(Mu $type, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::Statement::When, '$!typematch', 1);
+        nqp::bindattr(self, RakuAST::Statement::When, '$!typematch-type', $type);
+        nqp::bindattr(self, RakuAST::Statement::When, '$!typematch-junction', $junction);
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $sm-qast := QAST::Op.new(
-            :op('callmethod'), :name('ACCEPTS'),
-            $!condition.IMPL-TO-QAST($context),
-            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
-        );
+        my $topic-qast :=
+            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
+        my $sm-qast := $!typematch
+            ?? self.IMPL-WHEN-TYPEMATCH-QAST($context, $topic-qast,
+                $!typematch-type, $!typematch-junction)
+            !! QAST::Op.new(
+                :op('callmethod'), :name('ACCEPTS'),
+                $!condition.IMPL-TO-QAST($context),
+                $topic-qast
+            );
         QAST::Op.new(
             :op('if'),
             $sm-qast,

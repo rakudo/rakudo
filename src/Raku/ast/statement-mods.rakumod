@@ -89,14 +89,31 @@ class RakuAST::StatementModifier::Unless
 class RakuAST::StatementModifier::When
   is RakuAST::StatementModifier::Condition
 {
+    # Set by the optimize pass when the matcher reduces to a type check:
+    # the type matched against, and the Junction type for the runtime
+    # topic guard, or null when the matcher is Junction itself.
+    has int $!typematch;
+    has Mu $!typematch-type;
+    has Mu $!typematch-junction;
+
+    method IMPL-SET-TYPEMATCH(Mu $type, Mu $junction) {
+        nqp::bindattr_i(self, RakuAST::StatementModifier::When, '$!typematch', 1);
+        nqp::bindattr(self, RakuAST::StatementModifier::When, '$!typematch-type', $type);
+        nqp::bindattr(self, RakuAST::StatementModifier::When, '$!typematch-junction', $junction);
+    }
+
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('if'),
-            QAST::Op.new(
-                :op('callmethod'), :name('ACCEPTS'),
-                self.expression.IMPL-TO-QAST($context),
-                QAST::Var.new( :name('$_'), :scope('lexical') )
-            ),
+            $!typematch
+                ?? self.IMPL-WHEN-TYPEMATCH-QAST($context,
+                    QAST::Var.new( :name('$_'), :scope('lexical') ),
+                    $!typematch-type, $!typematch-junction)
+                !! QAST::Op.new(
+                    :op('callmethod'), :name('ACCEPTS'),
+                    self.expression.IMPL-TO-QAST($context),
+                    QAST::Var.new( :name('$_'), :scope('lexical') )
+                ),
             $statement-qast,
             self.IMPL-EMPTY($context)
         )

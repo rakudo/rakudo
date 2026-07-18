@@ -733,6 +733,7 @@ class RakuAST::Node {
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
             self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr);
+            self.IMPL-MARK-WHEN-TYPEMATCH($resolver, $expr);
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -1433,6 +1434,97 @@ class RakuAST::Node {
     # match qualifies: a link of a longer comparison chain must stay a chain
     # op. The soft pragma turns the reduction off, since it bypasses the
     # operator and ACCEPTS routines that wrapping relies on.
+    # The compile-time type object a matcher node reduces to a type check
+    # against, or null when it is anything else: the matcher must carry a
+    # compile-time type-object value, non-generic, whose ACCEPTS no user
+    # candidate can intercept.
+    method IMPL-TYPEMATCH-MATCHER-TYPE(Mu $matcher) {
+        CATCH {
+            return nqp::null();
+        }
+        return nqp::null() unless $matcher.has-compile-time-value;
+        my $type := $matcher.maybe-compile-time-value;
+        return nqp::null() if nqp::isconcrete($type);
+        my $how := $type.HOW;
+        return nqp::null() unless nqp::can($how, 'archetypes');
+        return nqp::null() if $how.archetypes($type).generic;
+        my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
+        return nqp::null() unless nqp::isconcrete($accepts)
+            && nqp::can($accepts, 'IS-SETTING-ONLY')
+            && nqp::istrue($accepts.IS-SETTING-ONLY(
+                nqp::const::SIG_ELEM_DEFINED_ONLY));
+        $type
+    }
+
+    # Mark a when statement, or when statement modifier, whose matcher is
+    # a compile-time type object for reduction to a type check on the
+    # topic. A when only ever tests plain truth of its match, so the
+    # check feeds the branch directly, with the same runtime guard a
+    # reduced smartmatch takes for a topic that turns out to be a
+    # concrete Junction.
+    method IMPL-MARK-WHEN-TYPEMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        CATCH {
+            return Nil;
+        }
+        my $when;
+        if nqp::istype($expr, RakuAST::Statement::When) {
+            $when := $expr;
+        }
+        elsif nqp::istype($expr, RakuAST::Statement::Expression) {
+            my $cond := $expr.condition-modifier;
+            $when := $cond
+                if nqp::isconcrete($cond)
+                && nqp::istype($cond, RakuAST::StatementModifier::When);
+        }
+        return Nil unless nqp::isconcrete($when);
+        my $matcher := nqp::istype($when, RakuAST::Statement::When)
+            ?? $when.condition
+            !! $when.expression;
+        my $type := self.IMPL-TYPEMATCH-MATCHER-TYPE($matcher);
+        return Nil if nqp::isnull($type);
+        my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
+        return Nil if nqp::isnull($Junction);
+        $when.IMPL-SET-TYPEMATCH($type,
+            nqp::istype($type, $Junction) ?? nqp::null() !! $Junction);
+        Nil
+    }
+
+    # A when construct's reduced condition: the topic, bound to a local so
+    # the guard and the check evaluate it once, tested with a plain istype
+    # the branch reads directly. A topic that turns out to be a concrete
+    # Junction autothreads over the matcher's ACCEPTS instead, as the full
+    # match would.
+    method IMPL-WHEN-TYPEMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $topic-qast, Mu $type, Mu $junction) {
+        $context.ensure-sc($type);
+        my str $tmp := QAST::Node.unique('when_topic');
+        my $topic := QAST::Var.new( :name($tmp), :scope<local> );
+        my $check := QAST::Op.new( :op<istype>, $topic,
+            QAST::WVal.new( :value($type) ) );
+        unless nqp::isnull($junction) {
+            $context.ensure-sc($junction);
+            my $negate-value := nqp::hllboolfor(0, 'Raku');
+            $context.ensure-sc($negate-value);
+            $check := QAST::Op.new(
+                :op<if>,
+                QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new( :op<istype>, $topic,
+                        QAST::WVal.new( :value($junction) ) ),
+                    QAST::Op.new( :op<isconcrete>, $topic )),
+                QAST::Op.new(
+                    :op<callmethod>, :name<BOOLIFY-ACCEPTS>,
+                    $topic,
+                    QAST::WVal.new( :value($type) ),
+                    QAST::WVal.new( :value($negate-value) )),
+                $check);
+        }
+        QAST::Stmts.new(
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+                $topic-qast),
+            $check)
+    }
+
     method IMPL-COLLAPSE-TYPEMATCH(RakuAST::Resolver $resolver, Mu $expr) {
         # The checks introspect meta-objects the walk has no say over, so a
         # surprise from an unusual one declines rather than breaks the build.
@@ -1457,15 +1549,12 @@ class RakuAST::Node {
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
 
-        # A compile-time-known, non-generic type object on the right.
+        # A matcher that reduces to a compile-time type check.
         my $right := $expr.right;
-        return $expr unless $right.has-compile-time-value;
-        my $type := $right.maybe-compile-time-value;
-        return $expr if nqp::isconcrete($type);
+        my $type := self.IMPL-TYPEMATCH-MATCHER-TYPE($right);
+        return $expr if nqp::isnull($type);
         my $how := $type.HOW;
-        return $expr unless nqp::can($how, 'archetypes');
         my $archetypes := $how.archetypes($type);
-        return $expr if $archetypes.generic;
 
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         my $Bool     := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
@@ -1473,13 +1562,6 @@ class RakuAST::Node {
 
         return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return $expr if self.IMPL-IN-SOFT-SCOPE($resolver);
-
-        # No user ACCEPTS candidate may be able to dispatch for the matcher.
-        my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
-        return $expr unless nqp::isconcrete($accepts)
-            && nqp::can($accepts, 'IS-SETTING-ONLY')
-            && nqp::istrue($accepts.IS-SETTING-ONLY(
-                nqp::const::SIG_ELEM_DEFINED_ONLY));
 
         # A native topic would need boxing the plain call already provides.
         return $expr if nqp::objprimspec($left.return-type);

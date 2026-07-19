@@ -603,14 +603,14 @@ class RakuAST::Type::Parameterized
                 if $expr.has-compile-time-value {
                     $value := $expr.maybe-compile-time-value;
                 }
-                elsif nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-CURRIED {
-                    # A WhateverCode argument. Compile the curry as a static
+                elsif nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-PRIMED {
+                    # A WhateverCode argument. Compile the prime as a static
                     # block so it is one code object with an outer frame the
                     # compunit can serialize, rather than one built by running a
                     # throwaway BEGIN-time thunk. Mirrors the subset `where` path.
-                    $expr.IMPL-CURRIED.IMPL-QAST-BLOCK(
+                    $expr.IMPL-PRIMED.IMPL-QAST-BLOCK(
                       $context, :blocktype<declaration_static>, :expression($expr));
-                    $value := $expr.IMPL-CURRIED.meta-object;
+                    $value := $expr.IMPL-PRIMED.meta-object;
                 }
                 elsif nqp::istype($expr, RakuAST::Expression) {
                     # IMPL-BEGIN-TIME-EVALUATE attaches a thunk to the
@@ -700,10 +700,10 @@ class RakuAST::Type::Parameterized
 
     method IMPL-CAN-INTERPRET() {
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
-        && ($!args.IMPL-CAN-INTERPRET || self.IMPL-ARGS-COMPILE-TIME-OR-CURRIED)
+        && ($!args.IMPL-CAN-INTERPRET || self.IMPL-ARGS-COMPILE-TIME-OR-PRIMED)
     }
 
-    # Whether every argument either has a compile-time value or is a curryable
+    # Whether every argument either has a compile-time value or is a primeable
     # WhateverCode, which PRODUCE-META-OBJECT can compile as a static block.
     # This lets a `does Role[* op *]` application interpret the parameterization
     # rather than run it through a BEGIN-time thunk, whose WhateverCode closure
@@ -711,12 +711,12 @@ class RakuAST::Type::Parameterized
     # expression, a flattening `|@a`, an unresolved variable) satisfies neither
     # branch, so the whole parameterization falls back to the thunk path
     # unchanged. Kept next to the PRODUCE-META-OBJECT loop it must agree with.
-    method IMPL-ARGS-COMPILE-TIME-OR-CURRIED() {
+    method IMPL-ARGS-COMPILE-TIME-OR-PRIMED() {
         for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
             my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
             return False
               unless $expr.has-compile-time-value
-                  || (nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-CURRIED);
+                  || (nqp::istype($expr, RakuAST::Expression) && $expr.IMPL-PRIMED);
         }
         True
     }
@@ -1191,7 +1191,7 @@ class RakuAST::Type::Subset
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
         }
         if $block
-          && !$block.IMPL-CURRIED
+          && !$block.IMPL-PRIMED
           && (!nqp::istype($block, RakuAST::Code)
                || nqp::istype($block, RakuAST::RegexThunk
              )
@@ -1243,11 +1243,11 @@ class RakuAST::Type::Subset
         );
 
         self.meta-object; # Finish meta-object setup so compile time type-checks will be correct
-        if $block && $block.IMPL-CURRIED {
+        if $block && $block.IMPL-PRIMED {
             $block.IMPL-CHECK($resolver, $context);
             $resolver.panic(Any) if $resolver.all-sorries.elems;
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
-            $block.IMPL-CURRIED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
+            $block.IMPL-PRIMED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
         }
     }
 
@@ -1272,8 +1272,8 @@ class RakuAST::Type::Subset
         my $block := $!block;
 
         $type.HOW.set_of($type, $!of.meta-object) if $!of;
-        $type.HOW.set_where($type, $block.IMPL-CURRIED
-            ?? $block.IMPL-CURRIED.meta-object
+        $type.HOW.set_where($type, $block.IMPL-PRIMED
+            ?? $block.IMPL-PRIMED.meta-object
             !! $block.compile-time-value
         ) if $block;
 

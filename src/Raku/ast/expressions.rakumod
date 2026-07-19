@@ -104,20 +104,20 @@ class RakuAST::Expression
         $!thunks
     }
 
-    method IMPL-CURRIED() {
+    method IMPL-PRIMED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
-            return $cur-thunk if nqp::istype($cur-thunk, RakuAST::CurryThunk);
+            return $cur-thunk if nqp::istype($cur-thunk, RakuAST::PrimeThunk);
             $cur-thunk := $cur-thunk.next;
         }
         False
     }
 
-    method IMPL-UNCURRY() {
+    method IMPL-UNPRIME() {
         my $prev-thunk;
         my $cur-thunk := $!thunks;
         while $cur-thunk {
-            if nqp::istype($cur-thunk, RakuAST::CurryThunk) {
+            if nqp::istype($cur-thunk, RakuAST::PrimeThunk) {
                 if $prev-thunk {
                     $prev-thunk.set-next($cur-thunk.next);
                 }
@@ -129,7 +129,7 @@ class RakuAST::Expression
             $prev-thunk := $cur-thunk;
             $cur-thunk := $cur-thunk.next;
         }
-        nqp::die("UNCURRY didn't find a CurryThunk");
+        nqp::die("UNPRIME didn't find a PrimeThunk");
     }
 
     method IMPL-REMOVE-THUNK(RakuAST::ExpressionThunk $thunk) {
@@ -155,14 +155,14 @@ class RakuAST::Expression
         $qast
     }
 
-    # Strip grouping parens from around a single curried expression, so
+    # Strip grouping parens from around a single primed expression, so
     # `where (* > 0)` is used as the WhateverCode it is, like `where * > 0`.
-    # Otherwise a caller wraps it in an ACCEPTS block whose body re-curries and
+    # Otherwise a caller wraps it in an ACCEPTS block whose body re-primes and
     # trips the double-closure check.
     method IMPL-UNWRAP-WHERE-PARENS() {
         nqp::istype(self, RakuAST::Circumfix::Parentheses)
-          && (my $curried := self.IMPL-SINGULAR-CURRIED-EXPRESSION)
-            ?? $curried
+          && (my $primed := self.IMPL-SINGULAR-PRIMED-EXPRESSION)
+            ?? $primed
             !! self
     }
 }
@@ -240,11 +240,11 @@ class RakuAST::Infixish
                                 RakuAST::Expression *@operands, Bool :$meta) {
     }
 
-    # %curried == 0 means do not curry
-    # %curried == 1 means curry Whatever only
-    # %curried == 2 means curry WhateverCode only
-    # %curried == 3 means curry both Whatever and WhateverCode (default)
-    method IMPL-CURRIES() { 0 }
+    # %primed == 0 means do not prime
+    # %primed == 1 means prime Whatever only
+    # %primed == 2 means prime WhateverCode only
+    # %primed == 3 means prime both Whatever and WhateverCode (default)
+    method IMPL-PRIMES() { 0 }
 
     method IMPL-OPERATOR() {
         nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
@@ -402,14 +402,14 @@ class RakuAST::Infix
         }
     }
 
-    method IMPL-CURRIES() {
+    method IMPL-PRIMES() {
         # Lookup of infix operators and whether either left / right side
-        # will curry:
-        #  0 = do not curry
-        #  1 = curry Whatever only
-        #  2 = curry WhateverCode only
-        #  3 = curry both Whatever and WhateverCode (default)
-        my constant CURRIED := nqp::hash(
+        # will prime:
+        #  0 = do not prime
+        #  1 = prime Whatever only
+        #  2 = prime WhateverCode only
+        #  3 = prime both Whatever and WhateverCode (default)
+        my constant PRIMED := nqp::hash(
             '...'        , 0,
             '…'          , 0,
             '...^'       , 0,
@@ -440,7 +440,7 @@ class RakuAST::Infix
             '^..^'       , 2,
             'xx'         , 2,
         );
-        CURRIED{$!operator} // 3
+        PRIMED{$!operator} // 3
     }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
@@ -1038,7 +1038,7 @@ class RakuAST::FlipFlop
         $!state-var.to-begin-time($resolver, $context);
     }
 
-    method IMPL-CURRIES() { 0 }
+    method IMPL-PRIMES() { 0 }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
                               RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
@@ -1332,7 +1332,7 @@ class RakuAST::MetaInfix
           !! True
     }
 
-    method IMPL-CURRIES { self.infix.IMPL-CURRIES }
+    method IMPL-PRIMES { self.infix.IMPL-PRIMES }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
@@ -2064,106 +2064,106 @@ class RakuAST::MetaInfix::Hyper
 # Application of operators
 
 # This role is used by the Apply* family of expressions. We group all of the logic here
-# as well as using the role as a generic marker during searches for "curryability".
+# as well as using the role as a generic marker during searches for "primeability".
 # The design uses find-nodes-exclusive to determine wheter a given WhateverApplicable
-# node has child nodes that it needs to curry across as it hands out parameters with
+# node has child nodes that it needs to prime across as it hands out parameters with
 # RakuAST::ParameterTarget::Whatever nodes as targets. These parameter target nodes
 # are added to the *origin* WhateverApplicable's signature and then bound to operands
 # that were previously storing RakuAST::Term::Whatever nodes.
 class RakuAST::WhateverApplicable
 {
-    has int $!must-not-curry;
+    has int $!must-not-prime;
     has int $!hyperwhatever;
 
-    method IMPL-MUST-NOT-CURRY() {
-        nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-curry', 1);
+    method IMPL-MUST-NOT-PRIME() {
+        nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-prime', 1);
     }
 
-    method IMPL-CURRY(@params) {
+    method IMPL-PRIME(@params) {
         my $expr := self.origin ?? self.origin.Str !! self.DEPARSE;
         my $thunk := $!hyperwhatever
-            ?? RakuAST::HyperCurryThunk.new($expr, @params)
-            !! RakuAST::CurryThunk.new($expr, @params);
+            ?? RakuAST::HyperPrimeThunk.new($expr, @params)
+            !! RakuAST::PrimeThunk.new($expr, @params);
         self.wrap-with-thunk($thunk);
         $thunk
     }
 
-    method IMPL-MAYBE-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if self.IMPL-SHOULD-CURRY {
-            my $args := self.IMPL-REPLACE-CURRY-OPERANDS;
+    method IMPL-MAYBE-PRIME(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if self.IMPL-SHOULD-PRIME {
+            my $args := self.IMPL-REPLACE-PRIME-OPERANDS;
             if $!hyperwhatever && nqp::elems($args) > 1 {
                 self.add-sorry:
                     $resolver.build-exception: 'X::HyperWhatever::Multiple';
             }
-            self.IMPL-CURRY($args).to-begin-time($resolver, $context);
+            self.IMPL-PRIME($args).to-begin-time($resolver, $context);
         }
     }
 
-    # A curried expression's value is its WhateverCode, and a BEGIN-time
-    # call may interpret it: the curry compiles as a static block whose
+    # A primed expression's value is its WhateverCode, and a BEGIN-time
+    # call may interpret it: the prime compiles as a static block whose
     # outer is the compunit, so the closure survives serialization into
     # a precompiled unit. Building it by running a dynamically compiled
     # thunk instead gives it a throwaway outer frame that no longer
     # matches after precompilation. Other interpret consumers, such as
-    # constant folding, must not treat the curry as a constant and have
+    # constant folding, must not treat the prime as a constant and have
     # no QAST context to compile the block with, so this is gated by the
     # dynamic flag the BEGIN-time call paths set.
-    method IMPL-CURRIED-CAN-INTERPRET() {
-        ($*IMPL-INTERPRET-CURRIED // 0) && self.IMPL-CURRIED ?? True !! False
+    method IMPL-PRIMED-CAN-INTERPRET() {
+        ($*IMPL-INTERPRET-PRIMED // 0) && self.IMPL-PRIMED ?? True !! False
     }
 
-    method IMPL-CURRIED-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my $curry := self.IMPL-CURRIED;
-        $curry.IMPL-QAST-BLOCK($ctx.context, :blocktype<declaration_static>, :expression(self));
-        $curry.meta-object
+    method IMPL-PRIMED-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $prime := self.IMPL-PRIMED;
+        $prime.IMPL-QAST-BLOCK($ctx.context, :blocktype<declaration_static>, :expression(self));
+        $prime.meta-object
     }
 
     method IMPL-IS-XX() {
         False
     }
 
-    method IMPL-SHOULD-CURRY() {
-        return False if $!must-not-curry;
-        return False unless self.operator.IMPL-CURRIES;
-        return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
+    method IMPL-SHOULD-PRIME() {
+        return False if $!must-not-prime;
+        return False unless self.operator.IMPL-PRIMES;
+        return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
 
-        if nqp::bitand_i(self.operator.IMPL-CURRIES, 1) {
+        if nqp::bitand_i(self.operator.IMPL-PRIMES, 1) {
             for self.IMPL-UNWRAP-LIST(self.operands) {
                 return True if nqp::istype($_, RakuAST::Term::Whatever)
                             || nqp::istype($_, RakuAST::Term::HyperWhatever)
             }
         }
-        if nqp::bitand_i(self.operator.IMPL-CURRIES, 2) {
+        if nqp::bitand_i(self.operator.IMPL-PRIMES, 2) {
             for self.IMPL-UNWRAP-LIST(self.operands) {
-                return True if nqp::istype($_, RakuAST::Expression) && $_.IMPL-CURRIED;
+                return True if nqp::istype($_, RakuAST::Expression) && $_.IMPL-PRIMED;
                 return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                                        && $_.IMPL-SINGULAR-CURRIED-EXPRESSION && !self.IMPL-IS-XX;
+                                        && $_.IMPL-SINGULAR-PRIMED-EXPRESSION && !self.IMPL-IS-XX;
             }
         }
         False
     }
 
-    method IMPL-REPLACE-CURRY-OPERANDS() {
+    method IMPL-REPLACE-PRIME-OPERANDS() {
         my int $index := 0;
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
-            if nqp::bitand_i(self.operator.IMPL-CURRIES, 1)
+            if nqp::bitand_i(self.operator.IMPL-PRIMES, 1)
             && (nqp::istype($_, RakuAST::Term::Whatever) || nqp::istype($_, RakuAST::Term::HyperWhatever)) {
                 nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!hyperwhatever', 1)
                     if nqp::istype($_, RakuAST::Term::HyperWhatever);
                 @operands[$index] := RakuAST::WhateverCode::Argument.new;
             }
 
-            # If we can curry WhateverCodes, uncurry them first, i.e. move the thunk up to this node
-            if nqp::bitand_i(self.operator.IMPL-CURRIES, 2) {
-                if $_.IMPL-CURRIED {
-                    $_.IMPL-UNCURRY;
+            # If we can prime WhateverCodes, unprime them first, i.e. move the thunk up to this node
+            if nqp::bitand_i(self.operator.IMPL-PRIMES, 2) {
+                if $_.IMPL-PRIMED {
+                    $_.IMPL-UNPRIME;
                 }
                 elsif nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                      && (my $expression := $_.IMPL-SINGULAR-CURRIED-EXPRESSION)
+                      && (my $expression := $_.IMPL-SINGULAR-PRIMED-EXPRESSION)
                 {
-                    $expression.IMPL-UNCURRY;
+                    $expression.IMPL-UNPRIME;
                 }
             }
 
@@ -2183,13 +2183,13 @@ class RakuAST::WhateverApplicable
                 nqp::push(@args, $n);
             }
 
-            # Continue traversal if node is not any of the currying boundaries
+            # Continue traversal if node is not any of the priming boundaries
             ! (nqp::istype($n, RakuAST::Block)
                 || nqp::istype($n, RakuAST::Postcircumfix::ArrayIndex)
                 || nqp::istype($n, RakuAST::Call)
                 || nqp::istype($n, RakuAST::VarDeclaration::Simple)
-                || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i(self.operator.IMPL-CURRIES, 2))
-                || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-CURRY-DIRECTLY))
+                || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i(self.operator.IMPL-PRIMES, 2))
+                || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-PRIME-DIRECTLY))
         };
         self.visit-dfs($visitor, :strict);
 
@@ -2197,9 +2197,9 @@ class RakuAST::WhateverApplicable
         @args
     }
 
-    method IMPL-SHOULD-CURRY-DIRECTLY() {
-        return False unless nqp::bitand_i(self.operator.IMPL-CURRIES, 1);
-        return False unless self.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS;
+    method IMPL-SHOULD-PRIME-DIRECTLY() {
+        return False unless nqp::bitand_i(self.operator.IMPL-PRIMES, 1);
+        return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
         for self.IMPL-UNWRAP-LIST(self.operands) {
             return True if nqp::istype($_, RakuAST::Term::Whatever)
                         || nqp::istype($_, RakuAST::Term::HyperWhatever);
@@ -2208,17 +2208,17 @@ class RakuAST::WhateverApplicable
         False
     }
 
-    method IMPL-OPERANDS-SHOULD-CURRY-DIRECTLY() {
+    method IMPL-OPERANDS-SHOULD-PRIME-DIRECTLY() {
         my $should-so := False;
         for self.IMPL-UNWRAP-LIST(self.operands) {
-            $should-so := $should-so || (nqp::istype($_, RakuAST::WhateverApplicable) && $_.IMPL-SHOULD-CURRY-DIRECTLY)
-                                     || (nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
+            $should-so := $should-so || (nqp::istype($_, RakuAST::WhateverApplicable) && $_.IMPL-SHOULD-PRIME-DIRECTLY)
+                                     || (nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-SINGULAR-PRIMEABLE-EXPRESSION)
         }
         $should-so
     }
 
-    # Override this to ask questions about the self when it comes to the should-curry question
-    method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS { True }
+    # Override this to ask questions about the self when it comes to the should-prime question
+    method IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS { True }
 }
 
 # Application of an infix operator.
@@ -2275,7 +2275,7 @@ class RakuAST::ApplyInfix
     method operator() { $!infix }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-MAYBE-CURRY($resolver, $context);
+        self.IMPL-MAYBE-PRIME($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
     }
@@ -2350,7 +2350,7 @@ class RakuAST::ApplyInfix
                 self.add-sorry: $left.build-bind-exception($resolver);
             }
 
-            if $infix-op eq '~~' && $left.IMPL-CURRIED {
+            if $infix-op eq '~~' && $left.IMPL-PRIMED {
                 self.add-worry:
                   $resolver.build-exception:
                     'X::WhateverCode::SmartMatch::LHS';
@@ -2445,13 +2445,13 @@ class RakuAST::ApplyInfix
     method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     method IMPL-CAN-INTERPRET() {
-        self.IMPL-CURRIED-CAN-INTERPRET
+        self.IMPL-PRIMED-CAN-INTERPRET
           || $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.IMPL-CURRIED-CAN-INTERPRET
-          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+        self.IMPL-PRIMED-CAN-INTERPRET
+          ?? self.IMPL-PRIMED-INTERPRET($ctx)
           !! $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args) );
     }
 }
@@ -2535,13 +2535,13 @@ class RakuAST::ApplyListInfix
         True
     }
 
-    method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS() {
+    method IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS() {
         # Anything but a ','
         !self.IMPL-IS-LIST-LITERAL
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-MAYBE-CURRY($resolver, $context);
+        self.IMPL-MAYBE-PRIME($resolver, $context);
 
         if nqp::istype($!infix, RakuAST::Feed) {
             for self.IMPL-FEED-STAGES {
@@ -2636,7 +2636,7 @@ class RakuAST::ApplyListInfix
     }
 
     method IMPL-CAN-INTERPRET() {
-        return True if self.IMPL-CURRIED-CAN-INTERPRET;
+        return True if self.IMPL-PRIMED-CAN-INTERPRET;
         if $!infix.IMPL-CAN-INTERPRET {
             for self.IMPL-UNWRAP-LIST($!operands) {
                 return False unless $_.IMPL-CAN-INTERPRET;
@@ -2649,8 +2649,8 @@ class RakuAST::ApplyListInfix
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.IMPL-CURRIED-CAN-INTERPRET
-          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+        self.IMPL-PRIMED-CAN-INTERPRET
+          ?? self.IMPL-PRIMED-INTERPRET($ctx)
           !! $!infix.IMPL-INTERPRET($ctx, $!operands)
     }
 }
@@ -2665,7 +2665,7 @@ class RakuAST::DottyInfixish
 {
     method new() { nqp::create(self) }
 
-    method IMPL-CURRIES() { 0 }
+    method IMPL-PRIMES() { 0 }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
@@ -2804,7 +2804,7 @@ class RakuAST::Prefixish
         }
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 }
 
 # A lookup of a simple (non-meta) prefix operator.
@@ -2992,7 +2992,7 @@ class RakuAST::ApplyPrefix
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-MAYBE-CURRY($resolver, $context);
+        self.IMPL-MAYBE-PRIME($resolver, $context);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -3023,12 +3023,12 @@ class RakuAST::ApplyPrefix
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.IMPL-CURRIED-CAN-INTERPRET
+        self.IMPL-PRIMED-CAN-INTERPRET
           || $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        return self.IMPL-CURRIED-INTERPRET($ctx) if self.IMPL-CURRIED-CAN-INTERPRET;
+        return self.IMPL-PRIMED-INTERPRET($ctx) if self.IMPL-PRIMED-CAN-INTERPRET;
         my $op := $!prefix.IMPL-INTERPRET($ctx);
         $op($!operand.IMPL-INTERPRET($ctx))
     }
@@ -3089,11 +3089,11 @@ class RakuAST::Postfixish
         }
     }
 
-    # %curried == 0 means do not curry
-    # %curried == 1 means curry Whatever only
-    # %curried == 2 means curry WhateverCode only
-    # %curried == 3 means curry both Whatever and WhateverCode (default)
-    method IMPL-CURRIES() { 0 }
+    # %primed == 0 means do not prime
+    # %primed == 1 means prime Whatever only
+    # %primed == 2 means prime WhateverCode only
+    # %primed == 3 means prime both Whatever and WhateverCode (default)
+    method IMPL-PRIMES() { 0 }
 
     method can-be-used-with-hyper() { False }
 }
@@ -3160,7 +3160,7 @@ class RakuAST::Postfix
             self.resolution.IMPL-LOOKUP-QAST($context)
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 }
 
 # Base class for literal postfixes
@@ -3190,7 +3190,7 @@ class RakuAST::Postfix::Literal
 
     method can-be-used-with-hyper() { False }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 }
 
 # The postfix exponentiation operator (2⁴⁵).
@@ -3349,7 +3349,7 @@ class RakuAST::Postcircumfix::ArrayIndex
         self.visit-colonpairs($visitor);
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # 2nd chance to resolve to avoid bootstrapping issue in the setting
@@ -3508,7 +3508,7 @@ class RakuAST::Postcircumfix::HashIndex
         OperatorProperties.postcircumfix('{ }')
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.is-resolved ?? self.resolution.lexical-name !! self.IMPL-LEXICAL-NAME;
@@ -3604,7 +3604,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
         OperatorProperties.postcircumfix('< >')
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
@@ -3667,9 +3667,9 @@ class RakuAST::MetaPostfix::Hyper
         ]
     }
 
-    method IMPL-CURRIES { $!postfix.IMPL-CURRIES }
+    method IMPL-PRIMES { $!postfix.IMPL-PRIMES }
 
-    method IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS { $!postfix.IMPL-CUSTOM-SHOULD-CURRY-CONDITIONS }
+    method IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS { $!postfix.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS }
 
     method IMPL-HOP-INFIX() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
@@ -3715,8 +3715,8 @@ class RakuAST::ApplyPostfix
             $operand := $statement.expression
                 unless $statement.condition-modifier || $statement.loop-modifier;
 
-            # Double parentheses act as a currying border.
-            $obj.IMPL-MUST-NOT-CURRY if nqp::istype($operand, RakuAST::Circumfix::Parentheses);
+            # Double parentheses act as a priming border.
+            $obj.IMPL-MUST-NOT-PRIME if nqp::istype($operand, RakuAST::Circumfix::Parentheses);
         }
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!operand', $operand);
         $obj
@@ -3746,7 +3746,7 @@ class RakuAST::ApplyPostfix
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-MAYBE-CURRY($resolver, $context);
+        self.IMPL-MAYBE-PRIME($resolver, $context);
     }
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -3755,12 +3755,12 @@ class RakuAST::ApplyPostfix
         #      Blockoid 𝄞 -e:1 ⎡{*.{}}⎤
         #        StatementList 𝄞 -e:1 ⎡*.{}⎤
         #          Statement::Expression ▪𝄞 -e:1 ⎡*.{}⎤
-        #            ... [curried]
+        #            ... [primed]
         #    Call::Term  ⎡(...)⎤
         #      ArgList  ⎡...⎤
         if nqp::istype($!operand, RakuAST::Block) && nqp::istype($!postfix, RakuAST::Call::Term) {
             my $stmts := $!operand.body.statement-list;
-            if $stmts.IMPL-IS-SINGLE-EXPRESSION && $stmts.code-statements[0].expression.IMPL-CURRIED {
+            if $stmts.IMPL-IS-SINGLE-EXPRESSION && $stmts.code-statements[0].expression.IMPL-PRIMED {
                 self.add-sorry:
                     $resolver.build-exception: 'X::Syntax::Malformed',
                         :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *')
@@ -3814,13 +3814,13 @@ class RakuAST::ApplyPostfix
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.IMPL-CURRIED-CAN-INTERPRET
+        self.IMPL-PRIMED-CAN-INTERPRET
           || $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.IMPL-CURRIED-CAN-INTERPRET
-          ?? self.IMPL-CURRIED-INTERPRET($ctx)
+        self.IMPL-PRIMED-CAN-INTERPRET
+          ?? self.IMPL-PRIMED-INTERPRET($ctx)
           !! $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
     }
 }

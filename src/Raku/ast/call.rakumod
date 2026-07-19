@@ -160,7 +160,7 @@ class RakuAST::ArgList
         nqp::istype($arg, RakuAST::ApplyPrefix) &&
             nqp::istype($arg.prefix, RakuAST::Prefix) &&
             $arg.prefix.operator eq '|' &&
-            !$arg.IMPL-CURRIED
+            !$arg.IMPL-PRIMED
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -702,7 +702,7 @@ class RakuAST::Call::Methodish
         OperatorProperties.postfix(self.dispatch || $default)
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 }
 
 # A call to a method identified by a name. Some names (like WHAT and HOW) are
@@ -772,10 +772,10 @@ class RakuAST::Call::Method
 
     # Special-op postfixes (.WHAT, .HOW, .VAR, .DEFINITE, etc.) compile to
     # primitive nqp:: ops, not real method calls, so they sit outside the
-    # currying machinery. `(5 ~~ *).WHAT` must therefore evaluate `(5 ~~ *)`
+    # priming machinery. `(5 ~~ *).WHAT` must therefore evaluate `(5 ~~ *)`
     # to a WhateverCode and then take its WHAT, rather than being absorbed
-    # into a curried `{ (5 ~~ $_).WHAT }`.
-    method IMPL-CURRIES() {
+    # into a primed `{ (5 ~~ $_).WHAT }`.
+    method IMPL-PRIMES() {
         $!name.is-identifier && nqp::istrue(self.IMPL-SPECIAL-OP($!name.canonicalize))
             ?? 0
             !! 3

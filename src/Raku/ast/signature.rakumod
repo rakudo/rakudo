@@ -954,7 +954,7 @@ class RakuAST::Parameter
             }
         }
         if $!where {
-            nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
+            nqp::push(@post_constraints, $!where.IMPL-PRIMED ?? $!where.IMPL-PRIMED.meta-object !! $!where.meta-object);
         }
         if $!array-shape {
             nqp::push(@post_constraints, $!array-shape.meta-object);
@@ -1104,7 +1104,7 @@ class RakuAST::Parameter
             self.add-sorry: $sorry if $sorry;
         }
 
-        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
+        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(

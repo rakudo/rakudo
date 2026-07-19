@@ -55,9 +55,9 @@ class RakuAST::ParseTime
     # with a set of arguments.
     method IMPL-BEGIN-TIME-CALL(RakuAST::Node $callee, RakuAST::ArgList $args,
             RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # A curried argument (a WhateverCode) may be interpreted here, as
+        # A primed argument (a WhateverCode) may be interpreted here, as
         # its static block compiles against a real QAST context.
-        my $*IMPL-INTERPRET-CURRIED := 1;
+        my $*IMPL-INTERPRET-PRIMED := 1;
         if $callee.is-resolved && nqp::istype($callee.resolution, RakuAST::CompileTimeValue) &&
                 $args.IMPL-CAN-INTERPRET {
             my $resolved := $callee.resolution.compile-time-value;

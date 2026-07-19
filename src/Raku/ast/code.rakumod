@@ -1691,7 +1691,7 @@ class RakuAST::Block
     method IMPL-CHECK-DOUBLE-CLOSURE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $stmts := self.body.statement-list;
         if $stmts.IMPL-IS-SINGLE-EXPRESSION
-            && $stmts.code-statements[0].expression.IMPL-CURRIED
+            && $stmts.code-statements[0].expression.IMPL-PRIMED
         {
             return $resolver.build-exception: 'X::Syntax::Malformed',
                 :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *');
@@ -3909,8 +3909,8 @@ class RakuAST::SubstitutionReplacementThunk
     }
 }
 
-# Thunk for a curried Whatever expression.
-class RakuAST::CurryThunk
+# Thunk for a primed Whatever expression.
+class RakuAST::PrimeThunk
   is RakuAST::ExpressionThunk
   is RakuAST::ImplicitLookups
 {
@@ -3920,7 +3920,7 @@ class RakuAST::CurryThunk
     method new(Str $original-expression, @args) {
         my $obj := nqp::create(self);
         my @params := [];
-        nqp::bindattr($obj, RakuAST::CurryThunk, '$!parameters', @params);
+        nqp::bindattr($obj, RakuAST::PrimeThunk, '$!parameters', @params);
         for @args {
             # $name will usually be undefined, but sometimes we re-use references to existing * targets
             my $target := RakuAST::ParameterTarget::Whatever.new($_.name);
@@ -3930,7 +3930,7 @@ class RakuAST::CurryThunk
             );
             nqp::push(@params, $param);
         }
-        nqp::bindattr($obj, RakuAST::CurryThunk, '$!original-expression', nqp::hllizefor($original-expression, 'Raku'));
+        nqp::bindattr($obj, RakuAST::PrimeThunk, '$!original-expression', nqp::hllizefor($original-expression, 'Raku'));
         $obj
     }
 
@@ -3965,8 +3965,8 @@ class RakuAST::CurryThunk
     }
 }
 
-class RakuAST::HyperCurryThunk
-  is RakuAST::CurryThunk
+class RakuAST::HyperPrimeThunk
+  is RakuAST::PrimeThunk
 {
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := self.IMPL-CLOSURE-QAST($context);

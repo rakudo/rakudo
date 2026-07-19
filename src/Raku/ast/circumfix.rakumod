@@ -24,27 +24,27 @@ class RakuAST::Circumfix::Parentheses
     }
 
     # Generally needs to be called before children are visited, which is when the Apply*
-    # expressions implement their currying. After that happens, any RakuAST::Term::Whatever
+    # expressions implement their priming. After that happens, any RakuAST::Term::Whatever
     # operands will have been converted to RakuAST::Var::Lexical. At that stage, the below
-    # IMPL-SINGLE-CURRIED-EXPRESSION is the appropriate check.
-    method IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION() {
+    # IMPL-SINGLE-PRIMED-EXPRESSION is the appropriate check.
+    method IMPL-CONTAINS-SINGULAR-PRIMEABLE-EXPRESSION() {
         nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
             && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
             && nqp::istype($statement-expression, RakuAST::Statement::Expression)
             && (my $expression := $statement-expression.expression)
             && nqp::istype($expression, RakuAST::WhateverApplicable)
-            && $expression.IMPL-SHOULD-CURRY-DIRECTLY
+            && $expression.IMPL-SHOULD-PRIME-DIRECTLY
                 ?? $expression
                 !! Nil
     }
 
-    method IMPL-SINGULAR-CURRIED-EXPRESSION() {
+    method IMPL-SINGULAR-PRIMED-EXPRESSION() {
         nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
             && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
             && nqp::istype($statement-expression, RakuAST::Statement::Expression)
             && (my $expression := $statement-expression.expression)
             && nqp::istype($expression, RakuAST::WhateverApplicable)
-            && $expression.IMPL-CURRIED
+            && $expression.IMPL-PRIMED
                 ?? $expression
                 !! Nil
     }

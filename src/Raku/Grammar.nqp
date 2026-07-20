@@ -1294,6 +1294,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*ADVERB-AS-INFIX;  # fallback for fake infix handling
 
         :my @*LEADING-DOC := [];         # temp storage leading declarator doc
+        :my $*LEADING-DOC-FALLBACK;      # non-podifiable declarand to ground
+                                         # leading doc on if nothing else claims it
         :my $*DECLARAND;                 # target for trailing declarator doc
         :my $*LAST-TRAILING-LINE := -1;  # number of last line with trailing doc
         :my $*IGNORE-NEXT-DECLARAND;     # True if next declarand to be ignored

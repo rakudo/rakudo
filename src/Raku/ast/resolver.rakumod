@@ -135,6 +135,21 @@ class RakuAST::Resolver {
         Nil
     }
 
+    # Find the innermost enclosing block that `&?BLOCK` refers to: the nearest
+    # pushed 'block' target that is not an inlined control-flow branch. Returns
+    # Nil if there is none (for example at compilation-unit top level).
+    method find-block-variable-target() {
+        my @stack := $!attach-targets<block>;
+        if nqp::isconcrete(@stack) {
+            my int $i := nqp::elems(@stack);
+            while $i-- {
+                my $target := @stack[$i];
+                return $target unless $target.is-immediate-block-user-body;
+            }
+        }
+        Nil
+    }
+
     # Find the current (most recently pushed) attachment target with the
     # specified name, or return Nil if there is no target by the given name,
     # or no targets left for the given name.

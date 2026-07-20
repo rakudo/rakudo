@@ -1,0 +1,80 @@
+use v6.e.PREVIEW;
+use Test;
+
+# &?BLOCK names the innermost enclosing real block, and a control-flow branch
+# (if/unless/with/without/while/until/loop) is transparent: `&?BLOCK` written
+# in one refers to the block the branch runs in, not the branch itself. This
+# must hold whether or not the branch is compiled as its own frame, so each
+# case pairs the reference with a smartmatch, which forces a branch frame.
+
+plan 8;
+
+{
+    sub s($p) { if $p { &?BLOCK } else { Nil } }
+    is s(1).signature.gist, '($p)',
+      '&?BLOCK in an if branch is the enclosing routine';
+}
+
+{
+    sub s($p) { if $p { my $x = $p ~~ Int; &?BLOCK } else { Nil } }
+    is s(1).signature.gist, '($p)',
+      '&?BLOCK in an if branch with a branch-frame-forcing smartmatch is the routine';
+}
+
+{
+    sub s($p) { my $n = 2; while $n-- { return &?BLOCK } }
+    is s(1).signature.gist, '($p)',
+      '&?BLOCK in a while body is the enclosing routine';
+}
+
+{
+    my $fac = -> Int $n { $n > 1 ?? $n * &?BLOCK($n - 1) !! 1 };
+    is $fac(5), 120, '&?BLOCK recurses the pointy block it is written in';
+}
+
+{
+    my $fac = -> Int $n { if $n > 1 { $n * &?BLOCK($n - 1) } else { 1 } };
+    is $fac(5), 120, '&?BLOCK recurses the enclosing block from inside an if branch';
+}
+
+{
+    sub outer($p) {
+        if $p { my $b = { &?BLOCK }; $b() === $b } else { Nil }
+    }
+    ok outer(1),
+      '&?BLOCK in a bare block inside an if branch is the bare block itself';
+}
+
+# A self-continuing decoder: the returned sub feeds itself back through &?BLOCK
+# until it has collected $count values, then returns the collected list. This
+# is the pattern Data::MessagePack's streaming unpacker relies on.
+{
+    sub collector(Int $count) {
+        my @acc;
+        my $n = $count;
+        return sub ($value) {
+            @acc.push($value);
+            if $value !~~ Int {
+                return @acc;
+            }
+            return @acc unless --$n;
+            return &?BLOCK;
+        }
+    }
+
+    my $next = collector(3);
+    my @emitted;
+    for 10, 20, 30, 40, 50, 60 -> $v {
+        $next = $next.($v);
+        unless $next ~~ Sub {
+            @emitted.push($next.List);
+            $next = collector(3);
+        }
+    }
+    is-deeply @emitted, [(10, 20, 30), (40, 50, 60)],
+      'a &?BLOCK self-continuation inside an if branch accumulates per group';
+    is @emitted.elems, 2,
+      'the self-continuation emits one result per group, not one per value';
+}
+
+# vim: expandtab shiftwidth=4

@@ -2829,6 +2829,20 @@ class RakuAST::VarDeclaration::Implicit::Routine
     }
 }
 
+# The implicit `&?BLOCK` term declaration for a block. Bound to the block's own
+# code object, so a lexical reference to `&?BLOCK` from an inlined control-flow
+# branch inside the block resolves to it.
+class RakuAST::VarDeclaration::Implicit::CurrentBlock
+  is RakuAST::VarDeclaration::Implicit::Routine
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?BLOCK');
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+}
+
 # Used for constructs that generate state variables
 class RakuAST::VarDeclaration::Implicit::State
   is RakuAST::VarDeclaration::Implicit

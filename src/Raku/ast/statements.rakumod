@@ -1224,6 +1224,7 @@ class RakuAST::Statement::IfWith
         else {
             $!then.set-implicit-topic(False, :local);
         }
+        $!then.set-immediate-block-user-body();
         for $!elsifs {
             $_.apply-implicit-block-semantics();
             $last-was-with := $_.IMPL-QAST-TYPE eq 'with';
@@ -1235,6 +1236,7 @@ class RakuAST::Statement::IfWith
             else {
                 $!else.set-implicit-topic(False, :local);
             }
+            $!else.set-immediate-block-user-body();
         }
     }
 
@@ -1345,6 +1347,7 @@ class RakuAST::Statement::Elsif {
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         $!then.set-implicit-topic(False, :local);
+        $!then.set-immediate-block-user-body();
     }
 
     method IMPL-QAST-TYPE() { 'if' }
@@ -1359,6 +1362,7 @@ class RakuAST::Statement::Orwith
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         self.then.set-implicit-topic(True, :required);
+        self.then.set-immediate-block-user-body();
     }
 }
 
@@ -1383,6 +1387,7 @@ class RakuAST::Statement::Unless
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(False, :local);
+        $!body.set-immediate-block-user-body();
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1439,6 +1444,7 @@ class RakuAST::Statement::Without
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
+        $!body.set-immediate-block-user-body();
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1519,6 +1525,7 @@ class RakuAST::Statement::Loop
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(False, :local);
+        $!body.set-immediate-block-user-body();
     }
 
     method mark-block-statement() {

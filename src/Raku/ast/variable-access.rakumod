@@ -340,7 +340,12 @@ class RakuAST::Var::Attribute
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $package := $!package.meta-object;
+        # stubbed-meta-object avoids composing the package. By codegen time
+        # the class is normally already composed, so this is the same object;
+        # but for a method built inside a BEGIN block it is not yet composed,
+        # and forcing it here would finalize the class before its remaining
+        # members are added.
+        my $package := $!package.stubbed-meta-object;
         if $package.HOW.has_attribute($package, $!name) {
             my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
             return QAST::Var.new(
@@ -354,7 +359,8 @@ class RakuAST::Var::Attribute
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
-        my $package := $!package.meta-object;
+        # stubbed-meta-object avoids composing the package (see IMPL-EXPR-QAST).
+        my $package := $!package.stubbed-meta-object;
         if $package.HOW.has_attribute($package, $!name) {
             my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
             unless nqp::eqaddr($attr-type, Mu) {

@@ -2130,7 +2130,10 @@ class RakuAST::ParameterTarget::Var
 
         if $twigil eq '!' {
             if $!attribute-package {
-                my $package := $!attribute-package.meta-object;
+                # stubbed-meta-object avoids composing the package: an
+                # attributive parameter checked from inside a BEGIN block
+                # would otherwise compose the enclosing class mid-body.
+                my $package := $!attribute-package.stubbed-meta-object;
                 unless $package.HOW.has_attribute($package, $!name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Attribute::Undeclared',

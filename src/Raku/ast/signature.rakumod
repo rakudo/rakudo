@@ -1259,7 +1259,12 @@ class RakuAST::Parameter
                 $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.name;
         }
 
-        if nqp::istype($!owner, RakuAST::Sub) && $!target && ($!target.twigil eq '.' || $!target.twigil eq '!') {
+        # A `!`-twigil attributive parameter is checked by its own
+        # RakuAST::Var::Attribute target, which allows it when `self` is
+        # lexically available (a sub nested in a method) and reports it
+        # otherwise. Only the `.`-twigil form, which has no such target, is
+        # handled here.
+        if nqp::istype($!owner, RakuAST::Sub) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
                 $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.name;
         }

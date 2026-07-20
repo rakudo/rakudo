@@ -169,21 +169,24 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
-    # This method is mainly called from Actions.nqp
+    # This method is mainly called from Actions.nqp. $fire-last asks the loop
+    # iterator to run the body's LAST phaser at exhaustion (only if the body
+    # ran), the way a `for` loop does; the RakuAST frontend passes it, the
+    # legacy frontend still emits the LAST call after the loop instead.
     proto method from-loop(|) {*}
-    multi method from-loop(&body, :$label) {
-        Seq.new: Rakudo::Iterator.Loop(&body, $label)
+    multi method from-loop(&body, :$label, :$fire-last = 0) {
+        Seq.new: Rakudo::Iterator.Loop(&body, $label, $fire-last)
     }
-    multi method from-loop(&body, &cond, :$repeat!, :$label) {
+    multi method from-loop(&body, &cond, :$repeat!, :$label, :$fire-last = 0) {
         Seq.new: $repeat
-          ?? Rakudo::Iterator.RepeatLoop(&body, &cond // -> { 1 }, $label)
-          !! Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label)
+          ?? Rakudo::Iterator.RepeatLoop(&body, &cond // -> { 1 }, $label, $fire-last)
+          !! Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last)
     }
-    multi method from-loop(&body, &cond, :$label) {
-        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label)
+    multi method from-loop(&body, &cond, :$label, :$fire-last = 0) {
+        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last)
     }
-    multi method from-loop(&body, &cond, &afterwards, :$label) {
-        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond // -> { 1 }, &afterwards, $label)
+    multi method from-loop(&body, &cond, &afterwards, :$label, :$fire-last = 0) {
+        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond // -> { 1 }, &afterwards, $label, $fire-last)
     }
 
     multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {

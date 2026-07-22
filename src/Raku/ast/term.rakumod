@@ -83,6 +83,12 @@ class RakuAST::Term::Name
             if self-is-resolved {
                 self.resolution.IMPL-LOOKUP-QAST($context);
             }
+            elsif $!name.is-indirect-lookup {
+                # An unresolved indirect lookup is a runtime symbolic lookup.
+                # Its lookup consults %?REQUIRE-SYMBOLS, which the pseudo-stash
+                # lookup below does not.
+                $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
+            }
             else {
                 $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
             }

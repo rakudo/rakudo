@@ -354,6 +354,14 @@ class RakuAST::Resolver {
 
         # Resolve the root part.
         my $name     := $root.name;
+
+        # EXPORT resolves to this unit's own export-package. That suits a
+        # written EXPORT::<...> reference, but an indirect lookup is a runtime
+        # symbolic lookup and must not fold to a compile-time package. A
+        # constant-string indirect lookup still arrives as an Expression part.
+        return Nil
+          if $name eq 'EXPORT'
+          && nqp::istype($root, RakuAST::Name::Part::Expression);
         my str $setting-rev;
         if ($name eq 'CORE') {
             return Nil unless @parts;  # bare CORE has nothing to resolve
@@ -585,6 +593,11 @@ class RakuAST::Resolver {
 
     # Check if a name is a known type.
     method is-name-type(RakuAST::Name $Rname) {
+        # An indirect lookup is a term, not a type name, even when its constant
+        # string resolves. Term::Name folds a resolved one and looks the rest
+        # up at run time.
+        return False if $Rname.is-indirect-lookup;
+
         my $constant := self.resolve-name($Rname);
         if nqp::istype($constant, RakuAST::CompileTimeValue) {
             # Name resolves, but is it an instance or a type object?

@@ -1394,10 +1394,16 @@ class RakuAST::Call::VarMethod
 
     method default-operator-properties() { self.default-properties('.&') }
 
-    method needs-resolution() { $!name.is-identifier }
+    method needs-resolution() {
+        $!name.is-identifier && !$!name.is-indirect-lookup
+    }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $resolved := $resolver.resolve-name($!name, :sigil('&'));
+        # An indirect lookup is a runtime symbolic lookup, so it keeps no
+        # compile-time resolution, as with Term::Name.
+        my $resolved := $!name.is-indirect-lookup
+            ?? Nil
+            !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -1435,7 +1441,9 @@ class RakuAST::Call::VarMethod
         unless $!name.is-identifier {
             nqp::die('compiling complex call names NYI')
         }
-        my $name-qast  := self.resolution.IMPL-LOOKUP-QAST($context);
+        my $name-qast  := $!name.is-indirect-lookup
+            ?? $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :sigil('&'))
+            !! self.resolution.IMPL-LOOKUP-QAST($context);
         my $dispatcher := self.dispatcher;
 
         my $call := $dispatcher
@@ -1458,20 +1466,39 @@ class RakuAST::Call::VarMethod
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $dispatcher := self.dispatcher;
 
+        # The routine appears twice in the dispatch. A runtime indirect
+        # lookup must run once and feed both positions, so its result is
+        # bound to a temporary at the first and read back at the second.
+        my $name-qast;
+        my $name-again;
+        if $!name.is-indirect-lookup {
+            my str $tmp := QAST::Node.unique('indirect_var_method');
+            $name-qast := QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :sigil('&'))
+            );
+            $name-again := QAST::Var.new( :name($tmp), :scope('local') );
+        }
+        else {
+            $name-qast  := self.resolution.IMPL-LOOKUP-QAST($context);
+            $name-again := self.resolution.IMPL-LOOKUP-QAST($context);
+        }
+
         my $call := $dispatcher
             ?? QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                self.resolution.IMPL-LOOKUP-QAST($context),
+                $name-qast,
                 QAST::SVal.new( :value($dispatcher) ),
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                self.resolution.IMPL-LOOKUP-QAST($context)
+                $name-again
             !! QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                self.resolution.IMPL-LOOKUP-QAST($context),
+                $name-qast,
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                self.resolution.IMPL-LOOKUP-QAST($context);
+                $name-again;
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

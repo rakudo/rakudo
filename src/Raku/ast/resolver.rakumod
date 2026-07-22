@@ -600,6 +600,11 @@ class RakuAST::Resolver {
 
     # Check if a name is a known type.
     method is-name-type(RakuAST::Name $Rname) {
+        # An indirect lookup is a term, not a type name, even when its
+        # constant string names a known type: the symbol is looked up at
+        # run time.
+        return False if $Rname.is-indirect-lookup;
+
         my $constant := self.resolve-name($Rname);
         if nqp::istype($constant, RakuAST::CompileTimeValue) {
             # Name resolves, but is it an instance or a type object?

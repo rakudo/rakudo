@@ -5,7 +5,7 @@ plan 2;
 
 # Importing StealWhoLeaf brings in a stub StealWho package carrying Leaf.
 use StealWhoLeaf;
-my constant $stub-who = ::("StealWho").WHO;
+my constant $stub-who = StealWho.WHO;
 
 class StealWho {
 }

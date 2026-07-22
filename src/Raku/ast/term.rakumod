@@ -38,6 +38,14 @@ class RakuAST::Term::Name
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # An indirect lookup is a runtime symbolic lookup, which consults the
+        # symbols a require merged into %?REQUIRE-SYMBOLS before anything
+        # visible at compile time. Resolving its constant-string form here
+        # would let consumers fold the parse-time symbol instead, so it stays
+        # unresolved and evaluates where it is written. In a BEGIN-time
+        # context that evaluation still happens during compilation.
+        return Nil if $!name.is-indirect-lookup;
+
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -96,6 +104,12 @@ class RakuAST::Term::Name
                 $!name.is-package-lookup
                     ?? QAST::Op.new(:op<who>, $lookup)
                     !! $lookup;
+            }
+            elsif $!name.is-indirect-lookup {
+                # An unresolved indirect lookup is a runtime symbolic lookup.
+                # Its lookup consults %?REQUIRE-SYMBOLS, which the pseudo-stash
+                # lookup below does not.
+                $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
             }
             else {
                 $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);

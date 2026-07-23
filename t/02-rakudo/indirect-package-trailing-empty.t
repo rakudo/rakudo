@@ -1,6 +1,6 @@
 use Test;
 
-plan 5;
+plan 7;
 
 # A `$var::` designates the package that is the variable's value. The trailing
 # `::` is an empty final name part; it adds no lookup, so `$p::` is the package
@@ -23,5 +23,11 @@ is ::($n).^name, 'Int',
 module PkgTrailingEmpty { our $sym = 42 }
 is ::PkgTrailingEmpty::<$sym>, 42,
     'a leading :: qualified lookup still resolves';
+ok ::PkgTrailingEmpty === PkgTrailingEmpty,
+    'a leading :: package search designates the package';
+
+GLOBAL::<TrailingEmptyProbe> = 43;
+is ::GLOBAL::<TrailingEmptyProbe>, 43,
+    'a leading :: GLOBAL lookup sees the runtime GLOBAL';
 
 # vim: expandtab shiftwidth=4

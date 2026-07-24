@@ -8,6 +8,8 @@ unless $*VM.config<ccdebugflags> { say "The currently used MoarVM backend is not
 say "This Rakudo version is $*RAKU.compiler.version() built on MoarVM version $*VM.version(),";
 say "running on $*DISTRO.gist() / $*KERNEL.gist()\n";
 
+say "For GDB, there is a python plugin included with MoarVM and installed next to libmoar.so that you may\nhave to add to gdbs auto-loading safe path or load explicitly with\n   source /path/to/libmoar.so-gdb.py\n";
+
 say "Type `bt full` to generate a backtrace if applicable, type `q` to quit or `help` for help.";
 
 say "-" x 96;

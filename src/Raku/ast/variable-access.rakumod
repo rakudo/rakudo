@@ -436,7 +436,10 @@ class RakuAST::Var::Attribute::Public
     }
 
     method creates-block() {
-        $!expression.creates-block;
+        # Thunks wrap around this node itself, not the expression it
+        # delegates its compilation to, so both must be consulted.
+        nqp::findmethod(RakuAST::Expression, 'creates-block')(self)
+            || $!expression.creates-block
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

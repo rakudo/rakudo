@@ -102,7 +102,8 @@ Remind people of the upcoming release, invite people to update the
 L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft> or
 do it yourself, etc. Note that the upcoming ChangeLog addition is kept on the
 wiki so that people can easily do minor corrections, but for the release it
-has to be added to the top of C<docs/ChangeLog>.
+has to be added to the top of C<docs/ChangeLog>. Do not include the "IGNORE"
+section from the wiki. These are used later in the commit message.
 
 =item *
 

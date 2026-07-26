@@ -175,38 +175,48 @@ class CompUnit::RepositoryRegistry {
             $home-spec = 'inst#' ~ $home;
         }
 
+        my $disable-default-curis := $ENV<RAKU_DISABLE_DEFAULT_CURIS>:exists;
+
         unless $precomp-specs {
-            $next-repo := self!register-custom-lib-repository(
-              'core', $core,
-              CompUnit::Repository::Installation.new(
-                :prefix("$prefix/core"),
-                :$next-repo
-              )
-            ) unless nqp::existskey($unique,$core);
+            unless nqp::existskey($unique,$core) {
+                my $repo := self!register-custom-lib-repository(
+                  'core', $core,
+                  CompUnit::Repository::Installation.new(
+                    :prefix("$prefix/core"),
+                  )
+                );
+                $repo.next-repo = $next-repo unless $disable-default-curis;
+            }
 
-            $next-repo := self!register-custom-lib-repository(
-              'vendor', $vendor,
-              CompUnit::Repository::Installation.new(
-                :prefix("$prefix/vendor"),
-                :$next-repo
-              )
-            ) unless nqp::existskey($unique, $vendor);
+            unless nqp::existskey($unique,$vendor) {
+                my $repo := self!register-custom-lib-repository(
+                  'vendor', $vendor,
+                  CompUnit::Repository::Installation.new(
+                    :prefix("$prefix/vendor"),
+                  )
+                );
+                $repo.next-repo = $next-repo unless $disable-default-curis;
+            }
 
-            $next-repo := self!register-custom-lib-repository(
-              'site', $site,
-              CompUnit::Repository::Installation.new(
-                :prefix("$prefix/site"),
-                :$next-repo
-              )
-            ) unless nqp::existskey($unique, $site);
+            unless nqp::existskey($unique,$site) {
+                my $repo := self!register-custom-lib-repository(
+                  'site', $site,
+                  CompUnit::Repository::Installation.new(
+                    :prefix("$prefix/site"),
+                  )
+                );
+                $repo.next-repo = $next-repo unless $disable-default-curis;
+            }
 
-            $next-repo := self!register-custom-lib-repository(
-              'home', $home-spec,
-              CompUnit::Repository::Installation.new(
-                :prefix($home),
-                :$next-repo
-              )
-            ) if $home-spec and nqp::not_i(nqp::existskey($unique,$home-spec));
+            if $home-spec and nqp::not_i(nqp::existskey($unique,$home-spec)) {
+                my $repo := self!register-custom-lib-repository(
+                  'home', $home-spec,
+                  CompUnit::Repository::Installation.new(
+                    :prefix($home),
+                  )
+                );
+                $repo.next-repo = $next-repo unless $disable-default-curis;
+            }
         }
 
         # convert repo-specs to repos

@@ -291,16 +291,13 @@ class RakuAST::LegacyPodify {
 
             # from here on without level
             else {
+                my $head := $ast.paragraphs.head;
                 $type eq 'comment'
                   ?? Pod::Block::Comment.new(
-                       :$config, :contents([
-                         $ast.paragraphs.head.trim-trailing ~ "\n"
-                       ])
+                       :$config, :contents([.trim-trailing ~ "\n" with $head])
                      )
                   !! $type eq 'config' && $ast.abbreviated
-                    ?? Pod::Config.new(
-                         :type($ast.paragraphs.head), :$config
-                       )
+                    ?? Pod::Config.new(:type($head), :$config)
                     !! Pod::Block::Named.new(:name($type), :$config, :$contents)
             }
         }

@@ -528,7 +528,15 @@ class RakuAST::LexicalScope
                     }
                 }
             }
-            elsif $op eq 'hllize' {
+            elsif $op eq 'hllize' || $op eq 'ifnull' {
+                # Identity wrappers codegen puts around a single leaf value: the
+                # result is exactly one operand, so a boolified context reaches
+                # through unchanged. Only such internal wrappers belong here (a
+                # dynamic-var read lowers to ifnull(getlexdyn, &DYNAMIC-FALLBACK),
+                # whose fallback Failure a surrounding `//` defuses). A user-level
+                # transparent construct like the right of `//` or a ternary branch
+                # is deliberately absent: fatal throws a Failure there, as on the
+                # legacy frontend.
                 self.IMPL-FATALIZE-QAST($_, $bool-context) for @($qast);
             }
             else {

@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 23;
+plan 27;
 
 # Initializing a plain array from a comma list builds the list internals
 # directly and reifies, skipping the STORE dispatch. A typed, shaped, or
@@ -82,6 +82,31 @@ qast-is 'my @a = 1..3', -> \v {
     my @a is default(7) = 1, 2;
     @a[5] = 9;
     is @a[3], 7, 'a default trait still applies through STORE';
+}
+
+# The lowered build installs nothing into the variable until the eager
+# part of the reification has run, so an operand that reads the target
+# sees its old content, as it does through STORE.
+{
+    my @a = 1, 2;
+    @a = |@a, 3;
+    is @a.join(','), '1,2,3', 'a slip of the target appends to its old content';
+}
+{
+    my @a = 1, 2;
+    @a = @a[1], @a[0];
+    is @a.join(','), '2,1', 'indexing the target reads its old content';
+}
+{
+    my @a = 1, 2;
+    my sub f() { @a[0] + 10 }
+    @a = f(), 3;
+    is @a.join(','), '11,3', 'a call reading the target sees its old content';
+}
+{
+    my @a = 1, 2;
+    @a = (gather take @a[0]).Slip, 5;
+    is @a.join(','), '1,5', 'an eager gather reading the target sees its old content';
 }
 
 # The lowering replicates the stock Array STORE, but a bind can put any

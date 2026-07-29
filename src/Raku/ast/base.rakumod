@@ -1037,9 +1037,13 @@ class RakuAST::Node {
         1
     }
 
-    # The lowered initialization of a plain array from a comma list: bind a
-    # fresh reification buffer and a reifier whose future is the elements,
-    # then reify, the same layout the STORE method builds through dispatch.
+    # The lowered initialization of a plain array from a comma list: fill a
+    # fresh reification buffer from a reifier whose future is the elements,
+    # then install the buffer and reifier, the same layout and order the
+    # STORE method builds through dispatch. The order matters for the
+    # assignment form: an operand may read the target (@a = |@a, 1), so
+    # nothing binds into the variable until the eager part of the
+    # reification has run.
     # Null when the QAST is not the expected variable and core comma call
     # shape, or when an operand cannot compile in both guard branches, and
     # the caller then keeps the STORE call. A fallback, when given, guards
@@ -1062,58 +1066,97 @@ class RakuAST::Node {
         my $Reifier := nqp::atkey(nqp::who(List), 'Reifier');
         my $future := QAST::Op.new( :op<list> );
         $future.set_children(@($comma-qast));
+        my $buf    := QAST::Node.unique('array_init_buf');
+        my $old    := QAST::Node.unique('array_init_old');
+        my $target := QAST::Node.unique('array_init_target');
+        my $todo   := QAST::Node.unique('array_init_todo');
         my $init := QAST::Stmts.new(
             QAST::Op.new(
-                :op<callmethod>, :name('reify-until-lazy'),
+                :op<bind>,
+                QAST::Var.new(:name($buf), :scope<local>, :decl<var>),
+                QAST::Op.new(:op<create>,
+                    QAST::WVal.new(:value(IterationBuffer))),
+            ),
+            # The reification target wraps whatever buffer the variable
+            # holds, so the fresh buffer goes in just to mint it and the
+            # old one comes right back.
+            QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(:name($old), :scope<local>, :decl<var>),
                 QAST::Op.new(
                     :op<getattr>,
+                    $var-qast,
+                    QAST::WVal.new(:value(List)),
+                    QAST::SVal.new(:value('$!reified')),
+                ),
+            ),
+            QAST::Op.new(
+                :op<bindattr>,
+                $var-qast,
+                QAST::WVal.new(:value(List)),
+                QAST::SVal.new(:value('$!reified')),
+                QAST::Var.new(:name($buf), :scope<local>),
+            ),
+            QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(:name($target), :scope<local>, :decl<var>),
+                QAST::Op.new(
+                    :op<callmethod>, :name('reification-target'),
+                    $var-qast,
+                ),
+            ),
+            QAST::Op.new(
+                :op<bindattr>,
+                $var-qast,
+                QAST::WVal.new(:value(List)),
+                QAST::SVal.new(:value('$!reified')),
+                QAST::Var.new(:name($old), :scope<local>),
+            ),
+            # The operands evaluate here, inside the future list, and the
+            # eager part of the reification runs right after, both against
+            # the variable's old content.
+            QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(:name($todo), :scope<local>, :decl<var>),
+                QAST::Op.new(
+                    :op<p6bindattrinvres>,
                     QAST::Op.new(
                         :op<p6bindattrinvres>,
                         QAST::Op.new(
                             :op<p6bindattrinvres>,
-                            $var-qast,
-                            QAST::WVal.new(:value(List)),
-                            QAST::SVal.new(:value('$!reified')),
                             QAST::Op.new(:op<create>,
-                                QAST::WVal.new(:value(IterationBuffer))),
-                        ),
-                        QAST::WVal.new(:value(List)),
-                        QAST::SVal.new(:value('$!todo')),
-                        QAST::Op.new(
-                            :op<p6bindattrinvres>,
-                            QAST::Op.new(
-                                :op<p6bindattrinvres>,
-                                QAST::Op.new(
-                                    :op<p6bindattrinvres>,
-                                    QAST::Op.new(:op<create>,
-                                        QAST::WVal.new(:value($Reifier))),
-                                    QAST::WVal.new(:value($Reifier)),
-                                    QAST::SVal.new(:value('$!reified')),
-                                    QAST::Op.new(
-                                        :op<getattr>,
-                                        $var-qast,
-                                        QAST::WVal.new(:value(List)),
-                                        QAST::SVal.new(:value('$!reified')),
-                                    )
-                                ),
-                                QAST::WVal.new(:value($Reifier)),
-                                QAST::SVal.new(:value('$!reification-target')),
-                                QAST::Op.new(
-                                    :op<callmethod>,
-                                    :name('reification-target'),
-                                    $var-qast,
-                                )
-                            ),
+                                QAST::WVal.new(:value($Reifier))),
                             QAST::WVal.new(:value($Reifier)),
-                            QAST::SVal.new(:value('$!future')),
-                            $future,
+                            QAST::SVal.new(:value('$!reified')),
+                            QAST::Var.new(:name($buf), :scope<local>),
                         ),
+                        QAST::WVal.new(:value($Reifier)),
+                        QAST::SVal.new(:value('$!reification-target')),
+                        QAST::Var.new(:name($target), :scope<local>),
                     ),
-                    QAST::WVal.new(:value(List)),
-                    QAST::SVal.new(:value('$!todo')),
+                    QAST::WVal.new(:value($Reifier)),
+                    QAST::SVal.new(:value('$!future')),
+                    $future,
                 ),
             ),
-            $var-qast
+            QAST::Op.new(
+                :op<callmethod>, :name('reify-until-lazy'),
+                QAST::Var.new(:name($todo), :scope<local>),
+            ),
+            QAST::Op.new(
+                :op<bindattr>,
+                $var-qast,
+                QAST::WVal.new(:value(List)),
+                QAST::SVal.new(:value('$!todo')),
+                QAST::Var.new(:name($todo), :scope<local>),
+            ),
+            QAST::Op.new(
+                :op<p6bindattrinvres>,
+                $var-qast,
+                QAST::WVal.new(:value(List)),
+                QAST::SVal.new(:value('$!reified')),
+                QAST::Var.new(:name($buf), :scope<local>),
+            ),
         );
         $init.nosink(1);
         if nqp::isconcrete($fallback) {

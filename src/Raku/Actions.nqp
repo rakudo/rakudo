@@ -4455,6 +4455,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method doc-block:sym<ignore-block>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :type<ignore>, :paragraphs([~$<ignored>]);
+        }
+    }
+
     method doc-block:sym<begin>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             if ~$<level> -> $level {

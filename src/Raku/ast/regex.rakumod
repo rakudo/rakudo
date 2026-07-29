@@ -530,10 +530,17 @@ class RakuAST::Regex::CapturingGroup
         # quantified.
         my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
+        my $decl := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations())[0];
         QAST::Stmts.new(
             $block,
-            self.IMPL-UNWRAP-LIST(self.get-implicit-declarations())[0].IMPL-BIND-QAST($context,
-                self.IMPL-CLOSURE-QAST($context) ),
+            self.IMPL-DECLS-PLACED-INLINE
+                # Placed in the containing regex's block, whose frame does
+                # not carry the implicit declaration, so declare here.
+                ?? QAST::Op.new(
+                     :op('bind'),
+                     QAST::Var.new( :decl('var'), :scope('lexical'), :name($decl.name) ),
+                     self.IMPL-CLOSURE-QAST($context))
+                !! $decl.IMPL-BIND-QAST($context, self.IMPL-CLOSURE-QAST($context)),
         )
     }
 

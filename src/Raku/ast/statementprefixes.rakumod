@@ -144,9 +144,157 @@ class RakuAST::StatementPrefix::Sink
     method type() { "sink" }
 }
 
-# The `try` statement prefix.
-class RakuAST::StatementPrefix::Try
+# Done by statement prefixes that insist on thunking expressions into a code
+# object.
+class RakuAST::StatementPrefix::Thunky
   is RakuAST::StatementPrefix
+  is RakuAST::MayCreateBlock
+  is RakuAST::Meta
+  is RakuAST::Code
+  is RakuAST::BeginTime
+{
+    method creates-block() {
+        nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+        Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context
+    }
+
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            # Block, already has a meta-object.
+            self.blorst.meta-object
+        }
+        else {
+            # Create code object with default empty signature.
+            my $signature := nqp::create(Signature);
+            nqp::bindattr($signature, Signature, '@!params', nqp::list());
+            my $code := nqp::create(Code);
+            nqp::bindattr($code, Code, '$!signature', $signature);
+            $code
+        }
+    }
+
+    # True for a thunk that runs once per program (a compile or init phaser).
+    method IMPL-THUNK-RUNS-ONCE() { False }
+
+    # Gather the state variables the thunked statement declares, without
+    # descending into a nested block, which keeps its own state.
+    method IMPL-COLLECT-THUNK-STATE-DECLS($node, @decls) {
+        return Nil if nqp::istype($node, RakuAST::Block);
+        if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
+                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State)
+                    && $decl.is-simple-lexical-declaration {
+                    nqp::push(@decls, $decl);
+                }
+            }
+        }
+        $node.visit-children(-> $child {
+            self.IMPL-COLLECT-THUNK-STATE-DECLS($child, @decls) if nqp::isconcrete($child);
+        });
+        Nil
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
+            str :$blocktype, RakuAST::Expression :$expression) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            my $stmts := QAST::Stmts.new();
+            my $block := QAST::Block.new(
+                :blocktype('declaration_static'),
+                $stmts);
+            # A frame's location comes from its first annotation, and only
+            # a statement node carries one, so stamp the statements: with
+            # no annotation a backtrace leaves the thunk's frame out. The
+            # prefix node itself carries no origin; the thunked code does.
+            self.blorst.IMPL-SET-NODE($stmts, :key);
+            if nqp::istype(self, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
+                    if $decl.is-simple-lexical-declaration {
+                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                    }
+                }
+            }
+            if nqp::istype($expression, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
+                    if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
+                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                    }
+                }
+            }
+            # Declare that state here. Left in the enclosing scope, its
+            # p6stateinit never fires for the thunk call and `once` is skipped.
+            if self.IMPL-THUNK-RUNS-ONCE {
+                my @state-decls := nqp::list();
+                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, @state-decls);
+                for @state-decls -> $decl {
+                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                }
+            }
+            $stmts.push(self.IMPL-QAST-NESTED-BLOCK-DECLS($context));
+            $stmts.push(self.blorst.IMPL-TO-QAST($context));
+            $block.arity(0);
+            $block
+        }
+    }
+
+    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            unless (nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
+                self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
+            }
+            nqp::getattr(self, RakuAST::Code, '$!qast-block')
+        }
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            # Block already, so we need add nothing.
+            QAST::Op.new( :op('null') )
+        }
+        else {
+            self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))
+        }
+    }
+
+    # Since we thunk statements, we must not use their QAST directly anymore and instead
+    # generate a call to the block we created.
+    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+            QAST::Op.new( :op('call'), self.blorst.IMPL-TO-QAST($context) )
+        }
+        else {
+            my $block := self.meta-object;
+            $context.ensure-sc($block);
+            my $clone := QAST::Op.new(
+                :op('callmethod'), :name('clone'),
+                QAST::WVal.new( :value($block) ).annotate_self('past_block', self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))).annotate_self('code_object', $block)
+            );
+            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
+            QAST::Op.new( :op('call'), $closure)
+        }
+    }
+}
+
+# The `try` statement prefix. Thunky, so the statement form runs its
+# expression in a called code object like the traditional grammar, where
+# a backtrace shows the call as a frame.
+class RakuAST::StatementPrefix::Try
+  is RakuAST::StatementPrefix::Thunky
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitLookups
 {
@@ -252,146 +400,6 @@ class RakuAST::StatementPrefix::Try
     }
 }
 
-# Done by statement prefixes that insist on thunking expressions into a code
-# object.
-class RakuAST::StatementPrefix::Thunky
-  is RakuAST::StatementPrefix
-  is RakuAST::MayCreateBlock
-  is RakuAST::Meta
-  is RakuAST::Code
-  is RakuAST::BeginTime
-{
-    method creates-block() {
-        nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
-    }
-
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-STUB-CODE($resolver, $context);
-        Nil
-    }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Avoid worries about sink context
-    }
-
-    method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            # Block, already has a meta-object.
-            self.blorst.meta-object
-        }
-        else {
-            # Create code object with default empty signature.
-            my $signature := nqp::create(Signature);
-            nqp::bindattr($signature, Signature, '@!params', nqp::list());
-            my $code := nqp::create(Code);
-            nqp::bindattr($code, Code, '$!signature', $signature);
-            $code
-        }
-    }
-
-    # True for a thunk that runs once per program (a compile or init phaser).
-    method IMPL-THUNK-RUNS-ONCE() { False }
-
-    # Gather the state variables the thunked statement declares, without
-    # descending into a nested block, which keeps its own state.
-    method IMPL-COLLECT-THUNK-STATE-DECLS($node, @decls) {
-        return Nil if nqp::istype($node, RakuAST::Block);
-        if nqp::istype($node, RakuAST::ImplicitDeclarations) {
-            for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
-                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State)
-                    && $decl.is-simple-lexical-declaration {
-                    nqp::push(@decls, $decl);
-                }
-            }
-        }
-        $node.visit-children(-> $child {
-            self.IMPL-COLLECT-THUNK-STATE-DECLS($child, @decls) if nqp::isconcrete($child);
-        });
-        Nil
-    }
-
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
-            str :$blocktype, RakuAST::Expression :$expression) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            my $stmts := QAST::Stmts.new();
-            my $block := QAST::Block.new(
-                :blocktype('declaration_static'),
-                $stmts);
-            if nqp::istype(self, RakuAST::ImplicitDeclarations) {
-                for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
-                    if $decl.is-simple-lexical-declaration {
-                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
-                    }
-                }
-            }
-            if nqp::istype($expression, RakuAST::ImplicitDeclarations) {
-                for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
-                    if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
-                        nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
-                    }
-                }
-            }
-            # Declare that state here. Left in the enclosing scope, its
-            # p6stateinit never fires for the thunk call and `once` is skipped.
-            if self.IMPL-THUNK-RUNS-ONCE {
-                my @state-decls := nqp::list();
-                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, @state-decls);
-                for @state-decls -> $decl {
-                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
-                }
-            }
-            $stmts.push(self.IMPL-QAST-NESTED-BLOCK-DECLS($context));
-            $stmts.push(self.blorst.IMPL-TO-QAST($context));
-            $block.arity(0);
-            $block
-        }
-    }
-
-    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
-            RakuAST::Expression :$expression) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            unless (nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
-                self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
-            }
-            nqp::getattr(self, RakuAST::Code, '$!qast-block')
-        }
-    }
-
-    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            # Block already, so we need add nothing.
-            QAST::Op.new( :op('null') )
-        }
-        else {
-            self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))
-        }
-    }
-
-    # Since we thunk statements, we must not use their QAST directly anymore and instead
-    # generate a call to the block we created.
-    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
-            QAST::Op.new( :op('call'), self.blorst.IMPL-TO-QAST($context) )
-        }
-        else {
-            my $block := self.meta-object;
-            $context.ensure-sc($block);
-            my $clone := QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($block) ).annotate_self('past_block', self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))).annotate_self('code_object', $block)
-            );
-            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
-            QAST::Op.new( :op('call'), $closure)
-        }
-    }
-}
 
 # The `gather` statement prefix.
 class RakuAST::StatementPrefix::Gather

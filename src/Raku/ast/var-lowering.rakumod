@@ -614,10 +614,12 @@ class RakuAST::IMPL::VarLowering {
         elsif nqp::isconcrete($decl.shape) {
             $declined := 'shaped';
         }
-        elsif self.IMPL-HAS-WILL-TRAIT($decl) {
-            # A will phaser looks its variable up by name in the calling
-            # frame at run time (Variable.willdo).
-            $declined := 'will';
+        elsif nqp::elems($decl.IMPL-UNWRAP-LIST($decl.traits)) {
+            # A variable trait applies through a Variable meta-object
+            # whose phaser helper looks the variable up by name in the
+            # calling frame at run time (Variable.willdo), and a custom
+            # trait_mod can do the same with any variable it is handed.
+            $declined := 'trait';
         }
         elsif $scope-index != nqp::elems($!frames) - 1 || $decl.creates-block {
             # The declaration is emitted under a thunk of its scope, so
@@ -759,13 +761,6 @@ class RakuAST::IMPL::VarLowering {
             }
         }
         Nil
-    }
-
-    method IMPL-HAS-WILL-TRAIT(Mu $decl) {
-        for $decl.IMPL-UNWRAP-LIST($decl.traits) {
-            return 1 if nqp::istype($_, RakuAST::Trait::Will);
-        }
-        0
     }
 
     # A resolved lookup whose resolution is a tracked declaration marks

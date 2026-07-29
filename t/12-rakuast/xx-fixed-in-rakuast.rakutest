@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 128;
+plan 130;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -922,6 +922,16 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         'a custom postcircumfix parses an empty subscript';
     is-deeply ($decl ~ Q| 10⌊3⌋ |).AST.EVAL, 10 => [3],
         'a custom postcircumfix passes the operand as the first argument';
+}
+
+# src/Raku/ast/code.rakumod
+# A signature literal inside a WhateverCode reached runtime with no code
+# linked to it, so smart-matching against it died in the binder.
+{
+    is Q| (* ~~ :(Int))(\(42)) |.AST.EVAL, True,
+        'a plain signature literal inside a WhateverCode links its code';
+    is Q| (* ~~ :($ where { $^n > 0 }))(\(42)) |.AST.EVAL, True,
+        'a where-constrained signature literal inside a WhateverCode links its code';
 }
 
 # vim: expandtab shiftwidth=4

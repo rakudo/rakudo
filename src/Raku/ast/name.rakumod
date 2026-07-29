@@ -344,7 +344,7 @@ class RakuAST::Name
         $result
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, str :$twigil, Bool :$global-fallback) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, str :$twigil, Bool :$global-fallback, Bool :$global-root) {
         my $result;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first;
@@ -357,6 +357,11 @@ class RakuAST::Name
                 unless $lexical.lexical-name eq $!parts[0].name;
             $first := 1;
             $result := $lexical.IMPL-LOOKUP-QAST($context);
+        }
+        elsif $global-root {
+            # Walk every part starting from the merged run-time GLOBAL
+            # rather than a package fixed at compile time.
+            $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
         }
         else {
             $result := QAST::WVal.new(:value($start-package));

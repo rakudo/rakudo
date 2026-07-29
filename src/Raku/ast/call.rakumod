@@ -306,9 +306,15 @@ class RakuAST::Call::Name
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!package', $resolver.current-package);
+        # A qualified callee is late-bound: the stash entry is a fresh
+        # closure clone after every mainline run, and binding it at
+        # compilation time would serialize a per-consumer copy of it and
+        # of the module state it closes over.
         my $resolved := $!name.is-identifier
             ?? $resolver.resolve-lexical('&' ~ $!name.canonicalize)
-            !! $resolver.resolve-name($!name, :sigil('&'));
+            !! $!name.is-multi-part && !$!name.is-pseudo-package
+                ?? Nil
+                !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
         }

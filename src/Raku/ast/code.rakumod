@@ -809,6 +809,14 @@ class RakuAST::ExpressionThunk
                 if $anon-decl($node) {
                     nqp::push($stmts, $node.IMPL-QAST-DECL($context));
                 }
+                # A signature literal's block owns the compiled code its
+                # meta-object links as $!code; an enclosing statement scope
+                # emits that declaration itself but stops at this thunk's
+                # block boundary, so emit it here or the signature reaches
+                # runtime with no code to bind under.
+                if nqp::istype($node, RakuAST::FakeSignature) {
+                    nqp::push($stmts, $node.block.IMPL-QAST-DECL-CODE($context));
+                }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);
                 }
@@ -3478,6 +3486,39 @@ class RakuAST::RegexThunk
   is RakuAST::Meta
   is RakuAST::BeginTime
 {
+    has int $!decls-placed-inline;
+
+    method IMPL-PLACE-DECLS-INLINE() {
+        nqp::bindattr_i(self, RakuAST::RegexThunk, '$!decls-placed-inline', 1);
+        Nil
+    }
+    method IMPL-DECLS-PLACED-INLINE() { $!decls-placed-inline }
+
+    # Gather the regex-thunk declarations of this regex's subtree so the
+    # regex carries them in its own frame. A dynamically compiled regex
+    # serializes as a value, and a declaration left to an enclosing frame
+    # is only ever bound in the compile-time frame instance, which does
+    # not survive precompilation.
+    method IMPL-NESTED-REGEX-THUNK-DECLS(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new;
+        my @todo := [self];
+        while @todo {
+            my $visit := @todo.shift;
+            $visit.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::RegexThunk) {
+                    $node.IMPL-PLACE-DECLS-INLINE();
+                    $stmts.push($node.IMPL-QAST-DECL-CODE($context));
+                }
+                elsif nqp::istype($node, RakuAST::Code) {
+                    # A plain code block keeps its usual placement.
+                }
+                else {
+                    nqp::push(@todo, $node);
+                }
+            }
+        }
+        $stmts
+    }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Create default signature, receiving invocant only.
@@ -3500,6 +3541,9 @@ class RakuAST::RegexThunk
             RakuAST::Expression :$expression) {
         my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
         my $thunk := self.IMPL-THUNKED-REGEX-QAST($context); # must be before nested blocks
+        my $nested-decls := $*IMPL-COMPILE-DYNAMICALLY
+            ?? self.IMPL-NESTED-REGEX-THUNK-DECLS($context)
+            !! QAST::Stmts.new;
         QAST::Block.new(
             :blocktype('declaration_static'),
             QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
@@ -3524,6 +3568,7 @@ class RakuAST::RegexThunk
                     )
                 )
             ),
+            $nested-decls,
             $thunk
         )
     }

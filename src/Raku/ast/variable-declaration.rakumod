@@ -1224,6 +1224,11 @@ class RakuAST::VarDeclaration::Simple
                   && (my $expression := $initializer.expression).has-compile-time-value
                   && nqp::isconcrete($expression.maybe-compile-time-value)
                   && !nqp::istype($expression, RakuAST::Code)
+                  # BUILDALL calls an invokable build value with the object
+                  # and the attribute's value to compute the default, so a
+                  # default whose value is a code object takes the method
+                  # path below to be stored as a value.
+                  && !nqp::isinvokable($expression.maybe-compile-time-value)
                   # A heredoc's body is spliced in at the end of the line, after
                   # this attribute has begun. Reading its value now would capture
                   # the placeholder, so leave it to the method path, which compiles

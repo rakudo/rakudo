@@ -278,6 +278,10 @@ class RakuAST::Node {
                         # would re-emit them referencing locals of the
                         # frame it flattened into.
                     }
+                    elsif nqp::istype($node, RakuAST::RegexThunk) && $node.IMPL-DECLS-PLACED-INLINE {
+                        # Its declaration already lives in the containing
+                        # regex's own block.
+                    }
                     else {
                         my $code := $node.IMPL-QAST-DECL-CODE($context);
                         $stmts.push($code);

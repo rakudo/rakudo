@@ -3042,8 +3042,16 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
             }
             elsif nqp::istype($_,RakuAST::Statement::Expression) {
                 my $expression := $_.expression;
+                # A declarand node must not go into a precompilation's SC.
+                # Its backlinks (a routine's $!outer, a BEGIN prefix's cached
+                # thunk) reach live compile-time frames, and serializing those
+                # snapshots leaves deserialized BEGIN closures with an outer
+                # chain that dead-ends before the setting. Declarator docs on
+                # a precompiled unit stay reachable via .WHY on the meta
+                # objects and via $=pod.
                 if nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
-                  && $expression.WHY {
+                  && $expression.WHY
+                  && !$*RAKUDOC-SKIP-DECLARANDS {
                     nqp::push($RAKUDOC,$expression);
                 }
                 # Descend into a package or routine/block body so docs declared
@@ -3065,10 +3073,10 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        my $compunit := $resolver.find-attach-target('compunit');
         my $*RAKUDOC := [];
-        self.fetch-blocks(
-          $resolver.find-attach-target('compunit').statement-list
-        );
+        my $*RAKUDOC-SKIP-DECLARANDS := $compunit.precompilation-mode;
+        self.fetch-blocks($compunit.statement-list);
 
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
           self.IMPL-WRAP-LIST($*RAKUDOC)

@@ -705,6 +705,11 @@ class RakuAST::VarDeclaration::Simple
     has Mu $!container-initializer;
     has Mu $!package;
 
+    # For a qualified name, the resolution of its leading package when
+    # one is lexically visible; the name then anchors there rather than
+    # at GLOBAL.
+    has RakuAST::Declaration $!qualified-root;
+
     # Set by the optimize pass on a plain array declaration initialized from
     # a comma list, for lowering to a direct build of the list internals.
     has int $!lowered-array-init;
@@ -1105,6 +1110,17 @@ class RakuAST::VarDeclaration::Simple
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
+            if $!desigilname.is-multi-part
+                && !nqp::istype($!desigilname.root-part, RakuAST::Name::Part::Empty) {
+                # A qualified name anchors at its leading package: the
+                # lexically visible one when there is one, GLOBAL
+                # otherwise, never the package of the enclosing scope.
+                my $rooted := $resolver.resolve-name(
+                    RakuAST::Name.new($!desigilname.root-part));
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple,
+                    '$!qualified-root', $rooted)
+                    if $rooted;
+            }
         }
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!generics-package',
             $resolver.find-attach-target('generics-pad'));
@@ -1665,7 +1681,16 @@ class RakuAST::VarDeclaration::Simple
             # both, as self.name and the meta-object installation use. Without
             # the twigil the lookup would miss the slot and global-fallback would
             # vivify an orphan under the twigil-less name.
-            my $lookup := $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :sigil($!sigil), :twigil(self.twigil), :global-fallback);
+            my $lookup := $!desigilname.is-multi-part
+                ?? nqp::isconcrete($!qualified-root)
+                    ?? $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package,
+                        :lexical($!qualified-root), :sigil($!sigil),
+                        :twigil(self.twigil), :global-fallback)
+                    !! $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package,
+                        :global-root, :sigil($!sigil),
+                        :twigil(self.twigil), :global-fallback)
+                !! $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package,
+                    :sigil($!sigil), :twigil(self.twigil), :global-fallback);
             $lookup.name('VIVIFY-KEY');
             QAST::Op.new(
               :op('bind'),

@@ -566,9 +566,29 @@ class RakuAST::Var::Compiler::Line
 
 class RakuAST::Var::Compiler::Block
   is RakuAST::Var::Compiler
+  is RakuAST::CheckTime
 {
+    has int $!lexical;
+
+    # Resolved at CHECK time, not parse time: the enclosing control-flow
+    # branches are only marked as inlined once their statement is assembled,
+    # which for the compiler happens after this node is parsed but before the
+    # check pass walks it.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $block := $resolver.find-block-variable-target();
+        if $block {
+            $block.IMPL-ENSURE-BLOCK-VARIABLE();
+            nqp::bindattr_i(self, RakuAST::Var::Compiler::Block, '$!lexical', 1);
+        }
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+        # Resolve to the innermost enclosing real block's `&?BLOCK` lexical.
+        # Falling back to the running frame's code object covers the case where
+        # no such block was found (for example at compilation-unit top level).
+        $!lexical
+          ?? QAST::Var.new( :name<&?BLOCK>, :scope<lexical> )
+          !! QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
     }
 }
 

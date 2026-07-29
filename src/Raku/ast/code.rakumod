@@ -102,8 +102,35 @@ class RakuAST::Code
     has Mu $!qast-block;
     has str $!cuid;
 
+    # A control-flow statement (if/unless/with/without/while/until/loop) runs
+    # its branch inline, so `&?BLOCK` inside it means the enclosing real block,
+    # not the branch. Such branches are marked here to be skipped when locating
+    # the block `&?BLOCK` refers to.
+    has int $!immediate-block-user-body;
+
+    # Set once this block has grown the implicit `&?BLOCK` lexical, so a second
+    # reference does not add a duplicate declaration.
+    has int $!has-block-variable;
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         Nil
+    }
+
+    method set-immediate-block-user-body() {
+        nqp::bindattr_i(self, RakuAST::Code, '$!immediate-block-user-body', 1);
+    }
+    method is-immediate-block-user-body() { $!immediate-block-user-body }
+
+    # Ensure this block declares the implicit `&?BLOCK` lexical, bound to its
+    # own code object. A reference to `&?BLOCK` requests this on the innermost
+    # enclosing real block, so inner control-flow branches resolve `&?BLOCK`
+    # lexically to it regardless of whether they end up as their own frame.
+    method IMPL-ENSURE-BLOCK-VARIABLE() {
+        unless $!has-block-variable {
+            nqp::bindattr_i(self, RakuAST::Code, '$!has-block-variable', 1);
+            self.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::CurrentBlock.new);
+        }
     }
 
     method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

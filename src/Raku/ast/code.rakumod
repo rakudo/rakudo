@@ -809,6 +809,14 @@ class RakuAST::ExpressionThunk
                 if $anon-decl($node) {
                     nqp::push($stmts, $node.IMPL-QAST-DECL($context));
                 }
+                # A signature literal's block owns the compiled code its
+                # meta-object links as $!code; an enclosing statement scope
+                # emits that declaration itself but stops at this thunk's
+                # block boundary, so emit it here or the signature reaches
+                # runtime with no code to bind under.
+                if nqp::istype($node, RakuAST::FakeSignature) {
+                    nqp::push($stmts, $node.block.IMPL-QAST-DECL-CODE($context));
+                }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);
                 }

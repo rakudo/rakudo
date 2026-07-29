@@ -355,7 +355,16 @@ class RakuAST::Var::Attribute
                 self.IMPL-QAST-PACKAGE-LOOKUP($context)
             )
         }
-        QAST::Op.new(:op<null>)
+        # Code generated inside a BEGIN block can reference an attribute the
+        # still-open class declares further down its body. The attribute is
+        # not on the stub yet, but the access only needs the name and package
+        # at runtime, so emit it untyped. A genuinely undeclared attribute is
+        # rejected at check or compose time and never runs this code.
+        QAST::Var.new(
+            :scope('attribute'), :name($!name), :returns(Mu),
+            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
+            self.IMPL-QAST-PACKAGE-LOOKUP($context)
+        )
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
@@ -381,7 +390,17 @@ class RakuAST::Var::Attribute
                 $source-qast
             )
         }
-        QAST::Op.new(:op<null>)
+        # As in IMPL-EXPR-QAST: the attribute may be declared further down
+        # the still-open class body, so bind untyped rather than emit null.
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new(
+                :scope('attribute'), :name($!name), :returns(Mu),
+                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
+                self.IMPL-QAST-PACKAGE-LOOKUP($context)
+            ),
+            $source-qast
+        )
     }
 }
 

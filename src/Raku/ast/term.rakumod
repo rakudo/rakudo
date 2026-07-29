@@ -19,8 +19,14 @@ class RakuAST::Term::Name
         self.new(RakuAST::Name.from-identifier($name))
     }
 
+    # Folding must agree with IMPL-EXPR-QAST on which names may use their
+    # resolution: only a leading-:: package search, and not ::GLOBAL.
     method has-compile-time-value() {
-        self.is-resolved && self.resolution.has-compile-time-value
+        self.is-resolved
+          && self.resolution.has-compile-time-value
+          && (!$!name.is-pseudo-package
+               || $!name.is-package-search
+                    && !$!name.without-first-part.is-global-lookup)
     }
 
     # A name with a trailing :: is a stash reference: evaluating it produces
@@ -80,8 +86,16 @@ class RakuAST::Term::Name
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if $!name.is-pseudo-package {
-            if self-is-resolved {
-                self.resolution.IMPL-LOOKUP-QAST($context);
+            if $!name.is-package-search && !$!name.is-indirect-lookup
+            && (my $stripped := $!name.without-first-part).is-global-lookup {
+                $stripped.IMPL-QAST-PACKAGE-LOOKUP($context, $!package);
+            }
+            elsif self.is-resolved && $!name.is-package-search
+            && !$!name.is-indirect-lookup {
+                my $lookup := self.resolution.IMPL-LOOKUP-QAST($context);
+                $!name.is-package-lookup
+                    ?? QAST::Op.new(:op<who>, $lookup)
+                    !! $lookup;
             }
             else {
                 $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);

@@ -1386,6 +1386,34 @@ class RakuAST::PackageInstaller {
                               && !$existing.HOW.is_composed($existing));
                 }
             }
+            # Upgrade what the name resolved to before this declaration
+            # to a top level GLOBALish entry, as the multi-part branch
+            # below does for a resolved leading part. `use` merges
+            # GLOBALish into the consumer, which is the only route there
+            # to a symbol nested under a unit-scoped module. The shadowed
+            # lookup skips the whole current scope; a pre-existing symbol
+            # here is an import's generated lexical, preferred first. No
+            # upgrade while compiling the setting, whose lexicals all
+            # resolve without it. This runs after the collision check
+            # above: when the current package is the global one, the
+            # upgrade writes the very stash that check reads, and the
+            # install below overwrites the entry either way.
+            my $setting := $resolver.setting;
+            if !nqp::isnull($setting) && $setting {
+                my $pre-existing := $generated && nqp::istype($generated, RakuAST::CompileTimeValue)
+                    ?? $generated
+                    !! $lexical;
+                if nqp::isconcrete($pre-existing) && nqp::istype($pre-existing, RakuAST::CompileTimeValue) {
+                    $pre-existing := $resolver.resolve-shadowed-lexical-constant($final)
+                        if nqp::eqaddr($pre-existing.compile-time-value, $type-object);
+                    if nqp::isconcrete($pre-existing)
+                        && !nqp::eqaddr($pre-existing.compile-time-value, $type-object) {
+                        self.IMPL-STASH-BIND(
+                          $resolver.get-global, $final, $pre-existing.compile-time-value
+                        );
+                    }
+                }
+            }
         }
         else {
             my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));

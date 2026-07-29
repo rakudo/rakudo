@@ -900,7 +900,7 @@ augment class RakuAST::Doc::Block {
 
         # verbatim, no postprocessing
         my str $type = $block.type;
-        if $type eq 'comment' | 'data' {
+        if $type eq 'comment' | 'data' | 'ignore' {
             $block.add-paragraph($_) for @paragraphs;
         }
 

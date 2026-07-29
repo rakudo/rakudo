@@ -5797,6 +5797,16 @@ Rakudo significantly on *every* run."
         ^^ \h* '=finish' $<level>=\d* <doc-newline> $<finish> = .*
     }
 
+    # handle =begin ignore
+    token doc-block:sym<ignore-block> {
+
+        ^^ $<margin>=[ \h* ] '=begin' \h+ ignore <.doc-newline>
+
+        $<ignored>=[ [ <.ignore-block>+ | .  ]*? ]
+
+        [ ^^ \h* '=end' \h+ ignore <.doc-newline> | $ ]
+    }
+
     # handle =alias
     token doc-block:sym<alias> {
         :my $width;

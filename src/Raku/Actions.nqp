@@ -1000,16 +1000,44 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # proper module loading
         else {
-            my $LANG := $*LANG;
-            $ast := Nodify('Statement::Use').new(
-              :module-name($<module-name>.ast), :$argument
-            );
+            my $LANG        := $*LANG;
+            my $module-name := $<module-name>.ast;
+
+            if $LANG.pragma("if") {
+                if $module-name.colonpairs -> $colonpairs {
+                    my @cp   := $module-name.IMPL-UNWRAP-LIST($colonpairs);
+                    my $last := @cp.pop;
+                    if $last.key eq 'if' {
+                        my $value := $last.value.literalize;
+                        if nqp::isconcrete($value) {
+
+                            # Module should be loaded
+                            if $value {
+                                # make sure the :if adverb disappears
+                                $module-name.set-colonpairs(@cp);
+                            }
+
+                            # Not to be loaded, so make it an empty statement
+                            else {
+                                self.attach: $/, Nodify('Statement::Empty').new;
+                                return;
+                            }
+                        }
+                        else {
+                            $/.panic("Did not provide compile-time-value for :if adverb in use statement");
+                        }
+                    }
+                }
+            }
+
+            $ast := Nodify('Statement::Use').new(:$module-name, :$argument);
             self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
             $ast.ensure-begin-performed($*R, $*CU.context);
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
                 $/.add-categorical(
                   $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
             }
+
             for $ast.superseded-declarators {
                 my $pdecl := $_.key;
                 my $meta := $_.value;

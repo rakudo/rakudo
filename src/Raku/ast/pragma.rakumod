@@ -33,6 +33,7 @@ class RakuAST::Pragma
           'attributes',         0,
           'dynamic-scope',      0,
           'fatal',              0,
+          'if',                 1,
           'internals',          1,
           'invocant',           0,
           'isms',               0,

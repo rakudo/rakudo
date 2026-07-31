@@ -1023,7 +1023,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 ) unless $/.know_how($declarator);
 
                 $/.typed-panic('X::EXPORTHOW::Conflict',
-                  :$declarator, directive<SUPERSEDE>
+                  :$declarator, :directive<SUPERSEDE>
                 ) if $/.know_how("U:$declarator");
 
                 set-how($declarator, $_.value, 'SUPERSEDE');
@@ -1031,7 +1031,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             for $ast.added-declarators {
                 my str $declarator := $_.key;
                 $/.typed-panic('X::EXPORTHOW::Conflict',
-                  :$declarator, directive<DECLARE>
+                  :$declarator, :directive<DECLARE>
                 ) if $/.know_how($declarator);
 
                 set-how($declarator, nqp::decont($_.value), 'DECLARE');

@@ -1006,41 +1006,42 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
             self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
             $ast.ensure-begin-performed($*R, $*CU.context);
+
+            my sub set-how($declarator, $meta, $type) {
+                $LANG.set_how($declarator, $meta);
+                $LANG.set_how("U:$declarator", nqp::hash($type, $meta));
+            }
+
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
                 $/.add-categorical(
                   $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
             }
             for $ast.superseded-declarators {
-                my $pdecl := $_.key;
-                my $meta := $_.value;
-                unless $/.know_how($pdecl) {
-                    $/.typed-panic('X::EXPORTHOW::NothingToSupersede',
-                        declarator => $pdecl);
-                }
-                if $/.know_how("U:$pdecl") {
-                    $/.typed-panic('X::EXPORTHOW::Conflict',
-                        declarator => $pdecl, directive => 'SUPERSEDE');
-                }
-                $LANG.set_how($pdecl, $meta);
-                $LANG.set_how("U:$pdecl", nqp::hash('SUPERSEDE', $meta));
+                my $declarator := $_.key;
+                $/.typed-panic('X::EXPORTHOW::NothingToSupersede',
+                  :$declarator
+                ) unless $/.know_how($declarator);
+
+                $/.typed-panic('X::EXPORTHOW::Conflict',
+                  :$declarator, :directive<SUPERSEDE>
+                ) if $/.know_how("U:$declarator");
+
+                set-how($declarator, $_.value, 'SUPERSEDE');
             }
             for $ast.added-declarators {
-                my str $pdecl := $_.key;
-                my $meta  := nqp::decont($_.value);
-                if $/.know_how($pdecl) {
-                    $/.typed-panic('X::EXPORTHOW::Conflict',
-                        declarator => $pdecl, directive => 'DECLARE');
-                }
-                $LANG.set_how($pdecl, $meta);
-                $LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
-                self.add_package_declarator($/, $pdecl);
+                my str $declarator := $_.key;
+                $/.typed-panic('X::EXPORTHOW::Conflict',
+                  :$declarator, :directive<DECLARE>
+                ) if $/.know_how($declarator);
+
+                set-how($declarator, nqp::decont($_.value), 'DECLARE');
+                self.add_package_declarator($/, $declarator);
             }
             for $ast.unchecked-declarators {
-                my str $pdecl := $_.key;
-                my $meta  := nqp::decont($_.value);
-                $LANG.set_how($pdecl, $meta);
-                $LANG.set_how("U:$pdecl", nqp::hash('DECLARE', $meta));
-                self.add_package_declarator($/, $pdecl);
+                my str $declarator := $_.key;
+
+                set-how($declarator, nqp::decont($_.value), 'DECLARE');
+                self.add_package_declarator($/, $declarator);
             }
         }
 

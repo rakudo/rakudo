@@ -1008,7 +1008,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     my @cp   := $module-name.IMPL-UNWRAP-LIST($colonpairs);
                     my $last := @cp.pop;
                     if $last.key eq 'if' {
-                        my $value := $last.value.literalize;
+                        my $value := Nodify(
+                          "BeginTime"
+                        ).IMPL-BEGIN-TIME-EVALUATE(
+                          $last.value, $*R, $*CU.context
+                        );
                         if nqp::isconcrete($value) {
 
                             # Module should be loaded

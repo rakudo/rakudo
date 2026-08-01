@@ -310,7 +310,9 @@ my class Binder {
         }
     }
 
-    # Binds a single parameter.
+    # Binds a single parameter. $implicit_default is set when the value
+    # being bound is the implicit default of an optional parameter that
+    # was not passed an argument, so failures can report that context.
     sub bind_one_param(
       $sig,
       $lexpad,
@@ -321,7 +323,8 @@ my class Binder {
       $oval,
       int $ival,
       num $nval,
-      str $sval
+      str $sval,
+      $implicit_default = 0
     ) {
         # Grab flags and variable name.
         my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
@@ -662,7 +665,8 @@ my class Binder {
                           :expected($cons_type),
                           :symbol($varname),
                           :parameter($param),
-                          :constraint(nqp::hllboolfor(1, 'Raku'))
+                          :constraint(nqp::hllboolfor(1, 'Raku')),
+                          :omitted(nqp::hllboolfor($implicit_default, 'Raku'))
                         )
                     }) if nqp::defined($error);
 
@@ -1015,7 +1019,9 @@ my class Binder {
                       handle_optional($param, $flags, $lexpad),
                       0,
                       0.0,
-                      ''
+                      '',
+                      nqp::isnull(nqp::getattr($param, Parameter, '$!default_value'))
+                        && nqp::not_i($flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER)
                     );
 
                     return $bind_fail if $bind_fail;
@@ -1067,7 +1073,9 @@ my class Binder {
                           handle_optional($param, $flags, $lexpad),
                           0,
                           0.0,
-                          ''
+                          '',
+                          nqp::isnull(nqp::getattr($param, Parameter, '$!default_value'))
+                            && nqp::not_i($flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER)
                         );
                     }
                     elsif $arity_fail {

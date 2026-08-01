@@ -1580,15 +1580,6 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
-my class X::Parameter::Named::SubsetTypeWithoutDefault does X::Comp {
-    has Str $.parameter;
-    has Mu $.subset;
-    method message() {
-        "Optional named parameter '$.parameter' with subset type {$.subset.^name} needs a valid default value\n"
-        ~ "otherwise it will throw exceptions when a value is absent at the callsite"
-    }
-}
-
 my role X::BadType {
     has Mu $.type;
     method action() {...}
@@ -2974,6 +2965,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
     has Str $.what;
+    has Bool $.omitted;
     method expectedn() {
         $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
@@ -2999,7 +2991,10 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             ?? "expected type $.expectedn cannot be itself"
             !! self.explain;
         my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
-        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
+        my $omitted = $.omitted
+            ?? "\n" ~ ("The parameter is optional and was not passed an argument, so its implicit default value was checked against the constraint. Give the parameter a default value that satisfies the constraint, mark it as required, or make the constraint accept the implicit default.".naive-word-wrapper)
+            !! "";
+        self.priors() ~ "$what-check check failed in $.operation$to; $expected$omitted";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {

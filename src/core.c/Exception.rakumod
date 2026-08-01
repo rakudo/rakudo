@@ -2413,11 +2413,12 @@ my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
         my $infix := $!infix.trim;
+        my $type  := Raku.legacy ?? 'Pod' !! 'RakuDoc';
         "Preceding context expects a term, but found infix $infix instead."
         ~ (
             $.post && $.post.starts-with('end ')
-                ?? "\nDid you forget '=begin $.post.substr(4)' Pod marker?"
-                !! "\nDid you make a mistake in Pod syntax?"
+                ?? "\nDid you forget '=begin $.post.substr(4)' $type marker?"
+                !! "\nDid you make a mistake in $type syntax?"
             if $infix eq '='
         )
     }

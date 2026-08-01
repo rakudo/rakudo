@@ -78,12 +78,14 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
 
 # https://github.com/Raku/old-issue-tracker/issues/4285
 {
-    is-run ｢=end MEOWS｣, :err{ /«Pod»/ && .contains: '=begin MEOWS' },
-        :exitcode(*),
-        'error with `=end FOO` suggests Pod mistake and offers `=begin FOO`';
+    my $type := Raku.legacy ?? 'Pod' !! 'RakuDoc';
 
-    is-run ｢=for｣, :err(/«Pod»/), :exitcode(*),
-        'error for `=for` suggests it might be a Pod mistake';
+    is-run ｢=end MEOWS｣, :err{ .contains($type) && .contains('=begin MEOWS') },
+        :exitcode(*),
+        'error with `=end MEOWS` suggests mistake and offers `=begin MEOWS`';
+
+    is-run ｢=for｣, :err{ .contains($type) }, :exitcode(*),
+        'error for `=for` suggests it might be a mistake';
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/4392

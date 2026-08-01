@@ -2412,15 +2412,36 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        my $infix := $!infix.trim;
-        my $type  := Raku.legacy ?? 'Pod' !! 'RakuDoc';
-        "Preceding context expects a term, but found infix $infix instead."
-        ~ (
-            $.post && $.post.starts-with('end ')
-                ?? "\nDid you forget '=begin $.post.substr(4)' $type marker?"
-                !! "\nDid you make a mistake in $type syntax?"
-            if $infix eq '='
-        )
+        my $post := $.post // "";
+
+        # Looks like a rakudoc error
+        if $!infix eq '='
+          && $post.contains(/^ [ begin | end | for <!before \w> ] /) {
+            my   $type := Raku.legacy ?? 'Pod' !! 'RakuDoc';
+            my str $tag = $post.starts-with('end ')
+              ?? "a '=begin $post.substr(4)'"
+              !! $post.starts-with('begin ')
+                ?? "an '=end $post.substr(6)'"
+                !! "";
+
+            my str @parts = "An error in $type syntax is suspected.";
+            @parts.push($tag
+              ?? "Perhaps $tag marker was forgotten or was improperly nested?"
+              !! "Perhaps the name on a '=for' marker was forgotten?"
+            );
+            @parts.push(
+              "Or such a marker was absorbed by an unclosed '=begin ignore' marker?"
+            ) if $type eq 'RakuDoc' && $post.starts-with('begin ');
+            @parts.push(
+              "Alternately, an infix '=' was seen where a term was expected."
+            );
+            @parts.join(" ").naive-word-wrapper
+        }
+
+        # Probably not a rakudoc error
+        else {
+            "Preceding context expects a term, but found infix $!infix.trim() instead."
+        }
     }
 }
 

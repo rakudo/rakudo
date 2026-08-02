@@ -2596,7 +2596,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
             $ast := nqp::existskey(PODNAMES,$name)
               ?? Nodify('Var::Doc').new(nqp::substr($name,2))
-              !! nqp::die("Pod variable $name NYI");
+              !! nqp::die("RakuDoc variable $name NYI");
         }
         elsif $twigil eq '~' {
             my $name := $desigilname.canonicalize;

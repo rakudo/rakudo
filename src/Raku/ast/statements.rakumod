@@ -1950,6 +1950,7 @@ class RakuAST::Statement::When
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
+    has RakuAST::LexicalScope $!succeed-scope;
 
     method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
@@ -1965,7 +1966,10 @@ class RakuAST::Statement::When
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.apply-sink(False); # Used as enclosing block outcome
+        # The body's value is the succeed payload, so it is only sunk when
+        # the scope taking that payload discards it.
+        $!body.apply-sink(nqp::isconcrete($!succeed-scope)
+            && $!succeed-scope.nil-on-succeed);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1973,6 +1977,7 @@ class RakuAST::Statement::When
             $resolver.find-attach-target('compunit');
         if $block {
             $block.require-succeed-handler();
+            nqp::bindattr(self, RakuAST::Statement::When, '$!succeed-scope', $block);
         }
         else {
             nqp::die('when found no enclosing block to attach to');
@@ -2125,6 +2130,7 @@ class RakuAST::Statement::Default
   is RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
+    has RakuAST::LexicalScope $!succeed-scope;
 
     method new(RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
@@ -2138,7 +2144,10 @@ class RakuAST::Statement::Default
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.apply-sink(False); # Used as enclosing block outcome
+        # The body's value is the succeed payload, so it is only sunk when
+        # the scope taking that payload discards it.
+        $!body.apply-sink(nqp::isconcrete($!succeed-scope)
+            && $!succeed-scope.nil-on-succeed);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2146,6 +2155,7 @@ class RakuAST::Statement::Default
             $resolver.find-attach-target('compunit');
         if $block {
             $block.require-succeed-handler();
+            nqp::bindattr(self, RakuAST::Statement::Default, '$!succeed-scope', $block);
         }
         else {
             nqp::die('default found no enclosing block to attach to');

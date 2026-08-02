@@ -291,13 +291,18 @@ class RakuAST::LexicalScope
         Nil
     }
 
-    # A QUIT phaser reports whether it handled the exception by what it
-    # returns: Nil after a when/default succeeds, the exception otherwise.
-    # Its block's succeed handler therefore produces Nil, with the payload
-    # sunk, rather than the payload a succeed normally evaluates to.
+    # Marks this scope as having no use for its succeed payload, either
+    # because the scope's own outcome is sunk or because it must produce
+    # Nil, as a QUIT phaser does to report the exception handled. The
+    # succeed handler then sinks the payload and produces Nil instead of
+    # evaluating to it, and when/default compile their bodies as sunk.
     method set-nil-on-succeed() {
         nqp::bindattr_i(self, RakuAST::LexicalScope, '$!nil-on-succeed', 1);
         Nil
+    }
+
+    method nil-on-succeed() {
+        $!nil-on-succeed ?? True !! False
     }
 
     method attach-catch-handler(RakuAST::Statement::Catch $catch) {

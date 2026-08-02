@@ -1580,15 +1580,6 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
-my class X::Parameter::Named::SubsetTypeWithoutDefault does X::Comp {
-    has Str $.parameter;
-    has Mu $.subset;
-    method message() {
-        "Optional named parameter '$.parameter' with subset type {$.subset.^name} needs a valid default value\n"
-        ~ "otherwise it will throw exceptions when a value is absent at the callsite"
-    }
-}
-
 my role X::BadType {
     has Mu $.type;
     method action() {...}
@@ -2412,15 +2403,36 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        my $infix := $!infix.trim;
-        my $type  := Raku.legacy ?? 'Pod' !! 'RakuDoc';
-        "Preceding context expects a term, but found infix $infix instead."
-        ~ (
-            $.post && $.post.starts-with('end ')
-                ?? "\nDid you forget '=begin $.post.substr(4)' $type marker?"
-                !! "\nDid you make a mistake in $type syntax?"
-            if $infix eq '='
-        )
+        my $post := $.post // "";
+
+        # Looks like a rakudoc error
+        if $!infix eq '='
+          && $post.contains(/^ [ begin | end | for <!before \w> ] /) {
+            my   $type := Raku.legacy ?? 'Pod' !! 'RakuDoc';
+            my str $tag = $post.starts-with('end ')
+              ?? "a '=begin $post.substr(4)'"
+              !! $post.starts-with('begin ')
+                ?? "an '=end $post.substr(6)'"
+                !! "";
+
+            my str @parts = "An error in $type syntax is suspected.";
+            @parts.push($tag
+              ?? "Perhaps $tag marker was forgotten or was improperly nested?"
+              !! "Perhaps the name on a '=for' marker was forgotten?"
+            );
+            @parts.push(
+              "Or such a marker was absorbed by an unclosed '=begin ignore' marker?"
+            ) if $type eq 'RakuDoc' && $post.starts-with('begin ');
+            @parts.push(
+              "Alternately, an infix '=' was seen where a term was expected."
+            );
+            @parts.join(" ").naive-word-wrapper
+        }
+
+        # Probably not a rakudoc error
+        else {
+            "Preceding context expects a term, but found infix $!infix.trim() instead."
+        }
     }
 }
 
@@ -2975,6 +2987,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
     has Str $.what;
+    has Bool $.omitted;
     method expectedn() {
         $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
@@ -3000,7 +3013,10 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             ?? "expected type $.expectedn cannot be itself"
             !! self.explain;
         my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
-        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
+        my $omitted = $.omitted
+            ?? "\n" ~ ("The parameter is optional and was not passed an argument, so its implicit default value was checked against the constraint. Give the parameter a default value that satisfies the constraint, mark it as required, or make the constraint accept the implicit default.".naive-word-wrapper)
+            !! "";
+        self.priors() ~ "$what-check check failed in $.operation$to; $expected$omitted";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {

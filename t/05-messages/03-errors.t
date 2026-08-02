@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 29;
+plan 30;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -198,5 +198,36 @@ is-run ｢has ($.a, $.b); print "ran"｣,
 throws-like ｢my $FILA = 1; say $?FILA｣, X::Undeclared,
     message => *.contains(Q[Did you mean '$FILA']),
     'an unknown compiler variable is reported with suggestions';
+
+# https://irclogs.raku.org/raku-dev/2025-05-12.html#12:13
+subtest 'constraint failure on an unpassed optional parameter explains the implicit default' => {
+    plan 5;
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        omitted => *.so,
+        message => *.contains('was not passed'),
+        'an unpassed named parameter with a subset type mentions the implicit default';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty $name?) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => *.contains('was not passed'),
+        'an unpassed optional positional parameter with a subset type mentions the implicit default';
+
+    throws-like ｢sub foo(Str :$name where *.so) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => *.contains('was not passed'),
+        'an unpassed named parameter with a where clause mentions the implicit default';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name) { }; foo(name => "")｣,
+        X::TypeCheck::Binding::Parameter,
+        message => { not .contains('was not passed') },
+        'a passed value failing the constraint does not claim the parameter was not passed';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name = "".lc) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => { not .contains('was not passed') },
+        'an explicit default failing the constraint does not claim the parameter has none';
+}
 
 # vim: expandtab shiftwidth=4

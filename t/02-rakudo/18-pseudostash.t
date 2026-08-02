@@ -2,7 +2,7 @@ use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 9;
+plan 10;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -44,6 +44,23 @@ is EVAL(q/enum E199 <a b c>; my \t := E199; ~t::<b>/), 'b',
 # The same holds for a call qualified by a runtime lexical package.
 is EVAL(q/class K200 { our sub gv { 42 } }; my \t := K200; t::gv()/), 42,
     'call qualified by a runtime lexical package';
+
+# The right operand of a short-circuit compound assignment runs in the
+# frame that contains the assignment, so a caller-walking lookup in it
+# starts from the routine's caller. A compiler-inserted frame around the
+# operand would make the routine's own dynamic shadow the caller's.
+{
+    sub probe(:$r is copy) {
+        my $decoy is dynamic = 'inner';
+        $r //= CALLERS::('$decoy');
+        $r
+    }
+    sub outer() {
+        my $decoy is dynamic = 'outer';
+        probe()
+    }
+    is outer(), 'outer', "CALLERS in the right operand of //= starts at the routine's caller";
+}
 
 # A package-qualified compile-time variable such as $?CALLER::PACKAGE
 # resolves $?<name> through the pseudo-package, like CALLER::<$?PACKAGE>.

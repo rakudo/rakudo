@@ -219,6 +219,33 @@ my class Match is Capture is Cool does NQPMatchRole {
         $!regexsub($new)
     }
 
+    # Transfer capture marker positions from the capture stack into
+    # $!from / $!to.  This is the part of .MATCH that determines the
+    # match extent, without reifying any captures.
+    method CURSOR_CAPTURE_MARKERS(--> Nil) is implementation-detail {
+        my $cstack := nqp::getattr(self,Match,'$!cstack');
+        nqp::if(
+          $cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,nqp::elems($cstack)),
+              nqp::stmts(
+                (my $cursor := nqp::atpos($cstack,$i)),
+                (my str $name = nqp::getattr_s($cursor,Match,'$!name')),
+                nqp::if(
+                  nqp::not_i(nqp::isnull_s($name))
+                    && (nqp::iseq_s($name,'$!from')
+                         || nqp::iseq_s($name,'$!to')),
+                  nqp::bindattr_i(self,Match,$name,
+                    nqp::getattr_i($cursor,Match,'$!from'))
+                )
+              )
+            )
+          )
+        )
+    }
+
     ##### / <:General_Category{$property}> /
     my $general-category-property-lookup := nqp::hash(
         "Uppercase_Letter", "Lu",

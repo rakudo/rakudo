@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -137,4 +138,9 @@ DLLEXPORT int TakeSSizeT(ssize_t x)
     if (x == -42)
         return 14;
     return 0;
+}
+
+DLLEXPORT void FreeString(char *str)
+{
+    free(str);
 }

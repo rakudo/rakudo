@@ -510,7 +510,8 @@ our sub explicitly-manage(
     }
 
     $x does ExplicitlyManagedString;
-    $x.cstr = nqp::box_s(nqp::unbox_s($x), CStr)
+    $x.cstr = nqp::box_s(nqp::unbox_s($x), CStr);
+    $x
 }
 
 our sub refresh($obj --> 1) is export(:DEFAULT, :utils) {

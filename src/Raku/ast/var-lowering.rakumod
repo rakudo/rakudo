@@ -571,9 +571,6 @@ class RakuAST::IMPL::VarLowering {
     # the declaration alone.
     method IMPL-REGISTER-DECL(RakuAST::VarDeclaration::Simple $decl, str $alias-id?) {
         return Nil unless $decl.scope eq 'my';
-        # An anonymous declaration has no name to look up, and nothing to
-        # gain from this analysis until lowering handles it directly.
-        return Nil if nqp::istype($decl, RakuAST::VarDeclaration::Anonymous);
 
         my int $i := nqp::elems($!frames);
         my $scope-frame;
@@ -607,8 +604,13 @@ class RakuAST::IMPL::VarLowering {
             # call ops, so a `&`-sigiled lexical must keep its symbol.
             $declined := 'callable';
         }
-        elsif !nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,
+        elsif !nqp::istype($decl, RakuAST::VarDeclaration::Anonymous)
+            && !nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,
                 $decl.desigilname.canonicalize, 0) {
+            # This keeps punctuation variables such as $/ addressable
+            # by name. An anonymous variable reports an empty
+            # desigilname, but nothing can look one up, so it is
+            # exempt.
             $declined := 'name';
         }
         elsif nqp::isconcrete($decl.shape) {

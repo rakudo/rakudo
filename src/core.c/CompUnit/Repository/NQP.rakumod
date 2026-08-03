@@ -4,7 +4,7 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
     method need(CompUnit::Repository::NQP:D:
       CompUnit::DependencySpecification $spec,
       CompUnit::PrecompilationRepository $precomp?,
-    --> CompUnit:D) {
+    ) {
         if $spec.from eq 'NQP' {
             my $key := $spec.short-name;
             CompUnit.new:

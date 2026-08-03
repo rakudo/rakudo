@@ -5,7 +5,7 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
     method need(CompUnit::Repository::Perl5:D:
       CompUnit::DependencySpecification $spec,
       CompUnit::PrecompilationRepository $precomp?,
-    --> CompUnit:D) {
+    ) {
         if $spec.from eq 'Perl5' {
             CATCH {
                 when X::CompUnit::UnsatisfiedDependency {

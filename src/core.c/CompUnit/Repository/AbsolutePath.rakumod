@@ -10,7 +10,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
     method need(CompUnit::Repository::AbsolutePath:D:
       CompUnit::DependencySpecification $spec,
       CompUnit::PrecompilationRepository $precomp = self.precomp-repository()
-    --> CompUnit:D) {
+    ) {
         (my $repo := self.next-repo)
           ?? $repo.need($spec, $precomp)
           !! X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw

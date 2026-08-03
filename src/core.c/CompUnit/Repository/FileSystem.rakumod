@@ -95,9 +95,7 @@ class CompUnit::Repository::FileSystem
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-
-        --> CompUnit:D)
-    {
+    ) {
         my $spec-key = ~$spec;
         my $spec-promise;
         my $loaded-cu;

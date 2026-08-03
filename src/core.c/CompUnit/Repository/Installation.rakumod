@@ -658,8 +658,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-        --> CompUnit:D)
-    {
+    ) {
 
         # found a distribution for this spec
         if self!matching-dist($spec) -> $distribution {

@@ -12,8 +12,13 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
     my constant @script-postfixes = '', '-m', '-j', '-js';
+    # every file generate-bin-wrapper may produce for a script, plus the
+    # .bat wrappers of older repository versions
     my constant @all-script-extensions =
-        '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+        '', '-m', '-j', '-js',
+        '.raku', '-m.raku', '-j.raku', '-js.raku',
+        '.exe', '-m.exe', '-j.exe', '-js.exe',
+        '.bat', '-m.bat', '-j.bat', '-js.bat';
 
     my constant $raku-wrapper-code = 'sub MAIN(*@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#");
@@ -464,10 +469,18 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
                     # versions use wrapper)
 
                     unless self.files($name-path, :name(%meta<name>)).elems {
-                        my $basename := $name-path.substr(4);  # skip bin/
-                        my $bin-dir  := $prefix.add('bin');
-                        unlink-if-exists($bin-dir.add($basename ~ $_))
-                          for @all-script-extensions;
+                        my $basename   := $name-path.substr(4);  # skip bin/
+                        # generate-bin-wrapper strips the .raku extension
+                        # from wrapper names, but wrappers installed before
+                        # the runner rework kept it, so delete under both
+                        # names
+                        my $withoutext := $basename.subst(/\.raku$/, '');
+                        my $bin-dir    := $prefix.add('bin');
+                        for @all-script-extensions -> $ext {
+                            unlink-if-exists($bin-dir.add($withoutext ~ $ext));
+                            unlink-if-exists($bin-dir.add($basename ~ $ext))
+                              unless $basename eq $withoutext;
+                        }
                     }
 
                     # original bin scripts are in $resources-dir

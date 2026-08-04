@@ -4554,6 +4554,32 @@ my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
     nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
 });
 
+# Perform the full coercion protocol on every call
+my $coerce-value-checked := nqp::getstaticcode(-> $coercion, $value {
+    nqp::istype($value, nqp::how_nd($coercion).target_type($coercion))
+      ?? $value
+      !! nqp::how_nd($coercion)."!coerce_TargetType"($coercion, $value)
+});
+
+# Whether a type check against this type inspects the value itself rather
+# than just its type, as a subset refinement does. Such a check must be
+# repeated on every call, since dispatch program guards only cover the
+# type and concreteness of the value.
+sub type-check-is-value-dependent($type) {
+    my $HOW := nqp::how_nd($type);
+    while $HOW.archetypes($type).nominalizable {
+        my $subset := $HOW.wrappee-lookup($type, :subset);
+        return 0 if nqp::isnull($subset);
+
+        my $subsetHOW := nqp::how_nd($subset);
+        return 1 if nqp::isconcrete($subsetHOW.refinement($subset));
+
+        $type := $subsetHOW.refinee($subset);
+        $HOW  := nqp::how_nd($type);
+    }
+    0
+}
+
 # Return a list with coercer, method object and nominal target for the
 # given coercion object, value and optional force :with-runtime flag
 sub select-coercer($coercion, $value, :$with-runtime = 0) {
@@ -4742,6 +4768,17 @@ nqp::register('raku-coercion', -> $capture {
     my $constraint    := $coercionHOW.constraint_type($coercion);
     my $constraintHOW := $constraint.HOW;
 
+    # Helper sub to delegate to the per-call coercion code
+    my sub value-checked-fallback() {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-replace-arg-literal-obj',
+              $capture, 0, $coercion
+            ), 0, $coerce-value-checked
+          )
+        );
+    }
+
     # If despite our efforts the value is still a container then try
     # deconting it first and then re-dispatch.
     if nqp::iscont($value) {
@@ -4754,34 +4791,51 @@ nqp::register('raku-coercion', -> $capture {
         );
     }
 
-    # Just matches, use identity.
+    # Just matches, use identity when the match is decided by the type alone.
     elsif nqp::istype_nd($value, $target_type) {
-        nqp::delegate('boot-value',
-          nqp::syscall('dispatcher-drop-arg', $capture, 0)
-        );
+        if type-check-is-value-dependent($target_type) {
+            value-checked-fallback();
+        }
+        else {
+            nqp::delegate('boot-value',
+              nqp::syscall('dispatcher-drop-arg', $capture, 0)
+            );
+        }
     }
 
     # The value doesn't match constraint type, throw by calling the MOP
-    # error throwing method
+    # error throwing method, unless the mismatch is decided by the value
+    # rather than its type.
     elsif !nqp::eqaddr($constraint, Mu)
       && !nqp::istype_nd($value, $constraint) {
-        nqp::delegate('raku-meth-call',
-          nqp::syscall('dispatcher-insert-arg-literal-obj',
-            nqp::syscall('dispatcher-insert-arg-literal-str',
+        if type-check-is-value-dependent($constraint) {
+            value-checked-fallback();
+        }
+        else {
+            nqp::delegate('raku-meth-call',
               nqp::syscall('dispatcher-insert-arg-literal-obj',
-                nqp::syscall('dispatcher-drop-arg',
-                  $capture, 0
+                nqp::syscall('dispatcher-insert-arg-literal-str',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-drop-arg',
+                      $capture, 0
+                    ), 0, $coercionHOW
+                  ), 0, '!invalid_type'
                 ), 0, $coercionHOW
-              ), 0, '!invalid_type'
-            ), 0, $coercionHOW
-          )
-        );
+              )
+            );
+        }
     }
 
     # The constraint type is a coercion on its own. This is not a
     # dispatchable case. Fallback to the metamodel method.
     elsif $constraintHOW.archetypes($constraint).coercive {
         runtime-fallback();
+    }
+
+    # A constraint that inspects the value must be rechecked on every
+    # call, which the coercers selected below do not do.
+    elsif type-check-is-value-dependent($constraint) {
+        value-checked-fallback();
     }
 
     # Try finding one of the coercion methods.

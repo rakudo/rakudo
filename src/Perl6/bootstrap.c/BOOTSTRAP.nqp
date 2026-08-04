@@ -5059,6 +5059,18 @@ BEGIN {
               || nqp::elems(@!pos-capture-counts)
         }
 
+        # Are there any capture markers?  '<(' and ')>' compile into
+        # named captures called '$!from' and '$!to'.
+        method has-capture-markers() {
+            my int $i := nqp::elems(@!named-capture-names);
+            my int $found := 0;
+            while --$i >= 0 {
+                my str $name := nqp::atpos_s(@!named-capture-names, $i);
+                $found := 1 if $name eq '$!from' || $name eq '$!to';
+            }
+            $found
+        }
+
         ## Raku Match object building
         ## (for use in standard Raku regexes)
 

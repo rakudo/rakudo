@@ -28,6 +28,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
     my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
+    my &CAPTURE-MARKERS := Match.^lookup("CURSOR_CAPTURE_MARKERS");
+
     my &POST-MATCH  := Match.^lookup("MATCH" );  # Match object
     my &POST-STR    := Match.^lookup("STR"   );  # Str object
 
@@ -2410,6 +2412,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 unless nqp::existskey($needles-seen,$gist) {
                     nqp::bindkey($needles-seen,$gist,1);
 
+                    my int $markers = $needle.HAS-CAPTURE-MARKERS;
                     my $cursor;
                     my int $pos;
                     my int $c;
@@ -2427,11 +2430,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                                  -1
                                ),
                           nqp::stmts(
+                            nqp::if($markers,CAPTURE-MARKERS($cursor)),
                             nqp::push(
                               $pins,
                               nqp::list_i(
                                 $cursor.from,
-                                $pos - $cursor.from,
+                                ($markers ?? $cursor.to !! $pos) - $cursor.from,
                                 $index
                               )
                             ),
@@ -2448,11 +2452,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             -1
                           ),
                           nqp::stmts(
+                            nqp::if($markers,CAPTURE-MARKERS($cursor)),
                             nqp::push(
                               $pins,
                               nqp::list_i(
                                 $cursor.from,
-                                $pos - $cursor.from,
+                                ($markers ?? $cursor.to !! $pos) - $cursor.from,
                                 $index
                               )
                             ),

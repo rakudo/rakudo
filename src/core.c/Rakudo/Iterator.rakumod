@@ -2613,6 +2613,8 @@ class Rakudo::Iterator {
 
     my &POPULATE := Match.^lookup("MATCH" );  # fully populate Match object
 
+    my &CAPTURE-MARKERS := Match.^lookup("CURSOR_CAPTURE_MARKERS");
+
     my $movers := nqp::list(
       Match.^lookup("CURSOR_MORE"),     # :g
       Match.^lookup("CURSOR_OVERLAP"),  # :ov
@@ -2689,6 +2691,104 @@ class Rakudo::Iterator {
     }
     method MatchCursorLimit(\regex, \string, \limit, \mover) {
         MatchCursorLimit.new(regex, string, limit, mover)
+    }
+
+    # Cursor iterators for regexes with capture markers.  These bind
+    # the marker positions of each produced cursor into $!from and
+    # $!pos, so consumers read the match extent as with any cursor.
+    # The mover has already run at that point, so rebinding $!pos does
+    # not change where the next match is attempted.
+    my class MatchCursorMarkers does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        method !SET-SELF(&regex, \string, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            self
+        }
+        method new(\regex, \string, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                CAPTURE-MARKERS($current),
+                nqp::if(
+                  nqp::isge_i(
+                    (my int $to = nqp::getattr_i($current,Match,'$!to')),
+                    0
+                  ),
+                  nqp::bindattr_i($current,Match,'$!pos',$to)
+                ),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+
+    my class MatchCursorLimitMarkers does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        has int $!todo;
+        method !SET-SELF(&regex, \string, int $todo, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            $!todo    = $todo + 1;
+            self
+        }
+        method new(\regex, \string, \todo, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, todo, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              --$!todo
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                CAPTURE-MARKERS($current),
+                nqp::if(
+                  nqp::isge_i(
+                    (my int $to = nqp::getattr_i($current,Match,'$!to')),
+                    0
+                  ),
+                  nqp::bindattr_i($current,Match,'$!pos',$to)
+                ),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              --$!todo
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+
+    # Select a cursor iterator according to whether the regex
+    # contains capture markers
+    my sub match-cursor(\regex, \string, int $mover) {
+        nqp::istype(regex,Regex) && regex.HAS-CAPTURE-MARKERS
+          ?? MatchCursorMarkers.new(regex, string, $mover)
+          !! MatchCursor.new(regex, string, $mover)
+    }
+    my sub match-cursor-limit(\regex, \string, \todo, int $mover) {
+        nqp::istype(regex,Regex) && regex.HAS-CAPTURE-MARKERS
+          ?? MatchCursorLimitMarkers.new(regex, string, todo, $mover)
+          !! MatchCursorLimit.new(regex, string, todo, $mover)
     }
 
     # generate full blown Match objects for given regex, string and limit
@@ -2775,12 +2875,12 @@ class Rakudo::Iterator {
         }
         method new(\regex, \string, \limit) {
             my \iterator := nqp::istype(limit,Whatever) || limit == Inf
-              ?? MatchCursor.new(regex, string, 0)
+              ?? match-cursor(regex, string, 0)
               !! limit < 1
                 ?? (return Rakudo::Iterator.Empty)
                 !! limit == 1
                   ?? (return Rakudo::Iterator.OneValue(string))
-                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+                  !! match-cursor-limit(regex, string, limit.Int - 1, 0);
 
             nqp::create(self)!SET-SELF(iterator, string)
         }
@@ -2859,12 +2959,12 @@ class Rakudo::Iterator {
         }
         method new(\regex, \string, \mapper, \limit, \skip-empty) {
             my \iterator := nqp::istype(limit,Whatever) || limit == Inf
-              ?? MatchCursor.new(regex, string, 0)
+              ?? match-cursor(regex, string, 0)
               !! limit < 1 || (skip-empty && nqp::not_i(nqp::chars(string)))
                 ?? (return Rakudo::Iterator.Empty)
                 !! limit == 1
                   ?? (return Rakudo::Iterator.OneValue(string))
-                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+                  !! match-cursor-limit(regex, string, limit.Int - 1, 0);
 
             nqp::create(self)!SET-SELF(
               iterator, string, mapper, nqp::istrue(skip-empty))

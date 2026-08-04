@@ -375,7 +375,8 @@ class RakuAST::Code
                 }
             }
             else {
-                if $scope eq 'lexical' && ! $declared-in-cu($name) && !%seen{$name} {
+                if ($scope eq 'lexical' || $scope eq 'lexicalref')
+                  && ! $declared-in-cu($name) && !%seen{$name} {
                     my $value := $var.ann('compile-time-value');
                     if !($value =:= NQPMu) {
                         %seen{$name} := 1;
@@ -390,7 +391,33 @@ class RakuAST::Code
                     # the runtime lookup reaches the caller's container.
                     elsif $name ne '$_' && $name ne '$/' && $name ne '$!' && $name ne '$¢' {
                         my $lexical := $parse-time-resolver.resolve-lexical($name);
-                        if $lexical
+                        my $of := $lexical && nqp::istype($lexical, RakuAST::VarDeclaration::Simple)
+                            ?? $lexical.IMPL-OF-TYPE
+                            !! Mu;
+                        # A native scalar has no container to share, and a
+                        # native slot cannot hold a static value for runtime
+                        # frames to copy. Declare a fresh slot of the same
+                        # native type. A write to it stays local to this
+                        # compiled code.
+                        if $lexical && (my int $prim-spec := nqp::objprimspec($of)) && $lexical.sigil eq '$' {
+                            $context.ensure-sc($of);
+                            %seen{$name} := 1;
+                            my $slot := QAST::Var.new(
+                                :scope<lexical>, :decl<var>, :$name, :returns($of)
+                            );
+                            # An int or num slot starts out as 0, but a str
+                            # slot starts out as a VM-level null string, so
+                            # bind its empty-string default explicitly.
+                            $block[0].push($prim-spec == 3
+                                ?? QAST::Op.new(:op('bind'), $slot, QAST::SVal.new(:value('')))
+                                !! $slot
+                            );
+                        }
+                        # Any other by-reference use stays late-bound for
+                        # the runtime lookup to satisfy.
+                        elsif $scope eq 'lexicalref' {
+                        }
+                        elsif $lexical
                           && !nqp::istype($lexical, RakuAST::Declaration::External)
                           && !nqp::istype($lexical, RakuAST::CompileTimeValue)
                           && !nqp::eqat($name, '!__REGEX_CAPTURE_', 0)

@@ -4771,11 +4771,30 @@ my class array is Cool does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------
 
+    # Carries a still-generic type parameter, such as the T of array[T]
+    # inside the body of a parametric role, so that checking the type for
+    # nativeness waits until role instantiation provides the actual type.
+    my role genericarray[::T] {
+        method is-generic {
+            nqp::hllbool(callsame() || nqp::istrue(T.^archetypes.generic))
+        }
+
+        multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
+            self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
+              type-environment.instantiate(T)
+        }
+    }
+
     method ^parameterize(Mu:U \arr, Mu \t) {
         if nqp::isconcrete(t) {
             die "Can not parameterize {arr.^name} with {t.raku}";
         }
         my $t := nqp::decont(t);
+        if $t.^archetypes.generic {
+            my $what := arr.^mixin(genericarray[$t]);
+            $what.^set_name("{arr.^name}[{t.^name}]");
+            return $what;
+        }
         my int $kind = nqp::objprimspec($t);
         my $what;
 

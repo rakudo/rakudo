@@ -68,6 +68,31 @@ multi sub infix:<cmp>(\a, Code:D $b) {
      a.Stringy cmp $b.name
 }
 
+multi sub infix:<cmp>(Iterable:D \a, Iterable:D \b) {
+    nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      ?? Same
+      !! infix:<cmp>(
+           # a Seq can only be iterated once, but sorting compares an
+           # element many times, so compare through a cache when the
+           # type provides one
+           nqp::istype(a,PositionalBindFailover)
+             ?? a.cache.iterator
+             !! a.iterator,
+           nqp::istype(b,PositionalBindFailover)
+             ?? b.cache.iterator
+             !! b.iterator
+         )
+}
+
+# Maps have no meaningful iteration order, so compare sorted pairs
+multi sub infix:<cmp>(Map:D \a, Map:D \b) {
+    nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      ?? Same
+      !! a.sort cmp b.sort
+}
+multi sub infix:<cmp>(Map:D \a, Iterable:D \b) { a.sort cmp b      }
+multi sub infix:<cmp>(Iterable:D \a, Map:D \b) { a      cmp b.sort }
+
 multi sub infix:<cmp>(List:D \a, List:D \b) {
     nqp::if(
       a.is-lazy || b.is-lazy,

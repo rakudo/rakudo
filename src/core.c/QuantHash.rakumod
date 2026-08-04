@@ -104,4 +104,13 @@ my role QuantHash::KeyOf[::CONSTRAINT] {
     }
 }
 
+# QuantHashes have no meaningful iteration order, so compare sorted pairs
+multi sub infix:<cmp>(QuantHash:D \a, QuantHash:D \b) {
+    nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      ?? Same
+      !! a.sort cmp b.sort
+}
+multi sub infix:<cmp>(QuantHash:D \a, Iterable:D \b) { a.sort cmp b      }
+multi sub infix:<cmp>(Iterable:D \a, QuantHash:D \b) { a      cmp b.sort }
+
 # vim: expandtab shiftwidth=4

@@ -1518,6 +1518,25 @@ class RakuAST::MetaInfix::Assign
         || $basesym eq 'andthen' || $basesym eq 'notandthen'
     }
 
+    # The test operators whose base compiles to a QAST conditional rather
+    # than a routine call. The andthen family is excluded: it compiles to
+    # a routine call that takes a thunked right operand.
+    method IMPL-IS-STRUCTURAL-TEST() {
+        return False unless nqp::istype(self.infix, RakuAST::Infix);
+        my $basesym := self.infix.operator;
+        $basesym eq '||' || $basesym eq '&&' || $basesym eq '//'
+        || $basesym eq 'or' || $basesym eq 'and'
+    }
+
+    # A structural test assignment emits its right operand in place, so it
+    # takes no thunk. A thunk would add a frame the source has no block
+    # for, which a caller-walking lookup in the operand would see.
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+            unless self.IMPL-IS-STRUCTURAL-TEST;
+    }
+
     method IMPL-OPERATOR-NAME($thunked) {
         self.IMPL-IS-TEST
             ?? ($thunked ?? '&METAOP_TEST_ASSIGN:' !! '&METAOP_TEST_ASSIGN_VALUE:')
@@ -1550,18 +1569,15 @@ class RakuAST::MetaInfix::Assign
     # surrounding compound assignment can assign through in turn. For a test
     # operator (// || &&) the assignment is the right operand of the base
     # operator, which selects it only when the left side does not, keeping the
-    # assignment conditional; a thunked right operand is invoked there.
+    # assignment conditional.
     method IMPL-INLINE-METAOP-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $temp := QAST::Node.unique('inline_metaop');
         my $effect;
         if self.IMPL-IS-TEST {
-            my $rhs := $right-qast.ann('thunked')
-                ?? QAST::Op.new(:op<call>, $right-qast)
-                !! $right-qast;
             $effect := $!infix.IMPL-INFIX-QAST($context,
                 QAST::Var.new(:scope<local>, :name($temp)),
                 QAST::Op.new(:op<p6assign>,
-                    QAST::Var.new(:scope<local>, :name($temp)), $rhs));
+                    QAST::Var.new(:scope<local>, :name($temp)), $right-qast));
         }
         else {
             # An undefined left is not passed to the operator. The metaop uses
@@ -1625,36 +1641,39 @@ class RakuAST::MetaInfix::Assign
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         return self.IMPL-INLINE-METAOP-QAST($context, $left-qast, $right-qast) if $!inline;
 
-        if self.IMPL-IS-TEST {
-            QAST::Op.new(
-                :op<callstatic>,
-                :name(self.IMPL-OPERATOR-NAME($right-qast.ann('thunked'))),
-                $left-qast, $right-qast
-            )
-        }
-        elsif nqp::istype($!infix, RakuAST::Infix) && $!infix.short-circuit {
-            # The general path. The optimize pass marks targets that can
-            # assign directly, which IMPL-INLINE-METAOP-QAST handles; here
-            # the temporary keeps the left evaluated once whatever it is.
+        if self.IMPL-IS-STRUCTURAL-TEST {
+            # The optimize pass marks targets that can assign directly,
+            # which IMPL-INLINE-METAOP-QAST handles. Here the temporary
+            # keeps the left evaluated once whatever it is, and the
+            # assignment nests as the base operator's right operand so it
+            # only runs when the test selects it. The target can be any
+            # assignable, an aggregate among them, so the store goes
+            # through p6store, which falls back to calling STORE when the
+            # target is not a container.
             my $temp := QAST::Node.unique('meta_assign');
             my $bind-lhs := QAST::Op.new(
               :op<bind>,
               QAST::Var.new(:decl('var'), :scope('local'), :name($temp)),
               $left-qast
             );
-            # Compile the short-circuit ones "inside out", so we can avoid the
-            # assignment.
             QAST::Stmt.new(
                 $bind-lhs,
                 $!infix.IMPL-INFIX-QAST(
                     $context,
                     QAST::Var.new( :scope('local'), :name($temp) ),
                     QAST::Op.new(
-                        :op('assign'),
+                        :op('p6store'),
                         QAST::Var.new( :scope('local'), :name($temp) ),
                         $right-qast
                     )
                 )
+            )
+        }
+        elsif self.IMPL-IS-TEST {
+            QAST::Op.new(
+                :op<callstatic>,
+                :name(self.IMPL-OPERATOR-NAME($right-qast.ann('thunked'))),
+                $left-qast, $right-qast
             )
         }
         elsif self.IMPL-WRAPS-LIST-META {

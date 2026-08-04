@@ -97,14 +97,35 @@ class RakuAST::BeginTime
             nqp::die('BEGIN time evaluation only supported for simple constructs so far')
         }
 
-        # A native-typed expression evaluates to a bare VM-level box (for
-        # example a BOOTInt) where the same expression at run time would
-        # produce an Int. Such a box has no Raku method table and a null
-        # WHO, so letting it escape into a stash breaks stash consumers
-        # like the compunit GLOBAL merge. Box VM-level scalars into their
-        # Raku types; leave VM-level aggregates alone, as constants holding
-        # nqp hashes and lists rely on staying unboxed.
+        self.IMPL-BOX-VM-VALUE($result)
+    }
+
+    # A native-typed expression evaluates to a bare VM-level box (for
+    # example a BOOTInt) where the same expression at run time would
+    # produce an Int. Such a box has no Raku method table and a null
+    # WHO, so letting it escape into a stash breaks stash consumers
+    # like the compunit GLOBAL merge. Box VM-level scalars into their
+    # Raku types; leave VM-level aggregates alone, as constants holding
+    # nqp hashes and lists rely on staying unboxed.
+    method IMPL-BOX-VM-VALUE(Mu $result) {
         unless nqp::isnull($result) {
+            # A native reference must not escape either. The frame
+            # holding the referenced slot is gone once this evaluation
+            # returns, and a reference cannot be serialized. Snapshot
+            # the referenced value, leaving a VM-level box for the
+            # code below.
+            if nqp::iscont_i($result) {
+                $result := nqp::box_i(nqp::decont_i($result), nqp::bootint());
+            }
+            elsif nqp::iscont_u($result) {
+                $result := nqp::box_u(nqp::decont_u($result), nqp::bootint());
+            }
+            elsif nqp::iscont_n($result) {
+                $result := nqp::box_n(nqp::decont_n($result), nqp::bootnum());
+            }
+            elsif nqp::iscont_s($result) {
+                $result := nqp::box_s(nqp::decont_s($result), nqp::bootstr());
+            }
             my $type := nqp::what($result);
             $result := nqp::hllizefor($result, 'Raku')
               if nqp::eqaddr($type, nqp::bootint())

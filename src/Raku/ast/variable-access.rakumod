@@ -127,7 +127,14 @@ class RakuAST::Var::Lexical
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.is-resolved && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+        self.is-resolved
+          && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+          # A native scalar declaration has no container, so its
+          # meta-object is a VM null rather than a usable value.
+          # Decline, and the lookup is compiled instead.
+          && !(nqp::istype(self.resolution, RakuAST::VarDeclaration::Simple)
+                && self.resolution.sigil eq '$'
+                && nqp::objprimspec(self.resolution.IMPL-OF-TYPE))
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

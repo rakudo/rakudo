@@ -727,7 +727,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
                 $ex.rethrow;
             }
             nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-              '$!value', $producer());
+              '$!value', self.IMPL-BOX-VM-VALUE($producer()));
             nqp::bindattr_i(self, RakuAST::StatementPrefix::Phaser::Begin,
               '$!has-value', 1);
         }

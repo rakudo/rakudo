@@ -71,6 +71,23 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             }
         }
 
+        # Enum values can only be resolved by name if they are visible in
+        # the caller's scope, which they are not when MAIN was imported
+        # from a module that does not also export the enum.  The enum types
+        # in the signatures of the MAIN candidates are always available, so
+        # collect their values by name for direct lookup.  The first enum
+        # seen wins if candidates use different enums that share a key.
+        my %signature-enum-values;
+        for &main.candidates -> &candidate {
+            for &candidate.signature.params -> $param {
+                my \type := $param.type;
+                if Metamodel::EnumHOW.ACCEPTS(type.HOW) {
+                    %signature-enum-values{.key} //= $_
+                      for type.^enum_value_list;
+                }
+            }
+        }
+
         sub thevalue(\a) {
             my \core-a   := try CORE::(a);
             my \global-a := try GLOBAL::(a);
@@ -84,7 +101,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             Metamodel::EnumHOW.ACCEPTS(type.HOW)
               && type (elem) type.HOW.enum_value_list(type)
               ?? type
-              !! coercer(a);
+              !! %signature-enum-values{a} // coercer(a);
         }
 
         my %options-with-req-arg = Hash.new;

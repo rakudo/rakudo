@@ -181,6 +181,11 @@ class RakuAST::Code
         my $precomp;
         my $compiler-thunk := {
             my $*IMPL-COMPILE-DYNAMICALLY := 1;
+            # This emission caches the QAST block before the unit's
+            # optimize phase has decided which lexicals become locals,
+            # and the unit's own emission reuses the cache. Decide for
+            # this code object now so both compilations agree.
+            RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
             my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
             $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
         };

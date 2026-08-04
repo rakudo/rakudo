@@ -129,12 +129,9 @@ class RakuAST::IMPL::VarLowering {
     has int $!debug;
     has int $!begin-context;
     has int $!topic-not-dynamic;
+    has int $!declarations-only;
 
-    method analyze-compunit(RakuAST::CompUnit $compunit, RakuAST::Resolver $resolver, :$interactive?) {
-        # Escape hatch while the lowering is young: skip the analysis
-        # entirely, leaving every lexical emitted by name.
-        return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
-
+    method IMPL-MAKE-ANALYZER(RakuAST::Resolver $resolver) {
         my $analyzer := nqp::create(self);
         nqp::bindattr($analyzer, RakuAST::IMPL::VarLowering, '$!frames', []);
         nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering, '$!debug',
@@ -156,6 +153,30 @@ class RakuAST::IMPL::VarLowering {
         $sentinel := $found.compile-time-value
             if nqp::isconcrete($found) && nqp::can($found, 'compile-time-value');
         nqp::bindattr($analyzer, RakuAST::IMPL::VarLowering, '$!sentinel', $sentinel);
+        $analyzer
+    }
+
+    # Scoped analysis for one code object compiled ahead of the unit's
+    # optimize phase for BEGIN-time use: its QAST is emitted and cached
+    # right away, so the unit-wide analysis comes too late to affect it.
+    method analyze-routine(RakuAST::Code $routine, RakuAST::Resolver $resolver) {
+        return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
+        my $analyzer := self.IMPL-MAKE-ANALYZER($resolver);
+        # Only declarations: the flatten and unused-implicit rewrites
+        # change block shapes in ways the dynamic compilation's by-name
+        # fixup is not prepared for.
+        nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering,
+            '$!declarations-only', 1);
+        $analyzer.IMPL-WALK($routine);
+        Nil
+    }
+
+    method analyze-compunit(RakuAST::CompUnit $compunit, RakuAST::Resolver $resolver, :$interactive?) {
+        # Escape hatch while the lowering is young: skip the analysis
+        # entirely, leaving every lexical emitted by name.
+        return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
+
+        my $analyzer := self.IMPL-MAKE-ANALYZER($resolver);
 
         # The mainline Block is an empty shell for the mainline code
         # object; the compilation unit's statements live in the statement
@@ -435,7 +456,9 @@ class RakuAST::IMPL::VarLowering {
             self.IMPL-DECIDE($frame);
             my int $flattened;
             if $frame.is-flatten-candidate {
-                my int $approved := self.IMPL-FLATTEN-VERDICT($frame);
+                my int $approved := $!declarations-only
+                    ?? 0
+                    !! self.IMPL-FLATTEN-VERDICT($frame);
                 $flattened := $approved;
                 if $approved {
                     $frame.node.IMPL-SET-FLATTEN-APPROVED();
@@ -461,7 +484,8 @@ class RakuAST::IMPL::VarLowering {
                         !! self.IMPL-MARK-CAPTURED-ID($id);
                 }
             }
-            self.IMPL-DECIDE-IMPLICITS($frame) unless $flattened;
+            self.IMPL-DECIDE-IMPLICITS($frame)
+                unless $flattened || $!declarations-only;
         }
         Nil
     }
@@ -571,9 +595,6 @@ class RakuAST::IMPL::VarLowering {
     # the declaration alone.
     method IMPL-REGISTER-DECL(RakuAST::VarDeclaration::Simple $decl, str $alias-id?) {
         return Nil unless $decl.scope eq 'my';
-        # An anonymous declaration has no name to look up, and nothing to
-        # gain from this analysis until lowering handles it directly.
-        return Nil if nqp::istype($decl, RakuAST::VarDeclaration::Anonymous);
 
         my int $i := nqp::elems($!frames);
         my $scope-frame;
@@ -607,8 +628,13 @@ class RakuAST::IMPL::VarLowering {
             # call ops, so a `&`-sigiled lexical must keep its symbol.
             $declined := 'callable';
         }
-        elsif !nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,
+        elsif !nqp::istype($decl, RakuAST::VarDeclaration::Anonymous)
+            && !nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,
                 $decl.desigilname.canonicalize, 0) {
+            # This keeps punctuation variables such as $/ addressable
+            # by name. An anonymous variable reports an empty
+            # desigilname, but nothing can look one up, so it is
+            # exempt.
             $declined := 'name';
         }
         elsif nqp::isconcrete($decl.shape) {

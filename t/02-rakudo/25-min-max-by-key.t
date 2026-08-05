@@ -1,6 +1,6 @@
 use Test;
 
-plan 32;
+plan 39;
 
 # A 1-arg &by passed to .min / .max is a key function, not a comparator.
 # It must be called once per value rather than twice per comparison,
@@ -140,5 +140,57 @@ is-deeply ((3, 9), 1).minmax(*.abs), 1..9,
 
 is-deeply (3, 1, 4, 5).minmax(-> $a, $b { $a <=> $b }), 1..5,
     '.minmax with a 2-arg comparator finds the minimal and maximal values';
+
+{
+    my int $calls;
+    my sub chars-of($value) { ++$calls; $value.chars }
+
+    $calls = 0;
+    my @minima;
+    react {
+        whenever Supply.from-list(10, 9, 100, 8).min(&chars-of) {
+            @minima.push($_);
+        }
+    }
+    is-deeply @minima, [10, 9],
+        'Supply.min with a key function emits each new minimum';
+    is $calls, 4,
+        'Supply.min called the key function once per value';
+
+    $calls = 0;
+    my @maxima;
+    react {
+        whenever Supply.from-list(9, 10, 8, 100).max(&chars-of) {
+            @maxima.push($_);
+        }
+    }
+    is-deeply @maxima, [9, 10, 100],
+        'Supply.max with a key function emits each new maximum';
+    is $calls, 4,
+        'Supply.max called the key function once per value';
+
+    $calls = 0;
+    my @ranges;
+    react {
+        whenever Supply.from-list(5, 1, 10).minmax(&chars-of) {
+            @ranges.push($_);
+        }
+    }
+    is-deeply @ranges, [5..5, 5..10],
+        'Supply.minmax with a key function emits each widened range';
+    is $calls, 3,
+        'Supply.minmax called the key function once per value';
+}
+
+{
+    my @minima;
+    react {
+        whenever Supply.from-list(3, 1, 2).min(-> $a, $b { $a <=> $b }) {
+            @minima.push($_);
+        }
+    }
+    is-deeply @minima, [3, 1],
+        'Supply.min with a 2-arg comparator emits each new minimum';
+}
 
 # vim: expandtab shiftwidth=4

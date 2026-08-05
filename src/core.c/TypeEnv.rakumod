@@ -28,7 +28,11 @@ my class TypeEnv { # declared in BOOTSTRAP
                 my Mu \pair = nqp::shift(iter);
                 my $sym := nqp::iterkey_s(pair);
                 unless nqp::existskey(ctx-hash, $sym) {
-                    nqp::bindkey(ctx-hash, $sym, (my \v = nqp::iterval(pair)));
+                    # A lexical can hold an unhandled Failure, which throws
+                    # when sunk, so the copied value must not be this
+                    # block's value.
+                    nqp::bindkey(ctx-hash, $sym, nqp::iterval(pair));
+                    Nil
                 }
             }
 

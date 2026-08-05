@@ -9716,6 +9716,14 @@ Did you mean a call like '"
                         return 0;
                     }
 
+                    # A generic class such as Array[T] is generic and
+                    # nominal, unlike a type capture. No typevar binding
+                    # exists under its name, so only the full binder can
+                    # instantiate and check it.
+                    if $ptype_archetypes.nominal {
+                        return 0;
+                    }
+
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
                         QAST::Var.new( :name(get_decont_name()), :scope('local') ),

@@ -1203,16 +1203,34 @@ class RakuAST::Parameter
             && !($meta-object.optional || $meta-object.slurpy || $meta-object.capture);
 
         # Parameters needing the full binder force custom-args on
-        # their owning routine. Conditions decidable from AST state
-        # set the flag here at BEGIN time. The flag must be True by
-        # the time the owning routine compiles, which can happen
-        # during BEGIN (for example, a trait_mod multi applied to
-        # an attribute).
+        # their owning routine. The flag must be True by the time the
+        # owning routine compiles, which can happen during BEGIN (for
+        # example, a trait_mod multi applied to an attribute, or a
+        # method in a role body).
         $!owner.set-custom-args
             if nqp::isconcrete($!owner)
             && ($!sub-signature || nqp::elems($!names) > 2);
+        self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         $!target.to-begin-time($resolver, $context) if $!target;
+    }
+
+    # Type captures are the only generic parameter types the lowered
+    # typecheck can handle. Generic classes such as Array[T], which are
+    # generic and nominal, and parametric generics such as Positional[T]
+    # need the full binder to instantiate them from the type environment.
+    # Also called at CHECK time for types whose archetypes are not final
+    # at the parameter's begin time, such as a class stub completed later.
+    method IMPL-SET-CUSTOM-ARGS-FOR-GENERIC() {
+        my $param-type := nqp::getattr(self.meta-object, Parameter, '$!type');
+        my $archetypes := $param-type.HOW.archetypes($param-type);
+        $!owner.set-custom-args
+            if nqp::isconcrete($!owner)
+            && $archetypes.generic
+            && !$archetypes.coercive
+            && ($archetypes.nominal
+                 || nqp::can($archetypes, "parametric")
+                      && $archetypes.parametric);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1292,15 +1310,7 @@ class RakuAST::Parameter
         my int $is-generic  := $ptype-archetypes.generic;
         my int $is-coercive := $ptype-archetypes.coercive;
 
-        # Generic parametric parameter types need the full binder.
-        # This branch depends on archetype data so it runs at CHECK
-        # time. Parameter shape conditions are handled in PERFORM-BEGIN.
-        if $is-generic
-          && !$is-coercive
-          && nqp::can($ptype-archetypes, "parametric")
-          && $ptype-archetypes.parametric {
-            $!owner.set-custom-args;
-        }
+        self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         if $!type {
             my $param-type := $!type.compile-time-value;

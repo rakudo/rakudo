@@ -4472,6 +4472,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token numish {
         [
           | 'NaN' »
+          | <hex-float>
           | <integer>
           | <decimal-number>
           | <radix-number>
@@ -4536,6 +4537,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token escale { <[Ee]> <sign> <decint> }
+
+    # C99 hexadecimal floating point, e.g. 0x1.8p+1; the binary exponent
+    # is mandatory, which keeps 0x1.abs parsing as a method call
+    token hex-float {
+        :dba('hexadecimal float')
+        0x '_'?
+        [
+        | <int=.hexint> [ '.' <frac=.hexint> ]?
+        |               '.' <frac=.hexint>
+        ]
+        <[pP]> <sign> <exp=.decint>
+    }
 
     token sign { '+' | '-' | '−' | '' }
 

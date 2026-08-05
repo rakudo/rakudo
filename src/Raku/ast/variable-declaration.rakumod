@@ -2108,6 +2108,35 @@ class RakuAST::VarDeclaration::Signature
                 # Each named parameter target declares its own attribute,
                 # whose begin time reports the missing package.
             }
+
+            # An attribute declaration list is not a callable signature:
+            # move each parameter's traits and default onto the attribute
+            # declaration it carries, and turn the required marker into
+            # the `is required` trait, so `has ($.a is rw, $.b = 42, $.c!)`
+            # means the same as separate `has` declarations.
+            for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+                my $target := $param.target;
+                if $target
+                    && nqp::istype($target, RakuAST::ParameterTarget::Var)
+                    && $target.declaration {
+                    my $declaration := $target.declaration;
+                    for self.IMPL-UNWRAP-LIST($param.traits) {
+                        $declaration.add-trait($_);
+                    }
+                    $param.set-traits([]);
+                    if $param.is-declared-required {
+                        $declaration.add-trait(RakuAST::Trait::Is.new(
+                            :name(RakuAST::Name.from-identifier('required'))));
+                    }
+                    $param.clear-optionality;
+                    if $param.default {
+                        $declaration.set-initializer(
+                            RakuAST::Initializer::Assign.new($param.default));
+                        $param.set-default(RakuAST::Expression);
+                    }
+                    $param.IMPL-SET-ATTRIBUTE-DECLARATION;
+                }
+            }
         }
         elsif $scope eq 'our' {
             my $package := $resolver.current-package;
@@ -2165,6 +2194,16 @@ class RakuAST::VarDeclaration::Signature
         if $!sig-literal && nqp::istype($!initializer, RakuAST::Initializer::Assign) {
             self.add-sorry($resolver.build-exception:
                 'X::Syntax::Variable::SignatureAssignment');
+        }
+
+        # Attributes only exist once there is an instance, so a has
+        # scoped list offers nothing to assign to.
+        my str $scope := self.scope;
+        if ($scope eq 'has' || $scope eq 'HAS')
+            && nqp::isconcrete($!initializer)
+            && !$!initializer.is-binding {
+            self.add-sorry($resolver.build-exception: 'X::AdHoc',
+                payload => "Cannot assign to a list of 'has' scoped declarations");
         }
     }
 

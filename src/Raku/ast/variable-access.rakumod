@@ -322,8 +322,17 @@ class RakuAST::Var::Attribute
                 unless $package.HOW.has_attribute($package, $!name);
         }
 
+        # The self lookup fails at begin time when the access begins
+        # outside a method scope, as an attribute default in a has (...)
+        # list does before moving into its initializer method. Retry from
+        # the node's final position before reporting, as Term::Self does.
+        my $self-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        unless $self-lookup.is-resolved {
+            my $resolved := $resolver.resolve-lexical('self');
+            $self-lookup.set-resolution($resolved) if $resolved;
+        }
         self.add-sorry: $resolver.build-exception: 'X::Syntax::NoSelf', :variable($!name)
-            unless self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].is-resolved;
+            unless $self-lookup.is-resolved;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

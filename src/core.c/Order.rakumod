@@ -248,8 +248,11 @@ augment class Any {
     }
     multi method min(Any:D: :&by!) { self.min(&by, |%_) }
     multi method min(Any:D: &by) {
-        my &comparator := aritize22(&by);
-
+        nqp::iseq_i(&by.arity,2)
+          ?? self!cmp-min(&by)
+          !! self!key-min(&by)
+    }
+    method !cmp-min(&comparator) {
         nqp::if(
           (my $iter := self.iterator-and-first(".min", my $min)),
           nqp::until(
@@ -258,6 +261,32 @@ augment class Any {
               (nqp::isconcrete($pulled)
                 && nqp::eqaddr(comparator($pulled,$min),Order::Less)),
               $min = $pulled
+            )
+          )
+        );
+
+        nqp::defined($min) ?? $min !! Inf
+    }
+    # A 1-arg &by maps a value to the key to compare it by, so call it
+    # once per value and cache the key of the current minimum.
+    method !key-min(&by) {
+        nqp::if(
+          (my $iter := self.iterator-and-first(".min", my $min)),
+          nqp::stmts(
+            (my $min-key = by($min)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled)
+                  && nqp::eqaddr(
+                       (my $key := by($pulled)) cmp $min-key,
+                       Order::Less
+                     )),
+                nqp::stmts(
+                  ($min     = $pulled),
+                  ($min-key = $key)
+                )
+              )
             )
           )
         );
@@ -305,8 +334,11 @@ augment class Any {
     }
     multi method max(Any:D: :&by!) { self.max(&by, |%_) }
     multi method max(Any:D: &by) {
-        my &comparator := aritize22(&by);
-
+        nqp::iseq_i(&by.arity,2)
+          ?? self!cmp-max(&by)
+          !! self!key-max(&by)
+    }
+    method !cmp-max(&comparator) {
         nqp::if(
           (my $iter := self.iterator-and-first(".max", my $max)),
           nqp::until(
@@ -315,6 +347,32 @@ augment class Any {
               (nqp::isconcrete($pulled)
                 && nqp::eqaddr(comparator($pulled,$max),Order::More)),
               $max = $pulled
+            )
+          )
+        );
+
+        nqp::defined($max) ?? $max !! -Inf
+    }
+    # A 1-arg &by maps a value to the key to compare it by, so call it
+    # once per value and cache the key of the current maximum.
+    method !key-max(&by) {
+        nqp::if(
+          (my $iter := self.iterator-and-first(".max", my $max)),
+          nqp::stmts(
+            (my $max-key = by($max)),
+            nqp::until(
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                (nqp::isconcrete($pulled)
+                  && nqp::eqaddr(
+                       (my $key := by($pulled)) cmp $max-key,
+                       Order::More
+                     )),
+                nqp::stmts(
+                  ($max     = $pulled),
+                  ($max-key = $key)
+                )
+              )
             )
           )
         );

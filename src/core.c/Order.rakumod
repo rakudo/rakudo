@@ -173,11 +173,6 @@ proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 # integer value for comparison.
 augment class Any {
 
-    # Make sure given comparator has an arity of 2
-    my sub aritize22(&by) {
-        nqp::iseq_i(&by.arity,2) ?? &by !! { by($^a) cmp by($^b) }
-    }
-
     # Common logic for minpairs / maxpairs
     method !minmaxpairs(\order, &by) {
         nqp::iseq_i(&by.arity,2)
@@ -484,6 +479,28 @@ augment class Any {
           )
         );
     }
+    method !key-minmax-range-check(
+      $value, &by, $mi is rw, $mi-key is rw, $exmi is rw,
+                   $ma is rw, $ma-key is rw, $exma is rw
+    --> Nil) {
+        nqp::if(
+          nqp::eqaddr((my $min-key := by($value.min)) cmp $mi-key,Order::Less),
+          nqp::stmts(
+            ($mi     = $value.min),
+            ($mi-key = $min-key),
+            ($exmi   = $value.excludes-min)
+          )
+        );
+
+        nqp::if(
+          nqp::eqaddr((my $max-key := by($value.max)) cmp $ma-key,Order::More),
+          nqp::stmts(
+            ($ma     = $value.max),
+            ($ma-key = $max-key),
+            ($exma   = $value.excludes-max)
+          )
+        );
+    }
 
     proto method minmax (|) is nodal {*}
     multi method minmax(Any:D: ) {
@@ -534,17 +551,21 @@ augment class Any {
     }
     multi method minmax(Any:D: :&by!) { self.minmax(&by, |%_) }
     multi method minmax(Any:D: &by) {
+        nqp::iseq_i(&by.arity,2)
+          ?? self!cmp-minmax(&by)
+          !! self!key-minmax(&by)
+    }
+    method !cmp-minmax(&comparator) {
         nqp::if(
           (my $iter := self.iterator-and-first(".minmax",my $pulled)),
           nqp::stmts(
-            (my &comparator = aritize22(&by)),
             nqp::if(
               nqp::istype($pulled,Range),
               self!minmax-range-init($pulled,
                 my $min,my int $excludes-min,my $max,my int $excludes-max),
               nqp::if(
                 nqp::istype($pulled,Positional),
-                self!minmax-range-init($pulled.minmax(&by), # recurse min/max
+                self!minmax-range-init($pulled.minmax(&comparator), # recurse min/max
                   $min,$excludes-min,$max,$excludes-max),
                 ($min = $max = $pulled)
               )
@@ -559,7 +580,7 @@ augment class Any {
                      &comparator,$min,$excludes-min,$max,$excludes-max),
                   nqp::if(
                     nqp::istype($pulled,Positional),
-                    self!cmp-minmax-range-check($pulled.minmax(&by),
+                    self!cmp-minmax-range-check($pulled.minmax(&comparator),
                        &comparator,$min,$excludes-min,$max,$excludes-max),
                     nqp::if(
                       nqp::eqaddr(comparator($pulled,$min),Order::Less),
@@ -567,6 +588,75 @@ augment class Any {
                       nqp::if(
                         nqp::eqaddr(comparator($pulled,$max),Order::More),
                         ($max = $pulled)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        nqp::defined($min)
+          ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
+          !! Range.Inf-Inf
+    }
+    # A 1-arg &by maps a value to the key to compare it by, so call it
+    # once per value and cache the keys of the current minimum and
+    # maximum.  Ranges and Positionals contribute their two endpoints.
+    method !key-minmax(&by) {
+        nqp::if(
+          (my $iter := self.iterator-and-first(".minmax",my $pulled)),
+          nqp::stmts(
+            nqp::if(
+              nqp::istype($pulled,Range),
+              nqp::stmts(
+                self!minmax-range-init($pulled,
+                  my $min,my int $excludes-min,my $max,my int $excludes-max),
+                (my $min-key = by($min)),
+                (my $max-key = by($max))
+              ),
+              nqp::if(
+                nqp::istype($pulled,Positional),
+                nqp::stmts(
+                  self!minmax-range-init($pulled.minmax(&by), # recurse min/max
+                    $min,$excludes-min,$max,$excludes-max),
+                  ($min-key = by($min)),
+                  ($max-key = by($max))
+                ),
+                nqp::stmts(
+                  ($min = $max = $pulled),
+                  ($min-key = $max-key = by($pulled))
+                )
+              )
+            ),
+            nqp::until(
+              nqp::eqaddr(($pulled := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::isconcrete($pulled),
+                nqp::if(
+                  nqp::istype($pulled,Range),
+                  self!key-minmax-range-check($pulled,
+                     &by,$min,$min-key,$excludes-min,$max,$max-key,$excludes-max),
+                  nqp::if(
+                    nqp::istype($pulled,Positional),
+                    self!key-minmax-range-check($pulled.minmax(&by),
+                       &by,$min,$min-key,$excludes-min,$max,$max-key,$excludes-max),
+                    nqp::stmts(
+                      (my $key := by($pulled)),
+                      nqp::if(
+                        nqp::eqaddr($key cmp $min-key,Order::Less),
+                        nqp::stmts(
+                          ($min     = $pulled),
+                          ($min-key = $key)
+                        ),
+                        nqp::if(
+                          nqp::eqaddr($key cmp $max-key,Order::More),
+                          nqp::stmts(
+                            ($max     = $pulled),
+                            ($max-key = $key)
+                          )
+                        )
                       )
                     )
                   )

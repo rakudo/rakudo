@@ -1,6 +1,6 @@
 use Test;
 
-plan 25;
+plan 32;
 
 # A 1-arg &by passed to .min / .max is a key function, not a comparator.
 # It must be called once per value rather than twice per comparison,
@@ -109,5 +109,36 @@ is-deeply <ab cd e>.max(*.chars), 'ab',
     is $calls, 3,
         '.minpairs called the comparator once per value after the first';
 }
+
+{
+    my int $calls;
+    my sub chars-of($value) { ++$calls; $value.chars }
+
+    $calls = 0;
+    is-deeply (^100).Array.minmax(&chars-of), 0..10,
+        '.minmax with a key function finds the minimal and maximal values';
+    is $calls, 100,
+        '.minmax called the key function once per value';
+}
+
+{
+    my int $calls;
+    my sub abs-of($value) { ++$calls; $value.abs }
+
+    $calls = 0;
+    is-deeply (1..3, 9, -7).minmax(&abs-of), 1..9,
+        '.minmax with a key function compares Range values by their endpoints';
+    is $calls, 4,
+        '.minmax called the key function once per endpoint and value';
+}
+
+is-deeply (1^..5, 7).minmax(*.self), 1^..7,
+    '.minmax with a key function preserves endpoint exclusions';
+
+is-deeply ((3, 9), 1).minmax(*.abs), 1..9,
+    '.minmax with a key function recurses into Positional values';
+
+is-deeply (3, 1, 4, 5).minmax(-> $a, $b { $a <=> $b }), 1..5,
+    '.minmax with a 2-arg comparator finds the minimal and maximal values';
 
 # vim: expandtab shiftwidth=4

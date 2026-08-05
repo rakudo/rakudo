@@ -250,6 +250,108 @@ our class Formatter {
         }
     }
 
+    # Set up value in C99 hexadecimal floating point notation, e.g.
+    # 0x1.8p+1 for 3e0.  At this point it is guaranteed that the value
+    # is *not* Inf, -Inf or NaN.  $positions is the number of hex digits
+    # to render after the radix point, with -1 indicating "no precision
+    # given": render exactly, without trailing zeroes.  $point forces a
+    # radix point even without fraction digits (the "#" flag).
+    #
+    # The mantissa hex digits form an integer H with some number of bits
+    # $f shifted into the fraction, so the value is H * 2 ** ($exp - $f).
+    # H is exact in (big)integer arithmetic and rounding to a given
+    # precision is done there as well, ties-to-even, so the rendering
+    # is always exact / correctly rounded.
+    our sub hexify(str $letter, int $positions, int $point, $value --> str) {
+        my num $num = $value.Num;
+        my num $abs = nqp::abs_n($num);
+        my int $neg = nqp::islt_n($num,0e0)  # 1 / -0e0 == -Inf
+          || (nqp::iseq_n($num,0e0) && nqp::islt_n(nqp::div_n(1e0,$num),0e0));
+
+        my str $lead;
+        my str $frac;
+        my int $exp;
+
+        # Zero mantissa is all zeroes
+        if $abs == 0e0 {
+            $lead = "0";
+            $frac = nqp::x("0", $positions) if $positions > 0;
+        }
+
+        # Scale mantissa into [1, 2) by exact powers of two, so that
+        # $m * 2 ** 52 is an exact 53-bit integer whose hex digits are
+        # the leading '1' plus exactly 13 hex fraction digits
+        else {
+            my num $m = $abs;
+            while $m >= 65536e0            { $m = $m / 65536e0; $exp = $exp + 16 }
+            while $m < 1.52587890625e-5    { $m = $m * 65536e0; $exp = $exp - 16 }
+            while $m >= 2e0                { $m = $m / 2e0;     $exp = $exp + 1  }
+            while $m < 1e0                 { $m = $m * 2e0;     $exp = $exp - 1  }
+
+            my Int $M = ($m * 4503599627370496e0).Int;  # $m * 2 ** 52
+
+            # Round to given precision, ties-to-even
+            if 0 <= $positions < 13 {
+                my Int $D  = 16 ** (13 - $positions);
+                my Int $q  = $M div $D;
+                my Int $r2 = ($M mod $D) * 2;
+                ++$q if $r2 > $D || ($r2 == $D && $q % 2);
+                $M = $q;
+            }
+
+            my str $hex = $M.base(16);
+            $lead = nqp::substr($hex,0,1);
+            $frac = nqp::substr($hex,1);
+
+            # No precision: exact representation, drop trailing zeroes
+            if $positions < 0 {
+                my int $chars = nqp::chars($frac);
+                --$chars while $chars && nqp::eqat($frac,'0',$chars - 1);
+                $frac = nqp::substr($frac,0,$chars);
+            }
+            # Fill out to given precision
+            elsif nqp::chars($frac) < $positions {
+                $frac = nqp::concat(
+                  $frac, nqp::x("0", $positions - nqp::chars($frac))
+                );
+            }
+        }
+
+        my str $string = nqp::concat(
+          nqp::concat(
+            "0x",
+            $frac || $point ?? "$lead.$frac" !! $lead
+          ),
+          nqp::concat("p", $exp < 0 ?? "-" ~ (-$exp) !! "+" ~ $exp)
+        );
+        $string = $letter eq "A" ?? nqp::uc($string) !! nqp::lc($string);
+
+        $neg ?? nqp::concat("-",$string) !! $string
+    }
+
+    # Pad a hexified string with zeroes to the given total width,
+    # prepending any signer.  As in C, the zeroes go *between* the
+    # 0x / 0X prefix and the mantissa.
+    our sub hexify-pad-zeroes(
+      str $signer, int $positions, str $string
+    --> str) {
+        my int $minus = nqp::eqat($string,'-',0);
+        my str $sign  = $minus ?? "-" !! $signer;
+        my str $rest  = $minus ?? nqp::substr($string,1) !! $string;
+        my int $pad   =
+          $positions - nqp::chars($sign) - nqp::chars($rest);
+
+        $pad > 0
+          ?? nqp::concat(
+               $sign,
+               nqp::concat(
+                 nqp::substr($rest,0,2),
+                 nqp::concat(nqp::x("0",$pad), nqp::substr($rest,2))
+               )
+             )
+          !! nqp::concat($sign,$rest)
+    }
+
     # Helper sub to round a number in a string with a possible decimal
     # point.  Returns a int32 codes array. Sets an upgraded flag if the
     # value actually was bumped an order of magnitude (999 -> 1000).
@@ -1139,6 +1241,59 @@ our class Formatter {
         # any non-format related string
         method literal($/ --> Nil) {
             make ast-string($/.Str);
+        }
+
+        # show floating point value, C99 hexadecimal notation
+        method directive:sym<a>($/ --> Nil) {
+            my $size      := size($/);
+            my $precision := precision($/) // ast-integer(-1);
+            my $parameter := parameter($/, :coerce<Numeric>);
+            my str $signer = signer($/);
+
+            my $ast := ast-call-sub('hexify',
+              ast-string($<sym>.Str),
+              $precision,
+              ast-integer(has-hash($/) ?? 1 !! 0),
+              $parameter
+            );
+
+            # NaN / ±Inf render as-is
+            my $nan-or-inf := ast-call-method($parameter, 'Str');
+
+            # Zero padding goes between the 0x prefix and the mantissa,
+            # and is ignored (as in C) when left-justifying
+            if $size && has-zero($/) && !has-minus($/) {
+                $ast := ast-call-sub('hexify-pad-zeroes',
+                  ast-string($signer), $size, $ast
+                );
+                $ast := ast-ternary(
+                  ast-call-sub('nan-or-inf', $parameter),
+                  ($signer
+                    ?? ast-call-sub(signer-justifier($/),
+                         ast-string($signer), $size, $nan-or-inf)
+                    !! ast-call-sub(justifier($/), $size, $nan-or-inf)),
+                  $ast
+                );
+            }
+
+            # Just justification
+            else {
+                $ast := ast-ternary(
+                  ast-call-sub('nan-or-inf', $parameter),
+                  $nan-or-inf,
+                  $ast
+                );
+                $ast := $size
+                  ?? $signer
+                    ?? ast-call-sub(signer-justifier($/),
+                         ast-string($signer), $size, $ast)
+                    !! ast-call-sub(justifier($/), $size, $ast)
+                  !! $signer
+                    ?? ast-call-sub('prefix-signer', ast-string($signer), $ast)
+                    !! $ast;
+            }
+
+            make $ast;
         }
 
         # show numeric value in binary

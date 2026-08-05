@@ -13,6 +13,9 @@ grammar Formatter::Syntax {
     }
 
     proto token directive { <...> }
+    token directive:sym<a> {
+        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[aA]>
+    }
     token directive:sym<b> {
         '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[bB]>
     }

@@ -180,7 +180,11 @@ augment class Any {
 
     # Common logic for minpairs / maxpairs
     method !minmaxpairs(\order, &by) {
-        my &comparator := aritize22(&by);
+        nqp::iseq_i(&by.arity,2)
+          ?? self!cmp-minmaxpairs(order, &by)
+          !! self!key-minmaxpairs(order, &by)
+    }
+    method !cmp-minmaxpairs(\order, &comparator) {
         my $iter   := self.pairs.iterator;
         my $result := nqp::create(IterationBuffer);
 
@@ -206,6 +210,48 @@ augment class Any {
                   nqp::stmts(                       # new best
                     nqp::push(nqp::setelems($result,0),$pair),
                     nqp::bind($target,$value)
+                  ),
+                  nqp::if(                          # additional best
+                    nqp::eqaddr($cmp-result,Order::Same),
+                    nqp::push($result,$pair)
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $result
+    }
+    # A 1-arg &by maps a value to the key to compare it by, so call it
+    # once per value and cache the key of the current best values.
+    method !key-minmaxpairs(\order, &by) {
+        my $iter   := self.pairs.iterator;
+        my $result := nqp::create(IterationBuffer);
+
+        nqp::until(
+          nqp::eqaddr((my $pair := $iter.pull-one),IterationEnd)
+            || nqp::isconcrete(my $target := $pair.value),
+          nqp::null
+        );
+
+        nqp::unless(
+          nqp::eqaddr($pair,IterationEnd),
+          nqp::stmts(                               # found at least one value
+            nqp::push($result,$pair),
+            (my $target-key = by($target)),
+            nqp::until(
+              nqp::eqaddr(nqp::bind($pair,$iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::isconcrete(my $value := $pair.value),
+                nqp::if(
+                  nqp::eqaddr(
+                    (my $cmp-result := (my $key := by($value)) cmp $target-key),
+                    order
+                  ),
+                  nqp::stmts(                       # new best
+                    nqp::push(nqp::setelems($result,0),$pair),
+                    ($target-key = $key)
                   ),
                   nqp::if(                          # additional best
                     nqp::eqaddr($cmp-result,Order::Same),

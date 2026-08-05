@@ -1,6 +1,6 @@
 use Test;
 
-plan 15;
+plan 25;
 
 # A 1-arg &by passed to .min / .max is a key function, not a comparator.
 # It must be called once per value rather than twice per comparison,
@@ -69,5 +69,45 @@ plan 15;
 
 is-deeply <ab cd e>.max(*.chars), 'ab',
     '.max with a key function keeps the first of tied values';
+
+{
+    my int $calls;
+    my sub chars-of($value) { ++$calls; $value.chars }
+
+    $calls = 0;
+    is-deeply (^10).Array.minpairs(&chars-of), ((^10).map({ $_ => $_ })).List,
+        '.minpairs with a key function keeps all tied values';
+    is $calls, 10,
+        '.minpairs called the key function once per value';
+
+    $calls = 0;
+    is-deeply (9, 10, 11, 8).maxpairs(&chars-of), (1 => 10, 2 => 11),
+        '.maxpairs with a key function keeps all maximal values';
+    is $calls, 4,
+        '.maxpairs called the key function once per value';
+
+    $calls = 0;
+    is-deeply (^100).Array.min(&chars-of, :k), (^10).List,
+        '.min(:k) with a key function returns the keys of the minimal values';
+    is $calls, 100,
+        '.min(:k) called the key function once per value';
+
+    $calls = 0;
+    is-deeply (^100).Array.max(&chars-of, :v), (10..99).List,
+        '.max(:v) with a key function returns the maximal values';
+    is $calls, 100,
+        '.max(:v) called the key function once per value';
+}
+
+{
+    my int $calls;
+    my sub compare($a, $b) { ++$calls; $a <=> $b }
+
+    $calls = 0;
+    is-deeply (3, 1, 4, 1).minpairs(&compare), (1 => 1, 3 => 1),
+        '.minpairs with a 2-arg comparator keeps all minimal values';
+    is $calls, 3,
+        '.minpairs called the comparator once per value after the first';
+}
 
 # vim: expandtab shiftwidth=4

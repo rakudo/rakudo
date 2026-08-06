@@ -261,6 +261,7 @@ class RakuAST::Call::Name
     has RakuAST::Routine $!routine;
     has Mu $!lexical; # For top-level package if we can only partially resolve
     has Mu $!package;
+    has Mu $!native-return-type;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
@@ -461,6 +462,13 @@ class RakuAST::Call::Name
                                 :$protoguilt,
                         );
                     }
+                    else {
+                        # The call is settled at compile time, so the chosen
+                        # candidate's native return type describes the result.
+                        my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags);
+                        nqp::bindattr(self, RakuAST::Call::Name,
+                            '$!native-return-type', $ret) unless nqp::isnull($ret);
+                    }
                 }
             }
         }
@@ -570,26 +578,39 @@ class RakuAST::Call::Name
         }
 
         my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
-        $!callstatic ?? self.IMPL-COPY-RETURNS($qast) !! $qast
+
+        # A call the check-time analysis settled on one candidate carries
+        # that candidate's native return type. This takes precedence over
+        # the callstatic return copy: the copy's Want offers the raw return
+        # only in its own kind, so a context wanting a different native kind
+        # falls back to the boxed default and the unbox dies, where this
+        # Want widens across native kinds. A dispatcher leaves its return to
+        # its candidates, which the copy declines to guess at, so a settled
+        # multi is covered here as well.
+        my $native-return := $!native-return-type;
+        if !nqp::isnull($native-return) && nqp::objprimspec($native-return) {
+            $qast := self.IMPL-NATIVE-RETURN-WANT($qast, $native-return);
+        }
+        elsif $!callstatic {
+            $qast := self.IMPL-COPY-RETURNS($qast);
+        }
+        $qast
     }
 
     # Copy the resolved callee's declared return type onto the call node, so
-    # code generation downstream may act on it. A native return is offered
-    # both ways through a Want: boxed for object context and raw for native
-    # context. Only a callee bound once is trusted, the condition the static
-    # callee lookup already established, and a dispatcher is left alone since
-    # its candidates decide their own returns, as is an rw callee, whose
-    # return is its container.
+    # code generation downstream may act on it. A native return keeps the
+    # bare call as the default of a Want, since the routine may still escape
+    # with a Failure or a Nil that only the boxed object can carry, and the
+    # native alternatives unbox raw. Only a callee bound once is trusted,
+    # the condition the static callee lookup already established, and a
+    # dispatcher is left alone since its candidates decide their own
+    # returns, as is an rw callee, whose return is its container.
     method IMPL-COPY-RETURNS(Mu $call) {
         # The attribute reads assume the stock Routine layout; a routine of
         # another lineage declines rather than breaks the compile.
         CATCH {
             return $call;
         }
-        my constant BOX-OPS := ['', 'p6box_i', 'p6box_n', 'p6box_s',
-            '', '', '', '', '', '', 'p6box_u'];
-        my constant WANT-FLAGS := ['', 'Ii', 'Nn', 'Ss',
-            '', '', '', '', '', '', 'Ii'];
         my $decl := self.resolution;
         return $call unless nqp::istype($decl, RakuAST::CompileTimeValue)
             || nqp::can($decl, 'maybe-compile-time-value');
@@ -614,13 +635,10 @@ class RakuAST::Call::Name
         my $returns := nqp::ifnull(
             nqp::getattr($signature, Signature, '$!returns'), Mu);
         return $call if $returns =:= Mu;
-        $call.returns($returns);
-        my int $primspec := nqp::objprimspec($returns);
-        if $primspec && BOX-OPS[$primspec] {
-            $call := QAST::Want.new(
-                :named($call.named),
-                QAST::Op.new( :op(BOX-OPS[$primspec]), $call ),
-                WANT-FLAGS[$primspec], $call);
+        if nqp::objprimspec($returns) {
+            $call := self.IMPL-NATIVE-RETURN-WANT($call, $returns);
+        }
+        else {
             $call.returns($returns);
         }
         $call

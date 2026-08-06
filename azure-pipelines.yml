@@ -144,7 +144,7 @@ stages:
               value: ''
           - ${{ if eq(os, 'Win') }}:
             - name: IMAGE_NAME
-              value: 'windows-2022'
+              value: 'windows-2025'
             - name: IS_WIN
               value: true
           - ${{ if eq(os, 'Lin') }}:
@@ -810,7 +810,7 @@ stages:
     - job: windows
       displayName: Windows x86_64 build
       pool:
-        vmImage: 'windows-2022'
+        vmImage: 'windows-2025'
       workspace:
         clean: all
       steps:

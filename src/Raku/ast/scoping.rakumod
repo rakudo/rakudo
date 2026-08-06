@@ -1044,6 +1044,54 @@ class RakuAST::Lookup
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
     }
 
+    # Given a resolved routine and the compile-time argument types and native
+    # flags, return the native return type of the single candidate the call
+    # settles on, or NQPMu when it settles on none or on a non-native one.
+    method IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags) {
+        # A literal argument counts as native here while the emitted call
+        # passes the boxed value, so run-time dispatch may answer with
+        # another candidate than the analysis settled on.
+        my int $ARG_IS_LITERAL := 32;
+        for @flags {
+            return NQPMu if $_ +& $ARG_IS_LITERAL;
+        }
+        my $callee := NQPMu;
+        if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
+            if $routine.onlystar {
+                my @result := $routine.analyze_dispatch(@types, @flags);
+                $callee := @result && @result[0] == 1 ?? @result[1] !! NQPMu;
+            }
+        }
+        elsif nqp::can($routine, 'signature') {
+            $callee := nqp::p6trialbind($routine.signature, @types, @flags) == 1
+                ?? $routine
+                !! NQPMu;
+        }
+        if $callee && nqp::can($callee, 'returns') {
+            # An `is rw` routine yields an assignable container, not a value to
+            # unbox. Leave its result alone so lvalue use keeps working.
+            return NQPMu if nqp::can($callee, 'rw') && $callee.rw;
+            my $ret := $callee.returns;
+            return $ret if !nqp::isnull($ret) && nqp::objprimspec($ret);
+        }
+        NQPMu
+    }
+
+    # Attach a settled native return type to a call. The bare call stays the
+    # default of a QAST::Want, so a context wanting the boxed object never
+    # unboxes and escape values like a Failure or Nil flow through. Every
+    # native want takes the typed alternative, which unboxes into the return
+    # kind and lets the QAST compiler widen across native kinds from there.
+    method IMPL-NATIVE-RETURN-WANT(Mu $call, Mu $type) {
+        my $native := $call.shallow_clone;
+        $native.returns($type);
+        QAST::Want.new(:named($call.named),
+            $call,
+            'Ii', $native,
+            'Nn', $native,
+            'Ss', $native)
+    }
+
     # Returns information to report in an X::Undeclared::Symbols exception.
     # Returns Nil if it should not be reported there, otherwise should be
     # an instance of RakuAST::UndeclaredSymbolDescription.

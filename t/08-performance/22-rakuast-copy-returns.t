@@ -7,22 +7,42 @@ use nqp;
 plan 9;
 
 # A call to a routine bound once carries the callee's declared return type
-# on its QAST, and a native return is offered both boxed and raw through a
-# Want, so a native consumer skips the boxing round trip.
+# on its QAST. A native return is offered raw through a Want alternative, so
+# a native consumer skips the boxing round trip, while the Want's default
+# stays the bare call so an escaping Failure or Nil reaches object context
+# as the boxed object it needs to be.
 
 my $rakuast = nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast';
 
+# Whether a Want offers a raw native alternative that contains a call to
+# $name, its default being something other than a boxing op.
+sub want-offers-raw-call(Mu $qast, $name --> Bool:D) {
+    if nqp::istype($qast, QAST::Want) {
+        my @children = $qast.list;
+        loop (my int $i = 1; $i + 1 < @children.elems; $i = $i + 2) {
+            return True if @children[$i] ~~ Str && @children[$i] eq 'Ii' | 'Nn' | 'Ss'
+                && qast-contains-call(@children[$i + 1], $name);
+        }
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            want-offers-raw-call($_, $name) and return True;
+        }
+    }
+    False
+}
+
 # These observe the emitted QAST. The legacy optimizer does not offer this
-# shape both ways, so the box assertions hold for the RakuAST frontend only.
-todo 'the legacy optimizer does not box a native return through a Want', 2
+# shape both ways, so the assertions hold for the RakuAST frontend only.
+todo 'the legacy optimizer does not offer a native return through a Want', 2
     unless $rakuast;
 qast-is 'sub cr-a(--> int) { return 3 }; my int $x = cr-a()', -> \v {
-    qast-contains-op(v, 'p6box_i')
-}, 'a native int return is offered boxed through a Want';
+    want-offers-raw-call(v, '&cr-a') and not qast-contains-op(v, 'p6box_i')
+}, 'a native int return is offered raw through a Want without boxing';
 
 qast-is 'sub cr-b(--> num) { return 3e0 }; my num $x = cr-b()', -> \v {
-    qast-contains-op(v, 'p6box_n')
-}, 'a native num return is offered boxed through a Want';
+    want-offers-raw-call(v, '&cr-b') and not qast-contains-op(v, 'p6box_n')
+}, 'a native num return is offered raw through a Want without boxing';
 
 qast-is 'sub cr-c(--> Int) { return 3 }; my $x = cr-c()', -> \v {
     not qast-contains-op(v, 'p6box_i')

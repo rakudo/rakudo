@@ -187,11 +187,6 @@ sub from-json($text)
     Rakudo::Internals::JSON.from-json($text);
 }
 
-proto sub gethostname(*%) is implementation-detail {*}
-multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
-    $*KERNEL.hostname
-}
-
 augment class Mu {
     proto method perl(|) {*}
     multi method perl(Mu \SELF: |c) is DEPRECATED("raku") { SELF.raku(|c) }

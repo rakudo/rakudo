@@ -171,7 +171,6 @@ my %allowed = (
     Q{&full-barrier},
     Q{&get},
     Q{&getc},
-    Q{&gethostname},
     Q{&gist},
     Q{&goto},
     Q{&grep},

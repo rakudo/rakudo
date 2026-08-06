@@ -3320,6 +3320,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token numish {
         [
         | 'NaN' >>
+        | <hex_float>
         | <integer>
         | <dec_number>
         | <rad_number>
@@ -3338,6 +3339,18 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
+    }
+
+    # C99 hexadecimal floating point, e.g. 0x1.8p+1; the binary exponent
+    # is mandatory, which keeps 0x1.abs parsing as a method call
+    token hex_float {
+        :dba('hexadecimal float')
+        0x '_'?
+        [
+        | <int=.hexint> [ '.' <frac=.hexint> ]?
+        |               '.' <frac=.hexint>
+        ]
+        <[pP]> <sign> <exp=.decint>
     }
 
     token signed-integer { <sign> <integer> }

@@ -8686,6 +8686,7 @@ Did you mean a call like '"
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
+        elsif $<hex_float>      { make $<hex_float>.ast; }
         elsif $<dec_number>     { make $<dec_number>.ast; }
         elsif $<rad_number>     { make $<rad_number>.ast; }
         elsif $<rat_number>     { make $<rat_number>.ast; }
@@ -8750,6 +8751,42 @@ Did you mean a call like '"
             $ast.node($/);
             make $ast;
         }
+    }
+
+    method hex_float($/) {
+        # The mantissa hex digits form an integer H with $f bits shifted
+        # into the fraction, so the value is H * 2 ** ($exp - $f).  H is
+        # exact in bigint arithmetic and the power-of-two scaling is
+        # applied in two steps so the intermediate product stays exact
+        # for any representable result: a single correctly rounded
+        # conversion in total.
+        my $Int := $*W.find_single_symbol_in_setting('Int');
+        my str $digits := ($<int> ?? $<int>.Str !! '') ~ ($<frac> ?? $<frac>.Str !! '');
+        my $H := nqp::radix_I(16, $digits, 0, 0, $Int)[0];
+
+        my int $f := 0;
+        if $<frac> {
+            my str $fs := $<frac>.Str;
+            my int $i  := 0;
+            my int $n  := nqp::chars($fs);
+            while $i < $n {
+                $f := $f + 4 unless nqp::eqat($fs, '_', $i);
+                $i := $i + 1;
+            }
+        }
+
+        my str $estr := nqp::join('', nqp::split('_', $<exp>.Str));
+        my int $k := nqp::chars($estr) > 6
+            ?? 999999   # any such exponent over/underflows anyway
+            !! nqp::radix(10, $estr, 0, 0)[0];
+        $k := -$k if $<sign> eq '-' || $<sign> eq '−';
+        $k := $k - $f;
+
+        my int $k1 := nqp::div_i($k, 2);
+        my num $value := nqp::mul_n(
+            nqp::mul_n(nqp::tonum_I($H), nqp::pow_n(2.0, $k1)),
+            nqp::pow_n(2.0, $k - $k1));
+        make $*W.add_numeric_constant($/, 'Num', $value);
     }
 
     method rad_number($/) {

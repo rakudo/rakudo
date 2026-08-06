@@ -3344,6 +3344,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $attachee := Nodify('IntLiteral').new($<integer>.ast);
         }
 
+        # 0x1.8p+1
+        elsif $<hex-float> {
+            $attachee := $<hex-float>.ast;
+        }
+
         # 42.137
         elsif $<decimal-number> {
             $attachee := $<decimal-number>.ast;
@@ -3465,6 +3470,45 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             self.attach: $/, Nodify('RatLiteral').new($rat);
         }
+    }
+
+    method hex-float($/) {
+        # The mantissa hex digits form an integer H with $f bits shifted
+        # into the fraction, so the value is H * 2 ** ($exp - $f).  H is
+        # exact in bigint arithmetic and the power-of-two scaling is
+        # applied in two steps so the intermediate product stays exact
+        # for any representable result: a single correctly rounded
+        # conversion in total.
+        my $LITERALS := $*LITERALS;
+        my str $digits := ($<int> ?? $<int>.Str !! '') ~ ($<frac> ?? $<frac>.Str !! '');
+        my $H := nqp::radix_I(16, $digits, 0, 0, $LITERALS.int-type)[0];
+
+        my int $f := 0;
+        if $<frac> {
+            my str $fs := $<frac>.Str;
+            my int $i  := 0;
+            my int $n  := nqp::chars($fs);
+            while $i < $n {
+                $f := $f + 4 unless nqp::eqat($fs, '_', $i);
+                $i := $i + 1;
+            }
+        }
+
+        my str $estr := nqp::join('', nqp::split('_', $<exp>.Str));
+        my int $k := nqp::chars($estr) > 6
+            ?? 999999   # any such exponent over/underflows anyway
+            !! nqp::radix(10, $estr, 0, 0)[0];
+        $k := -$k if $<sign> eq '-' || $<sign> eq '−';
+        $k := $k - $f;
+
+        my int $k1 := nqp::div_i($k, 2);
+        my num $value := nqp::mul_n(
+            nqp::mul_n(nqp::tonum_I($H), nqp::pow_n(2.0, $k1)),
+            nqp::pow_n(2.0, $k - $k1));
+        $value := nqp::neg_n($value) if $*NEGATE_VALUE;
+        self.attach: $/, Nodify('NumLiteral').new(
+          nqp::box_n($value, $LITERALS.num-type)
+        );
     }
 
     method radix-number($/) {

@@ -3421,7 +3421,13 @@ class Perl6::Optimizer {
                             else {
                                 self.simplify_refs($op, $sig);
                             }
-                            copy_returns($op, $obj);
+                            # A native return replaces the call with a Want,
+                            # so the result must take the call's place.
+                            my $scopes := $!symbols.scopes_in($op.name);
+                            if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                                $op.op('callstatic');
+                            }
+                            return copy_returns($op, $obj);
                         }
                     }
                     elsif $ct_result == -1 {
@@ -4519,6 +4525,39 @@ class Perl6::Optimizer {
         if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
             $call.op('callstatic');
         }
+
+        # Carry the chosen candidate's native return type on the native-want
+        # alternatives, leaving the bare call as the default so a context
+        # wanting the boxed object never unboxes and escape values like a
+        # Failure still flow through. The scope test is looser than the
+        # callstatic one above, since a closure clone still runs the same
+        # candidates. A soft proto can be wrapped at run time, and a literal
+        # argument reaches the callee boxed, so either one leaves run-time
+        # dispatch free to answer with a different candidate.
+        if $scopes == 0 || nqp::can($proto, 'soft') && !$proto.soft {
+            my int $literal-args := 0;
+            for @($call) {
+                $literal-args := 1
+                    if nqp::istype($_, QAST::Want) && $_.has_compile_time_value;
+            }
+            if !$literal-args
+            && nqp::can($chosen, 'returns') && !(nqp::can($chosen, 'rw') && $chosen.rw) {
+                if nqp::objprimspec($chosen.returns) {
+                    my $native := $call.shallow_clone;
+                    $native.returns($chosen.returns);
+                    $call := QAST::Want.new(
+                        :named($call.named),
+                        $call,
+                        'Ii', $native,
+                        'Nn', $native,
+                        'Ss', $native);
+                    # The type on the Want itself reaches the argument
+                    # analysis of an enclosing call. Codegen picks per
+                    # context between the children above.
+                    $call.returns($chosen.returns);
+                }
+            }
+        }
 #?endif
         $call
     }
@@ -4558,13 +4597,24 @@ class Perl6::Optimizer {
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss', '', '', '', '', '', '', 'Ii']; #FIXME maybe need Iu or even Uu here?
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
+            # An `is rw` routine yields an assignable container, not a value
+            # to unbox. Leave its result alone so lvalue use keeps working.
+            return $to if nqp::can($from, 'rw') && $from.rw;
             my $ret_type := $from.returns;
-            $to.returns($ret_type) unless nqp::can($from, 'rw') && $from.rw;
-            if nqp::objprimspec($ret_type) -> $primspec {
+            if nqp::objprimspec($ret_type) {
+                # A routine with a native return may still escape with a
+                # Failure or a Nil that only the boxed object can carry, so
+                # the bare call stays the default and every native want
+                # takes the typed alternative, which unboxes directly and
+                # widens across native kinds.
+                my $native := $to.shallow_clone;
+                $native.returns($ret_type);
                 $to := QAST::Want.new(
                     :named($to.named),
-                    QAST::Op.new( :op(@prim_spec_ops[$primspec]), $to ),
-                    @prim_spec_flags[$primspec], $to);
+                    $to,
+                    'Ii', $native,
+                    'Nn', $native,
+                    'Ss', $native);
             }
             $to.returns($ret_type);
         }

@@ -39,6 +39,7 @@ class RakuAST::Literal
     method expression() { self }
     method return-type() { $!value.WHAT }
     method native-type-flag() { Nil }
+    method IMPL-NATIVE-LITERAL-KIND() { self.native-type-flag }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
@@ -87,8 +88,25 @@ class RakuAST::Constant
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
-    # A value too wide for a native int cannot take part in a native dispatch.
-    method native-type-flag() { nqp::isbig_I(self.value) ?? Nil !! 1 }
+    # Whether the value is exactly representable as a native int. Asking how
+    # the Int is stored answers a different question: the small-value slot is
+    # narrower than a native int, so a value that fits one may still be held
+    # as a bigint. The round trip through the native settles it, and declines
+    # rather than propagates should the unbox refuse a value it cannot hold.
+    method IMPL-FITS-NATIVE-INT() {
+        my $value := self.value;
+        my int $big := 0;
+        try $big := nqp::isbig_I($value);
+        return 1 unless $big;
+        my int $fits := 0;
+        try $fits := nqp::iseq_I(
+            nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
+        $fits
+    }
+
+    # A value that does not fit a native int cannot take part in a native
+    # dispatch.
+    method native-type-flag() { self.IMPL-FITS-NATIVE-INT ?? 1 !! Nil }
 
     method type-name() { 'integer' }
 
@@ -96,13 +114,13 @@ class RakuAST::IntLiteral
         my $value := self.value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
-        nqp::isbig_I($value)
-          ?? $wval
-          !! QAST::Want.new(
+        self.IMPL-FITS-NATIVE-INT
+          ?? QAST::Want.new(
                $wval,
                'Ii',
                QAST::IVal.new(:value(nqp::unbox_i($value)))
              )
+          !! $wval
     }
 }
 
@@ -254,6 +272,15 @@ class RakuAST::QuotedString
             # Always a string if no processors.
             Str
         }
+    }
+
+    # A constant quoted string compiles to the same Want shape a str literal
+    # does, so it takes part in native pairing the same way. A processor
+    # changes what the value compiles to, so any processor declines.
+    method IMPL-NATIVE-LITERAL-KIND() {
+        return Nil if $!processors && nqp::elems($!processors);
+        my $value := self.literal-value;
+        nqp::isconcrete($value) && nqp::istype($value, Str) ?? 3 !! Nil
     }
 
     method ast-type {

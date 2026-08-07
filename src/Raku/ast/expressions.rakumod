@@ -483,12 +483,25 @@ class RakuAST::Infix
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {
+            # A literal operand beside a native one is passed in its native
+            # form, so runtime dispatch reaches the candidate the analysis
+            # counts on. A short-circuit operator yields an operand rather
+            # than dispatching on the pair, and an adverb turns into a named
+            # argument the analysis declines, so both keep the boxed form.
+            my $native-literal := NQPMu;
+            unless $adverb || self.short-circuit {
+                $native-literal := self.IMPL-NATIVE-PAIRED-LITERAL-OF($left, $right);
+            }
             my $qast := self.IMPL-INFIX-QAST:
                 $context,
                 $op eq '='
                     ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
-                    !! $left.IMPL-TO-QAST($context),
-                $right.IMPL-TO-QAST($context);
+                    !! nqp::eqaddr($left, $native-literal)
+                        ?? $left.IMPL-TO-QAST-ARG($context)
+                        !! $left.IMPL-TO-QAST($context),
+                nqp::eqaddr($right, $native-literal)
+                    ?? $right.IMPL-TO-QAST-ARG($context)
+                    !! $right.IMPL-TO-QAST($context);
             if $adverb {
                 my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
                 $val-ast.named($adverb.named-arg-name);
@@ -2552,15 +2565,18 @@ class RakuAST::ApplyInfix
             && !self.infix.short-circuit
             && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
 
-        self.IMPL-RECORD-NATIVE-RETURN-TYPE;
+        self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
 
         True
     }
 
     # Record the native return type when the operator settles on a single
     # candidate, so a native-typed target coerces with the matching unbox
-    # and an enclosing operator sees this result as native.
-    method IMPL-RECORD-NATIVE-RETURN-TYPE() {
+    # and an enclosing operator sees this result as native. The operands
+    # are read through the same analysis the inline pass and the operand
+    # emission use, so a literal counts as native exactly when its native
+    # form is what gets passed.
+    method IMPL-RECORD-NATIVE-RETURN-TYPE(RakuAST::Resolver $resolver) {
         my $infix := $!infix;
         return Nil unless nqp::istype($infix, RakuAST::Infix) && $infix.is-resolved;
 
@@ -2571,8 +2587,11 @@ class RakuAST::ApplyInfix
         return Nil if $infix.properties.chain;
 
         # An adverb reaches the callee as a named argument the trial bind
-        # below never saw, so run-time dispatch may answer differently.
+        # below never saw, and a short-circuit operator yields an operand
+        # rather than dispatching, so run-time dispatch may answer
+        # differently for either.
         return Nil if nqp::elems(self.colonpairs);
+        return Nil if $infix.short-circuit;
 
         return Nil unless nqp::can($infix.resolution, 'compile-time-value');
         my $routine := $infix.resolution.compile-time-value;
@@ -2581,18 +2600,10 @@ class RakuAST::ApplyInfix
         my $left := self.left;
         my $right := self.right;
         return Nil unless nqp::isconcrete($left) && nqp::isconcrete($right);
-        my $left-type := $left.return-type;
-        return Nil if $left-type =:= Mu
-          || nqp::istype($left-type.HOW, Perl6::Metamodel::SubsetHOW)
-          || nqp::istype($left-type.HOW, Perl6::Metamodel::GenericHOW);
-        my $right-type := $right.return-type;
-        return Nil if $right-type =:= Mu
-          || nqp::istype($right-type.HOW, Perl6::Metamodel::SubsetHOW)
-          || nqp::istype($right-type.HOW, Perl6::Metamodel::GenericHOW);
+        my @info := self.IMPL-CT-ARG-TYPES($resolver, [$left, $right]);
+        return Nil unless nqp::elems(@info);
 
-        my $ret := $infix.IMPL-NATIVE-RETURN-TYPE($routine,
-            [$left-type, $right-type],
-            [nqp::objprimspec($left-type), nqp::objprimspec($right-type)]);
+        my $ret := $infix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
         nqp::bindattr(self, RakuAST::ApplyInfix, '$!native-return-type', $ret)
             unless nqp::isnull($ret);
         Nil
@@ -3190,13 +3201,16 @@ class RakuAST::ApplyPrefix
         self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
             if self.sunk && self.IMPL-SUNK-OPERATOR-PURE(self.prefix);
 
-        self.IMPL-RECORD-NATIVE-RETURN-TYPE;
+        self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
     }
 
     # Record the native return type when the operator settles on a single
     # candidate, so a native-typed target coerces with the matching unbox
-    # and an enclosing operator sees this result as native.
-    method IMPL-RECORD-NATIVE-RETURN-TYPE() {
+    # and an enclosing operator sees this result as native. The operand is
+    # read through the same analysis the inline pass uses. A lone literal
+    # operand reads as the boxed value it is, which matches the boxed form
+    # the emission passes.
+    method IMPL-RECORD-NATIVE-RETURN-TYPE(RakuAST::Resolver $resolver) {
         my $prefix := $!prefix;
         return Nil unless nqp::istype($prefix, RakuAST::Prefix) && $prefix.is-resolved;
         return Nil unless nqp::can($prefix.resolution, 'compile-time-value');
@@ -3205,13 +3219,10 @@ class RakuAST::ApplyPrefix
 
         my $operand := $!operand;
         return Nil unless nqp::isconcrete($operand);
-        my $type := $operand.return-type;
-        return Nil if $type =:= Mu
-          || nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW)
-          || nqp::istype($type.HOW, Perl6::Metamodel::GenericHOW);
+        my @info := self.IMPL-CT-ARG-TYPES($resolver, [$operand]);
+        return Nil unless nqp::elems(@info);
 
-        my $ret := $prefix.IMPL-NATIVE-RETURN-TYPE($routine,
-            [$type], [nqp::objprimspec($type)]);
+        my $ret := $prefix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
         nqp::bindattr(self, RakuAST::ApplyPrefix, '$!native-return-type', $ret)
             unless nqp::isnull($ret);
         Nil

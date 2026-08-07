@@ -89,7 +89,30 @@ class RakuAST::ArgList
         }
     }
 
-    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
+    # The literal of a native-paired pair of positional arguments, which the
+    # emission passes in its native form and the candidate analysis counts
+    # as native. Exactly two positional arguments qualify, since with more
+    # there is no single native context for a literal to adopt.
+    method IMPL-NATIVE-PAIRED-LITERAL() {
+        return nqp::null() unless nqp::elems($!args) == 2 && !nqp::isconcrete($!invocant);
+        my $first  := nqp::atpos($!args, 0);
+        my $second := nqp::atpos($!args, 1);
+        return nqp::null() if nqp::istype($first, RakuAST::NamedArg)
+            || nqp::istype($second, RakuAST::NamedArg)
+            || self.IMPL-IS-FLATTENING($first)
+            || self.IMPL-IS-FLATTENING($second);
+        self.IMPL-NATIVE-PAIRED-LITERAL-OF($first, $second)
+    }
+
+    # Only a sub call opts into native pairing. A method call resolves its
+    # callee at runtime from an open set of candidates, and no compile time
+    # analysis commits a choice for it, so its literal arguments stay the
+    # boxed values they always were.
+    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call, Bool :$native-pairing) {
+        my $native-literal := $native-pairing
+            ?? self.IMPL-NATIVE-PAIRED-LITERAL
+            !! nqp::null();
+
         # We need to remove duplicate named args, so make a first pass through to
         # collect those.
         my %named-counts;
@@ -145,7 +168,9 @@ class RakuAST::ArgList
             }
             else {
                 # Positional argument.
-                $call.push($arg.IMPL-TO-QAST($context))
+                $call.push(nqp::eqaddr($arg, $native-literal)
+                    ?? $arg.IMPL-TO-QAST-ARG($context)
+                    !! $arg.IMPL-TO-QAST($context))
             }
         }
     }
@@ -431,6 +456,17 @@ class RakuAST::Call::Name
                         my $rev := @args[0].native-type-flag;
                         @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
                     }
+                    elsif nqp::elems(@types) == 2 {
+                        # A native-paired literal is passed in its native
+                        # form, so it is diagnosed with the native reading,
+                        # which also rules out a candidate that takes a
+                        # native `is rw` parameter.
+                        my $paired := self.args.IMPL-NATIVE-PAIRED-LITERAL;
+                        if !nqp::isnull($paired) && nqp::defined($paired.IMPL-NATIVE-LITERAL-KIND) {
+                            my int $idx := nqp::eqaddr(@args[0], $paired) ?? 0 !! 1;
+                            @flags[$idx] := $paired.IMPL-NATIVE-LITERAL-KIND +| $ARG_IS_LITERAL;
+                        }
+                    }
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     my @ct_result_multi;
                     if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && $routine.onlystar {
@@ -465,9 +501,18 @@ class RakuAST::Call::Name
                     else {
                         # The call is settled at compile time, so the chosen
                         # candidate's native return type describes the result.
-                        my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags);
-                        nqp::bindattr(self, RakuAST::Call::Name,
-                            '$!native-return-type', $ret) unless nqp::isnull($ret);
+                        # The flags above read a lone literal as native to
+                        # diagnose an impossible dispatch, so the recording
+                        # re-reads the arguments as the call site passes
+                        # them, through the same analysis the inline pass
+                        # and the argument emission use.
+                        my @info := self.IMPL-CT-ARG-TYPES($resolver, @args);
+                        if nqp::elems(@info) {
+                            my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine,
+                                @info[0], @info[1]);
+                            nqp::bindattr(self, RakuAST::Call::Name,
+                                '$!native-return-type', $ret) unless nqp::isnull($ret);
+                        }
                     }
                 }
             }
@@ -565,7 +610,7 @@ class RakuAST::Call::Name
                 );
             }
         }
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call, :native-pairing);
 
         # Add return value from signature if this is a return without args
         my $block := $!block;
@@ -686,7 +731,7 @@ class RakuAST::Call::Term
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call, :native-pairing);
         $call
     }
 

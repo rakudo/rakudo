@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 17;
+plan 18;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -130,5 +130,11 @@ is-run ｢package Foo::Bar { class Foo::Bar {} }; print "ran"｣,
 is-run ｢use fatal; package Foo::Bar { class Foo::Bar {} }; print "ran"｣,
     'use fatal promotes the same-named enclosing package worry to an error',
     :err(/'inside an enclosing package of the same name'/), :exitcode(1);
+
+# https://github.com/rakudo/rakudo/issues/6074
+is-run ｢print do given 5 { when 5 { 42; 43 } }｣,
+    'the last statement of a when block in value position stays wanted',
+    :out<43>,
+    :err{ .contains('constant integer 42') && !.contains('constant integer 43') };
 
 # vim: expandtab shiftwidth=4

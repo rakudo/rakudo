@@ -1656,7 +1656,9 @@ class RakuAST::Block
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!body.apply-sink($is-sunk && !self.needs-result);
+        my $body-sunk := $is-sunk && !self.needs-result;
+        self.set-nil-on-succeed() if $body-sunk;
+        $!body.apply-sink($body-sunk);
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -1961,7 +1963,9 @@ class RakuAST::PointyBlock
     method bare-block() { False }
 
     method propagate-sink(Bool $is-sunk) {
-        self.body.apply-sink($is-sunk && !self.needs-result);
+        my $body-sunk := $is-sunk && !self.needs-result;
+        self.set-nil-on-succeed() if $body-sunk;
+        self.body.apply-sink($body-sunk);
         $!signature.apply-sink(True);
     }
 

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 130;
+plan 131;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -932,6 +932,18 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         'a plain signature literal inside a WhateverCode links its code';
     is Q| (* ~~ :($ where { $^n > 0 }))(\(42)) |.AST.EVAL, True,
         'a where-constrained signature literal inside a WhateverCode links its code';
+}
+
+# https://github.com/rakudo/rakudo/issues/6074
+# A when/default body was always compiled as wanted for being the succeed
+# payload, so the last statement of a CATCH handler escaped the useless-use
+# warning its earlier statements produced. The body is now sunk when the
+# scope taking the payload discards it.
+{
+    is-run ｢Q| sub f { CATCH { default { 42; 43 } }; die 'nope' }; print f.raku |.AST.EVAL｣,
+        :out<Nil>, :err(/'Useless use of constant integer 42'
+            .*? 'Useless use of constant integer 43'/),
+        'the last statement of a CATCH default block also warns as useless';
 }
 
 # vim: expandtab shiftwidth=4

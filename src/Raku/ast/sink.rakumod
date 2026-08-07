@@ -10,6 +10,8 @@ class RakuAST::SinkBoundary
     # Calculates the sink for this bounded unit.
     method calculate-sink() {
         unless $!sink-calculated {
+            self.set-nil-on-succeed()
+                if self.is-boundary-sunk() && nqp::istype(self, RakuAST::LexicalScope);
             self.get-boundary-sink-propagator().propagate-sink(self.is-boundary-sunk(), :has-block-parent);
             nqp::bindattr_i(self, RakuAST::SinkBoundary, '$!sink-calculated', 1);
         }

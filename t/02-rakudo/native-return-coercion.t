@@ -1,6 +1,6 @@
 use Test;
 
-plan 22;
+plan 23;
 
 # Assigning the result of a call to a native-typed container coerces with
 # the unbox that matches the callee's declared native return type. A routine
@@ -155,4 +155,15 @@ plan 22;
     sub sfail(--> int) { fail "boom" }
     my $r = sfail();
     is-deeply $r.defined, False, 'Failure from a native-return sub stays soft in object context';
+}
+
+# A named argument keeps the dispatch analysis from settling, but a sub
+# that is not a dispatcher promises its declared return type however the
+# arguments bind, so the native return is still carried.
+{
+    sub named-ret(int $a, :$k --> int) { $a * 2 }
+    my int $i = 3;
+    my num $y;
+    $y = named-ret($i, :k);
+    is $y, 6e0, 'a named argument still lets the declared native return widen';
 }

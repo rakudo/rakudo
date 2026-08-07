@@ -265,7 +265,7 @@ our class Formatter {
     our sub hexify(str $letter, int $positions, int $point, $value --> str) {
         my num $num = $value.Num;
         my num $abs = nqp::abs_n($num);
-        my int $neg = nqp::islt_n($num,0e0)  # 1 / -0e0 == -Inf
+        my int $neg = nqp::isne_n($num,$abs)
           || (nqp::iseq_n($num,0e0) && nqp::islt_n(nqp::div_n(1e0,$num),0e0));
 
         my str $lead;
@@ -275,7 +275,7 @@ our class Formatter {
         # Zero mantissa is all zeroes
         if $abs == 0e0 {
             $lead = "0";
-            $frac = nqp::x("0", $positions) if $positions > 0;
+            $frac = nqp::x("0",$positions) if $positions > 0;
         }
 
         # Scale mantissa into [1, 2) by exact powers of two, so that
@@ -283,20 +283,46 @@ our class Formatter {
         # the leading '1' plus exactly 13 hex fraction digits
         else {
             my num $m = $abs;
-            while $m >= 65536e0            { $m = $m / 65536e0; $exp = $exp + 16 }
-            while $m < 1.52587890625e-5    { $m = $m * 65536e0; $exp = $exp - 16 }
-            while $m >= 2e0                { $m = $m / 2e0;     $exp = $exp + 1  }
-            while $m < 1e0                 { $m = $m * 2e0;     $exp = $exp - 1  }
+            nqp::while(
+              nqp::isge_n($m,65536e0),
+              nqp::stmts(
+                ($m   = nqp::div_n($m,65536e0)),
+                ($exp = nqp::add_i($exp,16))
+              )
+            );
+
+            nqp::while(
+              nqp::islt_n($m,1.52587890625e-5),
+              nqp::stmts(
+                ($m   = nqp::mul_n($m,65536e0)),
+                ($exp = nqp::sub_i($exp,16))
+              )
+            );
+
+            nqp::while(
+              nqp::isge_n($m,2e0),
+              nqp::stmts(
+                ($m = nqp::div_n($m,2e0)),
+                ++$exp
+              )
+            );
+
+            nqp::while(
+              nqp::islt_n($m,1e0),
+              nqp::stmts(
+                ($m = nqp::mul_n($m,2e0)),
+                --$exp
+              )
+            );
 
             my Int $M = ($m * 4503599627370496e0).Int;  # $m * 2 ** 52
 
             # Round to given precision, ties-to-even
             if 0 <= $positions < 13 {
-                my Int $D  = 16 ** (13 - $positions);
-                my Int $q  = $M div $D;
-                my Int $r2 = ($M mod $D) * 2;
-                ++$q if $r2 > $D || ($r2 == $D && $q % 2);
-                $M = $q;
+                my $D  := 16 ** (13 - $positions);
+                my $r2 := ($M mod $D) * 2;
+                $M = $M div $D;
+                ++$M if $r2 > $D || ($r2 == $D && $M % 2);
             }
 
             my str $hex = $M.base(16);
@@ -305,10 +331,22 @@ our class Formatter {
 
             # No precision: exact representation, drop trailing zeroes
             if $positions < 0 {
-                my int $chars = nqp::chars($frac);
-                --$chars while $chars && nqp::eqat($frac,'0',$chars - 1);
-                $frac = nqp::substr($frac,0,$chars);
+                nqp::strtocodes(
+                  $frac,nqp::const::NORMALIZE_NFC,my int32 @codes
+                );
+
+                # Eliminate trailing 0's
+                nqp::while(
+                  nqp::elems(@codes) && nqp::iseq_i(
+                    (my int $digit = nqp::pop_i(@codes)),
+                    $zero
+                  ),
+                  nqp::null
+                );
+                nqp::push_i(@codes,$digit) if nqp::isne_i($digit,$zero);
+                $frac = nqp::strfromcodes(@codes);
             }
+
             # Fill out to given precision
             elsif nqp::chars($frac) < $positions {
                 $frac = nqp::concat(
@@ -318,13 +356,10 @@ our class Formatter {
         }
 
         my str $string = nqp::concat(
-          nqp::concat(
-            "0x",
-            $frac || $point ?? "$lead.$frac" !! $lead
-          ),
-          nqp::concat("p", $exp < 0 ?? "-" ~ (-$exp) !! "+" ~ $exp)
+          nqp::concat("0X",$frac || $point ?? "$lead.$frac" !! $lead),
+          nqp::concat(($exp < 0 ?? "P" !! "P+"),$exp)
         );
-        $string = $letter eq "A" ?? nqp::uc($string) !! nqp::lc($string);
+        $string = nqp::lc($string) if $letter eq "a";
 
         $neg ?? nqp::concat("-",$string) !! $string
     }

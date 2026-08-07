@@ -2108,12 +2108,70 @@ class RakuAST::VarDeclaration::Signature
                 # Each named parameter target declares its own attribute,
                 # whose begin time reports the missing package.
             }
+
+            # An attribute declaration list is not a callable signature:
+            # move each parameter's traits and default onto the attribute
+            # declaration it carries, and turn the required marker into
+            # the `is required` trait, so `has ($.a is rw, $.b = 42, $.c!)`
+            # means the same as separate `has` declarations.
+            for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+                my $target := $param.target;
+                if $target
+                    && nqp::istype($target, RakuAST::ParameterTarget::Var)
+                    && $target.declaration {
+                    my $declaration := $target.declaration;
+                    for self.IMPL-UNWRAP-LIST($param.traits) {
+                        $declaration.add-trait($_);
+                    }
+                    $param.set-traits([]);
+                    if $param.is-declared-required {
+                        $declaration.add-trait(RakuAST::Trait::Is.new(
+                            :name(RakuAST::Name.from-identifier('required'))));
+                    }
+                    $param.clear-optionality;
+                    if $param.default {
+                        $declaration.set-initializer(
+                            RakuAST::Initializer::Assign.new($param.default));
+                        $param.set-default(RakuAST::Expression);
+                    }
+                    $param.IMPL-SET-ATTRIBUTE-DECLARATION;
+                }
+            }
         }
         elsif $scope eq 'our' {
             my $package := $resolver.current-package;
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!package',
                 $package);
+        }
+
+        # A lexical list declaration without a binding initializer is not
+        # destructuring: `my ($a is default(42), $b = 5) = 1` is a list
+        # of declarations followed by list assignment. Move each
+        # parameter's traits and default onto the variable declaration it
+        # carries, and drop optionality markers, which only mean something
+        # when binding.
+        if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
+            && !$!sig-literal
+            && !(nqp::isconcrete($!initializer) && $!initializer.is-binding) {
+            for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+                my $target := $param.target;
+                if $target
+                    && nqp::istype($target, RakuAST::ParameterTarget::Var)
+                    && $target.declaration {
+                    my $declaration := $target.declaration;
+                    for self.IMPL-UNWRAP-LIST($param.traits) {
+                        $declaration.add-trait($_);
+                    }
+                    $param.set-traits([]);
+                    $param.clear-optionality;
+                    if $param.default {
+                        $declaration.set-initializer(
+                            RakuAST::Initializer::Assign.new($param.default));
+                        $param.set-default(RakuAST::Expression);
+                    }
+                }
+            }
         }
 
         my $binding := self.initializer && self.initializer.is-binding;
@@ -2166,17 +2224,45 @@ class RakuAST::VarDeclaration::Signature
             self.add-sorry($resolver.build-exception:
                 'X::Syntax::Variable::SignatureAssignment');
         }
+
+        # Attributes only exist once there is an instance, so a has
+        # scoped list offers nothing to assign to.
+        my str $scope := self.scope;
+        if ($scope eq 'has' || $scope eq 'HAS')
+            && nqp::isconcrete($!initializer)
+            && !$!initializer.is-binding {
+            self.add-sorry($resolver.build-exception: 'X::AdHoc',
+                payload => "Cannot assign to a list of 'has' scoped declarations");
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
         my @terms;
+        my str $scope := self.scope;
+        my $attribute := $scope eq 'has' || $scope eq 'HAS';
+        my int $has-var-inits := 0;
 
         for @params {
             nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
             if $_.target {
-                $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                # A default from the parameter list is the variable's
+                # initializer, so emit the declaration expression, which
+                # runs it, rather than a plain lookup. An attribute
+                # declaration's initializer runs at construction, not here.
+                my $declaration := nqp::istype($_.target, RakuAST::ParameterTarget::Var)
+                    ?? $_.target.declaration
+                    !! RakuAST::VarDeclaration::Simple;
+                if !$attribute
+                    && nqp::isconcrete($declaration)
+                    && nqp::isconcrete($declaration.initializer) {
+                    $has-var-inits := 1;
+                    $value-list.push: $declaration.IMPL-TO-QAST($context);
+                }
+                else {
+                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                }
             }
             elsif $_.type {
                 # Anonymous typed parameter (e.g. Int or Any:D) in a
@@ -2196,13 +2282,12 @@ class RakuAST::VarDeclaration::Signature
         # With no initializer a lexical declaration's value is the list of its
         # own containers, so it can be used as an rvalue, e.g. bound on the
         # right of `:=` in `my (\a, \b) := my ($x, $y)`. A sunk declaration
-        # wants nothing, so it keeps the null it used to always return. An
-        # attribute declaration has no container to hand back at class-body
-        # time, so it also stays null.
+        # wants nothing, so it keeps the null it used to always return,
+        # unless a variable's initializer needs to run. An attribute declaration
+        # has no container to hand back at class-body time, so it stays
+        # null.
         unless nqp::isconcrete($!initializer) {
-            my str $scope := self.scope;
-            my $attribute := $scope eq 'has' || $scope eq 'HAS';
-            return self.sunk || $attribute
+            return $attribute || self.sunk && !$has-var-inits
                 ?? QAST::Op.new(:op<null>)
                 !! $value-list;
         }

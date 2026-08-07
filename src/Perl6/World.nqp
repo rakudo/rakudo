@@ -3211,7 +3211,16 @@ class Perl6::World is HLL::World {
     method add_numeric_constant($/, $type, $value) {
         my $node := $/;
         if $type eq 'Int' && (try $value.HOW.name($value)) eq 'Int' {
+            # Whether the value is exactly representable as a native int.
+            # How the Int is stored answers a different question, since the
+            # small-value slot is narrower than a native int.
+            my int $fits := 1;
             if nqp::isbig_I($value) {
+                $fits := 0;
+                try $fits := nqp::iseq_I(
+                    nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
+            }
+            unless $fits {
                 # cannot unbox to int without loss of information
                 my $const := self.add_constant('Int', 'bigint', $value);
                 $const.node: $node;

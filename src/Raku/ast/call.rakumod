@@ -470,6 +470,22 @@ class RakuAST::Call::Name
                             '$!native-return-type', $ret) unless nqp::isnull($ret);
                     }
                 }
+
+                # A callee that is not a dispatcher promises its declared
+                # return type however the arguments bind, and a closure
+                # clone shares its signature, so the promise holds even
+                # when the analysis settled nothing. A callee compiled
+                # under the soft pragma can be wrapped at run time, so it
+                # promises nothing.
+                if !nqp::objprimspec($!native-return-type)
+                    && !(nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher)
+                    && !(nqp::can($routine, 'rw') && $routine.rw)
+                    && !(nqp::can($routine, 'soft') && $routine.soft)
+                    && nqp::can($routine, 'returns')
+                    && nqp::objprimspec($routine.returns) {
+                    nqp::bindattr(self, RakuAST::Call::Name,
+                        '$!native-return-type', $routine.returns);
+                }
             }
         }
     }

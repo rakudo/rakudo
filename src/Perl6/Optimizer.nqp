@@ -3445,6 +3445,15 @@ class Perl6::Optimizer {
             if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
                 $op.op('callstatic');
             }
+            # A callee that is not a dispatcher promises its declared
+            # return type however the arguments bind, and a closure clone
+            # shares its signature, so the promise holds even when the
+            # trial bind settled nothing. A callee compiled under the
+            # soft pragma can be wrapped at run time, so it promises
+            # nothing.
+            unless $dispatcher || nqp::can($obj, 'soft') && $obj.soft {
+                return copy_returns($op, $obj);
+            }
         }
         else {
             # We really should find routines; failure to do so is a CHECK

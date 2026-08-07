@@ -1052,14 +1052,10 @@ class RakuAST::Lookup
     # Given a resolved routine and the compile-time argument types and native
     # flags, return the native return type of the single candidate the call
     # settles on, or NQPMu when it settles on none or on a non-native one.
+    # A literal-flagged argument is trusted here because the flags read a
+    # literal exactly as the call site passes it: native when paired with a
+    # native argument, the boxed value otherwise.
     method IMPL-NATIVE-RETURN-TYPE($routine, @types, @flags) {
-        # A literal argument counts as native here while the emitted call
-        # passes the boxed value, so run-time dispatch may answer with
-        # another candidate than the analysis settled on.
-        my int $ARG_IS_LITERAL := 32;
-        for @flags {
-            return NQPMu if $_ +& $ARG_IS_LITERAL;
-        }
         my $callee := NQPMu;
         if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
             if $routine.onlystar {

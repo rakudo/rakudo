@@ -1370,33 +1370,89 @@ class RakuAST::Node {
         Nil
     }
 
+    # The statically known type of this node in argument position: its
+    # return-type, falling back to the declared type of the variable a
+    # resolved parameter read refers to, since a parameter read reports no
+    # type of its own.
+    method IMPL-STATIC-ARG-TYPE() {
+        my $type := self.return-type;
+        if $type =:= Mu
+            && nqp::istype(self, RakuAST::Var::Lexical)
+            && self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::ParameterTarget::Var)
+            && nqp::isconcrete(self.resolution.declaration) {
+            try $type := self.resolution.declaration.return-type;
+        }
+        $type
+    }
+
+    # The native kind this node's constant value compiles a native
+    # alternative for, or Nil. A node that answers a kind emits a QAST::Want
+    # whose native alternative IMPL-TO-QAST-ARG can select.
+    method IMPL-NATIVE-LITERAL-KIND() { Nil }
+
+    # The native-paired-literal rule: given two argument nodes, the literal
+    # that adopts the other argument's native representation, or null. A
+    # literal carries no declared type, so beside an argument whose static
+    # type is a native kind the literal can hold, it takes that kind. It
+    # stays the boxed value it literally is otherwise. This single predicate
+    # decides both the candidate analysis and the emitted representation, so
+    # the two cannot disagree.
+    method IMPL-NATIVE-PAIRED-LITERAL-OF(Mu $a, Mu $b) {
+        # A synthesized call may carry raw values rather than nodes in its
+        # argument list, and those have no representation to decide.
+        return nqp::null() unless nqp::isconcrete($a) && nqp::istype($a, RakuAST::Node)
+            && nqp::isconcrete($b) && nqp::istype($b, RakuAST::Node);
+        my $a-kind := $a.IMPL-NATIVE-LITERAL-KIND;
+        my $b-kind := $b.IMPL-NATIVE-LITERAL-KIND;
+        my $literal;
+        my $other;
+        my int $kind;
+        if nqp::defined($a-kind) && !nqp::defined($b-kind) {
+            $literal := $a;
+            $other := $b;
+            $kind := $a-kind;
+        }
+        elsif nqp::defined($b-kind) && !nqp::defined($a-kind) {
+            $literal := $b;
+            $other := $a;
+            $kind := $b-kind;
+        }
+        else {
+            return nqp::null();
+        }
+        nqp::objprimspec($other.IMPL-STATIC-ARG-TYPE) == $kind
+            ?? $literal
+            !! nqp::null()
+    }
+
+    # The QAST for this node in argument position: the native alternative of
+    # the node's own Want when the node is a literal taking part in a native
+    # pairing, and the ordinary QAST otherwise.
+    method IMPL-TO-QAST-ARG(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-TO-QAST($context);
+        nqp::defined(self.IMPL-NATIVE-LITERAL-KIND)
+          && nqp::istype($qast, QAST::Want)
+          && nqp::elems($qast.list) >= 3
+            ?? $qast.list[2]
+            !! $qast
+    }
+
     # The nominal types and native flags of the given arguments, as trial
     # binding and candidate analysis expect them, or an empty list when any
     # argument's type is not known well enough for the answer to be final.
     # A native type is passed as its boxed counterpart carrying the native
-    # flag. A literal of a boxed type prefers a native candidate when it is
-    # alone or paired with a native argument of matching kind, as the same
-    # allomorphic argument would at run time.
+    # flag. A literal is flagged as the value it is: native when it is
+    # paired with a native argument of matching kind, which is exactly when
+    # the call site passes its native form, and the boxed value otherwise.
     method IMPL-CT-ARG-TYPES(RakuAST::Resolver $resolver, Mu @args) {
         my int $ARG_IS_LITERAL := 32;
         my @types;
         my @flags;
-        my @allo;
-        my int $num-prim := 0;
-        my int $num-allo := 0;
         for @args {
-            my $type := $_.return-type;
-            # A parameter read reports no type of its own; the declared type
-            # of the parameter's variable is the read's type. Kept local to
-            # this analysis so the trial-bind diagnostic's coverage does not
-            # change underneath existing code.
-            if $type =:= Mu
-                && nqp::istype($_, RakuAST::Var::Lexical)
-                && $_.is-resolved
-                && nqp::istype($_.resolution, RakuAST::ParameterTarget::Var)
-                && nqp::isconcrete($_.resolution.declaration) {
-                try $type := $_.resolution.declaration.return-type;
-            }
+            # A synthesized call may carry raw values rather than nodes.
+            return [] unless nqp::isconcrete($_) && nqp::istype($_, RakuAST::Node);
+            my $type := $_.IMPL-STATIC-ARG-TYPE;
             return [] if $type =:= Mu;
             my int $ok := 0;
             try $ok := $type.HOW.archetypes.nominal && !$type.HOW.archetypes.generic;
@@ -1407,35 +1463,27 @@ class RakuAST::Node {
                 $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver,
                     $ps == 1 ?? 'Int' !! $ps == 2 ?? 'Num' !! 'Str');
                 return [] if nqp::isnull($type);
-                $num-prim++;
             }
             elsif $ps {
                 return [];
             }
             nqp::push(@types, $type);
-            nqp::push(@flags, $ps);
-            my int $allo-flag := 0;
-            if nqp::istype($_, RakuAST::Literal) {
-                my $native := $_.native-type-flag;
-                # An integer too wide for the native representation is not
-                # allomorphic: only its boxed form holds the value.
-                if nqp::defined($native)
-                    && !($native == 1
-                        && nqp::isbig_I(nqp::decont($_.compile-time-value))) {
-                    $allo-flag := $native;
-                    $num-allo++;
-                }
+            # A literal with a native form is a value, never a container.
+            # This mirrors what the legacy frontend knows of a literal
+            # through its allomorphic Want, so the frontends rule out an
+            # `is rw` candidate for the same arguments.
+            nqp::push(@flags, nqp::defined($_.IMPL-NATIVE-LITERAL-KIND)
+                ?? $ps +| $ARG_IS_LITERAL
+                !! $ps);
+        }
+        if nqp::elems(@types) == 2 {
+            my $literal := self.IMPL-NATIVE-PAIRED-LITERAL-OF(
+                nqp::atpos(@args, 0), nqp::atpos(@args, 1));
+            unless nqp::isnull($literal) {
+                my int $idx := nqp::eqaddr(nqp::atpos(@args, 0), $literal) ?? 0 !! 1;
+                my int $prim := nqp::atpos(@flags, $idx == 0 ?? 1 !! 0) +& 0xF;
+                nqp::bindpos(@flags, $idx, $prim +| $ARG_IS_LITERAL);
             }
-            nqp::push(@allo, $allo-flag);
-        }
-        if nqp::elems(@types) == 2 && $num-prim == 1 && $num-allo == 1 {
-            my int $prim := nqp::atpos(@flags, 0) || nqp::atpos(@flags, 1);
-            my int $allo-idx := nqp::atpos(@allo, 0) ?? 0 !! 1;
-            nqp::bindpos(@flags, $allo-idx, $prim +| $ARG_IS_LITERAL)
-                if nqp::atpos(@allo, $allo-idx) == $prim;
-        }
-        elsif nqp::elems(@types) == 1 && $num-allo == 1 {
-            nqp::bindpos(@flags, 0, nqp::atpos(@allo, 0) +| $ARG_IS_LITERAL);
         }
         [@types, @flags]
     }

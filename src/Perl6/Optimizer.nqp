@@ -3000,6 +3000,9 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
+            # A nameless call carries its callee as the first child, so its
+            # positional arguments start one later.
+            self.rewrite_paired_literal_args($op, $opname eq '' ?? 1 !! 0);
             my $opt_result := $opname eq ''
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
@@ -3379,11 +3382,17 @@ class Perl6::Optimizer {
             my $dispatcher := nqp::can($obj, "is_dispatcher") && $obj.is_dispatcher;
             if $dispatcher && $obj.onlystar {
                 # Try to do compile-time multi-dispatch. Need to consider
-                # both the proto and the multi candidates.
+                # both the proto and the multi candidates. The dispatch
+                # decision reads the arguments as the call site passes them,
+                # while an impossible dispatch is diagnosed with the reading
+                # that also counts a lone literal as native, so a candidate
+                # taking a native `is rw` parameter is still ruled out at
+                # compile time.
                 my @ct_arg_info := self.analyze_args_for_ct_call($op);
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
+                    my @diag_flags := @ct_arg_info[2];
                     my $ct_result_proto := nqp::p6trialbind($obj.signature, @types, @flags);
                     my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
                     if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
@@ -3395,11 +3404,15 @@ class Perl6::Optimizer {
                                 !! self.call_ct_chosen_multi($op, $obj, $chosen);
                         }
                     }
-                    elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                        self.report_inevitable_dispatch_failure(
-                            $op, @types, @flags, $obj,
-                            :protoguilt($ct_result_proto == -1)
-                        ) unless $*NO-COMPILE-TIME-THROWAGE;
+                    else {
+                        my $diag_proto := nqp::p6trialbind($obj.signature, @types, @diag_flags);
+                        my @diag_multi := $obj.analyze_dispatch(@types, @diag_flags);
+                        if $diag_proto == -1 || @diag_multi[0] == -1 {
+                            self.report_inevitable_dispatch_failure(
+                                $op, @types, @diag_flags, $obj,
+                                :protoguilt($diag_proto == -1)
+                            ) unless $*NO-COMPILE-TIME-THROWAGE;
+                        }
                     }
                 }
                 if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
@@ -3410,6 +3423,7 @@ class Perl6::Optimizer {
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
+                    my @diag_flags := @ct_arg_info[2];
                     my $sig := $obj.signature;
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     if $ct_result == 1 {
@@ -3430,10 +3444,13 @@ class Perl6::Optimizer {
                             return copy_returns($op, $obj);
                         }
                     }
-                    elsif $ct_result == -1 {
-                        self.report_inevitable_dispatch_failure(
-                            $op, @types, @flags, $obj
-                        ) unless $*NO-COMPILE-TIME-THROWAGE;
+                    else {
+                        my $diag_result := nqp::p6trialbind($sig, @types, @diag_flags);
+                        if $diag_result == -1 {
+                            self.report_inevitable_dispatch_failure(
+                                $op, @types, @diag_flags, $obj
+                            ) unless $*NO-COMPILE-TIME-THROWAGE;
+                        }
                     }
                 }
             }
@@ -4141,8 +4158,13 @@ class Perl6::Optimizer {
                 my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
                     ?? $_[1] !! '';
+                # A literal is a value, never a container, whether it still
+                # wears its allomorphic Want or was already rewritten to its
+                # native form by rewrite_paired_literal_args.
+                my int $literal := $allo ne '' || $_.ann('native_literal_arg')
+                    ?? $ARG_IS_LITERAL !! 0;
                 @types.push($type);
-                @flags.push($prim);
+                @flags.push($prim +| $literal);
                 @allomorphs.push($allo);
                 $num_prim := $num_prim + 1 if $prim;
                 $num_allo := $num_allo + 1 if $allo;
@@ -4152,25 +4174,72 @@ class Perl6::Optimizer {
             }
         }
 
-        # See if we have an allomorphic constant that may allow us to do
-        # a native dispatch with it; takes at least one declaratively
-        # native argument to make this happen.
-        if nqp::elems(@types) == 2 && $num_prim == 1 && $num_allo == 1 {
-            my int $prim_flag := @flags[0] || @flags[1];
-            my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
-            if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
-                @flags[$allo_idx] := $prim_flag +| $ARG_IS_LITERAL;
-            }
-        }
-
-        # Alternatively, a single arg that is allomorphic will prefer
-        # the literal too.
+        # A lone literal has no native context to adapt to, so it dispatches
+        # as the boxed value it is, and rewrite_paired_literal_args already
+        # gave a paired literal its native reading. Ruling out a candidate
+        # that takes a native `is rw` parameter still needs the native
+        # reading of a lone literal, so that is reported separately. Only
+        # the plain flags decide what runs.
+        my @diag_flags := nqp::clone(@flags);
         if nqp::elems(@types) == 1 && $num_allo == 1 {
             my $rev := %allo_rev{@allomorphs[0]};
-            @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
+            @flags[0] := $ARG_IS_LITERAL;
+            @diag_flags[0] := nqp::defined($rev)
+                ?? $rev +| $ARG_IS_LITERAL
+                !! $ARG_IS_LITERAL;
         }
 
-        [@types, @flags]
+        [@types, @flags, @diag_flags]
+    }
+
+    # The native-paired-literal rule: a literal argument beside an argument
+    # of a native kind the literal can hold is passed in that kind, so
+    # runtime dispatch reaches the same candidate the compile time analysis
+    # counts on at any level that runs this optimizer. The literal's Want is
+    # replaced with its native alternative, marked so the argument analysis
+    # keeps reading it as a literal value. Exactly two positional arguments
+    # qualify, since with more there is no single native context for a
+    # literal to adopt.
+    method rewrite_paired_literal_args($op, int $first-arg) {
+        return 0 unless nqp::elems($op) == $first-arg + 2;
+        my int $i := $first-arg;
+        my int $literal-idx := -1;
+        my int $other-idx := -1;
+        while $i < $first-arg + 2 {
+            my $arg := $op[$i];
+            return 0 unless nqp::can($arg, 'flat');
+            return 0 if $arg.flat || $arg.named ne '';
+            if nqp::istype($arg, QAST::Want) && $arg.has_compile_time_value
+                && nqp::elems($arg.list) == 3 {
+                if $literal-idx == -1 {
+                    $literal-idx := $i;
+                }
+                else {
+                    # Two literals pair with each other no more than one
+                    # does with nothing.
+                    return 0;
+                }
+            }
+            else {
+                $other-idx := $i;
+            }
+            $i := $i + 1;
+        }
+        return 0 if $literal-idx == -1 || $other-idx == -1;
+
+        my $literal := $op[$literal-idx];
+        my int $kind := %allo_rev{$literal[1]} // 0;
+        return 0 unless $kind;
+        return 0 unless nqp::objprimspec($op[$other-idx].returns) == $kind;
+
+        my $native-type := try $!symbols.find_lexical(@prim_names[$kind]);
+        return 0 unless nqp::objprimspec($native-type) == $kind;
+
+        my $native := $literal[2];
+        $native.returns($native-type);
+        $native.annotate('native_literal_arg', 1);
+        $op[$literal-idx] := $native;
+        1
     }
 
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
@@ -4540,17 +4609,13 @@ class Perl6::Optimizer {
         # wanting the boxed object never unboxes and escape values like a
         # Failure still flow through. The scope test is looser than the
         # callstatic one above, since a closure clone still runs the same
-        # candidates. A soft proto can be wrapped at run time, and a literal
-        # argument reaches the callee boxed, so either one leaves run-time
-        # dispatch free to answer with a different candidate.
+        # candidates. A soft proto can be wrapped at run time, which leaves
+        # run-time dispatch free to answer with a different candidate. A
+        # literal argument is trusted: the analysis read it exactly as the
+        # call site passes it, native when rewrite_paired_literal_args gave
+        # it its native form and the boxed value otherwise.
         if $scopes == 0 || nqp::can($proto, 'soft') && !$proto.soft {
-            my int $literal-args := 0;
-            for @($call) {
-                $literal-args := 1
-                    if nqp::istype($_, QAST::Want) && $_.has_compile_time_value;
-            }
-            if !$literal-args
-            && nqp::can($chosen, 'returns') && !(nqp::can($chosen, 'rw') && $chosen.rw) {
+            if nqp::can($chosen, 'returns') && !(nqp::can($chosen, 'rw') && $chosen.rw) {
                 if nqp::objprimspec($chosen.returns) {
                     my $native := $call.shallow_clone;
                     $native.returns($chosen.returns);

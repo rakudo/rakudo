@@ -1420,17 +1420,24 @@ class Rakudo::Iterator {
         has &!afterwards;
         has $!label;
         has int $!seen-first;
+        has $!LAST;      # combined LAST phaser of the body, or Nil
+        has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\afterwards,\label) {
+        method !SET-SELF(\body,\cond,\afterwards,\label,\fire-last) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             &!cond := cond;
             &!afterwards := afterwards;
             $!label := nqp::decont(label);
+            # The frontend asks the iterator to run the body's LAST phaser by
+            # passing fire-last (the RakuAST frontend does; the legacy frontend
+            # keeps emitting the LAST call after the loop and leaves this off).
+            nqp::bindattr(self,self.WHAT,'$!LAST',
+              nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\afterwards,\label) {
-            nqp::create(self)!SET-SELF(body,cond,afterwards,label)
+        method new(\body,\cond,\afterwards,\label,\fire-last) {
+            nqp::create(self)!SET-SELF(body,cond,afterwards,label,fire-last)
         }
 
         method pull-one() {
@@ -1451,6 +1458,7 @@ class Rakudo::Iterator {
                       (my int $stopped),
                       nqp::stmts(
                         ($stopped = 1),
+                        ($!body-ran = 1),
                         nqp::handle(
                           nqp::if(
                             nqp::istype(($result := &!body()),Slip),
@@ -1489,15 +1497,31 @@ class Rakudo::Iterator {
                       ),
                       :nohandler
                     ),
-                    $result
+                    nqp::if(nqp::eqaddr($result,IterationEnd),self!last-done,$result)
                   ),
-                  IterationEnd
+                  self!last-done
                 )
             }
         }
+
+        # Run the body's LAST phaser once at exhaustion, if the body ran.
+        method !last-done() {
+            nqp::if(
+              $!body-ran,
+              nqp::if(
+                nqp::isconcrete($!LAST),
+                nqp::stmts(
+                  (my &the-last := $!LAST),
+                  ($!LAST := nqp::null),
+                  the-last()
+                )
+              )
+            );
+            IterationEnd
+        }
     }
-    method CStyleLoop(&body, &cond, &afterwards, $label) {
-        CStyleLoop.new(&body, &cond, &afterwards, $label)
+    method CStyleLoop(&body, &cond, &afterwards, $label, $fire-last = 0) {
+        CStyleLoop.new(&body, &cond, &afterwards, $label, $fire-last)
     }
 
     # Returns an iterator for iterating file system directories, producing
@@ -2502,16 +2526,23 @@ class Rakudo::Iterator {
     my class Loop does Rakudo::SlippyIterator {
         has &!body;
         has $!label;
+        has $!LAST;      # combined LAST phaser of the body, or Nil
+        has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\label) {
+        method !SET-SELF(\body,\label,\fire-last) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             $!label := nqp::decont(label);
+            # The frontend asks the iterator to run the body's LAST phaser by
+            # passing fire-last (the RakuAST frontend does; the legacy frontend
+            # keeps emitting the LAST call after the loop and leaves this off).
+            nqp::bindattr(self,self.WHAT,'$!LAST',
+              nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
 
-        method new(\body,\label) {
-            nqp::create(self)!SET-SELF(body,label)
+        method new(\body,\label,\fire-last) {
+            nqp::create(self)!SET-SELF(body,label,fire-last)
         }
 
         method pull-one() {
@@ -2527,6 +2558,7 @@ class Rakudo::Iterator {
                   $stopped,
                   nqp::stmts(
                     ($stopped = 1),
+                    ($!body-ran = 1),
                     nqp::handle(
                       nqp::if(
                         nqp::istype(($result := &!body()),Slip),
@@ -2555,14 +2587,31 @@ class Rakudo::Iterator {
                   ),
                   :nohandler
                 ),
-                $result
+                nqp::if(nqp::eqaddr($result,IterationEnd),self!last-done,$result)
               )
             )
         }
 
+        # A bare loop always runs its body, so its LAST fires whenever the loop
+        # ends (via `last`); the ran flag keeps it firing just once.
+        method !last-done() {
+            nqp::if(
+              $!body-ran,
+              nqp::if(
+                nqp::isconcrete($!LAST),
+                nqp::stmts(
+                  (my &the-last := $!LAST),
+                  ($!LAST := nqp::null),
+                  the-last()
+                )
+              )
+            );
+            IterationEnd
+        }
+
         method is-lazy(--> True) { }
     }
-    method Loop(&body, $label) { Loop.new(&body, $label) }
+    method Loop(&body, $label, $fire-last = 0) { Loop.new(&body, $label, $fire-last) }
 
     # An often occurring use of the Mappy role to generate all of the
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
@@ -4117,17 +4166,24 @@ class Rakudo::Iterator {
         has &!cond;
         has $!label;
         has int $!skip;
+        has $!LAST;      # combined LAST phaser of the body, or Nil
+        has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\label) {
+        method !SET-SELF(\body,\cond,\label,\fire-last) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body  := body;
             &!cond  := cond;
             $!label := nqp::decont(label);
             $!skip   = 1;
+            # The frontend asks the iterator to run the body's LAST phaser by
+            # passing fire-last (the RakuAST frontend does; the legacy frontend
+            # keeps emitting the LAST call after the loop and leaves this off).
+            nqp::bindattr(self,self.WHAT,'$!LAST',
+              nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\label) {
-            nqp::create(self)!SET-SELF(body,cond,label)
+        method new(\body,\cond,\label,\fire-last) {
+            nqp::create(self)!SET-SELF(body,cond,label,fire-last)
         }
 
         method pull-one() {
@@ -4144,6 +4200,7 @@ class Rakudo::Iterator {
                     nqp::until(   # XXX perhaps repeat_until?
                       (my int $stopped),
                       nqp::stmts(
+                        ($!body-ran = 1),
                         ($stopped = 1),
                         nqp::handle(
                           nqp::if(
@@ -4173,15 +4230,32 @@ class Rakudo::Iterator {
                       ),
                       :nohandler
                     ),
-                    $result
+                    nqp::if(nqp::eqaddr($result,IterationEnd),self!last-done,$result)
                   ),
-                  IterationEnd
+                  self!last-done
                 )
             }
         }
+
+        # A repeat loop always runs its body once, so its LAST always fires; the
+        # ran flag keeps it firing just once.
+        method !last-done() {
+            nqp::if(
+              $!body-ran,
+              nqp::if(
+                nqp::isconcrete($!LAST),
+                nqp::stmts(
+                  (my &the-last := $!LAST),
+                  ($!LAST := nqp::null),
+                  the-last()
+                )
+              )
+            );
+            IterationEnd
+        }
     }
-    method RepeatLoop(&body, &cond, $label) {
-        RepeatLoop.new(&body, &cond, $label)
+    method RepeatLoop(&body, &cond, $label, $fire-last = 0) {
+        RepeatLoop.new(&body, &cond, $label, $fire-last)
     }
 
     # Return an iterator for a non-lazy iterator that rotates values for a
@@ -5218,16 +5292,23 @@ class Rakudo::Iterator {
         has &!body;
         has &!cond;
         has $!label;
+        has $!LAST;      # combined LAST phaser of the body, or Nil
+        has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\label) {
+        method !SET-SELF(\body,\cond,\label,\fire-last) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             &!cond := cond;
             $!label := nqp::decont(label);
+            # The frontend asks the iterator to run the body's LAST phaser by
+            # passing fire-last (the RakuAST frontend does; the legacy frontend
+            # keeps emitting the LAST call after the loop and leaves this off).
+            nqp::bindattr(self,self.WHAT,'$!LAST',
+              nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\label) {
-            nqp::create(self)!SET-SELF(body,cond,label)
+        method new(\body,\cond,\label,\fire-last) {
+            nqp::create(self)!SET-SELF(body,cond,label,fire-last)
         }
 
         method pull-one() {
@@ -5244,6 +5325,7 @@ class Rakudo::Iterator {
                       (my int $stopped),
                       nqp::stmts(
                         ($stopped = 1),
+                        ($!body-ran = 1),
                         nqp::handle(
                           nqp::if(
                             nqp::istype(($result := &!body()),Slip),
@@ -5272,16 +5354,34 @@ class Rakudo::Iterator {
                       ),
                       :nohandler
                     ),
-                    $result
+                    nqp::if(nqp::eqaddr($result,IterationEnd),self!last-done,$result)
                   ),
-                  IterationEnd
+                  self!last-done
                 )
             }
         }
 
+        # Run the body's LAST phaser once at exhaustion, if the body ran, then
+        # report exhaustion. This is what makes a lazy while/until loop fire
+        # LAST after its last iteration the way a `for` loop does, and skip it
+        # entirely when the body never ran.
+        method !last-done() {
+            nqp::if(
+              $!body-ran,
+              nqp::if(
+                nqp::isconcrete($!LAST),
+                nqp::stmts(
+                  (my &the-last := $!LAST),
+                  ($!LAST := nqp::null),
+                  the-last()
+                )
+              )
+            );
+            IterationEnd
+        }
     }
-    method WhileLoop(&body, &cond, $label) {
-        WhileLoop.new(&body, &cond, $label)
+    method WhileLoop(&body, &cond, $label, $fire-last = 0) {
+        WhileLoop.new(&body, &cond, $label, $fire-last)
     }
 
     # Return an iterator that will zip the given iterables (with &[,])

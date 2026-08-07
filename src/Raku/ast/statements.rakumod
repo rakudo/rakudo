@@ -1677,6 +1677,35 @@ class RakuAST::Statement::Loop
         QAST::WVal.new(:value($run-phasers))
     }
 
+    # A pre-test loop (while/until, or a C-style loop with a condition) that
+    # never runs its body must not fire LAST; FIRST already behaves this way. A
+    # repeat loop always runs its body once, so it keeps firing LAST. This is
+    # only for the eager (statement-level) loop; a lazy from-loop fires LAST
+    # from its iterator instead.
+    method IMPL-GUARD-LAST() {
+        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
+        my @last := nqp::ishash($phasers) && nqp::existskey($phasers, 'LAST')
+          ?? $phasers<LAST> !! [];
+        nqp::elems(@last) && $!condition && !self.repeat
+    }
+
+    # Fold a did-run flag into a pre-test loop condition so LAST can tell
+    # whether the body ran. Binds the flag lexical when an iteration is about to
+    # run (before the body, so an immediate `last` still counts). $while is true
+    # for a while-style loop (body runs on a true condition), false for until.
+    method IMPL-LAST-GUARD-CONDITION(Mu $cond-qast, int $while, str $ran) {
+        my $set := QAST::Op.new(:op<bind>,
+          QAST::Var.new(:name($ran), :scope<lexical>, :returns(int)),
+          QAST::IVal.new(:value(1)));
+        $while
+          ?? QAST::Op.new(:op<if>, $cond-qast,
+               QAST::Stmts.new($set, QAST::IVal.new(:value(1))),
+               QAST::IVal.new(:value(0)))
+          !! QAST::Op.new(:op<if>, $cond-qast,
+               QAST::IVal.new(:value(1)),
+               QAST::Stmts.new($set, QAST::IVal.new(:value(0))))
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
         my @next-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'NEXT') ?? $phasers<NEXT> !! [];
@@ -1693,6 +1722,12 @@ class RakuAST::Statement::Loop
                 !! QAST::IVal.new( :value(1) );
             $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
                 if $!native-condition && $!condition;
+            my int $guard-last := self.IMPL-GUARD-LAST;
+            my str $ran;
+            if $guard-last {
+                $ran := QAST::Node.unique('LOOP_LAST_RAN');
+                $cond-qast := self.IMPL-LAST-GUARD-CONDITION($cond-qast, !self.negate, $ran);
+            }
             my $loop-qast := QAST::Op.new(
                 :$op,
                 $cond-qast,
@@ -1726,10 +1761,22 @@ class RakuAST::Statement::Loop
             if $!setup {
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
+            if $guard-last {
+                $wrapper.push(QAST::Op.new(:op<bind>,
+                  QAST::Var.new(:name($ran), :scope<lexical>, :decl<var>, :returns(int)),
+                  QAST::IVal.new(:value(0))));
+            }
             $wrapper.push($loop-qast);
-            for @last-phasers {
-                $context.ensure-sc($_);
-                $wrapper.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+            if @last-phasers {
+                my $last-qast := QAST::Stmts.new;
+                for @last-phasers {
+                    $context.ensure-sc($_);
+                    $last-qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
+                }
+                $wrapper.push($guard-last
+                  ?? QAST::Op.new(:op<if>,
+                       QAST::Var.new(:name($ran), :scope<lexical>, :returns(int)), $last-qast)
+                  !! $last-qast);
             }
             unless self.sunk {
                 $wrapper.push(
@@ -1759,6 +1806,9 @@ class RakuAST::Statement::Loop
                     $label-qast.named('label');
                     $loop-qast.push($label-qast);
                 }
+                # Have the iterator run the body's LAST phaser at exhaustion.
+                $loop-qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
+                  if @last-phasers;
                 $qast.push: $loop-qast;
                 $qast
             }
@@ -1783,13 +1833,10 @@ class RakuAST::Statement::Loop
                     $label-qast.named('label');
                     $qast.push($label-qast);
                 }
-                if @last-phasers {
-                    $qast := QAST::Stmts.new(:resultchild(0), $qast);
-                    for @last-phasers {
-                        $context.ensure-sc($_);
-                        $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
-                    }
-                }
+                # No LAST call here: this loop is lazy, so its from-loop iterator
+                # runs the body's LAST phaser at exhaustion (only if the body ran).
+                $qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
+                  if @last-phasers;
                 if self.IMPL-DISCARD-RESULT { # In case we're here because of UNDO phasers
                     $qast := QAST::Op.new(:op('p6sink'), $qast);
                 }
@@ -1822,13 +1869,10 @@ class RakuAST::Statement::Loop
             if @next-phasers {
                 $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
             }
-            if @last-phasers {
-                $qast := QAST::Stmts.new(:resultchild(0), $qast);
-                for @last-phasers {
-                    $context.ensure-sc($_);
-                    $qast.push(QAST::Op.new(:op('call'), QAST::WVal.new(:value($_))));
-                }
-            }
+            # No LAST call here: this loop is lazy, so its from-loop iterator
+            # runs the body's LAST phaser at exhaustion (only if the body ran).
+            $qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
+              if @last-phasers;
             $qast
         }
     }

@@ -325,7 +325,7 @@ our class Formatter {
                 ++$M if $r2 > $D || ($r2 == $D && $M % 2);
             }
 
-            my str $hex = $M.base(16);
+            my str $hex = nqp::base_I(nqp::decont($M),16);
             $lead = nqp::substr($hex,0,1);
             $frac = nqp::substr($hex,1);
 

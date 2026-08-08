@@ -1382,12 +1382,12 @@ class RakuAST::PackageInstaller {
         my $lexical;
         my $lexical-stub;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
-        # If the multi-part install resolves its parent through the
-        # setting / outer lexical chain (cross-compunit reload),
-        # capture *which* parent that was and treat the install-
-        # collision as silent only when $target is still that exact
-        # parent at check time (the loop below may reassign $target
-        # to a freshly-created intermediate stub, which is ours).
+        # When the setting resolves the parent of a multi-part install,
+        # the declaration is a cross-compunit reload. Capture which
+        # parent that was and treat the install collision as silent
+        # only when $target is still that exact parent at check time.
+        # The chase loop below may reassign $target to a freshly
+        # created intermediate stub, which is ours.
         my $setting-resolved-target;
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
@@ -1516,7 +1516,21 @@ class RakuAST::PackageInstaller {
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
-                $setting-resolved-target := $target if $resolved[2] eq 'lexical';
+                # Capture the parent only when the setting itself resolves
+                # the leading name part. A leading part resolved from a
+                # caller's frame, such as an EVAL redeclaring a class its
+                # caller declared, is a plain redeclaration and must still
+                # reach the collision check.
+                if $resolved[2] eq 'lexical' {
+                    my $lexical-first := $resolver.resolve-lexical-constant($first);
+                    my $in-setting := $resolver.resolve-lexical-constant-in-setting($first);
+                    $setting-resolved-target := $target
+                        if nqp::isconcrete($lexical-first)
+                        && nqp::isconcrete($in-setting)
+                        && nqp::eqaddr(
+                            $in-setting.compile-time-value,
+                            $lexical-first.compile-time-value);
+                }
                 # Upgrade a lexically imported top level package to global.
                 # Only a name the compilation unit's own scopes carry
                 # qualifies, such as an import. A leading part resolved
@@ -1623,7 +1637,7 @@ class RakuAST::PackageInstaller {
     # PackageHOW upgrades; 6.d `module Foo::Bar { class Foo::Bar { } }`
     # enclosing-module replace; identifier and `my`-scope (caught
     # elsewhere); and cross-compunit reload (target resolved through
-    # the setting / outer chain), matching legacy `install_package`.
+    # the setting), matching legacy `install_package`.
     method IMPL-SHOULD-SILENT-REPLACE(Mu $existing, Mu $current-package, RakuAST::Name $name, str $orig-scope, int $target-from-setting) {
         nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
         || (nqp::getcomp('Raku').language_revision < 3

@@ -2311,7 +2311,7 @@ class RakuAST::ModuleLoading {
         );
         my $comp-unit := $registry.head.need($spec);
         my $globalish := $comp-unit.handle.globalish-package;
-        self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish));
+        self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish), :globalish(True));
         $comp-unit
     }
 
@@ -2363,7 +2363,7 @@ class RakuAST::ModuleLoading {
         }
     }
 
-    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
+    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont, Bool :$globalish) {
         my $target-scope := $resolver.current-scope;
         for self.IMPL-SORTED-KEYS($stash) -> $key {
             next if $key eq 'EXPORT';
@@ -2390,6 +2390,12 @@ class RakuAST::ModuleLoading {
                 $existing.merge($declarand, :$resolver) unless $existing.compile-time-value =:= $declarand.compile-time-value;
             }
             else {
+                # A unit's mainline can write through a GLOBAL-rooted name
+                # as it loads, vivifying a stub package in the merged GLOBAL
+                # under a name its GLOBALish also carries. A fresh lexical
+                # would shadow that stub and hide its symbols.
+                $declarand := self.IMPL-MERGE-GLOBAL-STUB($resolver, $key, $declarand)
+                    if $globalish;
                 $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
             }
 
@@ -2403,6 +2409,48 @@ class RakuAST::ModuleLoading {
                 ));
             }
         }
+    }
+
+    # Reconcile an imported top-level GLOBALish package with a same-named
+    # entry already in the merged GLOBAL, applying the conflict rules of
+    # ModuleLoader's merge_globals. Returns the declaration to install,
+    # which carries the surviving package.
+    method IMPL-MERGE-GLOBAL-STUB(RakuAST::Resolver $resolver, str $key, Mu $declarand) {
+        my $global := $resolver.get-global;
+        return $declarand if nqp::eqaddr($global, Mu);
+        # The WHO is a plain hash rather than a Stash in some compilation
+        # contexts, such as an EVAL against an NQP-created GLOBALish.
+        my $who := $global.WHO;
+        my $storage := nqp::ishash($who)
+            ?? $who
+            !! nqp::istype($who, Map)
+                ?? nqp::getattr($who, Map, '$!storage')
+                !! nqp::null;
+        return $declarand if nqp::isnull($storage) || !nqp::existskey($storage, $key);
+        my $current := nqp::decont(nqp::atkey($storage, $key));
+        my $value   := nqp::decont($declarand.compile-time-value);
+        return $declarand if nqp::eqaddr($current, $value);
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        if self.IMPL-IS-STUB-PACKAGE($value) {
+            # A stub gives way: the package GLOBAL holds stays canonical.
+            $loader.merge_globals($current.WHO, $value.WHO);
+            RakuAST::Declaration::Import.new(:lexical-name($key), :compile-time-value($current))
+        }
+        elsif self.IMPL-IS-STUB-PACKAGE($current) {
+            # A real package displaces the stub GLOBAL holds.
+            $loader.merge_globals($value.WHO, $current.WHO);
+            nqp::bindkey($storage, $key, $value);
+            $declarand
+        }
+        else {
+            $declarand
+        }
+    }
+
+    method IMPL-IS-STUB-PACKAGE(Mu $value) {
+        my $how := $value.HOW;
+        my str $name := $how.HOW.name($how);
+        $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
     }
 
     method IMPL-IMPORT-EXPORTHOW(RakuAST::Resolver $resolver, Mu $handle) {

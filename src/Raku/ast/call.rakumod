@@ -1597,6 +1597,7 @@ class RakuAST::Call::BlockMethod
 class RakuAST::Stub
   is RakuAST::ImplicitLookups
   is RakuAST::Term
+  is RakuAST::CheckTime
 {
     has RakuAST::ArgList $.args;
 
@@ -1607,6 +1608,13 @@ class RakuAST::Stub
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A stub in the setting mentions X::StubCode before that class is
+        # declared, so the begin time resolution of the implicit lookup
+        # comes up empty. Retry now that the whole compilation unit has
+        # been parsed, so the emitted code carries the resolved type
+        # rather than a run time package walk from GLOBAL.
+        my $lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        $lookup.PERFORM-CHECK($resolver, $context) unless $lookup.is-resolved;
         True
     }
 

@@ -1555,14 +1555,25 @@ class RakuAST::Block
                     my str $local-name := $_.IMPL-LOWERED-LOCAL-NAME;
                     $stmts.push(QAST::Var.new(
                         :scope('local'), :decl('var'), :name($local-name) ));
-                    # hllize as the parameter binder would have, since
-                    # an iterator driven from nqp-side code can hand out
-                    # unboxed values.
+                    # Bind as the parameter binder would have. Hllize,
+                    # since an iterator driven from nqp code can hand
+                    # out unboxed values. Wrap in a fresh read-only
+                    # Scalar so an Iterable value stays a single item
+                    # and assignment to the parameter dies.
                     $stmts.push(QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($local-name), :scope('local') ),
-                        QAST::Op.new( :op('hllize'),
-                            QAST::Op.new( :op('decont'), $arg-qast ) )
+                        QAST::Op.new(
+                            :op('p6bindattrinvres'),
+                            QAST::Op.new(
+                                :op('create'),
+                                QAST::WVal.new( :value(Scalar) )
+                            ),
+                            QAST::WVal.new( :value(Scalar) ),
+                            QAST::SVal.new( :value('$!value') ),
+                            QAST::Op.new( :op('hllize'),
+                                QAST::Op.new( :op('decont'), $arg-qast ) )
+                        )
                     ));
                 }
                 else {
@@ -1915,7 +1926,9 @@ class RakuAST::PointyBlock
     # The single plain positional parameter, when the signature is
     # simple enough that binding a flattened invocation's argument to
     # the parameter's local matches what the call would have done: no
-    # type to check, no default, no where, no adverbs, no traits.
+    # type to check, no default, no where, no adverbs, no traits. Only
+    # a '$' sigil qualifies. The other sigils carry a nominal type
+    # check that only the real binder performs.
     method IMPL-FLATTEN-ARG-DECLARATION() {
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
         return nqp::null unless nqp::elems(@params) == 1;
@@ -1934,6 +1947,7 @@ class RakuAST::PointyBlock
             || nqp::elems($param.IMPL-UNWRAP-LIST($param.traits));
         my $target := $param.target;
         return nqp::null unless nqp::istype($target, RakuAST::ParameterTarget::Var)
+            && $target.sigil eq '$'
             && nqp::isconcrete($target.declaration)
             && !nqp::elems($target.declaration.IMPL-UNWRAP-LIST($target.declaration.traits));
         $target.declaration

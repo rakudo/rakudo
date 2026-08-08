@@ -1542,10 +1542,170 @@ class RakuAST::Block
     # when unused, so the argument is discarded.
     method IMPL-FLATTEN-ARG-DECLARATION() { nqp::null }
 
+    # The parameter owning that declaration.
+    method IMPL-FLATTEN-ARG-PARAMETER() { nqp::null }
+
     # As IMPL-QAST-FLATTENED, but binding the given argument QAST into
     # the block's argument declaration, the way calling the block with
     # one positional would have.
     method IMPL-QAST-FLATTENED-WITH-ARG(RakuAST::IMPL::QASTContext $context, Mu $arg-qast) {
+        my $param := self.IMPL-FLATTEN-ARG-PARAMETER;
+        my $nominal := nqp::isnull($param)
+            ?? Mu
+            !! nqp::getattr($param.meta-object, Parameter, '$!type');
+
+        # A parameter of nominal type Mu binds any value, so no check is
+        # needed. Bind as the parameter binder would have. Hllize, since
+        # an iterator driven from nqp code can hand out unboxed values.
+        # Wrap in a fresh read-only Scalar so an Iterable value stays a
+        # single item and assignment to the parameter dies.
+        if $nominal =:= Mu {
+            return self.IMPL-QAST-FLATTENED-ENTRY($context, QAST::Op.new(
+                :op('p6bindattrinvres'),
+                QAST::Op.new(
+                    :op('create'),
+                    QAST::WVal.new( :value(Scalar) )
+                ),
+                QAST::WVal.new( :value(Scalar) ),
+                QAST::SVal.new( :value('$!value') ),
+                QAST::Op.new( :op('hllize'),
+                    QAST::Op.new( :op('decont'), $arg-qast ) )
+            ));
+        }
+
+        # An '@', '%' or '&' parameter carries a nominal type that the
+        # binder checks, and a concrete Junction argument autothreads
+        # over its eigenstates instead of binding. Check inline, running
+        # the body once per value off a worklist that a Junction expands
+        # into, depth first, the way the autothreader recurses. A value
+        # that is neither throws the binder's type error. The worklist
+        # loop carries no handlers, so a loop control in the body
+        # reaches the loop the body belongs to.
+        my str $val-name   := QAST::Node.unique('flat_arg');
+        my str $queue-name := QAST::Node.unique('flat_arg_queue');
+        my $param-obj := $param.meta-object;
+        $context.ensure-sc($param-obj);
+        $context.ensure-sc($nominal);
+        my str $var-name := nqp::getattr_s($param-obj, Parameter, '$!variable_name');
+        my $dispatch := QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('istype'),
+                QAST::Var.new( :name($val-name), :scope('local') ),
+                QAST::WVal.new( :value($nominal) )
+            ),
+            self.IMPL-QAST-FLATTENED-ENTRY($context,
+                QAST::Var.new( :name($val-name), :scope('local') )),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($val-name), :scope('local') ),
+                        QAST::WVal.new( :value(Junction) )
+                    ),
+                    QAST::Op.new(
+                        :op('isconcrete'),
+                        QAST::Var.new( :name($val-name), :scope('local') )
+                    ),
+                    QAST::IVal.new( :value(0) )
+                ),
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('isnull'),
+                            QAST::Var.new( :name($queue-name), :scope('local') )
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($queue-name), :scope('local') ),
+                            QAST::Op.new( :op('list') )
+                        )
+                    ),
+                    QAST::Op.new(
+                        :op('splice'),
+                        QAST::Var.new( :name($queue-name), :scope('local') ),
+                        QAST::Op.new(
+                            :op('getattr'),
+                            QAST::Var.new( :name($val-name), :scope('local') ),
+                            QAST::WVal.new( :value(Junction) ),
+                            QAST::SVal.new( :value('$!eigenstates') )
+                        ),
+                        QAST::IVal.new( :value(0) ),
+                        QAST::IVal.new( :value(0) )
+                    )
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('throw_or_die'),
+                    QAST::WVal.new( :value(Perl6::Metamodel::Configuration) ),
+                    QAST::SVal.new( :value('X::TypeCheck::Binding::Parameter') ),
+                    QAST::SVal.new( :value(
+                        "Nominal type check failed for parameter '" ~ $var-name ~ "'"
+                    ) ),
+                    QAST::Var.new( :name($val-name), :scope('local'), :named('got') ),
+                    QAST::WVal.new( :value($nominal), :named('expected') ),
+                    QAST::SVal.new( :value($var-name), :named('symbol') ),
+                    QAST::WVal.new( :value($param-obj), :named('parameter') )
+                )
+            )
+        );
+        my $advance := QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('not_i'),
+                    QAST::Op.new(
+                        :op('isnull'),
+                        QAST::Var.new( :name($queue-name), :scope('local') )
+                    )
+                ),
+                QAST::Op.new(
+                    :op('elems'),
+                    QAST::Var.new( :name($queue-name), :scope('local') )
+                ),
+                QAST::IVal.new( :value(0) )
+            ),
+            QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($val-name), :scope('local') ),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($queue-name), :scope('local') )
+                    )
+                ),
+                QAST::IVal.new( :value(1) )
+            ),
+            QAST::IVal.new( :value(0) )
+        );
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($val-name), :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('hllize'),
+                    QAST::Op.new( :op('decont'), $arg-qast ) )
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($queue-name), :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('null') )
+            ),
+            QAST::Op.new(
+                :op('repeat_while'),
+                $advance,
+                $dispatch,
+                QAST::IVal.new( :value(1), :named('nohandler') )
+            )
+        )
+    }
+
+    # The statements run on each entry of a flattened invocation: the
+    # argument declaration bound to the given value, the other lowered
+    # declarations with fresh containers, and the body.
+    method IMPL-QAST-FLATTENED-ENTRY(RakuAST::IMPL::QASTContext $context, Mu $value-qast) {
         my $arg-decl := self.IMPL-FLATTEN-ARG-DECLARATION;
         my $stmts := QAST::Stmts.new();
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
@@ -1555,25 +1715,10 @@ class RakuAST::Block
                     my str $local-name := $_.IMPL-LOWERED-LOCAL-NAME;
                     $stmts.push(QAST::Var.new(
                         :scope('local'), :decl('var'), :name($local-name) ));
-                    # Bind as the parameter binder would have. Hllize,
-                    # since an iterator driven from nqp code can hand
-                    # out unboxed values. Wrap in a fresh read-only
-                    # Scalar so an Iterable value stays a single item
-                    # and assignment to the parameter dies.
                     $stmts.push(QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($local-name), :scope('local') ),
-                        QAST::Op.new(
-                            :op('p6bindattrinvres'),
-                            QAST::Op.new(
-                                :op('create'),
-                                QAST::WVal.new( :value(Scalar) )
-                            ),
-                            QAST::WVal.new( :value(Scalar) ),
-                            QAST::SVal.new( :value('$!value') ),
-                            QAST::Op.new( :op('hllize'),
-                                QAST::Op.new( :op('decont'), $arg-qast ) )
-                        )
+                        $value-qast
                     ));
                 }
                 else {
@@ -1926,10 +2071,8 @@ class RakuAST::PointyBlock
     # The single plain positional parameter, when the signature is
     # simple enough that binding a flattened invocation's argument to
     # the parameter's local matches what the call would have done: no
-    # type to check, no default, no where, no adverbs, no traits. Only
-    # a '$' sigil qualifies. The other sigils carry a nominal type
-    # check that only the real binder performs.
-    method IMPL-FLATTEN-ARG-DECLARATION() {
+    # explicit type, no default, no where, no adverbs, no traits.
+    method IMPL-FLATTEN-ARG-PARAMETER() {
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
         return nqp::null unless nqp::elems(@params) == 1;
         my $param := @params[0];
@@ -1947,10 +2090,14 @@ class RakuAST::PointyBlock
             || nqp::elems($param.IMPL-UNWRAP-LIST($param.traits));
         my $target := $param.target;
         return nqp::null unless nqp::istype($target, RakuAST::ParameterTarget::Var)
-            && $target.sigil eq '$'
             && nqp::isconcrete($target.declaration)
             && !nqp::elems($target.declaration.IMPL-UNWRAP-LIST($target.declaration.traits));
-        $target.declaration
+        $param
+    }
+
+    method IMPL-FLATTEN-ARG-DECLARATION() {
+        my $param := self.IMPL-FLATTEN-ARG-PARAMETER;
+        nqp::isnull($param) ?? nqp::null() !! $param.target.declaration
     }
 
     method new(RakuAST::Signature :$signature,

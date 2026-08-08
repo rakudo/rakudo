@@ -1895,6 +1895,8 @@ class RakuAST::Statement::Given
     # The body of the given statement.
     has RakuAST::Block $.body;
 
+    has int $!is-sunk;
+
     method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Given, '$!source', $source);
@@ -1904,12 +1906,26 @@ class RakuAST::Statement::Given
     }
 
     method propagate-sink(Bool $is-sunk) {
+        nqp::bindattr_i(self, RakuAST::Statement::Given, '$!is-sunk',
+            $is-sunk ?? 1 !! 0);
         $!source.apply-sink(False);
         $!body.apply-sink($is-sunk);
     }
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         $!body.set-implicit-topic(True, :required);
+    }
+
+    # Whether the body is eligible to flatten. A parameter carrying a
+    # nominal type compiles its check as a worklist loop, which
+    # produces no value and does not collect autothreaded results into
+    # a Junction the way a call does, so such a body only flattens
+    # when the statement is sunk.
+    method IMPL-CAN-FLATTEN-BODY() {
+        return 1 if $!is-sunk;
+        my $param := $!body.IMPL-FLATTEN-ARG-PARAMETER;
+        nqp::isnull($param)
+            || nqp::getattr($param.meta-object, Parameter, '$!type') =:= Mu
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

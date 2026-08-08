@@ -705,6 +705,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]*
     }
 
+    # Whitespace between regex atoms.  Like ws, but without unspace:
+    # in a regex a backslash always starts an escape such as \# or \s.
+    token regex-ws {
+        :dba('whitespace')
+        [
+        | [\r\n || \v] <.heredoc>
+        | <.unv>
+        | <.vcs-conflict>
+        ]*
+    }
+
     token vws {
         :dba('vertical whitespace')
         [
@@ -2925,8 +2936,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
           { $*IN_DECL := '' }
            <.newpad>
           [ [ ':'?'(' <signature('sig', 1)> ')' ] | <trait> ]*
-          '{'
-          [
+          '{'<.regex-ws>[
           | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
           | <nibble(self.quote_lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
           ]
@@ -5832,7 +5842,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
     method throw_solitary_quantifier() { self.typed_panic('X::Syntax::Regex::SolitaryQuantifier') }
     method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
 
-    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'regex-ws')> }
 
     token rxstopper { <stopper> }
 

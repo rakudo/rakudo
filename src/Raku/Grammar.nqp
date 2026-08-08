@@ -4318,7 +4318,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
           <trait($*BLOCK)>*
-          '{'
+          '{' <.regex-whitespace>
           [
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
@@ -5725,6 +5725,17 @@ Rakudo significantly on *every* run."
         ]*
     }
 
+    # Whitespace between regex atoms.  Like ws, but without unspace:
+    # in a regex a backslash always starts an escape such as \# or \s.
+    token regex-whitespace {
+        :dba('whitespace')
+        [
+          | [ \r\n || \v ] <.heredoc>
+          | <.horizontal-whitespace>
+          | <.vcs-conflict>
+        ]*
+    }
+
     # Handle vertical whitespace including version control markers
     token vertical-whitespace {
         :dba('vertical whitespace')
@@ -6571,7 +6582,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         self.typed-sorry: 'X::Syntax::Regex::SolitaryBacktrackControl';
     }
 
-    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'regex-whitespace')> }
 
     token rxstopper { <stopper> }
 

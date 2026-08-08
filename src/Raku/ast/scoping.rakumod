@@ -1382,12 +1382,12 @@ class RakuAST::PackageInstaller {
         my $lexical;
         my $lexical-stub;
         my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
-        # If the multi-part install resolves its parent through the
-        # setting / outer lexical chain (cross-compunit reload),
-        # capture *which* parent that was and treat the install-
-        # collision as silent only when $target is still that exact
-        # parent at check time (the loop below may reassign $target
-        # to a freshly-created intermediate stub, which is ours).
+        # When the setting resolves the parent of a multi-part install,
+        # the declaration is a cross-compunit reload. Capture which
+        # parent that was and treat the install collision as silent
+        # only when $target is still that exact parent at check time.
+        # The chase loop below may reassign $target to a freshly
+        # created intermediate stub, which is ours.
         my $setting-resolved-target;
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
@@ -1449,22 +1449,35 @@ class RakuAST::PackageInstaller {
             # GLOBALish into the consumer, which is the only route there
             # to a symbol nested under a unit-scoped module. The shadowed
             # lookup skips the whole current scope; a pre-existing symbol
-            # here is an import's generated lexical, preferred first. No
-            # upgrade while compiling the setting, whose lexicals all
+            # here is an import's generated lexical, preferred first.
+            # A name the compunit merely resolves from the setting or
+            # outer context must stay out of GLOBALish. Hoisting it
+            # would publish the setting type to every consumer and
+            # collide with the consumer's own view of that name. The
+            # exception is an our-scoped declaration installing into the
+            # global stash itself, where the install below adopts the
+            # hoisted entry's WHO and overwrites the entry right away.
+            # No upgrade while compiling the setting, whose lexicals all
             # resolve without it. This runs after the collision check
             # above: when the current package is the global one, the
-            # upgrade writes the very stash that check reads, and the
-            # install below overwrites the entry either way.
+            # upgrade writes the very stash that check reads.
             my $setting := $resolver.setting;
             if !nqp::isnull($setting) && $setting {
+                my $replaces-global-entry := $scope eq 'our'
+                    && nqp::eqaddr($current-package, $resolver.get-global);
                 my $pre-existing := $generated && nqp::istype($generated, RakuAST::CompileTimeValue)
                     ?? $generated
                     !! $lexical;
                 if nqp::isconcrete($pre-existing) && nqp::istype($pre-existing, RakuAST::CompileTimeValue) {
-                    $pre-existing := $resolver.resolve-shadowed-lexical-constant($final)
+                    $pre-existing := $replaces-global-entry
+                        ?? $resolver.resolve-shadowed-lexical-constant($final)
+                        !! $resolver.resolve-shadowed-lexical-constant-in-scopes($final)
                         if nqp::eqaddr($pre-existing.compile-time-value, $type-object);
                     if nqp::isconcrete($pre-existing)
-                        && !nqp::eqaddr($pre-existing.compile-time-value, $type-object) {
+                        && !nqp::eqaddr($pre-existing.compile-time-value, $type-object)
+                        && ($replaces-global-entry
+                            || nqp::istype($pre-existing, RakuAST::Declaration::Import)
+                            || !nqp::istype($pre-existing, RakuAST::Declaration::External)) {
                         self.IMPL-STASH-BIND(
                           $resolver.get-global, $final, $pre-existing.compile-time-value
                         );
@@ -1503,9 +1516,29 @@ class RakuAST::PackageInstaller {
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
-                $setting-resolved-target := $target if $resolved[2] eq 'lexical';
-                if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical' {
-                    # Upgrade lexically imported top level package to global
+                # Capture the parent only when the setting itself resolves
+                # the leading name part. A leading part resolved from a
+                # caller's frame, such as an EVAL redeclaring a class its
+                # caller declared, is a plain redeclaration and must still
+                # reach the collision check.
+                if $resolved[2] eq 'lexical' {
+                    my $lexical-first := $resolver.resolve-lexical-constant($first);
+                    my $in-setting := $resolver.resolve-lexical-constant-in-setting($first);
+                    $setting-resolved-target := $target
+                        if nqp::isconcrete($lexical-first)
+                        && nqp::isconcrete($in-setting)
+                        && nqp::eqaddr(
+                            $in-setting.compile-time-value,
+                            $lexical-first.compile-time-value);
+                }
+                # Upgrade a lexically imported top level package to global.
+                # Only a name the compilation unit's own scopes carry
+                # qualifies, such as an import. A leading part resolved
+                # from the setting or outer context must not be published
+                # into this unit's GLOBALish, which every consumer merges
+                # in.
+                if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical'
+                    && nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first)) {
                     ($resolver.get-global.WHO){$first} := $resolver.resolve-lexical($first).compile-time-value;
                 }
                 my $parts  := $resolved[1];

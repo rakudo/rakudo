@@ -1287,6 +1287,29 @@ class RakuAST::Resolver::EVAL
     }
 
     # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope, consulting only the compilation unit's own
+    # scopes. The innermost scope is not searched. Neither the outer
+    # context nor the setting is consulted. This finds the declaration
+    # that a same-named declaration in the current scope shadows.
+    method resolve-shadowed-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
     # enclosing scope: the innermost scope is not searched. This finds
     # the declaration that a same-named declaration in the current
     # scope shadows. The fallback chain matches resolve-lexical-constant
@@ -1318,6 +1341,24 @@ class RakuAST::Resolver::EVAL
     # compile-time value, otherwise Nil. A name bound to a non-constant
     # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
     # innermost such binding yields Nil rather than an outer constant.
+    # Resolves a name to the lexical constant declared in the
+    # compilation unit's own scopes. The outer context and setting are
+    # not consulted.
+    method resolve-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        Nil
+    }
+
     method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
 
         # No need to look further
@@ -1574,6 +1615,29 @@ class RakuAST::Resolver::Compile
     }
 
     # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope, consulting only the compilation unit's own
+    # scopes. The innermost scope is not searched and the outer
+    # context is not consulted. This finds the declaration that a
+    # same-named declaration in the current scope shadows.
+    method resolve-shadowed-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
     # enclosing scope: the innermost scope is not searched. This finds
     # the declaration that a same-named declaration in the current
     # scope shadows. The fallback matches resolve-lexical-constant
@@ -1600,6 +1664,24 @@ class RakuAST::Resolver::Compile
     # compile-time value, otherwise Nil. A name bound to a non-constant
     # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
     # innermost such binding yields Nil rather than an outer constant.
+    # Resolves a name to the lexical constant declared in the
+    # compilation unit's own scopes. The outer context is not
+    # consulted.
+    method resolve-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        Nil
+    }
+
     method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
 
         # Only one GLOBAL

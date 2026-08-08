@@ -353,7 +353,19 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
-    multi method ACCEPTS(Match:D: Mu) { self }
+    # A concrete Match matcher matches everything before 6.e: returning self
+    # keeps the smartmatch truthy for a successful match, which idioms like
+    # `EXPR when $x ~~ /regex/` rely on. From 6.e on the smartmatch is an
+    # ordinary identity comparison. The revision must be checked here as
+    # well as in the infix candidates because `when` compiles to a direct
+    # ACCEPTS call.
+    multi method ACCEPTS(Match:D: Mu \topic) {
+        nqp::isge_i(
+            nqp::ifnull(nqp::getlexcaller('$?LANGUAGE-REVISION'), 1),
+            3)
+          ?? nqp::hllbool(nqp::eqaddr(nqp::decont(self), nqp::decont(topic)))
+          !! self
+    }
 
     method prematch(Match:D:) {
         nqp::substr(self.NQPMatchRole::target,0,$!from)
@@ -453,7 +465,8 @@ sub make(Mu \made) {
 # A concrete Match matcher is a match result already, so the smartmatch
 # returns it as-is rather than boolifying, the same way matching against a
 # regex returns the Match. The raku-smartmatch dispatcher implements the
-# same rule.
+# same rule. This holds before 6.e only: core.e carries same-signature
+# candidates that make the smartmatch an identity comparison.
 multi sub infix:<~~>(Mu \topic, Match:D $matcher) {
     $matcher
 }

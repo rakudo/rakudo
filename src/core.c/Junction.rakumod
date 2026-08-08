@@ -428,6 +428,23 @@ my class Junction { # declared in BOOTSTRAP
     # only with it we can guarantee the default handling of junctions.
     proto method BOOLIFY-ACCEPTS(|) is implementation-detail {*}
     multi method BOOLIFY-ACCEPTS(Junction:U, $negate?) { nqp::hllbool(nqp::isfalse($negate)) }
+    # A concrete Match matcher stops matching everything from 6.e on: the
+    # smartmatch becomes an identity comparison applied across the
+    # eigenstates, with pre-6.e callers falling through to the generic
+    # candidate. The revision must be checked here as well as in the infix
+    # candidates because the optimizer calls this method directly for a
+    # topic known to be a Junction at compile time.
+    multi method BOOLIFY-ACCEPTS(Match:D $matcher, $negate?) {
+        if nqp::isge_i(nqp::ifnull(nqp::getlexcaller('$?LANGUAGE-REVISION'),1),3) {
+            my $matches := self.THREAD({
+                nqp::hllbool(nqp::eqaddr(nqp::decont($matcher),nqp::decont($_)))
+            }).Bool;
+            $negate ?? $matches.not !! $matches
+        }
+        else {
+            nextsame
+        }
+    }
     multi method BOOLIFY-ACCEPTS(Mu \matcher, $negate?) {
         my $matches :=
           nqp::stmts(

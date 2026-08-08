@@ -12,6 +12,26 @@ class RakuAST::Expression
 
     method needs-sink-call() { True }
 
+    # Whether this expression is statically known to produce a Match rather
+    # than a matcher: a smartmatch against a regex construct, like
+    # `$x ~~ /pattern/` or `$x ~~ s/foo/bar/`, possibly parenthesized.
+    # Using such an expression as a matcher is worth a worry from 6.e on,
+    # where a concrete Match matcher compares by identity and so can never
+    # match a topic that is not that Match itself.
+    method IMPL-IS-MATCH-RESULT() {
+        my $node := self;
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses) {
+            my @statements := $node.semilist.IMPL-UNWRAP-LIST($node.semilist.statements);
+            last unless nqp::elems(@statements) == 1
+                && nqp::istype(@statements[0], RakuAST::Statement::Expression);
+            $node := @statements[0].expression;
+        }
+        nqp::istype($node, RakuAST::ApplyInfix)
+          && nqp::istype($node.infix, RakuAST::Infix)
+          && $node.infix.operator eq '~~'
+          && nqp::istype($node.right, RakuAST::RegexThunk)
+    }
+
     # All expressions can be thunked - that is, compiled such that they get
     # wrapped up in a code object of some kind. For such expressions, this
     # thunks attribute will point to a linked list of thunks to apply, the
@@ -2502,6 +2522,17 @@ class RakuAST::ApplyInfix
                 self.add-worry:
                   $resolver.build-exception:
                     'X::WhateverCode::SmartMatch::LHS';
+            }
+
+            if ($infix-op eq '~~' || $infix-op eq '!~~')
+              && $context.language-revision >= 3
+              && $right.IMPL-IS-MATCH-RESULT {
+                self.add-worry:
+                  $resolver.build-exception: 'X::AdHoc', payload =>
+                    "Smartmatch against the Match result of another smartmatch"
+                      ~ " never matches from 6.e on, where a concrete Match"
+                      ~ " matcher compares by identity; match against the regex"
+                      ~ " directly";
             }
 
             if nqp::existskey(WORRISOME-RANGE, $infix-op)

@@ -1127,6 +1127,16 @@ class RakuAST::Parameter
             self.add-sorry: $sorry if $sorry;
         }
 
+        # Also before the wrapping, which hides the constraint's shape.
+        if $!where && $context.language-revision >= 3
+          && $!where.IMPL-IS-MATCH-RESULT {
+            self.add-worry:
+              $resolver.build-exception: 'X::AdHoc', payload =>
+                "A where clause that is itself a smartmatch never matches"
+                  ~ " from 6.e on, where a concrete Match matcher compares"
+                  ~ " by identity; match against the regex directly";
+        }
+
         if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(

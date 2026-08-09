@@ -1516,20 +1516,29 @@ class RakuAST::PackageInstaller {
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
-                # Capture the parent only when the setting itself resolves
-                # the leading name part. A leading part resolved from a
+                # Capture the parent when the compilation unit's own scopes
+                # or the setting resolve the leading name part. The own
+                # scopes carry it for a class nested in a same-named unit
+                # class, whose install must adopt the enclosing WHO, and an
+                # in-source duplicate still dies through the our-package
+                # declaration tracker. A leading part resolved from a
                 # caller's frame, such as an EVAL redeclaring a class its
                 # caller declared, is a plain redeclaration and must still
                 # reach the collision check.
                 if $resolved[2] eq 'lexical' {
-                    my $lexical-first := $resolver.resolve-lexical-constant($first);
-                    my $in-setting := $resolver.resolve-lexical-constant-in-setting($first);
-                    $setting-resolved-target := $target
-                        if nqp::isconcrete($lexical-first)
-                        && nqp::isconcrete($in-setting)
-                        && nqp::eqaddr(
-                            $in-setting.compile-time-value,
-                            $lexical-first.compile-time-value);
+                    if nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first)) {
+                        $setting-resolved-target := $target;
+                    }
+                    else {
+                        my $lexical-first := $resolver.resolve-lexical-constant($first);
+                        my $in-setting := $resolver.resolve-lexical-constant-in-setting($first);
+                        $setting-resolved-target := $target
+                            if nqp::isconcrete($lexical-first)
+                            && nqp::isconcrete($in-setting)
+                            && nqp::eqaddr(
+                                $in-setting.compile-time-value,
+                                $lexical-first.compile-time-value);
+                    }
                 }
                 # Upgrade a lexically imported top level package to global.
                 # Only a name the compilation unit's own scopes carry

@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 12;
+plan 13;
 
 is-run q:to/CODE/,
     EVAL q[class A {}];
@@ -112,5 +112,13 @@ is-run q:to/CODE/,
     CODE
     :out('same'), :err(''),
     'a class whose body trait dies re-throws on a same-name retry, not X::Redeclaration';
+
+is-run q:to/CODE/,
+    unit class Nested::Shadow;
+    class Nested::Shadow { method tag { "inner" } }
+    print Nested::Shadow.tag;
+    CODE
+    :out('inner'), :err(''),
+    'a class nested in a same-named unit class silent-replaces';
 
 # vim: expandtab shiftwidth=4

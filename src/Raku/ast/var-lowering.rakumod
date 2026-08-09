@@ -266,11 +266,11 @@ class RakuAST::IMPL::VarLowering {
         }
 
         # A sunk serial for statement drives its body directly, and a
-        # given calls its body with the topicalized value, so both walk
-        # their bodies as argument-taking flatten candidates: a plain
-        # body flattens when its topic goes unused, and a pointy body
-        # with one plain parameter has the iteration value bound to the
-        # parameter's local instead.
+        # given calls its body with the topicalized value, so each may
+        # walk its body as a flatten candidate that takes an argument:
+        # a plain body flattens when its topic goes unused, and a
+        # pointy body with one plain parameter has the value bound to
+        # the parameter's local instead.
         if nqp::istype($node, RakuAST::Statement::For)
             && $node.mode eq 'serial'
             && $node.IMPL-DISCARD-RESULT
@@ -285,7 +285,12 @@ class RakuAST::IMPL::VarLowering {
         if nqp::istype($node, RakuAST::Statement::Given) {
             self.IMPL-REGISTER-IMPLICIT-LOOKUPS($node);
             self.IMPL-WALK($node.source);
-            self.IMPL-WALK-FLATTEN-CANDIDATE($node.body, :arg);
+            if $node.IMPL-CAN-FLATTEN-BODY {
+                self.IMPL-WALK-FLATTEN-CANDIDATE($node.body, :arg);
+            }
+            else {
+                self.IMPL-WALK($node.body);
+            }
             $node.visit-labels(-> $label { self.IMPL-WALK($label) });
             return Nil;
         }

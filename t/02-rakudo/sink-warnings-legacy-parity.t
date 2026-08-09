@@ -1,6 +1,6 @@
 use Test;
 
-plan 15;
+plan 23;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -88,5 +88,48 @@ nok useless-of(
         '{*}'
     ),
     '`{*}` is not a useless-use subject in a non-tail proto body';
+
+# An assignment carried by a zip, cross or reverse meta operator still
+# assigns when its result is discarded, so `Z=`, `X=` and `R=` are not
+# useless in sink context. Their operands are consumed by the meta
+# operator rather than being discarded, so they are not subjects either.
+# Legacy stays silent on all three.
+
+nok useless-lines(stderr-of 'my @a = 1,2; my @b = 3,4; sub f { @a Z= @b; 42 }; f()').elems,
+    '`Z=` produces no useless-use subjects in sink context';
+
+nok useless-lines(stderr-of 'my @a = 1,2; sub f { @a X= 9; 42 }; f()').elems,
+    '`X=` produces no useless-use subjects in sink context';
+
+nok useless-lines(stderr-of 'my $x = 1; my $y = 2; sub f { $x R= $y; 42 }; f()').elems,
+    '`R=` produces no useless-use subjects in sink context';
+
+# A meta operator wrapping a pure operator stays a useless use, and only
+# the operator itself is the subject.
+
+my $zip-err = stderr-of 'my @a = 1,2; my @b = 3,4; sub f { @a Z+ @b; 42 }; f()';
+ok useless-of($zip-err, 'Z+'),
+    '`Z+` of a pure operator is still a useless-use subject in sink context';
+nok useless-of($zip-err, '@a'),
+    'the operands of a sunk `Z+` are not useless-use subjects';
+
+# An assignment carried by a meta operator must still run when sunk,
+# including iterating the lazy sequence a zip or cross produces.
+
+{
+    my @a = 1,2,3;
+    my @b = 4,5,6;
+    @a Z= @b;
+    is-deeply @a, [4,5,6], 'sunk `Z=` assigned zipwise';
+
+    my @c = 1,2;
+    @c X= 9;
+    is-deeply @c, [9,9], 'sunk `X=` assigned each element';
+
+    my $x = 0;
+    my $y = 1;
+    $x R= $y;
+    is $y, 0, 'sunk `R=` assigned to its right operand';
+}
 
 # vim: expandtab shiftwidth=4

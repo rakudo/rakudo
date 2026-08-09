@@ -4318,8 +4318,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
           <trait($*BLOCK)>*
-          '{' <.regex-whitespace>
-          [
+          '{'<.regex-whitespace>[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
             | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
           ]

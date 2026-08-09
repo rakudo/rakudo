@@ -78,15 +78,19 @@ plan 131;
 # increment that no longer increments loops forever. Each wrap is
 # therefore applied, exercised and removed within a single EVAL whose
 # code was compiled before the wrap took effect, and the assertions
-# run only once the operator is restored.
+# run only once the operator is restored. Counting handler calls does not
+# work. Every other caller that dispatches the operator during that window
+# runs the handler too, and whether a given caller dispatches it at all
+# depends on precomp state. The increment is checked by its effect on the
+# variable instead.
 {
     my @result;
     Q§ my $handle = &infix:<|>.wrap: -> | { @result.push("ok"); True }; -> $ where {$_ ~~ Int|Num} {}(42); &infix:<|>.unwrap($handle) §.AST.EVAL;
     is-deeply @result, ["ok"], "wrapping infix:<|> works";
 
-    @result = [];
-    Q§ use soft; my $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++; &postfix:<++>.unwrap($handle) §.AST(:compunit).EVAL;
-    is-deeply @result, ["ok2"], "wrapping postfix:<++> works under soft";
+    my $x;
+    Q§ use soft; my $handle = &postfix:<++>.wrap: -> | { }; my int $i; $i++; &postfix:<++>.unwrap($handle); $x = $i §.AST(:compunit).EVAL;
+    is-deeply $x, 0, "wrapping postfix:<++> works under soft";
 }
 
 # ???

@@ -1651,6 +1651,37 @@ class RakuAST::Block
                 )
             )
         );
+        # The binder gives a Positional parameter one failover ahead
+        # of the nominal type check: a value that does
+        # PositionalBindFailover binds as its cached List, which is
+        # how a Seq binds to an '@' parameter.
+        my $lookups := $param.IMPL-UNWRAP-LIST($param.get-implicit-lookups);
+        if $nominal =:= $lookups[0].resolution.compile-time-value {
+            my $failover := $lookups[1].resolution.compile-time-value;
+            $context.ensure-sc($failover);
+            $dispatch := QAST::Stmts.new(
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name($val-name), :scope('local') ),
+                        QAST::WVal.new( :value($failover) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($val-name), :scope('local') ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('cache'),
+                                QAST::Var.new( :name($val-name), :scope('local') )
+                            )
+                        )
+                    )
+                ),
+                $dispatch
+            );
+        }
         my $advance := QAST::Op.new(
             :op('if'),
             QAST::Op.new(

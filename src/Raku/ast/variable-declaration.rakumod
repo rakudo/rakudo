@@ -261,9 +261,18 @@ class RakuAST::ContainerCreator {
         }
         else {
             # $explicit-base is already the base type of any `is Type:D`.
-            $container-type := self.type
-                ?? $explicit-base.HOW.parameterize($explicit-base, $of)
-                !! $explicit-base;
+            if $key-type =:= NQPMu {
+                $container-type := self.type
+                    ?? $explicit-base.HOW.parameterize($explicit-base, $of)
+                    !! $explicit-base;
+            }
+            else {
+                my $value-type := self.type
+                    ?? $of
+                    !! (nqp::getcomp('Raku').language_revision >= 3 ?? Mu !! Any);
+                $container-type := $explicit-base.HOW.parameterize(
+                    $explicit-base, $value-type, $key-type);
+            }
         }
 
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);

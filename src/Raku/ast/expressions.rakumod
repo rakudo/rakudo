@@ -1466,6 +1466,20 @@ class RakuAST::MetaInfix
                                 RakuAST::Expression *@operands, Bool :$meta) {
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
+
+    # A meta operator has the effects of the operator it wraps, so a
+    # sunk Z= still assigns while a sunk Z+ is a useless use.
+    method is-pure() { self.infix.is-pure }
+
+    method IMPL-RESULT-NEEDS-ITERATION() { self.infix.IMPL-RESULT-NEEDS-ITERATION }
+
+    # The operands are consumed by the meta operator, so they are never
+    # themselves in sink context.
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        for $operands {
+            $_.apply-sink(False);
+        }
+    }
 }
 
 # An assign meta-operator, operator on another infix.
@@ -1704,14 +1718,6 @@ class RakuAST::MetaInfix::Assign
         QAST::Op.new:
             :op('callstatic'), :name(self.IMPL-OPERATOR-NAME(1)),
             $!infix.IMPL-HOP-INFIX-QAST($context)
-    }
-
-    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        my $i := 0;
-        while $i < nqp::elems($operands) {
-            $operands[$i].apply-sink(False);
-            $i++;
-        }
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1961,6 +1967,13 @@ class RakuAST::MetaInfix::Cross
         $visitor($!infix);
     }
 
+    # The cross produces a lazy sequence, so when the wrapped operator
+    # has side effects a sunk result must still be iterated to run
+    # those effects.
+    method IMPL-RESULT-NEEDS-ITERATION() {
+        !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
+    }
+
     method properties() { OperatorProperties.infix('X') }
 
     method reducer-name() {
@@ -2051,6 +2064,13 @@ class RakuAST::MetaInfix::Zip
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    # The zip produces a lazy sequence, so when the wrapped operator
+    # has side effects a sunk result must still be iterated to run
+    # those effects.
+    method IMPL-RESULT-NEEDS-ITERATION() {
+        !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
     }
 
     method properties() { OperatorProperties.infix('Z') }

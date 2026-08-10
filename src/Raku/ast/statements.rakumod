@@ -2383,6 +2383,14 @@ class RakuAST::ModuleLoading {
         my $target-scope := $resolver.current-scope;
         for self.IMPL-SORTED-KEYS($stash) -> $key {
             next if $key eq 'EXPORT';
+            # A unit's GLOBALish can carry an EXPORTHOW entry aliasing the
+            # setting's own EXPORTHOW module. EXPORTHOW is a compile-time
+            # directive package read from a unit's lexical scope through its
+            # handle, not an importable symbol: installing the alias as a
+            # lexical would hand later my scoped EXPORTHOW declarations to
+            # the merge machinery, which mutates the setting's table and
+            # loses the declaration.
+            next if $globalish && $key eq 'EXPORTHOW';
             my $value := $stash{$key};
             if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
                 $value := nqp::decont($value);

@@ -1565,11 +1565,15 @@ class RakuAST::VarDeclaration::Simple
 
             my $meta-object := $!attribute-package.attribute-type.new(
               name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
-              # An inlined attribute with an explicit container type (e.g.
-              # `HAS ... is CArray[int32]`) needs the parameterized container
-              # as its type for the REPR to lay it out; the bind constraint
-              # is a bare Mu on that path.
-              type => $scope eq 'HAS' && self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+              # An attribute with an explicit container base type (e.g.
+              # `has Int @.a is Array`) needs the parameterized container as
+              # its type, both for introspection and for REPRs that lay
+              # attributes out by type. The bind constraint is a bare Mu on
+              # that path. Only sigils whose base type is the container
+              # itself qualify. An `is` type on a scalar names its scalar
+              # container type rather than the value type.
+              type => self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+                  && ($scope eq 'HAS' || self.sigil eq '@' || self.sigil eq '%')
                 ?? self.IMPL-CONTAINER-TYPE($of)
                 !! $type,
               has_accessor          => self.twigil eq '.',

@@ -1,6 +1,6 @@
 use Test;
 
-plan 19;
+plan 23;
 
 # A sunk for statement and a given statement can inline the body,
 # binding the value straight into the parameter's lowered local. That
@@ -77,6 +77,38 @@ throws-like { for 1, 2 -> &row { } }, X::TypeCheck::Binding::Parameter,
     for { 40 }, { 2 } -> &f { @got.push(f()) }
     is-deeply @got, [40, 2],
         'an & loop parameter binds Callable values and is callable in the body';
+}
+
+{
+    my $s = (1, 2).Seq;
+    my @rows;
+    for ($s,) -> @row { @rows.push(@row.join('-')) }
+    is-deeply @rows, ["1-2"],
+        'an itemized Seq element binds to an @ loop parameter';
+}
+
+{
+    my $s = (1, 2).Seq;
+    my $type;
+    for ($s,) -> @row { $type = @row.WHAT.^name }
+    is $type, 'List',
+        'the parameter holds the cached List of the Seq element';
+}
+
+{
+    my $s = ("A", "B").Seq;
+    my %h;
+    given $s -> @row { %h{@row.join('-')} = 1 }
+    is-deeply %h.keys.List, ("A-B",),
+        'an itemized Seq given topic binds to an @ parameter';
+}
+
+{
+    my $s = (1, 2).Seq;
+    my @seen;
+    for (any($s, [9]),) -> @row { @seen.push(@row[0]) }
+    is-deeply @seen, [1, 9],
+        'a Seq eigenstate binds through its cached List';
 }
 
 {

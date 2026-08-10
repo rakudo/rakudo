@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -189,6 +189,32 @@ CODE
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
         is $string, "fxo", "$type: is the result correct";
     }
+}
+
+subtest 'Perl 5 substitutions are rejected' => {
+    plan 2;
+
+    # s:P5/o/x/
+    my $P5 := RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("o"),
+      adverbs     => RakuAST::ColonPair::True.new("P5"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      )
+    );
+    throws-like { EVAL($P5) }, X::Syntax::Regex::P5,
+      'the :P5 adverb on a substitution is a compile time error';
+
+    # s:!P5/o/x/
+    my $not-P5 := RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("o"),
+      adverbs     => RakuAST::ColonPair::False.new("P5"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      )
+    );
+    throws-like { EVAL($not-P5) }, X::Syntax::Regex::P5,
+      'a negated :P5 adverb on a substitution is a compile time error as well';
 }
 
 # vim: expandtab shiftwidth=4

@@ -4656,7 +4656,12 @@ class RakuAST::QuotedRegex
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $key := $_.key;
             my str $norm := self.IMPL-NORMALIZE-ADVERB($key);
-            if self.IMPL-IS-COMPILATION-ADVERB($norm) {
+            if $norm eq 'P5' {
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Syntax::Regex::P5',
+                    adverb => $key;
+            }
+            elsif self.IMPL-IS-COMPILATION-ADVERB($norm) {
                 # Compile-time adverbs must have a simple compile time value.
                 unless nqp::isconcrete($_.simple-compile-time-quote-value()) {
                     self.add-sorry:
@@ -4804,7 +4809,12 @@ class RakuAST::Substitution
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $key := $_.key;
             my str $norm := self.IMPL-NORMALIZE-ADVERB($key);
-            if self.IMPL-IS-COMPILATION-ADVERB(self.IMPL-SUBST-TO-MATCH-ADVERB($norm)) {
+            if $norm eq 'P5' {
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Syntax::Regex::P5',
+                    adverb => $key;
+            }
+            elsif self.IMPL-IS-COMPILATION-ADVERB(self.IMPL-SUBST-TO-MATCH-ADVERB($norm)) {
                 # Compile-time adverbs must have a simple compile time value.
                 unless nqp::isconcrete($_.simple-compile-time-quote-value()) {
                     self.add-sorry:

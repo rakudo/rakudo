@@ -2235,6 +2235,12 @@ my class X::Syntax::Regex::Adverb does X::Syntax {
     method message() { "Adverb $.adverb not allowed on $.construct" }
 }
 
+my class X::Syntax::Regex::P5 does X::Syntax {
+    method message() {
+        "Perl 5 regexes are not supported; please rewrite as a Raku regex"
+    }
+}
+
 my class X::Syntax::Regex::UnrecognizedMetachar does X::Syntax {
     has $.metachar;
     method message() { "Unrecognized regex metacharacter $.metachar (must be quoted to match literally)" }

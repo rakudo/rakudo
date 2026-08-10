@@ -3713,8 +3713,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # regex and constructing its AST correctly. Of note, these are
     # s (sigspace, as it controls how whitespce is parsed), m (so we
     # can construct character class ranges correctly), and P5 (Perl5,
-    # so we know which regex language to parse). These get special
-    # handling.
+    # a regex language that is not supported, so asking for it is an
+    # error). These get special handling.
     my constant SPECIAL-RX-ADVERBS := nqp::hash(
         'ignoremark', 'm',
         'm',          'm',
@@ -3736,10 +3736,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $key := SPECIAL-RX-ADVERBS{$ast.key};
             if $key {
                 my $value := $ast.simple-compile-time-quote-value;
-                nqp::isconcrete($value)
-                  ?? (%*RX{$key} := ?$value)
-                  !! $_.typed-panic: 'X::Value::Dynamic',
-                       what => 'Adverb ' ~ $ast.key;
+                unless nqp::isconcrete($value) {
+                    $_.typed-panic: 'X::Value::Dynamic',
+                      what => 'Adverb ' ~ $ast.key;
+                }
+                if $key eq 'P5' && $value {
+                    $_.typed-panic: 'X::Syntax::Regex::P5';
+                }
+                %*RX{$key} := ?$value;
             }
         }
         make @pairs;
@@ -5347,6 +5351,6 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
 class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
     method nibbler($/) {
-        self.attach: $/, Nodify('Regex::Assertion::Fail').new;
+        $/.typed-panic: 'X::Syntax::Regex::P5';
     }
 }

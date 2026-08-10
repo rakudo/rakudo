@@ -41,6 +41,14 @@ class RakuAST::IMPL::QASTContext {
     has Hash $!cuid-to-parse-time-resolver;
     has Bool $!parse-time-resolver-cleanup-scheduled;
 
+    # Identity token for this compilation. Dynamically-compiled frames
+    # carry it as a lexical, and a begin-time effect leaves it in a
+    # dynamic, so a begin-time indirect lookup can tell code belonging
+    # to the unit being compiled from foreign code it merely runs. An
+    # inert instance: frames carrying it can be serialized, which a
+    # frame holding the resolver could not.
+    has Mu $!begin-time-marker;
+
     # Code objects whose IMPL-STUB-CODE bound a freshcoderef to
     # Code.$!do but whose IMPL-LINK-META-OBJECT has not yet registered
     # that coderef with the SC. If the owning AST is discarded before
@@ -70,6 +78,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!begin-time-marker', nqp::create(Mu));
         $obj
     }
 
@@ -91,8 +100,11 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!begin-time-marker', nqp::create(Mu));
         $context
     }
+
+    method begin-time-marker() { $!begin-time-marker }
 
     # Get the handle of the serialization context.
     method sc-handle() {

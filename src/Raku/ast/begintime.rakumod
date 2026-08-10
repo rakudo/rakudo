@@ -15,12 +15,31 @@ class RakuAST::BeginTime
         nqp::die('Missing PERFORM-BEGIN implementation in ' ~ self.HOW.name(self));
     }
 
+    # What a pseudo-stash lookup asks once the context chain it walks runs
+    # out. Code run for a begin-time effect has the setting as its outer,
+    # so that chain reaches setting symbols and stops short of what the
+    # unit being compiled declares. The token restricts the answer to
+    # frames this compilation produced: the lookup consults the resolver
+    # only when the frame it runs in sees the same token, so foreign code
+    # the effect merely runs is not answered for. Null without a context,
+    # since no frame can then carry the token.
+    method IMPL-BEGIN-TIME-LOOKUP-STATE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::isconcrete($context)
+          ?? nqp::list($resolver, $context.begin-time-marker)
+          !! nqp::null()
+    }
+
     # Ensure the begin-time effects are performed.
     method ensure-begin-performed(
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
         unless $!begin-performed {
+            my $*BEGIN-TIME-LOOKUP :=
+              RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
             self.PERFORM-BEGIN($resolver, $context);
             nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1);
         }
@@ -35,6 +54,8 @@ class RakuAST::BeginTime
       RakuAST::IMPL::QASTContext $context
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*BEGIN-TIME-LOOKUP :=
+          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 
         # Handle any execution error appropriately
         CATCH {
@@ -159,6 +180,8 @@ class RakuAST::BeginTime
       RakuAST::IMPL::QASTContext $context
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*BEGIN-TIME-LOOKUP :=
+          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 
         # A primed argument (a WhateverCode) may be interpreted here, as
         # its static block compiles against a real QAST context.

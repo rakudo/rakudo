@@ -585,24 +585,37 @@ sub COMP_EXCEPTION(|) is implementation-detail {
 do {
 
     sub print_exception(|) {
-        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
+        my Mu $args := nqp::p6argvmarray();
+        my Mu $ex := nqp::atpos($args, 0);
+        # The context line opens the default report. Output from a
+        # configured exceptions handler replaces the whole report,
+        # context included.
+        my $context := nqp::isgt_i(nqp::elems($args), 1)
+          ?? nqp::atpos($args, 1)
+          !! Nil;
         my $e := EXCEPTION($ex);
         $*EXIT      = 1;
         $*EXCEPTION = $e;
+        my Mu $err := $*ERR;
 
         if %*ENV<RAKU_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKU_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                unless $class.process($e) {
+                my $continue := try $class.process($e);
+                if $! -> $handler-ex {
+                    $err.say("Exception handler Exceptions::$handler died with: "
+                      ~ ((try $handler-ex.message) // $handler-ex.^name));
+                }
+                elsif !$continue {
                     nqp::getcurhllsym('&THE_END')();
                     return
                 }
             }
         }
 
-        my Mu $err := $*ERR;
         try {
+            $err.say($context) if $context.defined;
             my $v := $e.vault-backtrace;
 
             $e.backtrace;  # This is where most backtraces actually happen
@@ -692,8 +705,11 @@ do {
     my Mu $comp := nqp::getcomp('Raku');
     $comp.^add_method('handle-exception',
         method (|) {
-            my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
-            print_exception($ex);
+            my Mu $args := nqp::p6argvmarray();
+            my Mu $ex := nqp::atpos($args, 1);
+            nqp::isgt_i(nqp::elems($args), 2)
+              ?? print_exception($ex, nqp::atpos($args, 2))
+              !! print_exception($ex);
             nqp::exit(1);
             0;
         }

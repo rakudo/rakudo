@@ -18,15 +18,16 @@ my role Scheduler {
         }
         else {
             # No default handler, so terminate the application.
-            note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
-            if Rakudo::Internals.LL-EXCEPTION {
-                note $exception.message;
-                note $exception.backtrace.full;
+            my Mu $ex := nqp::decont($exception);
+            $ex := nqp::decont(X::AdHoc.new(payload => $exception.gist))
+              unless nqp::istype($ex, Exception) && nqp::isconcrete($ex);
+            my Mu $vm-ex := nqp::getattr($ex, Exception, '$!ex');
+            unless nqp::isconcrete($vm-ex) {
+                $vm-ex := nqp::newexception();
+                nqp::setpayload($vm-ex, $ex);
             }
-            else {
-                note $exception.gist;
-            }
-            exit(1);
+            nqp::getcomp('Raku').handle-exception($vm-ex,
+              "Unhandled exception in code scheduled on thread " ~ $*THREAD.id);
         }
     }
 

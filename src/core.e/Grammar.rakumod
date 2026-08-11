@@ -101,7 +101,7 @@ my class Grammar is Match {
         )
     }
 
-    method subparse(\target, :$rule = 'TOP', :$args, :$actions) {
+    method subparse(\target, :$rule = 'TOP', :$args, Mu :$actions) {
         my $grammar := self.new(:orig(target), |%_);
         $grammar.set_actions($actions)
           unless nqp::eqaddr(nqp::decont($actions),Mu);

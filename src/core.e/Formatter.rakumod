@@ -1432,7 +1432,12 @@ our class Formatter {
         method directive:sym<s>($/ --> Nil) {
             my $size      := size($/);
             my $precision := precision($/);
-            my $parameter := parameter($/, :coerce<Str>);
+            # The Str coercion in the signature leaves a Str type object
+            # untouched, so stringify explicitly: a type object then
+            # renders as the empty string with the standard warning
+            my $parameter := ast-call-method(
+              parameter($/, :coerce<Str>), 'Str'
+            );
 
             make ast-justify($/,
               $size,

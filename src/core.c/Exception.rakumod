@@ -646,12 +646,14 @@ do {
             CONTROL { when CX::Warn { .resume } }
         }
         if $! -> $secondary-ex {
+            my Mu $vm-secondary := nqp::getattr(nqp::decont($secondary-ex),
+              Exception, '$!ex');
             $err.say: "===SORRY!=== Error while reporting exception " ~ $e.^name
                 ~ (try { ": secondary " ~ $secondary-ex.^name ~ " has been thrown" } || "")
                 ~ (try { "\n  The original message was: " ~ $e.message } || "")
                 ~ (try { "\n  The secondary message is: " ~ $secondary-ex.message } || "")
                 ~ (try { "\n  The original backtrace:\n" ~ $e.backtrace.Str.indent(4) } || "");
-            nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'))
+            nqp::rethrow($vm-secondary)
         }
     }
 

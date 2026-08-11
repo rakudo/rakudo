@@ -5,9 +5,10 @@ use Test;
 # uses, including the handler named in RAKU_EXCEPTIONS_HANDLER and the
 # low level variant under --ll-exception, and must exit the process
 # with 1. The pool report keeps its usual header when no handler takes
-# over.
+# over, and a failure inside the reporting itself is recovered and
+# still names the original exception.
 
-plan 33;
+plan 38;
 
 sub run-child($code, $handler?, *@flags) {
     my %env = %*ENV;
@@ -132,5 +133,19 @@ ok $err.contains($header) && $err.contains('plain string uncaught'),
     'A value that is not an exception passed to handle_uncaught is reported';
 is $result.exitcode, 1,
     'A process that passed a plain value to handle_uncaught exits with 1';
+
+($err, $result) = run-child(
+    'class X::BadGist is Exception { method message { "orig-msg" }; method gist { die "gist-died" } }; '
+        ~ '$*SCHEDULER.cue({ X::BadGist.new.throw }); sleep 5');
+ok $err.contains('Error while reporting exception') && $err.contains('orig-msg'),
+    'A report whose rendering died still reports the original message';
+ok $err.contains('gist-died'),
+    'A report whose rendering died names the failure that broke it';
+nok $err.contains("Did you forget a '.new'"),
+    'A report whose rendering died does not blame unrelated code';
+nok $err.contains('No exception handler located'),
+    'A report whose rendering died does not end in the low level VM report';
+is $result.exitcode, 1,
+    'A process whose report rendering died exits with 1';
 
 # vim: expandtab shiftwidth=4

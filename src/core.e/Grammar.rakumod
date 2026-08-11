@@ -64,20 +64,28 @@ my class Grammar is Match {
         $grammar.set_actions($actions)
           unless nqp::eqaddr(nqp::decont($actions),Mu);
 
-        nqp::if(
-          (my $cursor := nqp::if(
+        my $cursor := nqp::if(
           $rule,
-            nqp::if(
-              $args,
-              $grammar."$rule"(|$args.Capture),
-              $grammar."$rule"()
-            ),
-            nqp::if(
-              $args,
-              $grammar.TOP(|$args.Capture),
-              $grammar.TOP()
-            ),
-          )),
+          nqp::if(
+            $args,
+            $grammar."$rule"(|$args.Capture),
+            $grammar."$rule"()
+          ),
+          nqp::if(
+            $args,
+            $grammar.TOP(|$args.Capture),
+            $grammar.TOP()
+          ),
+        );
+
+        unless nqp::istype($cursor,Match) {
+            my $name := $rule // 'TOP';
+            my $type := self.^find_method($name).^name;
+            die "$type '$name' returned a $cursor.^name() object ($cursor.gist()) rather than a Match object";
+        }
+
+        nqp::if(
+          $cursor,
           nqp::stmts(
             (my $match := $cursor.Match::MATCH),
             nqp::while(

@@ -170,6 +170,76 @@ our class Formatter {
             !! nqp::concat("0",$string)
     }
 
+    # Exact rational value of a Num, built from the power-of-two
+    # decomposition of the double.  The scaling into [1,2) is exact,
+    # so $m * 2 ** 52 is the exact 53-bit significand, also for
+    # subnormals.
+    our sub exact-num(num $value) {
+        my num $m = nqp::abs_n($value);
+        return 0 if nqp::iseq_n($m,0e0);
+
+        my int $exp;
+        nqp::while(
+          nqp::isge_n($m,65536e0),
+          nqp::stmts(
+            ($m   = nqp::div_n($m,65536e0)),
+            ($exp = nqp::add_i($exp,16))
+          )
+        );
+        nqp::while(
+          nqp::islt_n($m,1.52587890625e-5),
+          nqp::stmts(
+            ($m   = nqp::mul_n($m,65536e0)),
+            ($exp = nqp::sub_i($exp,16))
+          )
+        );
+        nqp::while(
+          nqp::isge_n($m,2e0),
+          nqp::stmts(
+            ($m   = nqp::div_n($m,2e0)),
+            ($exp = nqp::add_i($exp,1))
+          )
+        );
+        nqp::while(
+          nqp::islt_n($m,1e0),
+          nqp::stmts(
+            ($m   = nqp::mul_n($m,2e0)),
+            ($exp = nqp::sub_i($exp,1))
+          )
+        );
+
+        my Int $M     = ($m * 4503599627370496e0).Int;
+        my Int $shift = 52 - $exp;
+        $shift <= 0
+          ?? $M * 2 ** -$shift
+          !! FatRat.new($M, 2 ** $shift)
+    }
+
+    # Exact absolute value of any numeric argument
+    our sub exact-abs($value) {
+        nqp::istype($value,Num) ?? exact-num($value) !! $value.abs
+    }
+
+    # Round an exact rational or integer to an Int, ties to even, as C
+    # rounds the exact value of a double
+    our sub round-half-even($value --> Int:D) {
+        my $floor := $value.floor;
+        my $diff  := $value - $floor;
+        $diff < 1/2
+          ?? $floor
+          !! $diff > 1/2
+            ?? $floor + 1
+            !! $floor %% 2
+              ?? $floor
+              !! $floor + 1
+    }
+
+    # A negative precision from a dynamic * specification acts as an
+    # omitted one, as it does in C
+    our sub default-negative-precision(int $precision --> int) {
+        nqp::islt_i($precision,0) ?? 6 !! $precision
+    }
+
     # Set up value for scientific notation: at this point it
     # is guaranteed that the value is *not* Inf, -Inf or NaN.
     # This version will *always* render with a decimal point,
@@ -191,8 +261,6 @@ our class Formatter {
 
     # Set up value for scientific notation: at this point it
     # is guaranteed that the value is *not* Inf, -Inf or NaN.
-    # The value 0 can only occur here with dynamic width or
-    # precision.
     our sub scientify(str $letter, int $positions, $value --> str) {
 
         # Something complicated to do
@@ -200,14 +268,52 @@ our class Formatter {
             my $abs := $value.abs;
             my constant $divider = 10.log;
 
-            # Initial rendering
-            my int $exp     = $abs ?? ($abs.log / $divider).floor !! 0;
+            # The scaling must be exact: float math would round the
+            # digits it is supposed to produce.  The FatRat coercion
+            # keeps a division by a large power of ten from degrading
+            # a Rat to a Num.
+            my $exact := nqp::istype($abs,Num)
+              ?? exact-num($abs)
+              !! $abs.FatRat;
+
+            # Estimate the decimal exponent.  For a Num the float log
+            # can be off by one in either direction near a power of
+            # ten, and for the other types the digit count of the
+            # value or its reciprocal is exact enough, so the estimate
+            # is corrected below by re-rounding.
+            my int $exp = nqp::istype($abs,Num)
+              ?? ($abs.log / $divider).floor
+              !! $exact >= 1
+                ?? nqp::chars($exact.Int.Str) - 1
+                !! -nqp::chars((1 / $exact).Int.Str);
+
+            # Produce the rounded digits for a given decimal exponent.
+            # The exponents must be boxed, since a power of ten of a
+            # native int exponent is computed in wrapping native math.
+            my sub digits(int $exponent --> str) {
+                my Int $scale-up   = $positions;
+                my Int $scale-down = nqp::abs_i($exponent);
+                round-half-even(
+                  $exponent < 0
+                    ?? $exact * 10 ** ($scale-down + $scale-up)
+                    !! $exact * 10 ** $scale-up / 10 ** $scale-down
+                ).Str
+            }
+
+            # Re-round at the corrected exponent until the digit count
+            # matches the precision: rounding can carry into an extra
+            # digit, and an estimate that is too high rounds to one
+            # digit short
+            my str $string = digits($exp);
+            nqp::while(
+              nqp::isgt_i(nqp::chars($string),nqp::add_i($positions,1)),
+              ($string = digits(++$exp))
+            );
+            nqp::while(
+              nqp::islt_i(nqp::chars($string),nqp::add_i($positions,1)),
+              ($string = digits(--$exp))
+            );
             my int $abs-exp = nqp::abs_i($exp);
-            my     $power  := 10 ** $abs-exp;
-            my str $string  = (($exp < 0
-              ?? $abs * $power
-              !! $abs / $power
-            ) * 10 ** $positions).round.Str;
 
             # Fix up decimal point
             $string = $positions
@@ -238,13 +344,16 @@ our class Formatter {
 
         # Simple 0 handling
         else {
-            nqp::concat(
-              $positions
-                ?? nqp::concat('0.',nqp::x('0',$positions))
-                !! '0',
+            prefix-negative-zero(
+              $value,
               nqp::concat(
-                $letter,
-                '+00'
+                $positions
+                  ?? nqp::concat('0.',nqp::x('0',$positions))
+                  !! '0',
+                nqp::concat(
+                  $letter,
+                  '+00'
+                )
               )
             )
         }
@@ -743,6 +852,24 @@ our class Formatter {
     our sub nan-or-inf($value --> int) {
         nqp::istype($value,Num) && nqp::isnanorinf($value)
     }
+
+    # Return 1 if the value should render with a minus sign.  The
+    # negative zero of Nums boolifies to False and compares equal to
+    # zero, so it needs its reciprocal checked.
+    our sub negative-value($value --> int) {
+        $value < 0
+          || nqp::istype($value,Num)
+             && nqp::iseq_n($value,0e0)
+             && nqp::islt_n(nqp::div_n(1e0,$value),0e0)
+    }
+
+    # Prefix a minus if the value is a negative zero
+    our sub prefix-negative-zero($value, str $string --> str) {
+        negative-value($value) && nqp::not_i(nqp::eqat($string,'-',0))
+          ?? nqp::concat("-",$string)
+          !! $string
+    }
+
 
     # Provide conversion of numeric values to string, only rendering a
     # decimal point if number of digits > 0
@@ -1364,6 +1491,8 @@ our class Formatter {
         method directive:sym<e>($/ --> Nil) {
             my $size      := size($/);
             my $precision := precision($/) // ast-integer(6);
+            $precision    := ast-call-sub('default-negative-precision', $precision)
+              unless is-literal-int($precision);
             my $parameter := parameter($/, :coerce<Numeric>);
             my $letter    := $<sym>.Str;
 

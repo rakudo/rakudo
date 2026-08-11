@@ -449,9 +449,20 @@ my class Proc::Async {
           $!stderr_descriptor_used
         )) if $!stderr_supply;
 
-        @!promises.push(
-          self!capture($callbacks,'merge',$!merge_supply)
-        ) if $!merge_supply;
+        if $!merge_supply {
+            @!promises.push(
+              self!capture($callbacks,'merge',$!merge_supply)
+            );
+#?if moar
+            # MoarVM reports a spawn failure under the stdout_bytes and
+            # stderr_bytes keys, also when the pipes were created for a
+            # merged stream.
+            nqp::bindkey($callbacks, 'stdout_bytes',
+              nqp::atkey($callbacks, 'merge_bytes'));
+            nqp::bindkey($callbacks, 'stderr_bytes',
+              nqp::atkey($callbacks, 'merge_bytes'));
+#?endif
+        }
 
         nqp::bindkey($callbacks, 'buf_type', nqp::create(buf8.^pun));
         nqp::bindkey($callbacks, 'write', True) if $.w;
@@ -463,6 +474,13 @@ my class Proc::Async {
             nqp::bindkey($callbacks, 'pty', True);
             nqp::bindkey($callbacks, 'pty-cols', $!pty-cols);
             nqp::bindkey($callbacks, 'pty-rows', $!pty-rows);
+#?if moar
+            # A pty reports spawn failures under the stdout_bytes key even
+            # when nothing is set up to read stdout. The error callback
+            # reports the failure regardless.
+            nqp::bindkey($callbacks, 'stdout_bytes', -> Mu, Mu, Mu { })
+              unless nqp::existskey($callbacks, 'stdout_bytes');
+#?endif
         }
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),

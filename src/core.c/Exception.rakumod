@@ -606,7 +606,13 @@ do {
             my $v := $e.vault-backtrace;
 
             $e.backtrace;  # This is where most backtraces actually happen
-            if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
+            # The compiler renders its own low level variant for the
+            # mainline and exits before ever calling this.
+            if Rakudo::Internals.LL-EXCEPTION {
+                $err.say($e.message);
+                $err.say($e.backtrace.full);
+            }
+            elsif $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
                 if $v and !$e.gist.ends-with($v.Str) {
                     $err.say("Actually thrown at:");

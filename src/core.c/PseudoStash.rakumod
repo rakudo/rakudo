@@ -6,11 +6,34 @@ my class PseudoStash is Map {
     has int $!mode;
 
     # Lookup modes.
-    my int constant PICK_CHAIN_BY_NAME = 0;
-    my int constant STATIC_CHAIN       = 1;
-    my int constant DYNAMIC_CHAIN      = 2;
-    my int constant PRECISE_SCOPE      = 4;
-    my int constant REQUIRE_DYNAMIC    = 8;
+    my int constant PICK_CHAIN_BY_NAME  = 0;
+    my int constant STATIC_CHAIN        = 1;
+    my int constant DYNAMIC_CHAIN       = 2;
+    my int constant PRECISE_SCOPE       = 4;
+    my int constant REQUIRE_DYNAMIC     = 8;
+    my int constant BEGIN_TIME_FALLBACK = 16;
+
+    # Code the compiler runs at BEGIN time lives in a frame whose outer is
+    # the setting, so a static-chain walk from it reaches setting symbols
+    # but not what the unit being compiled declares. While a begin-time
+    # effect runs the compiler leaves its resolver and that compilation's
+    # token in $*BEGIN-TIME-LOOKUP, and the frames it compiles dynamically
+    # for the unit see the token, so only the unit's own code is answered
+    # for. Consulted by stashes carrying BEGIN_TIME_FALLBACK and by
+    # INDIRECT_NAME_LOOKUP, in both cases once every other source of the
+    # name has missed.
+    method BEGIN-TIME-DECLARATION(str $key) is implementation-detail {
+        my $state := nqp::getlexdyn('$*BEGIN-TIME-LOOKUP');
+        nqp::isnull($state)
+          ?? Nil
+          !! nqp::not_i(nqp::isnull(
+               my $marker := nqp::getlexrel(
+                 nqp::getattr(self, PseudoStash, '$!ctx'),
+                 '!BEGIN_TIME_MARKER')))
+               && nqp::eqaddr($marker, nqp::atpos($state, 1))
+            ?? (nqp::atpos($state, 0).resolve-lexical-constant-in-scopes($key) || Nil)
+            !! Nil
+    }
 
     method new() {
         my $obj := nqp::create(self);
@@ -140,7 +163,8 @@ my class PseudoStash is Map {
         },
         'LEXICAL', -> $cur {
             my $stash := nqp::clone($cur);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+            nqp::bindattr_i($stash, PseudoStash, '$!mode',
+              STATIC_CHAIN +| BEGIN_TIME_FALLBACK);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('LEXICAL')),
                 $stash);
@@ -156,7 +180,8 @@ my class PseudoStash is Map {
                 my $stash := nqp::create(PseudoStash);
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($ctx));
                 nqp::bindattr($stash, PseudoStash, '$!ctx', $ctx);
-                nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
+                nqp::bindattr_i($stash, PseudoStash, '$!mode',
+                  STATIC_CHAIN +| BEGIN_TIME_FALLBACK);
                 nqp::setwho(
                     Metamodel::ModuleHOW.new_type(:name('OUTERS')),
                     $stash)
@@ -164,7 +189,10 @@ my class PseudoStash is Map {
         },
         'DYNAMIC', -> $cur {
             my $stash := nqp::clone($cur);
-            nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
+            # A name without the * twigil walks the static chain here, so
+            # it has the same begin-time gap a LEXICAL:: lookup has.
+            nqp::bindattr_i($stash, PseudoStash, '$!mode',
+              DYNAMIC_CHAIN +| BEGIN_TIME_FALLBACK);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
                 $stash);
@@ -279,7 +307,12 @@ my class PseudoStash is Map {
                 nqp::ifnull(                                    # STATIC_CHAIN
                   nqp::getlexrel(
                     nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                  Nil )))))
+                  nqp::if(
+                    nqp::bitand_i($!mode,BEGIN_TIME_FALLBACK)
+                      && nqp::isconcrete(my $declaration :=
+                           self.BEGIN-TIME-DECLARATION(nqp::unbox_s($key))),
+                    $declaration.compile-time-value,
+                    Nil ))))))
     }
     multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
         self.AT-KEY($key) = value
@@ -318,11 +351,15 @@ my class PseudoStash is Map {
                     nqp::getlexreldyn(
                       nqp::getattr(self, PseudoStash, '$!ctx'),
                       nqp::unbox_s($key)))),
-                nqp::not_i(           # STATIC_CHAIN
+                nqp::if(              # STATIC_CHAIN
                   nqp::isnull(
                     nqp::getlexrel(
                       nqp::getattr(self, PseudoStash, '$!ctx'),
-                      nqp::unbox_s($key))))))))
+                      nqp::unbox_s($key))),
+                  nqp::bitand_i($!mode,BEGIN_TIME_FALLBACK)
+                    && nqp::isconcrete(
+                         self.BEGIN-TIME-DECLARATION(nqp::unbox_s($key))),
+                  1)))))
     }
 }
 

@@ -591,6 +591,18 @@ class RakuAST::Code
             ));
         }
 
+        # Mark the frame as code of the unit being compiled, so a begin-time
+        # indirect lookup can consult the compiler's resolver from it. The
+        # marker is this compilation's identity token: foreign code run
+        # during a begin-time effect has no frame carrying it, and a frame
+        # from another compilation carries a different one.
+        my $marker := $context.begin-time-marker;
+        $context.ensure-sc($marker);
+        $wrapper[0].push(QAST::Var.new(
+            :name('!BEGIN_TIME_MARKER'), :scope('lexical'),
+            :decl('static'), :value($marker)
+        ));
+
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
             if nqp::istype($_, RakuAST::CompileTimeValue) {
                 my $value := $_.compile-time-value;

@@ -25,6 +25,8 @@ class RakuAST::ParseTime
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $*BEGIN-TIME-LOOKUP :=
+          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
         if $code.IMPL-CAN-INTERPRET {
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context))
         }
@@ -55,6 +57,8 @@ class RakuAST::ParseTime
     # with a set of arguments.
     method IMPL-BEGIN-TIME-CALL(RakuAST::Node $callee, RakuAST::ArgList $args,
             RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $*BEGIN-TIME-LOOKUP :=
+          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
         # A primed argument (a WhateverCode) may be interpreted here, as
         # its static block compiles against a real QAST context.
         my $*IMPL-INTERPRET-PRIMED := 1;

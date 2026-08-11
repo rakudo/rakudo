@@ -3,11 +3,12 @@ my class PseudoStash is CORE::v6c::PseudoStash {
     has $!walker;
 
     # Lookup modes. Must be kept in sync with CORE::v6c::PseudoStash mode constants.
-    my int constant PICK_CHAIN_BY_NAME = 0;
-    my int constant STATIC_CHAIN       = 1;
-    my int constant DYNAMIC_CHAIN      = 2;
-    my int constant PRECISE_SCOPE      = 4;
-    my int constant REQUIRE_DYNAMIC    = 8;
+    my int constant PICK_CHAIN_BY_NAME  = 0;
+    my int constant STATIC_CHAIN        = 1;
+    my int constant DYNAMIC_CHAIN       = 2;
+    my int constant PRECISE_SCOPE       = 4;
+    my int constant REQUIRE_DYNAMIC     = 8;
+    my int constant BEGIN_TIME_FALLBACK = 16;
 
     # A convenience shortcut
     my constant PseudoStash6c = CORE::v6c::PseudoStash;
@@ -86,7 +87,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         'LEXICAL', sub ($cur) {
             PseudoStash.NEW-PACKAGE(
                 :ctx(nqp::getattr(nqp::decont($cur), PseudoStash6c, '$!ctx')),
-                :mode(STATIC_CHAIN +| DYNAMIC_CHAIN),
+                :mode(STATIC_CHAIN +| DYNAMIC_CHAIN +| BEGIN_TIME_FALLBACK),
                 :name<LEXICAL>
             )
         },
@@ -97,7 +98,8 @@ my class PseudoStash is CORE::v6c::PseudoStash {
 
             nqp::isnull($ctx)
                 ?? Nil
-                !! PseudoStash.NEW-PACKAGE( :$ctx, :mode(STATIC_CHAIN), :name<OUTERS> )
+                !! PseudoStash.NEW-PACKAGE(
+                     :$ctx, :mode(STATIC_CHAIN +| BEGIN_TIME_FALLBACK), :name<OUTERS> )
         },
         'DYNAMIC', sub ($cur) {
             PseudoStash.NEW-PACKAGE(
@@ -407,6 +409,16 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                     nqp::stmts(
                         (my Mu $sym-info := nqp::atkey(nqp::getattr(self, Map, '$!storage'), $key)),
                         ($val := SYM-VALUE($sym-info, $key))))));
+        # BEGIN-TIME-DECLARATION on the parent class answers for what the
+        # unit being compiled declares, which no context walk can reach.
+        nqp::if(
+            (nqp::isnull($val)
+              && nqp::bitand_i(
+                   nqp::getattr_i(self, PseudoStash6c, '$!mode'),
+                   BEGIN_TIME_FALLBACK)
+              && nqp::isconcrete(
+                   my $declaration := self.BEGIN-TIME-DECLARATION($key))),
+            ($val := $declaration.compile-time-value));
         nqp::if(
             nqp::isnull($val),
             Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>')),
@@ -441,7 +453,11 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                 nqp::existskey($pseudoers, $key),
                 nqp::if(
                     (self.REIFY-STORAGE(until-symbol => $key)),
-                    nqp::not_i(nqp::istype(nqp::atkey(nqp::getattr(self, Map, '$!storage'), $key), Exception)))))
+                    nqp::not_i(nqp::istype(nqp::atkey(nqp::getattr(self, Map, '$!storage'), $key), Exception)),
+                    nqp::bitand_i(
+                      nqp::getattr_i(self, PseudoStash6c, '$!mode'),
+                      BEGIN_TIME_FALLBACK)
+                      && nqp::isconcrete(self.BEGIN-TIME-DECLARATION($key)))))
     }
 
     my role CtxSymIterator does Rakudo::Iterator::Mappy {

@@ -878,23 +878,30 @@ our class Formatter {
     --> str) {
         $digits
           ?? stringify-multiplier-digits-point($value, $multiplier, $digits)
-          !! $value.round.Str
+          !! negative-value($value)
+            ?? nqp::concat("-",round-half-even(exact-abs($value)).Str)
+            !! round-half-even(exact-abs($value)).Str
     }
 
     # Provide conversion of numeric values to string, always rendering
-    # a decimal point of the %f formatting
+    # a decimal point of the %f formatting.  The digits are produced
+    # from the exact rational of the absolute value, so a minus sign
+    # can never be counted as an integer digit, and are left-filled
+    # with zeroes when the rounded value has fewer digits than the
+    # precision asks for.
     our sub stringify-multiplier-digits-point(
       $value, Int:D $multiplier, int $digits
     --> str) {
         my str $string = $value
-          ?? ($value * $multiplier).round.Str
+          ?? round-half-even(exact-abs($value) * $multiplier).Str
           !! nqp::concat("0",nqp::substr($multiplier.Str,1));
 
+        my str $result;
         if nqp::chars($string) - $digits -> int $cutoff {
-            $cutoff < 0
+            $result = $cutoff < 0
               ?? nqp::concat(
                    "0.",
-                   nqp::concat($string,nqp::x("0", nqp::abs_i($cutoff)))
+                   nqp::concat(nqp::x("0",nqp::abs_i($cutoff)),$string)
                  )
               !! nqp::concat(
                    nqp::substr($string,0,$cutoff),
@@ -902,8 +909,11 @@ our class Formatter {
                  )
         }
         else {
-            nqp::concat("0.",$string);
+            $result = nqp::concat("0.",$string);
         }
+        negative-value($value)
+          ?? nqp::concat("-",$result)
+          !! $result
     }
 
 #-------------------------------------------------------------------------------
@@ -1514,6 +1524,8 @@ our class Formatter {
         method directive:sym<f>($/ --> Nil) {
             my $size      := size($/);
             my $precision := precision($/) // ast-integer(6);
+            $precision    := ast-call-sub('default-negative-precision', $precision)
+              unless is-literal-int($precision);
             my $parameter := parameter($/, :coerce<Numeric>);
 
             make handle-float-numeric($/,

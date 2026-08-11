@@ -696,8 +696,12 @@ my class Rakudo::Internals {
         method process(Mu \seq, Mu \data, Mu \err) {
             $!lock.protect: {
                 if err {
-                    &!on-error(err);
-                    $!bust = 1;
+                    # Both pipes behind a merged output stream can
+                    # report the same failure.
+                    unless $!bust {
+                        &!on-error(err);
+                        $!bust = 1;
+                    }
                 }
                 elsif nqp::isconcrete(data) {
                     my int $insert-pos = seq - $!buffer-start-seq;

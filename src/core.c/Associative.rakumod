@@ -1,6 +1,6 @@
-my role Associative[::TValue = Mu, ::TKey = Str(Any)] {
-    method of() { TValue }
-    method keyof() { TKey }
+my role Associative[::CORE'Associative'TValue = Mu, ::CORE'Associative'TKey = Str(Any)] {
+    method of() { CORE'Associative'TValue }
+    method keyof() { CORE'Associative'TKey }
 
 # These methods must be implemented by any object performing the Associative
 # role.  The reason this is not actually activated, is that there are some

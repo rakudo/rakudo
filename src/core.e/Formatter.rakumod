@@ -962,8 +962,11 @@ our class Formatter {
               sequence  => ~$/,
             ).throw if $index < 1;
 
-            # set default index for next parameter
-            $*NEXT-PARAMETER = $index + 1;
+            # An explicit index leaves the implicit sequence alone and
+            # allows more arguments than the directives consume
+            $<idx>
+              ?? ($*EXPLICIT-INDEX = True)
+              !! ($*NEXT-PARAMETER = $index + 1);
 
             # record the directive, * indicates a position indicator (e.g. 4$)
             @*DIRECTIVES[$index] = .Str with $<sym> // '*';
@@ -1499,6 +1502,9 @@ our class Formatter {
         # specifications, which *are* 1-based.
         my $*NEXT-PARAMETER = 1;
 
+        # Whether any directive used an explicit index
+        my $*EXPLICIT-INDEX = False;
+
         if Formatter::Syntax.parse($format, actions => Actions) -> $parsed {
             my @operands = $parsed<statement>.map: *.made;
 
@@ -1547,6 +1553,13 @@ our class Formatter {
                       )
                     )
                 }
+
+                # Explicit indices allow more arguments than the
+                # directives consume, so soak up any extras
+                @parameters.push(RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name('@rest')),
+                  slurpy => RakuAST::Parameter::Slurpy::Unflattened
+                )) if $*EXPLICIT-INDEX;
 
                 # -> $a, $b, ... { $ast }
                 RakuAST::PointyBlock.new(

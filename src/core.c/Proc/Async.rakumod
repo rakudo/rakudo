@@ -325,7 +325,10 @@ my class Proc::Async {
     method !capture(\callbacks,\std,\the-supply --> Promise) {
         my $promise := Promise.new;
         my $vow := $promise.vow;
+        # A merged stream is fed by two pipes, so it ends with two
+        # end of stream reports.
         my $ss := Rakudo::Internals::SupplySequencer.new(
+            dones-expected => std eq 'merge' ?? 2 !! 1,
             on-data-ready => -> \data { the-supply.emit(data) },
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });

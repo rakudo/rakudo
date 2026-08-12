@@ -3600,10 +3600,41 @@ class RakuAST::Method::AttributeAccessor
 
     method declarator() { 'submethod' }
 
+    # The body is fully synthetic: nothing in it can reach the special
+    # variables, so only self is declared.
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        [ RakuAST::VarDeclaration::Implicit::Self.new() ]
+    }
+
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $meta := nqp::findmethod(RakuAST::Routine, 'PRODUCE-META-OBJECT')(self);
         $meta.set_rw if $!rw;
         $meta
+    }
+
+    # The block takes the shape the legacy frontend installs: the
+    # invocant as a raw local parameter and a discarded named slurpy,
+    # with no binder run. A Raku level caller passes hllized values
+    # already, and an nqp level caller gets exactly what the legacy
+    # frontend has always exposed. A type object invocant reaches the
+    # body, where the attribute access dies. The lexical %_ stays
+    # declared without per call setup, as the legacy frontend leaves
+    # it.
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        my $block := QAST::Block.new(
+            :name(self.name.canonicalize), :blocktype('declaration_static'),
+            QAST::Stmts.new(
+                QAST::Var.new( :decl<param>, :scope<local>, :name('self') ),
+                QAST::Var.new( :decl<param>, :scope<local>, :name('_'),
+                    :slurpy, :named ),
+                QAST::Var.new( :decl<static>, :scope<lexical>, :name('%_') )
+            ),
+            self.IMPL-COMPILE-BODY($context)
+        );
+        $block.arity(1);
+        $block.annotate('count', 1);
+        $block
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
@@ -3617,7 +3648,7 @@ class RakuAST::Method::AttributeAccessor
             :scope($native && $!rw ?? 'attributeref' !! 'attribute'),
             :name($!attr-name),
             :returns($!type),
-            QAST::Var.new( :scope<lexical>, :name('self') ),
+            QAST::Op.new( :op<decont>, QAST::Var.new( :scope<local>, :name('self') ) ),
             QAST::WVal.new( :value($!package-type) ),
         );
 

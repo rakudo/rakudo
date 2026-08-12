@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 51;
+plan 55;
 
 # A meta-op over a setting operator is formed once at compile time and
 # emitted as a constant, since the operator lookup yields the same code
@@ -163,6 +163,29 @@ else {
 }
 
 nok ([!==] 1, 1, 3), 'a chain reduce of a negated comparison fails on a failing link';
+
+# A negated comparison as the left of a smartmatch is a chain link, so
+# the reduced smartmatch forms decline it and the chain protocol runs.
+
+{
+    my $typematch = 1 !== 2 ~~ Bool;
+    nok $typematch, 'a smartmatch of a type declines to collapse over a negated link';
+}
+
+{
+    my $negated-typematch = 1 !== 2 !~~ Bool;
+    ok $negated-typematch, 'a negated smartmatch of a type declines to collapse over a negated link';
+}
+
+{
+    my $litmatch = 1 !== 2 ~~ 1;
+    nok $litmatch, 'a smartmatch of a literal declines to collapse over a negated link';
+}
+
+{
+    my $pairmatch = 1 !== 0 ~~ :so;
+    nok $pairmatch, 'a smartmatch of a pair declines to collapse over a negated link';
+}
 
 # A sequenced comparison keeps every operator property, so it links
 # into a chain with a negation. The legacy frontend cannot run the

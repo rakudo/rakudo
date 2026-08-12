@@ -1399,15 +1399,17 @@ class RakuAST::Node {
                 # decision they took is withdrawn here.
                 my int $linked := 0;
                 if nqp::istype($left, RakuAST::ApplyInfix)
-                    && nqp::istype($left.infix, RakuAST::Infix)
+                    && nqp::istype($left.infix, RakuAST::Infixish)
                     && $left.infix.properties.chain {
-                    $left.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+                    $left.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE()
+                        if nqp::istype($left.infix, RakuAST::Infix);
                     $linked := 1;
                 }
                 if nqp::istype($right, RakuAST::ApplyInfix)
-                    && nqp::istype($right.infix, RakuAST::Infix)
+                    && nqp::istype($right.infix, RakuAST::Infixish)
                     && $right.infix.properties.chain {
-                    $right.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+                    $right.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE()
+                        if nqp::istype($right.infix, RakuAST::Infix);
                     $linked := 1;
                 }
                 return Nil if $linked;
@@ -1697,10 +1699,10 @@ class RakuAST::Node {
         return $expr unless $negated || $op eq '~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
         return $expr unless nqp::istype($expr.right, RakuAST::Literal);
@@ -1880,7 +1882,7 @@ class RakuAST::Node {
         return Nil unless $op eq '~~' || $op eq '!~~';
         my $left := $cond.left;
         return Nil if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
@@ -1945,10 +1947,10 @@ class RakuAST::Node {
         my $left := $cond.left;
         my $right := $cond.right;
         return Nil if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return Nil if nqp::istype($right, RakuAST::ApplyInfix)
-            && nqp::istype($right.infix, RakuAST::Infix)
+            && nqp::istype($right.infix, RakuAST::Infixish)
             && $right.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
@@ -2271,10 +2273,10 @@ class RakuAST::Node {
         return $expr unless $op eq '~~' || $op eq '!~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
         return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
@@ -2540,7 +2542,7 @@ class RakuAST::Node {
     # links took.
     method IMPL-MARK-CHAIN-LINKS(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix)
-            && nqp::istype($expr.infix, RakuAST::Infix)
+            && nqp::istype($expr.infix, RakuAST::Infixish)
             && $expr.infix.properties.chain;
         my $left := $expr.left;
         $left.infix.IMPL-CLEAR-SMARTMATCH-MARKS()
@@ -2681,10 +2683,10 @@ class RakuAST::Node {
         return $expr unless $negated || $op eq '~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
 

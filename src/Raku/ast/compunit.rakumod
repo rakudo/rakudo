@@ -222,6 +222,7 @@ class RakuAST::CompUnit
         # Diagnostic switch: turns compile-time dispatch decisions off so a
         # suspect inlining can be ruled in or out without a rebuild.
         my $*NO-CT-DISPATCH := nqp::existskey(nqp::getenvhash(), 'RAKUDO_NO_CT_DISPATCH');
+        $!context.set-optimize-regex() if nqp::isconcrete($!context);
         $resolver.push-scope(self);
         $!mainline.IMPL-OPTIMIZE($resolver);
         self.IMPL-OPTIMIZE($resolver);

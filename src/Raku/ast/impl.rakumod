@@ -27,6 +27,16 @@ class RakuAST::IMPL::QASTContext {
     has int $.is-nested;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
 
+    # Set as the optimize stage begins on this unit, so regex code
+    # generation runs its QAST optimizations over the compiled regex.
+    # Code compiled before the stage runs, as a use at BEGIN time
+    # forces, keeps the plain compilation.
+    has int $.optimize-regex;
+
+    method set-optimize-regex() {
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!optimize-regex', 1)
+    }
+
     # Optional nested Perl6::World; when set, add-code-ref delegates
     # to it so the shared $!num_code_refs counter advances.
     has Mu $.world-bridge;

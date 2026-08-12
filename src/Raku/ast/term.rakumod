@@ -168,6 +168,7 @@ class RakuAST::Term::Self
   is RakuAST::ParseTime
 {
     has RakuAST::Var::Attribute::Public $!variable;
+    has RakuAST::Package $!package;
 
     method new(RakuAST::Var::Attribute::Public :$variable) {
         my $obj := nqp::create(self);
@@ -180,6 +181,8 @@ class RakuAST::Term::Self
         if $resolved {
             self.set-resolution($resolved);
         }
+        nqp::bindattr(self, RakuAST::Term::Self, '$!package',
+            $resolver.find-attach-target('package'));
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -196,6 +199,25 @@ class RakuAST::Term::Self
                 )
             }
         }
+    }
+
+    # The enclosing package's type as the static type of self: an upper
+    # bound, since the run time invocant may be a subclass, which is how
+    # the optimize pass treats a declared variable type as well. Mu
+    # inside a role or another generic or parametric package, whose
+    # concrete type is not known here.
+    method return-type() {
+        if nqp::isconcrete($!package) {
+            my $type := $!package.stubbed-meta-object;
+            my $how := $type.HOW;
+            return $type
+                if nqp::can($how, 'archetypes')
+                && nqp::can($how.archetypes, 'generic')
+                && !$how.archetypes.generic
+                && nqp::can($how.archetypes, 'parametric')
+                && !$how.archetypes.parametric;
+        }
+        Mu
     }
 
     method IMPL-IS-CONSTANT() { True }

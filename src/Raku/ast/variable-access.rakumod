@@ -292,6 +292,26 @@ class RakuAST::Var::Attribute
         True
     }
 
+    # The declared type of the attribute, as the static type of a read of
+    # it. Mu when the attribute is not on the package yet, as an access
+    # compiled inside a BEGIN block in the still-open class can arrange,
+    # and Mu when the declared type is generic, as a role attribute
+    # awaiting its concrete type is.
+    method return-type() {
+        if $!package {
+            my $package := $!package.stubbed-meta-object;
+            if $package.HOW.has_attribute($package, $!name) {
+                my $type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+                my $how := $type.HOW;
+                return $type
+                    unless nqp::can($how, 'archetypes')
+                    && nqp::can($how.archetypes, 'generic')
+                    && $how.archetypes.generic;
+            }
+        }
+        Mu
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         if $package {

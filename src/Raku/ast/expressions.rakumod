@@ -520,6 +520,15 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!chainstatic', 1)
     }
 
+    # Set by the optimize pass when the resolved operator's lexical is bound
+    # once, so an operator call that does not chain compiles its callee
+    # lookup as a static one the VM resolves a single time.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC() {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!callstatic', 1)
+    }
+
     # Set by the optimize pass when the operand types decide the dispatch at
     # compile time: the routine, for a multi the chosen candidate, whose
     # inline info, when it has any, is spliced in place of the operator call.
@@ -704,7 +713,7 @@ class RakuAST::Infix
             my $folded := self.IMPL-JUNCTION-FOLD-QAST($context,
                 self.properties.chain
                     ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                    !! 'call',
+                    !! ($!callstatic ?? 'callstatic' !! 'call'),
                 $name, $left-qast, $right-qast,
                 $!junction-fold, $!junction-fold-junction);
             return $folded unless nqp::isnull($folded);
@@ -715,7 +724,7 @@ class RakuAST::Infix
         self.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
             :op(self.properties.chain
                   ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                  !! 'call'),
+                  !! ($!callstatic ?? 'callstatic' !! 'call')),
             :$name,
             $left-qast,
             $right-qast
@@ -3078,6 +3087,15 @@ class RakuAST::Prefix
         True
     }
 
+    # Set by the optimize pass when the resolved operator's lexical is bound
+    # once, so the callee lookup can be compiled as a static one the VM
+    # resolves a single time.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC() {
+        nqp::bindattr_i(self, RakuAST::Prefix, '$!callstatic', 1)
+    }
+
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name;
         if self.is-resolved || !$*COMPILING_CORE_SETTING {
@@ -3086,7 +3104,7 @@ class RakuAST::Prefix
         else {
             $name := '&prefix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
         }
-        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        my $op := QAST::Op.new( :op($!callstatic ?? 'callstatic' !! 'call'), :$name, $operand-qast );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         self.IMPL-SIMPLIFY-REF-ARGS($op)
     }
@@ -3396,12 +3414,22 @@ class RakuAST::Postfix
         True
     }
 
+    # Set by the optimize pass when the resolved operator's lexical is bound
+    # once, so the callee lookup can be compiled as a static one the VM
+    # resolves a single time.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC() {
+        nqp::bindattr_i(self, RakuAST::Postfix, '$!callstatic', 1)
+    }
+
     method IMPL-POSTFIX-QAST(
       RakuAST::IMPL::QASTContext $context,
                               Mu $operand-qast
     ) {
         my $op := QAST::Op.new(
-          :op('call'), :name(self.resolution.lexical-name), $operand-qast
+          :op($!callstatic ?? 'callstatic' !! 'call'),
+          :name(self.resolution.lexical-name), $operand-qast
         );
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         self.IMPL-SIMPLIFY-REF-ARGS($op)

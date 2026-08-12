@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 28;
+plan 40;
 
 # A call to a named setting routine compiles its callee lookup as a static
 # one, which the VM may resolve a single time. So does a call to a routine
@@ -86,6 +86,45 @@ qast-is '{ my multi sub infix:<==>(\a, \b) { return 3 }; my $x = "a"; my $y = "b
     not qast-op-named(v, 'chainstatic', '&infix:<==>')
 }, 'a comparison against a nested user operator keeps the plain lookup';
 
+qast-is 'my $x = 1; my $y = $x * 2', -> \v {
+        qast-op-named(v, 'callstatic', '&infix:<*>')
+    and not qast-op-named(v, 'call', '&infix:<*>')
+}, 'a setting infix that does not chain compiles to a static callee lookup';
+
+qast-is 'my $x = 5; my $y = -$x', -> \v {
+        qast-op-named(v, 'callstatic', '&prefix:<->')
+    and not qast-op-named(v, 'call', '&prefix:<->')
+}, 'a setting prefix compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $y = $x++', -> \v {
+        qast-op-named(v, 'callstatic', '&postfix:<++>')
+    and not qast-op-named(v, 'call', '&postfix:<++>')
+}, 'a setting postfix compiles to a static callee lookup';
+
+qast-is '{ my sub prefix:<neg>(\a) { return 0 }; my $x = 1; neg $x }', :full, -> \v {
+    not qast-op-named(v, 'callstatic', '&prefix:<neg>')
+}, 'a nested user prefix keeps the plain callee lookup';
+
+qast-is '{ my sub infix:<mul>(\a, \b) { return 3 }; my $x = 1; my $y = 2; $x mul $y }', :full, -> \v {
+    not qast-op-named(v, 'callstatic', '&infix:<mul>')
+}, 'a nested user infix keeps the plain callee lookup';
+
+qast-is 'my &prefix:<-> = sub ($a) { 99 }; my $x = 5; my $y = -$x', -> \v {
+    not qast-op-named(v, 'callstatic', '&prefix:<->')
+}, 'a prefix bound through an operator variable keeps the plain callee lookup';
+
+# The soft pragma promises late rebinding, so this frontend declines
+# the mark under it, while the legacy optimizer still pins a setting
+# callee that is not itself soft.
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    qast-is 'use soft; my $x = 5; my $y = -$x', -> \v {
+        not qast-op-named(v, 'callstatic', '&prefix:<->')
+    }, 'a setting prefix under the soft pragma keeps the plain callee lookup';
+}
+else {
+    skip 'the soft shape is specific to the RakuAST frontend', 1;
+}
+
 # These observe that statically looked up callees still behave.
 {
     my $s = "HI";
@@ -139,6 +178,19 @@ sub rt-mid { $rt-mid-calls++; 2 }
 ok 1 < rt-mid() < 3, 'a chained comparison with a call in the middle holds';
 is $rt-mid-calls, 1, 'the middle operand of a chained comparison runs once';
 ok ?(any(1, 2) < 3), 'a Junction autothreads through a static comparison';
+
+# Operator calls still behave through static callee lookups.
+my $neg-me = 5;
+is -$neg-me, -5, 'a setting prefix called through a static lookup returns its value';
+my $step-me = 5;
+my $stepped = $step-me++;
+is $stepped, 5, 'a postfix increment through a static lookup yields the original value';
+is $step-me, 6, 'a postfix increment through a static lookup steps the variable';
+sub infix:<rt-mul>($a, $b) { $a * $b }
+is 2 rt-mul 3, 6, 'a user infix declared in the outermost scope computes through a static lookup';
+sub prefix:<rt-neg>($a) { 0 - $a }
+&prefix:<rt-neg>.wrap(-> $a { 999 });
+is rt-neg 5, 999, 'a wrapped prefix in the outermost scope runs its wrapper through a static lookup';
 
 # The fatalize pass recognizes a static callee lookup both as a call whose
 # Failure it promotes and as a boolifying consumer that disarms its argument.

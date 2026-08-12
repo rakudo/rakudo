@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 30;
+plan 51;
 
 # A meta-op over a setting operator is formed once at compile time and
 # emitted as a constant, since the operator lookup yields the same code
@@ -83,9 +83,25 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         qast-contains-call(v, '&METAOP_ZIP')
         and not qast-contains-call(v, '&METAOP_REVERSE')
     }, 'a zip of a reversal forms at run time over a constant reversal';
+
+    # A standalone negated comparison compiles as the setting prefix !
+    # around the plain comparison, so no chain op remains, while a link
+    # of a longer chain keeps the chain protocol.
+    qast-is 'my $x = 1; my $y = 2; say $x !== $y', :full, -> \v {
+        not qast-contains-op(v, 'chain')
+    }, 'a standalone negated comparison compiles without a chain op';
+
+    qast-is 'my ($a,$b,$c) = 1,2,3; say $a !== $b !== $c', :full, -> \v {
+        qast-contains-op(v, 'chain')
+        and not qast-contains-call(v, '&METAOP_NEGATE')
+    }, 'a chained negated comparison keeps its chain over constant meta-ops';
+
+    qast-is 'use soft; my $x = 1; my $y = 2; say $x !== $y', :full, -> \v {
+        qast-contains-op(v, 'chain')
+    }, 'a negated comparison under the soft pragma keeps its meta-op';
 }
 else {
-    skip 'the formation shapes are specific to the RakuAST frontend', 8;
+    skip 'the formation shapes are specific to the RakuAST frontend', 11;
 }
 
 # Behavior stays identical.
@@ -104,6 +120,60 @@ is ((1,2) X~ (3,4)).join(','), '13,14,23,24',
 }
 
 ok 1 !== 2, 'a negated setting comparison holds through its constant meta-op';
+
+nok 1 !== 1, 'a negated setting comparison fails where the comparison holds';
+
+ok 1 !== 2 !== 3, 'a chain of negated comparisons holds through its links';
+
+nok 1 !== 1 !== 3, 'a chain of negated comparisons fails on a failing link';
+
+ok 1 !== 2 == 2, 'a chain mixing negated and plain comparisons holds';
+
+nok 5 !== any(5,6), 'a negated comparison autothreads a Junction argument';
+
+ok so(5 !== all(6,7)), 'a negated comparison over an all Junction collapses correctly';
+
+nok 2 !< 3, 'a negated ordering comparison fails where the ordering holds';
+
+{
+    my $calls = 0;
+    sub mid() { $calls++; 2 }
+    ok 1 !== mid() !== 3, 'a negated chain with a call in the middle holds';
+    is $calls, 1, 'the middle operand of a negated chain runs once';
+}
+
+{
+    sub infix:<same-as>($a, $b) is equiv(&infix:<==>) { $a == $b }
+    ok 1 !same-as 2, 'a negated user chaining operator holds where the comparison fails';
+}
+
+nok (* !== 2)(2), 'a curried negated comparison fails on the negated value';
+
+ok (* !== 2)(3), 'a curried negated comparison holds elsewhere';
+
+# Parentheses make the negation a value, as they do a plain comparison
+# on both frontends. The legacy frontend alone chains through them for
+# the negated form.
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    my $paren = (1 !== 2) == True;
+    ok $paren, 'a parenthesized negation compares as a value, not a chain link';
+}
+else {
+    skip 'the legacy frontend chains through a parenthesized negation', 1;
+}
+
+nok ([!==] 1, 1, 3), 'a chain reduce of a negated comparison fails on a failing link';
+
+# A sequenced comparison keeps every operator property, so it links
+# into a chain with a negation. The legacy frontend cannot run the
+# sequenced form at all.
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    ok 1 !== 2 S== 2, 'a chain mixing negation and sequencing holds through both links';
+    nok 1 !== 1 S== 1, 'a chain mixing negation and sequencing withdraws the operand mark';
+}
+else {
+    skip 'the sequenced comparison does not run under the legacy frontend', 2;
+}
 
 is (5 R- 1), -4, 'a reversed setting operator swaps its operands';
 
@@ -171,9 +241,18 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
 
     isa-ok (try Q|&[RRRRRRRRZZZZZZZZZZZZZZZZZZRRRRRRRRRSSSSSSSS+]|.EVAL), Block,
         'a deep stack of meta-ops over a setting operator still forms a callable';
+
+    ok Q|&[!==]|.EVAL.(1, 2),
+        'a negated comparison in callable form computes through its meta-op';
+
+    # The negation resolves the setting prefix !, so a lexical prefix !
+    # does not intercept a negated comparison. The legacy frontend lets
+    # the lexical one intercept.
+    is Q|my sub prefix:<!>($x) { 'hijack' }; 1 !== 2|.EVAL, True,
+        'a lexical prefix ! does not intercept a negated comparison';
 }
 else {
-    skip 'the callable meta-op forms do not compile under the legacy frontend', 2;
+    skip 'the callable meta-op forms do not compile under the legacy frontend', 4;
 }
 
 # The formed meta-op is a closure the compiler made, so a precompiled

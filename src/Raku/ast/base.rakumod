@@ -732,6 +732,11 @@ class RakuAST::Node {
             $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
         }
 
+        # The negate withdrawal runs before the gated marks: it is a
+        # retraction of an operand's mark, so neither a rewrite having
+        # replaced this node nor the soft pragma may skip it.
+        self.IMPL-WITHDRAW-NEGATE-NOT($expr);
+
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
@@ -748,6 +753,7 @@ class RakuAST::Node {
             self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
+            self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
@@ -999,6 +1005,46 @@ class RakuAST::Node {
         $postfix.IMPL-SET-CALLSTATIC()
             if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
                 '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator));
+        Nil
+    }
+
+    # Mark a standalone negated comparison for compiling as the setting
+    # prefix ! around the plain comparison call, which is what the
+    # meta-op computes for two arguments. A link of a longer chain keeps
+    # the meta-op, since the chain protocol needs a callee, so the
+    # enclosing link withdraws the mark its operand took.
+    method IMPL-MARK-NEGATE-NOT(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Negate)
+            && $infix.properties.chain;
+        for [$expr.left, $expr.right] {
+            return Nil if nqp::istype($_, RakuAST::ApplyInfix)
+                && $_.infix.properties.chain;
+        }
+        my $not := $resolver.resolve-lexical-constant-in-setting('&prefix:<!>');
+        $infix.IMPL-SET-NEGATE-NOT($not.compile-time-value)
+            if nqp::isconcrete($not)
+            && nqp::istype($not, RakuAST::CompileTimeValue);
+        Nil
+    }
+
+    # Withdraw the standalone mark from a negated operand that turns out
+    # to be a link of a longer chain. A retraction rather than an
+    # optimization: it runs whether or not a rewrite replaced the
+    # enclosing node and regardless of the soft pragma, since a link
+    # must never emit as a standalone negation.
+    method IMPL-WITHDRAW-NEGATE-NOT(Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infixish)
+            && $infix.properties.chain;
+        for [$expr.left, $expr.right] {
+            $_.infix.IMPL-CLEAR-NEGATE-NOT()
+                if nqp::istype($_, RakuAST::ApplyInfix)
+                && nqp::istype($_.infix, RakuAST::MetaInfix::Negate)
+                && $_.infix.properties.chain;
+        }
         Nil
     }
 

@@ -1800,6 +1800,25 @@ class RakuAST::MetaInfix::Negate
 {
     has RakuAST::Infixish $.infix;
 
+    # Set by the optimize pass on a standalone application: the negation
+    # compiles as the setting prefix ! around the plain comparison call,
+    # which is what the meta-op computes for two arguments, sparing its
+    # formation and invocation. Holds the resolved prefix ! routine. A
+    # link of a longer chain keeps the meta-op, since the chain protocol
+    # needs a callee.
+    has int $!negate-not;
+    has Mu $!negate-not-op;
+
+    method IMPL-SET-NEGATE-NOT(Mu $op) {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Negate, '$!negate-not', 1);
+        nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', $op);
+    }
+
+    method IMPL-CLEAR-NEGATE-NOT() {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Negate, '$!negate-not', 0);
+        nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', Mu);
+    }
+
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
@@ -1840,6 +1859,18 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        if $!negate-not {
+            $context.ensure-sc($!negate-not-op);
+            return QAST::Op.new:
+                :op('call'),
+                QAST::WVal.new( :value($!negate-not-op) ),
+                QAST::Op.new(
+                    :op('call'),
+                    $!infix.IMPL-HOP-INFIX-QAST($context),
+                    $left-qast,
+                    $right-qast
+                );
+        }
         QAST::Op.new:
             :op($!infix.properties.chain ?? 'chain' !! 'call'),
             self.IMPL-HOP-INFIX-QAST($context),

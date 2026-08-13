@@ -2186,10 +2186,26 @@ class RakuAST::VarDeclaration::Signature
                     && nqp::istype($target, RakuAST::ParameterTarget::Var)
                     && $target.declaration {
                     my $declaration := $target.declaration;
+                    # A trait with no variable meaning stays on the
+                    # parameter, where it is inert, since nothing ever
+                    # binds through the signature.
+                    my constant PARAM-ONLY-TRAITS := nqp::hash(
+                        'readonly', 1,  'rw',  1,  'copy',   1,
+                        'required', 1,  'raw', 1,  'onearg', 1,
+                        'item',     1
+                    );
+                    my @keep;
                     for self.IMPL-UNWRAP-LIST($param.traits) {
-                        $declaration.add-trait($_);
+                        if nqp::istype($_, RakuAST::Trait::Is)
+                            && $_.name
+                            && nqp::existskey(PARAM-ONLY-TRAITS, $_.name.canonicalize) {
+                            nqp::push(@keep, $_);
+                        }
+                        else {
+                            $declaration.add-trait($_);
+                        }
                     }
-                    $param.set-traits([]);
+                    $param.set-traits(@keep);
                     $param.clear-optionality;
                     if $param.default {
                         $declaration.set-initializer(

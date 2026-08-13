@@ -948,11 +948,12 @@ class RakuAST::Parameter
                 # A <-> block starter flags every parameter rw and a trait
                 # does not clear that, so the target follows the flag even
                 # under an is copy trait. A variable declarator signature
-                # flags its parameters rw as well, but its targets declare
-                # ordinary variables, and a native one must stay a plain
-                # lexical for assignment to reach it.
-                $!target.set-rw if $trait-rw eq 'rw'
-                    || ($!default-rw && !$!target.var-declaration);
+                # flags its parameters rw as well and accepts an explicit
+                # rw trait, but its targets declare ordinary variables,
+                # and a native one must stay a plain lexical for
+                # assignment to reach it.
+                $!target.set-rw if ($trait-rw eq 'rw' || $!default-rw)
+                    && !$!target.var-declaration;
                 $!target.set-ro(False);
             }
         }
@@ -1250,7 +1251,11 @@ class RakuAST::Parameter
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
 
-        if nqp::istype($!owner, RakuAST::Sub) {
+        # A variable declarator signature in the body of MAIN owns its
+        # parameters too, but they are not what MAIN is called with, so
+        # they earn no dispatch advice.
+        if nqp::istype($!owner, RakuAST::Sub)
+            && !($!target && $!target.var-declaration) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 for self.IMPL-UNWRAP-LIST(self.traits) {

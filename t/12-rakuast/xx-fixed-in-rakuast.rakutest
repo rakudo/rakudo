@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 132;
+plan 135;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -959,6 +959,34 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is-deeply Q| my int8 @a = 1, 2, 3; for @a <-> int8 $i { $i++ }; @a |.AST.EVAL,
         array[int8].new(2, 3, 4),
         'a for loop over a sized native array writes back through <->';
+}
+
+# ???
+# The legacy frontend left an is rw trait inside a has declaration
+# list on the parameter, so the accessor stayed read only and an
+# assignment to it died. The trait lands on the attribute declaration
+# and the accessor is writable.
+{
+    is Q| class C { has ($.a is rw) }; my $c = C.new(a => 1); $c.a = 9; $c.a |.AST.EVAL,
+        9, 'an is rw trait inside a has declaration list gives a writable accessor';
+}
+
+# ???
+# The legacy frontend dropped an is default trait inside a declaration
+# list, leaving the variable's container with its bare type default.
+# The trait lands on the variable declaration and takes effect.
+{
+    is Q| my ($a is default(42)); $a |.AST.EVAL, 42,
+        'an is default trait inside a declaration list reaches the variable';
+}
+
+# ???
+# The legacy frontend silently discarded an unknown trait inside a
+# declaration list. It is rejected at compile time.
+{
+    throws-like { Q| my ($a is nonesuch) |.AST.EVAL },
+        Exception, message => /'nonesuch'/,
+        'an unknown trait inside a declaration list is rejected';
 }
 
 # vim: expandtab shiftwidth=4

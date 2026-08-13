@@ -2220,6 +2220,7 @@ class RakuAST::VarDeclaration::Signature
             }
             $param.set-bindable(False) if $binding;
             $param.set-default-rw unless $binding;
+            $param.target.set-var-declaration if $param.target;
             for $traits {
                 $param.target.replace-scope($scope);
                 $param.target.add-trait(nqp::clone($_)) if $param.target;

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 131;
+plan 132;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -948,6 +948,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         :out<Nil>, :err(/'Useless use of constant integer 42'
             .*? 'Useless use of constant integer 43'/),
         'the last statement of a CATCH default block also warns as useless';
+}
+
+# ???
+# A rw parameter of a sized native type made the legacy frontend read
+# the bound reference back at full width into the sized register, which
+# died with a bytecode validation error on decont_i. The reference
+# binds and writes back cleanly.
+{
+    is-deeply Q| my int8 @a = 1, 2, 3; for @a <-> int8 $i { $i++ }; @a |.AST.EVAL,
+        array[int8].new(2, 3, 4),
+        'a for loop over a sized native array writes back through <->';
 }
 
 # vim: expandtab shiftwidth=4

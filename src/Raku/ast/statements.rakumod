@@ -192,8 +192,9 @@ class RakuAST::ForLoopImplementation
     }
 
     # The operator node of a for source that is shaped like an integer
-    # range: an infix range constructor, a ^ prefix, or an argument-less
-    # reverse method call on either. Returns Nil for any other shape.
+    # range: an infix range constructor, an infix sequence constructor
+    # with two operands, a ^ prefix, or an argument-less reverse method
+    # call on any of them. Returns Nil for any other shape.
     method IMPL-RANGE-FOR-OPERATOR(Mu $source) {
         my $expr := self.IMPL-UNWRAP-RANGE-EXPRESSION($source);
         if nqp::istype($expr, RakuAST::ApplyPostfix)
@@ -207,6 +208,12 @@ class RakuAST::ForLoopImplementation
             my str $op := $expr.infix.operator;
             return $expr.infix
                 if $op eq '..' || $op eq '..^' || $op eq '^..' || $op eq '^..^';
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix)
+            && nqp::istype($expr.infix, RakuAST::Infix)
+            && $expr.infix.operator eq '...' {
+            return $expr.infix
+                if nqp::elems(self.IMPL-UNWRAP-LIST($expr.operands)) == 2;
         }
         elsif nqp::istype($expr, RakuAST::ApplyPrefix)
             && nqp::istype($expr.prefix, RakuAST::Prefix)
@@ -243,12 +250,19 @@ class RakuAST::ForLoopImplementation
         Mu
     }
 
+    # Whether a sequence bound is a plain Int and nothing more derived.
+    method IMPL-SEQUENCE-BOUND-IS-INT(Mu $node) {
+        $node.has-compile-time-value
+            && nqp::eqaddr(nqp::what(nqp::decont($node.maybe-compile-time-value)), Int)
+    }
+
     # The native counting loop for a sunk statement-level `for` over an
-    # integer range, the equivalent of the legacy optimizer's for-range
-    # rewrite. Steps a native int from start to end and calls the body
-    # with it, never building the Range or its iterator. Returns Mu when
-    # a bound disqualifies; the caller then falls back to the iterator
-    # form. The caller has already verified the operator is the CORE one
+    # integer range or sequence, the counterpart of the legacy
+    # optimizer's for-range rewrite, which also lowers a stepped list
+    # start while this declines it. Steps a native int from start to
+    # end and calls the body with it, never building the Range or Seq
+    # or its iterator. Returns Mu when a bound disqualifies; the caller
+    # then falls back to the iterator form. The caller has already verified the operator is the CORE one
     # via the optimize pass and that the body is a simple one-argument
     # block with no phasers.
     method IMPL-TO-QAST-RANGE(RakuAST::IMPL::QASTContext $context,
@@ -267,6 +281,7 @@ class RakuAST::ForLoopImplementation
         my $end-node;
         my int $start-extra := 0;
         my int $end-extra   := 0;
+        my int $sequence    := 0;
         if nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infix) {
             my str $op := $expr.infix.operator;
@@ -276,6 +291,15 @@ class RakuAST::ForLoopImplementation
             $end-extra := -1 if $op eq '..^' || $op eq '^..^';
             $start-node := $expr.left;
             $end-node := $expr.right;
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix)
+            && nqp::istype($expr.infix, RakuAST::Infix)
+            && $expr.infix.operator eq '...' {
+            my @operands := self.IMPL-UNWRAP-LIST($expr.operands);
+            return Mu unless nqp::elems(@operands) == 2;
+            $sequence := 1;
+            $start-node := @operands[0];
+            $end-node := @operands[1];
         }
         elsif nqp::istype($expr, RakuAST::ApplyPrefix)
             && nqp::istype($expr.prefix, RakuAST::Prefix)
@@ -295,11 +319,25 @@ class RakuAST::ForLoopImplementation
         return Mu if $end-qast =:= Mu;
 
         my int $step := 1;
+        if $sequence {
+            # A sequence counts toward its endpoint from either side, so
+            # the direction is part of its meaning and both bounds must
+            # be known to pick it. A variable bound keeps the iterator
+            # form. So does an Int subtype: a sequence walks its
+            # endpoints with .succ, so a Bool, an enum, or an allomorph
+            # yields elements of its own type and steps by its own
+            # succession.
+            return Mu unless nqp::istype($start-qast, QAST::IVal)
+                && nqp::istype($end-qast, QAST::IVal)
+                && self.IMPL-SEQUENCE-BOUND-IS-INT($start-node)
+                && self.IMPL-SEQUENCE-BOUND-IS-INT($end-node);
+            $step := -1 if $start-qast.value > $end-qast.value;
+        }
         if $reverse {
             my $swap := $start-qast;
             $start-qast := $end-qast;
             $end-qast := $swap;
-            $step := -1;
+            $step := -$step;
         }
 
         # Bind the iteration and end values into native int temporaries,

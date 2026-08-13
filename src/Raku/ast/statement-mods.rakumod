@@ -421,7 +421,7 @@ class RakuAST::StatementModifier::For
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $Nil := @lookups[1].resolution.compile-time-value;
 
-            # An integer-range source the optimize pass approved becomes a
+            # An integer range or sequence source the optimize pass approved becomes a
             # native counting loop, unless a bound turns out not to be a
             # native-friendly integer.
             if $!can-lower-range

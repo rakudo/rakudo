@@ -911,9 +911,10 @@ class RakuAST::Node {
         Nil
     }
 
-    # Mark a for loop whose source is an integer range built by a CORE range
-    # constructor (`..` and its exclusive variants, prefix `^`, or `reverse`
-    # of one) for lowering to a native counting loop at code generation. Both
+    # Mark a for loop whose source is an integer range or sequence built
+    # by a CORE constructor (`..` and its exclusive variants, a two
+    # operand `...`, prefix `^`, or `reverse` of one) for lowering to a
+    # native counting loop at code generation. Both
     # the statement form and the statement modifier form qualify. Only the
     # source shape and the operator's origin are decided here; code generation
     # checks the loop itself (sunk, serial, simple body) and the bounds, and

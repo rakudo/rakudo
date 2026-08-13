@@ -50,7 +50,121 @@ class RakuAST::Regex
         unless $no-scan {
             $wrap-qast.unshift(QAST::Regex.new( :rxtype('scan') ));
         }
+
+        # The QAST regex optimizations run after the NFA is stored, so
+        # LTM sees the original shape. Gated on the optimize stage having
+        # run, like the marks on the AST. The level is pinned: this
+        # frontend's only optimization switch is whether the stage ran.
+        if $context.optimize-regex {
+            self.IMPL-SIMPLIFY-BEFORE-ASSERTIONS($wrap-qast);
+            # The optimizer relocates a stubbed assertion block into
+            # the block passed here. That path needs an assertion argument
+            # held as an inline block, which this frontend never emits:
+            # the argument is a lexical thunk. So a throwaway block serves,
+            # and anything relocated into it after all would vanish from
+            # the compiled output, so that is a loud death instead.
+            my $parking := QAST::Block.new(QAST::Stmts.new);
+            $wrap-qast := QRegex::Optimizer.new.optimize($wrap-qast,
+                $parking, :optimize(2));
+            nqp::die('Regex optimizer relocated a block it should not see')
+                if nqp::elems($parking[0].list);
+        }
         $wrap-qast
+    }
+
+    # A `before` assertion invokes its argument's thunk at match time: a
+    # method call plus a nested cursor per position tried. An argument
+    # that is a single simple check collapses into the corresponding
+    # zerowidth atom instead. The thunk's compiled body rides along on
+    # the argument reference for LTM, so it is at hand here.
+    method IMPL-SIMPLIFY-BEFORE-ASSERTIONS(Mu $node) {
+        my int $i := 0;
+        my int $n := nqp::elems(@($node));
+        while $i < $n {
+            my $visit := $node[$i];
+            if nqp::istype($visit, QAST::Regex) {
+                my $simple := self.IMPL-BEFORE-SIMPLE-ATOM($visit);
+                if nqp::isnull($simple) {
+                    self.IMPL-SIMPLIFY-BEFORE-ASSERTIONS($visit);
+                }
+                else {
+                    $node[$i] := $simple;
+                }
+            }
+            $i := $i + 1;
+        }
+        Nil
+    }
+
+    # The zerowidth atom a `before` assertion reduces to, or null when it
+    # is anything but a simple one. Only a literal, an enumerated
+    # character list, a character class, or a character range qualifies,
+    # each without case or mark insensitivity, whose zerowidth form the
+    # regex engine checks directly. The end of the string decides the
+    # negated cases: every qualifying argument demands a character, so
+    # the thunk fails there and its negation holds there. A negated
+    # argument atom folded into the emitted node would invert that, so
+    # it stays a thunk. A negated assertion of the enumerated character
+    # list reduces directly, since its negated zerowidth op holds at the
+    # end of the string. The class and range ops demand a character even
+    # when negated, so their negated forms pair with an anchor to the end
+    # of the string in a sequential alternation instead. The negated
+    # literal op fails wherever fewer characters remain than the length,
+    # all positions where the negated assertion must hold, so no anchor
+    # pairing preserves it and it stays a thunk.
+    method IMPL-BEFORE-SIMPLE-ATOM(Mu $qast) {
+        return nqp::null()
+            unless $qast.rxtype eq 'subrule'
+            && $qast.subtype eq 'zerowidth'
+            && nqp::elems(@($qast)) == 1
+            && nqp::istype($qast[0], QAST::NodeList)
+            && nqp::elems(@($qast[0])) == 2
+            && nqp::istype($qast[0][0], QAST::SVal)
+            && $qast[0][0].value eq 'before'
+            && nqp::istype($qast[0][1], QAST::Var)
+            && nqp::istype($qast[0][1].ann('orig_qast'), QAST::Regex);
+        my $atom := $qast[0][1].ann('orig_qast');
+        while $atom.rxtype eq 'concat' && nqp::elems(@($atom)) == 1
+            && nqp::istype($atom[0], QAST::Regex) {
+            $atom := $atom[0];
+        }
+        return nqp::null() unless $atom.subtype eq '' && !$atom.negate;
+        my str $rxtype := $atom.rxtype;
+        my int $negate := $qast.negate ?? 1 !! 0;
+        if $rxtype eq 'literal' {
+            return nqp::null() if $negate;
+            QAST::Regex.new( :rxtype<literal>, :subtype<zerowidth>,
+                :node($atom.node), $atom[0] )
+        }
+        elsif $rxtype eq 'enumcharlist' {
+            QAST::Regex.new( :rxtype<enumcharlist>, :subtype<zerowidth>,
+                :node($atom.node), :$negate, $atom[0] )
+        }
+        elsif $rxtype eq 'cclass' {
+            self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
+                :rxtype<cclass>, :subtype<zerowidth>,
+                :node($atom.node), :$negate, :name($atom.name) ))
+        }
+        elsif $rxtype eq 'charrange' {
+            self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
+                :rxtype<charrange>, :subtype<zerowidth>,
+                :node($atom.node), :$negate, $atom[0], $atom[1], $atom[2] ))
+        }
+        else {
+            nqp::null()
+        }
+    }
+
+    # A negated zerowidth atom that demands a character pairs with an
+    # anchor to the end of the string in a sequential alternation, which
+    # holds there as the reduced assertion must. The positive form passes
+    # through: it fails at the end of the string either way.
+    method IMPL-HOLD-AT-EOS(int $negate, Mu $qast) {
+        $negate
+            ?? QAST::Regex.new( :rxtype<altseq>, :node($qast.node),
+                QAST::Regex.new( :rxtype<anchor>, :subtype<eos>, :node($qast.node) ),
+                $qast )
+            !! $qast
     }
 
     method IMPL-REGEX-BLOCK-CALL(RakuAST::IMPL::QASTContext $context, RakuAST::Block $block) {

@@ -732,6 +732,11 @@ class RakuAST::Node {
             $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
         }
 
+        # The negate withdrawal runs before the gated marks: it is a
+        # retraction of an operand's mark, so neither a rewrite having
+        # replaced this node nor the soft pragma may skip it.
+        self.IMPL-WITHDRAW-NEGATE-NOT($expr);
+
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
@@ -748,6 +753,7 @@ class RakuAST::Node {
             self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
+            self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
@@ -999,6 +1005,46 @@ class RakuAST::Node {
         $postfix.IMPL-SET-CALLSTATIC()
             if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
                 '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator));
+        Nil
+    }
+
+    # Mark a standalone negated comparison for compiling as the setting
+    # prefix ! around the plain comparison call, which is what the
+    # meta-op computes for two arguments. A link of a longer chain keeps
+    # the meta-op, since the chain protocol needs a callee, so the
+    # enclosing link withdraws the mark its operand took.
+    method IMPL-MARK-NEGATE-NOT(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Negate)
+            && $infix.properties.chain;
+        for [$expr.left, $expr.right] {
+            return Nil if nqp::istype($_, RakuAST::ApplyInfix)
+                && $_.infix.properties.chain;
+        }
+        my $not := $resolver.resolve-lexical-constant-in-setting('&prefix:<!>');
+        $infix.IMPL-SET-NEGATE-NOT($not.compile-time-value)
+            if nqp::isconcrete($not)
+            && nqp::istype($not, RakuAST::CompileTimeValue);
+        Nil
+    }
+
+    # Withdraw the standalone mark from a negated operand that turns out
+    # to be a link of a longer chain. A retraction rather than an
+    # optimization: it runs whether or not a rewrite replaced the
+    # enclosing node and regardless of the soft pragma, since a link
+    # must never emit as a standalone negation.
+    method IMPL-WITHDRAW-NEGATE-NOT(Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infixish)
+            && $infix.properties.chain;
+        for [$expr.left, $expr.right] {
+            $_.infix.IMPL-CLEAR-NEGATE-NOT()
+                if nqp::istype($_, RakuAST::ApplyInfix)
+                && nqp::istype($_.infix, RakuAST::MetaInfix::Negate)
+                && $_.infix.properties.chain;
+        }
         Nil
     }
 
@@ -1353,15 +1399,17 @@ class RakuAST::Node {
                 # decision they took is withdrawn here.
                 my int $linked := 0;
                 if nqp::istype($left, RakuAST::ApplyInfix)
-                    && nqp::istype($left.infix, RakuAST::Infix)
+                    && nqp::istype($left.infix, RakuAST::Infixish)
                     && $left.infix.properties.chain {
-                    $left.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+                    $left.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE()
+                        if nqp::istype($left.infix, RakuAST::Infix);
                     $linked := 1;
                 }
                 if nqp::istype($right, RakuAST::ApplyInfix)
-                    && nqp::istype($right.infix, RakuAST::Infix)
+                    && nqp::istype($right.infix, RakuAST::Infixish)
                     && $right.infix.properties.chain {
-                    $right.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+                    $right.infix.IMPL-CLEAR-CT-INLINE-CANDIDATE()
+                        if nqp::istype($right.infix, RakuAST::Infix);
                     $linked := 1;
                 }
                 return Nil if $linked;
@@ -1651,10 +1699,10 @@ class RakuAST::Node {
         return $expr unless $negated || $op eq '~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
         return $expr unless nqp::istype($expr.right, RakuAST::Literal);
@@ -1834,7 +1882,7 @@ class RakuAST::Node {
         return Nil unless $op eq '~~' || $op eq '!~~';
         my $left := $cond.left;
         return Nil if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
@@ -1899,10 +1947,10 @@ class RakuAST::Node {
         my $left := $cond.left;
         my $right := $cond.right;
         return Nil if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return Nil if nqp::istype($right, RakuAST::ApplyInfix)
-            && nqp::istype($right.infix, RakuAST::Infix)
+            && nqp::istype($right.infix, RakuAST::Infixish)
             && $right.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
@@ -2225,10 +2273,10 @@ class RakuAST::Node {
         return $expr unless $op eq '~~' || $op eq '!~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
         return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
@@ -2494,7 +2542,7 @@ class RakuAST::Node {
     # links took.
     method IMPL-MARK-CHAIN-LINKS(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix)
-            && nqp::istype($expr.infix, RakuAST::Infix)
+            && nqp::istype($expr.infix, RakuAST::Infixish)
             && $expr.infix.properties.chain;
         my $left := $expr.left;
         $left.infix.IMPL-CLEAR-SMARTMATCH-MARKS()
@@ -2635,10 +2683,10 @@ class RakuAST::Node {
         return $expr unless $negated || $op eq '~~';
         my $left := $expr.left;
         return $expr if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
+            && nqp::istype($left.infix, RakuAST::Infixish)
             && $left.infix.properties.chain;
         return $expr if nqp::istype(self, RakuAST::ApplyInfix)
-            && nqp::istype(self.infix, RakuAST::Infix)
+            && nqp::istype(self.infix, RakuAST::Infixish)
             && self.infix.properties.chain
             && nqp::eqaddr(self.left, $expr);
 

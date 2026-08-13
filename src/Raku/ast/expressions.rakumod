@@ -254,6 +254,29 @@ class RakuAST::Infixish
         self.IMPL-OPERATOR
     }
 
+    # The given operator, or the meta-op a caller forms over it, as a
+    # compile-time constant, or null when it cannot be one. A setting
+    # operator's lookup yields the same code object at run time, so the
+    # value formed from it here serves every evaluation, which for a
+    # meta-op spares the formation call and its closure on each one.
+    # Anything else forms at run time, and so does everything while
+    # compiling a CORE setting itself, where closures the compiler
+    # forms must not be serialized into the bootstrap. Mirrors the
+    # constant reducer in Term::Reduce.
+    method IMPL-CONSTANT-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $infix) {
+        if nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved
+            && nqp::istype($infix.resolution, RakuAST::Declaration::External::Setting)
+            && !($*COMPILING_CORE_SETTING // 0) {
+            my $meta-op := self.IMPL-HOP-INFIX;
+            $context.ensure-sc($meta-op);
+            QAST::WVal.new( :value($meta-op) )
+        }
+        else {
+            nqp::null()
+        }
+    }
+
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
         for $operands {
             $_.apply-sink($is-sunk);
@@ -922,6 +945,8 @@ class RakuAST::Infix
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, self);
+        return $constant unless nqp::isnull($constant);
         my $name := self.resolution.lexical-name;
         QAST::Var.new( :scope('lexical'), :$name )
     }
@@ -1775,6 +1800,25 @@ class RakuAST::MetaInfix::Negate
 {
     has RakuAST::Infixish $.infix;
 
+    # Set by the optimize pass on a standalone application: the negation
+    # compiles as the setting prefix ! around the plain comparison call,
+    # which is what the meta-op computes for two arguments, sparing its
+    # formation and invocation. Holds the resolved prefix ! routine. A
+    # link of a longer chain keeps the meta-op, since the chain protocol
+    # needs a callee.
+    has int $!negate-not;
+    has Mu $!negate-not-op;
+
+    method IMPL-SET-NEGATE-NOT(Mu $op) {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Negate, '$!negate-not', 1);
+        nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', $op);
+    }
+
+    method IMPL-CLEAR-NEGATE-NOT() {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Negate, '$!negate-not', 0);
+        nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', Mu);
+    }
+
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
@@ -1815,6 +1859,18 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        if $!negate-not {
+            $context.ensure-sc($!negate-not-op);
+            return QAST::Op.new:
+                :op('call'),
+                QAST::WVal.new( :value($!negate-not-op) ),
+                QAST::Op.new(
+                    :op('call'),
+                    $!infix.IMPL-HOP-INFIX-QAST($context),
+                    $left-qast,
+                    $right-qast
+                );
+        }
         QAST::Op.new:
             :op($!infix.properties.chain ?? 'chain' !! 'call'),
             self.IMPL-HOP-INFIX-QAST($context),
@@ -1823,6 +1879,8 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
+        return $constant unless nqp::isnull($constant);
         QAST::Op.new(:op<call>,
           :name<&METAOP_NEGATE>, $!infix.IMPL-HOP-INFIX-QAST($context)
         )
@@ -1888,6 +1946,8 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
+        return $constant unless nqp::isnull($constant);
         QAST::Op.new:
             :op('callstatic'), :name('&METAOP_REVERSE'),
             $!infix.IMPL-HOP-INFIX-QAST($context)
@@ -1934,6 +1994,14 @@ class RakuAST::MetaInfix::Sequence
 
     method IMPL-OPERATOR() {
         self.infix.IMPL-OPERATOR
+    }
+
+    # Sequencing pins the evaluation order of the operands, not the
+    # operator, so the formed value is the wrapped operator's own. The
+    # generic formation does not apply: there is no METAOP routine for
+    # sequencing, as the empty implicit lookups say.
+    method IMPL-HOP-INFIX() {
+        self.infix.IMPL-HOP-INFIX
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -2009,6 +2077,8 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
+        return $constant unless nqp::isnull($constant);
         QAST::Op.new:
             :op('callstatic'), :name('&METAOP_CROSS'),
             $!infix.IMPL-HOP-INFIX-QAST($context),
@@ -2018,7 +2088,7 @@ class RakuAST::MetaInfix::Cross
     method IMPL-HOP-INFIX() {
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         $lookups[0].resolution.compile-time-value()(
-            self.infix.IMPL-OPERATOR,
+            self.infix.IMPL-HOP-INFIX,
             $lookups[1].resolution.compile-time-value,
         )
     }
@@ -2108,6 +2178,8 @@ class RakuAST::MetaInfix::Zip
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
+        return $constant unless nqp::isnull($constant);
         QAST::Op.new:
             :op('callstatic'), :name('&METAOP_ZIP'),
             $!infix.IMPL-HOP-INFIX-QAST($context),
@@ -2117,7 +2189,7 @@ class RakuAST::MetaInfix::Zip
     method IMPL-HOP-INFIX() {
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         $lookups[0].resolution.compile-time-value()(
-            self.infix.IMPL-OPERATOR,
+            self.infix.IMPL-HOP-INFIX,
             $lookups[1].resolution.compile-time-value,
         )
     }
@@ -2209,6 +2281,8 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
+        return $constant unless nqp::isnull($constant);
         my $call := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER'),
             $!infix.IMPL-HOP-INFIX-QAST($context);
@@ -2223,7 +2297,7 @@ class RakuAST::MetaInfix::Hyper
 
     method IMPL-HOP-INFIX() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
-            self.infix.resolution.compile-time-value,
+            self.infix.IMPL-HOP-INFIX,
             :dwim-left($!dwim-left),
             :dwim-right($!dwim-right)
         )

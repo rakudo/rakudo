@@ -974,6 +974,10 @@ class RakuAST::CompilerServices
     has RakuAST::IMPL::QASTContext $!context;
     has QAST::Stmts $!qast;
 
+    # The one signature the package's accessors share, made from the
+    # first accessor's own.
+    has Mu $!acc-sig;
+
     method new(RakuAST::Package $package, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompilerServices, '$!package', $package);
@@ -999,7 +1003,29 @@ class RakuAST::CompilerServices
         $!resolver.pop-scope();
         $!resolver.pop-scope();
         $!qast.push: $accessor.IMPL-QAST-BLOCK($!context);
-        $accessor.meta-object
+        my $code := $accessor.meta-object;
+
+        # The package's accessors share one signature, with a definite
+        # invocant. Composition normalizes every accessor's package to
+        # the composing type, so one signature fits them all. The block
+        # binds the invocant raw: the definite type informs
+        # introspection and derivation, not a run time check, and a
+        # type object invocant reaches the body, where the attribute
+        # access dies. Mirrors what the legacy frontend installs.
+        if nqp::isconcrete($!acc-sig) {
+            nqp::bindattr($code, Code, '$!signature', $!acc-sig);
+        }
+        else {
+            my $sig := nqp::getattr($code, Code, '$!signature');
+            my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
+                :base_type($package_type), :definite(1));
+            $!context.ensure-sc($definite);
+            nqp::bindattr(
+                nqp::atpos(nqp::getattr($sig, Signature, '@!params'), 0),
+                Parameter, '$!type', $definite);
+            nqp::bindattr(self, RakuAST::CompilerServices, '$!acc-sig', $sig);
+        }
+        $code
     }
 
     method IMPL-ADD-QAST(QAST::Node $target) {
@@ -1021,6 +1047,7 @@ class RakuAST::CompilerServices
         nqp::bindattr(self, RakuAST::CompilerServices, '$!resolver', RakuAST::Resolver);
         nqp::bindattr(self, RakuAST::CompilerServices, '$!context', RakuAST::IMPL::QASTContext);
         nqp::bindattr(self, RakuAST::CompilerServices, '$!qast', QAST::Stmts);
+        nqp::bindattr(self, RakuAST::CompilerServices, '$!acc-sig', Mu);
         Nil
     }
 }

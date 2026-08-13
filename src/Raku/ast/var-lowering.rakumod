@@ -544,6 +544,15 @@ class RakuAST::IMPL::VarLowering {
             elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Cursor) {
                 $decl.IMPL-SET-UNUSED() if !$used && !$poisoned;
             }
+            elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Routine) {
+                # The &?BLOCK subclass must keep its declaration: its
+                # reader always reads it by name and is not a Lookup,
+                # so no use of it can register here.
+                $decl.IMPL-SET-UNUSED()
+                    if !$used && !$poisoned
+                    && !nqp::istype($decl,
+                        RakuAST::VarDeclaration::Implicit::CurrentBlock);
+            }
         }
         Nil
     }

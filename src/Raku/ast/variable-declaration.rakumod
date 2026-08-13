@@ -2980,6 +2980,7 @@ class RakuAST::VarDeclaration::Implicit::Routine
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        return QAST::Op.new( :op('null') ) if self.IMPL-UNUSED;
         # We cannot just put the AST node's meta-object into a WVal for this, because
         # we may be running a clone of that object.
         QAST::Op.new:

@@ -745,6 +745,9 @@ class RakuAST::Node {
             self.IMPL-MARK-RANGE-FOR($resolver, $expr);
             self.IMPL-MARK-STATIC-CALL($resolver, $expr);
             self.IMPL-MARK-STATIC-CHAIN($resolver, $expr);
+            self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
+            self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
+            self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
@@ -955,6 +958,47 @@ class RakuAST::Node {
         $infix.IMPL-SET-CHAINSTATIC()
             if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
                 '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator));
+        Nil
+    }
+
+    # Mark an infix operator whose lexical is bound once for a static
+    # callee lookup at code generation. A chaining one is the chain mark's
+    # business, since it compiles to a chain op instead.
+    method IMPL-MARK-STATIC-INFIX(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved
+            && !$infix.properties.chain;
+        $infix.IMPL-SET-CALLSTATIC()
+            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
+                '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator));
+        Nil
+    }
+
+    # Mark a prefix operator whose lexical is bound once for a static callee
+    # lookup at code generation.
+    method IMPL-MARK-STATIC-PREFIX(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyPrefix);
+        my $prefix := $expr.prefix;
+        return Nil unless nqp::istype($prefix, RakuAST::Prefix)
+            && $prefix.is-resolved;
+        $prefix.IMPL-SET-CALLSTATIC()
+            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $prefix.resolution,
+                '&prefix' ~ $resolver.IMPL-CANONICALIZE-PAIR($prefix.operator));
+        Nil
+    }
+
+    # Mark a postfix operator whose lexical is bound once for a static callee
+    # lookup at code generation.
+    method IMPL-MARK-STATIC-POSTFIX(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
+        my $postfix := $expr.postfix;
+        return Nil unless nqp::istype($postfix, RakuAST::Postfix)
+            && $postfix.is-resolved;
+        $postfix.IMPL-SET-CALLSTATIC()
+            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
+                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator));
         Nil
     }
 

@@ -1682,8 +1682,8 @@ class RakuAST::MetaInfix::Assign
     }
 
     # A native int or num compound assignment the optimize pass marked: assign
-    # the result of the raw op back to the left, which is a simple native
-    # lexicalref read and written in place.
+    # the result of the raw op back to the left, whose native ref is read
+    # and written in place.
     method IMPL-NATIVE-STEP-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right) {
         my int $is-int := $!native-step == 1;
@@ -1692,7 +1692,7 @@ class RakuAST::MetaInfix::Assign
         if $base eq '+'    { $op := $is-int ?? 'add_i' !! 'add_n' }
         elsif $base eq '-' { $op := $is-int ?? 'sub_i' !! 'sub_n' }
         else               { $op := $is-int ?? 'mul_i' !! 'mul_n' }
-        my $var     := $left.resolution.IMPL-LOOKUP-QAST($context);
+        my $var     := self.IMPL-NATIVE-STEP-TARGET-QAST($context, $left);
         my $returns := $var.returns;
         my $rhs     := $right.IMPL-TO-QAST($context);
         QAST::Op.new(:op($is-int ?? 'assign_i' !! 'assign_n'), :$returns, $var,
@@ -3361,16 +3361,17 @@ class RakuAST::ApplyPrefix
         $qast
     }
 
-    # A native int/num ++ or -- the optimize pass marked: emit the raw op on a
-    # lexicalref instead of calling the operator. A prefix yields the stepped
-    # value, which the assignment already returns, so it needs no reverse step.
+    # A native int/num ++ or -- the optimize pass marked: emit the raw op on
+    # the target's native ref instead of calling the operator. A prefix
+    # yields the stepped value, which the assignment already returns, so it
+    # needs no reverse step.
     method IMPL-NATIVE-INCDEC-QAST(RakuAST::IMPL::QASTContext $context) {
         my int $is-int := $!native-incdec == 1;
         my str $assign := $is-int ?? 'assign_i' !! 'assign_n';
         my str $add    := $is-int ?? 'add_i'    !! 'add_n';
         my str $sub    := $is-int ?? 'sub_i'    !! 'sub_n';
         my int $is-dec := $!prefix.operator eq '--';
-        my $var     := $!operand.resolution.IMPL-LOOKUP-QAST($context);
+        my $var     := self.IMPL-NATIVE-STEP-TARGET-QAST($context, $!operand);
         my $returns := $var.returns;
         my $one     := $is-int ?? QAST::IVal.new(:value(1)) !! QAST::NVal.new(:value(1.0));
 
@@ -4207,17 +4208,18 @@ class RakuAST::ApplyPostfix
             !! $postfix-ast
     }
 
-    # A native int/num ++ or -- the optimize pass marked: emit the raw op on a
-    # lexicalref instead of calling the operator. In sink context just assign
-    # the stepped value; otherwise reverse the step on the assigned value to
-    # yield the original, which a postfix returns, without a temporary.
+    # A native int/num ++ or -- the optimize pass marked: emit the raw op on
+    # the target's native ref instead of calling the operator. In sink context
+    # just assign the stepped value; otherwise reverse the step on the
+    # assigned value to yield the original, which a postfix returns, without
+    # a temporary.
     method IMPL-NATIVE-INCDEC-QAST(RakuAST::IMPL::QASTContext $context) {
         my int $is-int := $!native-incdec == 1;
         my str $assign := $is-int ?? 'assign_i' !! 'assign_n';
         my str $add    := $is-int ?? 'add_i'    !! 'add_n';
         my str $sub    := $is-int ?? 'sub_i'    !! 'sub_n';
         my int $is-dec := $!postfix.operator eq '--';
-        my $var     := $!operand.resolution.IMPL-LOOKUP-QAST($context);
+        my $var     := self.IMPL-NATIVE-STEP-TARGET-QAST($context, $!operand);
         my $returns := $var.returns;
         my $one     := $is-int ?? QAST::IVal.new(:value(1)) !! QAST::NVal.new(:value(1.0));
 

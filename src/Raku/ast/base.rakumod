@@ -783,11 +783,11 @@ class RakuAST::Node {
         $result
     }
 
-    # Mark a native int or num increment or decrement on a simple lexical for
-    # lowering to a raw op at code generation. Both the postfix (`$i++`) and
-    # prefix (`++$i`) forms qualify. Doing it here, in the optimize pass, gates
-    # it on optimization being on. Only the CORE operator is lowered; a
-    # user-redefined one must still run.
+    # Mark a native int or num increment or decrement on a simple lexical or
+    # an attribute for lowering to a raw op at code generation. Both the
+    # postfix (`$i++`) and prefix (`++$i`) forms qualify. Doing it here, in
+    # the optimize pass, gates it on optimization being on. Only the CORE
+    # operator is lowered; a user-redefined one must still run.
     method IMPL-MARK-NATIVE-INCDEC(RakuAST::Resolver $resolver, Mu $expr) {
         my int $is-postfix := nqp::istype($expr, RakuAST::ApplyPostfix);
         my $op-node;
@@ -805,7 +805,8 @@ class RakuAST::Node {
         my str $op := $op-node.operator;
         return Nil unless $op eq '++' || $op eq '--';
         my $operand := $expr.operand;
-        return Nil unless nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved;
+        return Nil unless (nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved)
+          || nqp::istype($operand, RakuAST::Var::Attribute);
         my int $spec := nqp::objprimspec($operand.return-type);
         return Nil unless $spec == 1 || $spec == 2;
         # A post-increment recovers the original by reversing the step on the
@@ -819,9 +820,11 @@ class RakuAST::Node {
     }
 
     # Mark a native int or num add, subtract, or multiply compound assignment
-    # on a simple lexical with a native operand for lowering to a raw op. Gated
-    # in the optimize pass like the increment case. Only the CORE operator is
-    # lowered.
+    # on a simple lexical or an attribute with a native operand for lowering
+    # to a raw op. Gated in the optimize pass like the increment case. Only
+    # the CORE operator is lowered. A narrower target stores the truncated
+    # step. No reverse step recovers a prior value here, so the width gate
+    # the postfix reverse step needs has no place.
     method IMPL-MARK-NATIVE-METAOP(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
@@ -831,7 +834,8 @@ class RakuAST::Node {
         my str $op := $base.operator;
         return Nil unless $op eq '+' || $op eq '-' || $op eq '*';
         my $left := $expr.left;
-        return Nil unless nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved;
+        return Nil unless (nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
+          || nqp::istype($left, RakuAST::Var::Attribute);
         my int $spec := nqp::objprimspec($left.return-type);
         return Nil unless $spec == 1 || $spec == 2;
         # The right operand must be a native value: a native variable of the
@@ -841,7 +845,8 @@ class RakuAST::Node {
         # metaop. A float literal never overflows that way.
         my $right := $expr.right;
         my int $rhs-ok := 0;
-        if nqp::istype($right, RakuAST::Var::Lexical) && $right.is-resolved
+        if (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-resolved
+          || nqp::istype($right, RakuAST::Var::Attribute))
           && nqp::objprimspec($right.return-type) == $spec {
             $rhs-ok := 1;
         }
@@ -895,6 +900,17 @@ class RakuAST::Node {
         || (nqp::istype($node, RakuAST::ApplyInfix)
           && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
           && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
+    }
+
+    # The QAST var for a native step target the marks accepted: an
+    # attribute compiles to its typed attributeref var, and a lexical
+    # to the lookup its declaration provides. Every call site inserts
+    # the node in both the read and the write position, so a target
+    # kind must stay free of side effects.
+    method IMPL-NATIVE-STEP-TARGET-QAST(RakuAST::IMPL::QASTContext $context, Mu $target) {
+        nqp::istype($target, RakuAST::Var::Attribute)
+            ?? $target.IMPL-TO-QAST($context)
+            !! $target.resolution.IMPL-LOOKUP-QAST($context)
     }
 
     # Mark a dot-assignment for inlining the dispatcher away. It is always a

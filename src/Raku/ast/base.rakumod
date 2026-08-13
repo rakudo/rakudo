@@ -737,6 +737,13 @@ class RakuAST::Node {
         # replaced this node nor the soft pragma may skip it.
         self.IMPL-WITHDRAW-NEGATE-NOT($expr);
 
+        # A bind statement replaces its target's container, so it
+        # withdraws native subscript eligibility from the target's
+        # declaration. A retraction rather than an optimization: it runs
+        # whether or not a rewrite replaced this node and regardless of
+        # the soft pragma.
+        self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
+
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
@@ -754,6 +761,7 @@ class RakuAST::Node {
             self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
             self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
+            self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
             self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
             self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
@@ -950,6 +958,124 @@ class RakuAST::Node {
         $expr.IMPL-SET-CALLSTATIC()
             if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $expr.resolution,
                 '&' ~ $expr.name.canonicalize);
+        Nil
+    }
+
+    # A bind statement targeting a lexical with a simple declaration
+    # marks that declaration, so the native subscript emission stands
+    # down: the bound container need not be the declared one. An EVAL
+    # cannot rebind an outer lexical on this frontend, so the statements
+    # seen here are all the binds there are.
+    method IMPL-POISON-NATIVE-INDEX-BIND(Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infix)
+            && ($infix.operator eq ':=' || $infix.operator eq '::=');
+        my $left := $expr.left;
+        $left.resolution.IMPL-SET-BIND-TARGETED()
+            if nqp::istype($left, RakuAST::Var::Lexical)
+            && $left.is-resolved
+            && nqp::istype($left.resolution, RakuAST::VarDeclaration::Simple);
+        Nil
+    }
+
+    # The native kind a read of this lexical is statically known to
+    # yield, or 0. A plain declaration answers through its return
+    # type. A parameter answers through the declaration its target
+    # wraps. A bindable target need not keep its declared slot, and
+    # an rw parameter reads through a reference rather than a native
+    # slot, so both answer 0. The rw and bindable flags land when the
+    # parameter produces its meta object, which runs before the
+    # optimize pass reads them here.
+    method IMPL-NATIVE-LEXICAL-PRIMSPEC(Mu $var) {
+        return 0 unless nqp::istype($var, RakuAST::Var::Lexical)
+            && $var.is-resolved;
+        my $decl := $var.resolution;
+        if nqp::istype($decl, RakuAST::ParameterTarget::Var) {
+            return 0 if $decl.can-be-bound-to;
+            my $wrapped := $decl.declaration;
+            return 0 unless nqp::isconcrete($wrapped) && !$wrapped.IMPL-IS-RW;
+            $decl := $wrapped;
+        }
+        nqp::objprimspec($decl.return-type)
+    }
+
+    # The native element kind a subscript of this application reads
+    # with a raw op, or 0 when the general call must stay. Only the
+    # simplest shape qualifies: a plain `my` declaration of an array
+    # whose element type is a native int, num, or str kind, no shape,
+    # no binding initializer and no traits, subscripted by an int
+    # literal that is at or above zero and fits a native int, or by a
+    # lexical whose read comes straight from a native int slot, with
+    # the setting subscript routine in force and no adverbs. The emission also
+    # declines when a bind statement targets the declaration, so the
+    # raw op only ever touches the declared container.
+    method IMPL-NATIVE-INDEX-SPEC(Mu $expr) {
+        my $postfix := $expr.postfix;
+        return 0 unless nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex)
+            && !$postfix.is-multislice
+            && nqp::elems(self.IMPL-UNWRAP-LIST($postfix.colonpairs)) == 0
+            && $postfix.is-resolved
+            && nqp::istype($postfix.resolution, RakuAST::Declaration::External::Setting);
+        my $operand := $expr.operand;
+        return 0 unless nqp::istype($operand, RakuAST::Var::Lexical)
+            && $operand.is-resolved;
+        my $decl := $operand.resolution;
+        return 0 unless nqp::istype($decl, RakuAST::VarDeclaration::Simple)
+            && $decl.sigil eq '@'
+            && $decl.twigil eq ''
+            && $decl.scope eq 'my'
+            && !nqp::isconcrete($decl.shape)
+            && !nqp::isconcrete($decl.where)
+            && !nqp::istype($decl.initializer, RakuAST::Initializer::Bind)
+            && nqp::elems(self.IMPL-UNWRAP-LIST($decl.traits)) == 0;
+        my int $spec := nqp::objprimspec($decl.IMPL-OF-TYPE);
+        return 0 unless $spec == 1 || $spec == 2 || $spec == 3;
+        my $statements := $postfix.index.code-statements;
+        return 0 unless nqp::elems($statements) == 1
+            && nqp::istype($statements[0], RakuAST::Statement::Expression);
+        my $index := $statements[0].expression;
+        if nqp::istype($index, RakuAST::IntLiteral) {
+            return $index.IMPL-FITS-NATIVE-INT
+                && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int))
+                ?? $spec
+                !! 0;
+        }
+        self.IMPL-NATIVE-LEXICAL-PRIMSPEC($index) == 1
+            ?? $spec
+            !! 0
+    }
+
+    # Mark a native array subscript for compiling with a raw op. A read
+    # emits the element reference the general call returns, so every
+    # context that writes through the result keeps working. A subscript
+    # carrying an assignment marks only when the statement is sunk, the
+    # raw bind yields no assignment result, and only when the value is
+    # a fitting literal or a native lexical of the element's kind, so
+    # the bind stores exactly what the assignment coercion would have.
+    method IMPL-MARK-NATIVE-INDEX(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
+        my int $spec := self.IMPL-NATIVE-INDEX-SPEC($expr);
+        return Nil unless $spec;
+        my $postfix := $expr.postfix;
+        my $value := $postfix.assignee;
+        if $value {
+            return Nil unless nqp::istype($expr, RakuAST::Sinkable) && $expr.sunk;
+            if $spec == 1 {
+                return Nil unless nqp::istype($value, RakuAST::IntLiteral)
+                    && $value.IMPL-FITS-NATIVE-INT
+                    || self.IMPL-NATIVE-LEXICAL-PRIMSPEC($value) == 1;
+            }
+            elsif $spec == 2 {
+                return Nil unless nqp::istype($value, RakuAST::NumLiteral)
+                    || self.IMPL-NATIVE-LEXICAL-PRIMSPEC($value) == 2;
+            }
+            else {
+                return Nil unless nqp::istype($value, RakuAST::StrLiteral)
+                    || self.IMPL-NATIVE-LEXICAL-PRIMSPEC($value) == 3;
+            }
+        }
+        $postfix.IMPL-SET-NATIVE-INDEX($spec, $expr.operand.resolution);
         Nil
     }
 

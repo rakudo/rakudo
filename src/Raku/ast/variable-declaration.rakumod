@@ -907,6 +907,8 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
     }
 
+    method IMPL-IS-RW() { $!is-rw }
+
     method set-ro(Bool $ro) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-ro', $ro);
     }
@@ -998,6 +1000,17 @@ class RakuAST::VarDeclaration::Simple
     # at runtime. The documentation of other variable declarations is
     # only available through $=rakudoc.
     method podifiable() { self.is-attribute }
+
+    # Set when a bind statement targets this declaration: the bind
+    # replaces the declared container, so anything relying on the
+    # declaration's own container must stand down.
+    has int $!bind-targeted;
+
+    method IMPL-SET-BIND-TARGETED() {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!bind-targeted', 1);
+    }
+
+    method IMPL-BIND-TARGETED() { $!bind-targeted }
 
     method IMPL-OF-TYPE() {
         $!type

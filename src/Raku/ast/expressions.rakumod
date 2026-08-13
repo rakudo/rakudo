@@ -3674,6 +3674,19 @@ class RakuAST::Postcircumfix::ArrayIndex
     has RakuAST::SemiList   $.index;
     has RakuAST::Expression $.assignee;
 
+    # Set by the optimize pass when the subscripted array declaration
+    # and the index qualify, so the access compiles to a raw op. A
+    # lexical index keeps the general call behind a sign guard, and a
+    # bind statement targeting the declaration, found at any point of
+    # the pass, makes the emission stand down entirely.
+    has int $!native-spec;
+    has Mu $!native-decl;
+
+    method IMPL-SET-NATIVE-INDEX(int $spec, Mu $decl) {
+        nqp::bindattr_i(self, RakuAST::Postcircumfix::ArrayIndex, '$!native-spec', $spec);
+        nqp::bindattr(self, RakuAST::Postcircumfix::ArrayIndex, '$!native-decl', $decl);
+    }
+
     method new(
         RakuAST::SemiList :$index!,
       RakuAST::Expression :$assignee,
@@ -3791,6 +3804,51 @@ class RakuAST::Postcircumfix::ArrayIndex
                 ?? '&postcircumfix:<[; ]>'
                 !! '&postcircumfix:<[ ]>';
         }
+        if $!native-spec && !$!native-decl.IMPL-BIND-TARGETED {
+            # The raw op serves every index the mark admitted: a fitting
+            # literal at or above zero takes it outright, while a native
+            # lexical keeps the general call behind a sign guard, whose
+            # candidates own the negative index error. The operand and
+            # index nodes are pure by the mark's terms, so each may
+            # compile in both branches.
+            my $index := $!index.code-statements[0].expression;
+            my int $literal := nqp::istype($index, RakuAST::IntLiteral);
+            my $fast-index := $literal
+                ?? QAST::IVal.new( :value(nqp::unbox_i($index.compile-time-value)) )
+                !! $index.IMPL-TO-QAST($context);
+            my $fast;
+            if $!assignee {
+                my str $bind-op := $!native-spec == 1 ?? 'bindpos_i'
+                    !! $!native-spec == 2 ?? 'bindpos_n' !! 'bindpos_s';
+                my $value := $!assignee;
+                my $fast-value := nqp::istype($value, RakuAST::IntLiteral)
+                    ?? QAST::IVal.new( :value(nqp::unbox_i($value.compile-time-value)) )
+                    !! nqp::istype($value, RakuAST::NumLiteral)
+                        ?? QAST::NVal.new( :value(nqp::unbox_n($value.compile-time-value)) )
+                        !! nqp::istype($value, RakuAST::StrLiteral)
+                            ?? QAST::SVal.new( :value(nqp::unbox_s($value.compile-time-value)) )
+                            !! $value.IMPL-TO-QAST($context);
+                $fast := QAST::Op.new( :op($bind-op), $operand-qast, $fast-index, $fast-value );
+            }
+            else {
+                my str $ref-op := $!native-spec == 1 ?? 'atposref_i'
+                    !! $!native-spec == 2 ?? 'atposref_n' !! 'atposref_s';
+                $fast := QAST::Op.new( :op($ref-op), $operand-qast, $fast-index );
+            }
+            return $fast if $literal;
+            my $slow := QAST::Op.new( :op('call'), :$name, $operand-qast );
+            $slow.push(self.IMPL-INDEX-QAST($context));
+            $slow.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
+            return QAST::Op.new(
+                :op('if'),
+                QAST::Op.new( :op('islt_i'),
+                    $index.IMPL-TO-QAST($context),
+                    QAST::IVal.new( :value(0) ) ),
+                $slow,
+                $fast
+            );
+        }
+
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;

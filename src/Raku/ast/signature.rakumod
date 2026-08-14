@@ -925,17 +925,18 @@ class RakuAST::Parameter
         if $!target {
             $!target.set-ro(True);
             my $name := $!target.introspection-name;
-            my $rw := $!default-rw;
+            my str $trait-rw := '';
             for self.IMPL-UNWRAP-LIST(self.traits) {
                 if nqp::istype($_, RakuAST::Trait::Is)
                     && (
                         $_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw'
                     )
                 {
-                    $rw := $_.name.canonicalize;
+                    $trait-rw := $_.name.canonicalize;
                     last;
                 }
             }
+            my str $rw := $trait-rw || ($!default-rw ?? 'rw' !! '');
 
             if $rw {
                 if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
@@ -944,7 +945,15 @@ class RakuAST::Parameter
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
                 }
-                $!target.set-rw if $rw eq 'rw';
+                # A <-> block starter flags every parameter rw and a trait
+                # does not clear that, so the target follows the flag even
+                # under an is copy trait. A variable declarator signature
+                # flags its parameters rw as well and accepts an explicit
+                # rw trait, but its targets declare ordinary variables,
+                # and a native one must stay a plain lexical for
+                # assignment to reach it.
+                $!target.set-rw if ($trait-rw eq 'rw' || $!default-rw)
+                    && !$!target.var-declaration;
                 $!target.set-ro(False);
             }
         }
@@ -1242,7 +1251,11 @@ class RakuAST::Parameter
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
 
-        if nqp::istype($!owner, RakuAST::Sub) {
+        # A variable declarator signature in the body of MAIN owns its
+        # parameters too, but they are not what MAIN is called with, so
+        # they earn no dispatch advice.
+        if nqp::istype($!owner, RakuAST::Sub)
+            && !($!target && $!target.var-declaration) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 for self.IMPL-UNWRAP-LIST(self.traits) {
@@ -1990,6 +2003,8 @@ class RakuAST::ParameterTarget
     method set-rw() { }
     method set-ro(Bool $ro) { }
     method set-where(RakuAST::Expression $where) { }
+    method var-declaration() { False }
+    method set-var-declaration() { }
     method sigil() { '' }
     method name() { '' }
     method desigilname() { self.name }
@@ -2014,12 +2029,15 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
     has Bool $!is-bindable;
+    has Bool $!var-declaration;
 
     method new(str :$name!, Bool :$forced-dynamic, Bool :$var-declaration) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!var-declaration',
+            $var-declaration ?? True !! False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
         if $twigil eq '!' && !$var-declaration {
@@ -2120,6 +2138,12 @@ class RakuAST::ParameterTarget::Var
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
         $!declaration.set-bindable($bindable) if $!declaration;
+    }
+
+    method var-declaration() { $!var-declaration }
+
+    method set-var-declaration() {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!var-declaration', True);
     }
 
     method set-rw() {

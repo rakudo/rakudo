@@ -1775,7 +1775,13 @@ class RakuAST::Parameter
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
-                my $value := $get-decont-var() // QAST::Op.new(:op('decont'), $temp-qast-var);
+                # A native register holds no container, so the value binds
+                # straight through. The decont var would build
+                # hllize(decont(...)) around it, which the code generator
+                # can only satisfy by boxing the native first.
+                my $value := !$is-generic && !$is-coercive && $spec
+                    ?? $temp-qast-var
+                    !! $get-decont-var() // QAST::Op.new(:op('decont'), $temp-qast-var);
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {

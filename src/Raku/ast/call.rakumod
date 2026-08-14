@@ -452,9 +452,13 @@ class RakuAST::Call::Name
                     nqp::push(@flags, nqp::objprimspec($type));
                 }
                 if $ok {
-                    if nqp::elems(@types) == 1 && nqp::istype(@args[0], RakuAST::Literal) {
-                        my $rev := @args[0].native-type-flag;
-                        @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
+                    if nqp::elems(@types) == 1 {
+                        # The literal kind covers a constant quoted string as
+                        # well as the literal nodes, so a string passed to an
+                        # `int` parameter is refused here rather than failing
+                        # to unbox at run time.
+                        my $rev := @args[0].IMPL-NATIVE-LITERAL-KIND;
+                        @flags[0] := $rev +| $ARG_IS_LITERAL if nqp::defined($rev);
                     }
                     elsif nqp::elems(@types) == 2 {
                         # A native-paired literal is passed in its native

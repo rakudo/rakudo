@@ -1619,6 +1619,8 @@ class RakuAST::MetaInfix::Assign
         nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!native-step', $primspec)
     }
 
+    method IMPL-NATIVE-STEP-SET() { $!native-step }
+
     method IMPL-SET-INLINE() {
         nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!inline', 1)
     }
@@ -3309,6 +3311,8 @@ class RakuAST::ApplyPrefix
         nqp::bindattr_i(self, RakuAST::ApplyPrefix, '$!native-incdec', $primspec)
     }
 
+    method IMPL-NATIVE-INCDEC-SET() { $!native-incdec }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-PRIME($resolver, $context);
     }
@@ -4196,6 +4200,8 @@ class RakuAST::ApplyPostfix
     method IMPL-SET-NATIVE-INCDEC(int $primspec) {
         nqp::bindattr_i(self, RakuAST::ApplyPostfix, '$!native-incdec', $primspec)
     }
+
+    method IMPL-NATIVE-INCDEC-SET() { $!native-incdec }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         return self.IMPL-NATIVE-INCDEC-QAST($context) if $!native-incdec;

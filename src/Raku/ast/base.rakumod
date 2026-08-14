@@ -760,6 +760,7 @@ class RakuAST::Node {
             self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
             self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
+            self.IMPL-MARK-CONSTANT-TERM($resolver, $expr);
             self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
             self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
             self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
@@ -1093,6 +1094,27 @@ class RakuAST::Node {
             }
         }
         $postfix.IMPL-SET-NATIVE-INDEX($spec, $expr.operand.resolution);
+        Nil
+    }
+
+    # Mark a plain constant term whose lexical is bound once for
+    # compiling as its value. A name read through the frame chain costs
+    # on every evaluation, and a setting name's lookup op keeps the
+    # surrounding frame from ever inlining. A container stays a lookup, since the
+    # fold would change what identity the read produces.
+    method IMPL-MARK-CONSTANT-TERM(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::Term::Name)
+            && $expr.is-resolved
+            && $expr.name.is-identifier
+            && !$expr.name.is-pseudo-package
+            && !$expr.name.is-package-search;
+        my $resolution := $expr.resolution;
+        return Nil unless nqp::istype($resolution, RakuAST::CompileTimeValue)
+            && $resolution.has-compile-time-value;
+        return Nil if nqp::iscont($resolution.compile-time-value);
+        $expr.IMPL-SET-COMPILE-TO-VALUE()
+            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution,
+                $expr.name.canonicalize);
         Nil
     }
 
@@ -1725,16 +1747,17 @@ class RakuAST::Node {
 
     # Whether a resolution's lexical is bound once, so the VM may resolve a
     # lookup of $name a single time and treat the result as a constant. Two
-    # kinds of binding qualify. A setting routine: the setting binds each
-    # routine name once and user code cannot rebind it. And a
-    # compile-time-valued binding in the outermost scope of the compilation
-    # unit (a sub declaration or an import), since that scope's frame is
-    # entered once per load and a sub declaration cannot be rebound. A
-    # declaration without a compile-time value, like `my &foo`, does not
-    # qualify: its binding is free to be rebound at runtime. Nor does a
-    # routine declared in a nested scope, since its enclosing frame is
-    # entered many times and each entry may bind a fresh clone. Nor does a
-    # callee compiled under the soft pragma, so it stays wrappable.
+    # kinds of binding qualify. A setting symbol: the setting binds each
+    # name once and user code cannot rebind it. And a compile-time-valued
+    # binding in the outermost scope of the compilation unit, such as a
+    # sub declaration, a constant, an enum value, or an import, since that
+    # scope's frame is entered once per load and such a binding cannot be
+    # rebound. A declaration without a compile-time value, like `my &foo`,
+    # does not qualify: its binding is free to be rebound at runtime. Nor
+    # does a routine declared in a nested scope, since its enclosing frame
+    # is entered many times and each entry may bind a fresh clone. Nor
+    # does a Code value compiled under the soft pragma, so it stays
+    # wrappable.
     method IMPL-RESOLUTION-BOUND-ONCE(RakuAST::Resolver $resolver, Mu $decl, str $name) {
         return 1 if nqp::istype($decl, RakuAST::Declaration::External::Setting);
 
@@ -1743,9 +1766,10 @@ class RakuAST::Node {
         my $routine := nqp::istype($decl, RakuAST::CompileTimeValue)
             ?? $decl.compile-time-value
             !! $decl.maybe-compile-time-value;
-        return 0 unless nqp::isconcrete($routine)
-            && nqp::istype($routine, Code)
-            && nqp::can($routine, 'soft') && !$routine.soft;
+        return 0 unless nqp::isconcrete($routine);
+        if nqp::istype($routine, Code) {
+            return 0 unless nqp::can($routine, 'soft') && !$routine.soft;
+        }
 
         # The nearest scope declaring the name must be the outermost one, and
         # the declaration found there must be the resolution itself, so a
@@ -3072,15 +3096,21 @@ class RakuAST::Node {
     # a use of the name still turns the lowering off, where the resolution
     # stored on the node (made when the declaration had not been parsed yet)
     # would still claim the CORE routine. When the walk reaches no declaration
-    # at all (the operator is being defined as CORE itself compiles), the file
-    # vouches.
+    # at all, the origin check above already vouched, by file for a loaded
+    # setting or by the marker while a core setting compiles itself.
     method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
         CATCH {
             return False;
         }
         my $routine := $operator.resolution.compile-time-value;
+        # A loaded setting stamps its symbols with a SETTING:: file. While
+        # a core setting is itself being compiled its own operators carry
+        # the plain source file instead, and every one of them is core.
         return False
-          unless nqp::can($routine, 'file') && $routine.file.starts-with('SETTING::');
+          unless nqp::can($routine, 'file')
+            && ($routine.file.starts-with('SETTING::')
+                || nqp::istrue(nqp::ifnull(
+                     nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
         my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
                          !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
                          !! '&infix';

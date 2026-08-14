@@ -9,6 +9,16 @@ class RakuAST::Term::Name
     has RakuAST::Name $.name;
     has Mu $!package;
 
+    # Set by the optimize pass when this term resolves to a constant
+    # whose lexical is bound once: the term compiles to its value. The
+    # late lookup this replaces costs on every read, and a setting
+    # name's lookup op keeps the surrounding frame from ever inlining.
+    has int $!compile-to-value;
+
+    method IMPL-SET-COMPILE-TO-VALUE() {
+        nqp::bindattr_i(self, RakuAST::Term::Name, '$!compile-to-value', 1);
+    }
+
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Term::Name, '$!name', $name);
@@ -93,6 +103,11 @@ class RakuAST::Term::Name
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        if $!compile-to-value {
+            my $value := nqp::decont(self.resolution.compile-time-value);
+            $context.ensure-sc($value);
+            return QAST::WVal.new( :value($value) );
+        }
         if $!name.is-pseudo-package {
             if $!name.is-package-search && !$!name.is-indirect-lookup
             && (my $stripped := $!name.without-first-part).is-global-lookup {

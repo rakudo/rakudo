@@ -879,8 +879,8 @@ class RakuAST::Declaration::External::Constant
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed
-# value available during compilation but still has to be looked up during
-# runtime.
+# value available during compilation. A lookup happens at runtime, except
+# where the optimize pass folds a bound once constant term to its value.
 class RakuAST::Declaration::External::Setting
   is RakuAST::Declaration::External
   is RakuAST::CompileTimeValue

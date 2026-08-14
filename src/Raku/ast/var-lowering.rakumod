@@ -22,6 +22,7 @@ class RakuAST::IMPL::VarLoweringFrame {
     has int $!flatten-blocked;
     has Mu $!deferred-uses;
     has str $!implicit-slurpy-id;
+    has int $!makes-calls;
 
     method new(RakuAST::Node $node, int $is-scope) {
         my $obj := nqp::create(self);
@@ -43,6 +44,12 @@ class RakuAST::IMPL::VarLoweringFrame {
         Nil
     }
     method is-poisoned() { $!poisoned }
+
+    method note-call() {
+        nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!makes-calls', 1);
+        Nil
+    }
+    method makes-calls() { $!makes-calls }
 
     method register-implicit(str $id, Mu $decl) {
         my $record := nqp::hash('decl', $decl);
@@ -198,6 +205,7 @@ class RakuAST::IMPL::VarLowering {
     method IMPL-WALK(RakuAST::Node $node) {
         self.IMPL-CHECK-NAME-REACHERS($node);
         self.IMPL-CHECK-FLATTEN-BLOCKERS($node);
+        self.IMPL-NOTE-FRAME-CALL() if self.IMPL-NODE-MAKES-CALL($node);
 
         # Trait arguments, type parameterizations, and constant
         # initializers are evaluated at BEGIN time by dynamically
@@ -219,6 +227,61 @@ class RakuAST::IMPL::VarLowering {
             return Nil;
         }
         self.IMPL-WALK-INNER($node)
+    }
+
+    # Whether this node's emission invokes a routine. The contextual
+    # magicals only drop from a frame that makes no calls, since a
+    # callee can reach them by name. A native step or increment mark
+    # compiles to a raw op and makes no call, and neither do assignments
+    # and binds, whose stores the legacy optimizer also never counts. A
+    # quoted string with interpolation stringifies its pieces through
+    # method calls, so only one with a compile time value is free.
+    method IMPL-NODE-MAKES-CALL(Mu $node) {
+        if nqp::istype($node, RakuAST::QuotedString) {
+            return $node.has-compile-time-value ?? 0 !! 1;
+        }
+        if nqp::istype($node, RakuAST::Call)
+            || nqp::istype($node, RakuAST::QuotedRegex)
+            || nqp::istype($node, RakuAST::Term::Reduce)
+            || nqp::istype($node, RakuAST::ApplyDottyInfix)
+            || nqp::istype($node, RakuAST::ApplyListInfix)
+            || nqp::istype($node, RakuAST::StatementPrefix)
+            || nqp::istype($node, RakuAST::Statement::For)
+            || nqp::istype($node, RakuAST::Statement::Given)
+            || nqp::istype($node, RakuAST::Statement::When)
+            || nqp::istype($node, RakuAST::Statement::Whenever) {
+            return 1;
+        }
+        if nqp::istype($node, RakuAST::ApplyInfix) {
+            my $infix := $node.infix;
+            return 0 if nqp::istype($infix, RakuAST::Infix)
+                && ($infix.operator eq '=' || $infix.operator eq ':='
+                    || $infix.operator eq '::=');
+            return 0 if nqp::istype($infix, RakuAST::MetaInfix::Assign)
+                && $infix.IMPL-NATIVE-STEP-SET;
+            return 1;
+        }
+        if nqp::istype($node, RakuAST::ApplyPrefix) {
+            return $node.IMPL-NATIVE-INCDEC-SET ?? 0 !! 1;
+        }
+        if nqp::istype($node, RakuAST::ApplyPostfix) {
+            return 0 if nqp::istype($node.postfix, RakuAST::Postfix)
+                && $node.IMPL-NATIVE-INCDEC-SET;
+            return 1;
+        }
+        0
+    }
+
+    # Every enclosing scope notes the call: the legacy optimizer folds a
+    # child block's call count into its parent, so a call anywhere below
+    # a routine keeps that routine's contextual magicals reachable.
+    method IMPL-NOTE-FRAME-CALL() {
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            $frame.note-call() if $frame.is-scope;
+        }
+        Nil
     }
 
     method IMPL-WALK-INNER(RakuAST::Node $node) {
@@ -537,9 +600,19 @@ class RakuAST::IMPL::VarLowering {
                 }
             }
             elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Special) {
-                $decl.IMPL-SET-UNUSED()
-                    if $decl.name eq '$_'
-                    && !$used && !$poisoned && $!topic-not-dynamic;
+                my str $name := $decl.name;
+                if $name eq '$_' {
+                    $decl.IMPL-SET-UNUSED()
+                        if !$used && !$poisoned && $!topic-not-dynamic;
+                }
+                elsif $name eq '$/' || $name eq '$!' {
+                    # Contextual and dynamic in every language revision:
+                    # a callee can reach them by name, so only a frame
+                    # that makes no calls at all may drop an unused one,
+                    # the same rule the legacy optimizer applies.
+                    $decl.IMPL-SET-UNUSED()
+                        if !$used && !$poisoned && !$frame.makes-calls;
+                }
             }
             elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Cursor) {
                 $decl.IMPL-SET-UNUSED() if !$used && !$poisoned;

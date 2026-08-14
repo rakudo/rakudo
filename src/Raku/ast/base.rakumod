@@ -3096,15 +3096,21 @@ class RakuAST::Node {
     # a use of the name still turns the lowering off, where the resolution
     # stored on the node (made when the declaration had not been parsed yet)
     # would still claim the CORE routine. When the walk reaches no declaration
-    # at all (the operator is being defined as CORE itself compiles), the file
-    # vouches.
+    # at all, the origin check above already vouched, by file for a loaded
+    # setting or by the marker while a core setting compiles itself.
     method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
         CATCH {
             return False;
         }
         my $routine := $operator.resolution.compile-time-value;
+        # A loaded setting stamps its symbols with a SETTING:: file. While
+        # a core setting is itself being compiled its own operators carry
+        # the plain source file instead, and every one of them is core.
         return False
-          unless nqp::can($routine, 'file') && $routine.file.starts-with('SETTING::');
+          unless nqp::can($routine, 'file')
+            && ($routine.file.starts-with('SETTING::')
+                || nqp::istrue(nqp::ifnull(
+                     nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
         my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
                          !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
                          !! '&infix';

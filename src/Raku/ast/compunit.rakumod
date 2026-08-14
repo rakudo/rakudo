@@ -222,6 +222,13 @@ class RakuAST::CompUnit
         # Diagnostic switch: turns compile-time dispatch decisions off so a
         # suspect inlining can be ruled in or out without a rebuild.
         my $*NO-CT-DISPATCH := nqp::existskey(nqp::getenvhash(), 'RAKUDO_NO_CT_DISPATCH');
+        # The qast stage binds this for code generation, but the optimize
+        # stage runs first, and marks that gate on an operator's origin
+        # need to know a core setting is what is being compiled.
+        my $*COMPILING_CORE_SETTING := nqp::isconcrete($!setting-name)
+            && ($!setting-name eq 'NULL.c' || $!setting-name eq 'NULL.d'
+                || $!setting-name eq 'NULL.e')
+            ?? 1 !! 0;
         $!context.set-optimize-regex() if nqp::isconcrete($!context);
         $resolver.push-scope(self);
         $!mainline.IMPL-OPTIMIZE($resolver);

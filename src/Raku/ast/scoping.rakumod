@@ -59,7 +59,8 @@ class RakuAST::LexicalScope
     # on the block, so backtraces and debuggers can still name them.
     method IMPL-ADD-LOWERED-DEBUG-MAPPINGS(Mu $block) {
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            if nqp::istype($_, RakuAST::VarDeclaration::Simple)
+            if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::ParameterTarget::Term))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
                 $block.add_local_debug_mapping(
                     $_.IMPL-LOWERED-LOCAL-NAME, $_.lexical-name);

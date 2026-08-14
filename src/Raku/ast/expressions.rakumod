@@ -2640,7 +2640,8 @@ class RakuAST::ApplyInfix
                 {
                     my $right := self.right;
                     if nqp::istype($right,RakuAST::Literal) {
-                        if nqp::objprimspec($type) {
+                        my int $primspec := nqp::objprimspec($type);
+                        if $primspec {
                             $type := $type.HOW.mro($type)[1];
                         }
 
@@ -2651,7 +2652,10 @@ class RakuAST::ApplyInfix
                               $resolver.build-exception:
                                 'X::Syntax::Number::LiteralType',
                                 :vartype($type),
-                                :$value;
+                                :$value,
+                                :varname(nqp::istype(self.left, RakuAST::Var::Lexical)
+                                    ?? self.left.name !! ''),
+                                :native($primspec);
                         }
                     }
                 }

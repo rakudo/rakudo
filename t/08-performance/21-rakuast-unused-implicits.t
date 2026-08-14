@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 40;
+plan 53;
 
 # A routine declares fresh $_ and $¢ containers it usually never uses,
 # and a block binds its topic from the enclosing one. When nothing in
@@ -320,4 +320,75 @@ else {
         else { $p.unlink }
     }
     nuke($dir);
+}
+
+# A frame that never uses $/ or $! and makes no calls drops both
+# fresh containers, the rule the legacy optimizer applies. Both stay
+# dynamic in every language revision, so any call keeps them: a
+# callee can reach either by name.
+
+qast-is 'use nqp; my class T { method m() { nqp::add_i(1,2) } }; T.new.m', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+    and not qast-var-decl(v, '$/', 'contvar')
+    and not qast-var-decl(v, '$!', 'contvar')
+}, 'a method of raw ops declares no fresh match or error variable';
+
+qast-is 'use nqp; my class T { method m($x) { if $x { $x.Str }; nqp::add_i(1,2) } }; T.new.m(1)', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+    and qast-var-decl(v, '$/', 'contvar')
+    and qast-var-decl(v, '$!', 'contvar')
+}, 'a call inside a nested block keeps the method fresh containers';
+
+qast-is 'use nqp; my class T { method m($v) { nqp::add_i(1,2); "x: $v" } }; T.new.m(1)', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+    and qast-var-decl(v, '$/', 'contvar')
+    and qast-var-decl(v, '$!', 'contvar')
+}, 'string interpolation counts as a call, keeping both containers';
+
+qast-is 'my class T { method m() { try die "x"; 1 } }; T.new.m', :full, -> \v {
+    qast-var-decl(v, '$/', 'contvar')
+    and qast-var-decl(v, '$!', 'contvar')
+}, 'a method that tries keeps both fresh containers';
+
+qast-is 'my class T { method m($x) { $x.Str; 42 } }; T.new.m(1)', :full, -> \v {
+    qast-var-decl(v, '$/', 'contvar')
+    and qast-var-decl(v, '$!', 'contvar')
+}, 'a method that makes a call keeps both fresh containers';
+
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    qast-is 'my class T { has int $!i; method m() { $!i++; Nil } }; T.new.m', :full, -> \v {
+        not qast-var-decl(v, '$/', 'contvar')
+        and not qast-var-decl(v, '$!', 'contvar')
+    }, 'a native step compiles to a raw op, so it counts as no call';
+
+    qast-is 'my class T { method m($x) { my $y = $x; $y := 42; 1 } }; T.new.m(1)', :full, -> \v {
+        qast-contains-op(v, 'bind')
+        and not qast-var-decl(v, '$/', 'contvar')
+        and not qast-var-decl(v, '$!', 'contvar')
+    }, 'assignments and binds count as no call';
+}
+else {
+    skip 'the call counting shapes are specific to the RakuAST frontend', 2;
+}
+
+{
+    my sub write-caller-match() { use nqp; my $t := nqp::getlexcaller(Q[$/]); $t = 'clobbered'; 1 }
+    "aXa" ~~ /(X)/;
+    my class A { method m($x) { if $x { write-caller-match() }; 42 } }
+    A.new.m(1);
+    is ~$0, 'X', 'a nested callee writing its caller match variable cannot reach the mainline one';
+    my sub read-caller-match() { use nqp; nqp::getlexcaller(Q[$/]) }
+    my class B { method m($x) { my $r; if $x { $r = read-caller-match() }; $r } }
+    nok B.new.m(1).defined, 'a nested callee reading its caller match variable sees a fresh one';
+    my class M { method m($s) { $s.match(/(c)/); ~$0 } }
+    is M.new.m("abc"), 'c', 'a method calling match reads the result through its own match variable';
+}
+
+{
+    my class T { method m($s) { $s ~~ /b(.)/; ~$0 } }
+    is T.new.m("abc"), 'c', 'a method that matches keeps its own match variable';
+    my class E { method m() { try die "boom"; $!.message } }
+    is E.new.m, 'boom', 'a method that tries keeps its own error variable';
+    my class C { method m() { my $x = "a1" ~~ /\d/; ~$x } }
+    is C.new.m, '1', 'a match in a method still binds its result';
 }

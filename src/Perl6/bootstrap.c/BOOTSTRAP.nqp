@@ -2220,9 +2220,29 @@ BEGIN {
         my $bc   := nqp::getattr($self, Attribute, '$!build_closure');
         my $ci   := nqp::getattr($self, Attribute, '$!container_initializer');
 
-        nqp::bindattr($ins, Attribute, '$!type',
-          $type.HOW.instantiate_generic($type, $type_environment)
-        ) if $type.HOW.archetypes($type).generic;
+        # Code accessing a generically typed attribute is compiled with
+        # object access ops before the concrete type is known and is
+        # never recompiled. Native storage cannot serve those accesses:
+        # reads box to the raw native type and writes have no container
+        # to store into. So when the concrete type turns out native, the
+        # attribute stores under the native type's box type instead.
+        my $native_box := nqp::null();
+        if $type.HOW.archetypes($type).generic {
+            my $ins_type :=
+              $type.HOW.instantiate_generic($type, $type_environment);
+            if nqp::objprimspec($ins_type) {
+                my @mro   := $ins_type.HOW.mro($ins_type);
+                my int $m := nqp::elems(@mro);
+                my int $i := 1;
+                ++$i while $i < $m
+                  && nqp::objprimspec(nqp::atpos(@mro, $i));
+                if $i < $m {
+                    $native_box := nqp::atpos(@mro, $i);
+                    $ins_type   := $native_box;
+                }
+            }
+            nqp::bindattr($ins, Attribute, '$!type', $ins_type);
+        }
 
         nqp::bindattr($ins, Attribute, '$!container_initializer',
 #?if !jvm
@@ -2236,6 +2256,12 @@ BEGIN {
         my $cd_ins := $cd;
         if $cd.is_generic {
             $cd_ins := $cd.instantiate_generic($type_environment);
+            unless nqp::isnull($native_box) {
+                $cd_ins.set_of($native_box)
+                  if nqp::objprimspec($cd_ins.of);
+                $cd_ins.set_default($native_box)
+                  if nqp::objprimspec($cd_ins.default);
+            }
             nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
         }
 
@@ -2273,6 +2299,15 @@ BEGIN {
 
                 nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins)
                   if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor');
+
+                if !nqp::isnull($native_box)
+                  && $avc_mro.HOW.has_attribute($avc_mro, '$!value') {
+                    my $avc_value :=
+                      nqp::getattr($avc-copy, $avc_mro, '$!value');
+                    nqp::bindattr($avc-copy, $avc_mro, '$!value', $native_box)
+                      unless nqp::isnull($avc_value)
+                        || nqp::objprimspec($avc_value) == 0;
+                }
             }
             nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
         }

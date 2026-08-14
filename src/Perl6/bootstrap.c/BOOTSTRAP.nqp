@@ -115,6 +115,54 @@ my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
+#- NativeInstantiation ---------------------------------------------------------
+# Role bodies compile against generic types with object access ops and boxed
+# value semantics, and are never recompiled for an instantiation. A generic
+# type that instantiates to a native type therefore has to degrade to the
+# native type's box type wherever the instantiation decides storage or
+# checks values.
+my class NativeInstantiation {
+    # Returns the box type for a native type, rewrapped for a definite type
+    # over a native type, or null when no boxing applies. Callers pass
+    # values as well as types through this. Container descriptor defaults
+    # and auto_viv container values arrive here, and a concrete value
+    # reports null. The box is selected by primitive spec, so a native
+    # type with unrelated object ancestors still constrains its values to
+    # what the storage can hold.
+    method box($type) {
+        return nqp::null()
+          if nqp::isnull($type) || nqp::isconcrete_nd($type);
+
+        my $prim_type    := $type;
+        my $how          := $type.HOW;
+        my int $definite := 0;
+        if nqp::can($how, 'archetypes')
+          && $how.archetypes($type).definite
+          && nqp::can($how, 'base_type') {
+            $prim_type := $how.base_type($type);
+            $definite  := 1;
+        }
+
+        my int $spec := nqp::objprimspec($prim_type);
+        if $spec {
+            my $box := $spec == 2 ?? Num !! $spec == 3 ?? Str !! Int;
+            return $definite
+              ?? Perl6::Metamodel::DefiniteHOW.new_type(
+                   :base_type($box), :definite($how.definite($type)))
+              !! $box;
+        }
+        nqp::null()
+    }
+
+    # Returns the box type when boxing applies and the type itself
+    # otherwise.
+    method box_or_self($type) {
+        my $box := self.box($type);
+        nqp::isnull($box) ?? $type !! $box
+    }
+}
+nqp::bindhllsym('Raku', 'NativeInstantiation', NativeInstantiation);
+
 #- Binder ----------------------------------------------------------------------
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
@@ -429,6 +477,11 @@ my class Binder {
                 if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
                     $param_type :=
                       $param_type.HOW.instantiate_generic($param_type, $lexpad);
+
+                    # The parameter binds a boxed value, so a native
+                    # instantiation checks against the box type.
+                    my $box := NativeInstantiation.box($param_type);
+                    $param_type := $box unless nqp::isnull($box);
                 }
 
                 # If the expected type is Positional, see if we need to do the
@@ -2220,27 +2273,14 @@ BEGIN {
         my $bc   := nqp::getattr($self, Attribute, '$!build_closure');
         my $ci   := nqp::getattr($self, Attribute, '$!container_initializer');
 
-        # Code accessing a generically typed attribute is compiled with
-        # object access ops before the concrete type is known and is
-        # never recompiled. Native storage cannot serve those accesses:
-        # reads box to the raw native type and writes have no container
-        # to store into. So when the concrete type turns out native, the
-        # attribute stores under the native type's box type instead.
-        my $native_box := nqp::null();
+        # Native storage cannot serve the object flavored accesses the
+        # role body compiled, so a native instantiation stores under the
+        # box type instead.
         if $type.HOW.archetypes($type).generic {
             my $ins_type :=
               $type.HOW.instantiate_generic($type, $type_environment);
-            if nqp::objprimspec($ins_type) {
-                my @mro   := $ins_type.HOW.mro($ins_type);
-                my int $m := nqp::elems(@mro);
-                my int $i := 1;
-                ++$i while $i < $m
-                  && nqp::objprimspec(nqp::atpos(@mro, $i));
-                if $i < $m {
-                    $native_box := nqp::atpos(@mro, $i);
-                    $ins_type   := $native_box;
-                }
-            }
+            my $box := NativeInstantiation.box($ins_type);
+            $ins_type := $box unless nqp::isnull($box);
             nqp::bindattr($ins, Attribute, '$!type', $ins_type);
         }
 
@@ -2256,12 +2296,10 @@ BEGIN {
         my $cd_ins := $cd;
         if $cd.is_generic {
             $cd_ins := $cd.instantiate_generic($type_environment);
-            unless nqp::isnull($native_box) {
-                $cd_ins.set_of($native_box)
-                  if nqp::objprimspec($cd_ins.of);
-                $cd_ins.set_default($native_box)
-                  if nqp::objprimspec($cd_ins.default);
-            }
+            my $of_box := NativeInstantiation.box($cd_ins.of);
+            $cd_ins.set_of($of_box) unless nqp::isnull($of_box);
+            my $default_box := NativeInstantiation.box($cd_ins.default);
+            $cd_ins.set_default($default_box) unless nqp::isnull($default_box);
             nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
         }
 
@@ -2300,13 +2338,11 @@ BEGIN {
                 nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins)
                   if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor');
 
-                if !nqp::isnull($native_box)
-                  && $avc_mro.HOW.has_attribute($avc_mro, '$!value') {
-                    my $avc_value :=
-                      nqp::getattr($avc-copy, $avc_mro, '$!value');
-                    nqp::bindattr($avc-copy, $avc_mro, '$!value', $native_box)
-                      unless nqp::isnull($avc_value)
-                        || nqp::objprimspec($avc_value) == 0;
+                if $avc_mro.HOW.has_attribute($avc_mro, '$!value') {
+                    my $value_box := NativeInstantiation.box(
+                      nqp::getattr($avc-copy, $avc_mro, '$!value'));
+                    nqp::bindattr($avc-copy, $avc_mro, '$!value', $value_box)
+                      unless nqp::isnull($value_box);
                 }
             }
             nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
@@ -2703,10 +2739,18 @@ BEGIN {
         }
 
         my $returns := nqp::getattr($self, Signature, '$!returns');
-        nqp::bindattr($ins, Signature, '$!returns',
-          $returns.HOW.instantiate_generic($returns, $type_environment)
-        ) if nqp::not_i(nqp::isnull($returns))
-          && $returns.HOW.archetypes($returns).generic;
+        if nqp::not_i(nqp::isnull($returns))
+          && $returns.HOW.archetypes($returns).generic {
+            my $ins_returns :=
+              $returns.HOW.instantiate_generic($returns, $type_environment);
+
+            # The routine body produces boxed values, so a native
+            # instantiation checks returns against the box type.
+            my $box := NativeInstantiation.box($ins_returns);
+            $ins_returns := $box unless nqp::isnull($box);
+
+            nqp::bindattr($ins, Signature, '$!returns', $ins_returns);
+        }
 
         $ins
     }));
@@ -2844,8 +2888,21 @@ BEGIN {
 
         if $type.HOW.archetypes($type).generic {
             $ins_type := $type.HOW.instantiate_generic($type,$type_environment);
-            $ins_cd   := $cd.instantiate_generic($type_environment)
-              unless nqp::isnull($cd);
+
+            # The routine body treats the parameter as a boxed value, so a
+            # native instantiation takes the box type, as a generic
+            # attribute's storage does.
+            my $box := NativeInstantiation.box($ins_type);
+            $ins_type := $box unless nqp::isnull($box);
+
+            unless nqp::isnull($cd) {
+                $ins_cd := $cd.instantiate_generic($type_environment);
+                my $of_box := NativeInstantiation.box($ins_cd.of);
+                $ins_cd.set_of($of_box) unless nqp::isnull($of_box);
+                my $default_box := NativeInstantiation.box($ins_cd.default);
+                $ins_cd.set_default($default_box)
+                  unless nqp::isnull($default_box);
+            }
         }
 
         $ins_ap := $ap.HOW.instantiate_generic($ap, $type_environment)

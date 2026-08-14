@@ -1,6 +1,6 @@
 use Test;
 
-plan 27;
+plan 46;
 
 # A role method accessing a generically typed attribute compiles before the
 # concrete type is known, so it uses object access ops and is never
@@ -86,6 +86,23 @@ plan 27;
     ok C.new.w =:= Int, 'assigning Nil resets an int instantiated generic attribute to Int';
 }
 
+# A definite generic type over a native type boxes the same way, keeping
+# the definiteness constraint.
+{
+    my role R[::T] { has T:D $!x is built; method w() { $!x++; $!x } }
+    my class C does R[int] {}
+    is C.new(x => 1).w, 2, 'a definite generic attribute instantiated with int steps';
+}
+
+{
+    my role R[::T] { has T:D $!x is built }
+    my class C does R[int] {}
+    ok C.^attributes.first(*.name eq '$!x').type =:= Int:D,
+        'a definite int instantiated generic attribute reports Int:D as its type';
+    throws-like { C.new(x => Int) }, Exception,
+        'a definite int instantiated generic attribute rejects a type object';
+}
+
 # Construction time paths reach the boxed storage as well.
 {
     my role R[::T] { has T $.x = 3 }
@@ -122,11 +139,82 @@ plan 27;
     is C.new.w, 2, 'postfix increment works on a role attribute declared int';
 }
 
+# The instantiation reaches attributes through nested role topologies.
+{
+    my role R[::T] { has T $!x; method w() { $!x++; $!x } }
+    my role S[::T] does R[T] { method v() { self.w + 1 } }
+    my class C does S[int] {}
+    is C.new.w, 1, 'a generic attribute survives a role to role generic pass through instantiated with int';
+    is C.new.v, 2, 'a method in the outer role reaches the passed through generic attribute';
+}
+
+{
+    my role R[::T] { has T $!x; method w() { $!x++; $!x } }
+    my role S does R[int] { method v() { self.w + 1 } }
+    my class C does S {}
+    is C.new.w, 1, 'a generic attribute instantiated with int inside an intermediate role steps';
+    is C.new.v, 2, 'a method in the consuming role reaches the instantiated generic attribute';
+}
+
+# Punned and runtime mixed in roles compose the boxed storage as well.
+{
+    my role R[::T] { has T $.x; method w() { $!x++; $!x } }
+    is R[int].new.w, 1, 'a punned role steps a generic attribute instantiated with int';
+    is R[int].new(x => 5).x, 5, 'a punned role constructs a generic attribute instantiated with int';
+    ok R[int].new.x =:= Int, 'an untouched generic attribute on a pun reads as the Int type object';
+}
+
+{
+    my role R[::T] { has T $!x; method w() { $!x++; $!x } }
+    my class C {}
+    my $c = C.new does R[int];
+    is $c.w, 1, 'a runtime does mixin steps a generic attribute instantiated with int';
+    my $d = C.new but R[int];
+    is $d.w, 1, 'a runtime but mixin steps a generic attribute instantiated with int';
+}
+
+# Sized flavors box the same way as the full width types.
+{
+    my role R[::T] { has T $!x; method w() { $!x++; $!x } }
+    my class C does R[int16] {}
+    is C.new.w, 1, 'postfix increment works on a generic attribute instantiated with int16';
+}
+
+{
+    my role R[::T] { has T $!x; method w() { $!x += 2e0; $!x } }
+    my class C does R[num32] {}
+    is C.new.w, 2e0, 'compound assignment works on a generic attribute instantiated with num32';
+}
+
+# An undefined constrained generic attribute stores the box type object.
+{
+    my role R[::T] { has T:U $!x is built; method w() { $!x.^name } }
+    my class C does R[int] {}
+    is C.new(x => Int).w, 'Int', 'an undefined generic attribute instantiated with int stores the box type object';
+    throws-like { C.new(x => 5) }, Exception,
+        'an undefined generic attribute instantiated with int rejects a concrete value';
+}
+
 # A method compiled before the attribute declaration is known picks up the
 # native type once the class closes.
 {
     my class C { method m() { $!x++; $!x }; has int $!x = 1 }
     is C.new.m, 2, 'a method ahead of a native attribute declaration steps it';
+}
+
+{
+    my class C { method m() { $!n += 1.5e0; $!n }; has num $!n = 1e0 }
+    is C.new.m, 2.5e0, 'a method ahead of a native num attribute declaration compound assigns it';
+}
+
+{
+    my class C { method m() { $!s ~= "b"; $!s }; has str $!s = "a" }
+    is C.new.m, 'ab', 'a method ahead of a native str attribute declaration concatenates onto it';
+}
+
+{
+    my class C { method m() { $!u++; $!u }; has uint8 $!u = 1 }
+    is C.new.m, 2, 'a method ahead of a native uint8 attribute declaration steps it';
 }
 
 {

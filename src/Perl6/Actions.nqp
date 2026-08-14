@@ -9777,10 +9777,32 @@ Did you mean a call like '"
                         return 0;
                     }
 
+                    # The signature these parameters were compiled against
+                    # is instantiated with the box type when the capture
+                    # resolves to a native type, since the body treats the
+                    # parameter as a boxed value. Accept what the
+                    # instantiated signature accepts.
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                        :op('istype_nd'),
-                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
-                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                            QAST::Var.new( :name($genericname), :scope<typevar> )
+                        ),
+                        QAST::IVal.new( :value(1) ),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('box_or_self'),
+                                QAST::Op.new(
+                                    :op('gethllsym'),
+                                    QAST::SVal.new( :value('Raku') ),
+                                    QAST::SVal.new( :value('NativeInstantiation') )
+                                ),
+                                QAST::Var.new( :name($genericname), :scope<typevar> )
+                            )
+                        )
                     )));
                 } elsif !($param_type =:= $world.find_single_symbol_in_setting('Mu')) {
                     if $ptype_archetypes.generic {

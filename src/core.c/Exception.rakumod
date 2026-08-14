@@ -3060,7 +3060,7 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
     has $.vartype;
     has $.value;
     has $.valuetype      = $!value.^name;
-    has $.suggestiontype = ($!vartype,$!valuetype).are.^name;
+    has $.suggestiontype = ($!vartype,$!value).are.^name;
     has $.native         = nqp::objprimspec($!valuetype);
 
     method message() {

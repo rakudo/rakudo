@@ -808,14 +808,15 @@ class RakuAST::Node {
         my $operand := $expr.operand;
         return Nil unless (nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved)
           || nqp::istype($operand, RakuAST::Var::Attribute);
-        my int $spec := nqp::objprimspec($operand.return-type);
+        my $target-type := self.IMPL-NATIVE-STEP-TARGET-TYPE($operand);
+        my int $spec := nqp::objprimspec($target-type);
         return Nil unless $spec == 1 || $spec == 2;
         # A post-increment recovers the original by reversing the step on the
         # assigned value, which round-trips only at the full native width. A
         # narrower type (int8, int16, num32) truncates on assignment, so the
         # reverse would not give the original back; leave those to the routine.
         # A prefix yields the stepped value directly, so it needs no such guard.
-        return Nil if $is-postfix && nqp::objprimbits($operand.return-type) != 64;
+        return Nil if $is-postfix && nqp::objprimbits($target-type) != 64;
         $expr.IMPL-SET-NATIVE-INCDEC($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $op-node);
         Nil
     }
@@ -837,7 +838,7 @@ class RakuAST::Node {
         my $left := $expr.left;
         return Nil unless (nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
           || nqp::istype($left, RakuAST::Var::Attribute);
-        my int $spec := nqp::objprimspec($left.return-type);
+        my int $spec := nqp::objprimspec(self.IMPL-NATIVE-STEP-TARGET-TYPE($left));
         return Nil unless $spec == 1 || $spec == 2;
         # The right operand must be a native value: a native variable of the
         # same flavour, or a float literal. An integer literal is an `Int`, so
@@ -901,6 +902,26 @@ class RakuAST::Node {
         || (nqp::istype($node, RakuAST::ApplyInfix)
           && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
           && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
+    }
+
+    # The type a native step mark judges its write target by. A variable
+    # answers its declared type through its resolution, but a parameter
+    # target answers no type there, so the parameter's declaration is
+    # asked directly. Only a writable non-`rw` parameter qualifies: a
+    # read-only parameter must keep the routine call, which reports the
+    # mutability error, and an `is rw` parameter writes through a
+    # reference the raw ops do not follow.
+    method IMPL-NATIVE-STEP-TARGET-TYPE(Mu $target) {
+        if nqp::istype($target, RakuAST::Var::Lexical) && $target.is-resolved {
+            my $resolution := $target.resolution;
+            if nqp::istype($resolution, RakuAST::ParameterTarget::Var) {
+                my $declaration := $resolution.declaration;
+                return $declaration && !$declaration.is-ro && !$declaration.IMPL-IS-RW
+                    ?? $declaration.return-type
+                    !! Mu;
+            }
+        }
+        $target.return-type
     }
 
     # The QAST var for a native step target the marks accepted: an

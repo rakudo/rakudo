@@ -1,7 +1,8 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
-plan 12;
+use nqp;
+plan 14;
 
 # A native int or num `+=`/`-=`/`*=` with a native operand lowers to a raw op
 # instead of calling the metaop.
@@ -49,7 +50,7 @@ qast-is 'my $a = 0; my $b = 1; $a += $b', -> \v { not qast-contains-op v, 'add_i
 # rather than wrapping, and it emits the native raw ops directly. The legacy
 # optimizer instead lowers an int literal to a wrapping op and reaches the
 # native ops a different way, so these are pinned to RakuAST.
-if %*ENV<RAKUDO_RAKUAST> {
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
     my int $i = 9223372036854775807;
     dies-ok { $i += 1 }, 'native int += an integer literal throws on overflow';
     qast-is 'my int $i; $i += 5', -> \v { not qast-contains-op v, 'add_i' },
@@ -58,9 +59,13 @@ if %*ENV<RAKUDO_RAKUAST> {
         'native int operands lower to a raw op';
     qast-is 'my num $a; $a += 1.5e0', -> \v { qast-contains-op v, 'add_n' },
         'a native float literal lowers to a raw op';
+    qast-is 'sub f(int $i is copy) { my int $n; $i += $n }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'a native copy parameter compound-steps to a raw op';
+    qast-is 'sub f(num $x is copy) { $x += 1.5e0 }', :full, -> \v { qast-contains-op v, 'add_n' },
+        'a num copy parameter with a float literal lowers to a raw op';
 }
 else {
-    skip 'integer-literal and native lowering shape is RakuAST-specific', 4;
+    skip 'integer-literal and native lowering shape is RakuAST-specific', 6;
 }
 
 # vim: expandtab shiftwidth=4

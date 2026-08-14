@@ -3,13 +3,15 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 19;
+plan 23;
 
 # A sigilless term parameter lowers to a frame local: its binding
 # writes a register and every use reads one, with the by-name
 # lexical kept static for introspection. A use from a nested frame
 # needs the lexical, as do bindable and native terms, so those keep
-# it. The shapes are this frontend's.
+# it. A role method's implicit invocant is generic but never
+# coercive, so no runtime probe of its parameter object is emitted.
+# The shapes are this frontend's.
 
 sub qast-has-lowered(Mu $qast, str $prefix --> Bool:D) {
     if nqp::istype($qast, QAST::Var) {
@@ -19,6 +21,19 @@ sub qast-has-lowered(Mu $qast, str $prefix --> Bool:D) {
         for $qast.list {
             qast-has-lowered($_, $prefix) and return True;
         }
+    }
+    False
+}
+
+# The parameter transforms hang ops under the QAST::Var param node
+# itself, which qast-descendable never enters, so probing for them
+# needs a walk of every node's children.
+sub qast-deep-has-op(Mu $qast, str $op --> Bool:D) {
+    if nqp::istype($qast, QAST::Op) {
+        return True if $qast.op eq $op;
+    }
+    for $qast.list {
+        qast-deep-has-op($_, $op) and return True;
     }
     False
 }
@@ -61,9 +76,18 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         qast-has-lexical-decl(v, 't')
         and not qast-has-lowered(v, '__lowered_t')
     }, 'a native term parameter keeps the lexical';
+
+    qast-is 'use nqp; my role R { method m() { nqp::add_i(1,2) } }; my class C does R {}; say C.new.m', :full, -> \v {
+        qast-deep-has-op(v, 'add_i')
+        and not qast-deep-has-op(v, 'bitand_i')
+    }, 'a role method probes no parameter flags for its implicit invocant';
+
+    qast-is 'my role R2[::T] { method m(T \x) { x.defined } }; my class C2 does R2[Int] {}; C2.new.m(1)', :full, -> \v {
+        qast-deep-has-op(v, 'bitand_i')
+    }, 'a generic non-invocant parameter still probes its parameter flags';
 }
 else {
-    skip 'the lowering shapes are specific to the RakuAST frontend', 6;
+    skip 'the lowering shapes are specific to the RakuAST frontend', 8;
 }
 
 # Behavior stays identical.
@@ -100,6 +124,10 @@ else {
     my role S2[::T] { method t() { T.^name } }
     my class D does S2[Int] {}
     is D.new.t, 'Int', 'a parametric role method still resolves its type parameter';
+    my class S3 { method m(Str(Int) $x:) { $x } }
+    is-deeply S3.^find_method('m')(42), '42', 'an explicit coercive invocant still coerces';
+    my class S4 { method m(\me:) { me * 2 } }
+    is S4.^find_method('m')(21), 42, 'an explicit term invocant passes its value';
 }
 
 # vim: expandtab shiftwidth=4

@@ -406,6 +406,10 @@ class RakuAST::IMPL::VarLowering {
                 if nqp::isconcrete($decl)
                 && nqp::istype($decl, RakuAST::VarDeclaration::Simple);
         }
+        elsif nqp::istype($node, RakuAST::Parameter)
+            && nqp::istype($node.target, RakuAST::ParameterTarget::Term) {
+            self.IMPL-REGISTER-TERM-PARAM($node);
+        }
         elsif nqp::istype($node, RakuAST::VarDeclaration::Simple) {
             self.IMPL-REGISTER-DECL($node)
                 unless nqp::getattr($node, RakuAST::VarDeclaration::Simple, '$!is-parameter');
@@ -674,6 +678,41 @@ class RakuAST::IMPL::VarLowering {
                 return Nil;
             }
         }
+        Nil
+    }
+
+    # Register a sigilless term parameter with its scope's frame. The
+    # target is its own declaration and every use resolves straight to
+    # it. A bindable one keeps its container semantics, a native one
+    # has no local form for its l-values, and one declared under a
+    # thunk of its scope crosses a frame boundary the nesting does not
+    # show.
+    method IMPL-REGISTER-TERM-PARAM(Mu $param) {
+        my $target := $param.target;
+        my int $i := nqp::elems($!frames);
+        my $scope-frame;
+        my int $scope-index := -1;
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                $scope-frame := $frame;
+                $scope-index := $i;
+                last;
+            }
+        }
+        return Nil if $scope-index < 0;
+
+        my str $declined := '';
+        if $target.can-be-bound-to {
+            $declined := 'bindable';
+        }
+        elsif nqp::objprimspec($target.IMPL-OF-TYPE) {
+            $declined := 'native';
+        }
+        elsif $scope-index != nqp::elems($!frames) - 1 {
+            $declined := 'thunked';
+        }
+        $scope-frame.register($target, $declined);
         Nil
     }
 

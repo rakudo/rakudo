@@ -2294,6 +2294,9 @@ class RakuAST::ParameterTarget::Term
     has RakuAST::Type $.type;
     has RakuAST::Expression $.where;
     has Bool $!is-bindable;
+    has int $!lowered-to-local;
+    has Mu $!lowered-away-sentinel;
+    has str $!lowered-local-name;
 
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
@@ -2301,6 +2304,36 @@ class RakuAST::ParameterTarget::Term
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
+    }
+
+    method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
+        nqp::bindattr_i(self, RakuAST::ParameterTarget::Term, '$!lowered-to-local', 1);
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!lowered-away-sentinel', $sentinel);
+    }
+
+    # The frame-local name for a lowered term parameter, minted on first
+    # request so the binding and every lookup agree, or the empty string
+    # when the term stays a by-name lexical.
+    method IMPL-LOWERED-LOCAL-NAME() {
+        return $!lowered-local-name if $!lowered-local-name;
+        return '' unless $!lowered-to-local;
+        return '' if nqp::isnull($!lowered-away-sentinel);
+        nqp::bindattr_s(self, RakuAST::ParameterTarget::Term,
+            '$!lowered-local-name',
+            QAST::Node.unique('__lowered_' ~ $!name.canonicalize));
+        if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
+            my str $where := '';
+            my $origin := self.origin;
+            if nqp::isconcrete($origin) {
+                my $source := $origin.source;
+                $where := ' at ' ~ $source.original-file
+                    ~ ':' ~ $source.original-line($origin.from);
+            }
+            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+                'lex2local: minted ' ~ $!lowered-local-name ~ ' for term '
+                    ~ $!name.canonicalize ~ $where);
+        }
+        $!lowered-local-name
     }
 
     method lexical-name() {
@@ -2373,6 +2406,24 @@ class RakuAST::ParameterTarget::Term
                 :value($container), :returns(self.IMPL-OF-TYPE)
             )
         }
+        elsif self.IMPL-LOWERED-LOCAL-NAME {
+            # The local is declared here, in the block's declaration
+            # section, so it exists before anything references it. The
+            # by-name lexical stays declared for introspection, static
+            # with the sentinel as its value so no per-entry setup is
+            # paid for it.
+            $context.ensure-sc($!lowered-away-sentinel);
+            QAST::Stmts.new(
+                QAST::Var.new(
+                    :decl('static'), :scope('lexical'), :name($!name.canonicalize),
+                    :value($!lowered-away-sentinel)
+                ),
+                QAST::Var.new(
+                    :decl('var'), :scope('local'), :name($!lowered-local-name),
+                    :returns(self.IMPL-OF-TYPE)
+                )
+            )
+        }
         else {
             QAST::Var.new(
                 :decl('var'), :scope('lexical'), :name($!name.canonicalize),
@@ -2382,15 +2433,26 @@ class RakuAST::ParameterTarget::Term
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
-        QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
-            $source-qast
-        )
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('local'), :name($local-name),
+                    :returns(self.IMPL-OF-TYPE) ),
+                $source-qast
+            )
+            !! QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
+                $source-qast
+            )
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local'), :returns(self.IMPL-OF-TYPE))
+            !! QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
     }
 
     method has-compile-time-value() { False }

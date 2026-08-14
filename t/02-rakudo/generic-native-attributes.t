@@ -1,6 +1,6 @@
 use Test;
 
-plan 24;
+plan 27;
 
 # A role method accessing a generically typed attribute compiles before the
 # concrete type is known, so it uses object access ops and is never
@@ -120,6 +120,25 @@ plan 24;
     ok C.^attributes.first(*.name eq '$!x').type =:= int,
         'a role attribute declared int keeps its native type';
     is C.new.w, 2, 'postfix increment works on a role attribute declared int';
+}
+
+# A method compiled before the attribute declaration is known picks up the
+# native type once the class closes.
+{
+    my class C { method m() { $!x++; $!x }; has int $!x = 1 }
+    is C.new.m, 2, 'a method ahead of a native attribute declaration steps it';
+}
+
+{
+    my role R { has int $!x = 1 }
+    my class C does R { method m() { $!x++; $!x } }
+    is C.new.m, 2, 'a class body method steps a native attribute supplied by a role';
+}
+
+{
+    my role R[::T] { has T $!x }
+    my class C does R[int] { method m() { $!x++; $!x } }
+    is C.new.m, 1, 'a class body method steps a generic role attribute instantiated with int';
 }
 
 # A generic attribute instantiated with a non native type is untouched by

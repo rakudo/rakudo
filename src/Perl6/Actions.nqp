@@ -3480,7 +3480,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for @usages {
                 my $past := $_;
                 my $attr := $world.get_attribute_meta_object($past.node, $name);
-                $past.returns($attr.type);
+                my $type := $attr.type;
+                $past.returns($type);
+                if nqp::objprimspec($type) {
+                    $world.throw($past.node // $/, ['X', 'Bind', 'NativeType'],
+                        name => $name
+                    ) if $past.ann('attribute_bind_target');
+                    $past.scope('attributeref');
+                }
             }
         }
 
@@ -7830,15 +7837,24 @@ Did you mean a call like '"
 
             # Now go by scope.
             if $target.scope eq 'attribute' {
-                # Source needs type check.
+                # An attribute used ahead of its declaration has no type
+                # yet, so its bindability is only checked at class close.
+                $target.annotate('attribute_bind_target', 1);
+
+                # Source needs type check. An attribute used ahead of its
+                # declaration is not on the package yet, so it gets no
+                # assertion here.
                 my $type;
+                my int $found := 0;
                 try {
                     my $package := $/.package;
                     $type := $package.HOW.get_attribute_for_usage(
                         $package, $target.name
                     ).type;
+                    $found := 1;
                 }
-                unless $type =:= $world.find_single_symbol_in_setting('Mu') {
+                if $found
+                  && !($type =:= $world.find_single_symbol_in_setting('Mu')) {
                     $source := QAST::Op.new(
                         :op('p6bindassert'),
                         $source, QAST::WVal.new( :value($type) ))

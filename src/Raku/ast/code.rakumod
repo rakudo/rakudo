@@ -3661,6 +3661,439 @@ class RakuAST::Method::AttributeAccessor
     }
 }
 
+# The generated POPULATE method: a flattened compile of the class's
+# BUILDALLPLAN, which Mu.POPULATE otherwise interprets per object
+# construction. Created by RakuAST::CompilerServices when the
+# metamodel composes a class, mirroring what the legacy frontend's
+# generate_buildplan_executor installs. The setting values the plan
+# needs arrive resolved through the constructor, since this file
+# cannot name them and composition may run before they exist.
+class RakuAST::Submethod::BuildPlanExecutor
+  is RakuAST::Submethod
+{
+    has Mu $!package-type;
+    has Mu $!build-plan;
+    has Mu $!True;
+    has Mu $!Failure;
+    has Mu $!X-Attribute-Required;
+    has Mu $!return-routine;
+
+    method new(Mu :$package-type, Mu :$build-plan, Mu :$True,
+            Mu :$Failure, Mu :$X-Attribute-Required, Mu :$return-routine) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
+        nqp::bindattr($obj, RakuAST::Method, '$!private', False);
+        nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
+        nqp::bindattr($obj, RakuAST::Routine, '$!need-routine-variable', False);
+        nqp::bindattr($obj, RakuAST::Method, '$!body', RakuAST::Blockoid.new);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name',
+            RakuAST::Name.from-identifier('POPULATE'));
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!package-type', $package-type);
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!build-plan', $build-plan);
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!True', $True);
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!Failure', $Failure);
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!X-Attribute-Required', $X-Attribute-Required);
+        nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!return-routine', $return-routine);
+        $obj
+    }
+
+    # The body is fully synthetic: nothing in it can reach the special
+    # variables, so only self is declared.
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        [ RakuAST::VarDeclaration::Implicit::Self.new() ]
+    }
+
+    # The block binds the invocant and the initialization hash as raw
+    # locals with no binder run, the shape the legacy frontend
+    # installs. The definite invocant type on the signature informs
+    # introspection, not a run time check. The lexical %_ stays
+    # declared without per call setup.
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        # The statements carry the composing class's file and line. A
+        # setting class's frame then reads as setting code, which keeps
+        # a callframe walk that skips setting frames moving past it,
+        # and a user class's frame reports the user's own file. The
+        # origin comes from the package via the compiler services.
+        my $block := QAST::Block.new(
+            :name<POPULATE>, :blocktype('declaration_static'),
+            self.IMPL-SET-NODE(QAST::Stmts.new(
+                QAST::Var.new( :decl<param>, :scope<local>, :name('self') ),
+                QAST::Var.new( :decl<param>, :scope<local>, :name('%init') ),
+                QAST::Var.new( :decl<var>, :scope<local>, :name('init') ),
+                QAST::Var.new( :decl<var>, :scope<local>, :name('return') ),
+                QAST::Var.new( :decl<static>, :scope<lexical>, :name('%_') )
+            )),
+            self.IMPL-COMPILE-BODY($context)
+        );
+        self.IMPL-SET-NODE($block);
+        $block.arity(2);
+        $block.annotate('count', 2);
+        $block
+    }
+
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        # Mapping of primspec to attribute op postfix
+        my @psp := ('','_i','_n','_s','','','','','','','_u');
+        my $build-plan := $!build-plan;
+        my $self := QAST::Var.new( :scope<local>, :name('self') );
+        my $init := QAST::Var.new( :scope<local>, :name('init') );
+
+        my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new);
+
+        # An empty plan produces the shared do nothing POPULATE, which
+        # never touches the initialization hash.
+        my int $count := nqp::elems($build-plan);
+        unless $count {
+            $stmts.push($self);
+            return $stmts;
+        }
+
+        my int $needs-wrapping;
+
+        # my $init := nqp::getattr(%init,Map,'$!storage')
+        $context.ensure-sc(Map);
+        $stmts.push(QAST::Op.new( :op<bind>,
+            $init,
+            QAST::Op.new( :op<getattr>,
+                QAST::Var.new( :scope<local>, :name('%init') ),
+                QAST::WVal.new( :value(Map) ),
+                QAST::SVal.new( :value('$!storage') )
+            )
+        ));
+
+        my int $i := -1;
+        while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
+            if nqp::islist(my $task := nqp::atpos($build-plan, $i)) {
+                $context.ensure-sc(nqp::atpos($task, 1));
+                my $class := QAST::WVal.new( :value(nqp::atpos($task, 1)) );
+                my $attr := QAST::SVal.new( :value(nqp::atpos($task, 2)) );
+
+                my int $code := nqp::atpos($task, 0);
+
+                # 0,1100,1200,1300 = initialize opaque from %init
+                if $code == 0 || $code == 1100 || $code == 1200 || $code == 1300 {
+                    my $getattr := QAST::Op.new( :op<getattr>, $self, $class, $attr );
+
+                    # nqp::unless(
+                    #   nqp::isnull(my \tmp = nqp::atkey($init,'a')),
+                    my $tmp := QAST::Node.unique('buildall_tmp_');
+                    my $if := QAST::Op.new( :op<unless>,
+                        QAST::Op.new( :op<isnull>,
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<atkey>,
+                                    $init,
+                                    QAST::SVal.new( :value(nqp::atpos($task, 3)) )
+                                )
+                            )
+                        )
+                    );
+
+                    my str $sigil := nqp::substr(nqp::atpos($task, 2), 0, 1);
+
+                    # nqp::getattr(self,Foo,'$!a').STORE(tmp, :INITIALIZE)
+                    if $sigil eq '@' || $sigil eq '%' {
+                        $context.ensure-sc($!True);
+                        $if.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                $getattr,
+                                QAST::Var.new( :name($tmp), :scope<local> ),
+                                QAST::WVal.new( :value($!True), :named('INITIALIZE') )
+                            )
+                        );
+                    }
+
+                    # nqp::bindattr(self,Foo,'$!a',tmp)
+                    elsif $code == 1300 {
+                        my $arg := QAST::Var.new( :name($tmp), :scope<local> );
+                        if nqp::elems($task) == 5 {
+                            $context.ensure-sc(nqp::atpos($task, 4));
+                            $arg := QAST::Op.new( :op('p6bindassert'),
+                                $arg,
+                                QAST::WVal.new( :value(nqp::atpos($task, 4)) )
+                            );
+                        }
+                        $if.push(
+                            QAST::Op.new( :op('bindattr'), $self, $class, $attr, $arg )
+                        );
+                    }
+
+                    # nqp::getattr(self,Foo,'$!a') = tmp
+                    else {
+                        $if.push(
+                            QAST::Op.new(
+                                :op( $sigil eq '$' || $sigil eq '&'
+                                       ?? 'p6assign' !! 'p6store' ),
+                                $getattr,
+                                QAST::Var.new( :name($tmp), :scope<local> )
+                            )
+                        );
+                    }
+
+                    # 1100,1200: bindattr(self,Foo,'$!a',nqp::list or hash)
+                    # when the key is absent
+                    if $code == 1100 || $code == 1200 {
+                        $if.push(
+                            QAST::Op.new( :op<bindattr>,
+                                $self, $class, $attr,
+                                QAST::Op.new( :op($code == 1100 ?? 'list' !! 'hash') )
+                            )
+                        );
+                    }
+
+                    $stmts.push($if);
+                }
+
+                # 1,2,3,10 = initialize native from %init
+                elsif $code < 100 {
+                    my $tmp := QAST::Node.unique('buildall_tmp_');
+                    $stmts.push(
+                        QAST::Op.new( :op<unless>,
+                            QAST::Op.new( :op<isnull>,
+                                QAST::Op.new( :op<bind>,
+                                    QAST::Var.new( :decl<var>, :name($tmp), :scope<local> ),
+                                    QAST::Op.new( :op<atkey>,
+                                        $init,
+                                        QAST::SVal.new( :value(nqp::atpos($task, 3)) )
+                                    )
+                                )
+                            ),
+                            QAST::Op.new( :op('bindattr' ~ @psp[$code]),
+                                $self, $class, $attr,
+                                QAST::Op.new( :op<decont>,
+                                    QAST::Var.new( :name($tmp), :scope<local> ) )
+                            )
+                        )
+                    );
+                }
+
+                # 400,1400 = set opaque with default if not set yet
+                elsif $code == 400 || $code == 1400 {
+                    my $getattr := QAST::Op.new( :op<getattr>, $self, $class, $attr );
+                    my $unless := QAST::Op.new( :op<unless>,
+                        QAST::Op.new( :op<p6attrinited>, $getattr )
+                    );
+
+                    $context.ensure-sc(nqp::atpos($task, 3));
+                    my $initializer := nqp::istype(nqp::atpos($task, 3), Block)
+                        ?? QAST::Op.new( :op<call>,
+                             QAST::WVal.new( :value(nqp::atpos($task, 3)) ),
+                             $self, $getattr )
+                        !! QAST::WVal.new( :value(nqp::atpos($task, 3)) );
+
+                    my str $sigil := nqp::substr(nqp::atpos($task, 2), 0, 1);
+                    if $sigil eq '@' || $sigil eq '%' {
+                        $context.ensure-sc($!True);
+                        $unless.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                $getattr, $initializer,
+                                QAST::WVal.new( :value($!True), :named('INITIALIZE') )
+                            )
+                        );
+                    }
+                    elsif $code == 1400 {
+                        if nqp::elems($task) == 5 {
+                            $context.ensure-sc(nqp::atpos($task, 4));
+                            $initializer := QAST::Op.new( :op('p6bindassert'),
+                                $initializer,
+                                QAST::WVal.new( :value(nqp::atpos($task, 4)) )
+                            );
+                        }
+                        $unless.push(
+                            QAST::Op.new( :op('bindattr'),
+                                $self, $class, $attr, $initializer )
+                        );
+                    }
+                    else {
+                        $unless.push(
+                            QAST::Op.new(
+                                :op( $sigil eq '$' || $sigil eq '&'
+                                       ?? 'p6assign' !! 'p6store' ),
+                                $getattr, $initializer
+                            )
+                        );
+                    }
+
+                    $stmts.push($unless);
+                }
+
+                # 401,402,410 = set native numeric with default if not set
+                elsif $code == 401 || $code == 402 || $code == 410 {
+                    my $getattr := QAST::Op.new(
+                        :op('getattr' ~ @psp[$code - 400]),
+                        $self, $class, $attr
+                    );
+                    $context.ensure-sc(nqp::atpos($task, 3));
+                    $stmts.push(
+                        QAST::Op.new( :op<if>,
+                            QAST::Op.new(
+                                :op('iseq' ~ ($code == 410 ?? '_i' !! @psp[$code - 400])),
+                                $getattr,
+                                $code == 402
+                                    ?? QAST::NVal.new( :value(0e0) )
+                                    !! QAST::IVal.new( :value(0) )
+                            ),
+                            QAST::Op.new( :op('bindattr' ~ @psp[$code - 400]),
+                                $self, $class, $attr,
+                                nqp::istype(nqp::atpos($task, 3), Block)
+                                    ?? QAST::Op.new( :op<call>,
+                                         QAST::WVal.new( :value(nqp::atpos($task, 3)) ),
+                                         $self, $getattr )
+                                    !! ($code == 402
+                                         ?? QAST::NVal.new( :value(nqp::atpos($task, 3)) )
+                                         !! QAST::IVal.new( :value(nqp::atpos($task, 3)) ))
+                            )
+                        )
+                    );
+                }
+
+                # 403 = set native string with default if not set
+                elsif $code == 403 {
+                    my $getattr := QAST::Op.new( :op<getattr_s>, $self, $class, $attr );
+                    $context.ensure-sc(nqp::atpos($task, 3));
+                    $stmts.push(
+                        QAST::Op.new( :op<if>,
+                            QAST::Op.new( :op<isnull_s>, $getattr ),
+                            QAST::Op.new( :op<bindattr_s>,
+                                $self, $class, $attr,
+                                nqp::istype(nqp::atpos($task, 3), Block)
+                                    ?? QAST::Op.new( :op<call>,
+                                         QAST::WVal.new( :value(nqp::atpos($task, 3)) ),
+                                         $self, $getattr )
+                                    !! QAST::SVal.new( :value(nqp::atpos($task, 3)) )
+                            )
+                        )
+                    );
+                }
+
+                # 800 = die if opaque not yet initialized
+                # 1501,1502,1510 = die if int, num, uint is zero
+                # 1503 = die if str is null_s
+                elsif $code == 800 || $code > 1500 && $code < 1600 {
+                    my $check;
+                    if $code == 1501 {
+                        $check := QAST::Op.new( :op<getattr_i>, $self, $class, $attr );
+                    }
+                    elsif $code == 1502 {
+                        $check := QAST::Op.new( :op<getattr_n>, $self, $class, $attr );
+                    }
+                    elsif $code == 1503 {
+                        $check := QAST::Op.new( :op<not_i>,
+                            QAST::Op.new( :op<isnull_s>,
+                                QAST::Op.new( :op<getattr_s>, $self, $class, $attr )
+                            )
+                        );
+                    }
+                    elsif $code == 1510 {
+                        $check := QAST::Op.new( :op<getattr_u>, $self, $class, $attr );
+                    }
+                    else {
+                        $check := QAST::Op.new( :op<p6attrinited>,
+                            QAST::Op.new( :op<getattr>, $self, $class, $attr )
+                        );
+                    }
+                    $context.ensure-sc($!X-Attribute-Required);
+                    $context.ensure-sc(nqp::atpos($task, 3));
+                    $stmts.push(
+                        QAST::Op.new( :op<unless>,
+                            $check,
+                            QAST::Op.new( :op<callmethod>, :name<throw>,
+                                QAST::Op.new( :op<callmethod>, :name<new>,
+                                    QAST::WVal.new( :value($!X-Attribute-Required) ),
+                                    QAST::SVal.new( :named('name'),
+                                        :value(nqp::atpos($task, 2)) ),
+                                    QAST::WVal.new( :named('why'),
+                                        :value(nqp::atpos($task, 3)) )
+                                )
+                            )
+                        )
+                    );
+                }
+
+                # 900 = run attribute container initializer
+                elsif $code == 900 {
+                    $context.ensure-sc(nqp::atpos($task, 3));
+                    $stmts.push(
+                        QAST::Op.new( :op<bindattr>,
+                            $self, $class, $attr,
+                            QAST::Op.new( :op<call>,
+                                QAST::WVal.new( :value(nqp::atpos($task, 3)) ) )
+                        )
+                    );
+                }
+
+                # 1000 = vivify a mixin attribute for the side effect
+                elsif $code == 1000 {
+                    $stmts.push(
+                        QAST::Op.new( :op<getattr>, $self, $class, $attr )
+                    );
+                }
+
+                else {
+                    nqp::die('Invalid '
+                      ~ $!package-type.HOW.name($!package-type)
+                      ~ '.POPULATE plan: ' ~ $code);
+                }
+            }
+
+            # BUILD or TWEAK submethod: call it with the original nameds
+            # and return any Failure it produces
+            else {
+                $needs-wrapping := 1;
+                $context.ensure-sc($task);
+                $context.ensure-sc($!Failure);
+                $context.ensure-sc($!return-routine);
+                my $return := QAST::Var.new( :scope<local>, :name<return> );
+                $stmts.push(
+                    QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<istype>,
+                            QAST::Op.new( :op<bind>,
+                                $return,
+                                QAST::Op.new( :op<if>,
+                                    QAST::Op.new( :op<elems>, $init ),
+                                    QAST::Op.new( :op<call>,
+                                        QAST::WVal.new( :value($task) ),
+                                        $self,
+                                        QAST::Var.new( :scope<local>, :name<init>,
+                                            :flat(1), :named(1) )
+                                    ),
+                                    QAST::Op.new( :op<call>,
+                                        QAST::WVal.new( :value($task) ),
+                                        $self
+                                    )
+                                )
+                            ),
+                            QAST::WVal.new( :value($!Failure) )
+                        ),
+                        QAST::Op.new( :op<call>,
+                            QAST::WVal.new( :value($!return-routine) ),
+                            $return
+                        )
+                    )
+                );
+            }
+        }
+
+        $stmts.push($self);
+
+        # The return call for a Failure producing BUILD or TWEAK is a
+        # control exception, which needs its catching counterpart in
+        # this frame.
+        if $needs-wrapping {
+            $stmts := QAST::Op.new( :op<handlepayload>,
+                $stmts,
+                'RETURN',
+                QAST::Op.new( :op<lastexpayload> )
+            );
+        }
+
+        $stmts
+    }
+}
+
 class RakuAST::Method::ClassAccessor
   is RakuAST::Method
 {

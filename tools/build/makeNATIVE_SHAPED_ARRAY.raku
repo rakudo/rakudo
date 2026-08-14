@@ -54,7 +54,7 @@ while @lines {
     # spurt the roles
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-    role shaped#type#array does shapedarray {
+    role shaped#type#array does shapedarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: **@indices --> #type#) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -309,7 +309,7 @@ while @lines {
         }
     }  # end of shaped#type#array role
 
-    role shaped1#type#array does shaped#type#array {
+    role shaped1#type#array does shaped#type#array is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> #type#) is raw {
            nqp::atposref_#postfix#(self,one)
         }
@@ -481,7 +481,7 @@ while @lines {
         }
     } # end of shaped1#type#array role
 
-    role shaped2#type#array does shaped#type#array {
+    role shaped2#type#array does shaped#type#array is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
         }
@@ -514,7 +514,7 @@ while @lines {
         }
     } # end of shaped2#type#array role
 
-    role shaped3#type#array does shaped#type#array {
+    role shaped3#type#array does shaped#type#array is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
         }

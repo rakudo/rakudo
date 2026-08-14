@@ -120,7 +120,11 @@ my class array is Cool does Iterable does Positional {
         )
     }
 
-    role strarray[::T] does Positional[T] is array_type(T) {
+    role strarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of strarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -746,7 +750,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role intarray[::T] does Positional[T] is array_type(T) {
+    role intarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of intarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -1414,7 +1422,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role uintarray[::T] does Positional[T] is array_type(T) {
+    role uintarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of uintarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -2082,7 +2094,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role numarray[::T] does Positional[T] is array_type(T) {
+    role numarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of numarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -2760,10 +2776,10 @@ my class array is Cool does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-08-12T13:06:25+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapedintarray does shapedarray {
+    role shapedintarray does shapedarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: **@indices --> int) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -3018,7 +3034,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapedintarray role
 
-    role shaped1intarray does shapedintarray {
+    role shaped1intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> int) is raw {
            nqp::atposref_i(self,one)
         }
@@ -3190,7 +3206,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1intarray role
 
-    role shaped2intarray does shapedintarray {
+    role shaped2intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two))
         }
@@ -3223,7 +3239,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2intarray role
 
-    role shaped3intarray does shapedintarray {
+    role shaped3intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
         }
@@ -3263,10 +3279,10 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-08-12T13:06:25+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapeduintarray does shapedarray {
+    role shapeduintarray does shapedarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: **@indices --> uint) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -3521,7 +3537,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapeduintarray role
 
-    role shaped1uintarray does shapeduintarray {
+    role shaped1uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> uint) is raw {
            nqp::atposref_u(self,one)
         }
@@ -3693,7 +3709,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1uintarray role
 
-    role shaped2uintarray does shapeduintarray {
+    role shaped2uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two))
         }
@@ -3726,7 +3742,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2uintarray role
 
-    role shaped3uintarray does shapeduintarray {
+    role shaped3uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two, three))
         }
@@ -3766,10 +3782,10 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-08-12T13:06:25+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapednumarray does shapedarray {
+    role shapednumarray does shapedarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: **@indices --> num) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -4024,7 +4040,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapednumarray role
 
-    role shaped1numarray does shapednumarray {
+    role shaped1numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> num) is raw {
            nqp::atposref_n(self,one)
         }
@@ -4196,7 +4212,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1numarray role
 
-    role shaped2numarray does shapednumarray {
+    role shaped2numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two))
         }
@@ -4229,7 +4245,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2numarray role
 
-    role shaped3numarray does shapednumarray {
+    role shaped3numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
         }
@@ -4269,10 +4285,10 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-08-12T13:06:25+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapedstrarray does shapedarray {
+    role shapedstrarray does shapedarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: **@indices --> str) is raw {
             nqp::if(
               nqp::iseq_i(
@@ -4527,7 +4543,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapedstrarray role
 
-    role shaped1strarray does shapedstrarray {
+    role shaped1strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> str) is raw {
            nqp::atposref_s(self,one)
         }
@@ -4699,7 +4715,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1strarray role
 
-    role shaped2strarray does shapedstrarray {
+    role shaped2strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two))
         }
@@ -4732,7 +4748,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2strarray role
 
-    role shaped3strarray does shapedstrarray {
+    role shaped3strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
         }

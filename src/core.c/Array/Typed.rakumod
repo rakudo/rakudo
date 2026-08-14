@@ -1,4 +1,7 @@
-my role Array::Typed[::TValue] does Positional[TValue] {
+my role Array::Typed[::TValue]
+  does Positional[TValue]
+  is implementation-detail
+{
 
     proto method new(|) {*}
     multi method new(:$shape!) {

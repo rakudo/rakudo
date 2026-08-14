@@ -1,4 +1,4 @@
-my role Array::Shaped2 does Array::Shaped {
+my role Array::Shaped2 does Array::Shaped is implementation-detail {
     multi method AT-POS(::?CLASS:D: uint $one, uint $two) is raw {
         nqp::ifnull(
           nqp::atpos2d(nqp::getattr(self,List,'$!reified'),$one,$two),

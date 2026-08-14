@@ -1,4 +1,4 @@
-my role Array::Shaped1 does Array::Shaped {
+my role Array::Shaped1 does Array::Shaped is implementation-detail {
     multi method AT-POS(::?CLASS:D: uint $one) is raw {
         nqp::ifnull(
           nqp::atpos(

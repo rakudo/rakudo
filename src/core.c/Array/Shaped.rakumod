@@ -2,7 +2,10 @@
 my class X::Assignment::ArrayShapeMismatch { ... };
 my class X::NotEnoughDimensions { ... };
 
-my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
+my role Array::Shaped
+  does Rakudo::Internals::ShapedArrayCommon
+  is implementation-detail
+{
     has $.shape;
 
     multi method new(::?CLASS:D:) {

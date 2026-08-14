@@ -1430,7 +1430,8 @@ class RakuAST::VarDeclaration::Simple
                 my $expression := $initializer.expression;
                 if nqp::istype($expression, RakuAST::Literal) {
                     my $vartype := $type.meta-object;
-                    if nqp::objprimspec($vartype) {
+                    my int $primspec := nqp::objprimspec($vartype);
+                    if $primspec {
                         $vartype := $vartype.HOW.mro($vartype)[1];
                     }
 
@@ -1442,7 +1443,8 @@ class RakuAST::VarDeclaration::Simple
                          ) {
                         self.add-sorry:
                           $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :varname(self.name), :$vartype, :$value;
+                            :varname(self.name), :$vartype, :$value,
+                            :native($primspec);
                     }
                 }
             }

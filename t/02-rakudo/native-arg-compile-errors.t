@@ -6,7 +6,7 @@ use Test;
 # numeric literal to a native variable names the variable and its native
 # type in the refusal.
 
-plan 9;
+plan 12;
 
 sub compile-refuses($code, $expected, $desc) {
     my $error = '';
@@ -60,7 +60,19 @@ compile-refuses 'multi f(int $x) { }; multi f(num $x) { }; f("x")',
 }
 
 compile-refuses 'my int $i; $i = 1.5',
+    'variable ($i)',
+    'assigning a Rat literal to a native int variable names the variable';
+
+compile-refuses 'my int $i; $i = 1.5',
+    'type int',
+    'assigning a Rat literal to a native int variable names the native type';
+
+compile-refuses 'my int $i; $i = 1.5',
     'type Real',
     'assigning a Rat literal to a native int variable suggests the Real type';
+
+compile-refuses 'my int $i = 1.5',
+    'native variable ($i)',
+    'a Rat literal initializer on a native int declaration names the native variable';
 
 # vim: expandtab shiftwidth=4

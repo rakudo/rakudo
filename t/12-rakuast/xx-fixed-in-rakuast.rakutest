@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 135;
+plan 141;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -987,6 +987,28 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     throws-like { Q| my ($a is nonesuch) |.AST.EVAL },
         Exception, message => /'nonesuch'/,
         'an unknown trait inside a declaration list is rejected';
+}
+
+# A method built inside a BEGIN block compiles before a native attribute
+# declared further down the class body exists, so the access cannot be
+# typed at compile time. The legacy frontend emits an object access whose
+# read boxes to the raw native type and cannot be written. The access
+# switches on the attribute's primitive spec at runtime and takes a
+# native reference for native storage, the unsigned flavor for unsigned
+# storage.
+{
+    is Q| class B1 { BEGIN B1.^add_method("w", method () { $!x++; $!x }); has int $!x = 1; }; B1.new.w |.AST.EVAL,
+        2, 'a BEGIN-built method steps a later declared int attribute';
+    is Q| class B2 { BEGIN B2.^add_method("w", method ($v) { $!x = $v; $!x }); has int $!x = 1; }; B2.new.w(9) |.AST.EVAL,
+        9, 'a BEGIN-built method assigns a later declared int attribute';
+    is Q| class B3 { BEGIN B3.^add_method("w", method () { $!n += 1.5e0; $!n }); has num $!n = 1e0; }; B3.new.w |.AST.EVAL,
+        2.5e0, 'a BEGIN-built method compound assigns a later declared num attribute';
+    is Q| class B4 { BEGIN B4.^add_method("w", method () { $!s ~= "b"; $!s }); has str $!s = "a"; }; B4.new.w |.AST.EVAL,
+        'ab', 'a BEGIN-built method concatenates onto a later declared str attribute';
+    is Q| class B5 { BEGIN B5.^add_method("w", method () { $!u = 200; $!u }); has uint8 $!u; }; B5.new.w |.AST.EVAL,
+        200, 'a BEGIN-built method stores a high uint8 value without sign extension';
+    is Q| class B6 { BEGIN B6.^add_method("w", method () { $!u = 4000000000; $!u }); has uint32 $!u; }; B6.new.w |.AST.EVAL,
+        4000000000, 'a BEGIN-built method stores a high uint32 value without sign extension';
 }
 
 # vim: expandtab shiftwidth=4

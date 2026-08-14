@@ -4411,7 +4411,7 @@ class RakuAST::Statement::For
             my $flatten-body := $flatten ?? $!body !! Mu;
             my $body-qast := $flatten ?? Mu !! $!body.IMPL-TO-QAST($context);
 
-            # An integer-range source the optimize pass approved becomes a
+            # An integer range or sequence source the optimize pass approved becomes a
             # native counting loop, unless a bound turns out not to be a
             # native-friendly integer.
             if $!can-lower-range

@@ -1589,7 +1589,10 @@ class RakuAST::Parameter
 
         my $inst-param;
         # Make sure we have (possibly instantiated) parameter object ready when we need it
-        if $is-generic || $!signature-constraint {
+        # An implicit invocant is generic on a role method, but its type is
+        # compiler-written and never a coercion, so it needs no runtime
+        # probing.
+        if ($is-generic && !$!implicit-invocant) || $!signature-constraint {
             my $inst-param-name := QAST::Node.unique('__lowered_param_obj_');
             my $i := $!owner.signature.IMPL-PARAM-POSITION(self);
             $param-qast.push( # Fetch instantiated Parameter object
@@ -1606,7 +1609,7 @@ class RakuAST::Parameter
         # Handle coercion.
         # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
         # we have to fetch the instantiated parameter object and do run-time processing.
-        if $is-generic {
+        if $is-generic && !$!implicit-invocant {
             # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
             $get-decont-var := -> { NQPMu }
             my $low-param-type := QAST::Node.unique('__lowered_param_type');

@@ -939,11 +939,24 @@ class RakuAST::Parameter
             my str $rw := $trait-rw || ($!default-rw ?? 'rw' !! '');
 
             if $rw {
-                if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
+                # A definite type like `int:D` nominalizes to its native base.
+                # The wrapper answers no primitive spec, so testing it would
+                # send a native copy parameter down the container path, whose
+                # native-of descriptor rejects every boxed assignment. Ask the
+                # nominal type.
+                if $rw ne 'copy' || !$!type || !nqp::objprimspec($type) {
                     my $cd := RakuAST::IMPL::Containers.create-descriptor(
                         :of($type), :default($type), :dynamic(0), :$name);
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
+                }
+                elsif nqp::istype($!type, RakuAST::Type::Definedness)
+                    && nqp::istype($!target, RakuAST::ParameterTarget::Var) {
+                    # Retype the target to the base type so it declares a
+                    # plain native lexical rather than an object lexical.
+                    # Definedness stays with the binder, and a native value
+                    # is always defined.
+                    $!target.set-type($!type.base-type, :replace);
                 }
                 # A <-> block starter flags every parameter rw and a trait
                 # does not clear that, so the target follows the flag even
@@ -2134,9 +2147,9 @@ class RakuAST::ParameterTarget::Var
             :target(self.lexical-name)
     }
 
-    method set-type(RakuAST::Type $type, Bool :$outer) {
+    method set-type(RakuAST::Type $type, Bool :$outer, Bool :$replace) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
-        $!declaration.set-type($type, :$outer) if $!declaration;
+        $!declaration.set-type($type, :$outer, :$replace) if $!declaration;
         Nil
     }
 

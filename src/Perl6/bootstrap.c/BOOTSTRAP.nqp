@@ -635,9 +635,18 @@ my class Binder {
                     # provided and make it rw if it's an `is copy`.
                     else {
                         my $new_cont := nqp::create(Scalar);
-                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                          nqp::getattr($param, Parameter, '$!container_descriptor')
-                        );
+                        my $desc :=
+                          nqp::getattr($param, Parameter, '$!container_descriptor');
+                        # A generic descriptor still carries the unresolved
+                        # type variable and would reject every assignment
+                        # into the container. Resolve it against the binding
+                        # context, which reaches type captures and role type
+                        # environments through the frame chain.
+                        $desc := $desc.instantiate_generic($lexpad)
+                          if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC
+                          && nqp::isconcrete($desc)
+                          && $desc.is_generic;
+                        nqp::bindattr($new_cont, Scalar, '$!descriptor', $desc);
                         nqp::bindattr($new_cont, Scalar, '$!value', $bindee);
                         $bindee := $new_cont;
                     }

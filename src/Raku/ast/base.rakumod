@@ -1651,9 +1651,12 @@ class RakuAST::Node {
     }
 
     # The statically known type of this node in argument position: its
-    # return-type, falling back to the declared type of the variable a
-    # resolved parameter read refers to, since a parameter read reports no
-    # type of its own.
+    # return-type, falling back to the nominal type of a resolved
+    # parameter read, which reports no type of its own. A parameter
+    # constrains its argument by a nominal type, with definedness and
+    # subset refinements as run time checks on top of it, so those are
+    # stripped from its declared type. A coercion type converts its
+    # argument rather than constraining it, so it stays whole.
     method IMPL-STATIC-ARG-TYPE() {
         my $type := self.return-type;
         if $type =:= Mu
@@ -1662,6 +1665,18 @@ class RakuAST::Node {
             && nqp::istype(self.resolution, RakuAST::ParameterTarget::Var)
             && nqp::isconcrete(self.resolution.declaration) {
             try $type := self.resolution.declaration.return-type;
+            my int $stripped := 1;
+            while $stripped {
+                $stripped := 0;
+                if nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW) {
+                    $type := $type.HOW.base_type($type);
+                    $stripped := 1;
+                }
+                elsif nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
+                    $type := $type.HOW.refinee($type);
+                    $stripped := 1;
+                }
+            }
         }
         $type
     }

@@ -126,6 +126,10 @@ class RakuAST::IMPL::VarLoweringFrame {
         nqp::atkey($!candidate-ids, $id)
     }
 
+    method record-for-name(str $name) {
+        nqp::atkey($!candidate-names, $name)
+    }
+
     method candidates() { $!candidates }
 }
 
@@ -487,8 +491,25 @@ class RakuAST::IMPL::VarLowering {
                 if nqp::istype($node, RakuAST::Code) && $node.custom-args;
         }
 
-        self.IMPL-REGISTER-USE($node)
-            if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved;
+        if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved {
+            self.IMPL-REGISTER-USE($node);
+            # These resolutions compile to a read of the lexical self
+            # by name: an attribute reached through its aliasing
+            # declaration, and a self resolution the walk does not
+            # track. An attribute declared in a `has (...)` list is
+            # reached through the parameter target wrapping it.
+            my $resolution := $node.resolution;
+            if nqp::istype($resolution, RakuAST::ParameterTarget::Var)
+                && nqp::isconcrete($resolution.declaration) {
+                $resolution := $resolution.declaration;
+            }
+            self.IMPL-MARK-SELF-USED-BY-NAME()
+                if nqp::istype($resolution, RakuAST::VarDeclaration::AttributeAlias)
+                || (nqp::istype($resolution, RakuAST::VarDeclaration::Simple)
+                    && $resolution.is-attribute)
+                || (nqp::istype($resolution, RakuAST::VarDeclaration::Implicit::Self)
+                    && !self.IMPL-SELF-RESOLUTION-TRACKED($resolution));
+        }
         self.IMPL-REGISTER-IMPLICIT-LOOKUPS($node);
         self.IMPL-CHECK-POISON($node);
 
@@ -505,8 +526,14 @@ class RakuAST::IMPL::VarLowering {
         # identities decide whether the implicits go unused.
         if $is-scope && nqp::istype($node, RakuAST::ImplicitDeclarations) {
             for $node.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) {
-                $frame.register-implicit(~nqp::objectid($_), $_)
-                    if nqp::istype($_, RakuAST::VarDeclaration::Implicit);
+                if nqp::istype($_, RakuAST::VarDeclaration::Implicit) {
+                    $frame.register-implicit(~nqp::objectid($_), $_);
+                    # The invocant is bound once at frame entry and only
+                    # read after, so it is a lowering candidate like a
+                    # term parameter.
+                    $frame.register($_, '')
+                        if nqp::istype($_, RakuAST::VarDeclaration::Implicit::Self);
+                }
             }
         }
         if $is-scope && nqp::istype($node, RakuAST::Routine)
@@ -895,6 +922,40 @@ class RakuAST::IMPL::VarLowering {
                 self.IMPL-MARK-MAGICAL-USED('$_')
                     if $op eq '~~' || $op eq '!~~'
                     || $op eq 'andthen' || $op eq 'orelse' || $op eq 'notandthen';
+            }
+        }
+        Nil
+    }
+
+    # A self resolution not registered with any frame of this walk
+    # belongs to a scope outside it, and its emission cannot follow a
+    # lowering decision made here.
+    method IMPL-SELF-RESOLUTION-TRACKED(Mu $resolution) {
+        my str $id := ~nqp::objectid($resolution);
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            return 1 unless nqp::isnull($frame.record-for-id($id));
+            return 1 unless nqp::isnull($frame.implicit-record-for-id($id));
+        }
+        0
+    }
+
+    # A use that compiles to a read of the lexical self by name keeps
+    # the innermost self declaration a lexical, since a lowered one
+    # would leave the by-name symbol holding the sentinel.
+    method IMPL-MARK-SELF-USED-BY-NAME() {
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                my $record := $frame.record-for-name('self');
+                unless nqp::isnull($record) {
+                    nqp::bindkey($record, 'used', 1);
+                    nqp::bindkey($record, 'declined', 'by-name')
+                        unless nqp::atkey($record, 'declined');
+                    return Nil;
+                }
             }
         }
         Nil

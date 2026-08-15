@@ -2904,6 +2904,10 @@ class RakuAST::VarDeclaration::Implicit::Block
 class RakuAST::VarDeclaration::Implicit::Self
   is RakuAST::VarDeclaration::Implicit
 {
+    has int $!lowered-to-local;
+    has Mu $!lowered-away-sentinel;
+    has str $!lowered-local-name;
+
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
@@ -2911,8 +2915,67 @@ class RakuAST::VarDeclaration::Implicit::Self
         $obj
     }
 
+    method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Implicit::Self, '$!lowered-to-local', 1);
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Self, '$!lowered-away-sentinel', $sentinel);
+    }
+
+    # The frame-local name for a lowered invocant, minted on first
+    # request so the binding and every lookup agree, or the empty string
+    # when self stays a by-name lexical.
+    method IMPL-LOWERED-LOCAL-NAME() {
+        return $!lowered-local-name if $!lowered-local-name;
+        return '' unless $!lowered-to-local;
+        return '' if nqp::isnull($!lowered-away-sentinel);
+        nqp::bindattr_s(self, RakuAST::VarDeclaration::Implicit::Self,
+            '$!lowered-local-name',
+            QAST::Node.unique('__lowered_self'));
+        if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
+            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+                'lex2local: minted ' ~ $!lowered-local-name ~ ' for self');
+        }
+        $!lowered-local-name
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+        if self.IMPL-LOWERED-LOCAL-NAME {
+            # The local is declared here, in the block's declaration
+            # section, so it exists before the invocant binding writes
+            # it. The by-name lexical stays declared for introspection,
+            # static with the sentinel as its value so no per-entry
+            # setup is paid for it.
+            $context.ensure-sc($!lowered-away-sentinel);
+            QAST::Stmts.new(
+                QAST::Var.new(
+                    :decl('static'), :scope('lexical'), :name(self.name),
+                    :value($!lowered-away-sentinel)
+                ),
+                QAST::Var.new(
+                    :decl('var'), :scope('local'), :name($!lowered-local-name)
+                )
+            )
+        }
+        else {
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+        }
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name(self.name), :scope('lexical') )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        QAST::Op.new(
+            :op('bind'),
+            $local-name
+                ?? QAST::Var.new( :name($local-name), :scope('local') )
+                !! QAST::Var.new( :name(self.name), :scope('lexical') ),
+            $source-qast
+        )
     }
 }
 

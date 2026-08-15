@@ -2622,6 +2622,17 @@ class RakuAST::Routine
         $!signature && $!signature.IMPL-HAS-PARAMETER($name)
     }
 
+    # The implicit self declaration of this routine, or null for a
+    # routine without one.
+    method IMPL-SELF-DECLARATION() {
+        if nqp::istype(self, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) {
+                return $_ if nqp::istype($_, RakuAST::VarDeclaration::Implicit::Self);
+            }
+        }
+        nqp::null
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
         # RegexThunk needs the body compiled first
@@ -2636,7 +2647,7 @@ class RakuAST::Routine
                 ), :key);
         self.IMPL-ADD-LOWERED-DEBUG-MAPPINGS($block);
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi')));
+        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi'), :invocant-decl(self.IMPL-SELF-DECLARATION)));
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
@@ -2866,6 +2877,11 @@ class RakuAST::Routine
                 return '';
             }
             return '' if $scope eq 'lexical' && $node.name eq 'self';
+            if $scope eq 'local' {
+                my $self-decl := self.IMPL-SELF-DECLARATION;
+                return '' if nqp::isconcrete($self-decl)
+                    && $node.name eq $self-decl.IMPL-LOWERED-LOCAL-NAME;
+            }
         }
         elsif nqp::istype($node, QAST::WVal) {
             return '' unless nqp::iscont($node.value);
@@ -3462,6 +3478,7 @@ class RakuAST::Method
     has RakuAST::Blockoid $.body;
     has Bool              $.meta;
     has Bool              $.private;
+    has Mu                $!self-declaration;
 
     method new(          str :$scope,
                          str :$multiness,
@@ -3517,10 +3534,19 @@ class RakuAST::Method
 
     method IMPL-META-OBJECT-TYPE() { Method }
 
+    # The one self declaration of this method. The grammar declares it
+    # into scope ahead of the signature parse and the implicit list
+    # carries it, so a resolution of self anywhere in the method
+    # reaches the instance its frame declares.
+    method IMPL-SELF-DECLARATION() {
+        $!self-declaration
+            // nqp::bindattr(self, RakuAST::Method, '$!self-declaration',
+                RakuAST::VarDeclaration::Implicit::Self.new)
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $list := nqp::findmethod(RakuAST::Routine, 'PRODUCE-IMPLICIT-DECLARATIONS')(self);
-        self.IMPL-UNWRAP-LIST($list).push:
-            RakuAST::VarDeclaration::Implicit::Self.new();
+        self.IMPL-UNWRAP-LIST($list).push: self.IMPL-SELF-DECLARATION;
         $list
     }
 
@@ -3603,7 +3629,7 @@ class RakuAST::Method::AttributeAccessor
     # The body is fully synthetic: nothing in it can reach the special
     # variables, so only self is declared.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        [ RakuAST::VarDeclaration::Implicit::Self.new() ]
+        [ self.IMPL-SELF-DECLARATION ]
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

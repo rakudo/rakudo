@@ -680,15 +680,19 @@ my class Rakudo::Internals {
         has &!on-error;
         has $!buffer;
         has int $!buffer-start-seq;
-        has int $!done-target;
+        has int $!dones-expected;
+        has int $!dones-seen;
+        has int $!completed;
         has int $!bust;
         has $!lock;
 
         submethod BUILD(
-          :&!on-data-ready!, :&!on-completed!, :&!on-error! --> Nil) {
+          :&!on-data-ready!, :&!on-completed!, :&!on-error!,
+          :$!dones-expected = 1 --> Nil) {
             $!buffer := nqp::list();
             $!buffer-start-seq = 0;
-            $!done-target = -1;
+            $!dones-seen = 0;
+            $!completed = 0;
             $!bust = 0;
             $!lock := Lock::Async.new;
         }
@@ -697,8 +701,10 @@ my class Rakudo::Internals {
             $!lock.protect: {
                 if err {
                     # Both pipes behind a merged output stream can
-                    # report the same failure.
-                    unless $!bust {
+                    # report failures. The completion and error
+                    # callbacks are mutually exclusive and run at most
+                    # once.
+                    unless $!bust || $!completed {
                         &!on-error(err);
                         $!bust = 1;
                     }
@@ -709,7 +715,10 @@ my class Rakudo::Internals {
                     self!emit-events();
                 }
                 else {
-                    $!done-target = seq;
+                    # An end of stream report consumes a sequence number
+                    # that no output ever fills.
+                    nqp::bindpos($!buffer, seq - $!buffer-start-seq, Mu);
+                    $!dones-seen = $!dones-seen + 1;
                     self!emit-events();
                 }
             }
@@ -718,10 +727,14 @@ my class Rakudo::Internals {
         method !emit-events() {
             unless $!bust {
                 until nqp::elems($!buffer) == 0 || nqp::isnull(nqp::atpos($!buffer, 0)) {
-                    &!on-data-ready(nqp::shift($!buffer));
+                    my \item = nqp::shift($!buffer);
+                    &!on-data-ready(item) if nqp::isconcrete(item);
                     $!buffer-start-seq = $!buffer-start-seq + 1;
                 }
-                if $!buffer-start-seq == $!done-target {
+                if !$!completed
+                  && $!dones-seen == $!dones-expected
+                  && nqp::elems($!buffer) == 0 {
+                    $!completed = 1;
                     &!on-completed();
                 }
             }

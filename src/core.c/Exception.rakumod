@@ -3091,14 +3091,22 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            my $multi = $!signature && $!signature.contains("\n");
+            # The dispatch analysis passes the signature as a list: a
+            # single gist, or one entry per multi candidate, undefined
+            # when its gist failed. Stringifying the list or an
+            # undefined entry warns, and a setting compile reporting an
+            # error here has no warning handler.
+            my $signature = nqp::istype($!signature, Positional)
+              ?? $!signature.grep(*.defined).join
+              !! $!signature;
+            my $multi = $signature && $signature.contains("\n");
             "Calling {$!objname}({
                 .join(', ') with @!arguments
             }) will never work with " ~ (
                 $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '
-            ) ~ $!signature;
+            ) ~ $signature;
     }
 }
 

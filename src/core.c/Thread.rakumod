@@ -68,6 +68,18 @@ my class Thread {
                     nqp::getcomp('Raku').handle-control($vm-ex);
                 }
             }
+            CATCH {
+                default {
+#?if !jvm
+                    ++⚛$aborted;
+#?endif
+#?if jvm
+                    ++$aborted;
+#?endif
+                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                    nqp::getcomp('Raku').handle-exception($vm-ex);
+                }
+            }
             my $*STACK-ID = Rakudo::Internals.NEXT-ID;
             code();
 #?if !jvm

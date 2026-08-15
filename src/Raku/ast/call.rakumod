@@ -443,7 +443,12 @@ class RakuAST::Call::Name
                 my $ok := 1;
                 my @args := self.IMPL-UNWRAP-LIST(self.args.args);
                 for @args {
-                    my $type := $_.return-type;
+                    my $type := $_.IMPL-STATIC-ARG-TYPE;
+                    # No istype relation holds between a definite type
+                    # and a nominal one, Mu:D and Any included, so the
+                    # trial bind would call any such pairing impossible.
+                    $type := $type.HOW.base_type($type)
+                        if nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW);
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
                     last unless $ok;

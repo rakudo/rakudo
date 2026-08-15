@@ -1834,9 +1834,22 @@ class RakuAST::Parameter
                     }
                     else {
                         if $container_descriptor {
+                            my $descriptor-qast := QAST::WVal.new(:value($container_descriptor));
+                            # A generic descriptor still carries the unresolved
+                            # type variable and would reject every assignment
+                            # into the container. Resolve it in the current
+                            # frame, where type captures and role type
+                            # environments are visible as lexicals.
+                            if $container_descriptor.is_generic {
+                                $descriptor-qast := QAST::Op.new(
+                                    :op<callmethod>, :name<instantiate_generic>,
+                                    $descriptor-qast,
+                                    QAST::Op.new( :op<ctx> )
+                                );
+                            }
                             $value := QAST::Op.new(
                                 :op<p6scalarwithvalue>,
-                                QAST::WVal.new(:value($container_descriptor)),
+                                $descriptor-qast,
                                 $value
                             );
                         }

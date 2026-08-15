@@ -2622,6 +2622,17 @@ class RakuAST::Routine
         $!signature && $!signature.IMPL-HAS-PARAMETER($name)
     }
 
+    # The implicit self declaration of this routine, or null for a
+    # routine without one.
+    method IMPL-SELF-DECLARATION() {
+        if nqp::istype(self, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) {
+                return $_ if nqp::istype($_, RakuAST::VarDeclaration::Implicit::Self);
+            }
+        }
+        nqp::null
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
         # RegexThunk needs the body compiled first
@@ -2636,7 +2647,7 @@ class RakuAST::Routine
                 ), :key);
         self.IMPL-ADD-LOWERED-DEBUG-MAPPINGS($block);
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi')));
+        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi'), :invocant-decl(self.IMPL-SELF-DECLARATION)));
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
@@ -2866,6 +2877,11 @@ class RakuAST::Routine
                 return '';
             }
             return '' if $scope eq 'lexical' && $node.name eq 'self';
+            if $scope eq 'local' {
+                my $self-decl := self.IMPL-SELF-DECLARATION;
+                return '' if nqp::isconcrete($self-decl)
+                    && $node.name eq $self-decl.IMPL-LOWERED-LOCAL-NAME;
+            }
         }
         elsif nqp::istype($node, QAST::WVal) {
             return '' unless nqp::iscont($node.value);

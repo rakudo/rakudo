@@ -318,7 +318,7 @@ class RakuAST::Signature
         QAST::WVal.new(:value($signature))
     }
 
-    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi) {
+    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi, Mu :$invocant-decl) {
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
         if $needs-full-binder {
@@ -337,10 +337,10 @@ class RakuAST::Signature
         }
         else {
             if $!implicit-invocant {
-                $bindings.push($!implicit-invocant.IMPL-TO-QAST($context));
+                $bindings.push($!implicit-invocant.IMPL-TO-QAST($context, :$invocant-decl));
             }
             for $parameters {
-                $bindings.push($_.IMPL-TO-QAST($context));
+                $bindings.push($_.IMPL-TO-QAST($context, :$invocant-decl));
             }
             if $!implicit-slurpy-hash {
                 $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
@@ -1397,7 +1397,7 @@ class RakuAST::Parameter
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-decl) {
         nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
             if $!sub-signature;
         # Flag constants we need to pay attention to.
@@ -1775,13 +1775,16 @@ class RakuAST::Parameter
 
         # Bind parameter into its target.
         if self.invocant {
-            $param-qast.push(QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name('self'), :scope('lexical') ),
-                $get-decont-var() // QAST::Op.new(
-                        :op('decont'),
-                        $temp-qast-var,
-                    )));
+            my $invocant-value := $get-decont-var() // QAST::Op.new(
+                :op('decont'),
+                $temp-qast-var,
+            );
+            $param-qast.push(nqp::isconcrete($invocant-decl)
+                ?? $invocant-decl.IMPL-BIND-QAST($context, $invocant-value)
+                !! QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('self'), :scope('lexical') ),
+                    $invocant-value));
         }
         if nqp::isconcrete($!target) && !$discard {
             if $flags +& (

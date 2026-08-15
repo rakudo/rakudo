@@ -671,7 +671,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Setting label on already created statement
         if $<label> {
             my $ast := $<statement>.ast;
-            $ast.add-label($<label>.ast);
+
+            # A for loop with a statement prefix such as `hyper` parses as
+            # an expression statement wrapping the for loop; the label
+            # belongs on the loop so that loop controls can target it.
+            my $target := $ast;
+            if nqp::istype($ast, Nodify('Statement::Expression'))
+                && nqp::istype($ast.expression, Nodify('Statement::For')) {
+                $target := $ast.expression;
+            }
+            $target.add-label($<label>.ast);
             make $ast;
             return;       # nothing left to do here
         }

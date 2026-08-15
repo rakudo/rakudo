@@ -1,15 +1,35 @@
 my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner does Iterator {
     has Channel $.batches .= new;
 
-    has int $!last-target = -1;
-    has int $!batches-seen = 0;
+    has int $!target = -1;
+    has int $!next-unseen = 0;
+    has $!seen;
+
+    submethod TWEAK() {
+        $!seen := nqp::list_i;
+    }
+
+    # Closes the batches channel once every batch up to the target sequence
+    # number has been consumed. The target is the batch the batcher marked
+    # as last, or the earliest batch a loop control stopped the iteration
+    # in; batches beyond a stop are dropped.
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
-        $!batches.send($batch);
-        ++$!batches-seen;
-        if $batch.last {
-            $!last-target = $batch.sequence-number;
+        my int $sequence = $batch.sequence-number;
+        if ($batch.last || $batch.stopped)
+            && ($!target < 0 || $sequence < $!target) {
+            $!target = $sequence;
         }
-        if $!last-target >= 0 && $!batches-seen == $!last-target + 1 {
+        if $!target >= 0 && $sequence > $!target {
+            self.batch-used();                 # dropped, but keep the
+            return;                            # backpressure flowing
+        }
+        $!batches.send($batch);
+        nqp::bindpos_i($!seen,$sequence,1);
+        nqp::while(
+          nqp::atpos_i($!seen,$!next-unseen),
+          ++$!next-unseen
+        );
+        if $!target >= 0 && $!next-unseen > $!target {
             $!batches.close;
         }
     }

@@ -12,6 +12,7 @@ my role X::HyperRace::Died {
 my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner does Iterator {
     has int $!seen-last;
     has int $!offset;
+    has int $!stop-cutoff;
     has $!batches;
     has $!waiting;
     has $!current-items;
@@ -21,12 +22,28 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         $!batches := Channel.new;
         $!waiting := nqp::list;
         $!current-items := EMPTY_BUFFER;
+        $!stop-cutoff = -1;
     }
 
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
+        my int $sequence = $batch.sequence-number;
+
+        if $batch.stopped                      # loop control ended iteration
+            && ($!stop-cutoff < 0 || $sequence < $!stop-cutoff) {
+            $!stop-cutoff = $sequence;
+            my int $keep = $!stop-cutoff + 1 - $!offset;
+            nqp::setelems($!waiting,$keep)     # discard queued later batches
+              if $keep >= 0 && nqp::isgt_i(nqp::elems($!waiting),$keep);
+        }
+
+        if $!stop-cutoff >= 0 && $sequence > $!stop-cutoff {
+            self.batch-used();                 # dropped, but keep the
+            return;                            # backpressure flowing
+        }
+
         nqp::bindpos(                          # store the batch at its place
           $!waiting,
-          nqp::sub_i($batch.sequence-number,$!offset),
+          nqp::sub_i($sequence,$!offset),
           $batch
         );
 
@@ -39,7 +56,8 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
         );
 
         $!seen-last = 1                        # set flag we've seen last one
-          if $batch.last;
+          if $batch.last
+          || ($!stop-cutoff >= 0 && $!offset > $!stop-cutoff);
         $!batches.close                        # close channel if we're done
           if $!seen-last && nqp::not_i(nqp::elems($!waiting));
     }

@@ -13,6 +13,11 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
     has Bool $.first;
     has Bool $.last;
 
+    # Set when a loop control ended the iteration inside this batch. The
+    # batch's items are truncated at the point of the control, and no batch
+    # with a higher sequence number may contribute values.
+    has int $!stopped;
+
     method !SET-SELF(\sequence-number, \items, \first, \last) {
         $!sequence-number = sequence-number;
         $!items := items;
@@ -50,6 +55,9 @@ my class Rakudo::Internals::HyperWorkBatch does Iterable {
     method replace-with(IterationBuffer $ib --> Nil) {
         $!items := $ib;
     }
+
+    method stopped() { nqp::hllbool($!stopped) }
+    method mark-stopped(--> Nil) { $!stopped = 1 }
 }
 
 # vim: expandtab shiftwidth=4

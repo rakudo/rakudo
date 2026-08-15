@@ -33,9 +33,9 @@ my role ParallelSequence[::Joiner] does Iterable does Sequence {
             self, $!work-stage-head, $matcher, %options
     }
 
-    method map(::?CLASS:D: $matcher, *%options) {
+    method map(::?CLASS:D: $matcher, :$label, *%options) {
         Rakudo::Internals::HyperRaceSharedImpl.map:
-            self, $!work-stage-head, $matcher, %options
+            self, $!work-stage-head, $matcher, %options, :$label
     }
 
     method invert(::?CLASS:D:) {

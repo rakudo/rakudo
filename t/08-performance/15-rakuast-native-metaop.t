@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
 use nqp;
-plan 14;
+plan 17;
 
 # A native int or num `+=`/`-=`/`*=` with a native operand lowers to a raw op
 # instead of calling the metaop.
@@ -63,9 +63,15 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         'a native copy parameter compound-steps to a raw op';
     qast-is 'sub f(num $x is copy) { $x += 1.5e0 }', :full, -> \v { qast-contains-op v, 'add_n' },
         'a num copy parameter with a float literal lowers to a raw op';
+    qast-is 'sub f(int $j) { my int $t; $t += $j }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'a native parameter read on the right lowers to a raw op';
+    qast-is 'sub f(int $j is rw) { my int $t; $t += $j }', :full, -> \v { not qast-contains-op v, 'add_i' },
+        'an rw parameter on the right keeps the metaop call';
+    qast-is 'class C { has int $!a; method m { my int $t; $t += $!a } }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'a native attribute read on the right lowers to a raw op';
 }
 else {
-    skip 'integer-literal and native lowering shape is RakuAST-specific', 6;
+    skip 'integer-literal and native lowering shape is RakuAST-specific', 9;
 }
 
 # vim: expandtab shiftwidth=4

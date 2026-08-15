@@ -847,9 +847,11 @@ class RakuAST::Node {
         # metaop. A float literal never overflows that way.
         my $right := $expr.right;
         my int $rhs-ok := 0;
-        if (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-resolved
-          || nqp::istype($right, RakuAST::Var::Attribute))
+        if nqp::istype($right, RakuAST::Var::Attribute)
           && nqp::objprimspec($right.return-type) == $spec {
+            $rhs-ok := 1;
+        }
+        elsif self.IMPL-NATIVE-LEXICAL-PRIMSPEC($right) == $spec {
             $rhs-ok := 1;
         }
         elsif $spec == 2 && nqp::istype($right, RakuAST::NumLiteral) {

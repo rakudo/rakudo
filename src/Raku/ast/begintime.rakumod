@@ -128,7 +128,10 @@ class RakuAST::BeginTime
     # like the compunit GLOBAL merge. Box VM-level scalars into their
     # Raku types; leave VM-level aggregates alone, as constants holding
     # nqp hashes and lists rely on staying unboxed.
-    method IMPL-BOX-VM-VALUE(Mu $result) {
+    # The result parameter must stay raw: a begin-time value may be a
+    # container, like a Proxy a constant binds, and the entry decont the
+    # method compiler emits for a non-raw parameter would strip it.
+    method IMPL-BOX-VM-VALUE(Mu $result is raw) {
         unless nqp::isnull($result) {
             # A native reference must not escape either. The frame
             # holding the referenced slot is gone once this evaluation

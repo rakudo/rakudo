@@ -234,11 +234,11 @@ class Perl6::Metamodel::CurriedRoleHOW
                   $value.HOW.instantiate_generic($value, $type_env)
                 ) if $value.HOW.archetypes($value).generic;
             }
-            self.new_type($!curried_role, |@new_pos, |%new_named)
+            $!curried_role.HOW.parameterize($!curried_role, |@new_pos, |%new_named)
         }
 
         else {
-            self.new_type($!curried_role, |@new_pos)
+            $!curried_role.HOW.parameterize($!curried_role, |@new_pos)
         }
     }
 

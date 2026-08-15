@@ -4253,7 +4253,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         {
             # Declare self early for attribute parameters
-            $*R.declare-lexical($/.Nodify('VarDeclaration::Implicit::Self').new)
+            $*R.declare-lexical($*BLOCK.IMPL-SELF-DECLARATION)
         }
         [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s

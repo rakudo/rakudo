@@ -3462,6 +3462,7 @@ class RakuAST::Method
     has RakuAST::Blockoid $.body;
     has Bool              $.meta;
     has Bool              $.private;
+    has Mu                $!self-declaration;
 
     method new(          str :$scope,
                          str :$multiness,
@@ -3517,10 +3518,19 @@ class RakuAST::Method
 
     method IMPL-META-OBJECT-TYPE() { Method }
 
+    # The one self declaration of this method. The grammar declares it
+    # into scope ahead of the signature parse and the implicit list
+    # carries it, so a resolution of self anywhere in the method
+    # reaches the instance its frame declares.
+    method IMPL-SELF-DECLARATION() {
+        $!self-declaration
+            // nqp::bindattr(self, RakuAST::Method, '$!self-declaration',
+                RakuAST::VarDeclaration::Implicit::Self.new)
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $list := nqp::findmethod(RakuAST::Routine, 'PRODUCE-IMPLICIT-DECLARATIONS')(self);
-        self.IMPL-UNWRAP-LIST($list).push:
-            RakuAST::VarDeclaration::Implicit::Self.new();
+        self.IMPL-UNWRAP-LIST($list).push: self.IMPL-SELF-DECLARATION;
         $list
     }
 
@@ -3603,7 +3613,7 @@ class RakuAST::Method::AttributeAccessor
     # The body is fully synthetic: nothing in it can reach the special
     # variables, so only self is declared.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        [ RakuAST::VarDeclaration::Implicit::Self.new() ]
+        [ self.IMPL-SELF-DECLARATION ]
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

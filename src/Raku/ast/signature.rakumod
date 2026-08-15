@@ -1491,11 +1491,33 @@ class RakuAST::Parameter
                 # concretization, so the check would reject an invocant of
                 # another class that does the same role.
                 unless $!implicit-invocant {
+                    # The signature these parameters were compiled against
+                    # is instantiated with the box type when the capture
+                    # resolves to a native type, since the body treats the
+                    # parameter as a boxed value. Accept what the
+                    # instantiated signature accepts.
                     my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
                     $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                        :op('istype_nd'),
-                        $get-decont-var(),
-                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::Var.new( :name($genericname), :scope<typevar> )
+                        ),
+                        QAST::IVal.new( :value(1) ),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('box_or_self'),
+                                QAST::Op.new(
+                                    :op('gethllsym'),
+                                    QAST::SVal.new( :value('Raku') ),
+                                    QAST::SVal.new( :value('NativeInstantiation') )
+                                ),
+                                QAST::Var.new( :name($genericname), :scope<typevar> )
+                            )
+                        )
                     )));
                 }
             }

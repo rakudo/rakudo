@@ -1,6 +1,6 @@
 use Test;
 
-plan 4;
+plan 7;
 
 # A method literal built inside a BEGIN block generates its code before the
 # class finishes parsing, so an attribute declared further down the body is
@@ -35,6 +35,36 @@ plan 4;
     }
     is C.new.run(42), 42,
         'a BEGIN-built method can assign a later scalar attribute';
+}
+
+{
+    my class C {
+        my $m = BEGIN method () { $!scalar = 5; $!scalar };
+        has $.scalar is rw;
+        method run() { $m(self) }
+    }
+    is C.new.run, 5,
+        'a BEGIN-built method assigns a later untyped scalar attribute';
+}
+
+{
+    my class C {
+        my $m = BEGIN method () { $!count++; $!count };
+        has Int $.count = 1;
+        method run() { $m(self) }
+    }
+    is C.new.run, 2,
+        'a BEGIN-built method steps a later Int attribute';
+}
+
+{
+    my class C {
+        my $m = BEGIN method ($v) { $!scalar := $v; $!scalar };
+        has $.scalar;
+        method run($v) { $m(self, $v) }
+    }
+    is C.new.run(7), 7,
+        'a BEGIN-built method binds a later untyped scalar attribute';
 }
 
 # The undeclared-attribute error still fires for an attribute the class

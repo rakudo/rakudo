@@ -4889,6 +4889,16 @@ nqp::register('raku-coercion', -> $capture {
 # which may be a definiteness or coercion type.
 nqp::register('raku-rv-typecheck-generic', -> $capture {
     nqp::guard('type', nqp::track('arg', $capture, 1));
+
+    # A generic return type that instantiates to a native type checks
+    # against the box type, since the routine body produces boxed values.
+    my $type := nqp::captureposarg($capture, 1);
+    my $box  := nqp::gethllsym('Raku', 'NativeInstantiation').box($type);
+    unless nqp::isnull($box) {
+        $capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
+          nqp::syscall('dispatcher-drop-arg', $capture, 1), 1, $box);
+    }
+
     nqp::delegate('raku-rv-typecheck', $capture);
 });
 

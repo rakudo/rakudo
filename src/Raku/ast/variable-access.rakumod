@@ -393,13 +393,113 @@ class RakuAST::Var::Attribute
         }
         # Code generated inside a BEGIN block can reference an attribute the
         # still-open class declares further down its body. The attribute is
-        # not on the stub yet, but the access only needs the name and package
-        # at runtime, so emit it untyped. A genuinely undeclared attribute is
-        # rejected at check or compose time and never runs this code.
-        QAST::Var.new(
-            :scope('attribute'), :name($!name), :returns(Mu),
-            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
-            self.IMPL-QAST-PACKAGE-LOOKUP($context)
+        # not on the stub yet, so whether it needs native reference access
+        # cannot be known here. The access switches on the primitive spec
+        # the attribute reports at runtime. A native attribute is accessed
+        # through a native reference, which serves as a writable container.
+        # Any other attribute takes the plain object access. A genuinely
+        # undeclared attribute is rejected at check or compose time and
+        # never runs this code.
+        my str $obj-name  := QAST::Node.unique('late_attr_obj');
+        my str $cls-name  := QAST::Node.unique('late_attr_cls');
+        my str $spec-name := QAST::Node.unique('late_attr_spec');
+        my $name-sval     := QAST::SVal.new(:value($!name));
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new(:name($obj-name), :scope('local'), :decl('var')),
+                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new(:name($cls-name), :scope('local'), :decl('var')),
+                self.IMPL-QAST-PACKAGE-LOOKUP($context)
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new(:name($spec-name), :scope('local'), :decl('var'), :returns(int)),
+                QAST::Op.new(
+                    :op('objprimspec'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('type'),
+                        QAST::Op.new(
+                            :op('callmethod'), :name('get_attribute_for_usage'),
+                            QAST::Op.new(
+                                :op('how'),
+                                QAST::Var.new(:name($cls-name), :scope('local'))
+                            ),
+                            QAST::Var.new(:name($cls-name), :scope('local')),
+                            $name-sval
+                        )
+                    )
+                )
+            ),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('iseq_i'),
+                    QAST::Var.new(:name($spec-name), :scope('local'), :returns(int)),
+                    QAST::IVal.new(:value(2))
+                ),
+                QAST::Op.new(
+                    :op('getattrref_n'),
+                    QAST::Var.new(:name($obj-name), :scope('local')),
+                    QAST::Var.new(:name($cls-name), :scope('local')),
+                    $name-sval
+                ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('iseq_i'),
+                        QAST::Var.new(:name($spec-name), :scope('local'), :returns(int)),
+                        QAST::IVal.new(:value(3))
+                    ),
+                    QAST::Op.new(
+                        :op('getattrref_s'),
+                        QAST::Var.new(:name($obj-name), :scope('local')),
+                        QAST::Var.new(:name($cls-name), :scope('local')),
+                        $name-sval
+                    ),
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('iseq_i'),
+                            QAST::Var.new(:name($spec-name), :scope('local'), :returns(int)),
+                            QAST::IVal.new(:value(0))
+                        ),
+                        QAST::Var.new(
+                            :scope('attribute'), :name($!name), :returns(Mu),
+                            QAST::Var.new(:name($obj-name), :scope('local')),
+                            QAST::Var.new(:name($cls-name), :scope('local'))
+                        ),
+                        QAST::Op.new(
+                            :op('if'),
+                            QAST::Op.new(
+                                :op('iseq_i'),
+                                QAST::Var.new(:name($spec-name), :scope('local'), :returns(int)),
+                                QAST::IVal.new(:value(10))
+                            ),
+                            # An unsigned attribute read through the signed
+                            # reference sign extends, so it takes the
+                            # unsigned reference.
+                            QAST::Op.new(
+                                :op('getattrref_u'),
+                                QAST::Var.new(:name($obj-name), :scope('local')),
+                                QAST::Var.new(:name($cls-name), :scope('local')),
+                                $name-sval
+                            ),
+                            # Every remaining spec is a signed integer
+                            # flavor.
+                            QAST::Op.new(
+                                :op('getattrref_i'),
+                                QAST::Var.new(:name($obj-name), :scope('local')),
+                                QAST::Var.new(:name($cls-name), :scope('local')),
+                                $name-sval
+                            )
+                        )
+                    )
+                )
+            )
         )
     }
 

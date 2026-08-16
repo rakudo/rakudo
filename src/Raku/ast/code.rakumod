@@ -2203,13 +2203,15 @@ class RakuAST::PointyBlock
         if $signature.meta-object.has_returns {
             my $Callable :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            # Parameterizations intern by argument identity, so a constant
+            # return value would create a distinct Callable parameterization
+            # and mixin type per literal. Use its type instead.
+            my $returns := $signature.meta-object.returns;
+            $returns := nqp::what($returns) if nqp::isconcrete($returns);
             {
                 $block.HOW.mixin(
                   $block,
-                  $Callable.HOW.parameterize(
-                    $Callable,
-                    $signature.meta-object.returns
-                  )
+                  $Callable.HOW.parameterize($Callable, $returns)
                 );
                 CATCH {
                     if $*COMPILING_CORE_SETTING != 1 {
@@ -2377,13 +2379,15 @@ class RakuAST::Routine
         if $signature.meta-object.has_returns {
             my $Callable :=
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            # Parameterizations intern by argument identity, so a constant
+            # return value would create a distinct Callable parameterization
+            # and mixin type per literal. Use its type instead.
+            my $returns := $signature.meta-object.returns;
+            $returns := nqp::what($returns) if nqp::isconcrete($returns);
             {
                 $routine.HOW.mixin(
                   $routine,
-                  $Callable.HOW.parameterize(
-                    $Callable,
-                    $signature.meta-object.returns
-                  )
+                  $Callable.HOW.parameterize($Callable, $returns)
                 );
                 CATCH {
                     if $*COMPILING_CORE_SETTING != 1 {

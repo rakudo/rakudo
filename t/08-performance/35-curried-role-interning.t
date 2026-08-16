@@ -1,7 +1,7 @@
 use nqp;
 use Test;
 
-plan 5;
+plan 6;
 
 # Type-check caches match on object identity, so a curried role reached
 # through role composition must be the same object as the parameterization
@@ -54,6 +54,13 @@ plan 5;
         nqp::decont(Half[Str].^roles(:!transitive)[0]),
         nqp::decont(Duo[Int, Str])
     ), 'curry mixing concrete and generic args instantiates to the interned parameterization';
+}
+
+{
+    sub a is revision-gated("6.e") { }
+    sub b is revision-gated("6.e") { }
+    ok nqp::eqaddr(nqp::decont(&a.WHAT), nqp::decont(&b.WHAT)),
+        'routines gated on the same revision share their mixin type';
 }
 
 # vim: expandtab shiftwidth=4

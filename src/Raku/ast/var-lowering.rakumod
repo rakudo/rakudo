@@ -864,6 +864,14 @@ class RakuAST::IMPL::VarLowering {
             return Nil;
         }
         my $frame := self.IMPL-ENTER($body, 1);
+        # Same rule as the general walk: a signature that needs the runtime
+        # binder binds by name into the frame, so nothing here may become a
+        # local. Without this the parameter of a `for` body - a flatten
+        # candidate, so it never reaches the general walk - was lowered to a
+        # local that p6bindsig, binding the lexical of the same name, never
+        # wrote, and the body read an empty container.
+        $frame.poison()
+            if nqp::istype($body, RakuAST::Code) && $body.custom-args;
         $frame.mark-flatten-candidate();
         $frame.mark-flatten-arg() if $arg;
         self.IMPL-REGISTER-IMPLICIT-LOOKUPS($body);

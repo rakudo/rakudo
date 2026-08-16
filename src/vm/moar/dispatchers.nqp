@@ -2217,6 +2217,7 @@ sub raku-multi-plan(
     my $need_type_guard      := nqp::list_i;
     my $need_conc_guard      := nqp::list_i;
     my @possibles;
+    my @unbox-possibles;
     my int $candidates-with-itemizable-params;
 
     my int $done;
@@ -2251,6 +2252,7 @@ sub raku-multi-plan(
 
                 my int $type_mismatch;
                 my int $rwness_mismatch;
+                my int $unbox_fallback;
                 my int $positional-params;
                 my int $associative-params;
                 my int $i;
@@ -2316,17 +2318,49 @@ sub raku-multi-plan(
                         # Mark a type guard for this argument
                         nqp::bindpos_i($need_type_guard, $i, 1);
 
-                        # Make sure it's the expected kind of native container
+                        # See if it's the expected kind of native container
                         my $contish := nqp::captureposarg($capture, $i);
-                        $type_mismatch := 1
-                          unless (($type_flags +& nqp::const::TYPE_NATIVE_STR)
-                                   && nqp::iscont_s($contish))
-                              || (($type_flags +& nqp::const::TYPE_NATIVE_INT)
-                                   && nqp::iscont_i($contish))
-                              || (($type_flags +& nqp::const::TYPE_NATIVE_UINT)
-                                   && nqp::iscont_u($contish))
-                              || (($type_flags +& nqp::const::TYPE_NATIVE_NUM)
-                                   && nqp::iscont_n($contish));
+                        unless (($type_flags +& nqp::const::TYPE_NATIVE_STR)
+                                 && nqp::iscont_s($contish))
+                            || (($type_flags +& nqp::const::TYPE_NATIVE_INT)
+                                 && nqp::iscont_i($contish))
+                            || (($type_flags +& nqp::const::TYPE_NATIVE_UINT)
+                                 && nqp::iscont_u($contish))
+                            || (($type_flags +& nqp::const::TYPE_NATIVE_NUM)
+                                 && nqp::iscont_n($contish)) {
+
+                            # Not a native container. A concrete value of
+                            # the native's box type can still bind to the
+                            # parameter by unboxing, which the binder does
+                            # for a non-multi routine. Such a candidate is
+                            # set aside and only considered when no
+                            # candidate is in the running otherwise. A
+                            # parameter needing write access cannot be
+                            # served by an unboxed copy.
+                            my $value := $contish;
+                            if nqp::istype_nd($value, Scalar)
+                              && nqp::isconcrete_nd($value) {
+                                nqp::bindpos_i($need_scalar_read, $i, 1);
+                                $value := nqp::getattr(
+                                  $value, Scalar, '$!value');
+                            }
+                            nqp::bindpos_i($need_conc_guard, $i, 1);
+                            if !$rwness
+                              && $definedness != nqp::const::DEFCON_UNDEFINED
+                              && nqp::isconcrete_nd($value)
+                              && nqp::istype_nd($value,
+                                   $type_flags +& nqp::const::TYPE_NATIVE_STR
+                                     ?? Str
+                                     !! $type_flags
+                                          +& nqp::const::TYPE_NATIVE_NUM
+                                       ?? Num
+                                       !! Int) {
+                                $unbox_fallback := 1;
+                            }
+                            else {
+                                $type_mismatch := 1;
+                            }
+                        }
                     }
 
                     # Got an opaque, want an opaque
@@ -2445,9 +2479,13 @@ sub raku-multi-plan(
                     ++$i;
                 }
 
-                # Add it to the possibles list of this group.
-                nqp::push(@possibles, $cur_candidate)
-                  unless $type_mismatch || $rwness_mismatch;
+                # Add it to the possibles list of this group, or set it
+                # aside if it can only match by unboxing arguments.
+                unless $type_mismatch || $rwness_mismatch {
+                    $unbox_fallback
+                      ?? nqp::push(@unbox-possibles, $cur_candidate)
+                      !! nqp::push(@possibles, $cur_candidate);
+                }
             }
         }
 
@@ -2593,6 +2631,37 @@ sub raku-multi-plan(
           if nqp::atpos_i($need_conc_guard, $i);
 
         ++$i;
+    }
+
+    # No candidate was in the running, but some can potentially bind by
+    # unboxing an argument. Try those in order, letting a bind check
+    # decide each, so a boxed value reaches a native-only candidate the
+    # same way it reaches the equivalent non-multi routine.
+    if nqp::isnull($current-head) && nqp::elems(@unbox-possibles) {
+        my int $n := nqp::elems(@unbox-possibles);
+        my int $i;
+        while $i < $n {
+            my %info := nqp::atpos(@unbox-possibles, $i);
+            unless has-named-args-mismatch($capture, %info) {
+
+                # Ensure it's already compiled, otherwise we can have
+                # compiler frames obscuring the bind control record we
+                # use for trying the next candidate.
+                my $sub := nqp::atkey(%info, 'sub');
+                my $cs  := nqp::getattr($sub, Code, '@!compstuff');
+                unless nqp::isnull($cs) {
+                    my $ctf := nqp::atpos($cs, 1);
+                    $ctf() if $ctf;
+                }
+
+                my $node := MultiDispatchTry.new($sub);
+                nqp::isnull($current-head)
+                  ?? ($current-head := $node)
+                  !! $current-tail.set-next($node);
+                $current-tail := $node;
+            }
+            ++$i;
+        }
     }
 
     # Return the dispatch plan, just an end marker if none so far

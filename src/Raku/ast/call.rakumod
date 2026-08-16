@@ -457,13 +457,21 @@ class RakuAST::Call::Name
                     nqp::push(@flags, nqp::objprimspec($type));
                 }
                 if $ok {
+                    my @diag_flags := @flags;
                     if nqp::elems(@types) == 1 {
                         # The literal kind covers a constant quoted string as
                         # well as the literal nodes, so a string passed to an
                         # `int` parameter is refused here rather than failing
-                        # to unbox at run time.
+                        # to unbox at run time. The native reading only feeds
+                        # the trial bind. The multi analysis reads the boxed
+                        # value the call site passes, which can still reach a
+                        # native parameter by unboxing.
                         my $rev := @args[0].IMPL-NATIVE-LITERAL-KIND;
-                        @flags[0] := $rev +| $ARG_IS_LITERAL if nqp::defined($rev);
+                        if nqp::defined($rev) {
+                            @flags[0] := $ARG_IS_LITERAL;
+                            @diag_flags := nqp::clone(@flags);
+                            @diag_flags[0] := $rev +| $ARG_IS_LITERAL;
+                        }
                     }
                     elsif nqp::elems(@types) == 2 {
                         # A native-paired literal is passed in its native
@@ -476,7 +484,7 @@ class RakuAST::Call::Name
                             @flags[$idx] := $paired.IMPL-NATIVE-LITERAL-KIND +| $ARG_IS_LITERAL;
                         }
                     }
-                    my $ct_result := nqp::p6trialbind($sig, @types, @flags);
+                    my $ct_result := nqp::p6trialbind($sig, @types, @diag_flags);
                     my @ct_result_multi;
                     if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher && $routine.onlystar {
                         @ct_result_multi := $routine.analyze_dispatch(@types, @flags);
@@ -510,11 +518,12 @@ class RakuAST::Call::Name
                     else {
                         # The call is settled at compile time, so the chosen
                         # candidate's native return type describes the result.
-                        # The flags above read a lone literal as native to
-                        # diagnose an impossible dispatch, so the recording
-                        # re-reads the arguments as the call site passes
-                        # them, through the same analysis the inline pass
-                        # and the argument emission use.
+                        # The diag flags above read a lone literal as native
+                        # for the trial bind, and the plain flags replace a
+                        # lone literal's kind with the literal marker, so the
+                        # recording re-reads the arguments as the call site
+                        # passes them, through the same analysis the inline
+                        # pass and the argument emission use.
                         my @info := self.IMPL-CT-ARG-TYPES($resolver, @args);
                         if nqp::elems(@info) {
                             my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine,

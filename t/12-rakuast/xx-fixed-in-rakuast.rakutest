@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 141;
+plan 144;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -1009,6 +1009,16 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         200, 'a BEGIN-built method stores a high uint8 value without sign extension';
     is Q| class B6 { BEGIN B6.^add_method("w", method () { $!u = 4000000000; $!u }); has uint32 $!u; }; B6.new.w |.AST.EVAL,
         4000000000, 'a BEGIN-built method stores a high uint32 value without sign extension';
+}
+
+# ???
+{
+    is Q| sub a(--> "x") { }; a |.AST.EVAL, "x",
+        'a constant return value is returned from a call';
+    ok Q| sub a(--> "x") { }; &a ~~ Callable[Str] |.AST.EVAL,
+        'a constant return value parameterizes Callable with its type';
+    ok Q| sub a(--> "x") { }; sub b(--> "y") { }; &a.WHAT =:= &b.WHAT |.AST.EVAL,
+        'subs with different constant return values share their Callable mixin type';
 }
 
 # vim: expandtab shiftwidth=4

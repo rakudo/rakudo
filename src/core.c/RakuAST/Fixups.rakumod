@@ -3,7 +3,7 @@ my class RakuAST::LegacyPodify { ... }
 # A class that acts as a Hash as well as an Array, with $=data semantics.
 # This needs to live rather late to have "handles" support actually working
 # in the setting.
-my class Hashray does Iterable {
+my class Hashray does Iterable is implementation-detail {
     has %.Hash handles <
       AT-KEY ASSIGN-KEY BIND-KEY EXISTS-KEY DELETE-KEY Map
       keys kv pairs anti-pairs

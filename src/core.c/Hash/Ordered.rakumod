@@ -94,7 +94,7 @@ my class Hash::Ordered is Hash {
     multi method raku(Hash::Ordered:D:) {
         self.^name
           ~ '.new(('
-          ~ self.Hash::raku.substr(1, *-1)
+          ~ self.pairs.map(*.raku).join(",")
           ~ '))'
     }
 }

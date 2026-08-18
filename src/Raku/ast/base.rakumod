@@ -780,13 +780,6 @@ class RakuAST::Node {
         # replaced this node nor the soft pragma may skip it.
         self.IMPL-WITHDRAW-NEGATE-NOT($expr);
 
-        # A bind statement replaces its target's container, so it
-        # withdraws native subscript eligibility from the target's
-        # declaration. A retraction rather than an optimization: it runs
-        # whether or not a rewrite replaced this node and regardless of
-        # the soft pragma.
-        self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
-
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
@@ -1042,24 +1035,6 @@ class RakuAST::Node {
         $expr.IMPL-SET-CALLSTATIC()
             if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $expr.resolution,
                 '&' ~ $expr.name.canonicalize);
-        Nil
-    }
-
-    # A bind statement targeting a lexical with a simple declaration
-    # marks that declaration, so the native subscript emission stands
-    # down: the bound container need not be the declared one. An EVAL
-    # cannot rebind an outer lexical on this frontend, so the statements
-    # seen here are all the binds there are.
-    method IMPL-POISON-NATIVE-INDEX-BIND(Mu $expr) {
-        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
-        my $infix := $expr.infix;
-        return Nil unless nqp::istype($infix, RakuAST::Infix)
-            && ($infix.operator eq ':=' || $infix.operator eq '::=');
-        my $left := $expr.left;
-        $left.resolution.IMPL-SET-BIND-TARGETED()
-            if nqp::istype($left, RakuAST::Var::Lexical)
-            && $left.is-resolved
-            && nqp::istype($left.resolution, RakuAST::VarDeclaration::Simple);
         Nil
     }
 

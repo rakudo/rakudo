@@ -1,9 +1,9 @@
-use lib <t/packages/Test-Helpers>;
+use lib <t/packages/Test-Helpers t/packages/05-messages/lib>;
 use Test;
 use nqp;
 use Test::Helpers;
 
-plan 31;
+plan 33;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -327,6 +327,302 @@ $a xx 2 :foo｣,
     else {
         skip 'the source split is placed by the RakuAST frontend', 10;
     }
+}
+
+subtest 'a store of a value a variable can never accept is reported at compile time' => {
+    plan 35;
+    throws-like ｢my Str $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        'an item declaration reports a value its type can never accept';
+
+    throws-like ｢my Str $x; $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        'an item assignment is reported the same as an item declaration';
+
+    throws-like ｢state Str $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        'a state declaration is judged the same as a my declaration';
+
+    throws-like ｢my Int $x = ("foo")｣,
+        X::Syntax::Number::LiteralType,
+        'grouping parentheses around an item value are looked through';
+
+    throws-like ｢constant Half = 1/2; my Str $x = Half｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Rat'),
+        'a constant stands for a value the compiler already knows';
+
+    throws-like ｢my int $x = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('native variable'),
+        'a native item type reports a value it can never unbox';
+
+    throws-like ｢my uint8 $x = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        message => { .contains('of type uint8') && .contains('Int("foo")') },
+        'a native is named as declared, and coerced to the type it unboxes from';
+
+    throws-like ｢my num $x = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        message => { .contains('type num') && .contains('Num("foo")') },
+        'a native floating point unboxes from a type of its own family';
+
+    throws-like ｢my num $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('write the value as 1e0'),
+        'a native is offered the value written as the type it unboxes from';
+
+    throws-like ｢my str $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('type str'),
+        'a native string reports a number it can never unbox';
+
+    throws-like ｢my Nil $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('type Nil'),
+        'a Nil type is named as itself rather than reset to a default';
+
+    throws-like ｢my Bool $x = <abc>｣,
+        X::Syntax::Number::LiteralType,
+        'a single word is the one value it stands for';
+
+    throws-like ｢enum Colour <white>; my Colour $c = "nope"｣,
+        X::Syntax::Number::LiteralType,
+        'a user defined enumeration reports a value it can never accept';
+
+    throws-like ｢sub f(Str $x is copy) { $x = 43 }｣,
+        X::Syntax::Number::LiteralType,
+        'a copied item parameter is given a container of the type it names';
+
+    throws-like ｢sub f(Str $x is rw) { $x = 43 }｣,
+        X::Syntax::Number::LiteralType,
+        'a parameter storing a value its own type rejects is reported';
+
+    throws-like ｢my (Int $a); $a = "str"｣,
+        X::Syntax::Number::LiteralType,
+        'a variable declared in a declarator signature is reported too';
+
+    throws-like ｢my Int $x = (("foo"))｣,
+        X::Syntax::Number::LiteralType,
+        'nested grouping parentheses are looked through';
+
+    throws-like ｢sub g($q) { my Int $a; $a := $q }; my Int $a; $a = "x"｣,
+        X::Syntax::Number::LiteralType,
+        'a bind to one variable leaves another of the same name in another scope alone';
+
+    throws-like ｢my Str $x = $?LINE｣,
+        X::Syntax::Number::LiteralType,
+        'a compile time variable is the value the compiler reads for it';
+
+    throws-like ｢constant $half = 0.5; my Str $x = $half｣,
+        X::Syntax::Number::LiteralType,
+        'a constant written with a sigil is the value it stands for';
+
+    throws-like ｢sub f(Str $x is copy where { True }) { $x = 42 }｣,
+        X::Syntax::Number::LiteralType,
+        'a where clause narrows what a type accepts rather than widening it';
+
+    throws-like ｢my Int $x = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        got => 'foo', expected => Int, symbol => '$x',
+        'the report answers the value, the type and the variable it was going to';
+
+    throws-like ｢my Int $x = 4.2｣,
+        X::Syntax::Number::LiteralType,
+        message => { .contains('of type Real') && .contains('write the value as 4') },
+        'a type both the value and the variable fit is named as the one to declare';
+
+    throws-like ｢my Complex $x = 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('of type Numeric'),
+        'a value and a variable sharing only Numeric are told to declare that';
+
+    throws-like ｢my IO::Path $x = 1.5｣,
+        X::Syntax::Number::LiteralType,
+        message => { not .contains('coerce') },
+        'a type the value has no coercion method for is not advised as one';
+
+    throws-like ｢my Int $x = pi｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Num'),
+        'a constant the setting declares is the value it stands for';
+
+    throws-like ｢my Str $x = BEGIN 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (1)'),
+        'a BEGIN block has run by now, so what it produced is a value';
+
+    throws-like ｢my Int $x = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        message => { not .contains('write the value as') },
+        'a value the coercion cannot convert is not offered back as a spelling';
+
+    throws-like ｢use TypedExports; my Str $x = Answer｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (42)'),
+        'a constant read out of another comp unit is a value the compiler holds';
+
+    throws-like ｢my Int $x = *｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Whatever (*)'),
+        'a whatever is the singleton it stands for';
+
+    throws-like ｢my Int $x = **｣,
+        X::Syntax::Number::LiteralType,
+        'a hyper whatever stands for a singleton of its own';
+
+    throws-like ｢my Str $x = constant Q1 = 1｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (1)'),
+        'a constant declaration evaluates to what it was declared as';
+
+    throws-like ｢my Str $x = 1; OUR::<$y> := 5｣,
+        X::Syntax::Number::LiteralType,
+        'a bind through the package stash of the current package reaches no lexical';
+
+    throws-like ｢my Str $x = 1; GLOBAL::<$y> := 5｣,
+        X::Syntax::Number::LiteralType,
+        'a bind through the global stash reaches no lexical either';
+
+    throws-like ｢my Str $x = 1; $OUR::y := 5｣,
+        X::Syntax::Number::LiteralType,
+        'a sigil qualified bind through a package stash reaches no lexical';
+}
+
+subtest 'a store the compiler cannot judge is left to the run time check' => {
+    plan 34;
+
+    # The compile time report is a subclass of the run time one, so ruling out
+    # its wording is what says the check was left where it was.
+    my &at-run-time = { not .contains('Cannot assign a literal') };
+
+    throws-like ｢my Str $ = 1｣,
+        X::TypeCheck, :message(&at-run-time),
+        'an anonymous variable is known here only by a name the compiler made up';
+
+    lives-ok { EVAL ｢sub f(Int $x is copy) { my $c = 1; $x := $c; $x = "b" }; f(1)｣ },
+        'a rebound parameter meets the container the bind gave it';
+
+    lives-ok { EVAL ｢my Str $s; sub f() { $s = 42 }; my $c = "x"; $s := $c; f()｣ },
+        'a store in a routine can run after a bind written later in the file';
+
+    throws-like ｢my Int $a; sub g($q) { $a := $q }; $a = "x"｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a bind reaches a declaration made outside the scope the bind is written in';
+
+    lives-ok { EVAL ｢sub f(Int $x is copy) { $x = "b"; my $c = 1; $x := $c }｣ },
+        'a parameter bound after the store is excused like any other variable';
+
+    throws-like ｢my Str $s; $s = 42; BEGIN { EVAL q|1| }; my $c = "x"; $s := $c｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a comp unit compiled part way through does not judge the stores held back';
+
+    throws-like ｢my Str $x = <a b>｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a word list stored whole is spread across stores the element type sees';
+
+    lives-ok { EVAL ｢use TypedExports; $count = "x"; my Str $a = $count｣ },
+        'an imported variable is held as its container, not as a value it once had';
+
+    lives-ok { EVAL ｢my Str $Foo::a = 1｣ },
+        'a name in a package makes no container the declared type speaks for';
+
+    lives-ok { EVAL ｢my Int $x; my $y = 3; MY::<$x> := $y; $x = "abc"｣ },
+        'a bind through a pseudo package reaches a variable this cannot name';
+
+    lives-ok { EVAL ｢my Int $x; my $y = 3; my $n = q[$x]; MY::{$n} := $y; $x = "abc"｣ },
+        'a pseudo package bind naming its target at run time stands the check down';
+
+    lives-ok { EVAL ｢my Int $x; sub f() { my $y = 3; OUTER::<$x> := $y }; f(); $x = "abc"｣ },
+        'a pseudo package naming an enclosing scope reaches a lexical just as well';
+
+    lives-ok { EVAL ｢my Int $x; my $y = 3; $MY::x := $y; $x = "abc"｣ },
+        'a sigil qualified pseudo package bind reaches a lexical the same way';
+
+    throws-like ｢my Str $x = &say｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a routine is reached by a reference to its declaration, not held as a value';
+
+    throws-like ｢my Int $x = * + 1｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a whatever taking part in an expression builds a closure at run time';
+
+    throws-like ｢my Int:D $x = "foo"｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a definite type is nominalizable rather than nominal';
+
+    throws-like ｢role R { }; my R $x = 1｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a role accepts by what does it rather than by type check';
+
+    throws-like ｢sub f(::T $t) { my T $x = "foo" }; f(1)｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a generic is only settled later';
+
+    throws-like ｢my Date $x = 1｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a type that is not Cool has no coercion advice to give';
+
+    throws-like ｢constant Only42 = 42; my Only42 $x = 43｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a value used as a type has no type of its own to name';
+
+    throws-like ｢my Int %h = 4.2｣,
+        X::Hash::Store::OddNumber,
+        'a hash takes a flat list of keys and values';
+
+    throws-like ｢sub f(Str $x) { $x = 43 }; f("a")｣,
+        X::AdHoc, :message(*.contains('immutable value')),
+        'a read only parameter reports the assignment rather than the value';
+
+    lives-ok { EVAL ｢my Str %h = 1, "a"｣ },
+        'a hash key is not a value the element type sees';
+
+    lives-ok { EVAL ｢my Str $x;
+                       $x := Proxy.new(FETCH => -> $ { "a" }, STORE => -> $, $v { });
+                       $x = 42｣ },
+        'a bind to a proxy leaves the store to whatever the proxy does with it';
+
+    lives-ok { EVAL ｢subset Nonempty of Str where *.chars;
+                       sub f(Nonempty $x is copy) { $x = 1 }｣ },
+        'a parameter type narrowed by a subset is recorded already widened';
+
+    lives-ok { EVAL ｢sub f(Str:D $x is copy) { $x = 1 }｣ },
+        'a parameter type narrowed by definiteness is recorded already widened';
+
+    lives-ok { EVAL ｢my List $x = (1; 2)｣ },
+        'an item variable stores what a semicolon list builds, not its statements';
+
+    throws-like ｢class Holder { has Str $.y is rw }; Holder.new.y = 1｣,
+        X::TypeCheck::Assignment, :message(&at-run-time),
+        'an assignment to an attribute keeps its run time check';
+
+    lives-ok { EVAL ｢class Keeper { has Str $!y; method m() { $!y = 1 } }｣ },
+        'a store to an attribute in a method body is left to the run time check';
+
+    lives-ok { EVAL ｢my Str $x = Nil｣ },
+        'Nil resets a container to its default rather than storing a value';
+
+    throws-like ｢my Str $x = 1 + 1｣,
+        X::TypeCheck, :message(&at-run-time),
+        'an expression waiting to be folded is not a value yet';
+
+    throws-like ｢class C { has Str $.x = 42 }｣,
+        X::Comp, :message(*.contains('default value')),
+        'an attribute default is reported against the attribute';
+
+    throws-like ｢use experimental :will-complain;
+                 my Str $s will complain { "gimme a Str, not {.^name}" }; $s = 1｣,
+        X::TypeCheck::Assignment,
+        message => { .contains('gimme a Str, not Int') && at-run-time($_) },
+        'a complaint on the variable is written by the run time check';
+
+    throws-like ｢use experimental :will-complain;
+                 my class Wanted is Cool will complain { "gimme a Wanted, not {.^name}" } { };
+                 my Wanted $x = 42｣,
+        X::TypeCheck::Assignment,
+        message => { .contains('gimme a Wanted, not Int') and at-run-time($_) },
+        'a complaint on the type is written by the run time check too';
 }
 
 # vim: expandtab shiftwidth=4

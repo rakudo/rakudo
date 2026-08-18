@@ -2516,6 +2516,134 @@ class Perl6::Optimizer {
         }
     }
 
+    # Reports the first of the given nodes holding a value the variable's value
+    # type can never accept.
+    method report_impossible_value($var, @values) {
+        # The lookup is only trusted when it ran to the end, so that a
+        # descriptor answering a value type but no complaint cannot be read as
+        # one that carries no complaint.
+        my int $described := 0;
+        my int $constrained := 0;
+        my $of := nqp::null();
+        my $complainee := nqp::null();
+        try {
+            my %sym := $!symbols.find_lexical_symbol($var.name);
+            my $descriptor := %sym<descriptor>;
+            $of         := $descriptor.of;
+            $complainee := $descriptor.complainee;
+            # A parameter is given a descriptor built from its nominal type, so
+            # a definite type or a subset leaves no trace on it. The symbol
+            # records that it was narrowed instead. A where clause only narrows
+            # what the nominal type already accepts, so it leaves that type
+            # speaking for a store.
+            # A container named by the declaration brings its own STORE, which
+            # is free to convert what it is given or to store it somewhere else.
+            # A bind replaces the container outright, and one naming its target
+            # is recorded as it is compiled, which is before this runs.
+            $constrained := %sym<constrained> || %sym<explicit_container>
+                || %sym<bind_targeted> ?? 1 !! 0;
+            $described   := 1;
+        }
+        return 0 unless $described;
+        return 0 if $constrained;
+
+        # A bind through a pseudo package names its target at run time, so which
+        # container it replaced is not knowable and no store can be judged.
+        return 0 if $*W.has_pseudo_package_bind;
+
+        # An anonymous variable is known here only by the name the compiler
+        # made up for it, which is no help to whoever wrote the store.
+        return 0 if nqp::eqat($var.name, 'ANON_VAR_', 1);
+
+        # A value used as a type has no type of its own to name in the advice.
+        return 0 if nqp::isconcrete($of);
+
+        # A `will complain` explanation is a block written for the value that
+        # failed. Running it is the run time check's to do, on the variable or
+        # on the type.
+        return 0 if nqp::isconcrete($complainee)
+            || nqp::istype($of.HOW, Perl6::Metamodel::Explaining);
+
+        # A generic is only settled later, and a role reports itself as nominal
+        # while accepting by what does it, so neither is checked here. A
+        # coercion, a definite type and a subset are all nominalizable rather
+        # than nominal, so the one test covers them too.
+        my $archetypes := $of.HOW.archetypes($of);
+        return 0 unless $archetypes.nominal
+            && !$archetypes.generic
+            && !$archetypes.composable;
+
+        # A native refuses a store by failing to unbox rather than by failing a
+        # type check, so its boxed type is what a value is checked against.
+        my int $primspec := nqp::objprimspec($of);
+        my $vartype := $primspec ?? $of.HOW.mro($of)[1] !! $of;
+        # A compile time complaint is confined to the types the advice is
+        # written for. Any other type is left to the run time check.
+        return 0 unless nqp::istype($vartype, $!symbols.find_in_setting('Cool'));
+
+        my $iterable := $!symbols.find_in_setting('Iterable');
+        for @values {
+            my $value := self.stored_value($_);
+            next if nqp::isnull($value);
+            # An iterable value may be spread across several stores rather than
+            # stored whole, so what the value type sees is not settled here.
+            next if nqp::istype($value, $iterable);
+            unless nqp::istype($value, $vartype) {
+                # The value carries the source position worth pointing at. A
+                # value the compiler built rather than read from source has
+                # none, so the variable stands in for it. Reporting reads that
+                # position, so a store with none to give is left alone.
+                my $at := $_.node ?? $_ !! $var;
+                return 0 unless $at.node;
+                $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'],
+                        $at,
+                        :varname($var.name), :vartype($of), :$value, :native($primspec)
+                    );
+                return 1;
+            }
+        }
+        0
+    }
+
+    # The one value this node is known to produce, or null when it produces
+    # something the compiler cannot name here. A type object reaches a WVal too
+    # and names a type rather than a value, so only a concrete one counts. This
+    # runs before the children of the op are visited, so an expression waiting
+    # to be folded is still an op here and answers nothing.
+    method stored_value($node) {
+        # A single statement list stands for what its one statement produces.
+        return self.stored_value($node[0])
+            if nqp::istype($node, QAST::Stmts) && nqp::elems($node) == 1;
+
+        if nqp::istype($node, QAST::Want) {
+            my str $want := $node[1];
+            return $node[0].value
+                if ($want eq 'Ii' || $want eq 'Nn' || $want eq 'Ss')
+                && nqp::istype($node[0], QAST::WVal);
+        }
+        elsif nqp::istype($node, QAST::WVal) {
+            return $node.value if nqp::isconcrete($node.value);
+        }
+        elsif nqp::istype($node, QAST::Var) && $node.scope eq 'lexical' {
+            # A constant written with a sigil stays a lexical here, and the
+            # compiler already holds the value it stands for. An imported
+            # variable and a lexical an EVAL was handed are held as their
+            # container, which says nothing about what they will hold by the
+            # time the store runs, and a lowered away lexical is held as a
+            # marker standing in for a variable that is gone.
+            my $value := nqp::null();
+            try {
+                my %sym := $!symbols.find_lexical_symbol($node.name);
+                $value := $!symbols.force_value(%sym, $node.name, 0);
+            }
+            return $value
+                if nqp::isconcrete($value)
+                && !nqp::iscont($value)
+                && !nqp::istype($value, $!symbols.LoweredAwayLexical);
+        }
+        nqp::null()
+    }
+
     # Range operators we can optimize into loops, and how to do it.
     sub get_bound($node,$extra) {
 
@@ -2719,116 +2847,17 @@ class Perl6::Optimizer {
             }
         }
 
-        # Let's see if we can catch a type mismatch in assignment at compile-time.
-        # Especially with Num, Rat, and Int there's often surprises at run-time.
-        if ($optype eq 'p6assign' || $optype eq 'assign_n' || $optype eq 'assign_i')
+        # A typed variable checks what it is given against its value type at run
+        # time. Knowing both that type and the stored value settles the outcome
+        # here, so a store that can never pass is reported here.
+        if ($optype eq 'p6assign' || $optype eq 'assign_i' || $optype eq 'assign_n'
+              || $optype eq 'assign_s' || $optype eq 'assign_u')
             && nqp::istype($op[0], QAST::Var)
-            && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref') {
-            if nqp::istype($op[1], QAST::Want) {
-                # grab the var's symbol from our blocks
-                my $varsym := $symbols.find_lexical_symbol($op[0].name);
-                my $type := $varsym<type>;
-
-                my $want_type := $op[1][1];
-                my $varname := $op[0].name;
-
-                if $want_type eq 'Ii' {
-                    if $type =:= (my $numtype := $symbols.find_in_setting("Num"))
-                      || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($numtype), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Int>,
-                                :native(!($type =:= $numtype))
-                            );
-                    } elsif $type =:= $symbols.find_in_setting("Rat") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Real>,
-                                :valuetype<Int>
-                            );
-                    } elsif $type =:= $symbols.find_in_setting("Complex") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                :$varname, :vartype($type), :value($op[1][2].value), :suggestiontype<Numeric>,
-                                :valuetype<Int>
-                            );
-                    }
-                } elsif $want_type eq 'Nn' {
-                    my $value := $op[1][2];
-                    if $value.HOW.name($value) eq 'QAST::NVal' {
-                        if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
-                          || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
-                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($inttype), :value($value.value), :suggestiontype<Real>,
-                                    :valuetype<Num>,
-                                    :native(!($type =:= $inttype))
-                                );
-                        } elsif $type =:= $symbols.find_in_setting("Rat") {
-                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Real>,
-                                    :valuetype<Num>
-                                );
-                        } elsif $type =:= $symbols.find_in_setting("Complex") {
-                            $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
-                                    :$varname, :vartype($type), :value($value.value), :suggestiontype<Numeric>,
-                                    :valuetype<Num>
-                                );
-                        }
-                    }
-                }
-            }
-            elsif nqp::istype($op[1], QAST::WVal) {
-                my $varsym := $symbols.find_lexical_symbol($op[0].name);
-                my $type := $varsym<type>;
-
-                my $value := $op[1].value;
-                my $val_type := $value.HOW.name($value);
-                my $varname := $op[0].name;
-                if $val_type eq 'Rat' || $val_type eq 'RatStr' {
-                    if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
-                          || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Real>,
-                                :valuetype<Rat>,
-                                :native(!($type =:= $inttype))
-                            );
-                    } elsif $type =:= (my $numtype := $symbols.find_in_setting("Num"))
-                        || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Real>,
-                                :valuetype<Rat>,
-                                :native(!($type =:= $numtype))
-                            );
-                    } elsif $type =:= $symbols.find_in_setting("Complex") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
-                                :valuetype<Rat>
-                            );
-                    }
-                }
-                elsif $val_type eq 'Complex' || $val_type eq 'ComplexStr' {
-                    if $type =:= (my $inttype := $symbols.find_in_setting("Int"))
-                      || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($inttype), :value($value), :suggestiontype<Numeric>,
-                                :valuetype<Complex>,
-                                :native(!($type =:= $inttype))
-                            );
-                    } elsif $type =:= (my $numtype := $symbols.find_in_setting("Num"))
-                        || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($numtype), :value($value), :suggestiontype<Numeric>,
-                                :valuetype<Complex>,
-                                :native(!($type =:= $numtype))
-                            );
-                    } elsif $type =:= $symbols.find_in_setting("Rat") {
-                        $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
-                                :$varname, :vartype($type), :value($value), :suggestiontype<Numeric>,
-                                :valuetype<Complex>
-                            );
-                    }
-                }
-            }
+            && ($op[0].scope eq 'lexical' || $op[0].scope eq 'lexicalref')
+            && nqp::eqat($op[0].name, '$', 0)
+            && $symbols.is_lexical_declared($op[0].name) {
+            self.report_impossible_value($op[0], [$op[1]]);
         }
-
 
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;

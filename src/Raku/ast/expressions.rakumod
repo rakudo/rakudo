@@ -2677,6 +2677,43 @@ class RakuAST::ApplyInfix
         # adverb as the plain application does.
         my $base := $infix;
         $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+
+        # A metaoperator wraps the operator it is built from, and reducing a
+        # bind over two operands binds them.
+        my $bind-infix := nqp::istype($infix, RakuAST::BracketedInfix)
+            ?? $infix.infix
+            !! $infix;
+        if nqp::istype($bind-infix, RakuAST::Infix) {
+            my str $bind-op := $bind-infix.operator;
+            if $bind-op eq ':=' || $bind-op eq '≔' {
+                # A bind through a pseudo package naming a lexical scope
+                # replaces a container this analysis never resolves, so no
+                # store in the unit can be judged. The scope is named by the
+                # subscripted term of one spelling and by the qualifier of the
+                # sigil qualified one.
+                if nqp::istype($left, RakuAST::ApplyPostfix)
+                    && nqp::istype($left.operand, RakuAST::Term::Name)
+                    && $left.operand.name.is-lexical-pseudo-package
+                    || nqp::istype($left, RakuAST::Var::Package)
+                    && $left.name.is-lexical-pseudo-package {
+                    $resolver.mark-pseudo-package-bind;
+                }
+
+                # A bind replaces its target's container, so the type the
+                # declaration named speaks for no store into that variable. A
+                # parameter resolves to a target wearing its declaration, so
+                # unwrap before marking.
+                if nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved {
+                    my $bound := $left.resolution;
+                    $bound := $bound.declaration
+                        if nqp::istype($bound, RakuAST::ParameterTarget::Var)
+                        && nqp::isconcrete($bound.declaration);
+                    $bound.IMPL-SET-BIND-TARGETED
+                        if nqp::istype($bound, RakuAST::VarDeclaration::Simple);
+                }
+            }
+        }
+
         if nqp::elems(self.colonpairs)
           && nqp::istype($base, RakuAST::Infix)
           && (nqp::chars($infix.properties.thunky) || $infix.properties.chain) {
@@ -2762,36 +2799,38 @@ class RakuAST::ApplyInfix
                 }
             }
 
-            my $type := self.left.return-type;
             if nqp::istype($infix, RakuAST::Assignment) {
-                if !nqp::istype(self.left, RakuAST::Literal) && !nqp::eqaddr($type, Mu)
-                    # Subset type checking can have side effects, so don't do that at compile time.
-                    && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW)
-                    # An attribute read answers its declared type for the
-                    # optimize pass, while an assignment to one keeps its
-                    # run time check.
-                    && !nqp::istype(self.left, RakuAST::Var::Attribute)
-                {
-                    my $right := self.right;
-                    if nqp::istype($right,RakuAST::Literal) {
-                        my int $primspec := nqp::objprimspec($type);
-                        if $primspec {
-                            $type := $type.HOW.mro($type)[1];
-                        }
-
-                        my $value := $right.compile-time-value;
-                        if !nqp::istype($value, $type)
-                          && nqp::istype($type, $resolver.type-from-setting('Numeric')) {
-                            self.add-sorry:
-                              $resolver.build-exception:
-                                'X::Syntax::Number::LiteralType',
-                                :vartype($type),
-                                :$value,
-                                :varname(nqp::istype(self.left, RakuAST::Var::Lexical)
-                                    ?? self.left.name !! ''),
-                                :native($primspec);
-                        }
+                # Only a declaration names a type the store has to satisfy, and
+                # it also knows the element type, the sigil and any complaint,
+                # so let it build the complaint. Anything else reached from here
+                # answers the type a bind checks against, or the type of a value
+                # it happens to hold, neither of which is what a store sees.
+                my $declaration := Nil;
+                if nqp::istype(self.left, RakuAST::Var::Lexical) && self.left.is-resolved {
+                    my $resolution := self.left.resolution;
+                    if nqp::istype($resolution, RakuAST::VarDeclaration::Simple) {
+                        $declaration := $resolution;
                     }
+                    # A declarator signature declares variables while wearing a
+                    # parameter target, and a parameter names the type its store
+                    # has to satisfy. A copied list parameter is the exception,
+                    # being handed a container without the element type.
+                    elsif nqp::istype($resolution, RakuAST::ParameterTarget::Var)
+                        && nqp::isconcrete($resolution.declaration)
+                        # A read only parameter cannot be stored into at all,
+                        # which is reported as an assignment to an immutable
+                        # value rather than as the value being wrong.
+                        && !$resolution.declaration.is-ro
+                        && ($resolution.var-declaration
+                            || $resolution.declaration.sigil eq '$') {
+                        $declaration := $resolution.declaration;
+                    }
+                }
+                if nqp::isconcrete($declaration) {
+                    my $exception := $declaration.IMPL-IMPOSSIBLE-VALUE-EXCEPTION(
+                        $resolver, self.right);
+                    $resolver.add-pending-impossible-value(self, $declaration, $exception)
+                        if nqp::isconcrete($exception);
                 }
 
                 if nqp::istype(self.left, RakuAST::Var::Lexical) && self.left.is-resolved

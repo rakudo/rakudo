@@ -1428,8 +1428,7 @@ class RakuAST::VarDeclaration::Simple
         }
 
         my $type := self.type;
-        # Subset type checking can have side effects, so don't do that at compile time.
-        if nqp::istype($type, RakuAST::Type::Simple) && !nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
+        if nqp::istype($type, RakuAST::Type::Simple) {
             my $initializer := self.initializer;
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
@@ -1441,25 +1440,18 @@ class RakuAST::VarDeclaration::Simple
                             :name(self.name);
                 }
 
-                my $expression := $initializer.expression;
-                if nqp::istype($expression, RakuAST::Literal) {
-                    my $vartype := $type.meta-object;
-                    my int $primspec := nqp::objprimspec($vartype);
-                    if $primspec {
-                        $vartype := $vartype.HOW.mro($vartype)[1];
-                    }
-
-                    my $value := $expression.compile-time-value;
-                    if !nqp::istype($value, $vartype)
-                      && nqp::istype(
-                           $vartype,
-                           $resolver.type-from-setting('Numeric')
-                         ) {
-                        self.add-sorry:
-                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :varname(self.name), :$vartype, :$value,
-                            :native($primspec);
-                    }
+                # A bind replaces the container instead of storing into it. The
+                # value is checked whole against the bind constraint, and a
+                # store written elsewhere meets the bound container rather than
+                # the one this declaration made.
+                if $initializer.is-binding {
+                    self.IMPL-SET-BIND-TARGETED;
+                }
+                else {
+                    my $exception := self.IMPL-IMPOSSIBLE-VALUE-EXCEPTION(
+                        $resolver, $initializer.expression);
+                    $resolver.add-pending-impossible-value(self, self, $exception)
+                        if nqp::isconcrete($exception);
                 }
             }
         }
@@ -1533,6 +1525,133 @@ class RakuAST::VarDeclaration::Simple
                     $resolver.build-exception: 'X::Syntax::Variable::BadType', type => $type.compile-time-value;
             }
         }
+    }
+
+    # The exception for the first value an expression would store into the
+    # variable that its type can never accept. Nil when there is no such value,
+    # and also whenever this declines to look, so Nil is not a promise that the
+    # store will succeed.
+    method IMPL-IMPOSSIBLE-VALUE-EXCEPTION(RakuAST::Resolver $resolver, Mu $expression) {
+        # A hash takes a flat list of keys and values, so a value it is given
+        # need not be one the element type sees.
+        return Nil if self.sigil eq '%';
+
+        # A list variable is assigned element by element, so what the expression
+        # builds as a whole is not what the element type sees.
+        return Nil if self.sigil eq '@';
+
+        # An anonymous variable is known here only by the name the compiler made
+        # up for it, which is no help to whoever wrote the store.
+        return Nil if nqp::istype(self, RakuAST::VarDeclaration::Anonymous);
+
+        # A name in a package installs there rather than making a container the
+        # declared type speaks for.
+        return Nil if $!desigilname.is-multi-part;
+
+        # A bind replaces the container the declaration made, so the type it
+        # names speaks for no store into it.
+        return Nil if self.IMPL-BIND-TARGETED;
+
+        # A container named by the declaration brings its own STORE, which is
+        # free to convert what it is given or to store it somewhere else, so
+        # what the value type accepts is not what the store has to satisfy.
+        return Nil if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
+
+        # An attribute default is reported against the attribute itself, which
+        # names the attribute rather than a variable.
+        return Nil if self.is-attribute;
+
+        my $type := self.type;
+        return Nil unless nqp::istype($type, RakuAST::Type::Simple);
+
+        # A value used as a type has no type of its own to name in the advice.
+        my $vartype := $type.meta-object;
+        return Nil if nqp::isconcrete($vartype);
+
+        # A `will complain` explanation is a block written for the value that
+        # failed. Running it is the run time check's to do, on the variable or
+        # on the type.
+        return Nil if self.IMPL-HAS-COMPLAINT
+            || nqp::istype($vartype.HOW, Perl6::Metamodel::Explaining);
+
+        # A generic is only settled later, and a role reports itself as nominal
+        # while accepting by what does it, so neither is checked here. A
+        # coercion, a definite type and a subset are all nominalizable rather
+        # than nominal, so the one test covers them too, and it keeps subset
+        # checking, which can have side effects, out of compile time.
+        my $archetypes := $vartype.HOW.archetypes($vartype);
+        return Nil
+            unless $archetypes.nominal
+                && !$archetypes.generic
+                && !$archetypes.composable;
+
+        # A native refuses a store by failing to unbox rather than by failing a
+        # type check, so its boxed type is what a value is checked against.
+        my $declared := $vartype;
+        my int $primspec := nqp::objprimspec($vartype);
+        $vartype := $vartype.HOW.mro($vartype)[1] if $primspec;
+
+        # A compile time complaint is confined to the types the advice is
+        # written for. Any other type is left to the run time check.
+        return Nil unless nqp::istype($vartype, $resolver.type-from-setting('Cool'));
+
+        my $iterable := $resolver.type-from-setting('Iterable');
+        for self.IMPL-STORED-VALUES($expression) {
+            # An iterable value may be spread across several stores rather
+            # than stored whole, so what the value type sees is not settled
+            # here.
+            next if nqp::istype($_, $iterable);
+            unless nqp::istype($_, $vartype) {
+                return $resolver.build-exception('X::Syntax::Number::LiteralType',
+                    :varname(self.name), :vartype($declared), :value($_),
+                    :native($primspec));
+            }
+        }
+        Nil
+    }
+
+    # Whether the variable itself carries a `will complain` explanation. One
+    # attached to its type is reached through that type's meta-object instead.
+    method IMPL-HAS-COMPLAINT() {
+        for self.IMPL-UNWRAP-LIST(self.traits) {
+            return True if nqp::istype($_, RakuAST::Trait::Will) && $_.phase eq 'complain';
+        }
+        False
+    }
+
+    # The values an expression is known to store into the variable. An operand
+    # producing something the compiler cannot name contributes nothing.
+    method IMPL-STORED-VALUES(Mu $expression) {
+        my @values;
+        self.IMPL-COLLECT-STORED-VALUES($expression, @values);
+        @values
+    }
+
+    # Collects into the given list, descending only where the value the store
+    # sees is not the expression itself.
+    method IMPL-COLLECT-STORED-VALUES(Mu $expression, Mu $values) {
+        # Grouping parentheses stand for what they wrap.
+        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $expression.semilist;
+            return Nil unless nqp::istype($semilist, RakuAST::SemiList);
+            my @statements := self.IMPL-UNWRAP-LIST($semilist.code-statements);
+            # A semicolon list of any length but one builds a list of its own,
+            # which the variable stores whole.
+            return Nil if nqp::elems(@statements) != 1;
+            for @statements {
+                # Only an expression statement produces a value to name, and it
+                # is the only statement carrying the modifiers asked about next.
+                next unless nqp::istype($_, RakuAST::Statement::Expression);
+                # A condition modifier can yield nothing and a loop modifier
+                # yields a list, so a modified statement stores nothing known.
+                next if $_.condition-modifier || $_.loop-modifier;
+                self.IMPL-COLLECT-STORED-VALUES($_.expression, $values);
+            }
+            return Nil;
+        }
+        my $value := $expression.IMPL-STORED-VALUE;
+        nqp::push($values, $value) if nqp::isconcrete($value);
+        Nil
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

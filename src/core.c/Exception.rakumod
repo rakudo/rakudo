@@ -3112,7 +3112,9 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
     # Bound rather than assigned, so that a variable declared Nil keeps Nil as
     # its type here instead of resetting to the default.
     has $.vartype is built(:bind);
-    has $.value;
+    # X::TypeCheck is handed this value uncontainerized, so hold it that way
+    # here.
+    has $.value is built(:bind);
     # The value is whatever the compiler held, so asking it to describe itself
     # can fail, and a failure while reporting an error loses the error.
     has $.valuetype      = (try $!value.^name) // '?';
@@ -3130,16 +3132,20 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
-        my $conversionmethod := $vartype.tc;
-        $vartype := $vartype.lc if $.native;
-        my $vt := $!value.^name;
-        my $value := (nqp::istype($.value,Allomorph)
-          ?? (try $!value.Str)
-          !! (try $!value.raku)) // $.valuetype;
+        # A native unboxes from a boxed type, and that is the type a coercion
+        # names. The variable is still of the type it was declared with.
+        my $conversionmethod := ($.native ?? $!vartype.^mro[1].^name !! $vartype).tc;
+        my $value := (try Str(nqp::istype($.value,Allomorph)
+          ?? $!value.Str
+          !! $!value.raku)) // $.valuetype;
         my $val = "Cannot assign a literal of type $.valuetype ($value) to
         a { "native" if $.native } variable ($.varname) of type $vartype. You can declare
-        the variable to be of type $.suggestiontype, or try to coerce the
-        value with $value.$conversionmethod or $conversionmethod\($value\)";
+        the variable to be of type $.suggestiontype";
+        # A type the value has no coercion method for is one there is no way to
+        # spell the conversion to, so only a value that can name it is advised.
+        $val ~= ", or try to coerce the
+        value with $value.$conversionmethod or $conversionmethod\($value\)"
+            if (try $!value.^can($conversionmethod)).so;
         # A coercion that cannot convert the value answers a Failure rather than
         # throwing, and there is no other spelling to suggest in that case.
         try {

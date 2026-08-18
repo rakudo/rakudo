@@ -716,6 +716,49 @@ class RakuAST::Node {
         False
     }
 
+    # The one value this node is known to produce, or Nil when it produces
+    # something the compiler cannot name. A number, a version, a quoted string
+    # that needs nothing evaluated, an enum value, the line and file the
+    # compiler is reading, a whatever, what a BEGIN block produced, a constant
+    # declaration and a reference to a constant all qualify. A word list of
+    # several words answers the list it builds rather than a word. The answer
+    # can be a type object, so a caller wanting a value a store would see checks
+    # it for concreteness.
+    method IMPL-STORED-VALUE() {
+        return self.compile-time-value if nqp::istype(self, RakuAST::Literal);
+        return self.maybe-compile-time-value
+            if nqp::istype(self, RakuAST::QuotedString);
+        return self.maybe-compile-time-value
+            if nqp::istype(self, RakuAST::Term::Enum) && self.has-compile-time-value;
+        return self.line if nqp::istype(self, RakuAST::Var::Compiler::Line);
+        return self.file if nqp::istype(self, RakuAST::Var::Compiler::File);
+        # A whatever and a BEGIN block each keep what they produced to
+        # themselves, the one the singleton it stands for and the other the
+        # value its body left behind.
+        return nqp::getattr(self, RakuAST::Term::Whatever, '$!whatever')
+            if nqp::istype(self, RakuAST::Term::Whatever);
+        return nqp::getattr(self, RakuAST::Term::HyperWhatever, '$!whatever')
+            if nqp::istype(self, RakuAST::Term::HyperWhatever);
+        return nqp::getattr(self, RakuAST::StatementPrefix::Phaser::Begin, '$!value')
+            if nqp::istype(self, RakuAST::StatementPrefix::Phaser::Begin)
+            && nqp::getattr_i(self, RakuAST::StatementPrefix::Phaser::Begin, '$!has-value');
+        # A constant declaration evaluates to what it was declared as.
+        return self.compile-time-value
+            if nqp::istype(self, RakuAST::VarDeclaration::Constant);
+        if (nqp::istype(self, RakuAST::Var::Lexical)
+                || nqp::istype(self, RakuAST::Term::Name))
+            && self.is-resolved
+            && self.IMPL-CONSTANT-RESOLUTION(self.resolution)
+        {
+            my $value := self.resolution.compile-time-value;
+            # A routine is reached by a reference to its declaration rather than
+            # held as a value, and one declared in the unit resolves to no
+            # constant at all, so neither spelling is judged.
+            return nqp::istype($value, Code) ?? Nil !! $value;
+        }
+        Nil
+    }
+
     # Optimize a child expression, returning a node to use in its place (the
     # same node if nothing applies). The optimize walk offers every visited
     # child to this method, and this is where the expression-level
@@ -3662,6 +3705,7 @@ class RakuAST::Node {
         (nqp::istype($decl, RakuAST::VarDeclaration::Constant)
           || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::EnumValue)
           || nqp::istype($decl, RakuAST::Declaration::External::Constant)
+          || nqp::istype($decl, RakuAST::Declaration::External::Setting)
           || nqp::istype($decl, RakuAST::Declaration::ResolvedConstant))
           && !nqp::iscont($decl.compile-time-value)
             ?? 1 !! 0

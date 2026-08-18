@@ -260,6 +260,14 @@ class RakuAST::Name
         || nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
     }
 
+    # Whether this names a lexical scope, which a bind through it can reach. A
+    # package stash aliases the container a lexical holds rather than holding
+    # the lexical, so a bind there leaves the lexical with what it had.
+    method is-lexical-pseudo-package() {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+            && $!parts[0].is-lexical-pseudo-package
+    }
+
     method is-package-search() {
         nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
     }
@@ -417,6 +425,10 @@ class RakuAST::Name::Part {
         False
     }
 
+    method is-lexical-pseudo-package() {
+        False
+    }
+
     method visit-children(Code $visitor) {
     }
 
@@ -452,6 +464,12 @@ class RakuAST::Name::Part::Simple
         || $name eq 'SETTING'
         || $name eq 'UNIT'
         || $name eq 'COMPILING' # seems to be reserved
+    }
+
+    # OUR names the package stash of the current package, which holds the same
+    # container a lexical of that name aliases rather than holding the lexical.
+    method is-lexical-pseudo-package() {
+        self.is-pseudo-package && $!name ne 'OUR'
     }
 
     method is-empty() {

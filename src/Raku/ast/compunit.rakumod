@@ -449,6 +449,10 @@ class RakuAST::CompUnit
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
 
+        # Every statement has been checked, so which variables a bind has taken
+        # over is settled and the stores held back can be judged.
+        $resolver.report-pending-impossible-values;
+
         while $!check-phasers {
             my $check-phaser := nqp::pop($!check-phasers);
             {

@@ -231,7 +231,38 @@ subtest 'constraint failure on an unpassed optional parameter explains the impli
 }
 
 subtest 'a store of a value a variable can never accept is reported at compile time' => {
-    plan 35;
+    plan 53;
+
+    throws-like ｢my Str @a = 1,2,3｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (1)' & 'type Str'),
+        'a comma list of literals names the first one the element type rejects';
+
+    throws-like ｢my Str @a = "a", 2｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (2)'),
+        'a literal later in the list is reported once the earlier ones are accepted';
+
+    throws-like ｢my Str @a = (1,2,3)｣,
+        X::Syntax::Number::LiteralType,
+        'grouping parentheses around the list are looked through';
+
+    throws-like ｢my Str @a = [1,2,3]｣,
+        X::Syntax::Number::LiteralType,
+        'an array composer around the list is looked through';
+
+    throws-like ｢my Str @a = (1; 2)｣,
+        X::Syntax::Number::LiteralType,
+        'each statement of a semicolon list stores an element';
+
+    throws-like ｢my Str @a = 1｣,
+        X::Syntax::Number::LiteralType,
+        'a single literal is reported the same as a list of them';
+
+    throws-like ｢my Str @a; @a = 1,2,3｣,
+        X::Syntax::Number::LiteralType,
+        'a list assignment is reported the same as a list declaration';
+
     throws-like ｢my Str $x = 1｣,
         X::Syntax::Number::LiteralType,
         'an item declaration reports a value its type can never accept';
@@ -248,10 +279,29 @@ subtest 'a store of a value a variable can never accept is reported at compile t
         X::Syntax::Number::LiteralType,
         'grouping parentheses around an item value are looked through';
 
+    throws-like ｢my Int @a = "foo"｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Str ("foo")'),
+        'a string literal is reported the same as a number';
+
+    throws-like ｢my Str @a = v1.2｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Version'),
+        'a version literal is reported the same as a number';
+
     throws-like ｢constant Half = 1/2; my Str $x = Half｣,
         X::Syntax::Number::LiteralType,
         message => *.contains('Rat'),
         'a constant stands for a value the compiler already knows';
+
+    throws-like ｢my Bool @b = 1,2｣,
+        X::Syntax::Number::LiteralType,
+        'an enumeration element type reports a value it can never accept';
+
+    throws-like ｢my num @a = 1,2｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('native variable'),
+        'a native element type reports a value it can never unbox';
 
     throws-like ｢my int $x = "foo"｣,
         X::Syntax::Number::LiteralType,
@@ -286,6 +336,18 @@ subtest 'a store of a value a variable can never accept is reported at compile t
     throws-like ｢my Bool $x = <abc>｣,
         X::Syntax::Number::LiteralType,
         'a single word is the one value it stands for';
+
+    throws-like ｢my Int @a = <a b>｣,
+        X::Syntax::Number::LiteralType,
+        'a word list is judged word by word';
+
+    throws-like ｢my Int @a = qw{a b}｣,
+        X::Syntax::Number::LiteralType,
+        'a qw word list is judged like the comma list it stands for';
+
+    throws-like ｢my Bool @a = <1 2 3>｣,
+        X::Syntax::Number::LiteralType,
+        'a word list of numbers is judged as the allomorphs it builds';
 
     throws-like ｢enum Colour <white>; my Colour $c = "nope"｣,
         X::Syntax::Number::LiteralType,
@@ -343,6 +405,15 @@ subtest 'a store of a value a variable can never accept is reported at compile t
         message => { not .contains('coerce') },
         'a type the value has no coercion method for is not advised as one';
 
+    throws-like ｢my %h; my $v = 1; %h<k> := $v; my Str @a = 1,2,3｣,
+        X::Syntax::Number::LiteralType,
+        'a bind into an aggregate leaves the containers declarations made alone';
+
+    throws-like ｢my Str @a[2] = 1,2｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (1)'),
+        'a shaped declaration is judged like the unshaped one it binds';
+
     throws-like ｢my Int $x = pi｣,
         X::Syntax::Number::LiteralType,
         message => *.contains('Num'),
@@ -353,10 +424,27 @@ subtest 'a store of a value a variable can never accept is reported at compile t
         message => *.contains('Int (1)'),
         'a BEGIN block has run by now, so what it produced is a value';
 
+    throws-like ｢my Str @a = ("a"; 2)｣,
+        X::Syntax::Number::LiteralType,
+        message => *.contains('Int (2)'),
+        'a later statement of a semicolon list is judged once the earlier ones fit';
+
     throws-like ｢my Int $x = "foo"｣,
         X::Syntax::Number::LiteralType,
         message => { not .contains('write the value as') },
         'a value the coercion cannot convert is not offered back as a spelling';
+
+    if %*ENV<RAKUDO_RAKUAST> {
+        throws-like ｢my Str @a = @a, 1｣,
+            X::Comp,
+            message => { .comb('Cannot assign a literal') == 1 },
+            'a store held back for a declaration already complaining is listed exactly once';
+    }
+    else {
+        throws-like ｢my Str @a = @a, 1｣,
+            X::Syntax::Variable::Initializer,
+            'a declaration complaining about its initializer reports before any store is judged';
+    }
 
     throws-like ｢use TypedExports; my Str $x = Answer｣,
         X::Syntax::Number::LiteralType,
@@ -391,15 +479,27 @@ subtest 'a store of a value a variable can never accept is reported at compile t
 }
 
 subtest 'a store the compiler cannot judge is left to the run time check' => {
-    plan 34;
+    plan 53;
 
     # The compile time report is a subclass of the run time one, so ruling out
     # its wording is what says the check was left where it was.
     my &at-run-time = { not .contains('Cannot assign a literal') };
 
+    throws-like ｢my $w = "a"; my Int @a = «$w b»｣,
+        X::TypeCheck, :message(&at-run-time),
+        'an interpolating word list settles at run time which words it produces';
+
+    throws-like ｢my Str @a; @a.STORE(1)｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a written out call to STORE is one the declaration does not speak for';
+
     throws-like ｢my Str $ = 1｣,
         X::TypeCheck, :message(&at-run-time),
         'an anonymous variable is known here only by a name the compiler made up';
+
+    throws-like ｢my @l = 1; my Int $x; $x = "s"; $x := @l[0]｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a bind stands the check down for a store written before it';
 
     lives-ok { EVAL ｢sub f(Int $x is copy) { my $c = 1; $x := $c; $x = "b" }; f(1)｣ },
         'a rebound parameter meets the container the bind gave it';
@@ -440,6 +540,9 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
     lives-ok { EVAL ｢my Int $x; my $y = 3; $MY::x := $y; $x = "abc"｣ },
         'a sigil qualified pseudo package bind reaches a lexical the same way';
 
+    lives-ok { EVAL ｢my Str @a; @MY::a := [1]; @a = 1, 2｣ },
+        'a sigil qualified pseudo package bind reaches a list variable too';
+
     throws-like ｢my Str $x = &say｣,
         X::TypeCheck, :message(&at-run-time),
         'a routine is reached by a reference to its declaration, not held as a value';
@@ -447,6 +550,16 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
     throws-like ｢my Int $x = * + 1｣,
         X::TypeCheck, :message(&at-run-time),
         'a whatever taking part in an expression builds a closure at run time';
+
+    lives-ok { EVAL ｢my Int @a = <1 2 3>｣ },
+        'a word list of numbers builds allomorphs an Int array accepts';
+
+    lives-ok { EVAL ｢my Str() @a = 1,2,3｣ },
+        'a coercion converts what it is given';
+
+    throws-like ｢subset S of Str; my S @a = 1,2｣,
+        X::TypeCheck, :message(&at-run-time),
+        'a subset is left alone, since checking one can have side effects';
 
     throws-like ｢my Int:D $x = "foo"｣,
         X::TypeCheck, :message(&at-run-time),
@@ -472,17 +585,49 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
         X::Hash::Store::OddNumber,
         'a hash takes a flat list of keys and values';
 
+    throws-like ｢my Str @a := 3｣,
+        X::TypeCheck::Binding,
+        'a bind is checked whole against the bind constraint';
+
     throws-like ｢sub f(Str $x) { $x = 43 }; f("a")｣,
         X::AdHoc, :message(*.contains('immutable value')),
         'a read only parameter reports the assignment rather than the value';
 
+    lives-ok { EVAL ｢my Int @a = 1, Empty, 3｣ },
+        'a value that flattens contributes its elements rather than itself';
+
+    lives-ok { EVAL ｢my Str @a = (1 if 0)｣ },
+        'a condition modifier can leave the list without that element';
+
+    lives-ok { EVAL ｢my Str @a = (1 for ^0)｣ },
+        'a loop modifier yields a list rather than the element written';
+
+    lives-ok { EVAL ｢my Int @a = (if 1 { 2 })｣ },
+        'a statement that is not an expression stores nothing this can name';
+
+    lives-ok { EVAL ｢my Array @x = [1,2],[3,4]｣ },
+        'an array composer inside a list is the one array it builds';
+
     lives-ok { EVAL ｢my Str %h = 1, "a"｣ },
         'a hash key is not a value the element type sees';
+
+    lives-ok { EVAL ｢my @l = 1; my Int $x := @l[0]; $x = "s"｣ },
+        'a bind replaces the container the declaration made';
 
     lives-ok { EVAL ｢my Str $x;
                        $x := Proxy.new(FETCH => -> $ { "a" }, STORE => -> $, $v { });
                        $x = 42｣ },
         'a bind to a proxy leaves the store to whatever the proxy does with it';
+
+    lives-ok { EVAL ｢my List @a = ((1,2); (3,4))｣ },
+        'each statement of a semicolon list is one element, taken no further apart';
+
+    lives-ok { EVAL ｢my class Coercing is Array {
+                         method STORE(\values, :$INITIALIZE) {
+                             self.Array::STORE(values.list.map(*.Int))
+                         } }
+                       my Int @a is Coercing = "5","6"｣ },
+        'a container named by the declaration brings its own STORE';
 
     lives-ok { EVAL ｢subset Nonempty of Str where *.chars;
                        sub f(Nonempty $x is copy) { $x = 1 }｣ },
@@ -490,6 +635,9 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
 
     lives-ok { EVAL ｢sub f(Str:D $x is copy) { $x = 1 }｣ },
         'a parameter type narrowed by definiteness is recorded already widened';
+
+    lives-ok { EVAL ｢sub f(Str @a is copy) { @a = 1,2 }｣ },
+        'a copied list parameter is given a container without the element type';
 
     lives-ok { EVAL ｢my List $x = (1; 2)｣ },
         'an item variable stores what a semicolon list builds, not its statements';
@@ -503,6 +651,9 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
 
     lives-ok { EVAL ｢my Str $x = Nil｣ },
         'Nil resets a container to its default rather than storing a value';
+
+    lives-ok { EVAL ｢my Int @a = 1, Nil｣ },
+        'Nil in a list resets that element rather than storing a value';
 
     throws-like ｢my Str $x = 1 + 1｣,
         X::TypeCheck, :message(&at-run-time),
@@ -524,6 +675,9 @@ subtest 'a store the compiler cannot judge is left to the run time check' => {
         X::TypeCheck::Assignment,
         message => { .contains('gimme a Wanted, not Int') and at-run-time($_) },
         'a complaint on the type is written by the run time check too';
+
+    lives-ok { EVAL ｢use TypedExports; $count = 43.5; @names = 1, 2｣ },
+        'an imported symbol answers the type of a value, not of its container';
 }
 
 # vim: expandtab shiftwidth=4

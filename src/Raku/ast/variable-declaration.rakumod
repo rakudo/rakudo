@@ -1522,10 +1522,6 @@ class RakuAST::VarDeclaration::Simple
         # need not be one the element type sees.
         return Nil if self.sigil eq '%';
 
-        # A list variable is assigned element by element, so what the expression
-        # builds as a whole is not what the element type sees.
-        return Nil if self.sigil eq '@';
-
         # An anonymous variable is known here only by the name the compiler made
         # up for it, which is no help to whoever wrote the store.
         return Nil if nqp::istype(self, RakuAST::VarDeclaration::Anonymous);
@@ -1609,21 +1605,31 @@ class RakuAST::VarDeclaration::Simple
     # producing something the compiler cannot name contributes nothing.
     method IMPL-STORED-VALUES(Mu $expression) {
         my @values;
-        self.IMPL-COLLECT-STORED-VALUES($expression, @values);
+        self.IMPL-COLLECT-STORED-VALUES($expression, @values, self.sigil eq '@');
         @values
     }
 
     # Collects into the given list, descending only where the value the store
-    # sees is not the expression itself.
-    method IMPL-COLLECT-STORED-VALUES(Mu $expression, Mu $values) {
-        # Grouping parentheses stand for what they wrap.
-        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
+    # sees is not the expression itself. A list variable is assigned element by
+    # element, so a comma list there contributes each of its operands and a
+    # semicolon list one value per statement, while an item variable stores what
+    # either of those builds whole.
+    method IMPL-COLLECT-STORED-VALUES(Mu $expression, Mu $values, int $elementwise) {
+        # Grouping parentheses stand for what they wrap. An array composer
+        # builds an array, which a list assignment spreads out only when the
+        # composer is the whole of what it is given, so within a list it counts
+        # as the one value it builds.
+        if nqp::istype($expression, RakuAST::Circumfix::Parentheses)
+          || $elementwise && nqp::istype($expression, RakuAST::Circumfix::ArrayComposer)
+        {
             my $semilist := $expression.semilist;
             return Nil unless nqp::istype($semilist, RakuAST::SemiList);
             my @statements := self.IMPL-UNWRAP-LIST($semilist.code-statements);
             # A semicolon list of any length but one builds a list of its own,
-            # which the variable stores whole.
-            return Nil if nqp::elems(@statements) != 1;
+            # which only a list variable takes apart, and then only into one
+            # element per statement.
+            return Nil if !$elementwise && nqp::elems(@statements) != 1;
+            my int $inner := nqp::elems(@statements) == 1 ?? $elementwise !! 0;
             for @statements {
                 # Only an expression statement produces a value to name, and it
                 # is the only statement carrying the modifiers asked about next.
@@ -1631,11 +1637,31 @@ class RakuAST::VarDeclaration::Simple
                 # A condition modifier can yield nothing and a loop modifier
                 # yields a list, so a modified statement stores nothing known.
                 next if $_.condition-modifier || $_.loop-modifier;
-                self.IMPL-COLLECT-STORED-VALUES($_.expression, $values);
+                self.IMPL-COLLECT-STORED-VALUES($_.expression, $values, $inner);
+            }
+            return Nil;
+        }
+        if $elementwise
+          && nqp::istype($expression, RakuAST::ApplyListInfix)
+          && nqp::istype($expression.infix, RakuAST::Infix)
+          && $expression.infix.operator eq ','
+        {
+            for self.IMPL-UNWRAP-LIST($expression.operands) {
+                self.IMPL-COLLECT-STORED-VALUES($_, $values, 0);
             }
             return Nil;
         }
         my $value := $expression.IMPL-STORED-VALUE;
+        # A word list answers the list of words it builds, which a list
+        # assignment stores one word at a time.
+        if $elementwise && nqp::istype($expression, RakuAST::QuotedString)
+          && nqp::isconcrete($value) && nqp::istype($value, List)
+        {
+            for self.IMPL-UNWRAP-LIST($value) {
+                nqp::push($values, $_);
+            }
+            return Nil;
+        }
         nqp::push($values, $value) if nqp::isconcrete($value);
         Nil
     }

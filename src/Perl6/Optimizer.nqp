@@ -2644,6 +2644,14 @@ class Perl6::Optimizer {
         nqp::null()
     }
 
+    # Whether every one of the given nodes holds a value the compiler can name.
+    method all_values_known(@nodes) {
+        for @nodes {
+            return 0 if nqp::isnull(self.stored_value($_));
+        }
+        1
+    }
+
     # Range operators we can optimize into loops, and how to do it.
     sub get_bound($node,$extra) {
 
@@ -2857,6 +2865,45 @@ class Perl6::Optimizer {
             && nqp::eqat($op[0].name, '$', 0)
             && $symbols.is_lexical_declared($op[0].name) {
             self.report_impossible_value($op[0], [$op[1]]);
+        }
+
+        # A list variable is assigned element by element, so every element it is
+        # given is checked against its element type. The store the compiler
+        # builds for an assignment carries no source position of its own, while
+        # a written out call to STORE is a method call the declaration does not
+        # speak for.
+        if $optype eq 'callmethod' && $opname eq 'STORE' && nqp::elems($op) >= 2
+            && !$op.node {
+            # A shaped declaration binds the array it built before storing into it.
+            my $target := nqp::istype($op[0], QAST::Op) && $op[0].op eq 'bind'
+                && nqp::elems($op[0])
+                ?? $op[0][0]
+                !! $op[0];
+            if nqp::istype($target, QAST::Var)
+                && ($target.scope eq 'lexical' || $target.scope eq 'lexicalref')
+                && nqp::eqat($target.name, '@', 0)
+                && $symbols.is_lexical_declared($target.name) {
+                my $values := $op[1];
+                # An array composer wraps the element list in a call, and each
+                # pair of grouping parentheses wraps it in a statement list.
+                # Both assign that list element by element.
+                $values := $values[0]
+                    if nqp::istype($values, QAST::Op) && $values.op eq 'call'
+                    && $values.name eq '&circumfix:<[ ]>' && nqp::elems($values) == 1;
+                while nqp::istype($values, QAST::Stmts) && nqp::elems($values) == 1 {
+                    $values := $values[0];
+                }
+                my int $comma := nqp::istype($values, QAST::Op) && $values.op eq 'call'
+                    && $values.name eq '&infix:<,>' ?? 1 !! 0;
+                # A word list reaches this walk as one operand per word. One
+                # that interpolates settles at run time which words it
+                # produces, so it is judged only when every word is known.
+                my int $judged := !($comma && $values.ann('qw'))
+                    || self.all_values_known($values.list);
+                self.report_impossible_value($target,
+                    $comma ?? $values.list !! [$values])
+                    if $judged;
+            }
         }
 
         if $optype eq 'chain' {

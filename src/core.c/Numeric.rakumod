@@ -312,10 +312,11 @@ multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
 # U+2245 APPROXIMATELY EQUAL TO
 my constant &infix:<≅> := &infix:<=~=>;
 
-proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure  {*}
+proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure is revision-gated("6.c") {*}
 multi sub infix:<!=>(  --> True) { }
 multi sub infix:<!=>($ --> True) { }
-multi sub infix:<!=>(Mu \a, Mu \b) { not a == b }
+multi sub infix:<!=>(Mu \a, Mu \b) is revision-gated("6.c") { not a == b }
+multi sub infix:<!=>(Mu \a, Mu \b) is revision-gated("6.e") { (a == b) == False }
 # U+2260 NOT EQUAL TO
 my constant &infix:<≠> := &infix:<!=>;
 

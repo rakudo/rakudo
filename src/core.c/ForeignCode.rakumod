@@ -18,7 +18,7 @@ my class ForeignCode
     method name() { (nqp::can($!do, 'name') ?? $!do.name !! nqp::getcodename($!do)) || '<anon>' }
 }
 
-my class Rakudo::Internals::EvalIdSource {
+my class Rakudo::Internals::EvalIdSource is implementation-detail {
     my Int $count = 0;
     my Lock $lock = Lock.new;
     method next-id() {

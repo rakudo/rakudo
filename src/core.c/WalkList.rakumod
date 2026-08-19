@@ -1,5 +1,5 @@
 # This is what Mu::WALK method returns.
-my class WalkList is List {
+my class WalkList is List is implementation-detail {
     has Mu $.invocant;
     has $.is-quiet is built(False) = False;
 

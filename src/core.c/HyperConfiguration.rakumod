@@ -2,7 +2,7 @@ my class X::Invalid::Value { ... }
 
 # Configuration for hyper/race, controlling how we parallelize (number of
 # items at a time, and number of threads).
-my class HyperConfiguration {
+my class HyperConfiguration is implementation-detail {
     has int $.batch;
     has Int $.degree;
 

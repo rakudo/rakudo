@@ -1,4 +1,8 @@
-my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner does Iterator {
+my class Rakudo::Internals::RaceToIterator
+  does Rakudo::Internals::HyperJoiner
+  does Iterator
+  is implementation-detail
+{
     has Channel $.batches .= new;
 
     has int $!target = -1;

@@ -12,7 +12,7 @@
 # 2. Nice to have a separate file for similar stuff.  Rakudo::Internals
 #    has become a hodgepodge of stuff of late.
 
-class Rakudo::Metaops {
+class Rakudo::Metaops is implementation-detail {
 
     my $mappers := nqp::hash(
       nqp::tostr_I(&infix:<+>.WHERE),      # optimized version for &[+]

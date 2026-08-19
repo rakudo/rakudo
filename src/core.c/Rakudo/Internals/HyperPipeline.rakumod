@@ -1,7 +1,7 @@
 # Takes a linked list of pipeline stages and assembles them into a pipeline.
 # Given a pipeline must end with a HyperJoiner, it expects to be passed
 # something of this type.
-my class Rakudo::Internals::HyperPipeline {
+my class Rakudo::Internals::HyperPipeline is implementation-detail {
     # Records the earliest batch that a loop control stopped the iteration
     # in. Shared by the workers of one pipeline as a signal to cut the work
     # short: once set, the batcher stops producing and batches past the

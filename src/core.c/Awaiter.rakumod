@@ -1,9 +1,9 @@
-my role Awaiter {
+my role Awaiter is implementation-detail {
     method await(Awaitable:D $a) { ... }
     method await-all(Iterable:D $i) { ... }
 }
 
-my class Awaiter::Blocking does Awaiter {
+my class Awaiter::Blocking does Awaiter is implementation-detail {
     method await(Awaitable:D $a) {
         my $handle := $a.get-await-handle;
         if $handle.already {

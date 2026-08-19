@@ -12,7 +12,7 @@ my class X::Numeric::DivideByZero { ... }
 #    general Rakudo::Internals in the code, as opposed for the definite
 #    Rakudo::Iterator, feels better.
 
-class Rakudo::Iterator {
+class Rakudo::Iterator is implementation-detail {
     my $empty := nqp::list;   # an empty list for nqp::splice
     sub always-IterationEnd(--> IterationEnd) { }
     sub always-False(--> False) { }
@@ -24,7 +24,7 @@ class Rakudo::Iterator {
     # Generic role for iterating over a Blob / Buf.  You need to
     # supply at least a .pull-one.  Takes a Blob / Buf as the only
     # parameter to .new.
-    our role Blobby does PredictiveIterator {
+    our role Blobby does PredictiveIterator is implementation-detail {
         has $!blob;
         has Int $!i;   # sadly, this can not be a native int yet  :-(
 
@@ -62,7 +62,7 @@ class Rakudo::Iterator {
     # Generic role for iterating over a Map / Hash.  You must
     # at least provide your own .pull-one.  Takes a Map / Hash
     # as the only parameter to .new.
-    our role Mappy does Iterator {
+    our role Mappy does Iterator is implementation-detail {
         has $!hash;
         has $!iter;
 
@@ -87,7 +87,7 @@ class Rakudo::Iterator {
     # for values providing the "real" key and value.  A default
     # .pull-one and .push-all is provided.  Takes a Map / Hash as
     # the only parameter to .new.
-    our role Mappy-kv-from-pairs does Iterator {
+    our role Mappy-kv-from-pairs does Iterator is implementation-detail {
         has $!hash;
         has $!iter;
         has $!on;
@@ -159,7 +159,7 @@ class Rakudo::Iterator {
     # iterated for this time (with the highest element index set to 0).
     # Consuming class can optionally provide a .done method that will
     # be called just before the iterator returns IterationEnd.
-    our role ShapeBranch does Iterator {
+    our role ShapeBranch does Iterator is implementation-detail {
         has $!dims;
         has $!indices;
         has Mu $!list;
@@ -257,7 +257,7 @@ class Rakudo::Iterator {
     # iterated for this time.  In some cases, the iterator is iterated
     # over for the side-effects in .result only.  Which is why this
     # role supplies an optimized .sink-all.
-    our role ShapeLeaf does Iterator {
+    our role ShapeLeaf does Iterator is implementation-detail {
         has $!dims;
         has $!indices;
         has Mu $!list;
@@ -420,7 +420,7 @@ class Rakudo::Iterator {
     # Create iterator that produces all values *except* the last of a given
     # iterator.  Returns an empty iterator if the given iterator did not
     # produce any value
-    my role AllButLastRole {
+    my role AllButLastRole is implementation-detail {
         has $!iterator;
         has $!value;
 
@@ -1504,7 +1504,7 @@ class Rakudo::Iterator {
     # IO::Path objects for a directory entry if it smart matches the given
     # tester.  Takes an IO::Path object and a prefix to be added to each
     # director entry produced.
-    class DirTest does Iterator {
+    my class DirTest does Iterator {
         has Mu  $!path;      # IO::Path object to do dir for
         has str $!prefix;    # string to prefix to elements found
         has Mu  $!CWD;       # IO::Path object for $*CWD when testing
@@ -1594,7 +1594,7 @@ class Rakudo::Iterator {
     # IO::Path objects for *each* directory entry found (except "." and "..").
     # Takes an IO::Path and a prefix to be added to each directory entry
     # produced.
-    class Dir does Iterator {
+    my class Dir does Iterator {
         has Mu  $!path;      # IO::Path object to do dir for
         has str $!prefix;    # string to prefix to elements found
         has Mu  $!dirhandle; # low level directory handle
@@ -1800,7 +1800,7 @@ class Rakudo::Iterator {
             1
         }
     }
-    my class FirstNThenSinkAllCallable  does Iterator {
+    my class FirstNThenSinkAllCallable does Iterator {
         has $!source;
         has &!callable;
         method pull-one() is raw {
@@ -3890,7 +3890,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already *AND* is sorted with increasing values.  Returns an nqp::null
     # for elements that don't exist before the end of the reified list.
-    class ReifiedListIteratorMonotonicallyIncreasing is ReifiedListIterator {
+    my class ReifiedListIteratorMonotonicallyIncreasing is ReifiedListIterator {
         method is-monotonically-increasing(--> True) { }
     }
     method ReifiedListMonotonicallyIncreasing(\list) {
@@ -5437,7 +5437,10 @@ class Rakudo::Iterator {
     }
 }
 
-my class Rakudo::IterateOneWithPhasers does Rakudo::SlippyIterator {
+my class Rakudo::IterateOneWithPhasers
+  does Rakudo::SlippyIterator
+  is implementation-detail
+{
     has &!block;
     has $!source;
     has $!label;
@@ -5693,7 +5696,10 @@ my class Rakudo::IterateOneWithPhasers does Rakudo::SlippyIterator {
     }
 }
 
-my class Rakudo::IterateOneWithoutPhasers does Rakudo::SlippyIterator {
+my class Rakudo::IterateOneWithoutPhasers
+  does Rakudo::SlippyIterator
+  is implementation-detail
+{
     has &!block;
     has $!source;
     has $!label;
@@ -5807,7 +5813,10 @@ my class Rakudo::IterateOneWithoutPhasers does Rakudo::SlippyIterator {
     }
 }
 
-my class Rakudo::IterateTwoWithoutPhasers does Rakudo::SlippyIterator {
+my class Rakudo::IterateTwoWithoutPhasers
+  does Rakudo::SlippyIterator
+  is implementation-detail
+{
     has &!block;
     has $!source;
     has $!label;
@@ -5995,7 +6004,10 @@ my class Rakudo::IterateTwoWithoutPhasers does Rakudo::SlippyIterator {
     }
 }
 
-my class Rakudo::IterateMoreWithoutPhasers does Rakudo::SlippyIterator {
+my class Rakudo::IterateMoreWithoutPhasers
+  does Rakudo::SlippyIterator
+  is implementation-detail
+{
     has &!block;
     has $!source;
     has $!label;
@@ -6160,7 +6172,10 @@ my class Rakudo::IterateMoreWithoutPhasers does Rakudo::SlippyIterator {
     }
 }
 
-my class Rakudo::IterateMoreWithPhasers does Rakudo::SlippyIterator {
+my class Rakudo::IterateMoreWithPhasers
+  does Rakudo::SlippyIterator
+  is implementation-detail
+{
     has     &!block;
     has     $!source;
     has int $!count;

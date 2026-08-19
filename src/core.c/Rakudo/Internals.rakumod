@@ -17,9 +17,9 @@ my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
 # Marker symbol for 6.c-mode regex boolification.
-my class Rakudo::Internals::RegexBoolification6cMarker { }
+my class Rakudo::Internals::RegexBoolification6cMarker is implementation-detail { }
 
-my class Rakudo::Internals {
+my class Rakudo::Internals is implementation-detail {
 
     # Return the CallFrame of the real client of any core code
     method client-callframe() {
@@ -110,7 +110,7 @@ my class Rakudo::Internals {
     # for use in nqp::splice
     my $empty := nqp::list;
 
-    our class CompilerServices {
+    our class CompilerServices is implementation-detail {
         has Mu $!compiler;
         has Mu $!current-match;
 
@@ -125,7 +125,7 @@ my class Rakudo::Internals {
     }
 
     # Marker symbol for lexicals that we have lowered away.
-    class LoweredAwayLexical {
+    class LoweredAwayLexical is implementation-detail {
         method dynamic() { False }
     }
 
@@ -530,7 +530,7 @@ my class Rakudo::Internals {
         )
     }
 
-    our role ImplementationDetail {
+    our role ImplementationDetail is implementation-detail {
         method new(|) { die self.gist }
         method Str( --> Str:D) { self.^name }
         method gist(--> Str:D) { self.^name }
@@ -539,7 +539,7 @@ my class Rakudo::Internals {
         }
     }
 
-    our role ShapedArrayCommon {
+    our role ShapedArrayCommon is implementation-detail {
         method !illegal($operation) {
             X::IllegalOnFixedDimensionArray.new(:$operation).throw
         }
@@ -674,7 +674,7 @@ my class Rakudo::Internals {
         }
     }
 
-    our class SupplySequencer {
+    our class SupplySequencer is implementation-detail {
         has &!on-data-ready;
         has &!on-completed;
         has &!on-error;
@@ -743,7 +743,7 @@ my class Rakudo::Internals {
 
     my int $sprintfHandlerInitialized = 0;
     method initialize-sprintf-handler(--> Nil) {
-        class SprintfHandler {
+        class SprintfHandler is implementation-detail {
             method mine($x) { nqp::reprname($x) eq "P6opaque"; }
 
             proto method int(|) {*}

@@ -9,7 +9,11 @@ my role X::HyperRace::Died {
     }
 }
 
-my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner does Iterator {
+my class Rakudo::Internals::HyperToIterator
+  does Rakudo::Internals::HyperJoiner
+  does Iterator
+  is implementation-detail
+{
     has int $!seen-last;
     has int $!offset;
     has int $!stop-cutoff;

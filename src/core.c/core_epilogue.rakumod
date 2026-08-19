@@ -829,6 +829,13 @@ augment class Cool {
     }
 }
 
+# Mark internal types as implementation-detail that couldn't be marked
+# at the place they were defined
+BEGIN trait_mod:<is>($_,:implementation-detail) for
+  Rakudo::Internals::IterationSet,
+  ScalarVAR
+;
+
 # Make sure all affected subclasses are aware of additions to their parents
 BEGIN .^compose for
   Str, Int, Num, Rat, Complex,

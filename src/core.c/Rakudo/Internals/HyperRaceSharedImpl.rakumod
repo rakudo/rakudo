@@ -1,5 +1,5 @@
 # Implementations shared between HyperSeq and RaceSeq.
-class Rakudo::Internals::HyperRaceSharedImpl {
+class Rakudo::Internals::HyperRaceSharedImpl is implementation-detail {
     my class Grepper does Rakudo::Internals::HyperProcessor {
         has $!matcher is built;
 

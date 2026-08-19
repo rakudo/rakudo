@@ -11,7 +11,7 @@ my class JSONException is Exception {
 #  - to-json stringifies Version objects
 #  - Removes $*JSON_NAN_INF_SUPPORT and the Falsey code path(s) that use it
 #  - Custom code for stringifying some exception related things
-my class Rakudo::Internals::JSON {
+my class Rakudo::Internals::JSON is implementation-detail {
 
     my multi sub to-surrogate-pair(Int $ord) {
         my int $base   = $ord - 0x10000;

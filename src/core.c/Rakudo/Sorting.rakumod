@@ -1,4 +1,4 @@
-my class Rakudo::Sorting {
+my class Rakudo::Sorting is implementation-detail {
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.

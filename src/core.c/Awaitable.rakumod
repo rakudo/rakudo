@@ -1,7 +1,7 @@
 # An Awaitable is something we can use the `await` operator on. To support
 # this, it requires a `get-await-handle` method be implemented, which returns
 # an `Awaitable::AwaitHandle`.
-my role Awaitable {
+my role Awaitable is implementation-detail {
     method get-await-handle() { ... }
 }
 
@@ -18,7 +18,7 @@ my role Awaitable {
 # data races (including subtle ones related to read/write ordering), when
 # the point of the fast-path is to test if we've got a result already with
 # minimal overhead (and thus minimal concurrency control).
-my role Awaitable::Handle {
+my role Awaitable::Handle is implementation-detail {
     has Bool $.already;
     has Bool $.success;
     has Mu $.result;

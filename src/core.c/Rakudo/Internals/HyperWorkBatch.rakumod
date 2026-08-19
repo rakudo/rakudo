@@ -1,7 +1,10 @@
 # A batch of work sent to a worker in a hyper or race operation. It is an
 # Iterable, and iterates to the items in the batch. This is so that it can be
 # easily processed in terms of (non-hyper) Iterable implementations.
-my class Rakudo::Internals::HyperWorkBatch does Iterable {
+my class Rakudo::Internals::HyperWorkBatch
+  does Iterable
+  is implementation-detail
+{
     # The items in the batch.
     has IterationBuffer $.items;
 

@@ -13,7 +13,7 @@ my class X::TypeCheck::Binding { ... }
 #    complicated: having optimized NQP code inbetween them does **not**
 #    improve maintainability.  So all of the highly optimized code for
 #    QuantHashses is supposed to live here.
-my class Rakudo::QuantHash {
+my class Rakudo::QuantHash is implementation-detail {
 
     # A Pair with the value 0.  Apparently it is too early in the setting
     # to actually instantiate a Pair at compile time, so we need to do
@@ -45,7 +45,7 @@ my class Rakudo::QuantHash {
 
     # Specialized role for .kv methods on QuantHashes: copied methods
     # from Quanty because of visibility issues wrt to $!elems and $!iter :-(
-    our role Quanty-kv does Iterator {
+    our role Quanty-kv does Iterator is implementation-detail {
         has $!elems;
         has $!iter;
         has $!on;
@@ -79,7 +79,7 @@ my class Rakudo::QuantHash {
     }
 
     # Specialized role for .pairs methods on QuantHashes
-    our role Pairs does Iterator {
+    our role Pairs does Iterator is implementation-detail {
         has $!elems;
         has $!picked;
 

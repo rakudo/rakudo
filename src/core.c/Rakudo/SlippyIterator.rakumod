@@ -1,7 +1,7 @@
 # A SlippyIterator is one that comes with some infrastructure for handling
 # flattening a received Slip into its own stream of values.  Please note
 # that the $!slipper attribute *must* be set to nqp::null upon object creation.
-my role Rakudo::SlippyIterator does Iterator {
+my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     has Mu $!slipper;  # iterator of the Slip we're iterating, null if none
 
     proto method start-slip(|) {*}

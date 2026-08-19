@@ -7689,6 +7689,18 @@ Did you mean a call like '"
             $/.PRECURSOR.worry('Smartmatch with S/// is not useful. You can use given instead: S/// given $foo');
         }
 
+        my $sm_pat := $pat;
+        while (nqp::istype($sm_pat, QAST::Stmts) || nqp::istype($sm_pat, QAST::Stmt))
+        && nqp::elems(@($sm_pat)) == 1 {
+            $sm_pat := $sm_pat[0];
+        }
+        if nqp::can($sm_pat,'ann') && $sm_pat.ann('smartmatch_returns_match')
+        && nqp::getcomp('Raku').language_revision >= 3 {
+            $/.PRECURSOR.worry("Smartmatch against the Match result of another smartmatch"
+                ~ " never matches from 6.e on, where a concrete Match matcher compares"
+                ~ " by identity; match against the regex directly, or use if instead of when");
+        }
+
         if nqp::istype($pat, QAST::WVal)
         && istype($pat.returns, $*W.find_single_symbol_in_setting('Bool'))
         && nqp::isconcrete($pat.value) {
@@ -7814,7 +7826,13 @@ Did you mean a call like '"
                 WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_sm')),
             $old_topic_var,
             $result_var,
-        ).annotate_self('smartmatch', 1);
+        ).annotate_self('smartmatch', 1
+        ).annotate_self('smartmatch_returns_match', !$negated && (
+            $rhs.ann('regex_match_code')
+              || nqp::isconcrete($rhs.ann('code_object'))
+                   && nqp::istype($rhs.ann('code_object'),
+                        $*W.find_single_symbol_in_setting('Regex'))
+        ) ?? 1 !! 0);
     }
 
     sub bind_op($/, $target, $source, $sigish) {

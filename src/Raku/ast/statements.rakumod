@@ -2001,6 +2001,7 @@ class RakuAST::Statement::When
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -2035,6 +2036,17 @@ class RakuAST::Statement::When
         }
         else {
             nqp::die('when found no enclosing block to attach to');
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $context.language-revision >= 3 && $!condition.IMPL-IS-MATCH-RESULT {
+            self.add-worry:
+              $resolver.build-exception: 'X::AdHoc', payload =>
+                "A when clause whose matcher is itself a smartmatch never"
+                  ~ " fires from 6.e on, where a concrete Match matcher"
+                  ~ " compares by identity; use if instead of when, or match"
+                  ~ " against the regex directly";
         }
     }
 

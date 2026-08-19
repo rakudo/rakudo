@@ -88,7 +88,19 @@ class RakuAST::StatementModifier::Unless
 # The when statement modifier.
 class RakuAST::StatementModifier::When
   is RakuAST::StatementModifier::Condition
+  is RakuAST::CheckTime
 {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $context.language-revision >= 3 && self.expression.IMPL-IS-MATCH-RESULT {
+            self.add-worry:
+              $resolver.build-exception: 'X::AdHoc', payload =>
+                "A when clause whose matcher is itself a smartmatch never"
+                  ~ " fires from 6.e on, where a concrete Match matcher"
+                  ~ " compares by identity; use if instead of when, or match"
+                  ~ " against the regex directly";
+        }
+    }
+
     # Set by the optimize pass when the matcher reduces to a type check:
     # the type matched against, and the Junction type for the runtime
     # topic guard, or null when the matcher is Junction itself.

@@ -85,7 +85,7 @@ my role QuantHash does Associative {
     method WHICHIFY(Mu \value) is implementation-detail { value.WHICH }
 }
 
-my role QuantHash::KeyOf[::CONSTRAINT] {
+my role QuantHash::KeyOf[::CONSTRAINT] is implementation-detail {
     method keyof() { CONSTRAINT }
     method is-generic { CONSTRAINT.^archetypes.generic }
     method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {

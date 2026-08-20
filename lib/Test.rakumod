@@ -65,7 +65,7 @@ our sub todo_output is rw {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$test-assertion!) is export {
-    $r.^mixin( role is-test-assertion {
+    $r.^mixin( my role is-test-assertion {
         method is-test-assertion(--> True) { }
     }) if $test-assertion;
 }

@@ -211,7 +211,12 @@ class RakuAST::Package
             $scope := 'our' if $scope eq 'unit';
             my $name := $!name;
             if $name && $name.is-installable {
-                my $type-object := self.stubbed-meta-object(:$resolver, :$context);
+                # Require stubs and resolved stub declarations can hand back
+                # the meta-object in a container; naming it through the
+                # container would stamp Scalar's debug name and Stash instead.
+                my $type-object := nqp::decont(
+                    self.stubbed-meta-object(:$resolver, :$context)
+                );
                 my $full-name := self.IMPL-FULL-NAME($resolver);
                 $type-object.HOW.set_name(
                     $type-object,

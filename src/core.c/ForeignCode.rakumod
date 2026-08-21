@@ -1,10 +1,10 @@
 # Takes a foreign code object and tries to make it feel somewhat like a Raku
 # one. Note that it doesn't have signature information we can know about.
 
-my class ForeignCode
+my class ForeignCode  # declared in BOOTSTRAP
   does Callable
-  does Rakudo::Internals::ImplementationDetail
-{ # declared in BOOTSTRAP
+  is implementation-detail
+{
     # class ForeignCode
     #     has Code $!do;                # Code object we delegate to
 

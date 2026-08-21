@@ -3081,25 +3081,50 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
 }
 my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Syntax {
     has $.varname;
-    has $.vartype;
-    has $.value;
-    has $.valuetype      = $!value.^name;
-    has $.suggestiontype = ($!vartype,$!value).are.^name;
+    # Bound rather than assigned, so that a variable declared Nil keeps Nil as
+    # its type here instead of resetting to the default.
+    has $.vartype is built(:bind);
+    # X::TypeCheck is handed this value uncontainerized, so hold it that way
+    # here.
+    has $.value is built(:bind);
+    # The value is whatever the compiler held, so asking it to describe itself
+    # can fail, and a failure while reporting an error loses the error.
+    has $.valuetype      = (try $!value.^name) // '?';
+    has $.suggestiontype = (try ($!vartype,$!value).are.^name) // 'Any';
     has $.native         = nqp::objprimspec($!valuetype);
+
+    # Anything handling an assignment type check reads the value, the type it
+    # was checked against and the variable it was going to under the names the
+    # parent gives them, so answer them there as well.
+    submethod TWEAK() {
+        nqp::bindattr(self, X::TypeCheck, '$!got', $!value);
+        nqp::bindattr(self, X::TypeCheck, '$!expected', $!vartype);
+        nqp::bindattr(self, X::TypeCheck::Assignment, '$!symbol', $!varname);
+    }
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
-        my $conversionmethod := $vartype.tc;
-        $vartype := $vartype.lc if $.native;
-        my $vt := $!value.^name;
-        my $value := nqp::istype($.value,Allomorph)
+        # A native unboxes from a boxed type, and that is the type a coercion
+        # names. The variable is still of the type it was declared with.
+        my $conversionmethod := ($.native ?? $!vartype.^mro[1].^name !! $vartype).tc;
+        my $value := (try Str(nqp::istype($.value,Allomorph)
           ?? $!value.Str
-          !! $!value.raku;
+          !! $!value.raku)) // $.valuetype;
         my $val = "Cannot assign a literal of type $.valuetype ($value) to
         a { "native" if $.native } variable ($.varname) of type $vartype. You can declare
-        the variable to be of type $.suggestiontype, or try to coerce the
-        value with $value.$conversionmethod or $conversionmethod\($value\)";
-        try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
+        the variable to be of type $.suggestiontype";
+        # A type the value has no coercion method for is one there is no way to
+        # spell the conversion to, so only a value that can name it is advised.
+        $val ~= ", or try to coerce the
+        value with $value.$conversionmethod or $conversionmethod\($value\)"
+            if (try $!value.^can($conversionmethod)).so;
+        # A coercion that cannot convert the value answers a Failure rather than
+        # throwing, and there is no other spelling to suggest in that case.
+        try {
+            my $written := $!value."$conversionmethod"();
+            $val ~= ", or just write the value as " ~ $written.raku
+                if $written.defined;
+        }
         if nqp::istype($!vartype.HOW, Metamodel::Explaining) {
             my $complainee = $!vartype.HOW.complainee;
             $val ~= '; ' ~ ($complainee ~~ Callable || $complainee.^can('CALL-ME')

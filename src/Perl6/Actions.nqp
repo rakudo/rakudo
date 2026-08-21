@@ -7817,6 +7817,21 @@ Did you mean a call like '"
         ).annotate_self('smartmatch', 1);
     }
 
+    # A bind through a pseudo package naming a lexical scope replaces a
+    # container this analysis never resolves, so no store in the unit can be
+    # judged. Whether the leading part names such a scope rides on the lookup
+    # symbol_lookup builds, on the package the stash is taken from for a
+    # subscripted bind and on the whole lookup for a sigil qualified one.
+    sub note_pseudo_package_bind($/, $subscript) {
+        $*W.mark_pseudo_package_bind
+            if $subscript.ann('lexical_pseudo_package')
+            || nqp::elems($subscript)
+            && nqp::istype($subscript[0], QAST::Op)
+            && $subscript[0].op eq 'who'
+            && nqp::elems($subscript[0])
+            && $subscript[0][0].ann('lexical_pseudo_package');
+    }
+
     sub bind_op($/, $target, $source, $sigish) {
         my $world := $*W;
         # Check we know how to bind to the thing on the LHS.
@@ -7875,6 +7890,10 @@ Did you mean a call like '"
                 if $world.is_lexical_marked_ro($target.name) || !$was_lexical {
                     $world.throw($/, ['X', 'Bind', 'Rebind'], target => $target.name);
                 }
+
+                # A bind replaces the container the declaration made, so no
+                # store into this variable has to satisfy the type it named.
+                $world.mark_lexical_bind_targeted($target.name);
             }
 
             # Finally, just need to make a bind.
@@ -7885,6 +7904,7 @@ Did you mean a call like '"
                 ((my $target_0_name := $target[0].name) eq '&postcircumfix:<[ ]>' ||
                  $target_0_name eq '&postcircumfix:<{ }>' ||
                  $target_0_name eq '&postcircumfix:<[; ]>') {
+            note_pseudo_package_bind($/, $target[0]);
             $source.named('BIND');
             $target[0].push($source);
             $target.nosink(1);
@@ -7894,6 +7914,7 @@ Did you mean a call like '"
               ((my $target_name := $target.name) eq '&postcircumfix:<[ ]>' ||
                $target_name eq '&postcircumfix:<{ }>' ||
                $target_name eq '&postcircumfix:<[; ]>') {
+            note_pseudo_package_bind($/, $target);
             $source.named('BIND');
             $target.push($source);
             $target.nosink(1);

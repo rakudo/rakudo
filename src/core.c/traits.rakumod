@@ -376,11 +376,24 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, Str :$revision-gated!) {
+    my role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }
+    # One shared parameterization per language revision. Parameterizations
+    # intern by argument identity, and the revision computed at each trait
+    # application site is a distinct Int object during the setting build, so
+    # parameterizing directly would produce a distinct role and mixin type
+    # for every gated routine.
+    my constant REVISION-GATES = nqp::list(
+        is-revision-gated.^parameterize(1),
+        is-revision-gated.^parameterize(2),
+        is-revision-gated.^parameterize(3),
+    );
     my $chars := nqp::chars($revision-gated);
     my $internal-revision := 1 + nqp::ord($revision-gated, $chars - 1) - nqp::ord("c");
     $r.set-revision-gated;
     $r.^mixin(
-        role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }.^parameterize($internal-revision)
+        $internal-revision >= 1 && $internal-revision <= nqp::elems(REVISION-GATES)
+            ?? nqp::atpos(REVISION-GATES, $internal-revision - 1)
+            !! is-revision-gated.^parameterize($internal-revision)
     );
 }
 

@@ -439,6 +439,15 @@ class RakuAST::Signature
     }
 
     has Mu $!ins_params;
+
+    # IMPL-SIGNATURE-PARAMS emits its declaring bind only when it mints
+    # the name, so a formation that runs again on the same signature
+    # must reset the memo or the fresh children reference a local never
+    # declared.
+    method IMPL-RESET-SIGNATURE-PARAMS() {
+        nqp::bindattr(self, RakuAST::Signature, '$!ins_params', nqp::null());
+    }
+
     method IMPL-SIGNATURE-PARAMS(Mu $var) {
         unless $!ins_params {
             nqp::bindattr(self, RakuAST::Signature, '$!ins_params', QAST::Node.unique('__lowered_parameters_'));

@@ -102,6 +102,14 @@ class RakuAST::Code
     has Mu $!qast-block;
     has str $!cuid;
 
+    # A BEGIN-time use forces compilation ahead of the unit's optimize
+    # walk, and the QAST block that compilation forms is cached. These
+    # record that the cache was formed early, and with what arguments,
+    # so the block can be re-formed once the marks are known.
+    has int $!begin-time-cached;
+    has str $!begin-cache-blocktype;
+    has Mu $!begin-cache-expression;
+
     # A control-flow statement (if/unless/with/without/while/until/loop) runs
     # its branch inline, so `&?BLOCK` inside it means the enclosing real block,
     # not the branch. Such branches are marked here to be skipped when locating
@@ -158,7 +166,24 @@ class RakuAST::Code
         unless ($!qast-block) {
             self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
         }
+        self.IMPL-MAYBE-REBUILD-BEGIN-TIME-CACHED-BLOCK($context);
         $!qast-block
+    }
+
+    # Which code nodes take the re-formation.
+    method IMPL-REBUILD-ELIGIBLE() { 0 }
+
+    method IMPL-BEGIN-TIME-CACHED() { $!begin-time-cached }
+
+    # The re-formation runs only between a unit's optimize walk and that
+    # unit's emission, never inside a dynamic compilation.
+    method IMPL-MAYBE-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
+        if $!begin-time-cached && $context.optimize-performed
+            && self.IMPL-REBUILD-ELIGIBLE
+            && !nqp::ifnull(nqp::getlexdyn('$*IMPL-COMPILE-DYNAMICALLY'), 0) {
+            self.IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK($context);
+        }
+        Nil
     }
 
     method IMPL-FINISH-CODE-OBJECT(RakuAST::IMPL::QASTContext $context, str :$blocktype,
@@ -166,6 +191,51 @@ class RakuAST::Code
         my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression);
         self.IMPL-LINK-META-OBJECT($context, $block);
         nqp::bindattr(self, RakuAST::Code, '$!qast-block', $block);
+        if nqp::ifnull(nqp::getlexdyn('$*IMPL-COMPILE-DYNAMICALLY'), 0) {
+            nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 1);
+            if self.IMPL-REBUILD-ELIGIBLE {
+                nqp::bindattr_s(self, RakuAST::Code, '$!begin-cache-blocktype', $blocktype);
+                nqp::bindattr(self, RakuAST::Code, '$!begin-cache-expression', $expression);
+            }
+        }
+    }
+
+    # Re-form the cached QAST block from the AST once the optimize walk
+    # has set its marks, grafting the result into the same QAST::Block
+    # object. The graft keeps the object every registration holds: the
+    # code ref block list, the compstuff fixups, and the cuid all keep
+    # resolving to the block the unit emits.
+    # Closures serialized by the early compilation pin the frame's
+    # lexical shape, so the unused elisions stand down during this
+    # emission.
+    method IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 0);
+        my $block := $!qast-block;
+        if nqp::can(self, 'signature') && nqp::isconcrete(self.signature) {
+            self.signature.IMPL-RESET-SIGNATURE-PARAMS();
+        }
+        if nqp::can(self, 'placeholder-signature') && nqp::isconcrete(self.placeholder-signature) {
+            self.placeholder-signature.IMPL-RESET-SIGNATURE-PARAMS();
+        }
+        my $*EMIT-BEGIN-SHAPE := 1;
+        my $formed := self.IMPL-QAST-FORM-BLOCK($context,
+            :blocktype($!begin-cache-blocktype),
+            :expression($!begin-cache-expression));
+        $block.set_children($formed.list);
+        $block.arity($formed.arity);
+        $block.custom_args($formed.custom_args);
+        $block.has_exit_handler($formed.has_exit_handler);
+        nqp::bindattr($block, QAST::Block, '%!symbol',
+            nqp::getattr($formed, QAST::Block, '%!symbol'));
+        nqp::bindattr($block, QAST::Block, '%!local_debug_map',
+            nqp::getattr($formed, QAST::Block, '%!local_debug_map'));
+        my %ann := nqp::getattr($formed, QAST::Node, '%!annotations');
+        if nqp::ishash(%ann) {
+            for %ann {
+                $block.annotate(nqp::iterkey_s($_), nqp::iterval($_));
+            }
+        }
+        Nil
     }
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1121,6 +1191,11 @@ class RakuAST::ScopePhaser {
     has int $!next-enter-phaser-result;
     has int $!needs-result;
 
+    # The FIRST trigger container is minted once per phaser owner, so a
+    # formation that runs again reuses it instead of leaving another
+    # serialized container behind.
+    has Mu $!first-trigger-container;
+
     method add-phaser(
       Str $name,
       RakuAST::StatementPrefix::Phaser $phaser,
@@ -1319,10 +1394,14 @@ class RakuAST::ScopePhaser {
                     QAST::WVal.new(:value(True))
                 )
             );
-            my $descriptor := ContainerDescriptor.new(:of(Bool), :name('!phaser_first_triggered'), :default(False), :dynamic(0));
-            my $container := nqp::create(Scalar);
-            nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
-            nqp::bindattr($container, Scalar, '$!value', False);
+            my $container := $!first-trigger-container;
+            unless nqp::isconcrete($container) {
+                my $descriptor := ContainerDescriptor.new(:of(Bool), :name('!phaser_first_triggered'), :default(False), :dynamic(0));
+                $container := nqp::create(Scalar);
+                nqp::bindattr($container, Scalar, '$!descriptor', $descriptor);
+                nqp::bindattr($container, Scalar, '$!value', False);
+                nqp::bindattr(self, RakuAST::ScopePhaser, '$!first-trigger-container', $container);
+            }
             $context.ensure-sc($container);
             $first-setup.push(
                 QAST::Var.new(:scope<lexical>, :name<!phaser_first_triggered>, :decl<statevar>, :value($container))
@@ -1456,37 +1535,44 @@ class RakuAST::ScopePhaser {
               QAST::WVal.new( :value(IterationBuffer)))));
         $block.symbol($value_stash, :scope('lexical'));
 
+        # The phaser's cached block survives a re-formation of the routine
+        # that owns it, so this method can run against the same block
+        # twice. The restore loop must go in once, while the attachment
+        # below must land in every formation's children.
         my $phaser-block := $phaser.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
-        $phaser-block.push(QAST::Op.new(
-            :op('while'),
-            QAST::Op.new(
-                :op('elems'),
-                QAST::Var.new( :name($value_stash), :scope('lexical') )),
-            QAST::Op.new(
-                :op('if'),
+        unless $phaser-block.ann('phaser-restore-added') {
+            $phaser-block.annotate('phaser-restore-added', 1);
+            $phaser-block.push(QAST::Op.new(
+                :op('while'),
                 QAST::Op.new(
-                    :op('iscont'),
+                    :op('elems'),
+                    QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                QAST::Op.new(
+                    :op('if'),
                     QAST::Op.new(
-                        :op('atpos'),
-                        QAST::Var.new( :name($value_stash), :scope('lexical') ),
-                        QAST::IVal.new( :value(0) ))),
-                QAST::Op.new( # p6store is for Scalar
-                    :op('p6store'),
-                    QAST::Op.new(
-                        :op('shift'),
-                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
-                    QAST::Op.new(
-                        :op('shift'),
-                        QAST::Var.new( :name($value_stash), :scope('lexical') ))),
-                QAST::Op.new( # Otherwise we restore by means of the container itself
-                    :op('callmethod'),
-                    :name('TEMP-LET-RESTORE'),
-                    QAST::Op.new(
-                        :op('shift'),
-                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
-                    QAST::Op.new(
-                        :op('shift'),
-                        QAST::Var.new( :name($value_stash), :scope('lexical') ))))));
+                        :op('iscont'),
+                        QAST::Op.new(
+                            :op('atpos'),
+                            QAST::Var.new( :name($value_stash), :scope('lexical') ),
+                            QAST::IVal.new( :value(0) ))),
+                    QAST::Op.new( # p6store is for Scalar
+                        :op('p6store'),
+                        QAST::Op.new(
+                            :op('shift'),
+                            QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                        QAST::Op.new(
+                            :op('shift'),
+                            QAST::Var.new( :name($value_stash), :scope('lexical') ))),
+                    QAST::Op.new( # Otherwise we restore by means of the container itself
+                        :op('callmethod'),
+                        :name('TEMP-LET-RESTORE'),
+                        QAST::Op.new(
+                            :op('shift'),
+                            QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                        QAST::Op.new(
+                            :op('shift'),
+                            QAST::Var.new( :name($value_stash), :scope('lexical') ))))));
+        }
 
         # Add as phaser.
         $block[0].push($phaser-block);
@@ -2305,6 +2391,8 @@ class RakuAST::Routine
     # pragma is a scope property, and code generation, where the info is
     # recorded, no longer has the scope stack.
     has int $!in-soft-scope;
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
 
     method multiness() {
         my $multiness := $!multiness;
@@ -3241,6 +3329,10 @@ class RakuAST::RoleBody
 {
     has RakuAST::LexicalFixup $.fixup;
 
+    # IMPL-FINISH-ROLE-BODY appends the lexical fixup nodes to the
+    # formed block, which a re-formation would not reproduce.
+    method IMPL-REBUILD-ELIGIBLE() { 0 }
+
     method new(          str :$scope,
                          str :$multiness,
                RakuAST::Name :$name,
@@ -4139,6 +4231,12 @@ class RakuAST::RegexDeclaration
 {
     has RakuAST::Regex $.body;
     has            str $.source;
+
+    # Compiling the body stores caps and the NFA on the Regex code
+    # object, and one entry per alternation into a hash under a key
+    # minted fresh each compilation, so a re-formation would leave
+    # every alternation NFA in the serialized code object twice.
+    method IMPL-REBUILD-ELIGIBLE() { 0 }
 
     method new(          str :$scope,
                          str :$multiness,

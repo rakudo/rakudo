@@ -236,6 +236,7 @@ class RakuAST::CompUnit
         # With the tree in its final shape, decide which lexicals can be
         # emitted as frame-locals.
         RakuAST::IMPL::VarLowering.analyze-compunit(self, $resolver, :$interactive);
+        $!context.set-optimize-performed() if nqp::isconcrete($!context);
         $resolver.pop-scope;
     }
 

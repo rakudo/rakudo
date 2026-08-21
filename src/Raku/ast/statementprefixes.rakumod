@@ -249,15 +249,10 @@ class RakuAST::StatementPrefix::Thunky
 
     method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            unless (nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
-                self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
-            }
-            nqp::getattr(self, RakuAST::Code, '$!qast-block')
-        }
+        nqp::istype(self.blorst, RakuAST::Block)
+            ?? self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+            !! nqp::findmethod(RakuAST::Code, 'IMPL-QAST-BLOCK')(self,
+                   $context, :$blocktype, :$expression)
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {

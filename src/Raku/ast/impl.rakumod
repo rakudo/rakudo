@@ -59,6 +59,11 @@ class RakuAST::IMPL::QASTContext {
     # frame holding the resolver could not.
     has Mu $!begin-time-marker;
 
+    # The POPULATE method shared by every class in this compilation
+    # unit whose build plan is empty. Lives here rather than on the
+    # compiler services, which are released after each composition.
+    has Mu $!empty-buildplan-method;
+
     # Code objects whose IMPL-STUB-CODE bound a freshcoderef to
     # Code.$!do but whose IMPL-LINK-META-OBJECT has not yet registered
     # that coderef with the SC. If the owning AST is discarded before
@@ -111,10 +116,19 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!begin-time-marker', nqp::create(Mu));
+        # A nested compunit serializes on its own, so it cannot reuse a
+        # method object rooted in the outer unit's context.
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!empty-buildplan-method', Mu);
         $context
     }
 
     method begin-time-marker() { $!begin-time-marker }
+
+    method empty-buildplan-method() { $!empty-buildplan-method }
+    method set-empty-buildplan-method(Mu $method) {
+        nqp::bindattr(self, RakuAST::IMPL::QASTContext, '$!empty-buildplan-method', $method);
+        Nil
+    }
 
     # Get the handle of the serialization context.
     method sc-handle() {

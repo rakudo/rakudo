@@ -16,6 +16,7 @@ clean: @for_backends(@backend_prefix@-clean )@
 	$(RM_F) rakudo@runner_suffix@
 	$(RM_F) @nfp(gen/rakudo@runner_suffix@)@
 	@if(platform==windows $(RM_RF) @nfp(gen/win-runner)@ win-runner.exe-tmpl runner.obj whereami.obj)@
+	$(RM_RF) @nfp(gen/build_rakudo_home/)@
 	$(PERL5) @shquot(@script(clean-precomps.pl)@)@ @shquot(@base_dir@)@
 
 test:		@for_backends(@backend_prefix@-test$(HARNESS_TYPE) )@

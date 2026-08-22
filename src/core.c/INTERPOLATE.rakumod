@@ -615,27 +615,99 @@ augment class Match {
         nqp::getlexdyn('$?REGEX')(self)
     }
 
+    # One compiled-regex slot per combination of :i, :m, and whether code
+    # interpolation was allowed.  Slot values for a given object are
+    # interchangeable, so unsynchronized binds at worst waste a compile.
     my role CachedCompiledRegex {
-        has $.regex;
+        has $.regexes;
     }
-    multi sub MAKE_REGEX(Regex \arg, $, $, int \monkey, $) {
-        arg
+    sub FLAG_SLOT(\i, \m, int \monkey --> int) {
+        nqp::add_i(
+          nqp::add_i(i ?? 1 !! 0, m ?? 2 !! 0),
+          nqp::if(monkey, 4, 0)
+        )
     }
-    multi sub MAKE_REGEX(CachedCompiledRegex \arg, $, $, int \monkey, $) {
-        arg.regex
-    }
-    multi sub MAKE_REGEX(\arg, \i, \m, int \monkey, \context) {
+
+    # Compiling an interpolated pattern creates bytecode that MoarVM never
+    # deallocates, so equal pattern text must reuse one compilation.
+    # Updates are copy on write via nqp::cas since Lock is not available
+    # this early in the setting.
+    my $compiled-regexes = nqp::hash();
+
+    sub EVAL_REGEX(str $source, int \monkey, \context) {
         my $*RESTRICTED = "Prohibited regex interpolation"
          unless monkey;  # Comes from when regex was originally compiled.
+        EVAL($source, :context(context))
+    }
 
-        my \rx = EVAL('anon regex { ' ~ nqp::if(i,
+    sub COMPILED_REGEX(\arg, \i, \m, int \monkey, \context) {
+        my str $text   = '' ~ arg;
+        my str $source = 'anon regex { ' ~ nqp::if(i,
           nqp::if(m,
             ':i :m ',
             ':i '),
           nqp::if(m,
             ':m ',
-            ' ')) ~ arg ~ '}', :context(context));
-        arg does CachedCompiledRegex(rx);
+            ' ')) ~ $text ~ '}';
+
+        # Pattern text with subrule calls, variables, or code blocks
+        # compiles against the lexical scope of the interpolation site,
+        # so equal text is not equivalent between call sites.
+        return EVAL_REGEX($source, monkey, context)
+          unless nqp::iseq_i(nqp::index($text, '<', 0), -1)
+             &&  nqp::iseq_i(nqp::index($text, '$', 0), -1)
+             &&  nqp::iseq_i(nqp::index($text, '@', 0), -1)
+             &&  nqp::iseq_i(nqp::index($text, '%', 0), -1)
+             &&  nqp::iseq_i(nqp::index($text, '&', 0), -1)
+             &&  nqp::iseq_i(nqp::index($text, '{', 0), -1);
+
+        # The monkey bit is part of the key so a pattern compiled with code
+        # interpolation allowed is never reused where it is prohibited.
+        my str $key = nqp::concat(monkey ?? 'm' !! 'r', $source);
+
+        nqp::ifnull(
+          nqp::atkey(nqp::atomicload($compiled-regexes), $key),
+          do {
+              my \fresh = EVAL_REGEX($source, monkey, context);
+              my int $done;
+              until $done {
+                  my \seen = nqp::atomicload($compiled-regexes);
+                  if nqp::existskey(seen, $key) {
+                      $done = 1;
+                  }
+                  else {
+                      # Start over when full rather than growing forever
+                      my \updated = nqp::islt_i(nqp::elems(seen), 1024)
+                        ?? nqp::clone(seen)
+                        !! nqp::hash();
+                      nqp::bindkey(updated, $key, fresh);
+                      $done = nqp::eqaddr(
+                        nqp::cas($compiled-regexes, seen, updated),
+                        seen
+                      );
+                  }
+              }
+              fresh
+          }
+        )
+    }
+
+    multi sub MAKE_REGEX(Regex \arg, $, $, int \monkey, $) {
+        arg
+    }
+    multi sub MAKE_REGEX(CachedCompiledRegex \arg, \i, \m, int \monkey, \context) {
+        my \slots = arg.regexes;
+        my int $slot = FLAG_SLOT(i, m, monkey);
+        nqp::ifnull(
+          nqp::atpos(slots, $slot),
+          nqp::bindpos(slots, $slot, COMPILED_REGEX(arg, i, m, monkey, context))
+        )
+    }
+    multi sub MAKE_REGEX(\arg, \i, \m, int \monkey, \context) {
+        my \rx = COMPILED_REGEX(arg, i, m, monkey, context);
+        my \slots = nqp::setelems(nqp::create(IterationBuffer), 8);
+        nqp::bindpos(slots, FLAG_SLOT(i, m, monkey), rx);
+        arg does CachedCompiledRegex(slots);
         rx
     }
 }

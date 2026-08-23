@@ -54,10 +54,9 @@ class RakuAST::Regex
         }
 
         # The QAST regex optimizations run after the NFA is stored, so
-        # LTM sees the original shape. Gated on the optimize stage having
-        # run, like the marks on the AST. The level is pinned: this
-        # frontend's only optimization switch is whether the stage ran.
-        if $context.optimize-regex {
+        # LTM sees the original shape. The level is pinned: this
+        # frontend has no regex optimization switch.
+        {
             self.IMPL-SIMPLIFY-BEFORE-ASSERTIONS($wrap-qast);
             # The optimizer relocates a stubbed assertion block into
             # the block passed here. That path needs an assertion argument

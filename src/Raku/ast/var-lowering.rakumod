@@ -549,13 +549,36 @@ class RakuAST::IMPL::VarLowering {
         $frame
     }
 
+    # Whether the frame sits under a code object whose cached block the
+    # unit emission will re-form. A code object that declines the
+    # re-formation emits its cache verbatim, so an approval there never
+    # reaches the emitted QAST.
+    method IMPL-IN-BEGIN-TIME-CACHED-CODE($frame) {
+        return 1 if nqp::istype($frame.node, RakuAST::Code)
+            && $frame.node.IMPL-BEGIN-TIME-CACHED
+            && $frame.node.IMPL-REBUILD-ELIGIBLE;
+        for $!frames {
+            return 1 if nqp::istype($_.node, RakuAST::Code)
+                && $_.node.IMPL-BEGIN-TIME-CACHED
+                && $_.node.IMPL-REBUILD-ELIGIBLE;
+        }
+        0
+    }
+
     method IMPL-LEAVE() {
         my $frame := nqp::pop($!frames);
         if $frame.is-scope {
             self.IMPL-DECIDE($frame);
             my int $flattened;
             if $frame.is-flatten-candidate {
+                # A frame under a code object compiled for a BEGIN-time
+                # use keeps the unflattened shape that compilation
+                # serialized, since the unit re-forms the cached block
+                # to the same shape. An approval here would flatten the
+                # emitted frame away from the shape the serialized
+                # closures depend on.
                 my int $approved := $!declarations-only
+                        || self.IMPL-IN-BEGIN-TIME-CACHED-CODE($frame)
                     ?? 0
                     !! self.IMPL-FLATTEN-VERDICT($frame);
                 $flattened := $approved;

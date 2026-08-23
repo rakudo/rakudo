@@ -37,6 +37,15 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!optimize-regex', 1)
     }
 
+    # Set once the optimize stage has walked this unit, so emission can
+    # tell a QAST block cached ahead of the walk from one that reflects
+    # the marks the walk decided.
+    has int $.optimize-performed;
+
+    method set-optimize-performed() {
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!optimize-performed', 1)
+    }
+
     # Optional nested Perl6::World; when set, add-code-ref delegates
     # to it so the shared $!num_code_refs counter advances.
     has Mu $.world-bridge;
@@ -119,6 +128,9 @@ class RakuAST::IMPL::QASTContext {
         # A nested compunit serializes on its own, so it cannot reuse a
         # method object rooted in the outer unit's context.
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!empty-buildplan-method', Mu);
+        # The nested unit has not run its own optimize walk yet, whatever
+        # the state of the unit this context was cloned from.
+        nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!optimize-performed', 0);
         $context
     }
 

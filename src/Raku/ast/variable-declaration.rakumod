@@ -747,7 +747,14 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!unused-slurpy', 1)
     }
 
-    method IMPL-UNUSED-SLURPY() { $!unused-slurpy }
+    # Under $*EMIT-BEGIN-SHAPE the block being re-formed must keep the
+    # frame shape that closures serialized by the early compilation
+    # depend on, so an unused declaration still reports used.
+    method IMPL-UNUSED-SLURPY() {
+        nqp::ifnull(nqp::getlexdyn('$*EMIT-BEGIN-SHAPE'), 0)
+            ?? 0
+            !! $!unused-slurpy
+    }
 
     method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-to-local', 1);
@@ -2655,7 +2662,14 @@ class RakuAST::VarDeclaration::Implicit
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Implicit, '$!unused', 1)
     }
 
-    method IMPL-UNUSED() { $!unused }
+    # Under $*EMIT-BEGIN-SHAPE the block being re-formed must keep the
+    # frame shape that closures serialized by the early compilation
+    # depend on, so an unused declaration still reports used.
+    method IMPL-UNUSED() {
+        nqp::ifnull(nqp::getlexdyn('$*EMIT-BEGIN-SHAPE'), 0)
+            ?? 0
+            !! $!unused
+    }
 
     method new(str :$name!, str :$scope) {
         my $obj := nqp::create(self);

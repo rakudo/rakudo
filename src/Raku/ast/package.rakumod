@@ -467,8 +467,12 @@ class RakuAST::Package
         $context.ensure-sc($type-object);
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
         # Splice in any accessor QAST captured by PRODUCE-META-OBJECT;
-        # absent on the degraded compose path.
-        if nqp::isconcrete($!accessor-qast) && nqp::elems($!accessor-qast.list) {
+        # absent on the degraded compose path. The body's cached block
+        # survives a re-formation of an enclosing routine, so this can
+        # run against the same block twice and the splice goes in once.
+        if nqp::isconcrete($!accessor-qast) && nqp::elems($!accessor-qast.list)
+            && !$body.ann('accessor-qast-added') {
+            $body.annotate('accessor-qast-added', 1);
             $body[0].push($!accessor-qast);
         }
         my $result := QAST::Stmts.new(

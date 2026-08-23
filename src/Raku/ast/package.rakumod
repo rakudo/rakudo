@@ -1028,6 +1028,151 @@ class RakuAST::CompilerServices
         $code
     }
 
+    # Resolve one setting symbol to its compile time value, looking at
+    # the enclosing lexical scopes as well when the setting itself is
+    # what is compiling. Returns null for a symbol that does not
+    # resolve, which during the setting build means the symbol's
+    # declaration has not compiled yet.
+    method IMPL-SETTING-VALUE(RakuAST::Name $name) {
+        my $found := $!resolver.resolve-name-constant-in-setting($name);
+        $found := $!resolver.resolve-name-constant($name)
+            unless nqp::isconcrete($found);
+        nqp::isconcrete($found) && nqp::can($found, 'compile-time-value')
+            ?? $found.compile-time-value
+            !! nqp::null
+    }
+
+    # Compile the build plan into a POPULATE method for the composing
+    # class, replacing the generic interpretation of the plan that
+    # Mu.POPULATE does per object construction. Returns a type object
+    # when the plan cannot be compiled, as when it needs a setting
+    # symbol that has not compiled yet, in which case the metamodel
+    # leaves the class on the generic path.
+    method generate_buildplan_executor(Mu $obj, Mu $in-build-plan) {
+        my $build-plan := nqp::decont($in-build-plan);
+        unless nqp::islist($build-plan) {
+            $build-plan := nqp::getattr($build-plan, List, '$!reified');
+            return Mu unless nqp::islist($build-plan);
+        }
+
+        my int $count := nqp::elems($build-plan);
+
+        # An empty plan gets the one do nothing POPULATE the unit
+        # shares, with an Any invocant so any class can hold it.
+        unless $count {
+            my $shared := $!context.empty-buildplan-method;
+            return $shared if nqp::isconcrete($shared);
+            my $method := self.IMPL-MAKE-EXECUTOR(Any, nqp::list(),
+                nqp::null(), nqp::null(), nqp::null(), nqp::null());
+            if nqp::isconcrete($method) {
+                # The method serves whichever class has no plan, so its
+                # introspective package is Any, like its invocant,
+                # rather than the class whose composition made it.
+                nqp::bindattr($method, Routine, '$!package', Any);
+                $!context.set-empty-buildplan-method($method);
+            }
+            return $method;
+        }
+
+        # The plan decides which setting symbols the compile needs, so
+        # a class without a given feature does not pay that symbol's
+        # resolution or get declined for its absence.
+        my int $needs-true;
+        my int $needs-required;
+        my int $needs-submethod;
+        my int $i := -1;
+        while nqp::islt_i($i := nqp::add_i($i, 1), $count) {
+            if nqp::islist(my $task := nqp::atpos($build-plan, $i)) {
+                my int $code := nqp::atpos($task, 0);
+                if $code == 0 || $code == 1100 || $code == 1200 || $code == 1300
+                    || $code == 400 || $code == 1400 {
+                    my str $sigil := nqp::substr(nqp::atpos($task, 2), 0, 1);
+                    $needs-true := 1 if $sigil eq '@' || $sigil eq '%';
+                }
+                elsif $code == 800 || $code > 1500 && $code < 1600 {
+                    $needs-required := 1;
+                }
+            }
+            else {
+                $needs-submethod := 1;
+            }
+        }
+
+        my $True := nqp::null;
+        if $needs-true {
+            $True := self.IMPL-SETTING-VALUE(
+                RakuAST::Name.from-identifier-parts('Bool', 'True'));
+            return Mu if nqp::isnull($True);
+        }
+        my $X-Attribute-Required := nqp::null;
+        if $needs-required {
+            $X-Attribute-Required := self.IMPL-SETTING-VALUE(
+                RakuAST::Name.from-identifier-parts('X', 'Attribute', 'Required'));
+            return Mu if nqp::isnull($X-Attribute-Required);
+        }
+        my $Failure := nqp::null;
+        my $return-routine := nqp::null;
+        if $needs-submethod {
+            $Failure := self.IMPL-SETTING-VALUE(
+                RakuAST::Name.from-identifier('Failure'));
+            $return-routine := self.IMPL-SETTING-VALUE(
+                RakuAST::Name.from-identifier('&return'));
+            return Mu if nqp::isnull($Failure) || nqp::isnull($return-routine);
+        }
+
+        self.IMPL-MAKE-EXECUTOR($obj, $build-plan,
+            $True, $Failure, $X-Attribute-Required, $return-routine)
+    }
+
+    method IMPL-MAKE-EXECUTOR(Mu $invocant-base, Mu $build-plan, Mu $True,
+            Mu $Failure, Mu $X-Attribute-Required, Mu $return-routine) {
+        my $executor := RakuAST::Submethod::BuildPlanExecutor.new(
+            :package-type($invocant-base),
+            :$build-plan,
+            :$True,
+            :$Failure,
+            :$X-Attribute-Required,
+            :$return-routine,
+        );
+        # The package node's own origin is not attached until its parse
+        # action finishes, which is after composition, so the body's
+        # origin supplies the file and line.
+        my $origin := $!package.body.origin;
+        $origin := $!package.origin unless nqp::isconcrete($origin);
+        $executor.set-origin($origin) if nqp::isconcrete($origin);
+        $!resolver.push-scope($!package);
+        $!resolver.push-scope($executor);
+        # No check time: the method is fully synthetic, with no user
+        # code a check could diagnose.
+        $executor.to-begin-time($!resolver, $!context);
+        $!resolver.pop-scope();
+        $!resolver.pop-scope();
+        $!qast.push: $executor.IMPL-QAST-BLOCK($!context);
+        my $code := $executor.meta-object;
+
+        # The block binds the invocant raw, so the definite type on
+        # the signature informs introspection and derivation, not a
+        # run time check. Mirrors what the legacy frontend installs.
+        my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
+            :base_type($invocant-base), :definite(1));
+        $!context.ensure-sc($definite);
+        nqp::bindattr(
+            nqp::atpos(nqp::getattr(
+                nqp::getattr($code, Code, '$!signature'),
+                Signature, '@!params'), 0),
+            Parameter, '$!type', $definite);
+
+        # Keep the generated frames out of user backtraces, as the
+        # legacy frontend does. Cosmetic, so a setting build point
+        # where the trait does not resolve yet just skips it.
+        my $trait-mod-is := self.IMPL-SETTING-VALUE(
+            RakuAST::Name.from-identifier('&trait_mod:<is>'));
+        $trait-mod-is($code, :hidden-from-backtrace)
+            unless nqp::isnull($trait-mod-is);
+
+        $code
+    }
+
     method IMPL-ADD-QAST(QAST::Node $target) {
         $target.push: $!qast if nqp::elems($!qast.list);
     }

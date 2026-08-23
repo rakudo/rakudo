@@ -205,9 +205,9 @@ class RakuAST::Code
     # object. The graft keeps the object every registration holds: the
     # code ref block list, the compstuff fixups, and the cuid all keep
     # resolving to the block the unit emits.
-    # Closures serialized by the early compilation pin the frame's
-    # lexical shape, so the unused elisions stand down during this
-    # emission.
+    # A context serialized by the early compilation rebinds its lexicals
+    # by name into this frame at load, so the unused implicits keep
+    # their names as bare slots during this emission.
     method IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 0);
         my $block := $!qast-block;

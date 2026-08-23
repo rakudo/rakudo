@@ -16,7 +16,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #   has $!todo;
 
     # The object that goes into $!todo.
-    class Reifier {
+    class Reifier is implementation-detail {
         # Our copy of the reified elements in the list so far.
         has $!reified;
 

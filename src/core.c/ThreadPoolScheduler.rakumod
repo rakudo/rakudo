@@ -35,7 +35,7 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::p6bindattrinvres(nqp::create(self), ContinuationWrapper, '$!cont', cont)
         }
     }
-    class ThreadPoolAwaiter does Awaiter {
+    my class ThreadPoolAwaiter does Awaiter {
         has $!queue;
 
         submethod BUILD(:$queue!) {

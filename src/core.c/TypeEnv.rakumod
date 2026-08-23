@@ -7,7 +7,7 @@
 # underlying context is preserved after that and a new TypeEnv gets created it would become a new primary and will start
 # producing new instantiations for the same generics.
 
-my class TypeEnv { # declared in BOOTSTRAP
+my class TypeEnv is implementation-detail { # declared in BOOTSTRAP
 # my class TypeEnv is Map {
 #     has $!primary;
 #     has $!WHICH;

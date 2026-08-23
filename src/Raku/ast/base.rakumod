@@ -1805,8 +1805,12 @@ class RakuAST::Node {
             ?? $decl.compile-time-value
             !! $decl.maybe-compile-time-value;
         return 0 unless nqp::isconcrete($routine);
+        # The check fails open like the other soft guards. A Code that
+        # cannot answer soft cannot be wrapped either, and the
+        # published method cache of a mixin type in the setting under
+        # compilation can miss the methods the setting itself adds.
         if nqp::istype($routine, Code) {
-            return 0 unless nqp::can($routine, 'soft') && !$routine.soft;
+            return 0 if nqp::can($routine, 'soft') && $routine.soft;
         }
 
         # The nearest scope declaring the name must be the outermost one, and

@@ -293,7 +293,14 @@ my sub REDUCE-PLUS-REIFIED(\values) is raw is implementation-detail {
       nqp::if(
         $elems,
         nqp::stmts(
-          (my $result := nqp::atpos(reified,0)),
+          # Without the deconts the accumulator would start as the slot's
+          # container while every later iteration rebinds it to the
+          # operator's bare return, and a stored value would arrive as
+          # whatever its slot holds, so the operator's callsite would
+          # keep several shapes live. Bare values keep it to one shape,
+          # and no candidate of the plus operator writes to its
+          # arguments.
+          (my $result := nqp::decont(nqp::atpos(reified,0))),
           nqp::if(
             nqp::iseq_i($elems,1),
             infix:<+>($result),        # call with 1 param
@@ -301,7 +308,7 @@ my sub REDUCE-PLUS-REIFIED(\values) is raw is implementation-detail {
               (my int $j = 0),
               nqp::while(
                 nqp::islt_i(++$j,$elems),
-                ($result := infix:<+>($result,nqp::atpos(reified,$j)))
+                ($result := infix:<+>($result,nqp::decont(nqp::atpos(reified,$j))))
               ),
               $result                  # final result
             )

@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 144;
+plan 145;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -1019,6 +1019,14 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         'a constant return value parameterizes Callable with its type';
     ok Q| sub a(--> "x") { }; sub b(--> "y") { }; &a.WHAT =:= &b.WHAT |.AST.EVAL,
         'subs with different constant return values share their Callable mixin type';
+}
+
+# ???
+{
+    use nqp;
+    Q| my role RequireStubHolder { my $x = try require NoSuchTestModule } |.AST.EVAL;
+    is nqp::getattr_s(nqp::decont(Scalar.WHO), Stash, '$!longname'), 'Scalar',
+        'a require stub declared inside a role does not rename Scalar';
 }
 
 # vim: expandtab shiftwidth=4

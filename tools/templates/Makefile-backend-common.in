@@ -103,6 +103,7 @@
 @bpv(CLEANUPS_ALL)@ = \
   *.manifest \
   @nfp(@bpm(BLIB_RAKUDO)@/*.@bext@)@ \
+  @nfp(@bpm(BLIB_RAKUDO_R)@/*.@bext@)@ \
   @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.@bext@)@ \\@for_specs(
   @bsm(SETTING_@ucspec@)@ \
   CORE.@lcspec@.setting.@bext@ \)@

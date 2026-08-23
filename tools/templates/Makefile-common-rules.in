@@ -16,7 +16,7 @@ spectest_update: $(SPECTEST_DATA) all
 
 realclean: clean
 	$(RM_F) Makefile config.status MANIFEST
-	$(RM_RF) @nfpl(lib/.precomp/ t/04-nativecall/.precomp/ gen/build_rakudo_home/)@
+	$(RM_RF) @nfpl(lib/.precomp/ t/04-nativecall/.precomp/)@
 
 distclean: realclean
 

@@ -4232,12 +4232,6 @@ class RakuAST::RegexDeclaration
     has RakuAST::Regex $.body;
     has            str $.source;
 
-    # Compiling the body stores caps and the NFA on the Regex code
-    # object, and one entry per alternation into a hash under a key
-    # minted fresh each compilation, so a re-formation would leave
-    # every alternation NFA in the serialized code object twice.
-    method IMPL-REBUILD-ELIGIBLE() { 0 }
-
     method new(          str :$scope,
                          str :$multiness,
                RakuAST::Name :$name,
@@ -4400,7 +4394,7 @@ class RakuAST::RegexThunk
             RakuAST::Expression :$expression) {
         my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
         my $thunk := self.IMPL-THUNKED-REGEX-QAST($context); # must be before nested blocks
-        my $nested-decls := $*IMPL-COMPILE-DYNAMICALLY
+        my $nested-decls := $*IMPL-COMPILE-DYNAMICALLY || $*EMIT-BEGIN-SHAPE
             ?? self.IMPL-NESTED-REGEX-THUNK-DECLS($context)
             !! QAST::Stmts.new;
         QAST::Block.new(

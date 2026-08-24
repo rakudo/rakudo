@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 46;
+plan 54;
 
 # A routine invoked at BEGIN time compiles ahead of the unit's optimize
 # walk and caches its QAST. The unit emission re-forms the cached block
@@ -247,6 +247,8 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         }
         our $begin-inner;
         our sub check-inner() { $begin-inner() }
+        grammar PG { token TOP { ( "ab" | "a" | ( "b" ) ) } }
+        BEGIN PG.parse("ab");
         class PC {
             has int $!i;
             method bump() { ++$!i }
@@ -273,6 +275,12 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         'a closure the precompiled BEGIN block minted runs correctly at runtime';
     is &::('PrecompRemark::check-inner')(), 42,
         'a closure minted inside an inner block at BEGIN keeps its frame chain across precompilation';
+    is ::('PrecompRemark::PG').parse("ab").Str, 'ab',
+        'a precompiled grammar parsed at BEGIN still picks the longest alternative';
+    is ::('PrecompRemark::PG').parse("a")[0].Str, 'a',
+        'a precompiled grammar parsed at BEGIN still captures its alternation';
+    is ::('PrecompRemark::PG').parse("b")[0][0].Str, 'b',
+        'a capturing group nested in another group survives precompilation of a BEGIN used grammar';
     sub nuke(IO::Path $d) {
         for $d.dir { $_.d ?? nuke($_) !! $_.unlink }
         $d.rmdir;
@@ -289,6 +297,32 @@ BEGIN Alts.parse("yy");
     is (nqp::isnull(alt-nfas) ?? 0 !! nqp::elems(alt-nfas)), 1,
         'a token with alternations parsed at BEGIN stores one alternation NFA set';
 }
+
+# A capturing group compiles as its own regex code object through a
+# formation of its own, so its alternations take the same treatment.
+# The BEGIN parse runs the dynamically compiled regex itself, so its
+# capture pins that compilation directly.
+my grammar CapAlts { token TOP { ("aa" | "bb") "-" } }
+my $begin-cap;
+BEGIN $begin-cap = ~CapAlts.parse("aa-")[0];
+is $begin-cap, 'aa',
+    'the BEGIN time parse itself captures the matched alternative';
+is CapAlts.parse("bb-")[0].Str, 'bb',
+    'a captured alternation in a token parsed at BEGIN still captures at runtime';
+is CapAlts.parse("aa-")[0].Str, 'aa',
+    'the other alternative of the captured group still matches at runtime';
+
+# A quantified group takes the walk through the quant node into the
+# group, so its alternation still drives longest token matching.
+my grammar QuantAlts { token TOP { [ "a" | "ab" ]+ } }
+BEGIN QuantAlts.parse("a");
+{
+    my \alt-nfas = nqp::getattr(QuantAlts.^lookup('TOP'), Regex, '%!alt_nfas');
+    is (nqp::isnull(alt-nfas) ?? 0 !! nqp::elems(alt-nfas)), 1,
+        'a quantified alternation parsed at BEGIN stores one alternation NFA set';
+}
+is QuantAlts.parse("ab").Str, 'ab',
+    'a quantified alternation parsed at BEGIN still picks the longest alternative';
 
 # QAST is a DAG: a Want's alternatives share subtrees with its primary,
 # so a walk must remember visited nodes or it re-walks shared regions

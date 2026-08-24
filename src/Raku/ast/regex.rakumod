@@ -2,6 +2,8 @@
 class RakuAST::Regex
   is RakuAST::Node
 {
+    has str $!alt-nfa-prefix;
+
     # In a ratchet regex each atom position carries the ratchet on its
     # outermost compiled node, once any significant whitespace is attached, so
     # a quantifier inside can still give its match back across that whitespace
@@ -33,7 +35,7 @@ class RakuAST::Regex
         $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
         QRegex::P6Regex::Actions.store_regex_caps($code-object, NQPMu, QRegex::P6Regex::Actions.capnames($regex-qast, 0));
         QRegex::P6Regex::Actions.store_regex_nfa($code-object, NQPMu, QRegex::NFA.new.addnode($regex-qast));
-        QRegex::P6Regex::Actions.alt_nfas($code-object, $regex-qast, $context.sc-handle);
+        self.IMPL-ALT-NFAS($code-object, $regex-qast, $context.sc-handle);
 
         # Wrap in scan/pass as appropriate.
         my $pass-qast := $name
@@ -52,10 +54,9 @@ class RakuAST::Regex
         }
 
         # The QAST regex optimizations run after the NFA is stored, so
-        # LTM sees the original shape. Gated on the optimize stage having
-        # run, like the marks on the AST. The level is pinned: this
-        # frontend's only optimization switch is whether the stage ran.
-        if $context.optimize-regex {
+        # LTM sees the original shape. The level is pinned: this
+        # frontend has no regex optimization switch.
+        {
             self.IMPL-SIMPLIFY-BEFORE-ASSERTIONS($wrap-qast);
             # The optimizer relocates a stubbed assertion block into
             # the block passed here. That path needs an assertion argument
@@ -70,6 +71,55 @@ class RakuAST::Regex
                 if nqp::elems($parking[0].list);
         }
         $wrap-qast
+    }
+
+    # Names each alternation and stores its NFAs on the code object,
+    # as QRegex::P6Regex::Actions.alt_nfas does, with the name derived
+    # from this regex's source origin and the walk position rather
+    # than a fresh counter. Forming the block again then stores the
+    # same entries under the same names instead of accreting a second
+    # set, and the same source builds the same names, which a
+    # reproducible build needs. The walk runs before the regex
+    # optimizer touches the tree, so the positions are the source's
+    # own and agree between formations. A synthetic regex without an
+    # origin mints a name once and keeps it, so forming it again still
+    # stores the same entries.
+    method IMPL-ALT-NFAS(Mu $code-object, Mu $ast, str $suffix) {
+        my str $prefix := $!alt-nfa-prefix;
+        unless $prefix {
+            my $origin := self.origin;
+            $prefix := nqp::isconcrete($origin)
+                ?? ~$origin.from
+                !! QAST::Node.unique('anon_');
+            nqp::bindattr_s(self, RakuAST::Regex, '$!alt-nfa-prefix', $prefix);
+        }
+        my @counter := nqp::list_i(0);
+        self.IMPL-ALT-NFAS-WALK($code-object, $ast, $suffix, $prefix, @counter);
+        Nil
+    }
+
+    method IMPL-ALT-NFAS-WALK(Mu $code-object, Mu $ast, str $suffix, str $prefix, Mu @counter) {
+        my str $rxtype := $ast.rxtype;
+        if $rxtype eq 'alt' {
+            my @alternatives;
+            for $ast.list {
+                self.IMPL-ALT-NFAS-WALK($code-object, $_, $suffix, $prefix, @counter);
+                nqp::push(@alternatives, QRegex::NFA.new.addnode($_));
+            }
+            my int $i := nqp::atpos_i(@counter, 0);
+            nqp::bindpos_i(@counter, 0, $i + 1);
+            $ast.name('alt_nfa_' ~ $prefix ~ '_' ~ $i ~ '_' ~ $suffix);
+            QRegex::P6Regex::Actions.store_regex_alt_nfa($code-object, $ast.name, @alternatives);
+        }
+        elsif $rxtype eq 'subcapture' || $rxtype eq 'quant' {
+            self.IMPL-ALT-NFAS-WALK($code-object, $ast[0], $suffix, $prefix, @counter);
+        }
+        elsif $rxtype eq 'concat' || $rxtype eq 'altseq' || $rxtype eq 'conj' || $rxtype eq 'conjseq' {
+            for $ast.list {
+                self.IMPL-ALT-NFAS-WALK($code-object, $_, $suffix, $prefix, @counter);
+            }
+        }
+        Nil
     }
 
     # A `before` assertion invokes its argument's thunk at match time: a

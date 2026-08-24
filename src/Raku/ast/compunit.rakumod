@@ -229,7 +229,6 @@ class RakuAST::CompUnit
             && ($!setting-name eq 'NULL.c' || $!setting-name eq 'NULL.d'
                 || $!setting-name eq 'NULL.e')
             ?? 1 !! 0;
-        $!context.set-optimize-regex() if nqp::isconcrete($!context);
         $resolver.push-scope(self);
         $!mainline.IMPL-OPTIMIZE($resolver);
         self.IMPL-OPTIMIZE($resolver);

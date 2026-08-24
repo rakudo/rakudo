@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 40;
+plan 43;
 
 # A call to a named setting routine compiles its callee lookup as a static
 # one, which the VM may resolve a single time. So does a call to a routine
@@ -120,9 +120,24 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'use soft; my $x = 5; my $y = -$x', -> \v {
         not qast-op-named(v, 'callstatic', '&prefix:<->')
     }, 'a setting prefix under the soft pragma keeps the plain callee lookup';
+    qast-is 'sub sfoo() { 1 }; BEGIN &sfoo does role { method soft(--> True) { } }; sfoo()', :full, -> \v {
+        not qast-op-named(v, 'callstatic', '&sfoo')
+    }, 'a call to a routine marked soft keeps the plain callee lookup';
 }
 else {
-    skip 'the soft shape is specific to the RakuAST frontend', 1;
+    skip 'the soft shape is specific to the RakuAST frontend', 2;
+}
+
+# A routine marked soft promises late rebinding, so a wrapper
+# installed at runtime must take effect at a call site compiled
+# before it.
+{
+    sub swrapped() { 1 }
+    BEGIN &swrapped does role { method soft(--> True) { } };
+    is swrapped(), 1, 'a routine marked soft runs normally before any wrap';
+    &swrapped.wrap(sub () { 1 + callsame });
+    is swrapped(), 2,
+        'a wrapper installed at runtime takes effect at a call site compiled before it';
 }
 
 # These observe that statically looked up callees still behave.

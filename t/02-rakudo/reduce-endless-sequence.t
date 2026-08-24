@@ -1,6 +1,6 @@
 use Test;
 
-plan 142;
+plan 151;
 
 # Reductions that already have their answer must not keep walking the values.
 # A short-circuit operator has one as soon as its result settles, and a Range
@@ -460,5 +460,40 @@ my $work = start {
 await Promise.anyof($work, Promise.in(60));
 diag "reduction threw: {$work.cause.gist}" if $work.status ~~ Broken;
 ok $complete, 'every reduction over endless values finished';
+
+# The plus fast path starts its fold on a bare accumulator, while the
+# generic path hands the operator the list's own containers, since an
+# operator writing to its first value must reach the real container.
+{
+    my sub infix:<mut>($a is rw, $b) is raw { $a = $a + $b }
+    my @accumulated = 1, 2, 3;
+    is ([[&infix:<mut>]] @accumulated), 6,
+      'a reduction with an operator writing to its first value folds through it';
+    is-deeply @accumulated, [6, 2, 3],
+      'a reduction with an operator writing to its first value writes into that value';
+}
+is-deeply ([+] (1, 2.5, 3e0)), 6.5e0,
+  '[+] on a sole List of mixed numeric types sums through each type';
+{
+    my @one = (my $ = 5),;
+    is ([+] @one), 5,
+      '[+] over a single stored value gives that value';
+    ok !(([+] @one) =:= @one[0]),
+      'the single value result is a bare value, not the stored container';
+}
+is-deeply ([+] ("5",)), 5,
+  '[+] over a single stored string applies the operator, numifying it';
+is-deeply ([+] (1, |(2, 3),)), 6,
+  '[+] over slipped values sums through the pulling fold';
+{
+    my @slipped = 1, 2, 3;
+    @slipped[0] = (7, 1).Slip;
+    is ([+] @slipped), 7,
+      '[+] takes a Slip stored in the first slot as one seed value';
+    my @tail = 1, 2, 3;
+    @tail[1] = (7, 1).Slip;
+    is ([+] @tail), 6,
+      '[+] adds a Slip stored in a later slot as one value';
+}
 
 # vim: expandtab shiftwidth=4

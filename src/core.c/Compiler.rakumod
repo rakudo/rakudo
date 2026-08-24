@@ -5,12 +5,18 @@ class Compiler does Systemic {
     my constant $backend = $compiler.backend;
     my constant $name    = $backend.name;
 
+    # The frontends serialize a setting differently from the same sources
+    my constant $core-frontend =
+      nqp::getlexdyn('$*CU') ?? 'rakuast' !! 'legacy';
+
     # This needs to be done at compile time to be able to access the correct
     # frontend specific dynamic variables
     my constant $compilation-base-id = nqp::box_s(
       nqp::sha1(
         (nqp::getlexdyn('$*CU') ?? $*CU.comp-unit-name !! $*W.handle.Str)
           ~ nqp::atkey($config,'source-digest')
+          ~ nqp::atkey($config,'version')
+          ~ $core-frontend
       ),
       Str
     );

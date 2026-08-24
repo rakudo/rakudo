@@ -747,14 +747,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!unused-slurpy', 1)
     }
 
-    # Under $*EMIT-BEGIN-SHAPE the block being re-formed must keep the
-    # frame shape that closures serialized by the early compilation
-    # depend on, so an unused declaration still reports used.
-    method IMPL-UNUSED-SLURPY() {
-        nqp::ifnull(nqp::getlexdyn('$*EMIT-BEGIN-SHAPE'), 0)
-            ?? 0
-            !! $!unused-slurpy
-    }
+    method IMPL-UNUSED-SLURPY() { $!unused-slurpy }
 
     method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-to-local', 1);
@@ -2662,13 +2655,18 @@ class RakuAST::VarDeclaration::Implicit
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Implicit, '$!unused', 1)
     }
 
-    # Under $*EMIT-BEGIN-SHAPE the block being re-formed must keep the
-    # frame shape that closures serialized by the early compilation
-    # depend on, so an unused declaration still reports used.
-    method IMPL-UNUSED() {
+    method IMPL-UNUSED() { $!unused }
+
+    # What an unused implicit declares. Normally nothing. Under
+    # $*EMIT-BEGIN-SHAPE the block being re-formed must keep every
+    # lexical name the early compilation serialized, since a context
+    # serialized at that time rebinds its lexicals by name into this
+    # frame at load. The frame keeps a bare slot under the name and
+    # skips the per-call setup.
+    method IMPL-UNUSED-DECL-QAST() {
         nqp::ifnull(nqp::getlexdyn('$*EMIT-BEGIN-SHAPE'), 0)
-            ?? 0
-            !! $!unused
+            ?? QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+            !! QAST::Op.new( :op('null') )
     }
 
     method new(str :$name!, str :$scope) {
@@ -2741,7 +2739,7 @@ class RakuAST::VarDeclaration::Implicit::Special
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        return QAST::Op.new( :op('null') ) if self.IMPL-UNUSED;
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
         my $container := self.meta-object;
         $context.ensure-sc($container);
         QAST::Var.new(
@@ -2799,7 +2797,7 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        return QAST::Op.new( :op('null') ) if self.IMPL-UNUSED;
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
         if $!exception {
             QAST::Stmts.new(
                 QAST::Var.new( :decl('param'), :scope('local'), :name('EXCEPTION') ),
@@ -3015,7 +3013,7 @@ class RakuAST::VarDeclaration::Implicit::Cursor
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        return QAST::Op.new( :op('null') ) if self.IMPL-UNUSED;
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
         my $container := self.meta-object;
         $context.ensure-sc($container);
         QAST::Var.new(
@@ -3089,7 +3087,7 @@ class RakuAST::VarDeclaration::Implicit::Routine
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        return QAST::Op.new( :op('null') ) if self.IMPL-UNUSED;
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
         # We cannot just put the AST node's meta-object into a WVal for this, because
         # we may be running a clone of that object.
         QAST::Op.new:

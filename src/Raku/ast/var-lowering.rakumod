@@ -572,11 +572,11 @@ class RakuAST::IMPL::VarLowering {
             my int $flattened;
             if $frame.is-flatten-candidate {
                 # A frame under a code object compiled for a BEGIN-time
-                # use keeps the unflattened shape that compilation
-                # serialized, since the unit re-forms the cached block
-                # to the same shape. An approval here would flatten the
-                # emitted frame away from the shape the serialized
-                # closures depend on.
+                # use keeps every lexical name that compilation
+                # serialized, and flattening dissolves the frame and
+                # takes the names with it. An approval here would
+                # flatten the emitted frame away from the names the
+                # serialized contexts rebind at load.
                 my int $approved := $!declarations-only
                         || self.IMPL-IN-BEGIN-TIME-CACHED-CODE($frame)
                     ?? 0

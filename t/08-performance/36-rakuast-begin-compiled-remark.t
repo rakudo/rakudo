@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 39;
+plan 46;
 
 # A routine invoked at BEGIN time compiles ahead of the unit's optimize
 # walk and caches its QAST. The unit emission re-forms the cached block
@@ -43,6 +43,44 @@ is Counter.new.named-count(:a, :b), 2,
 
 is Counter.new.own-name, 'own-name',
     'a routine variable read still works after a BEGIN time use';
+
+# The elided slurpy binding still accepts and discards stray nameds.
+# A call that fails its constraint reruns through the full binder,
+# which binds the parameters it reaches into the frame by name.
+my class Stray {
+    method m() { 42 }
+    method n($x where * > 0) { $x }
+}
+BEGIN { Stray.new.m; Stray.new.n(1) }
+is Stray.new.m(:ignored, :also), 42,
+    'a BEGIN used method with an unused slurpy still discards stray nameds';
+is Stray.new.n(5, :stray), 5,
+    'a BEGIN used method with a constrained param still binds with stray nameds';
+throws-like { Stray.new.n(-1) }, X::TypeCheck::Binding::Parameter,
+    'a call failing its constraint after a BEGIN use reports through the full binder';
+
+# The implicit marks decide what a re-formed frame elides, so an
+# implicit the routine reads must keep its full setup there.
+my class UsesErr {
+    method m() { try die 'boom'; $!.message }
+}
+BEGIN UsesErr.new.m;
+is UsesErr.new.m, 'boom',
+    'an error variable read still works after a BEGIN time use';
+
+my class UsesMatch {
+    method m(Str $s) { $s ~~ /\d+/; ~$/ }
+}
+BEGIN UsesMatch.new.m("a1");
+is UsesMatch.new.m("x42"), '42',
+    'a match variable read still works after a BEGIN time use';
+
+my class UsesBlock {
+    method m() { &?BLOCK.arity }
+}
+BEGIN UsesBlock.new.m;
+is UsesBlock.new.m, 1,
+    'a block variable read still works after a BEGIN time use';
 
 # A role body appends lexical fixup nodes to its formed block, so it
 # declines the re-formation. Its methods still take it.
@@ -202,6 +240,13 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         our sub adder($base) { -> $n { $base + $n } }
         our $begin-closure;
         our sub check-begin-closure() { $begin-closure(3) }
+        our sub inner-closure($b) {
+            my $f;
+            if $b { my $y = $b; $f = -> { $y + 1 } }
+            $f
+        }
+        our $begin-inner;
+        our sub check-inner() { $begin-inner() }
         class PC {
             has int $!i;
             method bump() { ++$!i }
@@ -212,6 +257,7 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
             PC.new.bump;
             PC.new.named(:x);
             $begin-closure = adder(5);
+            $begin-inner = inner-closure(41);
         }
         END
     my $repo = CompUnit::Repository::FileSystem.new(:prefix($dir.Str));
@@ -225,6 +271,8 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         'a precompiled closure maker used at BEGIN captures correctly at runtime';
     is &::('PrecompRemark::check-begin-closure')(), 8,
         'a closure the precompiled BEGIN block minted runs correctly at runtime';
+    is &::('PrecompRemark::check-inner')(), 42,
+        'a closure minted inside an inner block at BEGIN keeps its frame chain across precompilation';
     sub nuke(IO::Path $d) {
         for $d.dir { $_.d ?? nuke($_) !! $_.unlink }
         $d.rmdir;
@@ -311,6 +359,46 @@ sub qast-block-occurrences(Mu $qast, str $name, :%on-path = {} --> Int:D) {
     $count
 }
 
+# Matches a declaration instead of a use, with the same root block
+# boundary rule as qast-uses-lexical.
+sub qast-declares-lexical(Mu $qast, str $name, Mu :$root = $qast, :%seen = {} --> Bool:D) {
+    return False unless nqp::istype($qast, QAST::Node);
+    my str $id = ~nqp::objectid($qast);
+    return False if %seen{$id};
+    %seen{$id} = True;
+    if nqp::istype($qast, QAST::Var) {
+        return True if $qast.scope eq 'lexical' && $qast.name eq $name && $qast.decl;
+    }
+    return False if nqp::istype($qast, QAST::Block)
+        && !nqp::eqaddr(nqp::decont($qast), nqp::decont($root));
+    for $qast.list {
+        qast-declares-lexical($_, $name, :$root, :%seen) and return True;
+    }
+    False
+}
+
+# Matches a declaration in its plain var form. The contvar and param
+# setups fall outside it, so it distinguishes an elided container
+# implicit from its full setup. A routine variable's full setup also
+# declares a var, so its shape assertions pair this with a check for
+# the ops the setup emits.
+sub qast-declares-bare-lexical(Mu $qast, str $name, Mu :$root = $qast, :%seen = {} --> Bool:D) {
+    return False unless nqp::istype($qast, QAST::Node);
+    my str $id = ~nqp::objectid($qast);
+    return False if %seen{$id};
+    %seen{$id} = True;
+    if nqp::istype($qast, QAST::Var) {
+        return True if $qast.scope eq 'lexical' && $qast.name eq $name
+            && $qast.decl eq 'var';
+    }
+    return False if nqp::istype($qast, QAST::Block)
+        && !nqp::eqaddr(nqp::decont($qast), nqp::decont($root));
+    for $qast.list {
+        qast-declares-bare-lexical($_, $name, :$root, :%seen) and return True;
+    }
+    False
+}
+
 sub qast-counts-nested-blocks(Mu $qast, Mu :$root = $qast, :%seen = {} --> Int:D) {
     return 0 unless nqp::istype($qast, QAST::Node);
     my str $id = ~nqp::objectid($qast);
@@ -338,23 +426,37 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         nqp::istype(block, QAST::Block) && qast-deep-has-op(block, 'add_i')
     }, 'a native attribute increment lowers to add_i after a BEGIN time use';
 
-    # The frame shape stays as the BEGIN compilation serialized it: the
-    # named slurpy and the routine variable remain declared.
+    # The re-formed frame drops the per-call setup of its unused
+    # implicits but keeps their lexical names, since a context the
+    # early compilation serialized rebinds by name.
     qast-is 'my class K3 { has int $!i; method m() { ++$!i } }; BEGIN K3.new.m; K3.new.m', :full, -> \v {
         my \block = qast-find-block(v, 'm');
         nqp::istype(block, QAST::Block)
-            && qast-uses-lexical(block, '%_')
-            && qast-deep-has-op(block, 'getcodeobj')
-    }, 'the re-formed frame keeps its slurpy binding and routine variable population';
+            && !qast-uses-lexical(block, '%_')
+            && !qast-deep-has-op(block, 'getcodeobj')
+            && qast-declares-bare-lexical(block, '%_')
+            && qast-declares-bare-lexical(block, '&?ROUTINE')
+            && qast-declares-bare-lexical(block, '$_')
+            && qast-declares-bare-lexical(block, '$/')
+            && qast-declares-bare-lexical(block, '$!')
+            && qast-declares-bare-lexical(block, '$¢')
+    }, 'the re-formed frame elides unused implicit setup while keeping the lexical names';
 
-    # Pairs with the presence assertion above, so a leaked shape gate
-    # would show up here.
+    # Pairs with the assertion above: without a BEGIN use the unused
+    # implicits lose both setup and name. The slurpy target is the
+    # exception, keeping its bare slot in every frame for the full
+    # binder, so it stays off this list.
     qast-is 'my class K4 { has int $!i; method m() { ++$!i } }; K4.new.m', :full, -> \v {
         my \block = qast-find-block(v, 'm');
         nqp::istype(block, QAST::Block)
             && !qast-uses-lexical(block, '%_')
             && !qast-deep-has-op(block, 'getcodeobj')
-    }, 'control: the unused slurpy binding and routine variable still elide without a BEGIN use';
+            && !qast-declares-lexical(block, '&?ROUTINE')
+            && !qast-declares-lexical(block, '$_')
+            && !qast-declares-lexical(block, '$/')
+            && !qast-declares-lexical(block, '$!')
+            && !qast-declares-lexical(block, '$¢')
+    }, 'control: the unused implicits other than the slurpy target are not declared without a BEGIN use';
 
     qast-is 'sub f() { my int $x = 1; $x + 2 }; BEGIN f(); f', :full, -> \v {
         my \block = qast-find-block(v, 'f');

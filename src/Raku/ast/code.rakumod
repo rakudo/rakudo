@@ -4807,7 +4807,8 @@ class RakuAST::Substitution
         }
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
-            if self.IMPL-IS-POSITION-ADVERB($norm) {
+            if nqp::istype($_,RakuAST::ColonPair::True)
+              && self.IMPL-IS-POSITION-ADVERB($norm) {
                 # These need to be passed the end of the last match.
                 $match-qast.push: QAST::Op.new:
                     :named($norm), :op<if>,

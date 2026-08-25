@@ -4387,6 +4387,7 @@ class RakuAST::RegexThunk
         nqp::bindattr($signature, Signature, '@!params', nqp::list($parameter));
         nqp::bindattr_i($signature, Signature, '$!arity', 1);
         nqp::bindattr($signature, Signature, '$!count', nqp::box_i(1, Int));
+        nqp::bindattr_i($signature, Signature, '$!readonly', 1);
 
         # Create Regex object.
         my $regex := nqp::create(Regex);

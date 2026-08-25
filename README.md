@@ -19,6 +19,11 @@ that each backend has a different set of features.
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
+## Support the Foundation
+
+If you find Rakudo useful, please consider [donating to the
+Raku Foundation](https://raku.foundation/Donations).
+
 ## Building and Installing Rakudo
 
 [![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=main)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=main)

@@ -292,6 +292,24 @@ class RakuAST::Signature
         nqp::bindattr_i($signature, Signature, '$!arity', self.arity);
         nqp::bindattr($signature, Signature, '$!count', self.count);
 
+        # The mask of read only positionals. The invocation dispatcher
+        # reads it to pass such arguments outside their Scalar containers.
+        my int $n := nqp::elems(@parameters);
+        my int $i := -1;
+        my int $readonly;
+        while ++$i < $n {
+            my $param := @parameters[$i];
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            if !($flags +& nqp::const::SIG_ELEM_SLURPY_ARITY)
+              && !($flags +& nqp::const::SIG_ELEM_SLURPY_NAMED)
+              && nqp::isnull(nqp::getattr($param, Parameter, '@!named_names'))
+              && $i < 64
+              && !($flags +& (nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW)) {
+                $readonly := $readonly +| nqp::bitshiftl_i(1, $i);
+            }
+        }
+        nqp::bindattr_i($signature, Signature, '$!readonly', $readonly);
+
         # Figure out and set return type.
         nqp::bindattr($signature, Signature, '$!returns', $!returns
             ?? self.IMPL-RETURN-VALUE()

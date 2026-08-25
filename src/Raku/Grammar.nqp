@@ -1232,8 +1232,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # of doc blocks to statements that will not actually be CHECKed
         my $*PARSING-DOC-BLOCK;
 
-        # RakuDoc blocks collected so far, to be included with next statement
-        # into its statement list.
+        # RakuDoc blocks collected so far, each stored with a statement id
+        # mark and its source position.  A statement claims blocks marked
+        # at or above its own statement list's mark and below its own id.
+        # That makes the
+        # statement that follows a block in the same statement list claim
+        # it, rather than the first statement completed inside a nested
+        # statement list.
         my $*DOC-BLOCKS-COLLECTED := [];
 
         # RakuDoc aliases (=alias -> A<>) collected so far
@@ -1333,6 +1338,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements, e.g. inside a (pointy) block
     rule statementlist {
         :dba('statement list')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         <.ws>
         :my $*LANG;              # Define this scope to be a new language
         <!!{ $*LANG := $/.clone_braid_from(self); 1 }>
@@ -1351,6 +1357,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements in an expression, e.g @a[10;20]
     rule semilist {
         :dba('list composer')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         ''
         [
           | <?before <.[)\]}]> >  # bumping into  ) ] }
@@ -1364,6 +1371,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements in a contextualizer, e.g $(10;20)
     rule sequence {
         :dba('sequence of statements')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         ''
         [
           | <?before <.[)\]}]> >  # bumping into  ) ] }

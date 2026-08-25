@@ -3213,9 +3213,10 @@ class RakuAST::Sub
     }
 
     method is-stub() {
-        my $statement-list := self.body.statement-list;
-        $statement-list.IMPL-IS-SINGLE-EXPRESSION
-            && nqp::istype(self.IMPL-UNWRAP-LIST($statement-list.statements)[0].expression, RakuAST::Stub)
+        my @code := self.body.statement-list.code-statements;
+        nqp::elems(@code) == 1
+            && nqp::istype(@code[0], RakuAST::Statement::Expression)
+            && nqp::istype(@code[0].expression, RakuAST::Stub)
     }
 
     method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -3657,15 +3658,16 @@ class RakuAST::Method
     }
 
     method is-stub() {
-        my $statement-list := self.body.statement-list;
-        $statement-list.IMPL-IS-SINGLE-EXPRESSION
-            && nqp::istype(self.IMPL-UNWRAP-LIST($statement-list.statements)[0].expression, RakuAST::Stub)
+        my @code := self.body.statement-list.code-statements;
+        nqp::elems(@code) == 1
+            && nqp::istype(@code[0], RakuAST::Statement::Expression)
+            && nqp::istype(@code[0].expression, RakuAST::Stub)
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
         # If our first expression is a stub object (!!!, ..., ???),
         # set the yada bit on the Method itself
-        if (my $first-statement := self.IMPL-UNWRAP-LIST($!body.statement-list.statements)[0])
+        if (my $first-statement := nqp::atpos($!body.statement-list.code-statements, 0))
             && nqp::istype($first-statement, RakuAST::Statement::Expression)
             && nqp::istype($first-statement.expression, RakuAST::Stub)
         {

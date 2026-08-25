@@ -698,80 +698,141 @@ class RakuAST::Node {
     method IMPL-OPTIMIZE-EXPRESSION(RakuAST::Resolver $resolver, Mu $expr) {
         return $expr unless nqp::isconcrete($expr);
 
-        my $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+        # The node's type is classified once, and each rewrite and mark
+        # below only runs when the node is one its own gate could accept.
+        # Every helper keeps its full gate: a flag here is a necessary
+        # condition of that gate, never a replacement for it. The flags
+        # come from istype, so a subclass reaches every helper its parent
+        # class does.
+        my int $apply-infix      := nqp::istype($expr, RakuAST::ApplyInfix);
+        my int $apply-prefix     := nqp::istype($expr, RakuAST::ApplyPrefix);
+        my int $apply-postfix    := nqp::istype($expr, RakuAST::ApplyPostfix);
+        my int $call-name        := nqp::istype($expr, RakuAST::Call::Name);
+        my int $stmt-expression  := nqp::istype($expr, RakuAST::Statement::Expression);
+        my int $conditional-stmt := nqp::istype($expr, RakuAST::Statement::IfWith)
+            || nqp::istype($expr, RakuAST::Statement::Unless);
+        my int $loop-stmt        := nqp::istype($expr, RakuAST::Statement::Loop);
 
-        if $result =:= $expr {
+        my $result := $expr;
+        if nqp::istype($expr, RakuAST::Ternary) {
+            $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+        }
+
+        if $apply-infix && $result =:= $expr {
             $result := self.IMPL-COLLAPSE-SHORT-CIRCUIT($resolver, $expr);
         }
 
-        if $result =:= $expr {
+        if $result =:= $expr
+            && ($apply-infix || $apply-prefix
+                || nqp::istype($expr, RakuAST::ApplyListInfix)
+                || nqp::istype($expr, RakuAST::Circumfix::Parentheses)) {
             $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
         }
 
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-TYPEMATCH($resolver, $expr);
+        if $apply-infix {
+            if $result =:= $expr {
+                $result := self.IMPL-COLLAPSE-TYPEMATCH($resolver, $expr);
+            }
+            if $result =:= $expr {
+                $result := self.IMPL-COLLAPSE-LITMATCH($resolver, $expr);
+            }
+            if $result =:= $expr {
+                $result := self.IMPL-COLLAPSE-PAIRMATCH($resolver, $expr);
+            }
         }
 
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-LITMATCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-PAIRMATCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
+        if ($conditional-stmt || $stmt-expression) && $result =:= $expr {
             $result := self.IMPL-COLLAPSE-DEAD-BRANCH($resolver, $expr);
         }
 
-        if $result =:= $expr {
+        if $apply-infix && $result =:= $expr {
             $result := self.IMPL-REWRITE-SQUARE($resolver, $expr);
         }
 
-        if $result =:= $expr {
+        if $apply-postfix && $result =:= $expr {
             $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
         }
 
-        # The negate withdrawal runs before the gated marks: it is a
-        # retraction of an operand's mark, so neither a rewrite having
-        # replaced this node nor the soft pragma may skip it.
-        self.IMPL-WITHDRAW-NEGATE-NOT($expr);
+        if $apply-infix {
+            # The negate withdrawal runs before the gated marks: it is a
+            # retraction of an operand's mark, so neither a rewrite having
+            # replaced this node nor the soft pragma may skip it.
+            self.IMPL-WITHDRAW-NEGATE-NOT($expr);
 
-        # A bind statement replaces its target's container, so it
-        # withdraws native subscript eligibility from the target's
-        # declaration. A retraction rather than an optimization: it runs
-        # whether or not a rewrite replaced this node and regardless of
-        # the soft pragma.
-        self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
+            # A bind statement replaces its target's container, so it
+            # withdraws native subscript eligibility from the target's
+            # declaration. A retraction rather than an optimization: it runs
+            # whether or not a rewrite replaced this node and regardless of
+            # the soft pragma.
+            self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
+        }
 
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
         # lookup, so the `soft` pragma, which keeps routines wrappable, turns
-        # them off.
-        if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
-            self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
-            self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
-            self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
-            self.IMPL-MARK-DOT-ASSIGN($resolver, $expr);
-            self.IMPL-MARK-RANGE-FOR($resolver, $expr);
-            self.IMPL-MARK-STATIC-CALL($resolver, $expr);
-            self.IMPL-MARK-STATIC-CHAIN($resolver, $expr);
-            self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
-            self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
-            self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
-            self.IMPL-MARK-CONSTANT-TERM($resolver, $expr);
-            self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
-            self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
-            self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
-            self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
-            self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
-            self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr);
-            self.IMPL-MARK-WHEN-TYPEMATCH($resolver, $expr);
-            self.IMPL-MARK-JUNCTION-FOLD($resolver, $expr);
-            self.IMPL-MARK-CHAIN-LINKS($resolver, $expr);
-            self.IMPL-DROP-UNREACHABLE($resolver, $expr);
-            self.IMPL-MARK-PARAM-WHERE-JUNCTION($resolver, $expr);
+        # them off. The soft scope walk only runs when the node's type
+        # admits a mark at all.
+        if $result =:= $expr {
+            my int $dot-assign := nqp::istype($expr, RakuAST::ApplyDottyInfix)
+                || nqp::istype($expr, RakuAST::Term::TopicCall);
+            my int $stmt-for   := nqp::istype($expr, RakuAST::Statement::For);
+            my int $term-name  := nqp::istype($expr, RakuAST::Term::Name);
+            my int $routine    := nqp::istype($expr, RakuAST::Routine);
+            my int $var-decl   := nqp::istype($expr, RakuAST::VarDeclaration::Simple);
+            my int $stmt-when  := nqp::istype($expr, RakuAST::Statement::When);
+            my int $parameter  := nqp::istype($expr, RakuAST::Parameter);
+            if ($apply-infix || $apply-prefix || $apply-postfix || $call-name
+                || $stmt-expression || $conditional-stmt || $loop-stmt
+                || $dot-assign || $stmt-for || $term-name || $routine
+                || $var-decl || $stmt-when || $parameter)
+                && !self.IMPL-IN-SOFT-SCOPE($resolver) {
+                self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr)
+                    if $apply-postfix || $apply-prefix;
+                if $apply-infix {
+                    self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
+                    self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
+                }
+                self.IMPL-MARK-DOT-ASSIGN($resolver, $expr)
+                    if $dot-assign;
+                self.IMPL-MARK-RANGE-FOR($resolver, $expr)
+                    if $stmt-for || $stmt-expression;
+                self.IMPL-MARK-STATIC-CALL($resolver, $expr)
+                    if $call-name;
+                if $apply-infix {
+                    self.IMPL-MARK-STATIC-CHAIN($resolver, $expr);
+                    self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
+                }
+                self.IMPL-MARK-STATIC-PREFIX($resolver, $expr)
+                    if $apply-prefix;
+                self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr)
+                    if $apply-postfix;
+                self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
+                    if $term-name;
+                self.IMPL-MARK-NEGATE-NOT($resolver, $expr)
+                    if $apply-infix;
+                self.IMPL-MARK-NATIVE-INDEX($resolver, $expr)
+                    if $apply-postfix;
+                self.IMPL-MARK-RETURN-DECONT($resolver, $expr)
+                    if $routine;
+                self.IMPL-MARK-ARRAY-INIT($resolver, $expr)
+                    if $apply-infix || $var-decl;
+                self.IMPL-MARK-CT-DISPATCH($resolver, $expr)
+                    if $call-name || $apply-infix;
+                self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr)
+                    if $loop-stmt || $conditional-stmt || $stmt-expression;
+                self.IMPL-MARK-WHEN-TYPEMATCH($resolver, $expr)
+                    if $stmt-when || $stmt-expression;
+                self.IMPL-MARK-JUNCTION-FOLD($resolver, $expr)
+                    if $loop-stmt || $conditional-stmt || $stmt-expression
+                        || $apply-prefix;
+                self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
+                    if $apply-infix;
+                self.IMPL-DROP-UNREACHABLE($resolver, $expr)
+                    if $stmt-expression;
+                self.IMPL-MARK-PARAM-WHERE-JUNCTION($resolver, $expr)
+                    if $parameter;
+            }
         }
 
         # A replacement stands where the original stood, so it must carry the

@@ -1,6 +1,6 @@
 use Test;
 
-plan 151;
+plan 192;
 
 # Reductions that already have their answer must not keep walking the values.
 # A short-circuit operator has one as soon as its result settles, and a Range
@@ -294,6 +294,12 @@ is ([&&] 1, (0|1), 5), 5, '[&&] does not settle on a Junction that is not all fa
     is ([+] spoken), 24, '[+] on a Range producing its own values sums them';
 }
 {
+    my \spoken = (1..1000) but role { method iterator() { (9, 8, 7).iterator } };
+    is ([+] spoken), 24, '[+] on a Range of Ints producing its own values sums them';
+    is ([min] spoken), 7, '[min] on a Range of Ints producing its own values returns their smallest';
+    is ([max] spoken), 9, '[max] on a Range of Ints producing its own values returns their largest';
+}
+{
     my $both = -Inf..Inf;
     is ([+] $both), Inf, '[+] on an itemized Range counts it as one value';
 }
@@ -327,6 +333,41 @@ is ([min] List), Inf, '[min] on an undefined List returns the identity of min';
     is ([max] @shaped), 4, '[max] on a shaped array returns the largest';
 }
 
+# --- Ranges of Ints answer from their endpoints -----------------------------
+
+# Range.sum computes the sum of a run of Ints from the endpoints, so a
+# reduction of + over one answers without folding, however long the run.
+is-deeply ([+] 2..1000000), 500000499999, '[+] on a Range of Ints sums it from its endpoints';
+is-deeply ([+] 5..5), 5, '[+] on a Range of Ints holding one value returns that value';
+is-deeply ([+] 2..1), 0, '[+] on a Range of Ints holding none returns the identity of +';
+is-deeply ([+] 1^..^10), 44, '[+] on a Range of Ints excluding its endpoints sums the values between them';
+is-deeply ([+] 1..^10), 45, '[+] on a Range of Ints excluding its end sums the values before it';
+is-deeply ([+] 1^..10), 54, '[+] on a Range of Ints excluding its start sums the values after it';
+is-deeply ([+] ^10), 45, '[+] on a Range counting up to a value sums the values below it';
+is-deeply ([+] Range.new(2, 10, :excludes-min)), 52, '[+] on a Range of Ints built with an adverb sums what it excludes to';
+is-deeply ([+] 10**20..10**20+2), 3*10**20+3, '[+] on a Range of big Ints sums it from its endpoints';
+is-deeply ([+] 2e0..5e0), 14e0, '[+] on a Range of integer valued Nums folds to a Num';
+is-deeply ([min] 2..1000000), 2, '[min] on a Range of Ints returns its start';
+is-deeply ([max] 2..1000000), 1000000, '[max] on a Range of Ints returns its end';
+is-deeply ([min] 1^..^10), 2, '[min] on a Range of Ints excluding its start returns the value after it';
+is-deeply ([max] 1^..^10), 9, '[max] on a Range of Ints excluding its end returns the value before it';
+is-deeply ([min] 2..1), Inf, '[min] on a Range of Ints holding none returns the identity of min';
+is-deeply ([max] 2..1), -Inf, '[max] on a Range of Ints holding none returns the identity of max';
+is-deeply ([max] Range.new(2, 10, :excludes-max)), 9, '[max] on a Range of Ints built with an adverb excludes its end';
+is-deeply ([min] 5^..^5), Inf, '[min] on a Range of Ints excluding both of its equal endpoints returns the identity';
+is-deeply ([max] ^0), -Inf, '[max] on a Range counting up to zero returns the identity';
+is-deeply ([min] -5..-1), -5, '[min] on a Range of negative Ints returns its start';
+is-deeply ([max] -5..-1), -1, '[max] on a Range of negative Ints returns its end';
+is-deeply ([+] False..True), 1, '[+] on a Range of Bools sums the Ints the run holds';
+is-deeply ([+] <2>..<5>), 14, '[+] on a Range of allomorphs sums the Ints the run holds';
+is-deeply ([min] False..True), 0, '[min] on a Range of Bools returns the Int the run starts on';
+is-deeply ([max] False..True), 1, '[max] on a Range of Bools returns the Int the run ends on';
+is-deeply ([min] <2>..<9>), 2, '[min] on a Range of allomorphs returns the Int the run starts on';
+is-deeply ([max] <2>..<9>), 9, '[max] on a Range of allomorphs returns the Int the run ends on';
+is-deeply ([min] 10**20..10**20+2), 10**20, '[min] on a Range of big Ints returns its start';
+is-deeply ([max] 10**20..10**20+2), 10**20+2, '[max] on a Range of big Ints returns its end';
+is-deeply ([max] 1.5..3), 2.5, '[max] on a bounded Range of Rationals folds to the value the run ends on';
+
 # --- an itemized argument counts as one value -------------------------------
 
 {
@@ -335,6 +376,12 @@ is ([min] List), Inf, '[min] on an undefined List returns the identity of min';
     is-deeply ([max] $endless), (1..Inf), '[max] on an itemized Range returns that Range';
 }
 is-deeply ([min] $(1..Inf)), (1..Inf), '[min] on an itemized Range term returns that Range';
+{
+    my $itemized = 2..5;
+    is-deeply ([+] $itemized), 4, '[+] on an itemized Range of Ints counts it as one value';
+    is-deeply ([min] $itemized), 2..5, '[min] on an itemized Range of Ints returns that Range';
+    is-deeply ([max] $itemized), 2..5, '[max] on an itemized Range of Ints returns that Range';
+}
 
 # --- an undefined Range has no endpoints to read ----------------------------
 
@@ -343,6 +390,16 @@ is ([max] Range), -Inf, '[max] on an undefined Range returns the identity of max
 {
     my Range $unset;
     is ([min] $unset), Inf, '[min] on an itemized undefined Range returns the identity';
+}
+{
+    my @warnings;
+    my $sum = do {
+        CONTROL { when CX::Warn { @warnings.push(.message); .resume } }
+        [+] Range;
+    };
+    is $sum, 0, '[+] on an undefined Range returns the identity of +';
+    like @warnings[0], /'uninitialized value'/,
+      '[+] on an undefined Range warns that it has no values';
 }
 
 # --- values that never run out ----------------------------------------------
@@ -454,6 +511,15 @@ my $work = start {
 
     is-deeply ([\+] 1..Inf).head(3).List, (1, 3, 6),
       '[\+] on a Range without an end stays lazy';
+
+    # A run of Ints too long to walk within the timeout answers all three
+    # operators only through its endpoints.
+    is-deeply ([+] 1..10**12), 500000000000500000000000,
+      '[+] on a long Range of Ints answers without walking it';
+    is-deeply ([min] 1..10**12), 1,
+      '[min] on a long Range of Ints answers without walking it';
+    is-deeply ([max] 1..10**12), 1000000000000,
+      '[max] on a long Range of Ints answers without walking it';
 
     $complete = True;
 };

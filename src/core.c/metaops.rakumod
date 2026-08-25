@@ -195,6 +195,15 @@ my sub REDUCE-ENDLESS-RANGE(Mu \value) is implementation-detail {
       && nqp::not_i(nqp::eqaddr(value.head,Nil))
 }
 
+# Reports whether a value is a Range producing a run of Ints
+# its endpoints describe.
+my sub REDUCE-INT-RANGE(Mu \value) is implementation-detail {
+    nqp::not_i(nqp::iscont(value))
+      && nqp::eqaddr(nqp::what(value),Range)
+      && nqp::isconcrete(value)
+      && nqp::getattr_i(value,Range,'$!is-int')
+}
+
 # The settling reduction and the one for + each keep their own copy of this
 # fold: the first adds a test to the loop, and the second names its operator
 # rather than reaching it through a reference.
@@ -319,12 +328,14 @@ my sub REDUCE-PLUS-REIFIED(\values) is raw is implementation-detail {
     )
 }
 
-# Range.sum decides for a Range with Real endpoints that goes on producing
-# values.  Other endpoint types have no answer to take and are folded.  A sole
-# list holding nothing left to produce has its values in a buffer already, so
-# they are summed from there.  The reductions of min and max keep their own
-# copies of the probe for one, since a shared probe would cost a call where
-# most of its tests cost less.
+# Range.sum decides for a Range producing a run of Ints, where its formula
+# arrives at the same Int the fold does, and for one with Real endpoints that
+# goes on producing values.  A finite Range with other endpoint types folds,
+# since Range.sum answers an integer valued Num endpoint with an Int where
+# the fold answers with a Num.  A sole list holding nothing left to produce
+# has its values in a buffer already, so they are summed from there.  The
+# reductions of min and max keep their own copies of the probe for one, since
+# a shared probe would cost a call where most of its tests cost less.
 my sub REDUCE-LEFT-SUM(|args) is raw is implementation-detail {
     my \list := nqp::getattr(nqp::decont(args),Capture,'@!list');
     nqp::if(
@@ -340,9 +351,10 @@ my sub REDUCE-LEFT-SUM(|args) is raw is implementation-detail {
         REDUCE-PLUS-REIFIED(first),
         nqp::if(
           nqp::istype(first,Range)
-            && REDUCE-ENDLESS-RANGE(first)
-            && nqp::istype(first.min,Real)
-            && nqp::istype(first.max,Real),
+            && (REDUCE-INT-RANGE(first)
+                 || (REDUCE-ENDLESS-RANGE(first)
+                      && nqp::istype(first.min,Real)
+                      && nqp::istype(first.max,Real))),
           first.sum,
           REDUCE-PLUS-VALUES(|args))),
       REDUCE-PLUS-VALUES(|args))
@@ -698,7 +710,8 @@ my sub REDUCE-MAX-VALUES(+values) is implementation-detail {
 # A Range of Reals never steps below where it starts, so its start is the
 # smallest value it produces.  One climbing through values that are not Reals
 # can step below its start, the way a Str rolls over from z to aa, so it is
-# folded.
+# folded.  A run of Ints is taken however long it is, and one producing
+# nothing keeps the identity the operator gives an empty sequence.
 my sub REDUCE-LIST-MIN(|args) is implementation-detail {
     my \list := nqp::getattr(nqp::decont(args),Capture,'@!list');
     nqp::if(
@@ -718,13 +731,21 @@ my sub REDUCE-LIST-MIN(|args) is implementation-detail {
           infix:<min>(first)),
         nqp::if(
           nqp::istype(first,Range)
-            && REDUCE-ENDLESS-RANGE(first)
-            && nqp::istype(first.min,Real),
-          first.head,
+            && (REDUCE-INT-RANGE(first)
+                 || (REDUCE-ENDLESS-RANGE(first)
+                      && nqp::istype(first.min,Real))),
+          nqp::if(
+            nqp::eqaddr((my \head := first.head),Nil),
+            infix:<min>(),
+            head),
           REDUCE-MIN-VALUES(|args))),
       REDUCE-MIN-VALUES(|args))
 }
 
+# A Range producing a run of Ints climbs to its top endpoint less its
+# exclusion, and the subtraction answers with the plain Int the run itself
+# ends on, whatever Int subtype the endpoint is.  One producing nothing
+# keeps the operator's empty identity.
 # An Int or a Rational climbs by one without bound, so a Range of either
 # towards Inf exceeds every value it produces, though one with nothing to
 # divide by stays put, which misplaces the answer only at -Inf.  A Num stops
@@ -750,14 +771,22 @@ my sub REDUCE-LIST-MAX(|args) is implementation-detail {
           infix:<max>(first)),
         nqp::if(
           nqp::istype(first,Range)
-            && REDUCE-ENDLESS-RANGE(first)
-            && (nqp::istype((my \low := first.min),Int)
-                  || nqp::istype(low,Rational))
-            && low != -Inf
-            && nqp::istype((my \high := first.max),Real)
-            && high == Inf,
-          Inf,
-          REDUCE-MAX-VALUES(|args))),
+            && REDUCE-INT-RANGE(first),
+          nqp::if(
+            nqp::eqaddr(first.head,Nil),
+            infix:<max>(),
+            nqp::getattr(first,Range,'$!max')
+              - nqp::getattr_i(first,Range,'$!excludes-max')),
+          nqp::if(
+            nqp::istype(first,Range)
+              && REDUCE-ENDLESS-RANGE(first)
+              && (nqp::istype((my \low := first.min),Int)
+                    || nqp::istype(low,Rational))
+              && low != -Inf
+              && nqp::istype((my \high := first.max),Real)
+              && high == Inf,
+            Inf,
+            REDUCE-MAX-VALUES(|args)))),
       REDUCE-MAX-VALUES(|args))
 }
 

@@ -1,6 +1,6 @@
 use Test;
 
-plan 15;
+plan 18;
 
 # A doc block belongs to the statement that follows it in the same statement
 # list. A doc block preceding a package declaration must not end up inside
@@ -147,6 +147,39 @@ rx
 =end pod
 my $r = / :my $q = 1; abc /;
 $=pod.elems
+CODE
+
+is EVAL(q:to/CODE/), True, 'a doc block inside a stub method body keeps the stub a stub';
+my role SinkE {
+    method dispatch($event) {
+=begin pod
+internal
+=end pod
+        ...
+    }
+}
+SinkE.^lookup('dispatch').yada
+CODE
+
+is EVAL(q:to/CODE/), True, 'a doc block inside a stub sub body keeps the stub a stub';
+sub f() {
+=begin pod
+internal
+=end pod
+    ...
+}
+&f.yada
+CODE
+
+is EVAL(q:to/CODE/), 42, 'a stub sub with an inline doc block can be redeclared';
+sub g() {
+=begin pod
+internal
+=end pod
+    ...
+}
+sub g() { 42 }
+g()
 CODE
 
 # vim: expandtab shiftwidth=4

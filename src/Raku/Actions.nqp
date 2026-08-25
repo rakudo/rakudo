@@ -197,6 +197,24 @@ role Raku::CommonActions {
     # this was done with the "r" method.  Since it is apparently impossible
     # to reliably export Nodify, this interface is kept alive.
     method r(str $class) { Nodify($class) }
+
+    # A statement parsed outside of any statement list, as in the argument
+    # of a statement prefix or a regex :my declaration, is a dead end for
+    # doc blocks it claimed, since it is never added to a statement list.
+    # Hand them back for the enclosing statement to claim into its own
+    # statement list.
+    method reclaim-doc-blocks($ast) {
+        if nqp::istype($ast, Nodify('Statement')) {
+            my $blocks := $ast.take-doc-blocks;
+            if nqp::islist($blocks) {
+                for $blocks {
+                    $*DOC-BLOCKS-COLLECTED.push(
+                      nqp::list($*STATEMENT-ID - 1, $_, -1)
+                    );
+                }
+            }
+        }
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -541,6 +559,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Do any requested wrapping (-n or -p)
         my $statement-list := $<statementlist>.ast;
+
+        # Doc blocks no statement claimed reach the compilation unit here.
+        # A stale statement mark must never drop a block, so add whatever
+        # is still pending to the outermost statement list.
+        for $*DOC-BLOCKS-COLLECTED {
+            $statement-list.add-doc-block(nqp::atpos($_, 1));
+        }
+        $*DOC-BLOCKS-COLLECTED := [];
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             my @wrapped := wrap-in-for-loop($statement-list);
@@ -654,13 +680,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statementlist($/) {
         my $statements := self.collect-statements($/, 'StatementList');
 
-        # Add any uncollected doc blocks.  This can happen if there
-        # are no statements in a statementlist, e.g. in a rakudoc
-        # only file.
-        for $*DOC-BLOCKS-COLLECTED {
-            $statements.add-doc-block($_);
+        # Add any uncollected doc blocks that were parsed inside this
+        # statement list.  This can happen if no statement follows them,
+        # e.g. in a rakudoc only file or with trailing doc blocks.  Blocks
+        # parsed before an enclosing statement started stay collected for
+        # that statement to claim.  A statement list parsed inside a doc
+        # block configuration is discarded, so it must not take anything.
+        unless $*PARSING-DOC-BLOCK {
+            my @keep;
+            for $*DOC-BLOCKS-COLLECTED {
+                nqp::atpos($_, 0) >= $*STATEMENT-LIST-MARK
+                  ?? $statements.add-doc-block(nqp::atpos($_, 1))
+                  !! nqp::push(@keep, $_);
+            }
+            $*DOC-BLOCKS-COLLECTED := @keep;
         }
-        $*DOC-BLOCKS-COLLECTED := [];
     }
     method semilist($/) { self.collect-statements($/, 'SemiList')          }
     method sequence($/) { self.collect-statements($/, 'StatementSequence') }
@@ -1240,7 +1274,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Statement prefixes
 
     # Helper method to normalize a blorst
-    method blorst($/) { self.attach: $/, $<block>.ast }
+    method blorst($/) {
+        my $ast := $<block>.ast;
+        self.reclaim-doc-blocks($ast);
+        self.attach: $/, $ast
+    }
 
     # Helper method for setting up simple prefix that just take a blorst
     method SP-prefix($/, $name) {
@@ -3244,8 +3282,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 # attachment to the following declaration, else it never reaches
                 # $=pod. The repr value is the remaining code statement.
                 for $ast.IMPL-UNWRAP-LIST($ast.semilist.statements) {
-                    $*DOC-BLOCKS-COLLECTED.push($_)
-                        if nqp::istype($_, Nodify('Doc::Block'));
+                    $*DOC-BLOCKS-COLLECTED.push(
+                      nqp::list($*STATEMENT-ID - 1, $_, -1)
+                    ) if nqp::istype($_, Nodify('Doc::Block'));
                 }
                 $repr := $ast.semilist.code-statements[0];
             }
@@ -4330,9 +4369,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $docs > 1 {
             nqp::die("Found $docs doc blocks instead of just one");
         }
-        else {
+        elsif $docs {
             for $*SEEN {
-                $*DOC-BLOCKS-COLLECTED.push($_.value);
+                $*DOC-BLOCKS-COLLECTED.push(
+                  nqp::list($*NEXT-STATEMENT-ID, $_.value, $/.from)
+                );
+            }
+        }
+        else {
+            # A block seen on an earlier pass is not collected anew.
+            # Statements inside its configuration have
+            # advanced the statement counter on this pass, so refresh the
+            # mark of the pending block at this source position to keep it
+            # claimable by the statement that follows it.
+            for $*DOC-BLOCKS-COLLECTED {
+                nqp::bindpos($_, 0, $*NEXT-STATEMENT-ID)
+                  if nqp::atpos($_, 2) == $/.from;
             }
         }
     }
@@ -4976,7 +5028,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method metachar:sym<:my>($/) {
-        self.attach: $/, Nodify('Regex::Statement').new($<statement>.ast);
+        my $ast := $<statement>.ast;
+        self.reclaim-doc-blocks($ast);
+        self.attach: $/, Nodify('Regex::Statement').new($ast);
     }
 
     method metachar:sym<{ }>($/) {

@@ -98,13 +98,38 @@ class RakuAST::Statement
     }
     method labels() { self.IMPL-WRAP-LIST($!labels) }
 
-    # Attach any collected RakuDoc blocks to this statement
+    # Attach any collected RakuDoc blocks that this statement owns: those
+    # parsed after the enclosing statement list started and before this
+    # statement started.  Statement actions run innermost first, so blocks
+    # parsed before an outer statement must be left for that statement
+    # rather than claimed by the first statement completed inside it.
     method attach-doc-blocks() {
         my @collected := $*DOC-BLOCKS-COLLECTED;
         if nqp::elems(@collected) {
-            nqp::bindattr(self, RakuAST::Statement, '$!doc-blocks', @collected);
-            $*DOC-BLOCKS-COLLECTED := [];
+            my $list-mark := $*STATEMENT-LIST-MARK;
+            my $my-id     := self.statement-id;
+            my @mine;
+            my @keep;
+            for @collected {
+                my $mark := nqp::atpos($_, 0);
+                $mark >= $list-mark && $mark < $my-id
+                  ?? nqp::push(@mine, nqp::atpos($_, 1))
+                  !! nqp::push(@keep, $_);
+            }
+            if nqp::elems(@mine) {
+                nqp::bindattr(self, RakuAST::Statement, '$!doc-blocks', @mine);
+                $*DOC-BLOCKS-COLLECTED := @keep;
+            }
         }
+    }
+
+    # Hand back any claimed doc blocks.  Used when this statement was
+    # parsed outside of any statement list, as in the argument of a
+    # statement prefix, where claimed blocks would never reach one.
+    method take-doc-blocks() {
+        my $blocks := $!doc-blocks;
+        nqp::bindattr(self, RakuAST::Statement, '$!doc-blocks', nqp::null);
+        $blocks
     }
 
     # Add any RakuDoc blocks attached to this statement to the given

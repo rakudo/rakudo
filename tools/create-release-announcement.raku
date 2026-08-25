@@ -34,8 +34,7 @@ If you would like to contribute or get more information, visit
 on IRC (#raku on Libera), or the Discord.
 
 Additionally, we invite you to make a donation to The Raku Foundation
-to sponsor Raku development: <https://rakufoundation.org/donate>
-(put “Raku Core Development Fund” in the ‘Purpose’ text field)
+to sponsor Raku development: <https://raku.foundation/Donations>.
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 

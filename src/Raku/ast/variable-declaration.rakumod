@@ -289,9 +289,12 @@ class RakuAST::ContainerCreator {
         # type itself as a value.
         $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
+        my int $isolated-match := self.lexical-name eq '$/'
+            && nqp::getcomp('Raku').language_revision >= 3;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
             RakuAST::IMPL::Containers.create-descriptor(
-                :$of, :$default, :$dynamic, :name(self.lexical-name)));
+                :$of, :$default, :$dynamic, :name(self.lexical-name),
+                :$isolated-match));
 
         Nil
     }
@@ -2725,7 +2728,10 @@ class RakuAST::VarDeclaration::Implicit::Special
             ),
             nqp::hash(  # 6.e
                 '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                # The IsolatedMatch type marks the container so method forms
+                # such as .match leave it alone instead of writing the match
+                # into their caller's $/.
+                '$/', ContainerDescriptor::IsolatedMatch.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
                 '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             )
         );

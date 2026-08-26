@@ -447,6 +447,35 @@ my class Rakudo::Internals is implementation-detail {
         )
     }
 
+    # The container to write a match into on behalf of a caller. An
+    # untyped $/ compiled by the RakuAST frontend in a 6.e scope carries
+    # the IsolatedMatch descriptor, which asks method forms not to write
+    # into it; a throwaway container takes the write instead, so shared
+    # write paths need no other check. Anything else passes through
+    # untouched: an unmarked container, a non-container from a rebound
+    # $/, and a non-Scalar container such as a native reference, which
+    # has no descriptor to inspect.
+    method SLASH-WRITE-TARGET(Mu \cont) is raw {
+        nqp::if(
+          Rakudo::Internals.IS-ISOLATED-MATCH(cont),
+          nqp::p6scalarfromdesc(nqp::null),
+          cont
+        )
+    }
+
+    # Whether the given value is a container carrying the IsolatedMatch
+    # descriptor, the $/ of a 6.e scope.
+    method IS-ISOLATED-MATCH(Mu \cont) {
+        nqp::hllbool(
+          nqp::eqaddr(nqp::what_nd(cont),Scalar)
+            && nqp::isrwcont(cont)
+            && nqp::eqaddr(
+                 nqp::what_nd(nqp::ifnull(
+                   nqp::getattr(cont,Scalar,'$!descriptor'),Mu)),
+                 ContainerDescriptor::IsolatedMatch)
+        )
+    }
+
     method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }

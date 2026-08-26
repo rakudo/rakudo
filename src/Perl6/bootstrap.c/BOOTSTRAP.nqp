@@ -1550,6 +1550,13 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
 # descriptor is used as a marker
 class ContainerDescriptor::Untyped is ContainerDescriptor { }
 
+#- ContainerDescriptor::IsolatedMatch ------------------------------------------
+# Container descriptor for the implicit $/ of a 6.e scope. The type is used
+# as a marker: method forms such as .match and .subst leave a container with
+# this descriptor alone instead of writing the match into their caller's $/,
+# while operator forms assign through it as with any other container.
+class ContainerDescriptor::IsolatedMatch is ContainerDescriptor::Untyped { }
+
 #- ContainerDescriptor::Whence -------------------------------------------------
 # Role for container descriptors that need to bind the container to some place
 # (hence the "whence") on first assignment.  Most commonly used for elements
@@ -2449,7 +2456,8 @@ BEGIN {
                         }
                         my $what := $desc.WHAT;
                         unless nqp::eqaddr($what, ContainerDescriptor) ||
-                               nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                               nqp::eqaddr($what, ContainerDescriptor::Untyped) ||
+                               nqp::eqaddr($what, ContainerDescriptor::IsolatedMatch) {
                             $desc.assigned($cont)
                                 unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                             nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
@@ -2475,7 +2483,8 @@ BEGIN {
                 my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
                 my $what := $desc.WHAT;
                 unless nqp::eqaddr($what, ContainerDescriptor) ||
-                       nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                       nqp::eqaddr($what, ContainerDescriptor::Untyped) ||
+                       nqp::eqaddr($what, ContainerDescriptor::IsolatedMatch) {
                     $desc.assigned($cont)
                         unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                     nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);

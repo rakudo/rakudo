@@ -381,7 +381,6 @@ class RakuAST::TraitTarget::Variable
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::BeginTime
-  is RakuAST::CheckTime
 {
     has str $!name;
     has str $!scope;
@@ -406,10 +405,6 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-    }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-trait-sorries;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -1324,9 +1319,8 @@ class RakuAST::VarDeclaration::Simple
             );
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
-            # No check time: the target's PERFORM-CHECK would only replay
-            # trait sorries, and the apply-traits call below records those
-            # on the declaration itself.
+            # The apply-traits call below records trait sorries on the
+            # declaration itself, so the target needs no check time.
             $target.to-begin-time($resolver, $context);
 
             if self.twigil eq '.' {

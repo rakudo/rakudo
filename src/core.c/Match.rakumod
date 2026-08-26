@@ -443,9 +443,16 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
 }
 
 
+# Attach to the match of the nearest enclosing regex frame when there is
+# one: its cursor cannot be disturbed by user code, while $/ can have been
+# overwritten by a match run inside the regex's code block. Outside of a
+# regex frame, such as in an action method, the caller's $/ is the match.
 sub make(Mu \made) {
-    my $slash := nqp::decont(nqp::getlexcaller('$/'));
-    nqp::istype($slash, NQPMatchRole)
+    my $cursor := nqp::decont(nqp::getlexcaller('$¢'));
+    my $slash  := nqp::decont(nqp::getlexcaller('$/'));
+    nqp::isconcrete($cursor) && nqp::istype($cursor, NQPMatchRole)
+      ?? nqp::bindattr($cursor.MATCH, Match, '$!made', made)
+      !! nqp::istype($slash, NQPMatchRole)
         ?? nqp::bindattr($slash,Match,'$!made',made)
         !! X::Make::MatchRequired.new(:got($slash)).throw
 }

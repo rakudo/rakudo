@@ -162,7 +162,9 @@ class RakuAST::LexicalScope
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-simple-lexical-declaration {
-                                if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic) && $decl.IMPL-NOT-IF-DUPLICATE {
+                                if (nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic)
+                                      && $decl.IMPL-NOT-IF-DUPLICATE)
+                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch) {
                                     nqp::push(@not-if-duplicate, $decl);
                                 }
                                 elsif !%declarations-seen{nqp::objectid($decl)} {
@@ -181,8 +183,9 @@ class RakuAST::LexicalScope
             }
             for @not-if-duplicate -> $decl {
                 my $found := 0;
+                my str $name := $decl.lexical-name;
                 for @declarations {
-                    if $_.lexical-name eq '$_' && !($_ =:= $decl) {
+                    if $_.lexical-name eq $name && !($_ =:= $decl) {
                         $found := 1;
                         last;
                     }
@@ -190,9 +193,17 @@ class RakuAST::LexicalScope
                 unless $found {
                     # Implicits are declared right at the start of a lexical scope anyway,
                     # so it should be safe to unshift them. We need them to be declared before
-                    # they are first used.
-                    nqp::unshift(@declarations, $decl);
-                    nqp::unshift(@variables, $decl);
+                    # they are first used. A block's $/ instead goes at the end: its entry
+                    # initialization reads the topic, so it must run after the topic
+                    # parameter has bound.
+                    if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch) {
+                        nqp::push(@declarations, $decl);
+                        nqp::push(@variables, $decl);
+                    }
+                    else {
+                        nqp::unshift(@declarations, $decl);
+                        nqp::unshift(@variables, $decl);
+                    }
                 }
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);

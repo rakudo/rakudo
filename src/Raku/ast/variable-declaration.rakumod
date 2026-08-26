@@ -2759,6 +2759,56 @@ class RakuAST::VarDeclaration::Implicit::Special
     }
 }
 
+# The implicit match variable of a 6.e block: a fresh container per
+# invocation, initialized at entry from the topic when the topic is a
+# Match, and otherwise from the value of the enclosing $/. A regex
+# operator in the block then writes the block's own container, so
+# matching in one block never disturbs the match state of another frame,
+# and a block invoked with a Match reads that Match's captures.
+class RakuAST::VarDeclaration::Implicit::BlockMatch
+  is RakuAST::VarDeclaration::Implicit::Special
+{
+    # The declaration is emitted after the topic parameter so its entry
+    # initialization can read the topic, while lookups of $/ anywhere in
+    # the block are its uses. That order is not a post-declaration worth
+    # reporting.
+    method report-redeclaration() {
+        False
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        # The topic check is against NQPMatchRole rather than Match: the
+        # role is resolvable here at compile time, while a lexical lookup
+        # of the name Match would bind to any user type of that name.
+        QAST::Stmts.new(
+            QAST::Var.new(
+                :scope('lexical'), :decl('contvar'), :name(self.name),
+                :value($container)
+            ),
+            QAST::Op.new(
+                :op('p6assign'),
+                QAST::Var.new( :scope('lexical'), :name(self.name) ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :scope('lexical'), :name('$_') )
+                        ),
+                        QAST::WVal.new( :value(NQPMatchRole) )
+                    ),
+                    QAST::Var.new( :scope('lexical'), :name('$_') ),
+                    QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value(self.name) ) )
+                )
+            )
+        )
+    }
+}
+
 # Implicit block topic declaration. By default it is an optional parameter,
 # but can be configured to be either a non-parameter (always from outer), a
 # required parameter, or to obtain the current exception (for when it is a

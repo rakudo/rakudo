@@ -653,6 +653,23 @@ class RakuAST::IMPL::VarLowering {
                     self.IMPL-MARK-MAGICAL-USED('$_');
                 }
             }
+            elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch) {
+                if $used || $poisoned {
+                    # A kept block match reads the enclosing $/ by name
+                    # at entry.
+                    self.IMPL-MARK-MAGICAL-USED('$/');
+                }
+                else {
+                    # Unlike a routine's $/, a block only sets its own
+                    # match variable up when the block itself mentions
+                    # it, so a callee reaching $/ by name sees the
+                    # nearest frame that kept one. Keeping it whenever
+                    # the frame makes a call would cost a container
+                    # clone and an initialization on almost every block
+                    # entry.
+                    $decl.IMPL-SET-UNUSED();
+                }
+            }
             elsif nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Special) {
                 my str $name := $decl.name;
                 if $name eq '$_' {

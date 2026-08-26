@@ -1267,13 +1267,42 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # This is like HLL::Grammar.LANG but it allows to call a token of a
     # Raku level grammar.  Takes the language (usually 'MAIN') and the
     # name of the regex to be executed.
-    method FOREIGN-LANG($langname, $regex) {
+    method FOREIGN-LANG($langname, $regex, *@args, *%named) {
         my $grammar := self.slang_grammar($langname);
+        self.panic("No language '" ~ $langname ~ "' is registered")
+          if nqp::isnull($grammar);
         if nqp::istype($grammar, NQPMatch) {
-            self.LANG($langname, $regex);
+            self.LANG($langname, $regex, |@args, |%named);
         }
         else {
-            nqp::die('FOREIGN-LANG non-NQP branch NYI')
+            # The foreign cursor cannot reuse this parse's shared state
+            # because regexes of a Raku level grammar expect their own
+            # shared type.
+            my $lang-cursor := $grammar.'!cursor_init'(self.orig, :p(self.pos));
+            $lang-cursor.clone_braid_from(self);
+            $lang-cursor.set_actions(self.slang_actions($langname));
+            my $ret := $lang-cursor."$regex"(|@args, |%named);
+
+            # Rebuild the Raku level match as an NQP one so the calling
+            # grammar can consume its extent and made value like any
+            # other subrule result.  Captures of the foreign parse stay
+            # behind, so values must cross the boundary through make.
+            my $Match := $*R.type-from-setting('Match');
+
+            # Transfer the extent the capture markers of the foreign
+            # regex determined, without reifying its captures.
+            $ret.CURSOR_CAPTURE_MARKERS;
+            my $new := nqp::create(NQPMatch);
+            nqp::bindattr($new, NQPMatch, '$!shared', self.'!shared'());
+            nqp::bindattr_i($new, NQPMatch, '$!from',
+              nqp::getattr_i($ret, $Match, '$!from'));
+            nqp::bindattr_i($new, NQPMatch, '$!pos',
+              nqp::getattr_i($ret, $Match, '$!pos'));
+            nqp::bindattr_i($new, NQPMatch, '$!to',
+              nqp::getattr_i($ret, $Match, '$!to'));
+            nqp::bindattr($new, NQPMatch, '$!made',
+              nqp::getattr($ret, $Match, '$!made'));
+            $new.set_braid_from(self)
         }
     }
 

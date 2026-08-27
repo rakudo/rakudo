@@ -330,7 +330,7 @@ do {
             $!grammar  := nqp::null;
             $!actions  := nqp::null;
             $!multi-line-enabled = $multi-line-enabled;
-            PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {
+            $*SCHEDULER.uncaught_handler =  -> $exception {
                 note "Uncaught exception on thread $*THREAD.id():\n" ~
                     $exception.gist.indent(4);
             }

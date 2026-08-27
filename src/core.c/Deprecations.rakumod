@@ -136,8 +136,10 @@ class Rakudo::Deprecations {
 }
 
 END {
-    unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
-        if Deprecation.report -> $message {
+    # Checking the report first keeps a process that saw no deprecations
+    # from building %*ENV just to learn it has nothing to say.
+    if Deprecation.report -> $message {
+        unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these occurrences of deprecated code
 adapted, so that this message will disappear!';

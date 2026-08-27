@@ -11,14 +11,19 @@ my class ThreadPoolScheduler does Scheduler {
 
     my constant UNLIMITED_THREADS = 9223372036854775807; # 2⁶³-1
 
-    # Scheduler defaults controlled by environment variables
-    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+    # Scheduler defaults controlled by environment variables. Read from
+    # the raw environment so a scheduler debug check does not build %*ENV.
+    my $ENV := nqp::getenvhash;
+    # The val() call keeps the truthiness %*ENV values have, so an
+    # explicit 0 keeps meaning off.
     my int $scheduler-debug;
     $scheduler-debug = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');
+      if nqp::existskey($ENV,'RAKUDO_SCHEDULER_DEBUG')
+      && val(nqp::box_s(nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG'),Str));
     my int $scheduler-debug-status;
     $scheduler-debug-status = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS');
+      if nqp::existskey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS')
+      && val(nqp::box_s(nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS'),Str));
 
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
@@ -1163,5 +1168,12 @@ my class ThreadPoolScheduler does Scheduler {
         $data
     }
 }
+
+#?if !js
+# This thread pool scheduler will be the default one.
+Rakudo::Internals.REGISTER-DYNAMIC: '$*SCHEDULER', {
+    PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
+}
+#?endif
 
 # vim: expandtab shiftwidth=4

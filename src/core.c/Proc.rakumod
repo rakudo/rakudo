@@ -182,7 +182,10 @@ my class Proc {
         my %ENV := $env ?? $env.hash !! %*ENV;
         $!proc := Proc::Async.new(|@args, :$!w, :$arg0, :$win-verbatim-args);
         .() for @!pre-spawn;
-        $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
+        # The stash read alone would miss the lazy initializer, and the
+        # process scheduler stays preferred over a lexical $*SCHEDULER.
+        $!finished = $!proc.start(:$cwd, :%ENV, scheduler =>
+          $PROCESS::SCHEDULER // Rakudo::Internals.INITIALIZE-DYNAMIC('$*SCHEDULER'));
         my $is-spawned := do {
             CATCH {
                 when X::OS { $!os-error = $_.os-error; self!set-status($_.error-code) }

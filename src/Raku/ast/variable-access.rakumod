@@ -747,7 +747,7 @@ class RakuAST::Var::Compiler::Routine
             $routine.set-need-routine-variable();
         }
 
-        my $resolved := $resolver.resolve-lexical('&?ROUTINE');
+        my $resolved := $resolver.resolve-lexical('&?ROUTINE', :current-scope-only);
         if $resolved {
             self.set-resolution($resolved);
         }

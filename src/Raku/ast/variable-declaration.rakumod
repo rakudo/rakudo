@@ -2005,11 +2005,24 @@ class RakuAST::VarDeclaration::Simple
             $source-qast := QAST::Op.new( :op('decont'), $source-qast );
         }
         my $type := self.return-type;
-        unless nqp::eqaddr($type, Mu) || $type.HOW.archetypes($type).generic {
-            $context.ensure-sc($type);
-            $source-qast := QAST::Op.new(
-                :op('p6bindassert'),
-                $source-qast, QAST::WVal.new( :value($type) ));
+        unless nqp::eqaddr($type, Mu) {
+            if $type.HOW.archetypes($type).generic {
+                # A generic constraint is an un-instantiated stub at compile
+                # time, which no value matches. A plain named type is a
+                # lexical holding the concrete type where the bind runs, so
+                # the assertion looks the type up instead of embedding it.
+                if $sigil eq '$' && $!type && nqp::istype($!type, RakuAST::Lookup) {
+                    $source-qast := QAST::Op.new(
+                        :op('p6bindassert'),
+                        $source-qast, $!type.IMPL-TO-QAST($context));
+                }
+            }
+            else {
+                $context.ensure-sc($type);
+                $source-qast := QAST::Op.new(
+                    :op('p6bindassert'),
+                    $source-qast, QAST::WVal.new( :value($type) ));
+            }
         }
         self.IMPL-BIND-QAST($context, $source-qast)
     }

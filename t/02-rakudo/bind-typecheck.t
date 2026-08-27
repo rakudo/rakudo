@@ -7,13 +7,13 @@ use MONKEY-SEE-NO-EVAL;
 # sigil. The check covers types that wrap another type node, such as
 # definite, coercion, and parameterized types, and also applies when
 # the target is a typed is copy parameter rebound in the routine body.
-# A bind declaration checks the same way, works when the constraint
-# is generic, and is refused on a shaped array declaration, whose
-# shape the bind would discard.
+# A bind declaration checks the same way and is refused on a shaped
+# array declaration, whose shape the bind would discard. A generic
+# constraint is checked against the type it is instantiated with.
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
-plan 44;
+plan 47;
 
 {
     my Int $y = 42;
@@ -203,6 +203,12 @@ throws-like {
 }
 
 throws-like {
+    my role R[::T] { method m(T $x is copy, $y) { $x := $y } }
+    R[Int].new.m(1, "s");
+}, X::TypeCheck::Binding,
+    'rebinding a generic typed is copy parameter to the wrong type throws';
+
+throws-like {
     my Int $x := "s";
 }, X::TypeCheck::Binding,
     'a bind declaration of a typed scalar checks the bound value';
@@ -283,9 +289,21 @@ if $rakuast {
         R[Int].new.m(5)
         CODE
         'a bind declaration with a generic type takes the bound value';
+
+    throws-like q:to/CODE/, X::TypeCheck::Binding,
+        my role R[::T] { method m($v) { my T $x := $v } }
+        R[Int].new.m("s")
+        CODE
+        'a bind declaration with a generic type checks the bound value';
+
+    is EVAL(q:to/CODE/), 2,
+        my role R[::T] { method m(T $x is copy, T $y) { $x := $y; $x } }
+        R[Int].new.m(1, 2)
+        CODE
+        'a generic typed is copy parameter can be rebound to a matching value';
 }
 else {
-    skip 'the legacy frontend does not compile a bind declaration with a generic type';
+    skip 'the legacy frontend asserts a generic bind against the un-instantiated type', 3;
 }
 
 # vim: expandtab shiftwidth=4

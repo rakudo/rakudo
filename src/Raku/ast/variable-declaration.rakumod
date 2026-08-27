@@ -1393,6 +1393,15 @@ class RakuAST::VarDeclaration::Simple
             inner => self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE,
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
+        # A bind replaces the declared container, which would discard an
+        # array's shape, so a shaped array declaration cannot take a binding
+        # initializer. A keyed hash also sets the shape, but its keys live
+        # on the container type the bind checks, so it binds fine.
+        self.add-sorry(
+          $resolver.build-exception: 'X::Bind'
+        ) if $!shape && self.sigil eq '@'
+          && $!initializer && $!initializer.is-binding;
+
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
                 RakuAST::Var::Lexical,
@@ -1834,19 +1843,10 @@ class RakuAST::VarDeclaration::Simple
                     my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
                     my $perform-init-qast;
                     if $!initializer.is-binding {
-                        my $source := $sigil eq '@' || $sigil eq '%'
-                          ?? QAST::Op.new( :op('decont'), $init-qast)
-                          !! $init-qast;
-                        my $type := self.bind-constraint;
-                        $context.ensure-sc($type);
-                        if !nqp::eqaddr($type, Mu) {
-                            $source := QAST::Op.new(
-                                :op('p6bindassert'),
-                                $source, QAST::WVal.new( :value($type) ))
-                        }
-                        $perform-init-qast := QAST::Op.new(
-                          :op('bind'), $var-access, $source
-                        );
+                        # The bind replaces the declared container, so it
+                        # targets the variable itself rather than any
+                        # instantiate_generic wrap of the access.
+                        $perform-init-qast := self.IMPL-CHECKED-BIND-QAST($context, $init-qast);
                     }
                     else {
                         # Assignment. Case-analyze by sigil.

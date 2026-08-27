@@ -1,12 +1,19 @@
+use nqp;
 use Test;
+use MONKEY-SEE-NO-EVAL;
 
 # An infix bind checks its source against the target container's bind
 # constraint and deconts the source when the target has the @ or %
 # sigil. The check covers types that wrap another type node, such as
 # definite, coercion, and parameterized types, and also applies when
 # the target is a typed is copy parameter rebound in the routine body.
+# A bind declaration checks the same way, works when the constraint
+# is generic, and is refused on a shaped array declaration, whose
+# shape the bind would discard.
 
-plan 27;
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+
+plan 44;
 
 {
     my Int $y = 42;
@@ -112,6 +119,20 @@ throws-like {
 }
 
 throws-like {
+    my %h is Hash[Int];
+    my %b = a => "x";
+    %h := %b;
+}, X::TypeCheck::Binding,
+    'binding an untyped hash to a % sigil variable with an explicit container base throws';
+
+{
+    my %h is Hash[Int];
+    %h := Hash[Int].new((a => 1));
+    is %h<a>, 1,
+        'can bind a matching hash to a % sigil variable with an explicit container base';
+}
+
+throws-like {
     my %h;
     %h := 5;
 }, X::TypeCheck::Binding,
@@ -179,6 +200,92 @@ throws-like {
 {
     my role R[::T] { method m(T $x is copy, T $y) { $x := $y; $x } }
     ok R[Int] ~~ R, 'a role body with a bind to a generic typed variable compiles';
+}
+
+throws-like {
+    my Int $x := "s";
+}, X::TypeCheck::Binding,
+    'a bind declaration of a typed scalar checks the bound value';
+
+{
+    my $y = 5;
+    my Int $x := $y;
+    is $x, 5, 'a valid bind declaration of a typed scalar takes the value';
+    $y = 7;
+    is $x, 7, 'a bind declaration of a scalar aliases the source container';
+}
+
+throws-like {
+    my Int @a := ["x"];
+}, X::TypeCheck::Binding,
+    'a bind declaration of a typed @ sigil variable checks the bound value';
+
+{
+    my Int @a := Array[Int].new(1, 2);
+    is-deeply @a, Array[Int].new(1, 2),
+        'a valid bind declaration of a typed @ sigil variable takes the value';
+}
+
+{
+    my @b = 1, 2;
+    my $s = @b;
+    my @a := $s;
+    is @a.VAR.^name, 'Array',
+        'a bind declaration of an @ sigil variable deconts the source';
+}
+
+throws-like {
+    my Int %h := { a => "x" };
+}, X::TypeCheck::Binding,
+    'a bind declaration of a typed % sigil variable checks the bound value';
+
+{
+    my Int %h := Hash[Int].new((a => 1));
+    is %h<a>, 1,
+        'a valid bind declaration of a typed % sigil variable takes the value';
+}
+
+throws-like {
+    my $x of Int;
+    $x := "s";
+}, X::TypeCheck::Binding,
+    'binding a value of the wrong type to a variable typed by an of trait throws';
+
+{
+    our $x := 5;
+    is $x, 5, 'a bind declaration of an our variable takes the value';
+}
+
+{
+    class WithKeys does Associative[Any, Int] { method AT-KEY($k) { 42 } }
+    my %h{Int} := WithKeys.new;
+    is %h{1}, 42, 'a keyed hash declaration can take a binding initializer';
+}
+
+{
+    class ShapedAttr { has @.a[2] }
+    is-deeply ShapedAttr.new.a.shape, (2,),
+        'a shaped attribute declaration without a binding initializer keeps its shape';
+}
+
+{
+    my @a[2] = 1, 2;
+    is @a[1], 2, 'a shaped array declaration with an assignment initializer works';
+}
+
+throws-like q[my @a[2] := [1,2]],
+    X::Bind,
+    'a bind declaration of a shaped variable is refused at compile time';
+
+if $rakuast {
+    is EVAL(q:to/CODE/), 5,
+        my role R[::T] { method m(T $v) { my T $x := $v; $x } }
+        R[Int].new.m(5)
+        CODE
+        'a bind declaration with a generic type takes the bound value';
+}
+else {
+    skip 'the legacy frontend does not compile a bind declaration with a generic type';
 }
 
 # vim: expandtab shiftwidth=4

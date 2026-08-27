@@ -2419,6 +2419,10 @@ class RakuAST::Routine
 
     method declaration-kind() { 'routine' }
 
+    # RakuAST::Code answers this too, but the method resolution order
+    # reaches RakuAST::Expression first for routines.
+    method needs-sink-call() { False }
+
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['routine', 'block'])
     }
@@ -3079,11 +3083,11 @@ class RakuAST::Routine
                         )
                     )
                 }
-                else { # No need to replace the lexical with the closure clone if declared in the comp unit directly
-                    QAST::Stmts.new(
-                        QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) ),
-                        self.IMPL-CLOSURE-QAST($context),
-                    )
+                else {
+                    # The comp unit's frame runs once per load, so the
+                    # serialized routine works as the lexical's value as is.
+                    $context.ensure-sc(self.meta-object);
+                    QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) )
                 }
             }
         }

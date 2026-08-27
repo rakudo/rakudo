@@ -126,6 +126,10 @@ class RakuAST::Var::Lexical
         self.resolution.IMPL-BIND-QAST($context, $source-qast)
     }
 
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        self.resolution.IMPL-CHECKED-BIND-QAST($context, $source-qast)
+    }
+
     method IMPL-CAN-INTERPRET() {
         self.is-resolved
           && nqp::istype(self.resolution, RakuAST::CompileTimeValue)

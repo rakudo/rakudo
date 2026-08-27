@@ -45,6 +45,13 @@ class RakuAST::Node {
     # and False otherwise.
     method can-be-bound-to() { False }
 
+    # Compiles a bind to this node, checking the source against the
+    # target's bind constraint. The default performs no check, so a node
+    # whose target carries a constraint must override this.
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        self.IMPL-BIND-QAST($context, $source-qast)
+    }
+
     # Builds the exception thrown when this cannot be bound to, but someone
     # tries to do so anyway.
     method build-bind-exception(RakuAST::Resolver $resolver) {

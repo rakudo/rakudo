@@ -1989,6 +1989,25 @@ class RakuAST::VarDeclaration::Simple
         )
     }
 
+    # Parameter binding also compiles through IMPL-BIND-QAST but with
+    # values the signature binder has already checked, some of which are
+    # VM-level and would not survive the assertion, so the assertion
+    # lives here rather than there.
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        my str $sigil := self.sigil;
+        if $sigil eq '@' || $sigil eq '%' {
+            $source-qast := QAST::Op.new( :op('decont'), $source-qast );
+        }
+        my $type := self.return-type;
+        unless nqp::eqaddr($type, Mu) || $type.HOW.archetypes($type).generic {
+            $context.ensure-sc($type);
+            $source-qast := QAST::Op.new(
+                :op('p6bindassert'),
+                $source-qast, QAST::WVal.new( :value($type) ));
+        }
+        self.IMPL-BIND-QAST($context, $source-qast)
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)
     }

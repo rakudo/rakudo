@@ -6,7 +6,7 @@ use Test;
 # definite, coercion, and parameterized types, and also applies when
 # the target is a typed is copy parameter rebound in the routine body.
 
-plan 25;
+plan 27;
 
 {
     my Int $y = 42;
@@ -96,6 +96,19 @@ throws-like {
     @a := @b;
     @b.push(3);
     is @a.elems, 3, 'binding an array to an @ sigil variable aliases it';
+}
+
+throws-like {
+    my @a is Array[Int];
+    @a := ["x"];
+}, X::TypeCheck::Binding,
+    'binding an untyped array to an @ sigil variable with an explicit container base throws';
+
+{
+    my @a is Array[Int];
+    @a := Array[Int].new(1, 2);
+    is-deeply @a, Array[Int].new(1, 2),
+        'can bind a matching array to an @ sigil variable with an explicit container base';
 }
 
 throws-like {

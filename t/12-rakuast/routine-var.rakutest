@@ -1,0 +1,87 @@
+use v6.e.PREVIEW;
+use Test;
+
+# &?ROUTINE names the innermost enclosing routine. A sub nested in a method
+# has its own &?ROUTINE, at any nesting depth and through an intervening
+# block, even though a method's implicit declaration is live in the resolver
+# while its body parses and a sub's is not.
+
+plan 12;
+
+{
+    class C1 {
+        method m() { sub i() { &?ROUTINE.name }; i() }
+    }
+    is C1.m, 'i', '&?ROUTINE in a sub in a method is the sub';
+}
+
+{
+    class C2 {
+        method m() { { sub i() { &?ROUTINE.name }; i() } }
+    }
+    is C2.m, 'i', '&?ROUTINE in a sub in a bare block in a method is the sub';
+}
+
+{
+    class C3 {
+        method m() { sub o() { sub i() { &?ROUTINE.name }; i() }; o() }
+    }
+    is C3.m, 'i', '&?ROUTINE in a sub in a sub in a method is the sub';
+}
+
+{
+    class C4 {
+        method m() { sub i() { &?ROUTINE === &i }; i() }
+    }
+    ok C4.m, '&?ROUTINE in a sub in a method is bound to that sub';
+}
+
+{
+    class C5 {
+        multi method m() { sub i() { &?ROUTINE.name }; i() }
+    }
+    is C5.m, 'i', '&?ROUTINE in a sub in a multi method is the sub';
+}
+
+{
+    class C6 {
+        submethod s() { sub i() { &?ROUTINE.name }; i() }
+    }
+    is C6.s, 'i', '&?ROUTINE in a sub in a submethod is the sub';
+}
+
+{
+    class C7 {
+        method m() { sub f($n) { $n <= 1 ?? 1 !! $n * &?ROUTINE($n - 1) }; f(5) }
+    }
+    is C7.m, 120, '&?ROUTINE recurses the sub it is written in from inside a method';
+}
+
+{
+    class C8 {
+        method m() { { &?ROUTINE.name } }
+    }
+    is C8.m, 'm', '&?ROUTINE directly in a bare block in a method is the method';
+}
+
+{
+    class C9 {
+        method m() { &?ROUTINE.name }
+    }
+    is C9.m, 'm', '&?ROUTINE directly in a method body is the method';
+}
+
+{
+    role R1 {
+        method m() { sub i() { &?ROUTINE.name }; i() }
+    }
+    class C10 does R1 { }
+    class C11 does R1 { }
+    is C10.m, 'i', '&?ROUTINE in a sub in a role method is the sub';
+    is C11.m, 'i', '&?ROUTINE in a sub in a role method composed a second time is the sub';
+}
+
+throws-like { EVAL '&?ROUTINE' }, X::Undeclared::Symbols,
+  '&?ROUTINE outside any routine is rejected at compile time';
+
+# vim: expandtab shiftwidth=4

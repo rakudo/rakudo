@@ -486,7 +486,7 @@ class RakuAST::Infix
         my str $op := $!operator;
         if $op eq ':=' || $op eq '≔' {
             if $left.can-be-bound-to {
-                $left.IMPL-BIND-QAST($context, $right.IMPL-TO-QAST($context))
+                $left.IMPL-CHECKED-BIND-QAST($context, $right.IMPL-TO-QAST($context))
             }
             else {
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));

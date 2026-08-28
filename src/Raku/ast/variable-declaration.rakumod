@@ -273,6 +273,13 @@ class RakuAST::ContainerCreator {
                 $container-type := $explicit-base.HOW.parameterize(
                     $explicit-base, $value-type, $key-type);
             }
+            # An @ or % variable is bound to its container directly, so the
+            # explicit base constrains what can be bound. An `is` type on a
+            # scalar names its scalar container type, which the bound value
+            # never is.
+            if $sigil eq '@' || $sigil eq '%' {
+                $bind-constraint := $container-type;
+            }
         }
 
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);
@@ -948,12 +955,7 @@ class RakuAST::VarDeclaration::Simple
             my str $sigil := self.sigil;
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
-            my $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-            return True unless nqp::objprimspec(
-                # $type will be undefined if $!type is set by an Of trait.
-                # In that case we assume the trait type has been resolved
-                ($type // $!type).resolution.compile-time-value
-            );
+            return True unless nqp::objprimspec(self.IMPL-OF-TYPE);
         }
         False
     }
@@ -1391,6 +1393,15 @@ class RakuAST::VarDeclaration::Simple
             inner => self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE,
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
+        # A bind replaces the declared container, which would discard an
+        # array's shape, so a shaped array declaration cannot take a binding
+        # initializer. A keyed hash also sets the shape, but its keys live
+        # on the container type the bind checks, so it binds fine.
+        self.add-sorry(
+          $resolver.build-exception: 'X::Bind'
+        ) if $!shape && self.sigil eq '@'
+          && $!initializer && $!initializer.is-binding;
+
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
                 RakuAST::Var::Lexical,
@@ -1577,10 +1588,9 @@ class RakuAST::VarDeclaration::Simple
               # An attribute with an explicit container base type (e.g.
               # `has Int @.a is Array`) needs the parameterized container as
               # its type, both for introspection and for REPRs that lay
-              # attributes out by type. The bind constraint is a bare Mu on
-              # that path. Only sigils whose base type is the container
-              # itself qualify. An `is` type on a scalar names its scalar
-              # container type rather than the value type.
+              # attributes out by type. Only sigils whose base type is the
+              # container itself qualify. An `is` type on a scalar names its
+              # scalar container type rather than the value type.
               type => self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
                   && ($scope eq 'HAS' || self.sigil eq '@' || self.sigil eq '%')
                 ?? self.IMPL-CONTAINER-TYPE($of)
@@ -1833,19 +1843,10 @@ class RakuAST::VarDeclaration::Simple
                     my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
                     my $perform-init-qast;
                     if $!initializer.is-binding {
-                        my $source := $sigil eq '@' || $sigil eq '%'
-                          ?? QAST::Op.new( :op('decont'), $init-qast)
-                          !! $init-qast;
-                        my $type := self.bind-constraint;
-                        $context.ensure-sc($type);
-                        if !nqp::eqaddr($type, Mu) {
-                            $source := QAST::Op.new(
-                                :op('p6bindassert'),
-                                $source, QAST::WVal.new( :value($type) ))
-                        }
-                        $perform-init-qast := QAST::Op.new(
-                          :op('bind'), $var-access, $source
-                        );
+                        # The bind replaces the declared container, so it
+                        # targets the variable itself rather than any
+                        # instantiate_generic wrap of the access.
+                        $perform-init-qast := self.IMPL-CHECKED-BIND-QAST($context, $init-qast);
                     }
                     else {
                         # Assignment. Case-analyze by sigil.
@@ -1992,6 +1993,38 @@ class RakuAST::VarDeclaration::Simple
                 !! QAST::Var.new( :name(self.name), :scope($native && $!is-rw ?? 'lexicalref' !! 'lexical') ),
             $source-qast
         )
+    }
+
+    # Parameter binding also compiles through IMPL-BIND-QAST but with
+    # values the signature binder has already checked, some of which are
+    # VM-level and would not survive the assertion, so the assertion
+    # lives here rather than there.
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        my str $sigil := self.sigil;
+        if $sigil eq '@' || $sigil eq '%' {
+            $source-qast := QAST::Op.new( :op('decont'), $source-qast );
+        }
+        my $type := self.return-type;
+        unless nqp::eqaddr($type, Mu) {
+            if $type.HOW.archetypes($type).generic {
+                # A generic constraint is an un-instantiated stub at compile
+                # time, which no value matches. A plain named type is a
+                # lexical holding the concrete type where the bind runs, so
+                # the assertion looks the type up instead of embedding it.
+                if $sigil eq '$' && $!type && nqp::istype($!type, RakuAST::Lookup) {
+                    $source-qast := QAST::Op.new(
+                        :op('p6bindassert'),
+                        $source-qast, $!type.IMPL-TO-QAST($context));
+                }
+            }
+            else {
+                $context.ensure-sc($type);
+                $source-qast := QAST::Op.new(
+                    :op('p6bindassert'),
+                    $source-qast, QAST::WVal.new( :value($type) ));
+            }
+        }
+        self.IMPL-BIND-QAST($context, $source-qast)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

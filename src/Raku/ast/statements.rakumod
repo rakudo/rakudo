@@ -434,7 +434,10 @@ class RakuAST::ForLoopImplementation
         my $count := nqp::getattr(
             nqp::getattr($body.meta-object, Code, '$!signature'),
             Signature, '$!count');
-        nqp::isconcrete($count) && $count == 1 && !$body.has-loop-phasers
+        # A slurpy positional or capture parameter makes the count a boxed
+        # Inf, and NQP's == compares as integers.
+        nqp::istype($count, Int) && nqp::isconcrete($count) && $count == 1
+            && !$body.has-loop-phasers
     }
 
     # The iterator-driven form for a sunk statement-level `for` loop.

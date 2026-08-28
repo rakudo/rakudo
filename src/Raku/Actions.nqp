@@ -101,8 +101,8 @@ sub hoist-loop-body-declarations($body, $compunit) {
     $body.visit-dfs: -> $node {
         if nqp::istype($node, Nodify('Declaration'))
           && !nqp::istype($node, Nodify('VarDeclaration::Implicit'))
-          && $node.lexical-name ne '$_'
-          && $node.is-simple-lexical-declaration {
+          && $node.is-simple-lexical-declaration
+          && $node.lexical-name ne '$_' {
             $node.set-hoisted-to-outer;
             $compunit.add-generated-lexical-declaration($node);
         }

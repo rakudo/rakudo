@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 # Under -n/-p the program runs once per input line, but its lexical
 # declarations live in the compunit mainline, so they persist across lines and
@@ -37,6 +37,11 @@ is-run 'BEGIN my $w = 0; BEGIN my $n = 0; $w += .words.elems; $n++; END say "$w 
 is-run 'my $x = 1; say $x',
     'a declared and used variable compiles and runs each line',
     :compiler-args['-n'], :in($in), :out("1\n1\n");
+
+# A signature declaration hoists through its parameter targets.
+is-run 'my ($a, $b) = 1, 2; say $a + $b',
+    'a my list declaration works under -n',
+    :compiler-args['-n'], :in($in), :out("3\n3\n");
 
 # -p modifies and prints the (writable) topic each line.
 is-run 's/a/A/',

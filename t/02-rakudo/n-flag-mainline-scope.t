@@ -5,7 +5,7 @@ use nqp;
 
 my $rakuast = nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
-plan 12;
+plan 16;
 
 # Under -n/-p the program runs once per input line, but its lexical
 # declarations live in the compunit mainline, so they persist across lines and
@@ -51,6 +51,23 @@ is-run 's/a/A/',
     '-p modifies the topic each line',
     :compiler-args['-p'], :in($in), :out("A b\nc d e\n");
 
+# A CATCH handler covers one line's iteration: a handled exception ends that
+# line and the loop continues with the next one.
+is-run 'CATCH { default { say "caught" } }; die "x" if $_ eq "a b"; say $_',
+    'a handled exception continues with the next line',
+    :compiler-args['-n'], :in($in), :out("caught\nc d e\n");
+
+# A CONTROL handler covers one line's iteration the same way.
+is-run 'CONTROL { when CX::Warn { say "ctl" } }; warn "w" if $_ eq "a b"; say $_',
+    'a handled control exception continues with the next line',
+    :compiler-args['-n'], :in($in), :out("ctl\nc d e\n");
+
+# A matched when succeeds out of one line's iteration only, so the loop
+# continues with the next line.
+is-run 'when "a b" { say "matched" }; say "not-$_"',
+    'a matched when ends only that line',
+    :compiler-args['-n'], :in($in), :out("matched\nnot-c d e\n");
+
 # The program's FIRST/NEXT/LAST phasers become loop phasers of the wrapper
 # loop. The legacy frontend never runs them under -n.
 if $rakuast {
@@ -79,9 +96,14 @@ if $rakuast {
     is-run 'my $v = FIRST 42; say $v',
         'FIRST at the compilation unit mainline produces its value',
         :out("42\n");
+
+    # A default statement sees the line as its topic.
+    is-run 'when "a b" { say "isAB" }; default { say "d-$_" }',
+        'a default statement sees each line as topic',
+        :compiler-args['-n'], :in($in), :out("isAB\nd-c d e\n");
 }
 else {
-    skip '-n loop phasers need the RakuAST frontend', 5;
+    skip '-n loop phasers need the RakuAST frontend', 6;
 }
 
 # vim: expandtab shiftwidth=4

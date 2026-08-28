@@ -108,6 +108,51 @@ sub move-loop-phasers-to-body($compunit, $body) {
     }
 }
 
+# Move the CATCH/CONTROL handlers onto the per-line loop body the same way,
+# so a handled exception ends only that line's iteration and the loop
+# continues with the next line.
+sub move-exception-handlers-to-body($compunit, $body) {
+    my $LexicalScope := Nodify('LexicalScope');
+    my $handlers := nqp::getattr($compunit, $LexicalScope, '$!catch-handlers');
+    if $handlers {
+        for $handlers {
+            $body.attach-catch-handler($_);
+        }
+        nqp::bindattr($compunit, $LexicalScope, '$!catch-handlers', nqp::null());
+    }
+    $handlers := nqp::getattr($compunit, $LexicalScope, '$!control-handlers');
+    if $handlers {
+        for $handlers {
+            $body.attach-control-handler($_);
+        }
+        nqp::bindattr($compunit, $LexicalScope, '$!control-handlers', nqp::null());
+    }
+}
+
+# Move the succeed handler the program's when/default statements required
+# onto the per-line loop body, so a matched when ends only that line's
+# iteration. Their succeed scope moves too, keeping sink decisions on the
+# scope that takes the payload.
+sub move-succeed-handler-to-body($compunit, $body) {
+    my $LexicalScope := Nodify('LexicalScope');
+    return 0 unless nqp::getattr_i($compunit, $LexicalScope, '$!need-succeed-handler');
+    nqp::bindattr_i($compunit, $LexicalScope, '$!need-succeed-handler', 0);
+    $body.require-succeed-handler();
+    my $When    := Nodify('Statement::When');
+    my $Default := Nodify('Statement::Default');
+    $body.visit-dfs: -> $node {
+        if nqp::istype($node, $When)
+          && nqp::eqaddr(nqp::getattr($node, $When, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $When, '$!succeed-scope', $body);
+        }
+        elsif nqp::istype($node, $Default)
+          && nqp::eqaddr(nqp::getattr($node, $Default, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $Default, '$!succeed-scope', $body);
+        }
+        1
+    }
+}
+
 # Move the -n/-p program's lexical declarations from the per-line loop body
 # into the compunit mainline, so they persist across iterations and are
 # visible to BEGIN/END and friends, matching the legacy frontend. The loop
@@ -591,6 +636,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $statement-list := @wrapped[0];
             hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
             move-loop-phasers-to-body($COMPUNIT, @wrapped[1]);
+            move-exception-handlers-to-body($COMPUNIT, @wrapped[1]);
+            move-succeed-handler-to-body($COMPUNIT, @wrapped[1]);
             # Give the wrapper nodes a chance to do BEGIN time effects
             $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }

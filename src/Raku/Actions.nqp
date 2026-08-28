@@ -90,6 +90,69 @@ sub wrap-in-for-loop($ast) {
     nqp::list($statement-list, $body)
 }
 
+# Move the loop phasers the program's statements attached to the compilation
+# unit onto the per-line loop body, where they fire as loop phasers of the
+# -n/-p wrapper loop. The statements attached them before the wrapping, when
+# the compilation unit was the enclosing attach target. Block phasers such
+# as ENTER and LEAVE stay on the mainline.
+sub move-loop-phasers-to-body($compunit, $body) {
+    my $ScopePhaser := Nodify('ScopePhaser');
+    for ['FIRST', 'NEXT', 'LAST'] -> $type {
+        my $list := nqp::getattr($compunit, $ScopePhaser, '$!' ~ $type);
+        if $list {
+            for $list {
+                $body.add-phaser($type, $_);
+            }
+            nqp::bindattr($compunit, $ScopePhaser, '$!' ~ $type, nqp::null());
+        }
+    }
+}
+
+# Move the CATCH/CONTROL handlers onto the per-line loop body the same way,
+# so a handled exception ends only that line's iteration and the loop
+# continues with the next line.
+sub move-exception-handlers-to-body($compunit, $body) {
+    my $LexicalScope := Nodify('LexicalScope');
+    my $handlers := nqp::getattr($compunit, $LexicalScope, '$!catch-handlers');
+    if $handlers {
+        for $handlers {
+            $body.attach-catch-handler($_);
+        }
+        nqp::bindattr($compunit, $LexicalScope, '$!catch-handlers', nqp::null());
+    }
+    $handlers := nqp::getattr($compunit, $LexicalScope, '$!control-handlers');
+    if $handlers {
+        for $handlers {
+            $body.attach-control-handler($_);
+        }
+        nqp::bindattr($compunit, $LexicalScope, '$!control-handlers', nqp::null());
+    }
+}
+
+# Move the succeed handler the program's when/default statements required
+# onto the per-line loop body, so a matched when ends only that line's
+# iteration. Their succeed scope moves too, keeping sink decisions on the
+# scope that takes the payload.
+sub move-succeed-handler-to-body($compunit, $body) {
+    my $LexicalScope := Nodify('LexicalScope');
+    return 0 unless nqp::getattr_i($compunit, $LexicalScope, '$!need-succeed-handler');
+    nqp::bindattr_i($compunit, $LexicalScope, '$!need-succeed-handler', 0);
+    $body.require-succeed-handler();
+    my $When    := Nodify('Statement::When');
+    my $Default := Nodify('Statement::Default');
+    $body.visit-dfs: -> $node {
+        if nqp::istype($node, $When)
+          && nqp::eqaddr(nqp::getattr($node, $When, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $When, '$!succeed-scope', $body);
+        }
+        elsif nqp::istype($node, $Default)
+          && nqp::eqaddr(nqp::getattr($node, $Default, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $Default, '$!succeed-scope', $body);
+        }
+        1
+    }
+}
+
 # Move the -n/-p program's lexical declarations from the per-line loop body
 # into the compunit mainline, so they persist across iterations and are
 # visible to BEGIN/END and friends, matching the legacy frontend. The loop
@@ -101,14 +164,26 @@ sub hoist-loop-body-declarations($body, $compunit) {
     $body.visit-dfs: -> $node {
         if nqp::istype($node, Nodify('Declaration'))
           && !nqp::istype($node, Nodify('VarDeclaration::Implicit'))
-          && $node.lexical-name ne '$_'
-          && $node.is-simple-lexical-declaration {
+          && $node.is-simple-lexical-declaration
+          && $node.lexical-name ne '$_' {
             $node.set-hoisted-to-outer;
             $compunit.add-generated-lexical-declaration($node);
         }
+        # A list declaration bound with := goes through the runtime
+        # signature binder, which writes into the declaring frame's
+        # lexicals by name, so its targets must keep their slots in the
+        # loop body. The bind re-runs each line, so nothing persists to
+        # hoist anyway.
+        if nqp::istype($node, Nodify('VarDeclaration::Signature'))
+          && nqp::isconcrete($node.initializer)
+          && $node.initializer.is-binding {
+            0
+        }
         # Descend through everything except inner lexical scopes, which own
         # their own declarations; always descend into the loop body itself.
-        $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+        else {
+            $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+        }
     }
 }
 
@@ -572,6 +647,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my @wrapped := wrap-in-for-loop($statement-list);
             $statement-list := @wrapped[0];
             hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
+            move-loop-phasers-to-body($COMPUNIT, @wrapped[1]);
+            move-exception-handlers-to-body($COMPUNIT, @wrapped[1]);
+            move-succeed-handler-to-body($COMPUNIT, @wrapped[1]);
             # Give the wrapper nodes a chance to do BEGIN time effects
             $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }

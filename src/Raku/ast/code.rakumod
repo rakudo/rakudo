@@ -582,7 +582,7 @@ class RakuAST::Code
                 $node[$i] := $visit;
                 if nqp::istype($visit, QAST::Op) {
                     my $op := $visit.op;
-                    if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain') && $visit.name {
+                    if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain' || $op eq 'chainstatic') && $visit.name {
                         if ! $declared-in-cu($visit.name) {
                             my $routine := $parse-time-resolver.resolve-lexical-constant($visit.name);
                             if $routine {

@@ -1884,18 +1884,7 @@ class RakuAST::Node {
         # The nearest scope declaring the name must be the outermost one, and
         # the declaration found there must be the resolution itself, so a
         # shadowing declaration the resolution predates turns the mark off.
-        my $nearest := nqp::null();
-        my $outermost := nqp::null();
-        $resolver.find-scope-property(-> $scope {
-            $outermost := $scope;
-            $nearest := $scope
-                if nqp::isnull($nearest)
-                && nqp::isconcrete($scope.find-lexical($name));
-            Nil
-        });
-        !nqp::isnull($nearest)
-            && nqp::eqaddr($nearest, $outermost)
-            && nqp::eqaddr($outermost.find-lexical($name), $decl)
+        $resolver.IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE($name, $decl)
     }
 
     # A smartmatch against a compile-time-known type object reduces to a type
@@ -3197,8 +3186,8 @@ class RakuAST::Node {
     }
 
     # True when the operator resolves to the CORE routine itself. An operator
-    # bound to a lexical variable has no compile-time value and throws, which
-    # declines the lowering. A user `multi` or `sub` that shadows or extends the
+    # bound to a lexical variable has no routine as its compile-time value,
+    # which declines the lowering. A user `multi` or `sub` that shadows or extends the
     # operator produces a distinct routine object whose file may still read
     # SETTING::, so the file alone is not enough. The name is resolved again in
     # the scope of the node being offered: a lexical declaration is visible to
@@ -3212,7 +3201,9 @@ class RakuAST::Node {
         CATCH {
             return False;
         }
-        my $routine := $operator.resolution.compile-time-value;
+        return False unless $operator.is-resolved;
+        my $routine := self.IMPL-DECLARATION-VALUE($operator.resolution);
+        return False unless nqp::isconcrete($routine);
         # A loaded setting stamps its symbols with a SETTING:: file. While
         # a core setting is itself being compiled its own operators carry
         # the plain source file instead, and every one of them is core.
@@ -3226,9 +3217,21 @@ class RakuAST::Node {
                          !! '&infix';
         my $current := $resolver.resolve-lexical(
           $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator));
-        nqp::isconcrete($current)
-          ?? nqp::eqaddr($routine, nqp::decont($current.compile-time-value))
-          !! True
+        return True unless nqp::isconcrete($current);
+        my $current-value := self.IMPL-DECLARATION-VALUE($current);
+        nqp::isconcrete($current-value)
+            && nqp::eqaddr($routine, nqp::decont($current-value))
+    }
+
+    # The compile-time value a declaration has to offer, or Mu when it
+    # has none: a compile-time value declaration answers directly, an
+    # external one may know its value, and any other has nothing.
+    method IMPL-DECLARATION-VALUE(Mu $decl) {
+        nqp::istype($decl, RakuAST::CompileTimeValue)
+            ?? $decl.compile-time-value
+            !! nqp::can($decl, 'maybe-compile-time-value')
+                ?? $decl.maybe-compile-time-value
+                !! Mu
     }
 
     # A ternary with a constant condition becomes the branch the condition

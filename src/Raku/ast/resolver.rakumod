@@ -1236,6 +1236,19 @@ class RakuAST::Resolver::EVAL
         Nil
     }
 
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i], @scopes[0]) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found);
+        }
+        0
+    }
+
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
@@ -1565,6 +1578,23 @@ class RakuAST::Resolver::Compile
             return $res if nqp::isconcrete($res);
         }
         Nil
+    }
+
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration. A scope still being
+    # parsed answers from its live declaration map, so its AST lexical
+    # lookup table is not cached before its declarations are complete.
+    # The outermost scope can be on the stack twice, entered by the parse
+    # and pushed again by a batch walk, so scopes compare by node.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i].scope, @scopes[0].scope) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found);
+        }
+        0
     }
 
     # Add a lexical declaration. Used when the compiler produces the

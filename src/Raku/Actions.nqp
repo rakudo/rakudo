@@ -169,9 +169,21 @@ sub hoist-loop-body-declarations($body, $compunit) {
             $node.set-hoisted-to-outer;
             $compunit.add-generated-lexical-declaration($node);
         }
+        # A list declaration bound with := goes through the runtime
+        # signature binder, which writes into the declaring frame's
+        # lexicals by name, so its targets must keep their slots in the
+        # loop body. The bind re-runs each line, so nothing persists to
+        # hoist anyway.
+        if nqp::istype($node, Nodify('VarDeclaration::Signature'))
+          && nqp::isconcrete($node.initializer)
+          && $node.initializer.is-binding {
+            0
+        }
         # Descend through everything except inner lexical scopes, which own
         # their own declarations; always descend into the loop body itself.
-        $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+        else {
+            $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+        }
     }
 }
 

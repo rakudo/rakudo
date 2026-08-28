@@ -5,7 +5,7 @@ use nqp;
 
 my $rakuast = nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
-plan 16;
+plan 17;
 
 # Under -n/-p the program runs once per input line, but its lexical
 # declarations live in the compunit mainline, so they persist across lines and
@@ -97,13 +97,19 @@ if $rakuast {
         'FIRST at the compilation unit mainline produces its value',
         :out("42\n");
 
+    # A bound list declaration keeps its slots in the loop body, where the
+    # runtime signature binder writes them, and rebinds each line.
+    is-run 'my ($a, $b) := $_, .uc; say "$a $b"',
+        'a my list declaration bound with := works under -n',
+        :compiler-args['-n'], :in($in), :out("a b A B\nc d e C D E\n");
+
     # A default statement sees the line as its topic.
     is-run 'when "a b" { say "isAB" }; default { say "d-$_" }',
         'a default statement sees each line as topic',
         :compiler-args['-n'], :in($in), :out("isAB\nd-c d e\n");
 }
 else {
-    skip '-n loop phasers need the RakuAST frontend', 6;
+    skip '-n loop phasers need the RakuAST frontend', 7;
 }
 
 # vim: expandtab shiftwidth=4

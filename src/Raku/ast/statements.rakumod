@@ -1081,6 +1081,13 @@ class RakuAST::Statement::Expression
             $qast := $!condition-modifier.IMPL-WRAP-QAST($context,
                 $!expression.IMPL-TO-QAST($context, :immediate));
         }
+        elsif self.sunk && !$!condition-modifier && !$!loop-modifier
+                && nqp::istype($!expression, RakuAST::Routine)
+                && !$!expression.outer-most-thunk {
+            # Sunk, so the closure clone this would form is discarded. The
+            # declaration walk installs the routine and captures its frame.
+            $qast := QAST::Op.new( :op('null') );
+        }
         else {
             $qast := $!expression.IMPL-TO-QAST($context);
             if self.sunk && $!expression.needs-sink-call {

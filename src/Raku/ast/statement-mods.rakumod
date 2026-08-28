@@ -392,8 +392,8 @@ class RakuAST::StatementModifier::For
     # source to a native counting loop.
     has int $!can-lower-range;
 
-    method IMPL-SET-CAN-LOWER-RANGE() {
-        nqp::bindattr_i(self, RakuAST::StatementModifier::For, '$!can-lower-range', 1)
+    method IMPL-SET-CAN-LOWER-RANGE(int $on) {
+        nqp::bindattr_i(self, RakuAST::StatementModifier::For, '$!can-lower-range', $on)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

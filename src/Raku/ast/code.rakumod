@@ -252,10 +252,15 @@ class RakuAST::Code
         my $compiler-thunk := {
             my $*IMPL-COMPILE-DYNAMICALLY := 1;
             # This emission caches the QAST block before the unit's
-            # optimize phase has decided which lexicals become locals,
-            # and the unit's own emission reuses the cache. Decide for
-            # this code object now so both compilations agree.
-            RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
+            # optimize phase has rewritten the tree and decided which
+            # lexicals become locals, and the unit's own emission reuses
+            # the cache. Optimize and decide for this code object here so
+            # both compilations agree. A block cached by an earlier
+            # formation is emitted as it is.
+            unless $!qast-block {
+                self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
+                RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
+            }
             my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
             $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
         };
@@ -573,6 +578,10 @@ class RakuAST::Code
             $var
         }
 
+        # A flattened body block lands in the frame as a statement list
+        # rather than a block of its own, and a run may skip it.
+        my int $flattened := 0;
+
         $visit-children := sub ($node) {
             my int $i := 0;
             my int $n := nqp::elems($node);
@@ -591,9 +600,10 @@ class RakuAST::Code
                                 $visit.name(nqp::null);
                                 $visit.unshift(QAST::WVal.new(:$value));
                             }
-                            elsif nqp::elems(@blocks) == 2 {
-                                # we're in top level block (excluding wrapper) and routines would
-                                # definitely get called. Can't do so if we couldn't find it.
+                            elsif nqp::elems(@blocks) == 2 && !$flattened {
+                                # we're in top level block (excluding wrapper) and not in a
+                                # flattened body, so routines would definitely get called.
+                                # Can't do so if we couldn't find it.
                                 $resolver.build-exception(
                                     'X::Undeclared::Symbols',
                                     :unk_routines(nqp::hllizefor(nqp::hash($visit.name, [self.origin ?? self.origin.as-match.line !! -1]), 'Raku'))
@@ -607,7 +617,10 @@ class RakuAST::Code
                     $visit-block($visit);
                 }
                 elsif nqp::istype($visit, QAST::Stmt) || nqp::istype($visit, QAST::Stmts) || nqp::istype($visit, QAST::ParamTypeCheck) {
+                    my int $body := $visit.ann('flattened-body') ?? 1 !! 0;
+                    $flattened := $flattened + 1 if $body;
                     $visit-children($visit);
+                    $flattened := $flattened - 1 if $body;
                 }
                 elsif nqp::istype($visit, QAST::Var) {
                     $node[$i] := $visit-var($visit);
@@ -619,6 +632,37 @@ class RakuAST::Code
         }
 
         $visit-block($block);
+    }
+
+    # The optimize walk over one code object compiled ahead of the
+    # unit's optimize phase, with the parse-time resolver, when one was
+    # recorded, so names resolve in the scope the code object was
+    # declared in.
+    method IMPL-OPTIMIZE-AHEAD-OF-UNIT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $walk-resolver := $context.parse-time-resolver($!cuid) || $resolver;
+        # The check phase settles sink states only after this compilation,
+        # and the walk and the lowering read them.
+        self.IMPL-CALCULATE-SINK();
+        my $*NO-CT-DISPATCH := nqp::existskey(nqp::getenvhash(), 'RAKUDO_NO_CT_DISPATCH');
+        my int $enclosing-ahead      := $walk-resolver.IMPL-AHEAD-OF-UNIT-WALK;
+        my int $enclosing-structural := $walk-resolver.IMPL-STRUCTURAL-WALK;
+        my int $scope-depth          := $walk-resolver.IMPL-SCOPE-DEPTH;
+        my int $package-depth        := $walk-resolver.IMPL-PACKAGE-DEPTH;
+        $walk-resolver.IMPL-SET-AHEAD-OF-UNIT-WALK(1,
+            nqp::istrue(nqp::ifnull(nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)) ?? 1 !! 0);
+        # The resolver outlives this walk, so its stacks and flags go back
+        # to what they were, whether the walk returns or throws.
+        {
+            CATCH {
+                $walk-resolver.IMPL-UNWIND-SCOPES($scope-depth);
+                $walk-resolver.IMPL-UNWIND-PACKAGES($package-depth);
+                $walk-resolver.IMPL-SET-AHEAD-OF-UNIT-WALK($enclosing-ahead, $enclosing-structural);
+                nqp::rethrow($_);
+            }
+            self.IMPL-OPTIMIZE($walk-resolver);
+        }
+        $walk-resolver.IMPL-SET-AHEAD-OF-UNIT-WALK($enclosing-ahead, $enclosing-structural);
+        Nil
     }
 
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
@@ -740,7 +784,7 @@ class RakuAST::Code
                 }
             }
         }
-        return 0 unless $has_nested_blocks;
+        return [] unless $has_nested_blocks;
 
         # Parse-time resolver from the QASTContext side table; this path
         # runs at compile time and the caller doesn't have its own
@@ -782,7 +826,7 @@ class RakuAST::Code
         $block[1].push($fixup);
 
         $lexical-fixup.set-block($c_block_ast, $fixup_list);
-        Nil
+        [$throwaway_block_past, $fixup]
     }
 
     method IMPL-APPEND-SIGNATURE-RETURN(RakuAST::IMPL::QASTContext $context, Mu $qast-stmts) {
@@ -1858,6 +1902,7 @@ class RakuAST::Block
         my $nested-blocks := self.IMPL-QAST-NESTED-BLOCK-DECLS($context);
         $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
         $stmts.push($!body.IMPL-TO-QAST($context));
+        $stmts.annotate('flattened-body', 1);
         $stmts
     }
 
@@ -1878,6 +1923,7 @@ class RakuAST::Block
         my $nested-blocks := self.IMPL-QAST-NESTED-BLOCK-DECLS($context);
         $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
         $stmts.push($!body.IMPL-TO-QAST($context));
+        $stmts.annotate('flattened-body', 1);
         $stmts
     }
 
@@ -3334,9 +3380,23 @@ class RakuAST::RoleBody
 {
     has RakuAST::LexicalFixup $.fixup;
 
-    # IMPL-FINISH-ROLE-BODY appends the lexical fixup nodes to the
-    # formed block, which a re-formation would not reproduce.
-    method IMPL-REBUILD-ELIGIBLE() { 0 }
+    # The lexical fixup nodes IMPL-FINISH-ROLE-BODY appended to the
+    # formed block. The throwaway block's outer annotation names the
+    # block object the graft keeps.
+    has Mu $!fixup-nodes;
+
+    # A re-formation reproduces the body's statements only, so the fixup
+    # nodes go back, and the accessor QAST the package splices in is
+    # spliced again once its marker, which the graft kept, is cleared.
+    method IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Code, 'IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK')(self, $context);
+        my $block := nqp::getattr(self, RakuAST::Code, '$!qast-block');
+        for $!fixup-nodes {
+            $block[1].push($_);
+        }
+        $block.annotate('accessor-qast-added', 0);
+        Nil
+    }
 
     method new(          str :$scope,
                          str :$multiness,
@@ -3357,6 +3417,7 @@ class RakuAST::RoleBody
         nqp::bindattr($obj, RakuAST::Sub, '$!body',
           $body // RakuAST::Blockoid.new);
         nqp::bindattr($obj, RakuAST::RoleBody, '$!fixup', RakuAST::LexicalFixup);
+        nqp::bindattr($obj, RakuAST::RoleBody, '$!fixup-nodes', []);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -3385,8 +3446,16 @@ class RakuAST::RoleBody
         unless self.is-stub {
             self.IMPL-RESOLVE-FORWARD-LEXICALS($resolver);
             my $*IMPL-COMPILE-DYNAMICALLY := 1;
+            # The body compiles here ahead of the unit, so it takes the
+            # optimize walk and the lowering a BEGIN-time routine takes
+            # in its compiler thunk.
+            unless nqp::isconcrete(nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
+                self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
+                RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
+            }
             my $body-qast := self.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
-            self.IMPL-BEGIN-TIME-LEXICAL-FIXUP($context, $body-qast, $!fixup);
+            nqp::bindattr(self, RakuAST::RoleBody, '$!fixup-nodes',
+                self.IMPL-BEGIN-TIME-LEXICAL-FIXUP($context, $body-qast, $!fixup));
         }
     }
 

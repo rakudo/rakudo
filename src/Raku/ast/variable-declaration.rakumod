@@ -736,8 +736,8 @@ class RakuAST::VarDeclaration::Simple
     has str $!lowered-local-name;
     has Mu $!lowered-away-sentinel;
 
-    method IMPL-SET-LOWERED-ARRAY-INIT() {
-        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-array-init', 1)
+    method IMPL-SET-LOWERED-ARRAY-INIT(int $on) {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-array-init', $on)
     }
 
     # Set by the lexical-to-local lowering analysis on a method's unused

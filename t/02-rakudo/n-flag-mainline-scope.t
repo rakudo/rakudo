@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 5;
+plan 6;
 
 # Under -n/-p the program runs once per input line, but its lexical
 # declarations live in the compunit mainline, so they persist across lines and
@@ -31,6 +31,12 @@ is-run 'my $w = 0; $w += .words.elems; END say $w',
 is-run 'BEGIN my $w = 0; BEGIN my $n = 0; $w += .words.elems; $n++; END say "$w $n"',
     'separate BEGIN-declared variables both persist',
     :compiler-args['-n'], :in($in), :out("5 2\n");
+
+# A hoisted declaration's slot lives in the mainline, so the lexical-to-local
+# lowering must leave it addressable by name from the loop body.
+is-run 'my $x = 1; say $x',
+    'a declared and used variable compiles and runs each line',
+    :compiler-args['-n'], :in($in), :out("1\n1\n");
 
 # -p modifies and prints the (writable) topic each line.
 is-run 's/a/A/',

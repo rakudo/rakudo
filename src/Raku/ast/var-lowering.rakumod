@@ -787,7 +787,13 @@ class RakuAST::IMPL::VarLowering {
 
         my str $declined := '';
         my str $sigil := $decl.sigil;
-        if $decl.twigil ne '' {
+        if $decl.is-hoisted-to-outer {
+            # The declaration's lexpad slot is provided by an outer scope,
+            # as -n/-p do with the compunit mainline, so every access from
+            # the declaring scope crosses a frame boundary.
+            $declined := 'hoisted';
+        }
+        elsif $decl.twigil ne '' {
             $declined := 'twigil';
         }
         elsif $decl.forced-dynamic {

@@ -977,7 +977,8 @@ class RakuAST::StatementPrefix::Phaser::First
 
         my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
 
-        my $attach-block := $resolver.find-attach-target('block');
+        my $attach-block := $resolver.find-attach-target('block')
+            // $resolver.find-attach-target('compunit');
 
         my $value-name := QAST::Node.unique('!first_block_value');
         my $value-var := RakuAST::VarDeclaration::Implicit::State.new: $value-name;

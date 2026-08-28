@@ -90,6 +90,24 @@ sub wrap-in-for-loop($ast) {
     nqp::list($statement-list, $body)
 }
 
+# Move the loop phasers the program's statements attached to the compilation
+# unit onto the per-line loop body, where they fire as loop phasers of the
+# -n/-p wrapper loop. The statements attached them before the wrapping, when
+# the compilation unit was the enclosing attach target. Block phasers such
+# as ENTER and LEAVE stay on the mainline.
+sub move-loop-phasers-to-body($compunit, $body) {
+    my $ScopePhaser := Nodify('ScopePhaser');
+    for ['FIRST', 'NEXT', 'LAST'] -> $type {
+        my $list := nqp::getattr($compunit, $ScopePhaser, '$!' ~ $type);
+        if $list {
+            for $list {
+                $body.add-phaser($type, $_);
+            }
+            nqp::bindattr($compunit, $ScopePhaser, '$!' ~ $type, nqp::null());
+        }
+    }
+}
+
 # Move the -n/-p program's lexical declarations from the per-line loop body
 # into the compunit mainline, so they persist across iterations and are
 # visible to BEGIN/END and friends, matching the legacy frontend. The loop
@@ -572,6 +590,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my @wrapped := wrap-in-for-loop($statement-list);
             $statement-list := @wrapped[0];
             hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
+            move-loop-phasers-to-body($COMPUNIT, @wrapped[1]);
             # Give the wrapper nodes a chance to do BEGIN time effects
             $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }

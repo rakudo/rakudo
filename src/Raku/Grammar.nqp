@@ -1207,6 +1207,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # from there, otherwise from EVAL invocations.
         my %*OPTIONS := %*COMPILING<%?OPTIONS>;
 
+        # HLL::Compiler dumps the match tree for a parse target, spelled in
+        # any case, so that keeps the whole tree. Everything else reads only
+        # the nodes, so finished statements drop their captures.
+        my $*DROP-STATEMENT-CAPTURES :=
+          nqp::lc(nqp::atkey(%*OPTIONS, 'target')) ne 'parse';
+
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
         # issue is that we may have no setting to provide them, e.g. when we

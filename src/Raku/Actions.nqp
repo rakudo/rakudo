@@ -699,6 +699,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method semilist($/) { self.collect-statements($/, 'SemiList')          }
     method sequence($/) { self.collect-statements($/, 'StatementSequence') }
 
+    # Nothing reads a finished statement's captures. Its consumers take the
+    # node, the position or the source text, so the match tree below it
+    # can go. The empty containers are shared because nothing writes to a
+    # statement's captures after its action.
+    my @EMPTY-LIST := nqp::list;
+    my %EMPTY-HASH := nqp::hash;
+    sub drop-captures($/) {
+        nqp::bindattr($/, NQPCapture, '@!list', @EMPTY-LIST);
+        nqp::bindattr($/, NQPCapture, '%!hash', %EMPTY-HASH);
+    }
+
     # Action method for handling an actual statement
     method statement($/) {
 
@@ -716,6 +727,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $target.add-label($<label>.ast);
             make $ast;
+            drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
             return;       # nothing left to do here
         }
 
@@ -755,6 +767,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $statement.attach-doc-blocks unless $*PARSING-DOC-BLOCK;
 
         self.attach: $/, $statement;
+        drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
     }
 
     # Action method for handling labels attached to a statement

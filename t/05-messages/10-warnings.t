@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 18;
+plan 23;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -136,5 +136,32 @@ is-run ｢print do given 5 { when 5 { 42; 43 } }｣,
     'the last statement of a when block in value position stays wanted',
     :out<43>,
     :err{ .contains('constant integer 42') && !.contains('constant integer 43') };
+
+is-run ｢my $_; class A { }; class B { }; print "ran"｣,
+    'a worry followed by package declarations is printed once',
+    :out<ran>, :err{ .comb('Potential difficulties').elems == 1 && .comb('Redeclaration').elems == 1 };
+
+is-run ｢my $_; my Int:X $x; class B { }; class C { }; BEGIN note "later"; print "ran"｣,
+    'an error known at a package declaration is thrown there with the earlier worry inside it once',
+    :out(''), :exitcode(1),
+    :err{ !.contains('later')
+        && .comb('Invalid type smiley').elems == 1
+        && .comb('potential difficulties').elems == 1
+        && .comb('Redeclaration').elems == 1 };
+
+is-run ｢my $_; class A { }; foo()｣,
+    'a worry before a package declaration survives an error at the end of the unit',
+    :exitcode(1),
+    :err{ .comb('Redeclaration').elems == 1 && .contains('Undeclared routine') };
+
+{
+    my $setting := make-temp-dir.add('yah.setting');
+    $setting.spurt(｢{YOU_ARE_HERE}; print "ran"｣);
+    my $proc := run $*EXECUTABLE, $setting, :out, :err;
+    is $proc.out.slurp(:close), 'ran',
+      'a setting file with {YOU_ARE_HERE} as a statement runs';
+    is $proc.err.slurp(:close), '',
+      'a sunk {YOU_ARE_HERE} is not a useless use';
+}
 
 # vim: expandtab shiftwidth=4

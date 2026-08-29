@@ -879,6 +879,11 @@ class RakuAST::CtxSave
         nqp::create(self)
     }
 
+    # The term is there for its effect, so a sunk one is not a useless use.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').set-explicit-ctxsave;
     }
@@ -1113,25 +1118,66 @@ class RakuAST::LiteralBuilder {
     }
 }
 
+# Stands in for a Raku exception type that cannot be used yet, which is
+# the case while the setting defining it is still compiling. gist takes
+# the named arguments the group gist passes along, and returns a Raku
+# string since the group gist calls methods on it.
 class RakuAST::BOOTException {
     has Str $!message;
     has Hash $!opts;
+    has Str $!filename;
+    has Mu $!line;
     method new(Str $message, %opts) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
         nqp::bindattr($obj, RakuAST::BOOTException, '$!opts', %opts);
         $obj
     }
-    method message() {
-        my $message := $!message;
-        $message := "$message(";
+    method SET_FILE_LINE($filename, $line) {
+        nqp::bindattr(self, RakuAST::BOOTException, '$!filename', $filename);
+        nqp::bindattr(self, RakuAST::BOOTException, '$!line', $line);
+    }
+    # There is no sort op, and the NQP setting's sorted_keys is out of reach
+    # here, so the keys are put in order by hand.
+    method IMPL-SORTED-KEYS() {
+        my @keys;
         for $!opts {
-            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+            nqp::push(@keys, $_.key);
         }
-        $message := "$message)";
+        my int $n := nqp::elems(@keys);
+        my int $i := 1;
+        while $i < $n {
+            my str $key := @keys[$i];
+            my int $j := $i - 1;
+            while $j >= 0 && nqp::isgt_s(@keys[$j], $key) {
+                @keys[$j + 1] := @keys[$j];
+                $j := $j - 1;
+            }
+            @keys[$j + 1] := $key;
+            $i := $i + 1;
+        }
+        @keys
+    }
+    method message() {
+        my @opts;
+        for self.IMPL-SORTED-KEYS() -> $key {
+            my $value := $!opts{$key};
+            # A boxed native has no methods to call.
+            my $rendered := nqp::isconcrete($value)
+              && (nqp::isstr($value) || nqp::isint($value) || nqp::isnum($value))
+                ?? $value
+                !! ((try $value.gist) // (try $value.Str) // ('<' ~ $value.HOW.name($value) ~ '>'));
+            nqp::push(@opts, $key ~ ' => ' ~ $rendered);
+        }
+        my $message := nqp::elems(@opts)
+            ?? $!message ~ '(' ~ nqp::join(', ', @opts) ~ ')'
+            !! $!message;
+        $message := $message ~ ' at ' ~ $!filename ~ ':' ~ $!line if $!filename;
         $message
     }
+    method gist(*%_) { nqp::hllizefor(self.message, 'Raku') }
+    method Str(*%_) { self.gist }
     method throw() {
-        nqp::die($!message);
+        nqp::die(self.message);
     }
 }

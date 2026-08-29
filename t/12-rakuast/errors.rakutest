@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
 use Test;
+use nqp;
 
-plan 2;
+plan 4;
 
 throws-like { EVAL(RakuAST::Term::Self.new) },
     X::Syntax::Self::WithoutObject;
@@ -12,4 +13,107 @@ throws-like { EVAL(RakuAST::Term::Self.new) },
         X::Undeclared::Symbols,
         message => *.contains(Q[Did you mean 'hello']),
         'an undeclared routine in a synthesized AST is reported with a suggestion';
+}
+
+subtest 'a stand-in exception for a setting still compiling renders readably' => {
+    plan 9;
+
+    my $with-string := RakuAST::BOOTException.new('X::Redeclaration', nqp::hash('symbol', '$_'));
+    is $with-string.message, 'X::Redeclaration(symbol => $_)',
+      'a string option renders as its value';
+
+    my $with-int := RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3));
+    is $with-int.message, 'X::Comp(line => 3)',
+      'an integer option renders as its value';
+
+    my $bare := RakuAST::BOOTException.new('X::AdHoc', nqp::hash());
+    is $bare.message, 'X::AdHoc',
+      'no options renders just the type name';
+
+    is $with-string.gist(:!sorry, :!expect), $with-string.message,
+      'the gist takes the named arguments a compile-time exception gist takes';
+    is $with-string.Str, $with-string.message,
+      'the Str is the message';
+    isa-ok $with-string.gist, Str,
+      'the gist is a Raku Str';
+
+    my $with-two := RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3, 'filename', 'foo.raku'));
+    is $with-two.message, 'X::Comp(filename => foo.raku, line => 3)',
+      'options render in key order';
+
+    my $with-five := RakuAST::BOOTException.new('X::Comp', nqp::hash('c', 1, 'a', 2, 'b', 3, 'z', 4, 'aa', 5));
+    is $with-five.message, 'X::Comp(a => 2, aa => 5, b => 3, c => 1, z => 4)',
+      'five options render sorted by key';
+
+    $with-string.SET_FILE_LINE('bar.raku', 7);
+    is $with-string.message, 'X::Redeclaration(symbol => $_) at bar.raku:7',
+      'a file and line set on the stand-in render after the options';
+}
+
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    subtest 'worries render plainly when the group gist cannot' => {
+        plan 8;
+
+        my $actions := nqp::getcomp('Raku').parseactions;
+        sub vm-exception(&code) {
+            my $exception;
+            try {
+                code();
+                CATCH { default { $exception := nqp::getattr($_, Exception, '$!ex') } }
+            }
+            $exception
+        }
+        my class MessageDies  is Exception { method message() { die 'inner reason' } }
+        my class MessageFails is Exception { method message() { fail 'soft' } }
+        my class MessageNil   is Exception { method message() { Nil } }
+        my class Unprintable { method Str() { die 'no Str' } }
+        my class MessageUnprintable is Exception { method message() { Unprintable.new } }
+
+        is $actions.exception-reason(vm-exception({ die 'boom' })), 'boom',
+          'a Raku exception reports the message of its payload';
+        is $actions.exception-reason(vm-exception({ nqp::die('vm boom') })), 'vm boom',
+          'a VM exception reports its own message';
+        is $actions.exception-reason(vm-exception({ MessageDies.new.throw })),
+          'MessageDies thrown, its message unavailable: inner reason',
+          'a payload whose message dies reports the inner reason';
+
+        my $*R := class :: {
+            has @.worries;
+            method all-worries() { @!worries }
+        }.new(worries => [
+            X::Redeclaration.new(symbol => '$x'),
+            RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3)),
+            MessageDies.new,
+            MessageNil.new,
+            MessageUnprintable.new,
+        ]);
+        my $text := $actions.render-worries('the gist broke');
+        is $text, q:to/END/, 'every worry renders on its own line with the reason last';
+            Potential difficulties:
+                Redeclaration of symbol '$x'.
+                X::Comp(line => 3)
+                MessageDies, message unavailable: inner reason
+                MessageNil, message unavailable: the message was empty
+                MessageUnprintable, message unavailable: no Str
+            The full rendering of these failed: the gist broke
+            END
+        isa-ok $text, Str, 'the plain rendering is a Raku Str';
+
+        $*R.worries = [MessageFails.new];
+        ok $actions.render-worries('the gist broke').contains('soft'),
+          'a message that is a Failure still renders with its reason';
+
+        my $located := X::Redeclaration.new(symbol => '$y');
+        $located.SET_FILE_LINE('foo.raku', 3);
+        $*R.worries = [$located];
+        is $actions.render-worries('the gist broke').lines[1],
+          q[    Redeclaration of symbol '$y'. at foo.raku:3],
+          'a worry with a location renders it after the message';
+        is $actions.exception-reason(vm-exception({ MessageUnprintable.new.throw })),
+          'MessageUnprintable thrown, its message unavailable: no Str',
+          'a payload whose message cannot be stringified reports why';
+    }
+}
+else {
+    skip 'the plain rendering belongs to the RakuAST frontend';
 }

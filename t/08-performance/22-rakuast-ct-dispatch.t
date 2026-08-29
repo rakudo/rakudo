@@ -4,7 +4,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 23;
+plan 27;
 
 # A call whose argument types decide the dispatch at compile time is
 # replaced by the chosen routine's recorded body, with the argument
@@ -65,6 +65,34 @@ qast-is 'my int $i = 3; my $b = $i < 5; sub infix:«<»($a, $b) { "user" }; say 
 qast-is 'my int $i = 3; my int $j = $i + 1; { sub infix:<+>(int $a, int $b) { 42 } }; say $j', :full, -> \v {
     qast-contains-op(v, 'add_i')
 }, 'a user infix in an inner block leaves a use outside it lowered';
+
+# The dispatch is decided against the candidates the scope holds, so a
+# user candidate that cannot take the operands leaves the splice in
+# place wherever it is declared.
+qast-is 'my class Later { }; my int $i = 3; my int $j = $i + 1; say $j; multi sub infix:<+>(Later $a, Later $b) { 1 }', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+}, 'a user multi candidate declared after the use that cannot take native ints leaves the splice';
+qast-is 'my class Earlier { }; multi sub infix:<+>(Earlier $a, Earlier $b) { 1 }; my int $i = 3; my int $j = $i + 1; say $j', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+}, 'a user multi candidate declared before the use that cannot take native ints leaves the splice';
+
+# A user multi candidate derives its proto from the setting's. The
+# lowerings that need the setting's own routine stand down for it, and
+# the dispatch lands on the candidate it adds.
+{
+    my $dir = make-temp-dir;
+    $dir.add('DispatchMultiOp.rakumod').spurt: q:to/END/;
+        unit module DispatchMultiOp;
+        multi sub infix:<..>(Int $a, Int $b) is default { (100,) }
+        our sub total() { my $s = 0; for 1..3 { $s = $s + $_ }; $s }
+        our sub add(int $a, int $b) { $a + $b }
+        multi sub infix:<+>(int $a, int $b) is default { 42 }
+        END
+    is EVAL(q[use lib $dir; use DispatchMultiOp; &DispatchMultiOp::total()]), 100,
+        'a user multi candidate for the range operator keeps a range loop a dispatch';
+    is EVAL(q[use lib $dir; use DispatchMultiOp; &DispatchMultiOp::add(1, 2)]), 42,
+        'a user multi candidate declared after the use is what a native dispatch lands on';
+}
 {
     my $dir = make-temp-dir;
     $dir.add('DispatchLateOp.rakumod').spurt: q:to/END/;

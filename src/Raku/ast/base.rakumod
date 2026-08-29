@@ -861,6 +861,9 @@ class RakuAST::Node {
             && ($apply-infix
                 || nqp::istype($expr, RakuAST::ApplyListInfix)
                 || nqp::istype($expr, RakuAST::Term::Reduce));
+        self.IMPL-MARK-VALUE-ARGS($resolver, $expr)
+            if $result =:= $expr
+            && ($apply-infix || $apply-prefix || $apply-postfix || $call-name);
         self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
             if $result =:= $expr && $apply-infix;
 
@@ -890,6 +893,41 @@ class RakuAST::Node {
             nqp::istype($base.resolution, RakuAST::Declaration::External::Setting)
             && !self.IMPL-IN-SOFT-SCOPE($resolver)
             && self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $base) ?? 1 !! 0);
+        Nil
+    }
+
+    # Mark a lookup whose name still reaches the declaration it resolved
+    # to, so a native argument may pass by value on that declaration's
+    # word. The mark is written on every visit, so the unit's walk
+    # settles what a walk ahead of it decided. It sits outside the soft
+    # gate, since it pins no routine identity.
+    method IMPL-MARK-VALUE-ARGS(RakuAST::Resolver $resolver, Mu $expr) {
+        my $lookup;
+        my int $current := 0;
+        if nqp::istype($expr, RakuAST::ApplyInfix) {
+            $lookup := $expr.infix;
+            $lookup := $lookup.infix while nqp::istype($lookup, RakuAST::MetaInfix);
+            $current := self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $lookup)
+                if nqp::istype($lookup, RakuAST::Infix);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPrefix) {
+            $lookup := $expr.prefix;
+            $current := self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $lookup)
+                if nqp::istype($lookup, RakuAST::Prefix);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPostfix) {
+            $lookup := $expr.postfix;
+            $current := self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $lookup)
+                if nqp::istype($lookup, RakuAST::Postfix);
+        }
+        elsif nqp::istype($expr, RakuAST::Call::Name) {
+            $lookup := $expr;
+            $current := self.IMPL-DECLARATION-CURRENT($resolver,
+                '&' ~ $expr.name.canonicalize, $expr.resolution)
+                if $expr.is-resolved && $expr.name.is-identifier;
+        }
+        $lookup.IMPL-SET-VALUE-ARGS($current)
+            if nqp::istype($lookup, RakuAST::Lookup);
         Nil
     }
 

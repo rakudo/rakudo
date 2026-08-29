@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 30;
+plan 37;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -123,6 +123,29 @@ plan 30;
     is 1 < $n < 3, False, 'a native operand of a longer chain keeps the chain';
 }
 
+# A routine declared after the use in the same scope takes the call, so
+# the reference stays where such a declaration could take it rw.
+{
+    my int $i = 1;
+    my int $j = 2;
+    is $i + $j, 'RW', 'an operator declared later in the scope takes the call';
+    is $i, 43, 'an operator declared later in the scope receives the reference';
+    multi sub infix:<+>(int $a is rw, int $b) { $a = 43; 'RW' }
+}
+{
+    my int $i = 1;
+    is -$i, 'RW', 'a prefix operator declared later in the scope takes the call';
+    is $i, 43, 'a prefix operator declared later in the scope receives the reference';
+    multi sub prefix:<->(int $a is rw) { $a = 43; 'RW' }
+}
+sub g(int $x) { }
+{
+    my int $i = 1;
+    g($i);
+    is $i, 9, 'a sub declared later in the scope, shadowing an outer one, receives the reference';
+    sub g(int $x is rw) { $x = 9 }
+}
+
 # The scope of the first argument of a named call, or the node's type
 # name when that argument is not a variable.
 sub qast-first-arg-scope(Mu $qast, str $callee --> Str) {
@@ -201,9 +224,16 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
             and qast-count-calls(v, 'callstatic', '&infix:«<»') == 0
             and qast-count-calls(v, 'call', '&infix:«<»') == 0
     }, 'every link of a chain of two compiles to a chain op';
+    {
+        my int $i = 1;
+        my int $j = 2;
+        is $i < $j, 'RW', 'a comparison declared later in the scope takes the call';
+        is $i, 43, 'a comparison declared later in the scope receives the reference';
+        multi sub infix:«<»(int $a is rw, int $b) { $a = 43; 'RW' }
+    }
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 8;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 10;
 }
 
 # vim: expandtab shiftwidth=4

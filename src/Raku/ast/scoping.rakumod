@@ -1026,6 +1026,16 @@ class RakuAST::Lookup
 {
     has RakuAST::Declaration $!resolution;
 
+    # Set by the optimize pass when the name still reaches the declaration
+    # the lookup resolved to, so a native argument may pass by value on
+    # that declaration's word. A declaration parsed after the use takes
+    # the call at run time, and the reference stays without the mark.
+    has int $!value-args;
+
+    method IMPL-SET-VALUE-ARGS(int $on) {
+        nqp::bindattr_i(self, RakuAST::Lookup, '$!value-args', $on)
+    }
+
     method needs-resolution() { True }
 
     method is-resolved() {
@@ -1104,15 +1114,16 @@ class RakuAST::Lookup
 
     # Native variable arguments compile to lexicalref/attributeref scope so
     # a callee with an "is rw" parameter can write back through them. When
-    # this lookup resolves to a routine and no candidate the call can reach
-    # declares the matching parameter rw, the argument is compiled as a
-    # value read instead. Otherwise a reference bound to a raw parameter, such as the
-    # value of infix:«=>», would be stored as a live view of the variable
-    # rather than a snapshot of it, and a reference read by the callee
-    # would see a write a later argument made to the variable, where the
-    # value read happens in argument order.
+    # this lookup resolves to a routine the name still reaches and no
+    # candidate the call can reach declares the matching parameter rw,
+    # the argument is compiled as a value read instead. Otherwise a
+    # reference bound to a raw parameter, such as the value of
+    # infix:«=>», would be stored as a live view of the variable rather
+    # than a snapshot of it, and a reference read by the callee would see
+    # a write a later argument made to the variable, where the value read
+    # happens in argument order.
     method IMPL-SIMPLIFY-REF-ARGS(Mu $call) {
-        unless $*COMPILING_CORE_SETTING {
+        if $!value-args && !$*COMPILING_CORE_SETTING {
             if self.is-resolved
                 && nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
                 my $routine := self.resolution.compile-time-value;

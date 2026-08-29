@@ -1,7 +1,8 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
-plan 16;
+use nqp;
+plan 21;
 
 # A compound assignment on a boxed scalar inlines to a direct assignment of the
 # operator's result, dropping the metaop dispatch.
@@ -85,8 +86,29 @@ plan 16;
     is $a, 999, 'a user-redefined operator is not inlined';
 }
 
+# A target that holds no container reports the immutability the way an
+# assignment does, whether the target is a scalar declared by binding or
+# a nested compound assignment that yields the bound value.
+throws-like 'my $a := 42; ($a //= 42) += 10', X::Assignment::RO,
+    'a compound assignment to a nested compound assignment on a bound scalar reports the immutability';
+
 # The inlining drops the metaop dispatch. This observes the emitted QAST.
 qast-is 'my $a; $a += 1', -> \v { not qast-contains-call v, /METAOP/ },
     'a compound assignment inlines the metaop away';
+qast-is 'my $a; $a += 1', -> \v { qast-contains-op(v, 'p6assign') and not qast-contains-op(v, 'p6store') },
+    'a plain scalar target stores through the scalar assign op';
+qast-is 'my $a; ($a //= 42) += 10', -> \v { qast-contains-op(v, 'p6store') },
+    'a nested compound assignment target stores through the fallback store';
+# The legacy frontend's answer for a scalar declared by binding depends on
+# the block the assignment sits in, so the case is pinned for this frontend.
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    throws-like 'my $a := 42; $a += 10', X::Assignment::RO,
+        'a compound assignment to a scalar declared by binding reports the immutability';
+    qast-is 'my $a := 42; $a += 1', -> \v { qast-contains-call v, /METAOP/ },
+        'a scalar declared by binding keeps the metaop';
+}
+else {
+    skip 'the declined inline for a bound scalar is specific to the RakuAST frontend', 2;
+}
 
 # vim: expandtab shiftwidth=4

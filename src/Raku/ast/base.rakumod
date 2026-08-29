@@ -1054,7 +1054,9 @@ class RakuAST::Node {
     # True when the left of a compound assignment is a boxed scalar the inline
     # may assign through: a plain scalar lexical, or another compound assignment
     # whose result is itself such a scalar. Grouping parentheses are seen
-    # through, so a parenthesized chain qualifies.
+    # through, so a parenthesized chain qualifies. A scalar declared by binding
+    # holds no container, so it is left to the metaop, whose store reports the
+    # immutability as an assignment does.
     method IMPL-SCALAR-METAOP-LHS-OK(Mu $lhs) {
         my $node := $lhs;
         while nqp::istype($node, RakuAST::Circumfix::Parentheses)
@@ -1064,7 +1066,9 @@ class RakuAST::Node {
             $node := $stmt.expression;
         }
         (nqp::istype($node, RakuAST::Var::Lexical) && $node.is-resolved
-          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0)
+          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0
+          && !(nqp::istype($node.resolution, RakuAST::VarDeclaration::Simple)
+              && nqp::istype($node.resolution.initializer, RakuAST::Initializer::Bind)))
         || (nqp::istype($node, RakuAST::ApplyInfix)
           && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
           && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))

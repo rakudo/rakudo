@@ -1645,14 +1645,19 @@ class RakuAST::MetaInfix::Assign
     # surrounding compound assignment can assign through in turn. For a test
     # operator (// || &&) the assignment is the right operand of the base
     # operator, which selects it only when the left side does not, keeping the
-    # assignment conditional.
+    # assignment conditional. A plain scalar variable takes the scalar assign
+    # op. Any other left, such as a nested compound assignment, may yield a
+    # value that is no container, so it stores through p6store, whose STORE
+    # fallback reports the immutability as the metaop does.
     method IMPL-INLINE-METAOP-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $temp := QAST::Node.unique('inline_metaop');
+        my str $store := nqp::istype($left-qast, QAST::Var) && nqp::eqat($left-qast.name, '$', 0)
+            ?? 'p6assign' !! 'p6store';
         my $effect;
         if self.IMPL-IS-TEST {
             $effect := $!infix.IMPL-INFIX-QAST($context,
                 QAST::Var.new(:scope<local>, :name($temp)),
-                QAST::Op.new(:op<p6assign>,
+                QAST::Op.new(:op($store),
                     QAST::Var.new(:scope<local>, :name($temp)), $right-qast));
         }
         else {
@@ -1666,7 +1671,7 @@ class RakuAST::MetaInfix::Assign
                         QAST::Var.new(:scope<local>, :name($temp)))),
                 QAST::Var.new(:scope<local>, :name($temp)),
                 QAST::Op.new(:op<call>, :name($!infix.resolution.lexical-name)));
-            $effect := QAST::Op.new(:op<p6assign>,
+            $effect := QAST::Op.new(:op($store),
                 QAST::Var.new(:scope<local>, :name($temp)),
                 $!infix.IMPL-INFIX-QAST($context, $left, $right-qast));
         }

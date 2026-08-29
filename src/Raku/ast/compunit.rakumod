@@ -879,6 +879,11 @@ class RakuAST::CtxSave
         nqp::create(self)
     }
 
+    # The term is there for its effect, so a sunk one is not a useless use.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').set-explicit-ctxsave;
     }

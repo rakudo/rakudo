@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 21;
+plan 23;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -153,5 +153,15 @@ is-run ｢my $_; class A { }; foo()｣,
     'a worry before a package declaration survives an error at the end of the unit',
     :exitcode(1),
     :err{ .comb('Redeclaration').elems == 1 && .contains('Undeclared routine') };
+
+{
+    my $setting := make-temp-dir.add('yah.setting');
+    $setting.spurt(｢{YOU_ARE_HERE}; print "ran"｣);
+    my $proc := run $*EXECUTABLE, $setting, :out, :err;
+    is $proc.out.slurp(:close), 'ran',
+      'a setting file with {YOU_ARE_HERE} as a statement runs';
+    is $proc.err.slurp(:close), '',
+      'a sunk {YOU_ARE_HERE} is not a useless use';
+}
 
 # vim: expandtab shiftwidth=4

@@ -4,7 +4,7 @@ use NativeCall;
 use Test;
 use nqp;
 
-plan 14;
+plan 15;
 
 compile_test_lib('26-varargs');
 
@@ -14,6 +14,9 @@ ok va1(0, 1), 'Can pass plain ints';
 
 my $a1 = 1;
 ok va1(0, $a1), 'Can pass Int';
+
+my int32 $n = 1;
+ok va1(0, $n, "trailing"), 'a native variable in the variadic position followed by an object';
 }
 
 {

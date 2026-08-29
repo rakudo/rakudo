@@ -857,6 +857,12 @@ class RakuAST::Node {
             }
         }
 
+        self.IMPL-MARK-HOP-CONSTANT($resolver, $expr)
+            if $result =:= $expr
+            && ($apply-infix
+                || nqp::istype($expr, RakuAST::ApplyListInfix)
+                || nqp::istype($expr, RakuAST::Term::Reduce));
+
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
         if !($result =:= $expr)
@@ -865,6 +871,25 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # Mark the base operator of a meta operator or a reduction for
+    # forming the meta-op once at compile time, when the base resolves to
+    # a setting routine the name still reaches from the node. The soft
+    # pragma keeps the formation at run time. The mark is written on
+    # every visit, so the unit's walk settles what a walk ahead of it
+    # decided.
+    method IMPL-MARK-HOP-CONSTANT(RakuAST::Resolver $resolver, Mu $expr) {
+        my $base := $expr.infix;
+        return Nil unless nqp::istype($base, RakuAST::MetaInfix)
+            || nqp::istype($expr, RakuAST::Term::Reduce);
+        $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+        return Nil unless nqp::istype($base, RakuAST::Infix) && $base.is-resolved;
+        $base.IMPL-SET-HOP-CONSTANT(
+            nqp::istype($base.resolution, RakuAST::Declaration::External::Setting)
+            && !self.IMPL-IN-SOFT-SCOPE($resolver)
+            && self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $base) ?? 1 !! 0);
+        Nil
     }
 
     # Withdraw the marks that bind a routine by identity or pin its
@@ -1029,7 +1054,9 @@ class RakuAST::Node {
     # True when the left of a compound assignment is a boxed scalar the inline
     # may assign through: a plain scalar lexical, or another compound assignment
     # whose result is itself such a scalar. Grouping parentheses are seen
-    # through, so a parenthesized chain qualifies.
+    # through, so a parenthesized chain qualifies. A scalar declared by binding
+    # holds no container, so it is left to the metaop, whose store reports the
+    # immutability as an assignment does.
     method IMPL-SCALAR-METAOP-LHS-OK(Mu $lhs) {
         my $node := $lhs;
         while nqp::istype($node, RakuAST::Circumfix::Parentheses)
@@ -1039,7 +1066,9 @@ class RakuAST::Node {
             $node := $stmt.expression;
         }
         (nqp::istype($node, RakuAST::Var::Lexical) && $node.is-resolved
-          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0)
+          && nqp::eqat($node.name, '$', 0) && nqp::objprimspec($node.return-type) == 0
+          && !(nqp::istype($node.resolution, RakuAST::VarDeclaration::Simple)
+              && nqp::istype($node.resolution.initializer, RakuAST::Initializer::Bind)))
         || (nqp::istype($node, RakuAST::ApplyInfix)
           && nqp::istype($node.infix, RakuAST::MetaInfix::Assign)
           && self.IMPL-SCALAR-METAOP-LHS-OK($node.left))
@@ -1754,7 +1783,14 @@ class RakuAST::Node {
             return Nil;
         }
 
+        # A routine declared after the use shadows the setting's the node
+        # resolved to and dispatches every use in its scope, so the
+        # dispatch is decided against the declaration the scope holds.
         my $resolution := $target.resolution;
+        if nqp::istype($resolution, RakuAST::Declaration::External::Setting) {
+            my $current := $resolver.resolve-lexical($lexname);
+            $resolution := $current if nqp::isconcrete($current);
+        }
         return Nil unless self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $lexname);
         my $routine := self.IMPL-DECLARATION-VALUE($resolution);
         return Nil unless nqp::isconcrete($routine)
@@ -3274,14 +3310,14 @@ class RakuAST::Node {
         nqp::istrue($resolver.find-scope-property(-> $scope { $scope.soft }))
     }
 
-    # True when the operator resolves to the CORE routine itself. An operator
-    # bound to a lexical variable has no compile-time value, which declines
-    # the lowering. A user `multi` or `sub` that shadows or extends the
-    # operator produces a distinct routine object whose file may still read
-    # SETTING::, so the file alone is not enough and the name is resolved
-    # again. When that walk reaches no declaration at all, the origin check
-    # already vouched, by file for a loaded setting or by the marker while a
-    # core setting compiles itself.
+    # True when the operator resolves to the CORE routine itself, the one
+    # the setting binds to the name, and the name still reaches it from
+    # the node. An operator bound to a lexical variable has no compile-time
+    # value, which declines the lowering. A user `multi` derives its proto
+    # from the setting's, so the clone reports the setting's source file
+    # and a check by origin takes it for the setting's. While a core
+    # setting is itself being compiled there is no setting to compare
+    # with, and any resolved operator the name still reaches is core.
     method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
         CATCH {
             return False;
@@ -3289,30 +3325,29 @@ class RakuAST::Node {
         return False unless $operator.is-resolved;
         my $routine := self.IMPL-DECLARATION-VALUE($operator.resolution);
         return False unless nqp::isconcrete($routine);
-        # A loaded setting stamps its symbols with a SETTING:: file. While
-        # a core setting is itself being compiled its own operators carry
-        # the plain source file instead, and every one of them is core.
-        # A structural walk skips the file probe.
-        unless $resolver.IMPL-STRUCTURAL-WALK {
-            return False
-              unless nqp::can($routine, 'file')
-                && ($routine.file.starts-with('SETTING::')
-                    || nqp::istrue(nqp::ifnull(
-                         nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
+        my str $name := self.IMPL-OPERATOR-LEXICAL-NAME($resolver, $operator);
+        unless nqp::istrue(nqp::ifnull(nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)) {
+            my $setting := $resolver.resolve-lexical-constant-in-setting($name);
+            return False unless nqp::isconcrete($setting)
+                && nqp::eqaddr(nqp::decont($routine), nqp::decont($setting.compile-time-value));
         }
-        self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $operator) ?? True !! False
+        self.IMPL-DECLARATION-CURRENT($resolver, $name, $operator.resolution) ?? True !! False
+    }
+
+    # The lexical name an operator node spells from its category and symbol.
+    method IMPL-OPERATOR-LEXICAL-NAME(RakuAST::Resolver $resolver, Mu $operator) {
+        my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
+                         !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
+                         !! '&infix';
+        $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator)
     }
 
     # Whether an operator's name still resolves to the routine the operator
     # resolved to at parse time.
     method IMPL-OPERATOR-RESOLUTION-CURRENT(RakuAST::Resolver $resolver, Mu $operator) {
         return 0 unless $operator.is-resolved;
-        my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
-                         !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
-                         !! '&infix';
         self.IMPL-DECLARATION-CURRENT($resolver,
-            $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator),
-            $operator.resolution)
+            self.IMPL-OPERATOR-LEXICAL-NAME($resolver, $operator), $operator.resolution)
     }
 
     # Whether a name still resolves, in the scope of the node being

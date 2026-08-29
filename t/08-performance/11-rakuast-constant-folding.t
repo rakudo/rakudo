@@ -3,7 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 55;
+plan 56;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -171,6 +171,11 @@ ok optimized-deparse(Q[sub f() { 2 ** 3 }; multi sub infix:<**>(Int $a, Int $b) 
     is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::least()]), 'user',
         'a user list infix declared after a use in a sub is what the sub calls';
 }
+
+# A string EVAL runs the optimize pass too, so a folded string literal
+# is one object across calls where an unfolded concatenation is not.
+is-deeply EVAL(q[sub folded() { "ab" ~ "cd" }; folded() =:= folded()]), True,
+    'a string EVAL folds a constant like a compiled unit does';
 
 # Str.AST does not optimize, so the operator survives. The scenarios above
 # therefore test the optimize pass, not something upstream.

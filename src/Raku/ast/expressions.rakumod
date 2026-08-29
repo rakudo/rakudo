@@ -256,7 +256,8 @@ class RakuAST::Infixish
 
     # The given operator, or the meta-op a caller forms over it, as a
     # compile-time constant, or null when it cannot be one. A setting
-    # operator's lookup yields the same code object at run time, so the
+    # operator whose name the optimize pass found still resolving to it
+    # yields the same code object at every run time lookup, so the
     # value formed from it here serves every evaluation, which for a
     # meta-op spares the formation call and its closure on each one.
     # Anything else forms at run time, and so does everything while
@@ -267,6 +268,7 @@ class RakuAST::Infixish
         if nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && nqp::istype($infix.resolution, RakuAST::Declaration::External::Setting)
+            && $infix.IMPL-HOP-CONSTANT
             && !($*COMPILING_CORE_SETTING // 0) {
             my $meta-op := self.IMPL-HOP-INFIX;
             $context.ensure-sc($meta-op);
@@ -533,6 +535,17 @@ class RakuAST::Infix
             $qast
         }
     }
+
+    # Set by the optimize pass when the operator's name still resolves to
+    # the setting routine it resolved to, so a meta-op formed over it can
+    # be a compile-time constant.
+    has int $!hop-constant;
+
+    method IMPL-SET-HOP-CONSTANT(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!hop-constant', $on)
+    }
+
+    method IMPL-HOP-CONSTANT() { $!hop-constant }
 
     # Set by the optimize pass when the resolved operator's lexical is bound
     # once, so a chaining operator's callee lookup can be compiled as a
@@ -1632,14 +1645,19 @@ class RakuAST::MetaInfix::Assign
     # surrounding compound assignment can assign through in turn. For a test
     # operator (// || &&) the assignment is the right operand of the base
     # operator, which selects it only when the left side does not, keeping the
-    # assignment conditional.
+    # assignment conditional. A plain scalar variable takes the scalar assign
+    # op. Any other left, such as a nested compound assignment, may yield a
+    # value that is no container, so it stores through p6store, whose STORE
+    # fallback reports the immutability as the metaop does.
     method IMPL-INLINE-METAOP-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $temp := QAST::Node.unique('inline_metaop');
+        my str $store := nqp::istype($left-qast, QAST::Var) && nqp::eqat($left-qast.name, '$', 0)
+            ?? 'p6assign' !! 'p6store';
         my $effect;
         if self.IMPL-IS-TEST {
             $effect := $!infix.IMPL-INFIX-QAST($context,
                 QAST::Var.new(:scope<local>, :name($temp)),
-                QAST::Op.new(:op<p6assign>,
+                QAST::Op.new(:op($store),
                     QAST::Var.new(:scope<local>, :name($temp)), $right-qast));
         }
         else {
@@ -1653,7 +1671,7 @@ class RakuAST::MetaInfix::Assign
                         QAST::Var.new(:scope<local>, :name($temp)))),
                 QAST::Var.new(:scope<local>, :name($temp)),
                 QAST::Op.new(:op<call>, :name($!infix.resolution.lexical-name)));
-            $effect := QAST::Op.new(:op<p6assign>,
+            $effect := QAST::Op.new(:op($store),
                 QAST::Var.new(:scope<local>, :name($temp)),
                 $!infix.IMPL-INFIX-QAST($context, $left, $right-qast));
         }

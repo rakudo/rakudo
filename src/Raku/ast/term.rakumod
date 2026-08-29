@@ -599,9 +599,10 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # A reduce of a setting operator forms its meta-op once at compile
-        # time: the operator lookup yields the same code object at run time,
-        # so the formed meta-op is a constant. This is skipped while
+        # A reduce of a setting operator whose name the optimize pass found
+        # still resolving to it forms its meta-op once at compile time: the
+        # operator lookup yields the same code object at every run time
+        # lookup, so the formed meta-op is a constant. This is skipped while
         # compiling a CORE setting itself, where compiler-formed closures
         # must not be serialized into the bootstrap. Anything else (lexical
         # operators, meta-infixes) makes a call to form the meta-op at run
@@ -610,6 +611,7 @@ class RakuAST::Term::Reduce
         if nqp::istype($!infix, RakuAST::Infix)
             && $!infix.is-resolved
             && nqp::istype($!infix.resolution, RakuAST::Declaration::External::Setting)
+            && $!infix.IMPL-HOP-CONSTANT
             && !($*COMPILING_CORE_SETTING // 0)
         {
             my $meta-op := self.IMPL-HOP-INFIX;

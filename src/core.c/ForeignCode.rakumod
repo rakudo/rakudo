@@ -164,6 +164,11 @@ $lang = 'Raku' if $lang eq 'perl6';
             |(%(:target('ast'), :compunit_ok(1)) if $rakuast-frontend),
             |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
             |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
+        # Stopping at the AST skips the optimize stage that sits between it
+        # and the QAST stage, so that stage runs here.
+        $result := $compiler.optimize($result,
+            |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>))
+            if $rakuast-frontend;
         $compiled := $rakuast-frontend
             ?? compile-rakuast-comp-unit($result)
             !! $result;

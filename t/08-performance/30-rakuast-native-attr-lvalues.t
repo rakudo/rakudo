@@ -63,8 +63,10 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     }, 'an int attribute serves as the step value for a native lexical';
 
     qast-is 'my class C { has int $!s; method b() { $!s += 1 } }', :full, -> \v {
-        qast-contains-call(v, '&METAOP_ASSIGN')
-    }, 'a compound add of an Int literal keeps the metaop';
+        not qast-contains-op(v, 'add_i')
+        and qast-contains-op(v, 'assign_i')
+        and not qast-contains-call(v, '&METAOP_ASSIGN')
+    }, 'a compound add of an Int literal assigns the operator result to the attribute';
 
     qast-is 'my class C { has int8 $!t; method b() { my $v = $!t++; $v } }', :full, -> \v {
         qast-contains-call(v, '&postfix:<++>')
@@ -155,7 +157,7 @@ else {
     is $c.t-postfix, 101, 'a sized int postfix increment computes through the routine';
     is $c.t-prefix, 102, 'a sized int prefix increment yields the stepped value';
     is $c.boxed, 6, 'a boxed attribute increment computes through the routine';
-    is $c.int-literal, 51, 'a compound add of an Int literal computes through the metaop';
+    is $c.int-literal, 51, 'a compound add of an Int literal stores the operator result';
 }
 
 {

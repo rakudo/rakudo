@@ -2269,6 +2269,12 @@ class RakuAST::ParameterTarget::Var
         }
     }
 
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        $!attribute
+            ?? self.IMPL-BIND-QAST($context, $source-qast)
+            !! $!declaration.IMPL-CHECKED-BIND-QAST($context, $source-qast)
+    }
+
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
         unless $!declaration {
             nqp::die('Cannot produce lookup QAST for attribute parameter target');

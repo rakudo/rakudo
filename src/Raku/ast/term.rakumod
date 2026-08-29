@@ -15,8 +15,8 @@ class RakuAST::Term::Name
     # name's lookup op keeps the surrounding frame from ever inlining.
     has int $!compile-to-value;
 
-    method IMPL-SET-COMPILE-TO-VALUE() {
-        nqp::bindattr_i(self, RakuAST::Term::Name, '$!compile-to-value', 1);
+    method IMPL-SET-COMPILE-TO-VALUE(int $on) {
+        nqp::bindattr_i(self, RakuAST::Term::Name, '$!compile-to-value', $on);
     }
 
     method new(RakuAST::Name $name) {

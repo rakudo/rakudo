@@ -140,7 +140,6 @@ class RakuAST::IMPL::VarLowering {
     has int $!debug;
     has int $!begin-context;
     has int $!topic-not-dynamic;
-    has int $!declarations-only;
 
     method IMPL-MAKE-ANALYZER(RakuAST::Resolver $resolver) {
         my $analyzer := nqp::create(self);
@@ -168,16 +167,12 @@ class RakuAST::IMPL::VarLowering {
     }
 
     # Scoped analysis for one code object compiled ahead of the unit's
-    # optimize phase for BEGIN-time use: its QAST is emitted and cached
-    # right away, so the unit-wide analysis comes too late to affect it.
+    # optimize phase, a BEGIN-time routine or a role body: its QAST is
+    # emitted and cached right away, so the unit-wide analysis comes too
+    # late to affect it.
     method analyze-routine(RakuAST::Code $routine, RakuAST::Resolver $resolver) {
         return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
         my $analyzer := self.IMPL-MAKE-ANALYZER($resolver);
-        # Only declarations: the flatten and unused-implicit rewrites
-        # change block shapes in ways the dynamic compilation's by-name
-        # fixup is not prepared for.
-        nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering,
-            '$!declarations-only', 1);
         $analyzer.IMPL-WALK($routine);
         Nil
     }
@@ -576,9 +571,11 @@ class RakuAST::IMPL::VarLowering {
                 # serialized, and flattening dissolves the frame and
                 # takes the names with it. An approval here would
                 # flatten the emitted frame away from the names the
-                # serialized contexts rebind at load.
-                my int $approved := $!declarations-only
-                        || self.IMPL-IN-BEGIN-TIME-CACHED-CODE($frame)
+                # serialized contexts rebind at load. The analysis that
+                # ran ahead of the unit already settled which frames
+                # under it flatten, and that decision stands since
+                # nothing withdraws an approval.
+                my int $approved := self.IMPL-IN-BEGIN-TIME-CACHED-CODE($frame)
                     ?? 0
                     !! self.IMPL-FLATTEN-VERDICT($frame);
                 $flattened := $approved;
@@ -606,8 +603,7 @@ class RakuAST::IMPL::VarLowering {
                         !! self.IMPL-MARK-CAPTURED-ID($id);
                 }
             }
-            self.IMPL-DECIDE-IMPLICITS($frame)
-                unless $flattened || $!declarations-only;
+            self.IMPL-DECIDE-IMPLICITS($frame) unless $flattened;
         }
         Nil
     }
@@ -787,7 +783,13 @@ class RakuAST::IMPL::VarLowering {
 
         my str $declined := '';
         my str $sigil := $decl.sigil;
-        if $decl.twigil ne '' {
+        if $decl.is-hoisted-to-outer {
+            # The declaration's lexpad slot is provided by an outer scope,
+            # as -n/-p do with the compunit mainline, so every access from
+            # the declaring scope crosses a frame boundary.
+            $declined := 'hoisted';
+        }
+        elsif $decl.twigil ne '' {
             $declined := 'twigil';
         }
         elsif $decl.forced-dynamic {

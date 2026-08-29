@@ -557,8 +557,8 @@ class RakuAST::Call::Name
     # resolves a single time.
     has int $!callstatic;
 
-    method IMPL-SET-CALLSTATIC() {
-        nqp::bindattr_i(self, RakuAST::Call::Name, '$!callstatic', 1)
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Call::Name, '$!callstatic', $on)
     }
 
     # Set by the optimize pass when the argument types decide the dispatch
@@ -568,6 +568,10 @@ class RakuAST::Call::Name
 
     method IMPL-SET-CT-INLINE-CANDIDATE(Mu $routine) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!ct-inline-candidate', $routine)
+    }
+
+    method IMPL-CLEAR-CT-INLINE-CANDIDATE() {
+        nqp::bindattr(self, RakuAST::Call::Name, '$!ct-inline-candidate', nqp::null())
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

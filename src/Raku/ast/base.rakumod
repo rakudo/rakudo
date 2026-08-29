@@ -45,6 +45,13 @@ class RakuAST::Node {
     # and False otherwise.
     method can-be-bound-to() { False }
 
+    # Compiles a bind to this node, checking the source against the
+    # target's bind constraint. The default performs no check, so a node
+    # whose target carries a constraint must override this.
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        self.IMPL-BIND-QAST($context, $source-qast)
+    }
+
     # Builds the exception thrown when this cannot be bound to, but someone
     # tries to do so anyway.
     method build-bind-exception(RakuAST::Resolver $resolver) {
@@ -698,80 +705,156 @@ class RakuAST::Node {
     method IMPL-OPTIMIZE-EXPRESSION(RakuAST::Resolver $resolver, Mu $expr) {
         return $expr unless nqp::isconcrete($expr);
 
-        my $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+        # The node's type is classified once, and each rewrite and mark
+        # below only runs when the node is one its own gate could accept.
+        # Every helper keeps its full gate: a flag here is a necessary
+        # condition of that gate, never a replacement for it. The flags
+        # come from istype, so a subclass reaches every helper its parent
+        # class does.
+        my int $apply-infix      := nqp::istype($expr, RakuAST::ApplyInfix);
+        my int $apply-prefix     := nqp::istype($expr, RakuAST::ApplyPrefix);
+        my int $apply-postfix    := nqp::istype($expr, RakuAST::ApplyPostfix);
+        my int $call-name        := nqp::istype($expr, RakuAST::Call::Name);
+        my int $stmt-expression  := nqp::istype($expr, RakuAST::Statement::Expression);
+        my int $conditional-stmt := nqp::istype($expr, RakuAST::Statement::IfWith)
+            || nqp::istype($expr, RakuAST::Statement::Unless);
+        my int $loop-stmt        := nqp::istype($expr, RakuAST::Statement::Loop);
 
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-SHORT-CIRCUIT($resolver, $expr);
+        # The rewrites, and the marks the unit's walk cannot settle again,
+        # wait for that walk when the resolver reports a walk ahead of
+        # it. The compile time dispatch mark waits during a structural
+        # one. Each helper gates itself as well.
+        my int $ahead-of-unit := $resolver.IMPL-AHEAD-OF-UNIT-WALK;
+        my int $structural    := $resolver.IMPL-STRUCTURAL-WALK;
+
+        my $result := $expr;
+        unless $ahead-of-unit {
+            if nqp::istype($expr, RakuAST::Ternary) {
+                $result := self.IMPL-COLLAPSE-TERNARY($resolver, $expr);
+            }
+
+            if $apply-infix && $result =:= $expr {
+                $result := self.IMPL-COLLAPSE-SHORT-CIRCUIT($resolver, $expr);
+            }
+
+            if $result =:= $expr
+                && ($apply-infix || $apply-prefix
+                    || nqp::istype($expr, RakuAST::ApplyListInfix)
+                    || nqp::istype($expr, RakuAST::Circumfix::Parentheses)) {
+                $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
+            }
+
+            if $apply-infix {
+                if $result =:= $expr {
+                    $result := self.IMPL-COLLAPSE-TYPEMATCH($resolver, $expr);
+                }
+                if $result =:= $expr {
+                    $result := self.IMPL-COLLAPSE-LITMATCH($resolver, $expr);
+                }
+                if $result =:= $expr {
+                    $result := self.IMPL-COLLAPSE-PAIRMATCH($resolver, $expr);
+                }
+            }
+
+            if ($conditional-stmt || $stmt-expression) && $result =:= $expr {
+                $result := self.IMPL-COLLAPSE-DEAD-BRANCH($resolver, $expr);
+            }
+
+            if $apply-infix && $result =:= $expr {
+                $result := self.IMPL-REWRITE-SQUARE($resolver, $expr);
+            }
+
+            if $apply-postfix && $result =:= $expr {
+                $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
+            }
         }
 
-        if $result =:= $expr {
-            $result := self.IMPL-FOLD-CONSTANT($resolver, $expr);
+        if $apply-infix {
+            # The negate withdrawal runs before the gated marks: it is a
+            # retraction of an operand's mark, so neither a rewrite having
+            # replaced this node nor the soft pragma may skip it.
+            self.IMPL-WITHDRAW-NEGATE-NOT($expr);
+
+            # A bind statement replaces its target's container, so it
+            # withdraws native subscript eligibility from the target's
+            # declaration. A retraction rather than an optimization: it runs
+            # whether or not a rewrite replaced this node and regardless of
+            # the soft pragma.
+            self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
         }
-
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-TYPEMATCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-LITMATCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-PAIRMATCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-COLLAPSE-DEAD-BRANCH($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-REWRITE-SQUARE($resolver, $expr);
-        }
-
-        if $result =:= $expr {
-            $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
-        }
-
-        # The negate withdrawal runs before the gated marks: it is a
-        # retraction of an operand's mark, so neither a rewrite having
-        # replaced this node nor the soft pragma may skip it.
-        self.IMPL-WITHDRAW-NEGATE-NOT($expr);
-
-        # A bind statement replaces its target's container, so it
-        # withdraws native subscript eligibility from the target's
-        # declaration. A retraction rather than an optimization: it runs
-        # whether or not a rewrite replaced this node and regardless of
-        # the soft pragma.
-        self.IMPL-POISON-NATIVE-INDEX-BIND($expr);
 
         # Lowerings that direct code generation rather than replacing the
         # node register their marks here, gated on the optimize pass running.
         # They each drop a layer of operator dispatch or pin down a routine
         # lookup, so the `soft` pragma, which keeps routines wrappable, turns
-        # them off.
-        if $result =:= $expr && !self.IMPL-IN-SOFT-SCOPE($resolver) {
-            self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr);
-            self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
-            self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
-            self.IMPL-MARK-DOT-ASSIGN($resolver, $expr);
-            self.IMPL-MARK-RANGE-FOR($resolver, $expr);
-            self.IMPL-MARK-STATIC-CALL($resolver, $expr);
-            self.IMPL-MARK-STATIC-CHAIN($resolver, $expr);
-            self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
-            self.IMPL-MARK-STATIC-PREFIX($resolver, $expr);
-            self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr);
-            self.IMPL-MARK-CONSTANT-TERM($resolver, $expr);
-            self.IMPL-MARK-NEGATE-NOT($resolver, $expr);
-            self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
-            self.IMPL-MARK-RETURN-DECONT($resolver, $expr);
-            self.IMPL-MARK-ARRAY-INIT($resolver, $expr);
-            self.IMPL-MARK-CT-DISPATCH($resolver, $expr);
-            self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr);
-            self.IMPL-MARK-WHEN-TYPEMATCH($resolver, $expr);
-            self.IMPL-MARK-JUNCTION-FOLD($resolver, $expr);
-            self.IMPL-MARK-CHAIN-LINKS($resolver, $expr);
-            self.IMPL-DROP-UNREACHABLE($resolver, $expr);
-            self.IMPL-MARK-PARAM-WHERE-JUNCTION($resolver, $expr);
+        # them off. The soft scope walk only runs when the node's type
+        # admits a mark at all.
+        if $result =:= $expr {
+            my int $dot-assign := nqp::istype($expr, RakuAST::ApplyDottyInfix)
+                || nqp::istype($expr, RakuAST::Term::TopicCall);
+            my int $stmt-for   := nqp::istype($expr, RakuAST::Statement::For);
+            my int $term-name  := nqp::istype($expr, RakuAST::Term::Name);
+            my int $routine    := nqp::istype($expr, RakuAST::Routine);
+            my int $var-decl   := nqp::istype($expr, RakuAST::VarDeclaration::Simple);
+            my int $stmt-when  := nqp::istype($expr, RakuAST::Statement::When);
+            my int $parameter  := nqp::istype($expr, RakuAST::Parameter);
+            if ($apply-infix || $apply-prefix || $apply-postfix || $call-name
+                || $stmt-expression || $conditional-stmt || $loop-stmt
+                || $dot-assign || $stmt-for || $term-name || $routine
+                || $var-decl || $stmt-when || $parameter)
+                && self.IMPL-IN-SOFT-SCOPE($resolver) {
+                self.IMPL-WITHDRAW-IDENTITY-MARKS($expr);
+            }
+            elsif $apply-infix || $apply-prefix || $apply-postfix || $call-name
+                || $stmt-expression || $conditional-stmt || $loop-stmt
+                || $dot-assign || $stmt-for || $term-name || $routine
+                || $var-decl || $stmt-when || $parameter {
+                self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr)
+                    if $apply-postfix || $apply-prefix;
+                if $apply-infix {
+                    self.IMPL-MARK-NATIVE-METAOP($resolver, $expr);
+                    self.IMPL-MARK-SCALAR-METAOP($resolver, $expr);
+                }
+                self.IMPL-MARK-DOT-ASSIGN($resolver, $expr)
+                    if $dot-assign;
+                self.IMPL-MARK-RANGE-FOR($resolver, $expr)
+                    if $stmt-for || $stmt-expression;
+                self.IMPL-MARK-STATIC-CALL($resolver, $expr)
+                    if $call-name;
+                if $apply-infix {
+                    self.IMPL-MARK-STATIC-CHAIN($resolver, $expr);
+                    self.IMPL-MARK-STATIC-INFIX($resolver, $expr);
+                }
+                self.IMPL-MARK-STATIC-PREFIX($resolver, $expr)
+                    if $apply-prefix;
+                self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr)
+                    if $apply-postfix;
+                self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
+                    if $term-name;
+                self.IMPL-MARK-NEGATE-NOT($resolver, $expr)
+                    if $apply-infix;
+                self.IMPL-MARK-NATIVE-INDEX($resolver, $expr)
+                    if $apply-postfix;
+                self.IMPL-MARK-RETURN-DECONT($resolver, $expr)
+                    if $routine;
+                self.IMPL-MARK-ARRAY-INIT($resolver, $expr)
+                    if $apply-infix || $var-decl;
+                self.IMPL-MARK-CT-DISPATCH($resolver, $expr)
+                    if ($call-name || $apply-infix) && !$structural;
+                self.IMPL-MARK-NATIVE-CONDITION($resolver, $expr)
+                    if $loop-stmt || $conditional-stmt || $stmt-expression;
+                self.IMPL-MARK-WHEN-TYPEMATCH($resolver, $expr)
+                    if ($stmt-when || $stmt-expression) && !$ahead-of-unit;
+                self.IMPL-MARK-JUNCTION-FOLD($resolver, $expr)
+                    if ($loop-stmt || $conditional-stmt || $stmt-expression
+                        || $apply-prefix) && !$ahead-of-unit;
+                self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
+                    if $apply-infix;
+                self.IMPL-DROP-UNREACHABLE($resolver, $expr)
+                    if $stmt-expression && !$ahead-of-unit;
+                self.IMPL-MARK-PARAM-WHERE-JUNCTION($resolver, $expr)
+                    if $parameter && !$ahead-of-unit;
+            }
         }
 
         # A replacement stands where the original stood, so it must carry the
@@ -782,6 +865,62 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # Withdraw the marks that bind a routine by identity or pin its
+    # lookup. The soft pragma keeps routines wrappable, and a walk ahead
+    # of the unit may have set such a mark before the pragma was parsed.
+    # The withdrawal reaches the frame the unit emits, which a
+    # precompiled unit loads.
+    method IMPL-WITHDRAW-IDENTITY-MARKS(Mu $expr) {
+        if nqp::istype($expr, RakuAST::ApplyPrefix) {
+            $expr.IMPL-SET-NATIVE-INCDEC(0);
+            my $prefix := $expr.prefix;
+            $prefix.IMPL-SET-CALLSTATIC(0) if nqp::istype($prefix, RakuAST::Prefix);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyPostfix) {
+            $expr.IMPL-SET-NATIVE-INCDEC(0);
+            my $postfix := $expr.postfix;
+            $postfix.IMPL-SET-CALLSTATIC(0) if nqp::istype($postfix, RakuAST::Postfix);
+            $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null)
+                if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex);
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyInfix) {
+            my $infix := $expr.infix;
+            if nqp::istype($infix, RakuAST::MetaInfix::Assign) {
+                $infix.IMPL-SET-NATIVE-STEP(0);
+                $infix.IMPL-SET-INLINE(0);
+            }
+            elsif nqp::istype($infix, RakuAST::MetaInfix::Negate) {
+                $infix.IMPL-CLEAR-NEGATE-NOT();
+            }
+            elsif nqp::istype($infix, RakuAST::Infix) {
+                $infix.IMPL-SET-CALLSTATIC(0);
+                $infix.IMPL-SET-CHAINSTATIC(0);
+                $infix.IMPL-SET-LOWERED-ARRAY-INIT(0);
+                $infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+            }
+        }
+        elsif nqp::istype($expr, RakuAST::Call::Name) {
+            $expr.IMPL-SET-CALLSTATIC(0);
+            $expr.IMPL-CLEAR-CT-INLINE-CANDIDATE();
+        }
+        elsif nqp::istype($expr, RakuAST::Term::Name) {
+            $expr.IMPL-SET-COMPILE-TO-VALUE(0);
+        }
+        elsif nqp::istype($expr, RakuAST::Statement::For) {
+            $expr.IMPL-SET-CAN-LOWER-RANGE(0);
+        }
+        elsif nqp::istype($expr, RakuAST::Statement::Expression) {
+            my $loop := $expr.loop-modifier;
+            $loop.IMPL-SET-CAN-LOWER-RANGE(0)
+                if nqp::isconcrete($loop)
+                && nqp::istype($loop, RakuAST::StatementModifier::For);
+        }
+        elsif nqp::istype($expr, RakuAST::VarDeclaration::Simple) {
+            $expr.IMPL-SET-LOWERED-ARRAY-INIT(0);
+        }
+        Nil
     }
 
     # Mark a native int or num increment or decrement on a simple lexical or
@@ -817,7 +956,7 @@ class RakuAST::Node {
         # reverse would not give the original back; leave those to the routine.
         # A prefix yields the stepped value directly, so it needs no such guard.
         return Nil if $is-postfix && nqp::objprimbits($target-type) != 64;
-        $expr.IMPL-SET-NATIVE-INCDEC($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $op-node);
+        $expr.IMPL-SET-NATIVE-INCDEC(self.IMPL-OPERATOR-IS-CORE($resolver, $op-node) ?? $spec !! 0);
         Nil
     }
 
@@ -858,7 +997,7 @@ class RakuAST::Node {
             $rhs-ok := 1;
         }
         return Nil unless $rhs-ok;
-        $infix.IMPL-SET-NATIVE-STEP($spec) if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
+        $infix.IMPL-SET-NATIVE-STEP(self.IMPL-OPERATOR-IS-CORE($resolver, $base) ?? $spec !! 0);
         Nil
     }
 
@@ -883,7 +1022,7 @@ class RakuAST::Node {
         # which returns a Nil there, so leave them to it as well.
         return Nil if $op eq '^^' || $op eq 'xor';
         return Nil unless self.IMPL-SCALAR-METAOP-LHS-OK($expr.left);
-        $infix.IMPL-SET-INLINE if self.IMPL-OPERATOR-IS-CORE($resolver, $base);
+        $infix.IMPL-SET-INLINE(self.IMPL-OPERATOR-IS-CORE($resolver, $base) ?? 1 !! 0);
         Nil
     }
 
@@ -984,9 +1123,9 @@ class RakuAST::Node {
             ?? $for.source
             !! $for.expression;
         my $operator := $for.IMPL-RANGE-FOR-OPERATOR($source);
-        $for.IMPL-SET-CAN-LOWER-RANGE()
-            if nqp::isconcrete($operator)
-            && self.IMPL-OPERATOR-IS-CORE($resolver, $operator);
+        $for.IMPL-SET-CAN-LOWER-RANGE(
+            nqp::isconcrete($operator)
+            && self.IMPL-OPERATOR-IS-CORE($resolver, $operator) ?? 1 !! 0);
         Nil
     }
 
@@ -996,9 +1135,9 @@ class RakuAST::Node {
         return Nil unless nqp::istype($expr, RakuAST::Call::Name)
             && $expr.name.is-identifier
             && $expr.is-resolved;
-        $expr.IMPL-SET-CALLSTATIC()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $expr.resolution,
-                '&' ~ $expr.name.canonicalize);
+        $expr.IMPL-SET-CALLSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $expr.resolution,
+                '&' ~ $expr.name.canonicalize) ?? 1 !! 0);
         Nil
     }
 
@@ -1135,9 +1274,9 @@ class RakuAST::Node {
         return Nil unless nqp::istype($resolution, RakuAST::CompileTimeValue)
             && $resolution.has-compile-time-value;
         return Nil if nqp::iscont($resolution.compile-time-value);
-        $expr.IMPL-SET-COMPILE-TO-VALUE()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution,
-                $expr.name.canonicalize);
+        $expr.IMPL-SET-COMPILE-TO-VALUE(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution,
+                $expr.name.canonicalize) ?? 1 !! 0);
         Nil
     }
 
@@ -1149,9 +1288,9 @@ class RakuAST::Node {
         return Nil unless nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && $infix.properties.chain;
-        $infix.IMPL-SET-CHAINSTATIC()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
-                '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator));
+        $infix.IMPL-SET-CHAINSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
+                '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator)) ?? 1 !! 0);
         Nil
     }
 
@@ -1164,9 +1303,9 @@ class RakuAST::Node {
         return Nil unless nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && !$infix.properties.chain;
-        $infix.IMPL-SET-CALLSTATIC()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
-                '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator));
+        $infix.IMPL-SET-CALLSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $infix.resolution,
+                '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator)) ?? 1 !! 0);
         Nil
     }
 
@@ -1177,9 +1316,9 @@ class RakuAST::Node {
         my $prefix := $expr.prefix;
         return Nil unless nqp::istype($prefix, RakuAST::Prefix)
             && $prefix.is-resolved;
-        $prefix.IMPL-SET-CALLSTATIC()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $prefix.resolution,
-                '&prefix' ~ $resolver.IMPL-CANONICALIZE-PAIR($prefix.operator));
+        $prefix.IMPL-SET-CALLSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $prefix.resolution,
+                '&prefix' ~ $resolver.IMPL-CANONICALIZE-PAIR($prefix.operator)) ?? 1 !! 0);
         Nil
     }
 
@@ -1190,9 +1329,9 @@ class RakuAST::Node {
         my $postfix := $expr.postfix;
         return Nil unless nqp::istype($postfix, RakuAST::Postfix)
             && $postfix.is-resolved;
-        $postfix.IMPL-SET-CALLSTATIC()
-            if self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
-                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator));
+        $postfix.IMPL-SET-CALLSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
+                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator)) ?? 1 !! 0);
         Nil
     }
 
@@ -1211,9 +1350,9 @@ class RakuAST::Node {
                 && $_.infix.properties.chain;
         }
         my $not := $resolver.resolve-lexical-constant-in-setting('&prefix:<!>');
-        $infix.IMPL-SET-NEGATE-NOT($not.compile-time-value)
-            if nqp::isconcrete($not)
-            && nqp::istype($not, RakuAST::CompileTimeValue);
+        nqp::isconcrete($not) && nqp::istype($not, RakuAST::CompileTimeValue)
+            ?? $infix.IMPL-SET-NEGATE-NOT($not.compile-time-value)
+            !! $infix.IMPL-CLEAR-NEGATE-NOT();
         Nil
     }
 
@@ -1256,20 +1395,21 @@ class RakuAST::Node {
             # fallback, and both branches compile the operands, so an operand
             # declaring a lexical must keep the plain STORE.
             my $infix := $expr.infix;
-            $infix.IMPL-SET-LOWERED-ARRAY-INIT()
-                if nqp::istype($infix, RakuAST::Infix)
-                && $infix.operator eq '='
-                && nqp::istype($expr.left, RakuAST::Var::Lexical)
-                && $expr.left.is-resolved
-                && self.IMPL-PLAIN-ARRAY-DECL($expr.left.resolution)
-                && self.IMPL-CORE-COMMA-LIST($resolver, $expr.right)
-                && self.IMPL-DROPPABLE($expr.right);
+            if nqp::istype($infix, RakuAST::Infix) {
+                $infix.IMPL-SET-LOWERED-ARRAY-INIT(
+                    $infix.operator eq '='
+                    && nqp::istype($expr.left, RakuAST::Var::Lexical)
+                    && $expr.left.is-resolved
+                    && self.IMPL-PLAIN-ARRAY-DECL($expr.left.resolution)
+                    && self.IMPL-CORE-COMMA-LIST($resolver, $expr.right)
+                    && self.IMPL-DROPPABLE($expr.right) ?? 1 !! 0);
+            }
         }
         elsif nqp::istype($expr, RakuAST::VarDeclaration::Simple) {
-            $expr.IMPL-SET-LOWERED-ARRAY-INIT()
-                if self.IMPL-PLAIN-ARRAY-DECL($expr)
+            $expr.IMPL-SET-LOWERED-ARRAY-INIT(
+                self.IMPL-PLAIN-ARRAY-DECL($expr)
                 && nqp::istype($expr.initializer, RakuAST::Initializer::Assign)
-                && self.IMPL-CORE-COMMA-LIST($resolver, $expr.initializer.expression);
+                && self.IMPL-CORE-COMMA-LIST($resolver, $expr.initializer.expression) ?? 1 !! 0);
         }
         Nil
     }
@@ -1555,6 +1695,7 @@ class RakuAST::Node {
     # alone: a link inside a longer chain takes part in the chain op
     # protocol, which an inlined body no longer would.
     method IMPL-MARK-CT-DISPATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil if $resolver.IMPL-STRUCTURAL-WALK;
         return Nil if nqp::istrue(nqp::ifnull(nqp::getlexdyn('$*NO-CT-DISPATCH'), 0));
         my $target;
         my @args;
@@ -1572,6 +1713,7 @@ class RakuAST::Node {
             }
             $target := $expr;
             $lexname := '&' ~ $expr.name.canonicalize;
+            $target.IMPL-CLEAR-CT-INLINE-CANDIDATE();
         }
         elsif nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
@@ -1606,6 +1748,7 @@ class RakuAST::Node {
             nqp::push(@args, $right);
             $target := $infix;
             $lexname := '&infix' ~ $resolver.IMPL-CANONICALIZE-PAIR($infix.operator);
+            $target.IMPL-CLEAR-CT-INLINE-CANDIDATE();
         }
         else {
             return Nil;
@@ -1613,9 +1756,7 @@ class RakuAST::Node {
 
         my $resolution := $target.resolution;
         return Nil unless self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $lexname);
-        my $routine := nqp::istype($resolution, RakuAST::CompileTimeValue)
-            ?? $resolution.compile-time-value
-            !! $resolution.maybe-compile-time-value;
+        my $routine := self.IMPL-DECLARATION-VALUE($resolution);
         return Nil unless nqp::isconcrete($routine)
             && nqp::istype($routine, Code)
             && nqp::can($routine, 'signature');
@@ -1799,35 +1940,22 @@ class RakuAST::Node {
     method IMPL-RESOLUTION-BOUND-ONCE(RakuAST::Resolver $resolver, Mu $decl, str $name) {
         return 1 if nqp::istype($decl, RakuAST::Declaration::External::Setting);
 
-        return 0 unless nqp::istype($decl, RakuAST::CompileTimeValue)
-            || nqp::can($decl, 'maybe-compile-time-value');
-        my $routine := nqp::istype($decl, RakuAST::CompileTimeValue)
-            ?? $decl.compile-time-value
-            !! $decl.maybe-compile-time-value;
+        my $routine := self.IMPL-DECLARATION-VALUE($decl);
         return 0 unless nqp::isconcrete($routine);
         # The check fails open like the other soft guards. A Code that
         # cannot answer soft cannot be wrapped either, and the
         # published method cache of a mixin type in the setting under
         # compilation can miss the methods the setting itself adds.
-        if nqp::istype($routine, Code) {
+        # A structural walk skips the probe, since the setting's own
+        # routines are never soft.
+        if nqp::istype($routine, Code) && !$resolver.IMPL-STRUCTURAL-WALK {
             return 0 if nqp::can($routine, 'soft') && $routine.soft;
         }
 
         # The nearest scope declaring the name must be the outermost one, and
         # the declaration found there must be the resolution itself, so a
         # shadowing declaration the resolution predates turns the mark off.
-        my $nearest := nqp::null();
-        my $outermost := nqp::null();
-        $resolver.find-scope-property(-> $scope {
-            $outermost := $scope;
-            $nearest := $scope
-                if nqp::isnull($nearest)
-                && nqp::isconcrete($scope.find-lexical($name));
-            Nil
-        });
-        !nqp::isnull($nearest)
-            && nqp::eqaddr($nearest, $outermost)
-            && nqp::eqaddr($outermost.find-lexical($name), $decl)
+        $resolver.IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE($name, $decl)
     }
 
     # A smartmatch against a compile-time-known type object reduces to a type
@@ -1895,6 +2023,7 @@ class RakuAST::Node {
     # known topic decides the match now through the literal's own ACCEPTS.
     # Otherwise the reduced comparison is marked for code generation.
     method IMPL-COLLAPSE-LITMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return $expr;
         }
@@ -2022,6 +2151,7 @@ class RakuAST::Node {
     # takes Any or narrower, so no candidate could have bound the
     # junction itself in place of autothreading.
     method IMPL-MARK-JUNCTION-FOLD(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return Nil;
         }
@@ -2403,6 +2533,7 @@ class RakuAST::Node {
     # Junction argument autothreading qualifies, so the constraint never
     # sees a junction itself.
     method IMPL-MARK-PARAM-WHERE-JUNCTION(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return Nil;
         }
@@ -2470,6 +2601,7 @@ class RakuAST::Node {
     # A smartmatch against a compile-time Pair asks the topic the method
     # the key names. Mark the reduced form for code generation.
     method IMPL-COLLAPSE-PAIRMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return $expr;
         }
@@ -2589,6 +2721,7 @@ class RakuAST::Node {
     # phaser statement, whose begin-time registration outlives its
     # position but whose spot in the list is left alone all the same.
     method IMPL-DROP-UNREACHABLE(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return Nil;
         }
@@ -2649,6 +2782,7 @@ class RakuAST::Node {
     # must be droppable. A with part tests definedness and topicalizes
     # its value, so only plain if parts collapse.
     method IMPL-COLLAPSE-DEAD-BRANCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return $expr;
         }
@@ -2795,6 +2929,7 @@ class RakuAST::Node {
     # reduced smartmatch takes for a topic that turns out to be a
     # concrete Junction.
     method IMPL-MARK-WHEN-TYPEMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return Nil;
         }
@@ -2876,6 +3011,7 @@ class RakuAST::Node {
     }
 
     method IMPL-COLLAPSE-TYPEMATCH(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         # The checks introspect meta-objects the walk has no say over, so a
         # surprise from an unusual one declines rather than breaks the build.
         CATCH {
@@ -2988,6 +3124,7 @@ class RakuAST::Node {
     # The soft pragma turns the rewrite off, since it bypasses the power
     # routine that wrapping relies on.
     method IMPL-REWRITE-SQUARE(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return $expr;
         }
@@ -3042,6 +3179,7 @@ class RakuAST::Node {
     # is the left operand of any parent keeps the call. The comma and the
     # postcircumfix operator must be the core ones in the node's scope.
     method IMPL-UNROLL-SLICE(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         CATCH {
             return $expr;
         }
@@ -3129,8 +3267,8 @@ class RakuAST::Node {
     }
 
     # True when the operator resolves to the CORE routine itself. An operator
-    # bound to a lexical variable has no compile-time value and throws, which
-    # declines the lowering. A user `multi` or `sub` that shadows or extends the
+    # bound to a lexical variable has no compile-time value, which declines
+    # the lowering. A user `multi` or `sub` that shadows or extends the
     # operator produces a distinct routine object whose file may still read
     # SETTING::, so the file alone is not enough. The name is resolved again in
     # the scope of the node being offered: a lexical declaration is visible to
@@ -3144,23 +3282,38 @@ class RakuAST::Node {
         CATCH {
             return False;
         }
-        my $routine := $operator.resolution.compile-time-value;
+        return False unless $operator.is-resolved;
+        my $routine := self.IMPL-DECLARATION-VALUE($operator.resolution);
+        return False unless nqp::isconcrete($routine);
         # A loaded setting stamps its symbols with a SETTING:: file. While
         # a core setting is itself being compiled its own operators carry
         # the plain source file instead, and every one of them is core.
-        return False
-          unless nqp::can($routine, 'file')
-            && ($routine.file.starts-with('SETTING::')
-                || nqp::istrue(nqp::ifnull(
-                     nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
+        # A structural walk skips the file probe.
+        unless $resolver.IMPL-STRUCTURAL-WALK {
+            return False
+              unless nqp::can($routine, 'file')
+                && ($routine.file.starts-with('SETTING::')
+                    || nqp::istrue(nqp::ifnull(
+                         nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
+        }
         my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
                          !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
                          !! '&infix';
         my $current := $resolver.resolve-lexical(
           $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator));
-        nqp::isconcrete($current)
-          ?? nqp::eqaddr($routine, nqp::decont($current.compile-time-value))
-          !! True
+        return True unless nqp::isconcrete($current);
+        my $current-value := self.IMPL-DECLARATION-VALUE($current);
+        nqp::isconcrete($current-value)
+            && nqp::eqaddr($routine, nqp::decont($current-value))
+    }
+
+    # The compile-time value a declaration offers, or Mu when it has none.
+    method IMPL-DECLARATION-VALUE(Mu $decl) {
+        nqp::istype($decl, RakuAST::CompileTimeValue)
+            ?? $decl.compile-time-value
+            !! nqp::can($decl, 'maybe-compile-time-value')
+                ?? $decl.maybe-compile-time-value
+                !! Mu
     }
 
     # A ternary with a constant condition becomes the branch the condition
@@ -3168,6 +3321,7 @@ class RakuAST::Node {
     # unselected branch is one the running program would not have evaluated. The
     # condition is removed as well, so it too must be droppable.
     method IMPL-COLLAPSE-TERNARY(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         return $expr unless nqp::istype($expr, RakuAST::Ternary);
         my int $truth := self.IMPL-CONSTANT-TRUTH($resolver, $expr.condition);
         return $expr if $truth < 0;
@@ -3184,6 +3338,7 @@ class RakuAST::Node {
     # have evaluated, so its code is removed too. The left's constant truth
     # stands in for the runtime test only when the left is droppable.
     method IMPL-COLLAPSE-SHORT-CIRCUIT(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
         return $expr
@@ -3306,6 +3461,7 @@ class RakuAST::Node {
     # one-shot or failure-like results are not folded, and folding is declined
     # before the guard types are available (early bootstrap).
     method IMPL-FOLD-CONSTANT(RakuAST::Resolver $resolver, Mu $expr) {
+        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
         return $expr unless nqp::isconcrete($expr);
 
         # Grouping parentheses around a single constant are transparent, so a

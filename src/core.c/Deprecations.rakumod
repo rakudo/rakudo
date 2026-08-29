@@ -25,18 +25,21 @@ class Deprecation {
 
     proto method report (|) {*}
     multi method report (Deprecation:U:) {
-        return Nil unless %DEPRECATIONS;
+        if %DEPRECATIONS {
+            my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
+            $message ~= ("=" x 80) ~ "\n";
+            for %DEPRECATIONS.sort(*.key)>>.value>>.report -> $r {
+                $message ~= $r;
+                $message ~= ("-" x 80) ~ "\n";
+            }
 
-        my $message = "Saw {+%DEPRECATIONS} occurrence{ 's' if +%DEPRECATIONS != 1 } of deprecated code.\n";
-        $message ~= ("=" x 80) ~ "\n";
-        for %DEPRECATIONS.sort(*.key)>>.value>>.report -> $r {
-            $message ~= $r;
-            $message ~= ("-" x 80) ~ "\n";
+            %DEPRECATIONS = ();  # reset for new batches if applicable
+
+            $message.chop
         }
-
-        %DEPRECATIONS = ();  # reset for new batches if applicable
-
-        $message.chop
+        else {
+            Nil
+        }
     }
     multi method report (Deprecation:D:) {
         my $type    = $.type ?? "$.type " !! "";

@@ -126,6 +126,10 @@ class RakuAST::Var::Lexical
         self.resolution.IMPL-BIND-QAST($context, $source-qast)
     }
 
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        self.resolution.IMPL-CHECKED-BIND-QAST($context, $source-qast)
+    }
+
     method IMPL-CAN-INTERPRET() {
         self.is-resolved
           && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
@@ -747,7 +751,7 @@ class RakuAST::Var::Compiler::Routine
             $routine.set-need-routine-variable();
         }
 
-        my $resolved := $resolver.resolve-lexical('&?ROUTINE');
+        my $resolved := $resolver.resolve-lexical('&?ROUTINE', :current-scope-only);
         if $resolved {
             self.set-resolution($resolved);
         }

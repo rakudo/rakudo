@@ -857,6 +857,12 @@ class RakuAST::Node {
             }
         }
 
+        self.IMPL-MARK-HOP-CONSTANT($resolver, $expr)
+            if $result =:= $expr
+            && ($apply-infix
+                || nqp::istype($expr, RakuAST::ApplyListInfix)
+                || nqp::istype($expr, RakuAST::Term::Reduce));
+
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
         if !($result =:= $expr)
@@ -865,6 +871,25 @@ class RakuAST::Node {
             $result.mark-sunk();
         }
         $result
+    }
+
+    # Mark the base operator of a meta operator or a reduction for
+    # forming the meta-op once at compile time, when the base resolves to
+    # a setting routine the name still reaches from the node. The soft
+    # pragma keeps the formation at run time. The mark is written on
+    # every visit, so the unit's walk settles what a walk ahead of it
+    # decided.
+    method IMPL-MARK-HOP-CONSTANT(RakuAST::Resolver $resolver, Mu $expr) {
+        my $base := $expr.infix;
+        return Nil unless nqp::istype($base, RakuAST::MetaInfix)
+            || nqp::istype($expr, RakuAST::Term::Reduce);
+        $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+        return Nil unless nqp::istype($base, RakuAST::Infix) && $base.is-resolved;
+        $base.IMPL-SET-HOP-CONSTANT(
+            nqp::istype($base.resolution, RakuAST::Declaration::External::Setting)
+            && !self.IMPL-IN-SOFT-SCOPE($resolver)
+            && self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $base) ?? 1 !! 0);
+        Nil
     }
 
     # Withdraw the marks that bind a routine by identity or pin its

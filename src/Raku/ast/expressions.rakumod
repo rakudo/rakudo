@@ -547,9 +547,20 @@ class RakuAST::Infix
 
     method IMPL-HOP-CONSTANT() { $!hop-constant }
 
+    # Set by the optimize pass on a chaining operator whose application is
+    # a chain of one link, so it compiles as a plain call. The chain op
+    # serves the protocol between links, and boxes its operands for it,
+    # where a call passes a native operand as it is.
+    has int $!lone-link;
+
+    method IMPL-SET-LONE-LINK(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!lone-link', $on)
+    }
+
     # Set by the optimize pass when the resolved operator's lexical is bound
     # once, so a chaining operator's callee lookup can be compiled as a
-    # static one the VM resolves a single time.
+    # static one the VM resolves a single time. A lone link compiles as a
+    # call and takes its static lookup from this mark as well.
     has int $!chainstatic;
 
     method IMPL-SET-CHAINSTATIC(int $on) {
@@ -743,13 +754,14 @@ class RakuAST::Infix
             return $inlined unless nqp::isnull($inlined);
         }
 
+        my str $call-op := self.properties.chain && !$!lone-link
+            ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
+            !! (($!callstatic || $!chainstatic) ?? 'callstatic' !! 'call');
+
         # A comparison in boolean position with a junction operand
         # unfolds to short-circuit comparisons per eigenstate.
         if $!junction-fold {
-            my $folded := self.IMPL-JUNCTION-FOLD-QAST($context,
-                self.properties.chain
-                    ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                    !! ($!callstatic ?? 'callstatic' !! 'call'),
+            my $folded := self.IMPL-JUNCTION-FOLD-QAST($context, $call-op,
                 $name, $left-qast, $right-qast,
                 $!junction-fold, $!junction-fold-junction);
             return $folded unless nqp::isnull($folded);
@@ -758,9 +770,7 @@ class RakuAST::Infix
         # Otherwise, it's called by finding the lexical sub to call, and
         # compiling it as chaining if required.
         self.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
-            :op(self.properties.chain
-                  ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                  !! ($!callstatic ?? 'callstatic' !! 'call')),
+            :op($call-op),
             :$name,
             $left-qast,
             $right-qast

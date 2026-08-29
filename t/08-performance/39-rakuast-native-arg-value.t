@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 19;
+plan 30;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -101,6 +101,28 @@ plan 19;
     is $r[0], 7, 'a raw slurpy holds a live view of a native argument';
 }
 
+# The links of a longer chain keep the chain protocol: the middle
+# operand is evaluated once and a false link ends the chain.
+{
+    my $a = 2;
+    is-deeply (1 < $a < 3 < 2, 0 < 0.5 < 1 < 2), (False, True),
+        'a chain of several links answers as a chain';
+    my $n = 0;
+    sub f() { $n++; 2 }
+    is 5 < f() < 3, False, 'a false first link ends the chain';
+    is $n, 1, 'the middle operand of a chain is evaluated once';
+    my $m = 0;
+    sub g() { $m++; 9 }
+    is 1 < 0 < g(), False, 'a later link is not evaluated after a false one';
+    is $m, 0, 'a later link is not evaluated after a false one, with its operand untouched';
+}
+{
+    my $a = 5;
+    is 1 !< $a < 3, False, 'a false negated first link ends the chain';
+    my int $n = 5;
+    is 1 < $n < 3, False, 'a native operand of a longer chain keeps the chain';
+}
+
 # The scope of the first argument of a named call, or the node's type
 # name when that argument is not a variable.
 sub qast-first-arg-scope(Mu $qast, str $callee --> Str) {
@@ -132,8 +154,16 @@ sub qast-call-arg-scope(Mu $qast, str $var --> Str) {
     }
     ''
 }
+# How many ops of the given op name call the given callee name.
+sub qast-count-calls(Mu $qast, str $op, str $callee --> Int) {
+    my $count = nqp::istype($qast, QAST::Op) && $qast.op eq $op && $qast.name eq $callee ?? 1 !! 0;
+    if qast-descendable $qast {
+        $count += qast-count-calls($_, $op, $callee) for $qast.list;
+    }
+    $count
+}
 
-# The shapes are this frontend's.
+# What follows holds under this frontend only.
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     {
         sub o(\x, $y?) { -> { x } }
@@ -149,9 +179,31 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my int $a; my int $b; my $c = $a !< $b', -> \v {
         qast-call-arg-scope(v, '$a') eq 'lexical'
     }, 'a native operand of a negated comparison passes as a value';
+    # A lone comparison dispatching on native operands is this frontend's
+    # shape.
+    {
+        multi sub infix:«<»(int $a, int $b) is default { $a <= 1 }
+        sub count(int $n) { my int $i = 0; my int $c = 0; while $i < $n { $i++; $c++ }; $c }
+        is count(3), 2, 'a lone native comparison dispatches on the native operands';
+    }
+    {
+        use soft;
+        multi sub infix:«<»(int $a, int $b) is default { $a <= 1 }
+        sub count(int $n) { my int $i = 0; my int $c = 0; while $i < $n { $i++; $c++ }; $c }
+        is count(3), 2, 'a lone native comparison dispatches on the native operands under the soft pragma';
+    }
+    qast-is 'my $a; my $b; my $c = $a < $b', -> \v {
+        qast-count-calls(v, 'callstatic', '&infix:«<»') == 1
+            and not qast-contains-op(v, 'chainstatic') and not qast-contains-op(v, 'chain')
+    }, 'a lone comparison compiles to a call';
+    qast-is 'my $a; my $d = 1 < $a < 3', -> \v {
+        qast-count-calls(v, 'chainstatic', '&infix:«<»') == 2
+            and qast-count-calls(v, 'callstatic', '&infix:«<»') == 0
+            and qast-count-calls(v, 'call', '&infix:«<»') == 0
+    }, 'every link of a chain of two compiles to a chain op';
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 4;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 8;
 }
 
 # vim: expandtab shiftwidth=4

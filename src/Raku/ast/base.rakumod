@@ -770,10 +770,11 @@ class RakuAST::Node {
         }
 
         if $apply-infix {
-            # The negate withdrawal runs before the gated marks: it is a
-            # retraction of an operand's mark, so neither a rewrite having
-            # replaced this node nor the soft pragma may skip it.
+            # The withdrawals run before the gated marks: each retracts an
+            # operand's mark, so neither a rewrite having replaced this node
+            # nor the soft pragma may skip them.
             self.IMPL-WITHDRAW-NEGATE-NOT($expr);
+            self.IMPL-WITHDRAW-LONE-LINK($expr);
 
             # A bind statement replaces its target's container, so it
             # withdraws native subscript eligibility from the target's
@@ -848,8 +849,6 @@ class RakuAST::Node {
                 self.IMPL-MARK-JUNCTION-FOLD($resolver, $expr)
                     if ($loop-stmt || $conditional-stmt || $stmt-expression
                         || $apply-prefix) && !$ahead-of-unit;
-                self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
-                    if $apply-infix;
                 self.IMPL-DROP-UNREACHABLE($resolver, $expr)
                     if $stmt-expression && !$ahead-of-unit;
                 self.IMPL-MARK-PARAM-WHERE-JUNCTION($resolver, $expr)
@@ -862,6 +861,8 @@ class RakuAST::Node {
             && ($apply-infix
                 || nqp::istype($expr, RakuAST::ApplyListInfix)
                 || nqp::istype($expr, RakuAST::Term::Reduce));
+        self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
+            if $result =:= $expr && $apply-infix;
 
         # A replacement stands where the original stood, so it must carry the
         # original's sunk state for any sink-sensitive code generation.
@@ -1324,7 +1325,8 @@ class RakuAST::Node {
 
     # Mark an infix operator whose lexical is bound once for a static
     # callee lookup at code generation. A chaining one is the chain mark's
-    # business, since it compiles to a chain op instead.
+    # business, which decides its static lookup whether it compiles to a
+    # chain op or to a call.
     method IMPL-MARK-STATIC-INFIX(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
@@ -1398,6 +1400,23 @@ class RakuAST::Node {
             $_.infix.IMPL-CLEAR-NEGATE-NOT()
                 if nqp::istype($_, RakuAST::ApplyInfix)
                 && nqp::istype($_.infix, RakuAST::MetaInfix::Negate)
+                && $_.infix.properties.chain;
+        }
+        Nil
+    }
+
+    # Withdraw the lone link mark from an operand that turns out to be a
+    # link of a longer chain, since a link must never emit as a plain
+    # call. Unconditional for the reason the negate withdrawal is.
+    method IMPL-WITHDRAW-LONE-LINK(Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infixish)
+            && $infix.properties.chain;
+        for [$expr.left, $expr.right] {
+            $_.infix.IMPL-SET-LONE-LINK(0)
+                if nqp::istype($_, RakuAST::ApplyInfix)
+                && nqp::istype($_.infix, RakuAST::Infix)
                 && $_.infix.properties.chain;
         }
         Nil
@@ -2921,25 +2940,31 @@ class RakuAST::Node {
     }
 
     # The links of a longer chain take part in the chain op protocol, so
-    # none of them may compile to anything but a chain op. The reduced
-    # smartmatch marks decide per node and cannot see the enclosing
-    # chain, whose own offering comes only after its operands were
-    # visited, so the enclosing chain withdraws any decision its operand
-    # links took.
+    # none of them may compile to anything but a chain op, while a chain
+    # of one link compiles as a call. The reduced smartmatch marks decide
+    # per node and cannot see the enclosing chain, whose own visit comes
+    # only after its operands were visited, so the enclosing chain
+    # withdraws the smartmatch decision its operand links took. A chain
+    # with no operand link is a chain of one link and takes the lone
+    # link mark. The marks sit outside the soft gate, since a lone
+    # link's call dispatches the operator as the chain op does, and
+    # pins nothing.
     method IMPL-MARK-CHAIN-LINKS(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infixish)
             && $expr.infix.properties.chain;
-        my $left := $expr.left;
-        $left.infix.IMPL-CLEAR-SMARTMATCH-MARKS()
-            if nqp::istype($left, RakuAST::ApplyInfix)
-            && nqp::istype($left.infix, RakuAST::Infix)
-            && $left.infix.properties.chain;
-        my $right := $expr.right;
-        $right.infix.IMPL-CLEAR-SMARTMATCH-MARKS()
-            if nqp::istype($right, RakuAST::ApplyInfix)
-            && nqp::istype($right.infix, RakuAST::Infix)
-            && $right.infix.properties.chain;
+        my int $linked := 0;
+        for [$expr.left, $expr.right] -> $operand {
+            if nqp::istype($operand, RakuAST::ApplyInfix)
+                && nqp::istype($operand.infix, RakuAST::Infixish)
+                && $operand.infix.properties.chain {
+                $linked := 1;
+                $operand.infix.IMPL-CLEAR-SMARTMATCH-MARKS()
+                    if nqp::istype($operand.infix, RakuAST::Infix);
+            }
+        }
+        $expr.infix.IMPL-SET-LONE-LINK($linked ?? 0 !! 1)
+            if nqp::istype($expr.infix, RakuAST::Infix);
         Nil
     }
 

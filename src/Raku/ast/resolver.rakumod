@@ -797,7 +797,7 @@ class RakuAST::Resolver {
                     nqp::push(@others, $stubbed);
                 }
                 $sorries := RakuAST::Node.IMPL-WRAP-LIST(@others);
-                $num-sorries := $sorries.elems;
+                $num-sorries := nqp::elems(@others);
             }
         }
 
@@ -833,7 +833,9 @@ class RakuAST::Resolver {
     }
 
     # Returns True if there are any compilation errors (worries don't count).
-    method has-compilation-errors() { self.all-sorries.Bool }
+    method has-compilation-errors() {
+        nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries)) ?? True !! False
+    }
 
     # Gathers all sorries (from check time, if performed, and any specific to
     # a given resolver).

@@ -700,6 +700,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    # Throws the errors found so far, with any worries inside the group.
+    # Worries alone do not throw and are printed at the end of the unit.
+    method throw-errors() {
+        $*R.produce-compilation-exception.throw if $*R.has-compilation-errors;
+    }
+
     # Action method to load any modules specified with -M
     method load-M-modules($/) {
         my $M := %*OPTIONS<M>;
@@ -2930,7 +2936,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
 
         $package.to-parse-time($*R, $*CU.context);
-        self.report-problems();
+        self.throw-errors();
 
         self.set-declarand($/, $*PACKAGE := $package);
 

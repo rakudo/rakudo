@@ -1686,10 +1686,25 @@ class RakuAST::MetaInfix::Assign
     # The base assigns operands to QAST then calls IMPL-INFIX-QAST. When the
     # optimize pass marked a native compound assignment, emit the raw op
     # instead; that path needs the operand ASTs, not their QAST, to take the
-    # left as a lexicalref.
+    # left as a lexicalref. A native lexical or attribute target under a
+    # plain infix, with no adverb and no test or list meta, takes the
+    # operator's result by assignment, which needs the ASTs the same way.
+    # `^^` and `xor` compile to the `xor` QAST op, which yields a VMNull
+    # when neither operand is the result, where the metaop's routine call
+    # yields a Nil, so they are left to the metaop.
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
         return self.IMPL-NATIVE-STEP-QAST($context, $left, $right) if $!native-step;
+        if !$adverb && nqp::istype($!infix, RakuAST::Infix) && !self.IMPL-IS-TEST
+            && !self.IMPL-WRAPS-LIST-META
+            && ((nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
+                || nqp::istype($left, RakuAST::Var::Attribute)) {
+            my str $op := $!infix.operator;
+            if $op ne '^^' && $op ne 'xor' {
+                my int $spec := nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left));
+                return self.IMPL-NATIVE-ASSIGN-QAST($context, $left, $right, $spec) if $spec;
+            }
+        }
 
         my $qast := self.IMPL-INFIX-QAST($context, $left.IMPL-TO-QAST($context),
             $right.IMPL-TO-QAST($context));
@@ -1717,6 +1732,41 @@ class RakuAST::MetaInfix::Assign
         my $rhs     := $right.IMPL-TO-QAST($context);
         QAST::Op.new(:op($is-int ?? 'assign_i' !! 'assign_n'), :$returns, $var,
             QAST::Op.new(:op($op), :$returns, $var, $rhs))
+    }
+
+    # The type the store judges its target by: the type a native step
+    # judges by, and for an `is rw` native parameter, whose lexical is an
+    # alias of the caller's native, the parameter's declared type, since
+    # an assignment to the alias writes through where a raw op step would
+    # not.
+    method IMPL-NATIVE-ASSIGN-TARGET-TYPE(Mu $target) {
+        if nqp::istype($target, RakuAST::Var::Lexical) && $target.is-resolved {
+            my $resolution := $target.resolution;
+            if nqp::istype($resolution, RakuAST::ParameterTarget::Var) {
+                my $declaration := $resolution.declaration;
+                return $declaration.return-type if $declaration && $declaration.IMPL-IS-RW;
+            }
+        }
+        self.IMPL-NATIVE-STEP-TARGET-TYPE($target)
+    }
+
+    # A native target is always defined, so the metaop's identity value
+    # for an undefined left has no place, and it holds no container, so
+    # the compound assignment is a plain store of the operator's result,
+    # with the target passed to the operator as the native it is. The
+    # metaop takes the target by native reference and passes its value to
+    # the operator boxed, so the operator dispatch would see a boxed
+    # operand where the expanded form passes the native one. The store
+    # yields the value, as the raw op step does. The target is built the
+    # way an assignment builds its left, so an rw parameter's alias is
+    # written through.
+    method IMPL-NATIVE-ASSIGN-QAST(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right, int $spec) {
+        my @assign := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
+            'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
+        my $var := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
+        QAST::Op.new(:op(@assign[$spec]), :returns($var.returns), $var,
+            $!infix.IMPL-INFIX-COMPILE($context, $left, $right))
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {

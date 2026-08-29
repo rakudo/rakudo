@@ -1,9 +1,10 @@
 use lib <t/packages/Test-Helpers>;
+use Test::Helpers;
 use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 17;
+plan 23;
 
 # A call whose argument types decide the dispatch at compile time is
 # replaced by the chosen routine's recorded body, with the argument
@@ -44,6 +45,36 @@ else {
 qast-is 'use soft; sub g(int $a) { $a + 1 }; my int $i = 2; say g($i)', :full, -> \v {
     qast-contains-call(v, '&g')
 }, 'the soft pragma keeps the call so the routine stays wrappable';
+
+# A user operator declared after the use shadows the setting candidate
+# named by the resolution stored on the node, so the dispatch stays. A
+# declaration in an inner block reaches no use outside it. The module
+# shows the user's routine running.
+qast-is 'my int $i = 3; my int $j = $i + 1; sub infix:<+>(int $a, int $b) { 42 }; say $j', :full, -> \v {
+    not qast-contains-op(v, 'add_i')
+}, 'a user infix declared after the use keeps native int addition a dispatch';
+qast-is 'my int $i = 3; my int $j = $i + 1; multi sub infix:<+>(int $a, int $b) is default { 42 }; say $j', :full, -> \v {
+    not qast-contains-op(v, 'add_i')
+}, 'a user multi declared after the use keeps native int addition a dispatch';
+qast-is 'my int $i = 3; my int $j = $i + 1; my &infix:<+> = sub ($a, $b) { 42 }; say $j', :full, -> \v {
+    not qast-contains-op(v, 'add_i')
+}, 'an operator bound to a variable after the use keeps native int addition a dispatch';
+qast-is 'my int $i = 3; my $b = $i < 5; sub infix:«<»($a, $b) { "user" }; say $b', :full, -> \v {
+    not qast-contains-op(v, 'islt_i')
+}, 'a user infix declared after the use keeps a native comparison a dispatch';
+qast-is 'my int $i = 3; my int $j = $i + 1; { sub infix:<+>(int $a, int $b) { 42 } }; say $j', :full, -> \v {
+    qast-contains-op(v, 'add_i')
+}, 'a user infix in an inner block leaves a use outside it lowered';
+{
+    my $dir = make-temp-dir;
+    $dir.add('DispatchLateOp.rakumod').spurt: q:to/END/;
+        unit module DispatchLateOp;
+        our sub add(int $a, int $b) { $a + $b }
+        sub infix:<+>(int $a, int $b) { 42 }
+        END
+    is EVAL(q[use lib $dir; use DispatchLateOp; &DispatchLateOp::add(1, 2)]), 42,
+        'a user infix declared after a use in a sub is what the sub dispatches to';
+}
 
 # Behavior stays identical where the splice applies.
 

@@ -1926,8 +1926,9 @@ class RakuAST::Node {
 
     # Whether a resolution's lexical is bound once, so the VM may resolve a
     # lookup of $name a single time and treat the result as a constant. Two
-    # kinds of binding qualify. A setting symbol: the setting binds each
-    # name once and user code cannot rebind it. And a compile-time-valued
+    # kinds of binding qualify. A setting symbol the name still reaches from
+    # the node: the setting binds each name once and user code cannot rebind
+    # it, though a routine declaration parsed after the use shadows it. And a compile-time-valued
     # binding in the outermost scope of the compilation unit, such as a
     # sub declaration, a constant, an enum value, or an import, since that
     # scope's frame is entered once per load and such a binding cannot be
@@ -1938,7 +1939,14 @@ class RakuAST::Node {
     # does a Code value compiled under the soft pragma, so it stays
     # wrappable.
     method IMPL-RESOLUTION-BOUND-ONCE(RakuAST::Resolver $resolver, Mu $decl, str $name) {
-        return 1 if nqp::istype($decl, RakuAST::Declaration::External::Setting);
+        # A routine's name is visible throughout its scope, so a user
+        # declaration parsed after the use shadows the setting's. Any
+        # other name is visible from its declaration on, so the stored
+        # resolution stands.
+        if nqp::istype($decl, RakuAST::Declaration::External::Setting) {
+            return 1 unless nqp::eqat($name, '&', 0);
+            return self.IMPL-DECLARATION-CURRENT($resolver, $name, $decl);
+        }
 
         my $routine := self.IMPL-DECLARATION-VALUE($decl);
         return 0 unless nqp::isconcrete($routine);
@@ -3270,14 +3278,10 @@ class RakuAST::Node {
     # bound to a lexical variable has no compile-time value, which declines
     # the lowering. A user `multi` or `sub` that shadows or extends the
     # operator produces a distinct routine object whose file may still read
-    # SETTING::, so the file alone is not enough. The name is resolved again in
-    # the scope of the node being offered: a lexical declaration is visible to
-    # that walk wherever it sits in its block, so a user operator declared after
-    # a use of the name still turns the lowering off, where the resolution
-    # stored on the node (made when the declaration had not been parsed yet)
-    # would still claim the CORE routine. When the walk reaches no declaration
-    # at all, the origin check above already vouched, by file for a loaded
-    # setting or by the marker while a core setting compiles itself.
+    # SETTING::, so the file alone is not enough and the name is resolved
+    # again. When that walk reaches no declaration at all, the origin check
+    # already vouched, by file for a loaded setting or by the marker while a
+    # core setting compiles itself.
     method IMPL-OPERATOR-IS-CORE(RakuAST::Resolver $resolver, Mu $operator) {
         CATCH {
             return False;
@@ -3296,15 +3300,40 @@ class RakuAST::Node {
                     || nqp::istrue(nqp::ifnull(
                          nqp::getlexdyn('$*COMPILING_CORE_SETTING'), 0)));
         }
+        self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $operator) ?? True !! False
+    }
+
+    # Whether an operator's name still resolves to the routine the operator
+    # resolved to at parse time.
+    method IMPL-OPERATOR-RESOLUTION-CURRENT(RakuAST::Resolver $resolver, Mu $operator) {
+        return 0 unless $operator.is-resolved;
         my str $category := nqp::istype($operator, RakuAST::Postfix) ?? '&postfix'
                          !! nqp::istype($operator, RakuAST::Prefix)  ?? '&prefix'
                          !! '&infix';
-        my $current := $resolver.resolve-lexical(
-          $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator));
-        return True unless nqp::isconcrete($current);
+        self.IMPL-DECLARATION-CURRENT($resolver,
+            $category ~ $resolver.IMPL-CANONICALIZE-PAIR($operator.operator),
+            $operator.resolution)
+    }
+
+    # Whether a name still resolves, in the scope of the node being
+    # offered, to the value of the declaration stored on the node. A
+    # lexical declaration is visible to that walk wherever it sits in
+    # its block, so a user declaration parsed after the use, which the
+    # stored resolution predates, turns the answer off. A name the walk
+    # reaches no declaration for keeps the stored resolution. Asking a
+    # declaration without a compile-time value throws, and declining
+    # keeps the use at runtime.
+    method IMPL-DECLARATION-CURRENT(RakuAST::Resolver $resolver, str $name, Mu $decl) {
+        CATCH {
+            return 0;
+        }
+        my $value := self.IMPL-DECLARATION-VALUE($decl);
+        return 0 unless nqp::isconcrete($value);
+        my $current := $resolver.resolve-lexical($name);
+        return 1 unless nqp::isconcrete($current);
         my $current-value := self.IMPL-DECLARATION-VALUE($current);
         nqp::isconcrete($current-value)
-            && nqp::eqaddr($routine, nqp::decont($current-value))
+            && nqp::eqaddr(nqp::decont($value), nqp::decont($current-value)) ?? 1 !! 0
     }
 
     # The compile-time value a declaration offers, or Mu when it has none.
@@ -3488,7 +3517,8 @@ class RakuAST::Node {
                 && self.IMPL-PURE-ROUTINE($infix)
                 && !nqp::isconcrete($expr.args.arg-at-pos(2))
                 && self.IMPL-FOLDABLE-OPERAND($expr.left)
-                && self.IMPL-FOLDABLE-OPERAND($expr.right);
+                && self.IMPL-FOLDABLE-OPERAND($expr.right)
+                && self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $infix);
         }
         elsif nqp::istype($expr, RakuAST::ApplyPrefix) {
             my $prefix := $expr.prefix;
@@ -3500,7 +3530,8 @@ class RakuAST::Node {
                 && $prefix.is-resolved
                 && self.IMPL-PURE-ROUTINE($prefix)
                 && nqp::elems($prefix.colonpairs) == 0
-                && self.IMPL-FOLDABLE-OPERAND($expr.operand);
+                && self.IMPL-FOLDABLE-OPERAND($expr.operand)
+                && self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $prefix);
         }
         elsif nqp::istype($expr, RakuAST::ApplyListInfix) {
             my $infix := $expr.infix;
@@ -3520,6 +3551,8 @@ class RakuAST::Node {
                     for @operands {
                         $foldable := 0 unless self.IMPL-FOLDABLE-OPERAND($_);
                     }
+                    $foldable := 0
+                        if $foldable && !self.IMPL-OPERATOR-RESOLUTION-CURRENT($resolver, $infix);
                 }
             }
         }

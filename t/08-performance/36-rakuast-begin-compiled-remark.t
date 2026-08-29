@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 114;
+plan 116;
 
 # A routine invoked at BEGIN time compiles ahead of the unit's optimize
 # walk and caches its QAST. That compilation runs its own optimize walk
@@ -366,6 +366,8 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
             method nameds() { %_.elems }
             method idx(int $i) { my int @a = 1,2,3; @a[$i] }
             method via-sub() { soft-target(5) }
+            method pow() { 2 ** 3 }
+            method rem(int $a, int $b) { $a % $b }
         }
         class RC does RL { }
         role Gen[::T] { has T $.x; method t() { T.^name } }
@@ -407,6 +409,8 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         }
         our sub declared-below($x) { $x + 1 }
         sub postfix:<++>($a is rw) { $a = 100 }
+        sub infix:<**>($a, $b) { 'user' }
+        sub infix:<%>(int $a, int $b) { 42 }
         use soft;
         my &infix:<..> = sub ($a, $b) { (100,) };
         END
@@ -427,6 +431,10 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         'a precompiled routine with a flattened inner branch used at BEGIN computes at runtime';
     is &::('PrecompRemark::bump-late')(), 100,
         'an operator declared after a BEGIN time use of a precompiled routine still shadows the core one in it';
+    is ::('PrecompRemark::RC').new.pow, 'user',
+        'an operator declared after a precompiled role shadows the core one in a constant expression of its method';
+    is ::('PrecompRemark::RC').new.rem(7, 4), 42,
+        'an operator declared after a precompiled role shadows the core one in a native dispatch of its method';
     is ::('PrecompRemark::RC').new.bump, 100,
         'an operator declared after a precompiled role still shadows the core one in a role method';
     is ::('PrecompRemark::RC').new.ncount, 1,

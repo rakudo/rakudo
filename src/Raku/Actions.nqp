@@ -694,10 +694,69 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $exception.throw;
             }
             else {
-                # Only potential difficulties, just print them.
-                try stderr().print($exception.gist);
+                # Only potential difficulties, just print them. The gist of
+                # the group is setting code, which cannot run yet while the
+                # setting itself compiles, so fall back to a plain rendering.
+                my $text;
+                my $failure;
+                try {
+                    $text := $exception.gist;
+                    CATCH { $failure := $_ }
+                }
+                stderr().print(nqp::defined($text)
+                    ?? $text
+                    !! self.render-worries(nqp::isconcrete($failure)
+                        ?? self.exception-reason($failure)
+                        !! 'the gist returned no text'));
             }
         }
+    }
+
+    method render-worries($reason) {
+        my @lines := ['Potential difficulties:'];
+        for Nodify('Node').IMPL-UNWRAP-LIST($*R.all-worries) -> $worry {
+            my $text;
+            my $error;
+            try {
+                my $message := $worry.message;
+                $text := ~$message if nqp::defined($message);
+                if nqp::defined($text) && nqp::can($worry, 'line') && nqp::can($worry, 'filename') {
+                    my $line-number := $worry.line;
+                    $text := $text ~ ' at ' ~ $worry.filename ~ ':' ~ $line-number
+                        if nqp::defined($line-number);
+                }
+                CATCH { $error := $_ }
+            }
+            my $line := nqp::defined($text)
+                ?? $text
+                !! $worry.HOW.name($worry) ~ ', message unavailable: '
+                     ~ (nqp::isconcrete($error)
+                         ?? self.exception-reason($error)
+                         !! 'the message was empty');
+            nqp::push(@lines, '    ' ~ $line);
+        }
+        nqp::push(@lines, 'The full rendering of these failed: ' ~ $reason);
+        nqp::join("\n", @lines) ~ "\n"
+    }
+
+    # A Raku exception carries its message on the payload, not on the VM
+    # exception.
+    method exception-reason($exception) {
+        return 'no exception' unless nqp::isconcrete($exception);
+        my str $message := nqp::getmessage($exception);
+        return $message unless nqp::isnull_s($message) || nqp::chars($message) == 0;
+        my $payload := nqp::getpayload($exception);
+        my $reason;
+        my $inner;
+        try {
+            my $text := $payload.message;
+            $reason := ~$text if nqp::defined($text);
+            CATCH { $inner := $_ }
+        }
+        nqp::defined($reason)
+            ?? $reason
+            !! $payload.HOW.name($payload) ~ ' thrown, its message unavailable'
+                ~ (nqp::isconcrete($inner) ?? ': ' ~ self.exception-reason($inner) !! '')
     }
 
     # Throws the errors found so far, with any worries inside the group.

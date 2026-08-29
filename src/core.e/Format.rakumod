@@ -116,10 +116,16 @@ my class Format is Str is Callable {
     method render($format, @args) is implementation-detail {
         my &render := nqp::atpos(Formatter.fetch($format),0);
 
-        &render.count == @args.elems
+        # A format with explicit indices takes any number of arguments
+        # beyond the highest index it needs, giving it an infinite count
+        my $count       := &render.count;
+        my int $indexed  = $count == Inf;
+        @args.elems == $count
+          || ($indexed && @args.elems >= &render.arity)
           ?? render(|@args)
           !! X::Str::Sprintf::Directives::Count.new(
-               :$format, :args-have(@args.elems), :args-used(&render.count)
+               :$format, :args-have(@args.elems),
+               :args-used($indexed ?? &render.arity !! $count)
              ).throw
     }
 }

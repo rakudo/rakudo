@@ -1104,11 +1104,13 @@ class RakuAST::Lookup
 
     # Native variable arguments compile to lexicalref/attributeref scope so
     # a callee with an "is rw" parameter can write back through them. When
-    # this lookup resolves to a routine and no candidate declares the
-    # matching parameter rw, the argument is compiled as a value read
-    # instead. Otherwise a reference bound to a raw parameter, such as the
+    # this lookup resolves to a routine and no candidate the call can reach
+    # declares the matching parameter rw, the argument is compiled as a
+    # value read instead. Otherwise a reference bound to a raw parameter, such as the
     # value of infix:«=>», would be stored as a live view of the variable
-    # rather than a snapshot of it.
+    # rather than a snapshot of it, and a reference read by the callee
+    # would see a write a later argument made to the variable, where the
+    # value read happens in argument order.
     method IMPL-SIMPLIFY-REF-ARGS(Mu $call) {
         unless $*COMPILING_CORE_SETTING {
             if self.is-resolved
@@ -1119,18 +1121,30 @@ class RakuAST::Lookup
                     # made by name.
                     my int $child := $call.name ?? 0 !! 1;
                     my int $n := nqp::elems($call.list);
+                    # The positional count decides which candidates the
+                    # call can reach. A flattened argument makes it, and
+                    # the positions of the arguments after it, unknowable
+                    # at compile time.
+                    my int $positionals := 0;
+                    my int $flat := 0;
+                    my int $scan := $child;
+                    while $scan < $n {
+                        my $arg := $call.list[$scan];
+                        $flat := 1 if $arg.flat;
+                        ++$positionals unless $arg.named || $arg.flat;
+                        ++$scan;
+                    }
+                    $positionals := -1 if $flat;
                     my int $pos := 0;
                     while $child < $n {
                         my $arg := $call.list[$child];
-                        # A flattened argument makes the positions of the
-                        # remaining arguments unknowable at compile time.
                         last if $arg.flat;
                         unless $arg.named {
                             if nqp::istype($arg, QAST::Var)
                                 && nqp::objprimspec($arg.returns) {
                                 my str $scope := $arg.scope;
                                 if ($scope eq 'lexicalref' || $scope eq 'attributeref')
-                                    && self.IMPL-PARAM-NEVER-RW($routine, $pos) {
+                                    && self.IMPL-PARAM-NEVER-RW($routine, $pos, $positionals) {
                                     $arg.scope($scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
                                 }
                             }
@@ -1145,13 +1159,25 @@ class RakuAST::Lookup
     }
 
     # Whether the parameter binding positional argument $i is known to be
-    # non-rw in every candidate of $routine. Any candidate that cannot be
-    # introspected, or whose signature has optional, slurpy, or capture
-    # parameters, means the reference must be kept.
-    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i) {
+    # non-rw in every candidate of $routine the call can reach. A call of
+    # $positionals positional arguments reaches no candidate that requires
+    # more or admits fewer, so such a candidate has no say. A count of -1
+    # is one the call cannot know. Every candidate has its say then, and
+    # one whose arity and count differ keeps the reference, since whether
+    # the run time count reaches it cannot be checked. Any candidate
+    # that cannot be introspected, or that has no positional parameter
+    # at the position, means the reference must be kept. A slurpy positional
+    # binds its own position and every one after it.
+    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i, int $positionals) {
+        # The routine and its candidates are read through their attributes:
+        # a method lookup on a mixin type, which a candidate with a typed
+        # return has, can miss where its method cache is not published.
+        # A dispatcher holds a dispatchee list, and the flag bit is the one
+        # the onlystar method reads.
         my @candidates;
-        if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
-            return 0 unless nqp::can($routine, 'onlystar') && $routine.onlystar;
+        if nqp::istype($routine, Routine)
+            && nqp::defined(nqp::getattr($routine, Routine, '@!dispatchees')) {
+            return 0 unless nqp::getattr_i($routine, Routine, '$!flags') +& 0x04;
             for nqp::getattr($routine, Routine, '@!dispatchees') {
                 nqp::push(@candidates, $_);
             }
@@ -1160,10 +1186,19 @@ class RakuAST::Lookup
             nqp::push(@candidates, $routine);
         }
         for @candidates {
-            return 0 unless nqp::can($_, 'signature');
-            my $sig := $_.signature;
-            return 0 unless nqp::isconcrete($sig)
-                && nqp::iseq_n($sig.arity, $sig.count);
+            return 0 unless nqp::istype($_, Code);
+            my $sig := nqp::getattr($_, Code, '$!signature');
+            return 0 unless nqp::isconcrete($sig);
+            # The count is Inf for a slurpy, so the compares are numeric.
+            my int $arity := nqp::getattr_i($sig, Signature, '$!arity');
+            my $count := nqp::getattr($sig, Signature, '$!count');
+            if $positionals >= 0 {
+                next if nqp::islt_n($positionals, $arity)
+                    || nqp::isgt_n($positionals, $count);
+            }
+            else {
+                return 0 unless nqp::iseq_n($arity, $count);
+            }
             my $param;
             my int $pos := 0;
             for nqp::getattr($sig, Signature, '@!params') {
@@ -1171,7 +1206,10 @@ class RakuAST::Lookup
                 unless nqp::getattr($_, Parameter, '@!named_names')
                     || $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED
                         +| nqp::const::SIG_ELEM_IS_CAPTURE) {
-                    if $pos == $i {
+                    if $pos == $i
+                        || $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                            +| nqp::const::SIG_ELEM_SLURPY_LOL
+                            +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
                         $param := $_;
                         last;
                     }
@@ -1179,8 +1217,20 @@ class RakuAST::Lookup
                 }
             }
             return 0 unless nqp::isconcrete($param);
-            return 0 if nqp::getattr_i($param, Parameter, '$!flags')
-                +& nqp::const::SIG_ELEM_IS_RW;
+            my int $pflags := nqp::getattr_i($param, Parameter, '$!flags');
+            return 0 if $pflags +& nqp::const::SIG_ELEM_IS_RW;
+            # A slurpy that keeps its arguments' containers keeps the
+            # reference, as a container argument stays a live view of the
+            # variable there. A native sub takes no reference, since the
+            # native call has no container to keep.
+            if ($pflags +& (nqp::const::SIG_ELEM_SLURPY_LOL
+                    +| nqp::const::SIG_ELEM_SLURPY_ONEARG)
+                || $pflags +& nqp::const::SIG_ELEM_SLURPY_POS
+                    && $pflags +& nqp::const::SIG_ELEM_IS_RAW)
+                && nqp::isnull(nqp::how_nd($_).find_method($_,
+                    'CUSTOM-DISPATCHER', :no_fallback)) {
+                return 0;
+            }
         }
         1
     }
@@ -1236,7 +1286,7 @@ class RakuAST::Lookup
                 if nqp::istype($arg, QAST::Var) && nqp::objprimspec($arg.returns) {
                     my str $scope := $arg.scope;
                     if ($scope eq 'lexicalref' || $scope eq 'attributeref')
-                        && self.IMPL-PARAM-NEVER-RW($routine, $i) {
+                        && self.IMPL-PARAM-NEVER-RW($routine, $i, $n) {
                         $arg.scope($scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
                     }
                 }

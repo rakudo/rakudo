@@ -1929,23 +1929,29 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        # The negated operator's own lookup decides its reference
+        # arguments. A meta-op standing in for it has no lookup.
+        my int $own-lookup := nqp::istype($!infix, RakuAST::Infix);
         if $!negate-not {
             $context.ensure-sc($!negate-not-op);
+            my $call := QAST::Op.new(
+                :op('call'),
+                $!infix.IMPL-HOP-INFIX-QAST($context),
+                $left-qast,
+                $right-qast
+            );
+            $call := $!infix.IMPL-SIMPLIFY-REF-ARGS($call) if $own-lookup;
             return QAST::Op.new:
                 :op('call'),
                 QAST::WVal.new( :value($!negate-not-op) ),
-                QAST::Op.new(
-                    :op('call'),
-                    $!infix.IMPL-HOP-INFIX-QAST($context),
-                    $left-qast,
-                    $right-qast
-                );
+                $call;
         }
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op($!infix.properties.chain ?? 'chain' !! 'call'),
             self.IMPL-HOP-INFIX-QAST($context),
             $left-qast,
-            $right-qast
+            $right-qast;
+        $own-lookup ?? $!infix.IMPL-SIMPLIFY-REF-ARGS($op) !! $op
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {

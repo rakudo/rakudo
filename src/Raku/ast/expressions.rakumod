@@ -539,8 +539,8 @@ class RakuAST::Infix
     # static one the VM resolves a single time.
     has int $!chainstatic;
 
-    method IMPL-SET-CHAINSTATIC() {
-        nqp::bindattr_i(self, RakuAST::Infix, '$!chainstatic', 1)
+    method IMPL-SET-CHAINSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!chainstatic', $on)
     }
 
     # Set by the optimize pass when the resolved operator's lexical is bound
@@ -548,8 +548,8 @@ class RakuAST::Infix
     # lookup as a static one the VM resolves a single time.
     has int $!callstatic;
 
-    method IMPL-SET-CALLSTATIC() {
-        nqp::bindattr_i(self, RakuAST::Infix, '$!callstatic', 1)
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!callstatic', $on)
     }
 
     # Set by the optimize pass when the operand types decide the dispatch at
@@ -622,8 +622,8 @@ class RakuAST::Infix
     # array variable, for lowering to a direct build of the list internals.
     has int $!lowered-array-init;
 
-    method IMPL-SET-LOWERED-ARRAY-INIT() {
-        nqp::bindattr_i(self, RakuAST::Infix, '$!lowered-array-init', 1)
+    method IMPL-SET-LOWERED-ARRAY-INIT(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!lowered-array-init', $on)
     }
 
     # Set by the optimize pass when this smartmatch reduces to a type check:
@@ -1621,8 +1621,8 @@ class RakuAST::MetaInfix::Assign
 
     method IMPL-NATIVE-STEP-SET() { $!native-step }
 
-    method IMPL-SET-INLINE() {
-        nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!inline', 1)
+    method IMPL-SET-INLINE(int $on) {
+        nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!inline', $on)
     }
 
     # A boxed scalar compound assignment the optimize pass marked: assign the
@@ -3176,8 +3176,8 @@ class RakuAST::Prefix
     # resolves a single time.
     has int $!callstatic;
 
-    method IMPL-SET-CALLSTATIC() {
-        nqp::bindattr_i(self, RakuAST::Prefix, '$!callstatic', 1)
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Prefix, '$!callstatic', $on)
     }
 
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
@@ -3506,8 +3506,8 @@ class RakuAST::Postfix
     # resolves a single time.
     has int $!callstatic;
 
-    method IMPL-SET-CALLSTATIC() {
-        nqp::bindattr_i(self, RakuAST::Postfix, '$!callstatic', 1)
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Postfix, '$!callstatic', $on)
     }
 
     method IMPL-POSTFIX-QAST(
@@ -4338,8 +4338,8 @@ class RakuAST::Statement::For
     # source to a native counting loop.
     has int $!can-lower-range;
 
-    method IMPL-SET-CAN-LOWER-RANGE() {
-        nqp::bindattr_i(self, RakuAST::Statement::For, '$!can-lower-range', 1)
+    method IMPL-SET-CAN-LOWER-RANGE(int $on) {
+        nqp::bindattr_i(self, RakuAST::Statement::For, '$!can-lower-range', $on)
     }
 
     method new(

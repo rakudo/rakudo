@@ -25,6 +25,18 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # Set while the optimize walk runs over a code object ahead of the
+    # unit's optimize phase. The scopes enclosing the code object are
+    # still being parsed then, so a rewrite, which cannot be undone,
+    # waits for the unit's own walk, and a mark is one that walk
+    # settles again.
+    has int $!ahead-of-unit-walk;
+
+    # Set while such a walk runs and the core setting is compiling
+    # itself. The setting's routines are stubs then, so the marks that
+    # probe one wait for the unit's own walk as well.
+    has int $!structural-walk;
+
     # In-source `our` package decls seen in this compunit's BEGIN
     # walk. Keyed by install target's `nqp::objectid` plus the final
     # name part so the same trailing name under different `my`-scoped
@@ -91,6 +103,8 @@ class RakuAST::Resolver {
     # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
+        nqp::bindattr_i($clone, RakuAST::Resolver, '$!ahead-of-unit-walk', 0);
+        nqp::bindattr_i($clone, RakuAST::Resolver, '$!structural-walk', 0);
         nqp::bindattr($clone,RakuAST::Resolver,'$!attach-targets',
           nqp::clone($!attach-targets));
         nqp::bindattr($clone,RakuAST::Resolver,'$!packages',
@@ -169,6 +183,22 @@ class RakuAST::Resolver {
     }
 
     method get-global() { $!global }
+
+    method IMPL-AHEAD-OF-UNIT-WALK() { $!ahead-of-unit-walk }
+    method IMPL-STRUCTURAL-WALK() { $!structural-walk }
+    method IMPL-SET-AHEAD-OF-UNIT-WALK(int $ahead, int $structural) {
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!ahead-of-unit-walk', $ahead);
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!structural-walk', $structural);
+        Nil
+    }
+
+    # The package stack's depth, and a pop back to a depth recorded
+    # earlier, for a walk that may throw between its pushes and pops.
+    method IMPL-PACKAGE-DEPTH() { nqp::elems($!packages) }
+    method IMPL-UNWIND-PACKAGES(int $depth) {
+        self.pop-package() while nqp::elems($!packages) > $depth;
+        Nil
+    }
 
     # Set the EXPORT package when we're starting a fresh compilation unit.
     method set-export-package(Mu $package) {
@@ -1236,6 +1266,25 @@ class RakuAST::Resolver::EVAL
         Nil
     }
 
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i], @scopes[0]) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found);
+        }
+        0
+    }
+
+    method IMPL-SCOPE-DEPTH() { nqp::elems($!scopes) }
+    method IMPL-UNWIND-SCOPES(int $depth) {
+        self.pop-scope() while nqp::elems($!scopes) > $depth;
+        Nil
+    }
+
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
@@ -1564,6 +1613,29 @@ class RakuAST::Resolver::Compile
             my $res := $evaluator($scope.scope);
             return $res if nqp::isconcrete($res);
         }
+        Nil
+    }
+
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration. A scope still being
+    # parsed answers from its live declaration map, so its AST lexical
+    # lookup table is not cached before its declarations are complete.
+    # The outermost scope can be on the stack twice, entered by the parse
+    # and pushed again by a batch walk, so scopes compare by node.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i].scope, @scopes[0].scope) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found);
+        }
+        0
+    }
+
+    method IMPL-SCOPE-DEPTH() { nqp::elems($!scopes) }
+    method IMPL-UNWIND-SCOPES(int $depth) {
+        self.pop-scope() while nqp::elems($!scopes) > $depth;
         Nil
     }
 

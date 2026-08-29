@@ -256,7 +256,8 @@ class RakuAST::Infixish
 
     # The given operator, or the meta-op a caller forms over it, as a
     # compile-time constant, or null when it cannot be one. A setting
-    # operator's lookup yields the same code object at run time, so the
+    # operator whose name the optimize pass found still resolving to it
+    # yields the same code object at every run time lookup, so the
     # value formed from it here serves every evaluation, which for a
     # meta-op spares the formation call and its closure on each one.
     # Anything else forms at run time, and so does everything while
@@ -267,6 +268,7 @@ class RakuAST::Infixish
         if nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && nqp::istype($infix.resolution, RakuAST::Declaration::External::Setting)
+            && $infix.IMPL-HOP-CONSTANT
             && !($*COMPILING_CORE_SETTING // 0) {
             my $meta-op := self.IMPL-HOP-INFIX;
             $context.ensure-sc($meta-op);
@@ -533,6 +535,17 @@ class RakuAST::Infix
             $qast
         }
     }
+
+    # Set by the optimize pass when the operator's name still resolves to
+    # the setting routine it resolved to, so a meta-op formed over it can
+    # be a compile-time constant.
+    has int $!hop-constant;
+
+    method IMPL-SET-HOP-CONSTANT(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!hop-constant', $on)
+    }
+
+    method IMPL-HOP-CONSTANT() { $!hop-constant }
 
     # Set by the optimize pass when the resolved operator's lexical is bound
     # once, so a chaining operator's callee lookup can be compiled as a

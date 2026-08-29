@@ -1,16 +1,18 @@
 use lib <t/packages/Test-Helpers>;
+use Test::Helpers;
 use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 55;
+plan 72;
 
-# A meta-op over a setting operator is formed once at compile time and
-# emitted as a constant, since the operator lookup yields the same code
-# object at run time. A meta-op formed at run time makes the formation
-# call and allocates a closure per evaluation, which stays the path for
-# a lexical operator and for a meta-op operand. The shapes the
-# assertions pin down are this frontend's.
+# A meta-op over a setting operator whose name no later declaration
+# shadows is formed once at compile time and emitted as a constant,
+# since the operator lookup yields the same code object at run time. A
+# meta-op formed at run time makes the formation call and allocates a
+# closure per evaluation, which stays the path for a lexical operator,
+# for a meta-op operand, and for a setting operator a later declaration
+# shadows. The shapes the assertions pin down are this frontend's.
 
 sub qast-wval-callee (Mu $qast --> Bool:D) {
     if nqp::istype($qast, QAST::Op)
@@ -29,7 +31,7 @@ sub qast-wval-callee (Mu $qast --> Bool:D) {
 }
 
 sub qast-var-named (Mu $qast, Str:D $name --> Bool:D) {
-    if nqp::istype($qast, QAST::Var) && $qast.name eq $name {
+    if nqp::istype($qast, QAST::Var) && $qast.name eq $name && !$qast.decl {
         return True;
     }
     if qast-descendable $qast {
@@ -99,9 +101,79 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'use soft; my $x = 1; my $y = 2; say $x !== $y', :full, -> \v {
         qast-contains-op(v, 'chain')
     }, 'a negated comparison under the soft pragma keeps its meta-op';
+
+    # A user operator declared after the use shadows the setting's, so
+    # the meta-op forms at run time and finds the user's routine.
+    qast-is 'my @r = (1,2) Z+ (3,4); sub infix:<+>($a, $b) { "user" }', :full, -> \v {
+        qast-contains-call(v, '&METAOP_ZIP') and not qast-wval-callee(v)
+    }, 'a zip of an operator a later declaration shadows forms its meta-op at run time';
+    qast-is 'my $s = [+] 1, 2, 3; sub infix:<+>($a, $b) { "user" }', :full, -> \v {
+        qast-contains-call(v, '&METAOP_REDUCE_LEFT')
+    }, 'a reduce of an operator a later declaration shadows forms its meta-op at run time';
+    qast-is 'my $x = 1; $x += 2; sub infix:<+>($a, $b) { "user" }', :full, -> \v {
+        qast-var-named(v, '&infix:<+>')
+    }, 'a compound assignment with an operator a later declaration shadows looks the operator up at run time';
+    qast-is 'my @r = (1,2) Z+ (3,4) Z+ (5,6); sub infix:<+>($a, $b) { "user" }', :full, -> \v {
+        qast-contains-call(v, '&METAOP_ZIP') and not qast-wval-callee(v)
+    }, 'a zip chain of an operator a later declaration shadows forms its meta-op at run time';
+
+    # The soft pragma keeps the formation at run time, so the routine
+    # the meta-op runs stays wrappable.
+    qast-is 'use soft; my @r = (1,2) Z+ (3,4)', :full, -> \v {
+        qast-contains-call(v, '&METAOP_ZIP') and not qast-wval-callee(v)
+    }, 'a zip under the soft pragma forms its meta-op at run time';
+    qast-is 'use soft; my $s = [+] 1, 2, 3', :full, -> \v {
+        qast-contains-call(v, '&METAOP_REDUCE_LEFT')
+    }, 'a reduce under the soft pragma forms its meta-op at run time';
 }
 else {
-    skip 'the formation shapes are specific to the RakuAST frontend', 11;
+    skip 'the formation shapes are specific to the RakuAST frontend', 17;
+}
+
+# A user operator declared after the use is the one every meta-op runs.
+{
+    my $dir = make-temp-dir;
+    $dir.add('MetaLateOp.rakumod').spurt: q:to/END/;
+        unit module MetaLateOp;
+        our sub assign() { my $x = 1; $x += 2; $x }
+        our sub reduce() { [+] 1, 2, 3 }
+        our sub triangle() { [\+] 1, 2 }
+        our sub zip() { (1, 2) Z+ (3, 4) }
+        our sub cross() { (1, 2) X~ (3, 4) }
+        our sub negate() { 1 !eq 2 }
+        our sub hyper() { (1, 2, 3) >>+>> (10, 20) }
+        our sub zip-assign() { my @a = 1, 2; @a Z+= (3, 4); @a }
+        our sub chain() { (1, 2) Z+ (3, 4) Z+ (5, 6) }
+        our sub most() { [max] 1, 2, 3 }
+        my role RM { method z() { (1, 2) Z+ (3, 4) } }
+        class CM does RM is export { }
+        sub infix:<+>($a, $b) { 'user' }
+        sub infix:<~>($a, $b) { 'user' }
+        sub infix:<eq>($a, $b) { True }
+        sub infix:<max>(*@a) { 'user' }
+        END
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::assign()]), 'user',
+        'a compound assignment runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::reduce()]), 'user',
+        'a reduce runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::triangle()]).join(' '), '1 user',
+        'a triangle reduce runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::zip()]).join(' '), 'user user',
+        'a zip runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::cross()]).join(' '), 'user user user user',
+        'a cross runs a user infix declared after the use';
+    is-deeply EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::negate()]), False,
+        'a negated comparison runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::hyper()]).join(' '), 'user user user',
+        'a hyper runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::zip-assign()]).join(' '), 'user user',
+        'a zip assignment runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::chain()]).join(' '), 'user user',
+        'a zip chain runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; &MetaLateOp::most()]), 'user',
+        'a list reduce runs a user infix declared after the use';
+    is EVAL(q[use lib $dir; use MetaLateOp; CM.new.z]).join(' '), 'user user',
+        'a zip in a precompiled role method runs a user infix declared after the role';
 }
 
 # Behavior stays identical.

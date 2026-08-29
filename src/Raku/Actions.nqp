@@ -3166,11 +3166,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
               :$shape, :$forced-dynamic, :$where;
 
-            if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
-                && $*R.declare-lexical($decl)
-            {
-                $/.typed-worry('X::Redeclaration', :symbol($name));
-                $decl.set-already-declared;
+            if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
+                my $prev := $*R.declare-lexical($decl);
+                if $prev {
+                    # The setting declares $_, $/ and $! itself for the legacy
+                    # frontend, which does not provide them. Here they are
+                    # already implicit.
+                    my $shadows-implicit := $*COMPILING_CORE_SETTING
+                      && nqp::istype($prev, Nodify('VarDeclaration::Implicit::Special'));
+                    $/.typed-worry('X::Redeclaration', :symbol($name))
+                      unless $shadows-implicit;
+                    $decl.set-already-declared;
+                }
             }
 
             self.set-declarand($/, $decl);

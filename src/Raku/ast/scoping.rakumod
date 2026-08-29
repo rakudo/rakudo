@@ -524,11 +524,11 @@ class RakuAST::LexicalScope
             elsif nqp::existskey(BOOLIFY_FIRST_CHILD_OPS, $op) ||
                     ($op eq 'call' || $op eq 'callstatic')
                     && nqp::existskey(BOOLIFY_FIRST_CHILD_CALLS, $qast.name) {
-                my int $first := 1;
+                my int $first-read := 1;
                 for @($qast) {
-                    if $first {
+                    if $first-read {
                         self.IMPL-FATALIZE-QAST($_, 1);
-                        $first := 0;
+                        $first-read := 0;
                     }
                     else {
                         self.IMPL-FATALIZE-QAST($_, 0);
@@ -1115,58 +1115,205 @@ class RakuAST::Lookup
     # Native variable arguments compile to lexicalref/attributeref scope so
     # a callee with an "is rw" parameter can write back through them. When
     # this lookup resolves to a routine the name still reaches and no
-    # candidate the call can reach declares the matching parameter rw,
-    # the argument is compiled as a value read instead. Otherwise a
-    # reference bound to a raw parameter, such as the value of
-    # infix:«=>», would be stored as a live view of the variable rather
-    # than a snapshot of it, and a reference read by the callee would see
-    # a write a later argument made to the variable, where the value read
-    # happens in argument order.
+    # candidate the call can reach declares the matching parameter rw, the
+    # argument is compiled as a value read instead, which spares the
+    # reference object and lets the dispatch see the native. A container
+    # argument is read when the callee binds it, after every argument
+    # was evaluated, so a later argument that writes the variable is
+    # seen by the callee. A value read where the argument
+    # stands would not be, so an impure argument after the read is
+    # evaluated into a temporary in the read's own slot, ahead of the
+    # read. A chain op evaluates a later link's operand only when the
+    # earlier links hold, so no operand may move across a link: a link
+    # whose right operand is impure keeps its references instead, and
+    # restores the reference of the middle operand it shares with the
+    # link before it.
     method IMPL-SIMPLIFY-REF-ARGS(Mu $call) {
-        if $!value-args && !$*COMPILING_CORE_SETTING {
-            if self.is-resolved
-                && nqp::istype(self.resolution, RakuAST::CompileTimeValue) {
-                my $routine := self.resolution.compile-time-value;
-                if nqp::isconcrete($routine) && nqp::istype($routine, Code) {
-                    # The callee is the first child when the call is not
-                    # made by name.
-                    my int $child := $call.name ?? 0 !! 1;
-                    my int $n := nqp::elems($call.list);
-                    # The positional count decides which candidates the
-                    # call can reach. A flattened argument makes it, and
-                    # the positions of the arguments after it, unknowable
-                    # at compile time.
-                    my int $positionals := 0;
-                    my int $flat := 0;
-                    my int $scan := $child;
-                    while $scan < $n {
-                        my $arg := $call.list[$scan];
-                        $flat := 1 if $arg.flat;
-                        ++$positionals unless $arg.named || $arg.flat;
-                        ++$scan;
+        return $call if $*COMPILING_CORE_SETTING || !$!value-args;
+        return $call unless self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::CompileTimeValue);
+        my $routine := self.resolution.compile-time-value;
+        return $call unless nqp::isconcrete($routine)
+            && nqp::istype($routine, Code);
+
+        # The callee is the first child when the call is not made by name.
+        my int $start := $call.name ?? 0 !! 1;
+        my int $n := nqp::elems($call.list);
+        # The positional count decides which candidates the call can
+        # reach. A flattened argument makes it, and the positions of the
+        # arguments after it, unknowable at compile time.
+        my int $positionals := 0;
+        my int $flat := 0;
+        my int $scan := $start;
+        while $scan < $n {
+            my $arg := $call.list[$scan];
+            $flat := 1 if $arg.flat;
+            ++$positionals unless $arg.named;
+            ++$scan;
+        }
+        $positionals := -1 if $flat;
+
+        # The named arguments are evaluated after every positional one,
+        # whatever their place in the list. A value read an earlier pass
+        # settled counts as a read here, so the analysis may run again
+        # when a later argument joins the call. The first argument needs
+        # no impure note, as nothing reads before it.
+        my @reads;
+        my @hoist;
+        my @named;
+        my int $impure := 0;
+        my int $first-read := -1;
+        my int $past-flat := 0;
+        my int $pos := 0;
+        my int $child := $start;
+        while $child < $n {
+            my $arg := $call.list[$child];
+            $past-flat := 1 if $arg.flat;
+            if $arg.named {
+                nqp::push(@named, $child) unless self.IMPL-ARG-IS-PURE($arg);
+            }
+            else {
+                if !$past-flat && nqp::istype($arg, QAST::Var)
+                    && nqp::objprimspec($arg.returns) {
+                    my str $scope := $arg.scope;
+                    if ($scope eq 'lexicalref' || $scope eq 'attributeref')
+                        && self.IMPL-PARAM-NEVER-RW($routine, $pos, $positionals) {
+                        $arg.scope($scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
+                        $arg.annotate('native-value-read', 1);
+                        nqp::push(@reads, $arg);
+                        $first-read := $child if $first-read < 0;
                     }
-                    $positionals := -1 if $flat;
-                    my int $pos := 0;
-                    while $child < $n {
-                        my $arg := $call.list[$child];
-                        last if $arg.flat;
-                        unless $arg.named {
-                            if nqp::istype($arg, QAST::Var)
-                                && nqp::objprimspec($arg.returns) {
-                                my str $scope := $arg.scope;
-                                if ($scope eq 'lexicalref' || $scope eq 'attributeref')
-                                    && self.IMPL-PARAM-NEVER-RW($routine, $pos, $positionals) {
-                                    $arg.scope($scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
-                                }
-                            }
-                            ++$pos;
-                        }
-                        ++$child;
+                    elsif $scope eq 'lexical' || $scope eq 'attribute' {
+                        nqp::push(@reads, $arg);
+                        $first-read := $child if $first-read < 0;
                     }
                 }
+                elsif !$past-flat && self.IMPL-ARG-IS-SLOT($arg) {
+                    nqp::push(@reads, $arg.list[nqp::elems($arg.list) - 1]);
+                    $first-read := $child if $first-read < 0;
+                }
+                elsif $child > $start && !self.IMPL-ARG-IS-PURE($arg) {
+                    # The hoist list notes what may move, while the note
+                    # of impurity also serves a chain link whose read
+                    # sits in the link before it.
+                    $impure := 1;
+                    nqp::push(@hoist, $child) if $first-read >= 0;
+                }
+                ++$pos;
+            }
+            ++$child;
+        }
+        my str $op := $call.op;
+        my int $chained := $op eq 'chain' || $op eq 'chainstatic';
+        if $chained && $impure {
+            # No operand may move across a link, so the link keeps its
+            # references, and takes back the middle operand it shares
+            # with the link before it.
+            for @reads {
+                self.IMPL-RESTORE-REF($_);
+            }
+            my $left := $call.list[$start];
+            if nqp::istype($left, QAST::Op)
+                && ($left.op eq 'chain' || $left.op eq 'chainstatic') {
+                self.IMPL-RESTORE-REF($left.list[nqp::elems($left.list) - 1]);
+            }
+        }
+        elsif !$chained && $first-read >= 0 {
+            nqp::splice(@hoist, @named, nqp::elems(@hoist), 0);
+            # A native reference cannot survive a value temporary, so a
+            # call with one among the arguments to move keeps all its
+            # references instead, and the callee reads them as it binds.
+            for @hoist -> int $k {
+                if self.IMPL-ARG-RESULT-REF($call.list[$k]) {
+                    for @reads {
+                        self.IMPL-RESTORE-REF($_);
+                    }
+                    return $call;
+                }
+            }
+            if nqp::elems(@hoist) {
+                # A slot an earlier pass built keeps its read last, so
+                # the new temporaries go in ahead of it.
+                my $slot;
+                my $read;
+                if self.IMPL-ARG-IS-SLOT($call.list[$first-read]) {
+                    $slot := $call.list[$first-read];
+                    $read := nqp::pop($slot.list);
+                }
+                else {
+                    $slot := QAST::Stmts.new();
+                    $read := $call.list[$first-read];
+                }
+                for @hoist -> int $k {
+                    my $arg := $call.list[$k];
+                    my $use := self.IMPL-BIND-TEMPORARY($slot, '_native_read_', $arg);
+                    $use.named($arg.named) if $arg.named;
+                    $use.flat(1) if $arg.flat;
+                    $call.list[$k] := $use;
+                }
+                $slot.push($read);
+                $call.list[$first-read] := $slot;
             }
         }
         $call
+    }
+
+    # Whether the given argument code may keep its place while another
+    # moves across it: it writes nothing, and what it yields does not
+    # depend on where it runs, as a variable argument is read when the
+    # callee binds it anyway.
+    method IMPL-ARG-IS-PURE(Mu $node) {
+        if nqp::istype($node, QAST::Var) {
+            return !$node.decl;
+        }
+        if nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt) {
+            for $node.list {
+                return 0 unless self.IMPL-ARG-IS-PURE($_);
+            }
+            return 1;
+        }
+        if nqp::istype($node, QAST::Want) {
+            my int $i := 0;
+            my int $n := nqp::elems($node.list);
+            while $i < $n {
+                return 0 unless self.IMPL-ARG-IS-PURE($node.list[$i]);
+                $i := $i + 2;
+            }
+            return 1;
+        }
+        nqp::istype($node, QAST::IVal) || nqp::istype($node, QAST::NVal)
+            || nqp::istype($node, QAST::SVal) || nqp::istype($node, QAST::WVal)
+    }
+
+
+    # Whether the given argument code is a temporary slot this pass
+    # built: a statement list ending in a settled value read.
+    method IMPL-ARG-IS-SLOT(Mu $node) {
+        return 0 unless nqp::istype($node, QAST::Stmts)
+            && nqp::elems($node.list);
+        my $last := $node.list[nqp::elems($node.list) - 1];
+        nqp::istype($last, QAST::Var) && $last.ann('native-value-read') ?? 1 !! 0
+    }
+
+    # Whether the given argument code's result is a native reference,
+    # behind any statement wrappers.
+    method IMPL-ARG-RESULT-REF(Mu $node) {
+        $node := self.IMPL-ARG-RESULT-NODE($node);
+        nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
+            && ($node.scope eq 'lexicalref' || $node.scope eq 'attributeref')
+    }
+
+    # Put a native variable read this pass settled back to its reference
+    # form. A value read that never was a reference, the lookup of a
+    # read-only native parameter among them, stays as it is.
+    method IMPL-RESTORE-REF(Mu $node) {
+        if nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
+            && $node.ann('native-value-read') {
+            my str $scope := $node.scope;
+            $node.scope('lexicalref') if $scope eq 'lexical';
+            $node.scope('attributeref') if $scope eq 'attribute';
+        }
+        Nil
     }
 
     # Whether the parameter binding positional argument $i is known to be
@@ -1232,8 +1379,8 @@ class RakuAST::Lookup
             return 0 if $pflags +& nqp::const::SIG_ELEM_IS_RW;
             # A slurpy that keeps its arguments' containers keeps the
             # reference, as a container argument stays a live view of the
-            # variable there. A native sub takes no reference, since the
-            # native call has no container to keep.
+            # variable there. A native sub's slurpy takes the value, since
+            # the native call has no container to keep.
             if ($pflags +& (nqp::const::SIG_ELEM_SLURPY_LOL
                     +| nqp::const::SIG_ELEM_SLURPY_ONEARG)
                 || $pflags +& nqp::const::SIG_ELEM_SLURPY_POS
@@ -1246,13 +1393,79 @@ class RakuAST::Lookup
         1
     }
 
+    # The node the given argument code yields, behind any statement
+    # wrappers.
+    method IMPL-ARG-RESULT-NODE(Mu $node) {
+        while nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt) {
+            my int $n := nqp::elems($node.list);
+            return $node unless $n;
+            my $rc := $node.resultchild;
+            $node := $node.list[nqp::defined($rc) ?? $rc !! $n - 1];
+        }
+        $node
+    }
+
+    # The native type the given code yields in argument position, or Mu
+    # when it yields an object or the kind cannot be read off the code:
+    # a declared return, the result of a statement list, or a raw op by
+    # the kind its name ends in. A Want yields its object default there,
+    # which carries a Failure or a Nil the native alternatives cannot.
+    method IMPL-ARG-NATIVE-TYPE(Mu $node) {
+        my $returns := $node.returns;
+        return $returns if nqp::objprimspec($returns);
+        my $result := self.IMPL-ARG-RESULT-NODE($node);
+        return self.IMPL-ARG-NATIVE-TYPE($result)
+            unless nqp::eqaddr($result, $node);
+        if nqp::istype($node, QAST::Op) {
+            # Only an op whose kind suffix names its result speaks for
+            # the temporary: the raw assignment and arithmetic ops a
+            # native assignment or an inlined operator body compiles to.
+            # A comparison op's suffix names its operands, and a box or
+            # reference op's result is an object, so anything else is
+            # left to the boxed default.
+            my str $op := $node.op;
+            if nqp::eqat($op, 'assign_', 0) || nqp::eqat($op, 'add_', 0)
+                || nqp::eqat($op, 'sub_', 0) || nqp::eqat($op, 'mul_', 0)
+                || nqp::eqat($op, 'div_', 0) || nqp::eqat($op, 'mod_', 0)
+                || nqp::eqat($op, 'neg_', 0) || nqp::eqat($op, 'pow_', 0) {
+                return int  if nqp::eqat($op, '_i', -2);
+                return uint if nqp::eqat($op, '_u', -2);
+                return num  if nqp::eqat($op, '_n', -2);
+                return str  if nqp::eqat($op, '_s', -2);
+            }
+        }
+        Mu
+    }
+
+    # Bind the given argument code to a temporary in the given statement
+    # list, and return the temporary's read, of the argument's native kind
+    # where it has one.
+    method IMPL-BIND-TEMPORARY(Mu $stmts, str $prefix, Mu $arg) {
+        my str $name := QAST::Node.unique($prefix);
+        my $type := self.IMPL-ARG-NATIVE-TYPE($arg);
+        my $decl := QAST::Var.new( :$name, :scope('local'), :decl('var') );
+        my $use  := QAST::Var.new( :$name, :scope('local') );
+        if nqp::objprimspec($type) {
+            $decl.returns($type);
+            $use.returns($type);
+        }
+        else {
+            $decl.returns($arg.returns);
+            $use.returns($arg.returns);
+        }
+        $stmts.push(QAST::Op.new( :op('bind'), $decl, $arg ));
+        $use
+    }
+
     # Splice the given routine's inline info in place of a call to it, with
     # the argument code standing in for the parameter placeholders, or null
     # when the routine carries no inline info. An argument used other than
     # exactly once in the body is bound to a temporary first, so its code
     # runs once regardless. A native reference argument bound to a
     # never-rw parameter is downgraded to a value read, as the reference
-    # would only re-box on every use in the spliced body.
+    # would only re-box on every use in the spliced body. A value read
+    # followed by an impure argument puts every impure argument into a
+    # temporary, in order, so the body reads the variable after them.
     method IMPL-CT-INLINE-QAST(RakuAST::IMPL::QASTContext $context, Mu $routine, Mu @args-qast) {
         my $info := nqp::getattr($routine, Routine, '$!inline_info');
         return nqp::null() unless nqp::isconcrete($info) && nqp::istype($info, QAST::Node);
@@ -1267,6 +1480,7 @@ class RakuAST::Lookup
         $info.count_inline_placeholder_usages(@usages);
         my $inlined := QAST::Stmts.new();
         my @fillers;
+        my @args;
         my int $n := nqp::elems(@args-qast);
         my int $i := -1;
         while ++$i < $n {
@@ -1302,18 +1516,37 @@ class RakuAST::Lookup
                     }
                 }
             }
+            nqp::push(@args, $arg);
+        }
+        my int $reorder := 0;
+        my int $read := 0;
+        for @args {
+            if nqp::istype($_, QAST::Var) && nqp::objprimspec($_.returns)
+                && ($_.scope eq 'lexical' || $_.scope eq 'attribute') {
+                $read := 1;
+            }
+            elsif $read && !self.IMPL-ARG-IS-PURE($_) {
+                $reorder := 1;
+            }
+        }
+        # An impure argument's temporary comes ahead of every other, so a
+        # read bound to a temporary for its several uses still follows it.
+        if $reorder {
+            $i := -1;
+            while ++$i < $n {
+                my $arg := nqp::atpos(@args, $i);
+                nqp::bindpos(@fillers, $i, self.IMPL-BIND-TEMPORARY($inlined, '_inline_arg_', $arg))
+                    unless self.IMPL-ARG-IS-PURE($arg);
+            }
+        }
+        $i := -1;
+        while ++$i < $n {
+            next unless nqp::isnull(nqp::atpos(@fillers, $i));
+            my $arg := nqp::atpos(@args, $i);
             my $usage := nqp::atpos(@usages, $i);
-            if !nqp::isnull($usage) && $usage == 1 {
-                nqp::push(@fillers, $arg);
-            }
-            else {
-                my str $name := QAST::Node.unique('_inline_arg_');
-                $inlined.push(QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($name), :scope('local'), :returns($arg.returns), :decl('var') ),
-                    $arg));
-                nqp::push(@fillers, QAST::Var.new( :name($name), :scope('local'), :returns($arg.returns) ));
-            }
+            nqp::bindpos(@fillers, $i, !nqp::isnull($usage) && $usage == 1
+                ?? $arg
+                !! self.IMPL-BIND-TEMPORARY($inlined, '_inline_arg_', $arg));
         }
         $inlined.push($info.substitute_inline_placeholders(@fillers));
         # The routine's return type, read raw: a method dispatch on the
@@ -1552,7 +1785,7 @@ class RakuAST::PackageInstaller {
             my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
             $final := nqp::pop(@parts).name;
             nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
-            my $first := @parts[0].name;
+            my $first-read := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
             # In 6.e and later, detect when the resolved path would
@@ -1589,12 +1822,12 @@ class RakuAST::PackageInstaller {
                 # caller declared, is a plain redeclaration and must still
                 # reach the collision check.
                 if $resolved[2] eq 'lexical' {
-                    if nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first)) {
+                    if nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first-read)) {
                         $setting-resolved-target := $target;
                     }
                     else {
-                        my $lexical-first := $resolver.resolve-lexical-constant($first);
-                        my $in-setting := $resolver.resolve-lexical-constant-in-setting($first);
+                        my $lexical-first := $resolver.resolve-lexical-constant($first-read);
+                        my $in-setting := $resolver.resolve-lexical-constant-in-setting($first-read);
                         $setting-resolved-target := $target
                             if nqp::isconcrete($lexical-first)
                             && nqp::isconcrete($in-setting)
@@ -1610,8 +1843,8 @@ class RakuAST::PackageInstaller {
                 # into this unit's GLOBALish, which every consumer merges
                 # in.
                 if $scope eq 'our' && nqp::elems(@parts) >= 1 && $resolved[2] eq 'lexical'
-                    && nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first)) {
-                    ($resolver.get-global.WHO){$first} := $resolver.resolve-lexical($first).compile-time-value;
+                    && nqp::isconcrete($resolver.resolve-lexical-constant-in-scopes($first-read)) {
+                    ($resolver.get-global.WHO){$first-read} := $resolver.resolve-lexical($first-read).compile-time-value;
                 }
                 my $parts  := $resolved[1];
                 @parts := self.IMPL-UNWRAP-LIST($parts);
@@ -1629,24 +1862,24 @@ class RakuAST::PackageInstaller {
                 }
             }
             else {
-                my $first := nqp::shift(@parts).name;
-                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
+                my $first-read := nqp::shift(@parts).name;
+                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first-read);
                 $target.HOW.compose($target);
                 $resolver.current-scope.merge-generated-lexical-declaration:
                     :$resolver,
                     RakuAST::Declaration::LexicalPackage.new:
-                        :lexical-name($first),
+                        :lexical-name($first-read),
                         :compile-time-value($target),
                         :package(self);
                 if $scope eq 'our' {
                     # The slot is empty: the partial resolution above covers
                     # the lexical scopes, GLOBAL, and the enclosing package's
                     # stash, and an occupied slot takes the resolved branch.
-                    self.IMPL-STASH-BIND($current-package, $first, $target);
+                    self.IMPL-STASH-BIND($current-package, $first-read, $target);
                 }
                 $scope := 'our'; # Ensure we install the package into the generated stub
 
-                my $longname := $first;
+                my $longname := $first-read;
                 for @parts {
                     $longname := $longname ~ '::' ~ $_.name;
                     my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);

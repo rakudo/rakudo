@@ -531,6 +531,14 @@ class RakuAST::Infix
                 my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
                 $val-ast.named($adverb.named-arg-name);
                 $qast.push($val-ast);
+                # The adverb is an argument of the call, evaluated after
+                # the positional ones, so the reference analysis runs
+                # again with it in place.
+                if nqp::istype($qast, QAST::Op) {
+                    my str $qop := $qast.op;
+                    $qast := self.IMPL-SIMPLIFY-REF-ARGS($qast)
+                        if $qop eq 'call' || $qop eq 'callstatic';
+                }
             }
             $qast
         }

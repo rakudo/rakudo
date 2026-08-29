@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 37;
+plan 91;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -138,6 +138,7 @@ plan 37;
     is $i, 43, 'a prefix operator declared later in the scope receives the reference';
     multi sub prefix:<->(int $a is rw) { $a = 43; 'RW' }
 }
+# The outer g exists for the block below to shadow.
 sub g(int $x) { }
 {
     my int $i = 1;
@@ -146,6 +147,124 @@ sub g(int $x) { }
     sub g(int $x is rw) { $x = 9 }
 }
 
+# A later argument that writes a native variable is seen by the callee,
+# as it is when the variable is a container, which is read when the
+# callee binds it.
+{
+    sub f(*@a) { @a.join(',') }
+    my Int $a = 1; my int $b = 1;
+    is f($b, ($b = 7)), f($a, ($a = 7)), 'a native argument to a slurpy parameter is read at bind time, as a container is';
+}
+{
+    sub f(**@a) { @a.join(',') }
+    my Int $a = 1; my int $b = 1;
+    is f(0, $b, ($b = 7)), f(0, $a, ($a = 7)), 'a native argument after the position a slurpy starts at is read at bind time, as a container is';
+}
+{
+    my Int $a = 4; my int $b = 4;
+    is $b !%% ($b = 3), $a !%% ($a = 3), 'a native operand of a negated operator is read at bind time, as a container is';
+}
+{
+    my Int $a = 1; my int $b = 1;
+    is (0 < $b < ($b = 7)), (0 < $a < ($a = 7)), 'the middle operand of a chain is read at the bind of each link, as a container is';
+    is (0 !> $b < ($b = 7)), (0 !> $a < ($a = 7)), 'the middle operand after a negated link is read at the bind of each link, as a container is';
+}
+
+# The named and flattened arguments take part in the evaluation order
+# the reads follow.
+{
+    sub f($x, :$n) { "$x,$n" }
+    my Int $a = 1; my int $b = 1;
+    is f($b, :n($b = 7)), f($a, :n($a = 7)), 'a named argument that writes the variable is evaluated ahead of the native read';
+    my Int $c = 1; my int $d = 1;
+    is f(:n($d = 7), $d), f(:n($c = 7), $c), 'a named argument ahead of the positional that writes the variable is evaluated ahead of the native read';
+}
+{
+    sub f($x, $y, :$n) { "$x,$y,$n" }
+    my int $b = 1;
+    is f($b, :n($b = 7), ($b = 9)), '7,9,7', 'the positional arguments are evaluated before the named ones, and the native read after them all';
+}
+{
+    sub f($x, $y, $z) { "$x,$y,$z" }
+    my Int $a = 1; my int $b = 1; my @one = 0;
+    is f($b, |@one, ($b = 7)), f($a, |@one, ($a = 7)), 'an argument after a flattened one that writes the variable is evaluated ahead of the native read';
+}
+{
+    sub f(int $c, $d) { "$c,$d" }
+    my int $b = 1;
+    sub g() { $b = 7; 5 }
+    is f($b, |(g(),)), '7,5', 'a flattened argument that writes the variable is evaluated ahead of the native read';
+}
+{
+    sub f($x, $y, $z) { "$y,$z" }
+    my Int $a = 1; my int $b = 1;
+    sub ha() { $a = 5; 100 }
+    sub hb() { $b = 5; 100 }
+    is f(0, hb(), $b), f(0, ha(), $a), 'an impure argument ahead of the native read stays where it is';
+}
+{
+    sub g(--> int) { fail "no" }
+    sub f(int $x, $y) { $y.^name }
+    my int $b = 1;
+    is f($b, g()), 'Failure', 'a Failure returned by an argument after the native read reaches the callee';
+}
+{
+    sub f(int $x is rw, $y) { $x = $x + $y; $y }
+    my int $b = 1;
+    is f($b, ($b = 7)), 7, 'an rw parameter followed by an impure argument still receives the argument';
+    is $b, 14, 'an rw parameter followed by an impure argument still writes back through the reference';
+}
+{
+    my Int $a = 2; my int $b = 2;
+    is (0 < 1 < $b < ($b = 7)), (0 < 1 < $a < ($a = 7)), 'the middle operand of a chain of three links is read at the bind of its link, as a container is';
+}
+
+{
+    my int $i = 1;
+    sub f() { $i = 7; 5 }
+    $i max= f();
+    is $i, 7, 'a native compound assignment reads its target after the argument that writes it';
+}
+# The temporary an impure argument binds keeps the kind its code
+# yields.
+{
+    my class MyInt is Int { }
+    sub f($x, $y) { $y.^name }
+    my int $i = 1;
+    sub g() { $i = 7; 3 }
+    is f($i, nqp::box_i(g(), MyInt)), 'MyInt', 'a boxing op after the native read keeps its boxed type';
+}
+{
+    multi sub d(Int $x, Int $y) { "Int/Int" }
+    multi sub d(Int $x, Str $y) { "Int/Str" }
+    my int $b = 1;
+    is d($b, nqp::iseq_s("a","a")), 'Int/Int', 'a comparison op result after a native read keeps its integer kind';
+}
+{
+    sub f(int $x, :$n) { "$x,$n" }
+    my Int $a = 1; my int $b = 1;
+    is f($b, :n(my int $t = ($b = 7))), f($a, :n(my int $u = ($a = 7))), 'a native typed named argument that writes the variable is evaluated ahead of the native read';
+}
+
+# An operator's adverb and a wrapped operand join the call like any
+# other argument.
+{
+    sub infix:<nn>($a, $b, :$n) { "$a,$b,$n" }
+    my Int $a = 1; my int $b = 1;
+    is ($b nn 0 :n($b = 7)), ($a nn 0 :n($a = 7)), 'an infix adverb that writes the variable is evaluated ahead of the native read';
+}
+{
+    sub f($x, int $y is rw) { $y = 99 }
+    my int $b = 1; my int $q = 1;
+    f($b, ($q));
+    is $q, 99, 'a parenthesized native argument to an rw parameter still passes the reference';
+}
+{
+    sub infix:<nn>($a, $b, :$n) { "$a,$b,$n" }
+    sub imp() { 3 }
+    my Int $a = 1; my int $b = 1;
+    is ($b nn imp() :n($b = 9)), ($a nn imp() :n($a = 9)), 'an infix adverb joins the temporaries of an impure operand ahead of the native read';
+}
 # The scope of the first argument of a named call, or the node's type
 # name when that argument is not a variable.
 sub qast-first-arg-scope(Mu $qast, str $callee --> Str) {
@@ -184,6 +303,51 @@ sub qast-count-calls(Mu $qast, str $op, str $callee --> Int) {
         $count += qast-count-calls($_, $op, $callee) for $qast.list;
     }
     $count
+}
+# Whether any temporary a native read or an inlined body binds appears.
+sub qast-has-temporary(Mu $qast --> Bool) {
+    return True if nqp::istype($qast, QAST::Var)
+        && ($qast.name.starts-with('_native_read_') || $qast.name.starts-with('_inline_arg_'));
+    if qast-descendable $qast {
+        for $qast.list {
+            return True if qast-has-temporary($_);
+        }
+    }
+    False
+}
+# The scope of the last operand of the innermost chain op, or ''.
+sub qast-chain-middle-scope(Mu $qast --> Str) {
+    if nqp::istype($qast, QAST::Op) && $qast.op eq 'chain' | 'chainstatic' {
+        my $inner = qast-chain-middle-scope($qast.list[0]);
+        return $inner if $inner;
+        my $last = $qast.list[*-1];
+        return nqp::istype($last, QAST::Var) ?? $last.scope !! '';
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            my $found = qast-chain-middle-scope($_);
+            return $found if $found;
+        }
+    }
+    ''
+}
+# Whether the named call's first argument is a statement list ending in
+# the given variable's value read, with a temporary as the argument after.
+sub qast-reads-last(Mu $qast, str $callee, str $var --> Bool) {
+    if nqp::istype($qast, QAST::Op) && $qast.name eq $callee {
+        my @args = $qast.list;
+        my $slot = @args[0];
+        return nqp::istype($slot, QAST::Stmts)
+            && nqp::istype($slot.list[*-1], QAST::Var)
+            && $slot.list[*-1].name eq $var && $slot.list[*-1].scope eq 'lexical'
+            && nqp::istype(@args[1], QAST::Var) && @args[1].scope eq 'local';
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            return True if qast-reads-last($_, $callee, $var);
+        }
+    }
+    False
 }
 
 # What follows holds under this frontend only.
@@ -231,9 +395,129 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         is $i, 43, 'a comparison declared later in the scope receives the reference';
         multi sub infix:«<»(int $a is rw, int $b) { $a = 43; 'RW' }
     }
+    # The legacy frontend reads a native operand where it stands.
+    {
+        sub f($x, $y, $z) { "$x,$y,$z" }
+        my Int $a = 1; my int $b = 1;
+        is f($b, ($b), ++$b), f($a, ($a), ++$a), 'a parenthesized native argument is read at bind time, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is $b + ($b = 7), $a + ($a = 7), 'a native left operand is read after a later operand writes it, as a container is';
+    }
+    {
+        my Str $a = 'a'; my str $b = 'a';
+        is $b ~ ($b = 'b'), $a ~ ($a = 'b'), 'a native string operand is read after a later operand writes it, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is infix:<+>($b, ($b = 7)), infix:<+>($a, ($a = 7)), 'a native argument to an operator called by name is read at bind time, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is $b - ($b = 7), $a - ($a = 7), 'a native operand of subtraction is read at bind time, as a container is';
+    }
+    {
+        class C { has Int $.a = 1; has int $.b = 1; method m { ($!b + ($!b = 7), $!a + ($!a = 7)) } }
+        my ($native, $boxed) = C.new.m;
+        is $native, $boxed, 'a native attribute operand is read at bind time, as a container is';
+    }
+    {
+        sub f(\x, $y) { x }
+        my Int $a = 1; my int $b = 1;
+        is f($b, ($b = 7)), f($a, ($a = 7)), 'a native argument to a raw parameter is read at bind time, as a container is';
+    }
+    {
+        sub f($x, $y) { $x }
+        my Int $a = 1; my int $b = 1;
+        is f($b, ($b = 7)), f($a, ($a = 7)), 'a native argument to a plain parameter is read at bind time, as a container is';
+    }
+    {
+        sub h(int $x, $y) { $x }
+        my Int $a = 1; my int $b = 1;
+        is h($b, ($b = 7)), h($a, ($a = 7)), 'a native argument to a native parameter is read at bind time, as a container is';
+    }
+    {
+        sub o(\x, $y?) { x }
+        my Int $a = 1; my int $b = 1;
+        is o($b, ($b = 7)), o($a, ($a = 7)), 'a native argument to an optional parameter is read at bind time, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is ($b < ($b = 7)), ($a < ($a = 7)), 'a lone native comparison reads its operand at bind time, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is ($b !< ($b = 7)), ($a !< ($a = 7)), 'a negated native comparison reads its operand at bind time, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is ($b < ($b = 7) < 9), ($a < ($a = 7) < 9), 'the first operand of a chain is read at the bind of its link, as a container is';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is $b + $b++, $a + $a++, 'a native operand is read after a later operand increments it, as a container is';
+    }
+    {
+        use soft;
+        my Int $a = 1; my int $b = 1;
+        is $b + ($b = 7), $a + ($a = 7), 'a native operand is read at bind time under the soft pragma, as a container is';
+    }
+    {
+        my int $b = 1;
+        is $b + ($b = 7), 14, 'a native left operand reads 7 after the later operand writes it';
+        my int $c = 1;
+        is infix:<+>($c, ($c = 7)), 14, 'a native argument to an operator called by name reads 7 after the later argument writes it';
+    }
+    {
+        my Int $a = 1; my int $b = 1;
+        is $b + ++$b, $a + ++$a, 'a native operand of an inlined operator is read after a later operand increments it, as a container is';
+        my int $c = 1;
+        is $c + ++$c, 4, 'a native operand of an inlined operator reads 2 after the later operand increments it';
+    }
+    {
+        my Str $a = 'a'; my str $b = 'a';
+        is $b ~ (my str $d = ($b = 'b')), $a ~ (my Str $c = ($a = 'b')), 'a native string operand of an inlined operator is read after a later operand writes it, as a container is';
+    }
+    # EVAL compiles a unit of its own, where the callee is settled and
+    # its body splices.
+    is EVAL('sub w(int $a, int $b) { $a * $a + $b }; my int $b = 1; w($b, ++$b)'), 6,
+        'a native argument used twice in an inlined body is read after a later argument increments it';
+    {
+        my uint $b = 1;
+        is $b + ($b = 7), 14, 'a native unsigned operand reads 7 after the later operand writes it';
+    }
+    {
+        sub f($x, $y) { "$x,$y" }
+        my num $b = 1e0;
+        is f($b, ($b = 7e0)), '7,7', 'a native num argument reads 7 after the later argument writes it';
+    }
+    {
+        sub f($x, $y, $z) { "$x,$y,$z" }
+        my int $b = 1;
+        is f($b, ($b = 7), $b), '7,7,7', 'both reads around a writing argument read after it';
+    }
+    qast-is 'sub f($x, $y) { }; my int $i = 1; f($i, ($i = 7));', :full, -> \v { qast-has-temporary(v) },
+        'a writing argument after a native read binds a temporary in sink context';
+    qast-is 'my int $i = 1; sub f() { 2 }; my $r = $i + f()', :full, -> \v {
+        qast-reads-last(v, '&infix:<+>', '$i')
+    }, 'an impure operand after a native read is evaluated into a temporary ahead of the read';
+    qast-is 'my int $i; my $r = $i + 1', -> \v { not qast-has-temporary(v) },
+        'a literal operand after a native read needs no temporary';
+    qast-is 'my int $i; my int $n; my $r = $i < $n', -> \v { not qast-has-temporary(v) },
+        'a native variable operand after a native read needs no temporary';
+    qast-is 'my int $b = 1; my $r = $b + ++$b', :full, -> \v { qast-has-temporary(v) },
+        'an impure operand of an inlined operator binds a temporary';
+    qast-is 'sub infix:<nn>($a,$b,:$n){}; my int $b = 1; my $r = $b nn 0 :n(5)', :full,
+        -> \v { not qast-has-temporary(v) }, 'a pure adverb after a native read needs no temporary';
+    qast-is 'sub f(int $x) { my $r = 0 < $x < g() }; sub g() { 9 }', :full,
+        -> \v { qast-chain-middle-scope(v) eq 'lexical' },
+        'a read-only native parameter in a chain is not promoted to a reference';
+    qast-is 'my int $b; my $r = 0 < $b < ($b = 7)', -> \v { qast-chain-middle-scope(v) eq 'lexicalref' },
+        'the middle operand of a chain whose last operand is impure stays a reference';
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 10;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 42;
 }
 
 # vim: expandtab shiftwidth=4

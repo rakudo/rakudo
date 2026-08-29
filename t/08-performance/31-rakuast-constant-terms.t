@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 19;
+plan 20;
 
 # A term that resolves to a constant whose lexical is bound once
 # compiles to its value. The name lookup it replaces costs on every
@@ -97,6 +97,8 @@ else {
     ok $y =:= Int, 'a constant holding a type object reads the very type object';
 }
 
+sub nuke(IO::Path $p) { if $p.d { nuke($_) for $p.dir; $p.rmdir } else { $p.unlink } }
+
 # The folded value serializes as a reference into its own context, so
 # a precompiled module must produce the same objects when its store
 # compiles and when it loads. The imported container proves the
@@ -124,7 +126,21 @@ else {
         $proc.err.slurp(:close);
         is $out, '1|424242|light=1|Scalar', "the folded constants $stage";
     }
-    sub nuke(IO::Path $p) { if $p.d { nuke($_) for $p.dir; $p.rmdir } else { $p.unlink } }
+    nuke($dir);
+}
+
+# A constant declared after the use is visible only from its declaration
+# on, so the setting term stays the one the use compiles to.
+{
+    my $dir = $*TMPDIR.add("rakuast-constant-terms-late-{$*PID}");
+    $dir.mkdir;
+    $dir.add('LateTerm.rakumod').spurt: q:to/END/;
+        unit module LateTerm;
+        our sub setting-pi() { pi }
+        my constant pi = 3;
+        END
+    is EVAL(q[use lib $dir; use LateTerm; &LateTerm::setting-pi()]), pi,
+        'a constant declared after a use of a setting term leaves the use on the setting value';
     nuke($dir);
 }
 

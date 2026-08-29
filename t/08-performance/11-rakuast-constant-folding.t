@@ -3,7 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 47;
+plan 55;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -134,6 +134,43 @@ ok optimized-deparse(Q[my $x = 3; my $y = $x * 2]).contains('$x * 2'),
     'a runtime variable keeps the operator';
 ok optimized-deparse(Q[class FoldPkg { }; my $y = FoldPkg:: eq "x"]).contains('eq'),
     'a stash reference keeps the operator';
+
+# A user operator declared after the use shadows the setting's, and the
+# resolution stored on the node predates the declaration, so the operator
+# survives and the user's runs. A declaration in an inner block reaches
+# no use outside it. The operator use sits in a module rather than in an
+# EVAL string, since an EVAL runs the user's routine either way.
+ok optimized-deparse(Q[my $y = 2 ** 3; sub infix:<**>($a, $b) { 'user' }]).contains('**'),
+    'a user infix declared after the use keeps the operator';
+ok optimized-deparse(Q[my $y = 2 min 3; sub infix:<min>($a, $b) { 'user' }]).contains('min'),
+    'a user list infix declared after the use keeps the operator';
+ok optimized-deparse(Q[my $y = 2 ** 3; my &infix:<**> = sub ($a, $b) { 'user' }]).contains('**'),
+    'an operator bound to a variable after the use keeps the operator';
+ok optimized-deparse(Q[sub f() { 2 ** 3 }; multi sub infix:<**>(Int $a, Int $b) is default { 'user' }]).contains('**'),
+    'a user multi declared after the use keeps the operator';
+{
+    my $t = optimized-deparse(Q[sub outer() { 2 ** 3 }; sub inner() { { sub infix:<**>($a, $b) { 'user' }; 2 ** 3 } }]);
+    ok $t.subst(/\s+/, ' ', :g).contains('sub outer () { 8 }') && $t.contains('2 ** 3'),
+        'a user infix in an inner block leaves a use outside it folding and keeps its own';
+}
+{
+    my $dir = make-temp-dir;
+    $dir.add('FoldLateOp.rakumod').spurt: q:to/END/;
+        unit module FoldLateOp;
+        our sub pow() { 2 ** 3 }
+        our sub neg() { -3 }
+        our sub least() { 2 min 3 }
+        sub infix:<**>($a, $b) { 'user' }
+        sub prefix:<->($a) { 'user' }
+        sub infix:<min>($a, $b) { 'user' }
+        END
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::pow()]), 'user',
+        'a user infix declared after a use in a sub is what the sub calls';
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::neg()]), 'user',
+        'a user prefix declared after a use in a sub is what the sub calls';
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::least()]), 'user',
+        'a user list infix declared after a use in a sub is what the sub calls';
+}
 
 # Str.AST does not optimize, so the operator survives. The scenarios above
 # therefore test the optimize pass, not something upstream.

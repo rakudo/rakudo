@@ -180,20 +180,24 @@ my sub marshal-and-delegate-native-call(Mu $capture is raw) {
 
     while $i < $pos-args {
 
+        # With variadic C functions / a **@vararg slurpy parameter, the
+        # $params list ends early. The slurpy is detected ahead of the
+        # argument's kind: a native argument skips the boxed handling
+        # below, and a slurpy found only there would go undetected when a
+        # native arrives at its position, so the next boxed argument would
+        # read $params past its end.
+        my $param;
+        unless $variadic {
+            $param := nqp::atpos($params, $i);
+            # Detect the **@vararg param. If found the var args start and
+            # we have to work without params from now on.
+            if $param.slurpy && nqp::istype($param.type, Positional) {
+                $variadic = True;
+            }
+        }
+
         # If it should be passed read only, and it's an object...
         unless nqp::captureposprimspec($args, $i) {
-
-            # With variadic C functions / a **@vararg slurpy parameter, the
-            # $params list ends early.
-            my $param;
-            unless $variadic {
-                $param := nqp::atpos($params, $i);
-                # Detect the **@vararg param. If found the var args start and
-                # we have to work without params from now on.
-                if $param.slurpy && nqp::istype($param.type, Positional) {
-                    $variadic = True;
-                }
-            }
 
             # If it's in a Scalar container...
             my $Tvalue := nqp::track('arg', $args, nqp::unbox_i($i));

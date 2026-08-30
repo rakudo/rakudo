@@ -4,7 +4,7 @@ use NativeCall;
 use Test;
 use nqp;
 
-plan 14;
+plan 17;
 
 compile_test_lib('26-varargs');
 
@@ -14,6 +14,9 @@ ok va1(0, 1), 'Can pass plain ints';
 
 my $a1 = 1;
 ok va1(0, $a1), 'Can pass Int';
+
+my int32 $n = 1;
+ok va1(0, $n, "trailing"), 'a native variable in the variadic position followed by an object';
 }
 
 {
@@ -50,6 +53,14 @@ sub va5(int32, **@varargs) returns int32 is native('./26-varargs') { * }
 my $a1 = "Köln";
 ok va5(0, $a1), 'can pass strings';
 ok va5(0, "Köln"), 'can pass strings inline';
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    my str $s = "Köln";
+    ok va5(0, $s), 'a native string variable in the variadic position';
+    ok va5(0, $s, "x"), 'a native string variable in the variadic position followed by an object';
+}
+else {
+    skip 'a native string reaches a variadic native sub on the RakuAST frontend only', 2;
+}
 }
 
 {

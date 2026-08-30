@@ -531,6 +531,14 @@ class RakuAST::Infix
                 my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
                 $val-ast.named($adverb.named-arg-name);
                 $qast.push($val-ast);
+                # The adverb is an argument of the call, evaluated after
+                # the positional ones, so the reference analysis runs
+                # again with it in place.
+                if nqp::istype($qast, QAST::Op) {
+                    my str $qop := $qast.op;
+                    $qast := self.IMPL-SIMPLIFY-REF-ARGS($qast)
+                        if $qop eq 'call' || $qop eq 'callstatic';
+                }
             }
             $qast
         }
@@ -547,9 +555,20 @@ class RakuAST::Infix
 
     method IMPL-HOP-CONSTANT() { $!hop-constant }
 
+    # Set by the optimize pass on a chaining operator whose application is
+    # a chain of one link, so it compiles as a plain call. The chain op
+    # serves the protocol between links, and boxes its operands for it,
+    # where a call passes a native operand as it is.
+    has int $!lone-link;
+
+    method IMPL-SET-LONE-LINK(int $on) {
+        nqp::bindattr_i(self, RakuAST::Infix, '$!lone-link', $on)
+    }
+
     # Set by the optimize pass when the resolved operator's lexical is bound
     # once, so a chaining operator's callee lookup can be compiled as a
-    # static one the VM resolves a single time.
+    # static one the VM resolves a single time. A lone link compiles as a
+    # call and takes its static lookup from this mark as well.
     has int $!chainstatic;
 
     method IMPL-SET-CHAINSTATIC(int $on) {
@@ -743,13 +762,14 @@ class RakuAST::Infix
             return $inlined unless nqp::isnull($inlined);
         }
 
+        my str $call-op := self.properties.chain && !$!lone-link
+            ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
+            !! (($!callstatic || $!chainstatic) ?? 'callstatic' !! 'call');
+
         # A comparison in boolean position with a junction operand
         # unfolds to short-circuit comparisons per eigenstate.
         if $!junction-fold {
-            my $folded := self.IMPL-JUNCTION-FOLD-QAST($context,
-                self.properties.chain
-                    ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                    !! ($!callstatic ?? 'callstatic' !! 'call'),
+            my $folded := self.IMPL-JUNCTION-FOLD-QAST($context, $call-op,
                 $name, $left-qast, $right-qast,
                 $!junction-fold, $!junction-fold-junction);
             return $folded unless nqp::isnull($folded);
@@ -758,9 +778,7 @@ class RakuAST::Infix
         # Otherwise, it's called by finding the lexical sub to call, and
         # compiling it as chaining if required.
         self.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
-            :op(self.properties.chain
-                  ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                  !! ($!callstatic ?? 'callstatic' !! 'call')),
+            :op($call-op),
             :$name,
             $left-qast,
             $right-qast
@@ -1929,23 +1947,29 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        # The negated operator's own lookup decides its reference
+        # arguments. A meta-op standing in for it has no lookup.
+        my int $own-lookup := nqp::istype($!infix, RakuAST::Infix);
         if $!negate-not {
             $context.ensure-sc($!negate-not-op);
+            my $call := QAST::Op.new(
+                :op('call'),
+                $!infix.IMPL-HOP-INFIX-QAST($context),
+                $left-qast,
+                $right-qast
+            );
+            $call := $!infix.IMPL-SIMPLIFY-REF-ARGS($call) if $own-lookup;
             return QAST::Op.new:
                 :op('call'),
                 QAST::WVal.new( :value($!negate-not-op) ),
-                QAST::Op.new(
-                    :op('call'),
-                    $!infix.IMPL-HOP-INFIX-QAST($context),
-                    $left-qast,
-                    $right-qast
-                );
+                $call;
         }
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op($!infix.properties.chain ?? 'chain' !! 'call'),
             self.IMPL-HOP-INFIX-QAST($context),
             $left-qast,
-            $right-qast
+            $right-qast;
+        $own-lookup ?? $!infix.IMPL-SIMPLIFY-REF-ARGS($op) !! $op
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {

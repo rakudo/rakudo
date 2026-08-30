@@ -1199,10 +1199,29 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # proper module loading
         else {
+            my $module-name := $<module-name>.ast;
+
+            # 6.e or higher and adverbs spotted
+            if nqp::getcomp('Raku').language_revision >= 3
+              && $module-name.colonpairs -> $colonpairs {
+                my constant known-adverbs := nqp::hash(
+                  'ver', 1, 'auth', 1, 'api', 1, 'from', 1
+                );
+                my @unknown;
+                for $module-name.IMPL-UNWRAP-LIST($colonpairs) {
+                    my $adverb := $_.key;
+                    @unknown.push($adverb)
+                      unless nqp::existskey(known-adverbs,$adverb);
+                }
+
+                $/.worry(
+                  "Detected unsupported adverbs in 'use' statement: :"
+                    ~ nqp::join(":",@unknown)
+                ) if @unknown;
+            }
+
             my $LANG := $*LANG;
-            $ast := Nodify('Statement::Use').new(
-              :module-name($<module-name>.ast), :$argument
-            );
+            $ast := Nodify('Statement::Use').new(:$module-name, :$argument);
             self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
             $ast.ensure-begin-performed($*R, $*CU.context);
 

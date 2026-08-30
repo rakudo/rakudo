@@ -84,6 +84,15 @@ BEGIN {
 }
 
 {
+    # This thread pool scheduler will be the default one.
+#?if !js
+    PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
+#?endif
+
+#?if js
+    PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
+#?endif
+
     # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
     # my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {

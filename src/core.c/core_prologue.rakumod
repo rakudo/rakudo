@@ -91,15 +91,6 @@ PROCESS::<%ENV> := do {
     nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$env)
 }
 
-# This thread pool scheduler will be the default one.
-#?if !js
-PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
-#?endif
-
-#?if js
-PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
-#?endif
-
 #?if jvm
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif

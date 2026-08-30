@@ -1628,18 +1628,55 @@ class RakuAST::Regex::Assertion::Named::RegexArg
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $call-qast := self.IMPL-REGEX-QAST-CALL($context);
         my $body-qast := $!regex-arg.IMPL-REGEX-QAST($context, %mods);
-        $body-qast := self.IMPL-FLIP-QAST($body-qast) if self.name.canonicalize eq 'after';
+        if self.name.canonicalize eq 'after' {
+            if self.IMPL-CAN-FLIP-QAST($body-qast)
+              || !nqp::istype($call-qast[0][0], QAST::SVal) {
+                $body-qast := self.IMPL-FLIP-QAST($body-qast);
+            }
+            else {
+                $call-qast[0][0].value('after_scan');
+            }
+        }
         $!regex-arg.IMPL-APPLY-ATOM-RATCHET($body-qast, %mods);
         nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast', $body-qast);
-        my $qast := self.IMPL-REGEX-QAST-CALL($context);
         my str $name := self.IMPL-UNIQUE-NAME;
         my $arg-qast := QAST::Var.new( :$name, :scope('lexical') );
         # QRegex::NFA reads this annotation to inline a <before ...>
         # argument's regex into the caller's declarative prefix for LTM.
         $arg-qast.annotate('orig_qast', $body-qast);
-        $qast[0].push($arg-qast);
-        $qast
+        $call-qast[0].push($arg-qast);
+        $call-qast
+    }
+
+    # Whether IMPL-FLIP-QAST can turn this syntax tree into one that,
+    # matched against the flipped target, is equivalent to matching the
+    # original right-to-left.  Subrule calls and embedded code have
+    # compiled bodies that match left-to-right no matter what surrounds
+    # them, and zero-width checks other than anchors inspect the character
+    # at the current position, which is on the other side once the target
+    # is flipped.  Lookbehinds containing any of those must scan instead.
+    method IMPL-CAN-FLIP-QAST($qast) {
+        return 1 unless nqp::istype($qast, QAST::Regex);
+        return 0 if $qast.subtype eq 'zerowidth';
+        my $rxtype := $qast.rxtype;
+        if $rxtype eq 'literal' || $rxtype eq 'cclass' || $rxtype eq 'enumcharlist'
+          || $rxtype eq 'charrange' || $rxtype eq 'uniprop'
+          || $rxtype eq 'anchor' || $rxtype eq 'dba' {
+            1
+        }
+        elsif $rxtype eq 'concat' || $rxtype eq 'alt' || $rxtype eq 'altseq'
+          || $rxtype eq 'conj' || $rxtype eq 'conjseq'
+          || $rxtype eq 'quant' || $rxtype eq 'dynquant' {
+            for @($qast) {
+                return 0 unless self.IMPL-CAN-FLIP-QAST($_);
+            }
+            1
+        }
+        else {
+            0
+        }
     }
 
     method IMPL-FLIP-QAST($qast) {

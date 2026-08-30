@@ -840,8 +840,6 @@ class RakuAST::Node {
                     if $routine-lookup;
                 self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
                     if $term-name;
-                self.IMPL-MARK-NEGATE-NOT($resolver, $expr)
-                    if $apply-infix;
                 self.IMPL-MARK-NATIVE-INDEX($resolver, $expr)
                     if $apply-postfix;
                 self.IMPL-MARK-RETURN-DECONT($resolver, $expr)
@@ -873,6 +871,8 @@ class RakuAST::Node {
             if $result =:= $expr
             && ($apply-infix || $apply-prefix || $apply-postfix || $call-name);
         self.IMPL-MARK-CHAIN-LINKS($resolver, $expr)
+            if $result =:= $expr && $apply-infix;
+        self.IMPL-MARK-NEGATE-NOT($resolver, $expr)
             if $result =:= $expr && $apply-infix;
 
         # A replacement stands where the original stood, so it must carry the
@@ -962,9 +962,6 @@ class RakuAST::Node {
             if nqp::istype($infix, RakuAST::MetaInfix::Assign) {
                 $infix.IMPL-SET-NATIVE-STEP(0);
                 $infix.IMPL-SET-INLINE(0);
-            }
-            elsif nqp::istype($infix, RakuAST::MetaInfix::Negate) {
-                $infix.IMPL-CLEAR-NEGATE-NOT();
             }
             $infix := $infix.infix while nqp::istype($infix, RakuAST::MetaInfix);
             if nqp::istype($infix, RakuAST::Infix) {
@@ -1475,19 +1472,26 @@ class RakuAST::Node {
         Nil
     }
 
-    # Mark a standalone negated comparison for compiling as the setting
-    # prefix ! around the plain comparison call, which is what the
-    # meta-op computes for two arguments. A link of a longer chain keeps
-    # the meta-op, since the chain protocol needs a callee, so the
-    # enclosing link withdraws the mark its operand took.
+    # Mark a negated operator for compiling as the setting prefix !
+    # around the plain operator call, which is what the meta-op computes
+    # for two arguments. An adverbed application keeps the meta-op,
+    # since the adverb is pushed onto the emitted call and would land on
+    # prefix ! instead of the operator. A link of a longer chain keeps
+    # it too, since the chain protocol needs a callee, and the enclosing
+    # link withdraws the mark its operand took. The mark sits outside
+    # the soft gate: the operator is still looked up at run time and the
+    # setting's prefix ! is the one the meta-op applies, so it pins
+    # nothing the meta-op does not.
     method IMPL-MARK-NEGATE-NOT(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
-        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Negate)
-            && $infix.properties.chain;
-        for [$expr.left, $expr.right] {
-            return Nil if nqp::istype($_, RakuAST::ApplyInfix)
-                && $_.infix.properties.chain;
+        return Nil unless nqp::istype($infix, RakuAST::MetaInfix::Negate);
+        return Nil if nqp::elems($expr.colonpairs);
+        if $infix.properties.chain {
+            for [$expr.left, $expr.right] {
+                return Nil if nqp::istype($_, RakuAST::ApplyInfix)
+                    && $_.infix.properties.chain;
+            }
         }
         my $not := $resolver.resolve-lexical-constant-in-setting('&prefix:<!>');
         nqp::isconcrete($not) && nqp::istype($not, RakuAST::CompileTimeValue)
@@ -1524,10 +1528,13 @@ class RakuAST::Node {
         return Nil unless nqp::istype($infix, RakuAST::Infixish)
             && $infix.properties.chain;
         for [$expr.left, $expr.right] {
-            $_.infix.IMPL-SET-LONE-LINK(0)
-                if nqp::istype($_, RakuAST::ApplyInfix)
-                && nqp::istype($_.infix, RakuAST::Infix)
-                && $_.infix.properties.chain;
+            if nqp::istype($_, RakuAST::ApplyInfix)
+                && nqp::istype($_.infix, RakuAST::Infixish)
+                && $_.infix.properties.chain {
+                my $base := $_.infix;
+                $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+                $base.IMPL-SET-LONE-LINK(0) if nqp::istype($base, RakuAST::Infix);
+            }
         }
         Nil
     }
@@ -3056,9 +3063,10 @@ class RakuAST::Node {
     # only after its operands were visited, so the enclosing chain
     # withdraws the smartmatch decision its operand links took. A chain
     # with no operand link is a chain of one link and takes the lone
-    # link mark. The marks sit outside the soft gate, since a lone
-    # link's call dispatches the operator as the chain op does, and
-    # pins nothing.
+    # link mark, on the operator beneath any meta-op layers, since a
+    # reverse or sequence meta-op emits the operator's own call. The
+    # marks sit outside the soft gate, since a lone link's call
+    # dispatches the operator as the chain op does, and pins nothing.
     method IMPL-MARK-CHAIN-LINKS(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infixish)
@@ -3073,8 +3081,10 @@ class RakuAST::Node {
                     if nqp::istype($operand.infix, RakuAST::Infix);
             }
         }
-        $expr.infix.IMPL-SET-LONE-LINK($linked ?? 0 !! 1)
-            if nqp::istype($expr.infix, RakuAST::Infix);
+        my $base := $expr.infix;
+        $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+        $base.IMPL-SET-LONE-LINK($linked ?? 0 !! 1)
+            if nqp::istype($base, RakuAST::Infix);
         Nil
     }
 

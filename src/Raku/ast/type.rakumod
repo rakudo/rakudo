@@ -1255,6 +1255,15 @@ class RakuAST::Type::Subset
         self.add-trait-sorries;
         self.add-install-worries;
 
+        if nqp::isconcrete($!where) && $context.language-revision >= 3
+          && $!where.IMPL-IS-MATCH-RESULT {
+            self.add-worry:
+              $resolver.build-exception: 'X::AdHoc', payload =>
+                "A where clause that is itself a smartmatch never matches"
+                  ~ " from 6.e on, where a concrete Match matcher compares"
+                  ~ " by identity; match against the regex directly";
+        }
+
         self.check-scope($resolver, 'subset');
     }
 

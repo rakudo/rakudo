@@ -928,7 +928,7 @@ class RakuAST::Var::PositionalCapture
         my $index := $!index;
         $context.ensure-sc($index);
         my $op := QAST::Op.new(
-            :op('call'),
+            :op($lookups[0].IMPL-CALL-OP),
             :name($lookups[0].is-resolved ?? $lookups[0].resolution.lexical-name !! '&postcircumfix:<[ ]>'),
             $lookups[1].IMPL-TO-QAST($context),
             QAST::WVal.new( :value($index) )
@@ -983,7 +983,7 @@ class RakuAST::Var::NamedCapture
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $op := QAST::Op.new(
-            :op('call'),
+            :op($lookups[0].IMPL-CALL-OP),
             :name($lookups[0].resolution.lexical-name),
             $lookups[1].IMPL-TO-QAST($context),
         );

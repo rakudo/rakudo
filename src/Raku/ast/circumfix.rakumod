@@ -179,7 +179,7 @@ class RakuAST::Circumfix::ArrayComposer
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new(
-            :op('call'), :$name,
+            :op(self.IMPL-CALL-OP), :$name,
             $!semilist.IMPL-TO-QAST($context)
         )
     }
@@ -252,7 +252,7 @@ class RakuAST::Circumfix::HashComposer
         my $name := self.resolution.lexical-name;
         my $expression := $!expression;
 
-        my $op := QAST::Op.new(:op<call>, :$name);
+        my $op := QAST::Op.new(:op(self.IMPL-CALL-OP), :$name);
         if $expression {
             $op.push($expression.IMPL-TO-QAST($context))
         }

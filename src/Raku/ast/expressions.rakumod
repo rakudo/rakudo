@@ -584,6 +584,11 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!callstatic', $on)
     }
 
+    # The op of a plain call to this operator by name.
+    method IMPL-CALL-OP() {
+        $!callstatic || $!chainstatic ?? 'callstatic' !! 'call'
+    }
+
     # Set by the optimize pass when the operand types decide the dispatch at
     # compile time: the routine, for a multi the chosen candidate, whose
     # inline info, when it has any, is spliced in place of the operator call.
@@ -857,7 +862,7 @@ class RakuAST::Infix
             # platform that wants to optimize this somewhat can).
             $past := QAST::Op.new( :op('p6assign'), $lhs_ast, $rhs_ast );
         }
-        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
+        elsif nqp::istype($lhs_ast, QAST::Op) && ($lhs_ast.op eq 'call' || $lhs_ast.op eq 'callstatic') &&
               ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
                $lhs_ast_name eq '&postcircumfix:<{ }>' ||
                $lhs_ast_name eq '&postcircumfix:<[; ]>') &&
@@ -867,7 +872,7 @@ class RakuAST::Infix
             $past.nosink(1);
         }
         elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
-                nqp::istype($lhs_ast[0],QAST::Op) && $lhs_ast[0].op eq 'call' &&
+                nqp::istype($lhs_ast[0],QAST::Op) && ($lhs_ast[0].op eq 'call' || $lhs_ast[0].op eq 'callstatic') &&
                 ($lhs_ast[0].name eq '&postcircumfix:<[ ]>' || $lhs_ast[0].name eq '&postcircumfix:<{ }>') &&
                 +@($lhs_ast[0]) == 2 { # no adverbs
             $lhs_ast[0].push($rhs_ast);
@@ -886,7 +891,9 @@ class RakuAST::Infix
                               Mu $right-qast
     ) {
         QAST::Op.new(
-            :op(self.properties.chain ?? 'chain' !! 'call'),
+            :op(self.properties.chain
+                ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
+                !! self.IMPL-CALL-OP),
             :name(self.resolution.lexical-name),
             $left-qast,
             $right-qast
@@ -941,7 +948,7 @@ class RakuAST::Infix
         self.IMPL-TEMPORARIZE-TOPIC(
             $left.IMPL-TO-QAST($context),
             QAST::Op.new(
-                :op<call>, :$name,
+                :op(self.IMPL-CALL-OP), :$name,
                 QAST::Var.new( :name<$_>, :scope<lexical> ),
                 $right.IMPL-TO-QAST($context)))
     }
@@ -967,7 +974,7 @@ class RakuAST::Infix
             else {
                 $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
             }
-            my $op := QAST::Op.new( :op('call'), :$name );
+            my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name );
             for $operands {
                 $op.push($_);
             }
@@ -1688,7 +1695,7 @@ class RakuAST::MetaInfix::Assign
                     QAST::Op.new(:op<decont>,
                         QAST::Var.new(:scope<local>, :name($temp)))),
                 QAST::Var.new(:scope<local>, :name($temp)),
-                QAST::Op.new(:op<call>, :name($!infix.resolution.lexical-name)));
+                QAST::Op.new(:op($!infix.IMPL-CALL-OP), :name($!infix.resolution.lexical-name)));
             $effect := QAST::Op.new(:op($store),
                 QAST::Var.new(:scope<local>, :name($temp)),
                 $!infix.IMPL-INFIX-QAST($context, $left, $right-qast));
@@ -3272,6 +3279,8 @@ class RakuAST::Prefix
         nqp::bindattr_i(self, RakuAST::Prefix, '$!callstatic', $on)
     }
 
+    method IMPL-CALL-OP() { $!callstatic ?? 'callstatic' !! 'call' }
+
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name;
         if self.is-resolved || !$*COMPILING_CORE_SETTING {
@@ -3601,6 +3610,8 @@ class RakuAST::Postfix
     method IMPL-SET-CALLSTATIC(int $on) {
         nqp::bindattr_i(self, RakuAST::Postfix, '$!callstatic', $on)
     }
+
+    method IMPL-CALL-OP() { $!callstatic ?? 'callstatic' !! 'call' }
 
     method IMPL-POSTFIX-QAST(
       RakuAST::IMPL::QASTContext $context,
@@ -3937,7 +3948,7 @@ class RakuAST::Postcircumfix::ArrayIndex
                 $fast := QAST::Op.new( :op($ref-op), $operand-qast, $fast-index );
             }
             return $fast if $literal;
-            my $slow := QAST::Op.new( :op('call'), :$name, $operand-qast );
+            my $slow := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand-qast );
             $slow.push(self.IMPL-INDEX-QAST($context));
             $slow.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
             return QAST::Op.new(
@@ -3950,7 +3961,7 @@ class RakuAST::Postcircumfix::ArrayIndex
             );
         }
 
-        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand-qast );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
@@ -3960,7 +3971,7 @@ class RakuAST::Postcircumfix::ArrayIndex
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         my $bind := $source-qast;
         $bind.named('BIND');
@@ -4037,7 +4048,7 @@ class RakuAST::Postcircumfix::HashIndex
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.is-resolved ?? self.resolution.lexical-name !! self.IMPL-LEXICAL-NAME;
-        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand-qast );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
@@ -4046,7 +4057,7 @@ class RakuAST::Postcircumfix::HashIndex
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         my $bind := $source-qast;
@@ -4133,7 +4144,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
@@ -4152,7 +4163,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         my $bind := $source-qast;

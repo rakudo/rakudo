@@ -5646,7 +5646,8 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 
                     $from := $to := $c.pos;
                 }
-            || .
+            || <!starter> .
+            || <.panic("argh")>
             ]
         ]*
         {

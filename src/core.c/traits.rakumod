@@ -388,7 +388,7 @@ multi sub trait_mod:<is>(Routine:D $r, Str :$revision-gated!) {
         is-revision-gated.^parameterize(3),
     );
     my $chars := nqp::chars($revision-gated);
-    my $internal-revision := 1 + nqp::ord($revision-gated, $chars - 1) - nqp::ord("c");
+    my $internal-revision := nqp::add_i(1, nqp::sub_i(nqp::ord($revision-gated, nqp::sub_i($chars,1)), nqp::ord("c")));
     $r.set-revision-gated;
     $r.^mixin(
         $internal-revision >= 1 && $internal-revision <= nqp::elems(REVISION-GATES)

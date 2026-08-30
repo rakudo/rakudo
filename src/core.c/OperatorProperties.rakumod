@@ -11,6 +11,7 @@ class OperatorProperties {
 #    has int $.fiddly;
 #    has int $.adverb;
 #    has int $.ternary;
+#    has int $.commutative;
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
@@ -32,6 +33,7 @@ class OperatorProperties {
         nqp::push_s($parts,'fiddly')  if $.fiddly;
         nqp::push_s($parts,'adverb')  if $.adverb;
         nqp::push_s($parts,'ternary') if $.ternary;
+        nqp::push_s($parts,'commutative') if $.commutative;
 
         nqp::box_s(nqp::join('|',$parts),ValueObjAt)
     }
@@ -116,6 +118,8 @@ BEGIN {
       &infix:«=:=»,
       &infix:«==»,
       &infix:«===»,
+      &infix:«=~=»,
+      &infix:«≅»,
       &infix:«=»,
       &infix:«>»,
       &infix:«>=»,
@@ -152,7 +156,8 @@ BEGIN {
       &infix:«minmax»,
       &infix:«min»,
       &infix:«mod»,
-      &infix:«ne»,
+#      &infix:«ne»,
+       # Properties added in core_epilogue.rakumod
       &infix:«notandthen»,
       &infix:«orelse»,
       &infix:«or»,

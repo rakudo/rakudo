@@ -719,6 +719,8 @@ class RakuAST::Node {
         my int $conditional-stmt := nqp::istype($expr, RakuAST::Statement::IfWith)
             || nqp::istype($expr, RakuAST::Statement::Unless);
         my int $loop-stmt        := nqp::istype($expr, RakuAST::Statement::Loop);
+        my int $list-infix       := nqp::istype($expr, RakuAST::ApplyListInfix);
+        my int $routine-lookup   := nqp::isconcrete(self.IMPL-ROUTINE-LOOKUP($expr));
 
         # The rewrites, and the marks the unit's walk cannot settle again,
         # wait for that walk when the resolver reports a walk ahead of
@@ -802,14 +804,16 @@ class RakuAST::Node {
             if ($apply-infix || $apply-prefix || $apply-postfix || $call-name
                 || $stmt-expression || $conditional-stmt || $loop-stmt
                 || $dot-assign || $stmt-for || $term-name || $routine
-                || $var-decl || $stmt-when || $parameter)
+                || $var-decl || $stmt-when || $parameter
+                || $list-infix || $routine-lookup)
                 && self.IMPL-IN-SOFT-SCOPE($resolver) {
                 self.IMPL-WITHDRAW-IDENTITY-MARKS($expr);
             }
             elsif $apply-infix || $apply-prefix || $apply-postfix || $call-name
                 || $stmt-expression || $conditional-stmt || $loop-stmt
                 || $dot-assign || $stmt-for || $term-name || $routine
-                || $var-decl || $stmt-when || $parameter {
+                || $var-decl || $stmt-when || $parameter
+                || $list-infix || $routine-lookup {
                 self.IMPL-MARK-NATIVE-INCDEC($resolver, $expr)
                     if $apply-postfix || $apply-prefix;
                 if $apply-infix {
@@ -830,6 +834,10 @@ class RakuAST::Node {
                     if $apply-prefix;
                 self.IMPL-MARK-STATIC-POSTFIX($resolver, $expr)
                     if $apply-postfix;
+                self.IMPL-MARK-STATIC-LIST-INFIX($resolver, $expr)
+                    if $list-infix;
+                self.IMPL-MARK-STATIC-LOOKUP($resolver, $expr)
+                    if $routine-lookup;
                 self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
                     if $term-name;
                 self.IMPL-MARK-NEGATE-NOT($resolver, $expr)
@@ -958,12 +966,17 @@ class RakuAST::Node {
             elsif nqp::istype($infix, RakuAST::MetaInfix::Negate) {
                 $infix.IMPL-CLEAR-NEGATE-NOT();
             }
-            elsif nqp::istype($infix, RakuAST::Infix) {
+            $infix := $infix.infix while nqp::istype($infix, RakuAST::MetaInfix);
+            if nqp::istype($infix, RakuAST::Infix) {
                 $infix.IMPL-SET-CALLSTATIC(0);
                 $infix.IMPL-SET-CHAINSTATIC(0);
                 $infix.IMPL-SET-LOWERED-ARRAY-INIT(0);
                 $infix.IMPL-CLEAR-CT-INLINE-CANDIDATE();
             }
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix) {
+            my $infix := $expr.infix;
+            $infix.IMPL-SET-CALLSTATIC(0) if nqp::istype($infix, RakuAST::Infix);
         }
         elsif nqp::istype($expr, RakuAST::Call::Name) {
             $expr.IMPL-SET-CALLSTATIC(0);
@@ -984,6 +997,8 @@ class RakuAST::Node {
         elsif nqp::istype($expr, RakuAST::VarDeclaration::Simple) {
             $expr.IMPL-SET-LOWERED-ARRAY-INIT(0);
         }
+        my $lookup := self.IMPL-ROUTINE-LOOKUP($expr);
+        $lookup.IMPL-SET-STATIC-LOOKUP(0) if nqp::isconcrete($lookup);
         Nil
     }
 
@@ -1348,10 +1363,12 @@ class RakuAST::Node {
     }
 
     # Mark a chaining comparison whose operator's lexical is bound once for a
-    # static callee lookup at code generation.
+    # static callee lookup at code generation. The operator beneath a
+    # meta-op takes the mark, which the meta-ops that call it by name use.
     method IMPL-MARK-STATIC-CHAIN(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
+        $infix := $infix.infix while nqp::istype($infix, RakuAST::MetaInfix);
         return Nil unless nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && $infix.properties.chain;
@@ -1368,6 +1385,7 @@ class RakuAST::Node {
     method IMPL-MARK-STATIC-INFIX(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix);
         my $infix := $expr.infix;
+        $infix := $infix.infix while nqp::istype($infix, RakuAST::MetaInfix);
         return Nil unless nqp::istype($infix, RakuAST::Infix)
             && $infix.is-resolved
             && !$infix.properties.chain;
@@ -1400,6 +1418,60 @@ class RakuAST::Node {
         $postfix.IMPL-SET-CALLSTATIC(
             self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
                 '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator)) ?? 1 !! 0);
+        Nil
+    }
+
+    # Mark a list operator whose lexical is bound once for a static
+    # callee lookup at code generation.
+    method IMPL-MARK-STATIC-LIST-INFIX(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyListInfix);
+        my $infix := $expr.infix;
+        return Nil unless nqp::istype($infix, RakuAST::Infix)
+            && $infix.is-resolved;
+        my $resolution := $infix.resolution;
+        $infix.IMPL-SET-CALLSTATIC(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution,
+                $resolution.lexical-name) ?? 1 !! 0);
+        Nil
+    }
+
+    # The lookup of the routine an expression calls without a call node
+    # of its own, or Nil. A capture variable reads the match through the
+    # subscript its implicit lookup names.
+    method IMPL-ROUTINE-LOOKUP(Mu $expr) {
+        my $postfix := nqp::istype($expr, RakuAST::ApplyPostfix)
+            ?? $expr.postfix
+            !! nqp::istype($expr, RakuAST::ApplyDottyInfix)
+                ?? $expr.right
+                !! nqp::istype($expr, RakuAST::Term::TopicCall)
+                    ?? $expr.call
+                    !! Nil;
+        if nqp::isconcrete($postfix) {
+            return nqp::istype($postfix, RakuAST::Postcircumfix)
+                && nqp::istype($postfix, RakuAST::Lookup)
+                ?? $postfix
+                !! Nil;
+        }
+        return $expr if nqp::istype($expr, RakuAST::Circumfix::ArrayComposer)
+            || nqp::istype($expr, RakuAST::Circumfix::HashComposer)
+            || nqp::istype($expr, RakuAST::Term::Named)
+            || nqp::istype($expr, RakuAST::Term::EmptySet)
+            || nqp::istype($expr, RakuAST::Term::Rand);
+        return self.IMPL-UNWRAP-LIST($expr.get-implicit-lookups)[0]
+            if nqp::istype($expr, RakuAST::Var::PositionalCapture)
+            || nqp::istype($expr, RakuAST::Var::NamedCapture);
+        Nil
+    }
+
+    # Mark the lookup IMPL-ROUTINE-LOOKUP yields, when its lexical is
+    # bound once, for a static callee lookup at code generation.
+    method IMPL-MARK-STATIC-LOOKUP(RakuAST::Resolver $resolver, Mu $expr) {
+        my $lookup := self.IMPL-ROUTINE-LOOKUP($expr);
+        return Nil unless nqp::isconcrete($lookup) && $lookup.is-resolved;
+        my $resolution := $lookup.resolution;
+        $lookup.IMPL-SET-STATIC-LOOKUP(
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution,
+                $resolution.lexical-name) ?? 1 !! 0);
         Nil
     }
 

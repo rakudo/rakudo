@@ -1036,6 +1036,18 @@ class RakuAST::Lookup
         nqp::bindattr_i(self, RakuAST::Lookup, '$!value-args', $on)
     }
 
+    # Set by the optimize pass when the name is bound once, so a call
+    # through this lookup finds its callee by a static lookup, which the
+    # VM may resolve a single time. An operator or call lookup keeps its
+    # own mark and answers the call op from that.
+    has int $!static-lookup;
+
+    method IMPL-SET-STATIC-LOOKUP(int $on) {
+        nqp::bindattr_i(self, RakuAST::Lookup, '$!static-lookup', $on)
+    }
+
+    method IMPL-CALL-OP() { $!static-lookup ?? 'callstatic' !! 'call' }
+
     method needs-resolution() { True }
 
     method is-resolved() {

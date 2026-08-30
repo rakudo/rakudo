@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 43;
+plan 96;
 
 # A call to a named setting routine compiles its callee lookup as a static
 # one, which the VM may resolve a single time. So does a call to a routine
@@ -113,6 +113,123 @@ qast-is 'my &prefix:<-> = sub ($a) { 99 }; my $x = 5; my $y = -$x', -> \v {
     not qast-op-named(v, 'callstatic', '&prefix:<->')
 }, 'a prefix bound through an operator variable keeps the plain callee lookup';
 
+# A routine the syntax calls without a call node of its own compiles the
+# same static lookup: a subscript, an array or hash composer, a term that
+# names a routine, a list operator, the subscript a capture variable
+# reads the match with, and the operator beneath an assignment or reverse
+# meta-op.
+qast-is 'my @a = 1, 2; my $x = @a[0]', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'an array subscript compiles to a static callee lookup';
+
+qast-is 'my %h = a => 1; my $x = %h{"a"}', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
+}, 'a hash subscript compiles to a static callee lookup';
+
+qast-is 'my %h = a => 1; my $x = %h<a>', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
+}, 'a literal hash subscript compiles to a static callee lookup';
+
+qast-is 'my @a = 1, 2; my $x = @a.[0]', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'a subscript applied with a dot compiles to a static callee lookup';
+
+qast-is '$_ = [1, 2]; my $x = .[0]', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'a subscript applied to the topic compiles to a static callee lookup';
+
+qast-is 'my int @a = 1, 2; my int $i = 0; my $x = @a[$i]', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'the general call behind a native subscript compiles to a static callee lookup';
+
+qast-is 'sub postcircumfix:<[ ]>(\a, \i) { 2 }; my @a = 1; my $x = @a[0]', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'a subscript against a routine declared in the outermost scope compiles to a static callee lookup';
+
+qast-is '{ my sub postcircumfix:<[ ]>(\a, \i) { 2 }; my @a = 1; my $x = @a[0] }', :full, -> \v {
+    not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+}, 'a subscript against a nested user routine keeps the plain callee lookup';
+
+qast-is 'my &postcircumfix:<[ ]> = sub (\a, \i) { 1 }; my @a = 1; my $x = @a[0]', -> \v {
+    not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+}, 'a subscript bound through a routine variable keeps the plain callee lookup';
+
+qast-is 'my &rand = sub { 1 }; my $x = rand', -> \v {
+    not qast-op-named(v, 'callstatic', '&rand')
+}, 'the rand term bound through a routine variable keeps the plain callee lookup';
+
+qast-is 'my %h = a => 1; %h{"a"} := 5', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
+}, 'a bind into a hash subscript compiles to a static callee lookup';
+
+qast-is 'my %h = a => 1; %h<a> := 5', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
+}, 'a bind into a literal hash subscript compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $h = :{ a => $x }', -> \v {
+        qast-op-named(v, 'callstatic', '&circumfix:<:{ }>')
+    and not qast-op-named(v, 'call', '&circumfix:<:{ }>')
+}, 'an object hash composer compiles to a static callee lookup';
+
+qast-is 'my @a = 1, 2; @a[0] := 5', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'a bind into an array subscript compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $a = [$x, 2]', -> \v {
+        qast-op-named(v, 'callstatic', '&circumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&circumfix:<[ ]>')
+}, 'an array composer compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $h = { a => $x }', -> \v {
+        qast-op-named(v, 'callstatic', '&circumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&circumfix:<{ }>')
+}, 'a hash composer compiles to a static callee lookup';
+
+qast-is 'my $x = rand', -> \v {
+        qast-op-named(v, 'callstatic', '&rand')
+    and not qast-op-named(v, 'call', '&rand')
+}, 'the rand term compiles to a static callee lookup';
+
+qast-is 'my $x = time', -> \v {
+        qast-op-named(v, 'callstatic', '&term:<time>')
+    and not qast-op-named(v, 'call', '&term:<time>')
+}, 'a named term compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $l = ($x, 2)', -> \v {
+        qast-op-named(v, 'callstatic', '&infix:<,>')
+    and not qast-op-named(v, 'call', '&infix:<,>')
+}, 'a list operator compiles to a static callee lookup';
+
+qast-is 'my $s = 0; my $x = 2; $s += $x', -> \v {
+        qast-op-named(v, 'callstatic', '&infix:<+>')
+    and not qast-op-named(v, 'call', '&infix:<+>')
+}, 'the operator beneath an assignment meta-op compiles to a static callee lookup';
+
+qast-is 'my $x = 1; my $y = 2; my $z = $x R- $y', -> \v {
+        qast-op-named(v, 'callstatic', '&infix:<->')
+    and not qast-op-named(v, 'call', '&infix:<->')
+}, 'the operator beneath a reverse meta-op compiles to a static callee lookup';
+
+qast-is '"ab" ~~ /(a)/; my $x = $0', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
+}, 'a positional capture variable compiles to a static callee lookup';
+
+qast-is '"ab" ~~ /$<x>=(a)/; my $x = $<x>', -> \v {
+        qast-op-named(v, 'callstatic', '&postcircumfix:<{ }>')
+    and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
+}, 'a named capture variable compiles to a static callee lookup';
+
 # The soft pragma promises late rebinding, so this frontend declines
 # the mark under it, while the legacy optimizer still pins a setting
 # callee that is not itself soft.
@@ -123,9 +240,46 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'sub sfoo() { 1 }; BEGIN &sfoo does role { method soft(--> True) { } }; sfoo()', :full, -> \v {
         not qast-op-named(v, 'callstatic', '&sfoo')
     }, 'a call to a routine marked soft keeps the plain callee lookup';
+    # The legacy frontend compiles the empty set term to a shape of its
+    # own.
+    qast-is 'my $x = ∅', -> \v {
+            qast-op-named(v, 'callstatic', '&set')
+        and not qast-op-named(v, 'call', '&set')
+    }, 'the empty set term compiles to a static callee lookup';
+    # The legacy frontend compiles a smartmatch to a shape of its own.
+    qast-is 'sub f() { 2 }; my $x = 1; my $y = $x ~~ f()', -> \v {
+            qast-op-named(v, 'callstatic', '&infix:<~~>')
+        and not qast-op-named(v, 'call', '&infix:<~~>')
+    }, 'a smartmatch compiles to a static callee lookup';
+    qast-is 'use soft; my @a = 1; my $x = @a[0]', -> \v {
+        not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    }, 'an array subscript under the soft pragma keeps the plain callee lookup';
+    qast-is 'use soft; my $x = rand', -> \v {
+        not qast-op-named(v, 'callstatic', '&rand')
+    }, 'the rand term under the soft pragma keeps the plain callee lookup';
+    qast-is 'use soft; my $x = 1; my $l = ($x, 2)', -> \v {
+        not qast-op-named(v, 'callstatic', '&infix:<,>')
+    }, 'a list operator under the soft pragma keeps the plain callee lookup';
+    # A routine declared after the use takes the name at run time, so
+    # the lookup the use resolved to is not the one to pin.
+    qast-is 'my $x = rand; sub rand() { 1 }', -> \v {
+        not qast-op-named(v, 'callstatic', '&rand')
+    }, 'the rand term shadowed by a later routine keeps the plain callee lookup';
+    qast-is 'my @a = 1; my $x = @a[0]; sub postcircumfix:<[ ]>(\a, \i) { 2 }', -> \v {
+        not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    }, 'an array subscript shadowed by a later routine keeps the plain callee lookup';
+    qast-is '"ab" ~~ /(a)/; my $x = $0; sub postcircumfix:<[ ]>(\a, \i) { 2 }', -> \v {
+        not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
+    }, 'a positional capture variable shadowed by a later routine keeps the plain callee lookup';
+    qast-is 'use soft; my $x = 1; my $a = [$x, 2]', -> \v {
+        not qast-op-named(v, 'callstatic', '&circumfix:<[ ]>')
+    }, 'an array composer under the soft pragma keeps the plain callee lookup';
+    qast-is 'use soft; my $x = 1; my $y = 2; my $z = $x R- $y', -> \v {
+        not qast-op-named(v, 'callstatic', '&infix:<->')
+    }, 'the operator beneath a reverse meta-op under the soft pragma keeps the plain callee lookup';
 }
 else {
-    skip 'the soft shape is specific to the RakuAST frontend', 2;
+    skip 'the soft shape is specific to the RakuAST frontend', 12;
 }
 
 # A routine marked soft promises late rebinding, so a wrapper
@@ -206,6 +360,70 @@ is 2 rt-mul 3, 6, 'a user infix declared in the outermost scope computes through
 sub prefix:<rt-neg>($a) { 0 - $a }
 &prefix:<rt-neg>.wrap(-> $a { 999 });
 is rt-neg 5, 999, 'a wrapped prefix in the outermost scope runs its wrapper through a static lookup';
+
+# Routines the syntax calls without a call node still behave through
+# static callee lookups, and so does the operator beneath a meta-op.
+{
+    my @a = 1, 2;
+    my %h = a => 3, b => 4;
+    is @a[1], 2, 'an array subscript through a static lookup reads the element';
+    is %h{'a'}, 3, 'a hash subscript through a static lookup reads the value';
+    is %h<b>, 4, 'a literal hash subscript through a static lookup reads the value';
+    @a[0] := 9;
+    is @a[0], 9, 'a bind into an array subscript through a static lookup binds the element';
+    my $x = 5;
+    is [$x, 2].elems, 2, 'an array composer through a static lookup composes the array';
+    is { a => $x }<a>, 5, 'a hash composer through a static lookup composes the hash';
+    ok 0 <= rand < 1, 'the rand term through a static lookup yields a number below one';
+    ok time > 0, 'a named term through a static lookup yields its value';
+    is ∅.elems, 0, 'the empty set term through a static lookup yields the empty set';
+    is ($x, 2).elems, 2, 'a list operator through a static lookup builds the list';
+    my $sum = 1;
+    $sum += $x;
+    is $sum, 6, 'an assignment meta-op through a static lookup steps the variable';
+    is 2 R- 5, 3, 'a reverse meta-op through a static lookup applies the reversed operator';
+    "ab" ~~ /(a)$<x>=(b)/;
+    is $0, 'a', 'a positional capture variable through a static lookup reads the match';
+    is $<x>, 'b', 'a named capture variable through a static lookup reads the match';
+}
+{
+    sub rt-rand() { 7 }
+    is rand, 7, 'the rand term reaches a routine declared in the outermost scope of its block';
+    sub rand() { rt-rand() }
+}
+{
+    sub rt-mk($n) { my sub postcircumfix:<[ ]>(\a, \i) { $n }; my @a = 1; @a[0] }
+    is rt-mk(5), 5, 'a subscript reaches a nested routine on the first entry';
+    is rt-mk(6), 6, 'a subscript reaches the fresh clone of a nested routine on the next entry';
+}
+{
+    my &rand = sub { 1 };
+    my $first = rand;
+    &rand = sub { 2 };
+    is rand, 2, 'the rand term sees a routine variable rebound after an earlier use';
+}
+# An assignment into a subscript goes to the subscripted object's assign
+# method, which decides the assignment when the read would not yield a
+# container.
+{
+    class RtKeyed {
+        has %.s;
+        method AT-KEY($k) { %!s{$k} // 'none' }
+        method ASSIGN-KEY($k, $v) { %!s{$k} = "set-$v" }
+    }
+    my $c = RtKeyed.new;
+    my $k = 'a';
+    $c{$k} = 5;
+    is $c.s<a>, 'set-5', 'an assignment into a hash subscript reaches the assign method';
+    class RtIndexed {
+        has $.got;
+        method AT-POS(*@i) { 'none' }
+        method ASSIGN-POS(*@i) { $!got = @i.join(',') }
+    }
+    my $d = RtIndexed.new;
+    $d[0; 1] = 5;
+    is $d.got, '0,1,5', 'an assignment into a multi-dimensional subscript reaches the assign method';
+}
 
 # The fatalize pass recognizes a static callee lookup both as a call whose
 # Failure it promotes and as a boolifying consumer that disarms its argument.

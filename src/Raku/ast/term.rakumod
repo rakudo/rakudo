@@ -338,7 +338,7 @@ class RakuAST::Term::Named
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $call := QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) );
+        my $call := QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) );
         $!args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -363,7 +363,7 @@ class RakuAST::Term::EmptySet
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+        QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) )
     }
 }
 
@@ -386,7 +386,7 @@ class RakuAST::Term::Rand
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+        QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) )
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

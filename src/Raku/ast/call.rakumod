@@ -561,6 +561,8 @@ class RakuAST::Call::Name
         nqp::bindattr_i(self, RakuAST::Call::Name, '$!callstatic', $on)
     }
 
+    method IMPL-CALL-OP() { $!callstatic ?? 'callstatic' !! 'call' }
+
     # Set by the optimize pass when the argument types decide the dispatch
     # at compile time: the routine, for a multi the chosen candidate, whose
     # inline info, when it has any, is spliced in place of the call.

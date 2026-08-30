@@ -1,6 +1,9 @@
 use Test;
+use nqp;
 
-plan 24;
+plan 46;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 # A literal carries no declared type, so its representation comes from its
 # context: beside an operand or argument whose type is a native kind the
@@ -134,6 +137,130 @@ my int $i = 3;
     multi pick-i(int $a, Int $b) { "Int" }
     my $f = &pick-i;
     is $f($i, 1), "int", 'an indirect call passes a paired literal natively';
+}
+
+# A negated operator dispatches on the operands the plain application
+# passes, so a literal beside a native operand reaches the native
+# candidate there too.
+{
+    my $picked;
+    multi sub infix:<%%>(int $a, int $b) is default { $picked = "int"; True }
+    multi sub infix:<%%>(int $a, Int $b) { $picked = "Int"; True }
+    multi sub infix:<%%>(Int $a, int $b) { $picked = "Int"; True }
+    my $r = $i !%% 1;
+    is $picked, "int", 'a negated operator passes a paired literal natively';
+    is $r, False, 'a negated operator negates the answer of the candidate the literal reached';
+    $picked = "none";
+    my $l = 1 !%% $i;
+    is $picked, "int", 'a negated operator passes a paired literal on the left natively';
+}
+{
+    my int $n = 1;
+    my $r = $n !< 5;
+    is $r, True, 'a negated comparison reaches a candidate declared after it';
+    is $n, 43, 'the rw candidate a negated comparison reaches writes its native operand';
+    multi sub infix:«<»(int $a is rw, int $b) { $a = 43; False }
+}
+{
+    my $rev;
+    multi sub infix:<+>(int $a, int $b) is default { $rev = "int"; 0 }
+    multi sub infix:<+>(int $a, Int $b) { $rev = "Int"; 0 }
+    multi sub infix:<+>(Int $a, int $b) { $rev = "Int"; 0 }
+    my $s = 1 R+ $i;
+    is $rev, "int", 'a reversed operator passes a paired literal natively';
+    $rev = "none";
+    my $t = $i R+ 1;
+    is $rev, "int", 'a reversed operator passes a paired literal on the right natively';
+}
+if $rakuast {
+    my $seq;
+    multi sub infix:<%%>(int $a, int $b) is default { $seq = "int"; True }
+    multi sub infix:<%%>(int $a, Int $b) { $seq = "Int"; True }
+    my $r = $i S%% 1;
+    is $seq, "int", 'a sequenced operator passes a paired literal natively';
+}
+else {
+    skip 'the sequenced operator does not run under the legacy frontend', 1;
+}
+if $rakuast {
+    my $picked;
+    multi sub infix:<eq>(int $a, int $b) { $picked = "int"; True }
+    multi sub infix:<eq>(int $a, Int $b) { $picked = "Int"; True }
+    my $r = $i !eq 1;
+    is $picked, "int", 'a negated comparison passes a paired literal natively';
+    my $left;
+    multi sub infix:<ne>(int $a, int $b) { $left = "int"; True }
+    multi sub infix:<ne>(Int $a, int $b) { $left = "Int"; True }
+    my $t = 1 !ne $i;
+    is $left, "int", 'a negated comparison passes a paired literal on the left natively';
+    is $t, False, 'a negated comparison negates the answer of the candidate the literal reached';
+}
+else {
+    skip 'the legacy frontend boxes the literal of a negated comparison', 3;
+}
+
+# A reversed or sequenced comparison standing alone dispatches on the
+# pair as the plain comparison does. A link of a longer chain takes part
+# in the chain protocol instead.
+{
+    my $picked;
+    multi sub infix:«<»(int $a, int $b) is default { $picked = "int"; True }
+    multi sub infix:«<»(int $a, Int $b) { $picked = "Int"; True }
+    multi sub infix:«<»(Int $a, int $b) { $picked = "Int"; True }
+    my $r = 5 R< $i;
+    is $picked, "int", 'a reversed comparison passes a paired literal natively';
+    if $rakuast {
+        $picked = "none";
+        my $s = $i S< 5;
+        is $picked, "int", 'a sequenced comparison passes a paired literal natively';
+        nok 3 S< 4 S< 2, 'a chain of sequenced comparisons fails through its second link';
+    }
+    else {
+        skip 'the sequenced operator does not run under the legacy frontend', 2;
+    }
+}
+
+# The soft pragma keeps routines wrappable and changes no dispatch.
+{
+    use soft;
+    my $picked;
+    multi sub infix:<%%>(int $a, int $b) is default { $picked = "int"; True }
+    multi sub infix:<%%>(int $a, Int $b) { $picked = "Int"; True }
+    my $r = $i !%% 1;
+    is $picked, "int", 'a negated operator under the soft pragma passes a paired literal natively';
+}
+
+# A negated operator still carries its adverb, which keeps the meta-op
+# and so the boxed form of its operands, and keeps the operator's own
+# evaluation of its operands.
+if $rakuast {
+    my $seen;
+    multi sub infix:<%%>($a, $b, :$flag) { $seen = $flag; True }
+    my $r = 4 !%% 2 :flag;
+    is $r, False, 'a negated operator with an adverb negates the answer';
+    is $seen, True, 'a negated operator with an adverb passes the adverb on';
+}
+else {
+    skip 'the legacy frontend drops the adverb of a negated operator', 2;
+}
+if $rakuast {
+    my $form;
+    multi sub infix:<%%>(int $a, int $b, :$flag) { $form = "int"; True }
+    multi sub infix:<%%>(Int $a, Int $b, :$flag) { $form = "Int"; True }
+    my $b = $i !%% 1 :flag;
+    is $form, "Int", 'a negated operator with an adverb keeps the boxed form of its operands';
+}
+else {
+    skip 'the legacy frontend drops the adverb of a negated operator', 1;
+}
+{
+    my $ran = 0;
+    my $t = 0 !&& ($ran = 1);
+    is $t, True, 'a negated short-circuit operator negates the answer';
+    is $ran, 0, 'a negated short-circuit operator does not evaluate the operand the operator skips';
+    my $u = 1 !&& ($ran = 2);
+    is $u, False, 'a negated short-circuit operator negates the operand the operator yields';
+    is $ran, 2, 'a negated short-circuit operator evaluates the operand the operator reaches';
 }
 
 # vim: expandtab shiftwidth=4

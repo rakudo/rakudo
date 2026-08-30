@@ -211,13 +211,26 @@ class RakuAST::Infixish
     # Override on infixes whose call returns a lazy producer (needs p6sink).
     method IMPL-RESULT-NEEDS-ITERATION() { False }
 
+    # The literal operand of an application that is passed in its native
+    # form, or null when none is.
+    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+        nqp::null()
+    }
+
     # A node can implement this if it wishes to have full control of the
     # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
     # QAST of the operands.
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
-        my $qast := self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
-            $right.IMPL-TO-QAST($context);
+        my $native-literal := self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
+        my $qast := self.IMPL-INFIX-QAST:
+            $context,
+            nqp::eqaddr($left, $native-literal)
+                ?? $left.IMPL-TO-QAST-ARG($context)
+                !! $left.IMPL-TO-QAST($context),
+            nqp::eqaddr($right, $native-literal)
+                ?? $right.IMPL-TO-QAST-ARG($context)
+                !! $right.IMPL-TO-QAST($context);
         if $adverb {
             my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
             $val-ast.named($adverb.named-arg-name);
@@ -481,6 +494,17 @@ class RakuAST::Infix
         nqp::bindattr(self, RakuAST::Infix, '$!juncmatch-junction', $junction);
     }
 
+    # A literal beside a native operand takes that form, so runtime
+    # dispatch reaches the candidate the analysis counts on. A
+    # short-circuit operator yields an operand rather than dispatching
+    # on the pair, and an adverb turns into a named argument the
+    # analysis declines, so both keep the boxed form.
+    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+        $adverb || self.short-circuit
+            ?? nqp::null()
+            !! self.IMPL-NATIVE-PAIRED-LITERAL-OF($left, $right)
+    }
+
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
         # Hash value is negation flag
@@ -508,15 +532,7 @@ class RakuAST::Infix
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {
-            # A literal operand beside a native one is passed in its native
-            # form, so runtime dispatch reaches the candidate the analysis
-            # counts on. A short-circuit operator yields an operand rather
-            # than dispatching on the pair, and an adverb turns into a named
-            # argument the analysis declines, so both keep the boxed form.
-            my $native-literal := NQPMu;
-            unless $adverb || self.short-circuit {
-                $native-literal := self.IMPL-NATIVE-PAIRED-LITERAL-OF($left, $right);
-            }
+            my $native-literal := self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
             my $qast := self.IMPL-INFIX-QAST:
                 $context,
                 $op eq '='
@@ -891,7 +907,7 @@ class RakuAST::Infix
                               Mu $right-qast
     ) {
         QAST::Op.new(
-            :op(self.properties.chain
+            :op(self.properties.chain && !$!lone-link
                 ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
                 !! self.IMPL-CALL-OP),
             :name(self.resolution.lexical-name),
@@ -1510,6 +1526,18 @@ class RakuAST::MetaInfix
   is RakuAST::Infixish
   is RakuAST::CheckTime
 {
+    # Whether this meta-op calls the operator on its two operands as the
+    # plain application does, so the pairing rule of what it wraps
+    # applies. A meta-op that hands the operands on through a capture
+    # boxes them on the way.
+    method IMPL-CALLS-OPERATOR() { False }
+
+    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+        self.IMPL-CALLS-OPERATOR
+            ?? self.infix.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb)
+            !! nqp::null()
+    }
+
     method IMPL-HOP-INFIX() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
             self.infix.IMPL-HOP-INFIX
@@ -1895,12 +1923,11 @@ class RakuAST::MetaInfix::Negate
 {
     has RakuAST::Infixish $.infix;
 
-    # Set by the optimize pass on a standalone application: the negation
-    # compiles as the setting prefix ! around the plain comparison call,
-    # which is what the meta-op computes for two arguments, sparing its
-    # formation and invocation. Holds the resolved prefix ! routine. A
-    # link of a longer chain keeps the meta-op, since the chain protocol
-    # needs a callee.
+    # Set by the optimize pass on an application that stands alone and
+    # carries no adverb: the negation compiles as the setting prefix !
+    # around the plain operator call, which is what the meta-op computes
+    # for two arguments, sparing its formation and invocation. The flag
+    # and the resolved prefix ! routine.
     has int $!negate-not;
     has Mu $!negate-not-op;
 
@@ -1953,19 +1980,21 @@ class RakuAST::MetaInfix::Negate
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
 
+    method IMPL-CALLS-OPERATOR() { $!negate-not ?? True !! False }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         # The negated operator's own lookup decides its reference
         # arguments. A meta-op standing in for it has no lookup.
         my int $own-lookup := nqp::istype($!infix, RakuAST::Infix);
         if $!negate-not {
             $context.ensure-sc($!negate-not-op);
-            my $call := QAST::Op.new(
-                :op('call'),
-                $!infix.IMPL-HOP-INFIX-QAST($context),
-                $left-qast,
-                $right-qast
-            );
-            $call := $!infix.IMPL-SIMPLIFY-REF-ARGS($call) if $own-lookup;
+            my $call := $own-lookup
+                ?? $!infix.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
+                    :op('call'),
+                    $!infix.IMPL-HOP-INFIX-QAST($context),
+                    $left-qast,
+                    $right-qast))
+                !! $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast);
             return QAST::Op.new:
                 :op('call'),
                 QAST::WVal.new( :value($!negate-not-op) ),
@@ -2033,6 +2062,8 @@ class RakuAST::MetaInfix::Reverse
     method IMPL-OPERATOR() {
         self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
     }
+
+    method IMPL-CALLS-OPERATOR() { True }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $right-qast, $left-qast)
@@ -2104,6 +2135,8 @@ class RakuAST::MetaInfix::Sequence
     method IMPL-HOP-INFIX() {
         self.infix.IMPL-HOP-INFIX
     }
+
+    method IMPL-CALLS-OPERATOR() { True }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
@@ -2640,14 +2673,16 @@ class RakuAST::ApplyInfix
         my $left  := self.left;
         my $right := self.right;
 
+        # A meta-op that keeps the operator's properties declines the
+        # adverb as the plain application does.
+        my $base := $infix;
+        $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
         if nqp::elems(self.colonpairs)
-          && nqp::istype($infix, RakuAST::Infix)
-          && ($infix.short-circuit
-                || nqp::chars($infix.properties.thunky)
-                || $infix.properties.chain) {
+          && nqp::istype($base, RakuAST::Infix)
+          && (nqp::chars($infix.properties.thunky) || $infix.properties.chain) {
             self.add-sorry:
               $resolver.build-exception: 'X::Syntax::Adverb',
-                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($infix.operator);
+                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($base.operator);
         }
 
         my constant WORRISOME-RANGE := nqp::hash(

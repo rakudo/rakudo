@@ -4,7 +4,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 72;
+plan 76;
 
 # A meta-op over a setting operator whose name no later declaration
 # shadows is formed once at compile time and emitted as a constant,
@@ -25,6 +25,21 @@ sub qast-wval-callee (Mu $qast --> Bool:D) {
     if qast-descendable $qast {
         for $qast.list {
             qast-wval-callee $_ and return True;
+        }
+    }
+    False
+}
+
+sub qast-calls-not (Mu $qast --> Bool:D) {
+    if nqp::istype($qast, QAST::Op) && $qast.op eq 'call' {
+        for $qast.list {
+            return True if nqp::istype($_, QAST::WVal) && $_.value =:= &prefix:<!>;
+            last;
+        }
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            qast-calls-not $_ and return True;
         }
     }
     False
@@ -88,19 +103,41 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
 
     # A standalone negated comparison compiles as the setting prefix !
     # around the plain comparison, so no chain op remains, while a link
-    # of a longer chain keeps the chain protocol.
+    # of a longer chain keeps the chain protocol. The soft pragma keeps
+    # the operator lookup at run time and nothing else, so the prefix !
+    # form stays.
     qast-is 'my $x = 1; my $y = 2; say $x !== $y', :full, -> \v {
-        not qast-contains-op(v, 'chain')
+        qast-calls-not(v) and not qast-contains-op(v, 'chain')
     }, 'a standalone negated comparison compiles without a chain op';
 
     qast-is 'my ($a,$b,$c) = 1,2,3; say $a !== $b !== $c', :full, -> \v {
         qast-contains-op(v, 'chain')
+        and not qast-calls-not(v)
         and not qast-contains-call(v, '&METAOP_NEGATE')
     }, 'a chained negated comparison keeps its chain over constant meta-ops';
 
     qast-is 'use soft; my $x = 1; my $y = 2; say $x !== $y', :full, -> \v {
-        qast-contains-op(v, 'chain')
-    }, 'a negated comparison under the soft pragma keeps its meta-op';
+        qast-calls-not(v) and not qast-contains-op(v, 'chain')
+    }, 'a negated comparison under the soft pragma compiles without a chain op';
+
+    # A negated operator that does not chain compiles the same way.
+    qast-is 'my int $i = 3; my $r = $i !%% 1', :full, -> \v {
+        qast-calls-not(v)
+    }, 'a standalone negated operator that does not chain compiles without its meta-op';
+    qast-is 'use soft; my int $i = 3; my $r = $i !%% 1', :full, -> \v {
+        qast-calls-not(v) and not qast-contains-call(v, '&METAOP_NEGATE')
+    }, 'a negated operator that does not chain compiles without its meta-op under the soft pragma';
+
+    # A reversed comparison standing alone compiles as the plain call
+    # the comparison does, while a link of a longer chain keeps the chain
+    # protocol.
+    qast-is 'my int $i = 3; my $r = 5 R< $i', :full, -> \v {
+        not qast-contains-op(v, 'chain')
+        and not qast-contains-op(v, 'chainstatic')
+    }, 'a standalone reversed comparison compiles without a chain op';
+    qast-is 'my $r = 3 R< 2 R< 1', :full, -> \v {
+        qast-contains-op(v, 'chain') or qast-contains-op(v, 'chainstatic')
+    }, 'a chained reversed comparison keeps its chain';
 
     # A user operator declared after the use shadows the setting's, so
     # the meta-op forms at run time and finds the user's routine.
@@ -127,7 +164,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     }, 'a reduce under the soft pragma forms its meta-op at run time';
 }
 else {
-    skip 'the formation shapes are specific to the RakuAST frontend', 17;
+    skip 'the formation shapes are specific to the RakuAST frontend', 21;
 }
 
 # A user operator declared after the use is the one every meta-op runs.

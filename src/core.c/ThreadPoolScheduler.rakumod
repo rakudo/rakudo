@@ -12,13 +12,12 @@ my class ThreadPoolScheduler does Scheduler {
     my constant UNLIMITED_THREADS = 9223372036854775807; # 2⁶³-1
 
     # Scheduler defaults controlled by environment variables
-    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
     my int $scheduler-debug;
     $scheduler-debug = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');
+      if nqp::atkey(nqp::getenvhash,'RAKUDO_SCHEDULER_DEBUG');
     my int $scheduler-debug-status;
     $scheduler-debug-status = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS');
+      if nqp::atkey(nqp::getenvhash,'RAKUDO_SCHEDULER_DEBUG_STATUS');
 
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {

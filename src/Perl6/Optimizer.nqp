@@ -3382,12 +3382,12 @@ class Perl6::Optimizer {
             my $dispatcher := nqp::can($obj, "is_dispatcher") && $obj.is_dispatcher;
             if $dispatcher && $obj.onlystar {
                 # Try to do compile-time multi-dispatch. Need to consider
-                # both the proto and the multi candidates. The dispatch
-                # decision reads the arguments as the call site passes them,
-                # while an impossible dispatch is diagnosed with the reading
-                # that also counts a lone literal as native, so a candidate
-                # taking a native `is rw` parameter is still ruled out at
-                # compile time.
+                # both the proto and the multi candidates. Both the
+                # dispatch decision and an impossible dispatch read the
+                # arguments as the call site passes them, so a boxed value
+                # that can reach a native parameter by unboxing is not
+                # judged impossible. The proto trial bind still diagnoses
+                # with the reading that counts a lone literal as native.
                 my @ct_arg_info := self.analyze_args_for_ct_call($op);
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
@@ -3406,8 +3406,7 @@ class Perl6::Optimizer {
                     }
                     else {
                         my $diag_proto := nqp::p6trialbind($obj.signature, @types, @diag_flags);
-                        my @diag_multi := $obj.analyze_dispatch(@types, @diag_flags);
-                        if $diag_proto == -1 || @diag_multi[0] == -1 {
+                        if $diag_proto == -1 || @ct_result_multi[0] == -1 {
                             self.report_inevitable_dispatch_failure(
                                 $op, @types, @diag_flags, $obj,
                                 :protoguilt($diag_proto == -1)
@@ -4176,10 +4175,11 @@ class Perl6::Optimizer {
 
         # A lone literal has no native context to adapt to, so it dispatches
         # as the boxed value it is, and rewrite_paired_literal_args already
-        # gave a paired literal its native reading. Ruling out a candidate
-        # that takes a native `is rw` parameter still needs the native
-        # reading of a lone literal, so that is reported separately. Only
-        # the plain flags decide what runs.
+        # gave a paired literal its native reading. The native reading of a
+        # lone literal is reported separately for the trial bind diagnosis,
+        # which can refuse a literal of the wrong native kind against a
+        # native parameter in an explicit signature. Only the plain flags
+        # decide what runs.
         my @diag_flags := nqp::clone(@flags);
         if nqp::elems(@types) == 1 && $num_allo == 1 {
             my $rev := %allo_rev{@allomorphs[0]};

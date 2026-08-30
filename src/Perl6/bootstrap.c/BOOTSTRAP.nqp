@@ -4113,7 +4113,49 @@ BEGIN {
         my int $pure_type_result := 1;
         my $many_res := $many ?? nqp::list !! Mu;
         my @possibles;
+        my @unbox_possibles;
+        my int $had_matchable;
         my int $done_bind_check;
+
+        # Mirrors the dispatch plan's named argument admission: every
+        # required named needs one of its aliases present, and without a
+        # named slurpy every passed named needs to be allowed.
+        my sub named_args_mismatch(%info) {
+            my $required := nqp::atkey(%info, 'required_names');
+            if $required {
+                my int $i;
+                my int $n := nqp::elems($required);
+                while $i < $n {
+                    my $names := nqp::atpos($required, $i);
+                    my int $found;
+                    my int $j;
+                    my int $m := nqp::elems($names);
+                    while $j < $m {
+                        if nqp::captureexistsnamed(
+                             $capture, nqp::atpos_s($names, $j)
+                           ) {
+                            $found := 1;
+                            $j := $m;
+                        }
+                        ++$j;
+                    }
+                    return 1 unless $found;
+                    ++$i;
+                }
+            }
+            my %nameds := nqp::capturenamedshash($capture);
+            if %nameds && !nqp::atkey(%info, 'allows_all_names') {
+                my $allowed := nqp::atkey(%info, 'allowed_names');
+                return 1 unless $allowed;
+                my $iter := nqp::iterator(%nameds);
+                while $iter {
+                    return 1 unless nqp::existskey(
+                      $allowed, nqp::iterkey_s(nqp::shift($iter))
+                    );
+                }
+            }
+            0
+        }
 
         # Only do itemized argument disambiguation when the group contains
         # a candidate with params having the 'is item' trait.
@@ -4153,6 +4195,7 @@ BEGIN {
                       if $type_check_count > $num_args;
 
                     my int $no_mismatch := 1;
+                    my int $unbox_fallback;
                     my int $i;
                     while $i < $type_check_count
                       && $no_mismatch {
@@ -4182,9 +4225,7 @@ BEGIN {
                             if $got_prim == nqp::const::BIND_VAL_OBJ {
 
                                 # Object, but could be a native container.
-                                # If not, mismatch.
-                                $no_mismatch := 0
-                                  unless (
+                                unless (
                                     ($flags +& nqp::const::TYPE_NATIVE_STR)
                                       && nqp::iscont_s($arg)
                                   ) || (
@@ -4196,7 +4237,41 @@ BEGIN {
                                   ) || (
                                     ($flags +& nqp::const::TYPE_NATIVE_NUM)
                                       && nqp::iscont_n($arg)
-                                  )
+                                  ) {
+
+                                    # Not a native container. A concrete
+                                    # value of the native's box type can
+                                    # still bind by unboxing, which is
+                                    # only considered when no candidate
+                                    # is in the running otherwise. A
+                                    # parameter needing write access
+                                    # cannot be served by an unboxed
+                                    # copy.
+                                    my $val := $arg;
+                                    $val := nqp::getattr(
+                                      $val, Scalar, '$!value')
+                                      if nqp::istype_nd($val, Scalar)
+                                      && nqp::isconcrete_nd($val);
+                                    if nqp::not_i(nqp::atpos_i(
+                                         nqp::atkey($candidate,'rwness'), $i
+                                       ))
+                                      && ($flags +& nqp::const::DEFCON_MASK)
+                                           != nqp::const::DEFCON_UNDEFINED
+                                      && nqp::isconcrete_nd($val)
+                                      && nqp::istype_nd($val,
+                                           $flags
+                                             +& nqp::const::TYPE_NATIVE_STR
+                                             ?? Str
+                                             !! $flags
+                                                  +& nqp::const::TYPE_NATIVE_NUM
+                                               ?? Num
+                                               !! Int) {
+                                        $unbox_fallback := 1;
+                                    }
+                                    else {
+                                        $no_mismatch := 0;
+                                    }
+                                }
                             }
 
                             # Got a native, does it match?
@@ -4316,8 +4391,13 @@ BEGIN {
                         ++$i;
                     }
 
-                    # If it's an admissible candidate; add to list.
-                    nqp::push(@possibles, $candidate) if $no_mismatch;
+                    # If it's an admissible candidate; add to list, or
+                    # set it aside if it can only match by unboxing.
+                    if $no_mismatch {
+                        $unbox_fallback
+                          ?? nqp::push(@unbox_possibles, $candidate)
+                          !! nqp::push(@possibles, $candidate);
+                    }
                 }
 
                 ++$cur_idx;
@@ -4353,10 +4433,14 @@ BEGIN {
                               if nqp::isnull($new_possibles);
                         }
 
-                        # Otherwise, may need full bind check.
+                        # Otherwise, may need full bind check. A candidate
+                        # the named arguments rule out was never in the
+                        # running, so it does not suppress the unbox retry.
                         elsif nqp::existskey(%info, 'bind_check')
                             && !$candidate-with-itemized-params
                         {
+                            $had_matchable := 1
+                              unless named_args_mismatch(%info);
                             my $sub := nqp::atkey(%info, 'sub');
                             my $cs  := nqp::getattr($sub, Code, '@!compstuff');
 
@@ -4400,6 +4484,7 @@ BEGIN {
 
                         # Otherwise, it's just nominal; accept it.
                         else {
+                            $had_matchable := 1;
                             nqp::push(
                               nqp::ifnull(
                                 $new_possibles,
@@ -4437,6 +4522,51 @@ BEGIN {
                   || nqp::not_i(nqp::isconcrete(
                        nqp::atpos(@candidates, ++$cur_idx)
                      ));
+            }
+        }
+
+        # No candidate was in the running, but some can potentially bind
+        # by unboxing an argument. Try those in order, letting a bind
+        # check decide each, so a boxed value reaches a native-only
+        # candidate the same way it reaches the equivalent non-multi
+        # routine. A candidate that was in the running and merely failed
+        # its bind check suppresses the retry, matching the dispatch
+        # plan, which keeps such a candidate and stops at its failure.
+        # The trial bind can throw, unboxing a value that does not fit,
+        # binding a lexical it cannot represent, or running a constraint
+        # that dies, and a candidate whose trial throws cannot be shown
+        # bindable.
+        unless $had_matchable {
+            my int $m := nqp::elems(@unbox_possibles);
+            my int $i;
+            while $i < $m {
+                my %info := nqp::atpos(@unbox_possibles, $i);
+                unless nqp::existskey(%info, 'req_named')
+                  && nqp::not_i(nqp::captureexistsnamed(
+                       $capture, nqp::atkey(%info, 'req_named')
+                     )) {
+                    my $sub := nqp::atkey(%info, 'sub');
+                    my $cs  := nqp::getattr($sub, Code, '@!compstuff');
+                    unless nqp::isnull($cs) {
+                        my $ctf := $cs[1];
+                        $ctf() if $ctf;
+                    }
+                    unless $done_bind_check {
+                        # Need a copy of the capture, as we may later do
+                        # a multi-dispatch when evaluating a constraint.
+                        $capture := nqp::clone($capture);
+                        $done_bind_check := 1;
+                    }
+                    if try nqp::p6isbindable(
+                         nqp::getattr($sub, Code, '$!signature'), $capture
+                       ) {
+                        $many
+                          ?? nqp::push($many_res, $sub)
+                          !! nqp::push(@possibles, %info);
+                        $i := $m unless $many;
+                    }
+                }
+                ++$i;
             }
         }
 
@@ -4807,8 +4937,25 @@ BEGIN {
                     # Did we get one?
                     if $got_prim == nqp::const::BIND_VAL_OBJ {
 
-                        # Object; won't do.
+                        # Object. It can still reach this candidate at
+                        # runtime by unboxing into the native parameter,
+                        # provided its type relates to the native's box
+                        # type. A parameter needing write access cannot
+                        # be served by an unboxed copy of a literal.
                         $type_mismatch := 1;
+                        my $box :=
+                          $type_flags +& nqp::const::TYPE_NATIVE_STR
+                            ?? Str
+                            !! $type_flags +& nqp::const::TYPE_NATIVE_NUM
+                              ?? Num
+                              !! Int;
+                        my $type := nqp::atpos(@args, $i).WHAT;
+                        if (nqp::atpos_i(nqp::atkey($candidate,'rwness'), $i)
+                             && nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL)
+                          || (nqp::not_i(nqp::istype($type, $box))
+                               && nqp::not_i(nqp::istype($box, $type))) {
+                            $type_match_impossible := 1;
+                        }
                         last;
                     }
 

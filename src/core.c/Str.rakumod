@@ -1995,7 +1995,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method !ensure-split-sanity($v, $k, $kv, $p) {
         # cannot combine these
-        my int $any = $v.Bool + $k.Bool + $kv.Bool + $p.Bool;
+        my int $any = nqp::eqaddr(nqp::decont($v),Any)
+          && nqp::eqaddr(nqp::decont($k),Any)
+          && nqp::eqaddr(nqp::decont($kv),Any)
+          && nqp::eqaddr(nqp::decont($p),Any)
+          ?? 0
+          !! $v.Bool + $k.Bool + $kv.Bool + $p.Bool;
+        # An adverb nobody passed holds the Any type object, which
+        # boolifies false, so four of those sum to zero without asking.
+        # Every split pays for this check and almost none pass an adverb.
         X::Adverb.new(
           what   => 'split',
           source => 'Str',

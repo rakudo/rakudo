@@ -4,11 +4,17 @@
 my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     has Mu $!slipper;  # iterator of the Slip we're iterating, null if none
 
+    # Every multi here takes the Slip raw and decontainerizes it in the
+    # body.  Bound to a `$` parameter, a Slip that arrived as a map or
+    # grep block's result reaches slip-all inside a container, and the
+    # nqp::eqaddr that recognizes Empty compares that container instead.
+
     proto method start-slip(|) {*}
-    multi method start-slip(Slip:U $slip) {
-        $slip
+    multi method start-slip(Slip:U \slip) {
+        nqp::decont(slip)
     }
-    multi method start-slip(Slip:D $slip) {
+    multi method start-slip(Slip:D \slip) {
+        my $slip := nqp::decont(slip);
         nqp::if(
           nqp::eqaddr($slip,Empty),
           IterationEnd,                  # we know there's nothing
@@ -74,10 +80,11 @@ my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     }
 
     proto method slip-all(|) {*}
-    multi method slip-all(Slip:U $slip, \target) {
-        target.push($slip)
+    multi method slip-all(Slip:U \slip, \target) {
+        target.push(nqp::decont(slip))
     }
-    multi method slip-all(Slip:D $slip, \target) {
+    multi method slip-all(Slip:D \slip, \target) {
+        my $slip := nqp::decont(slip);
         nqp::unless(
           nqp::eqaddr($slip,Empty),
           $slip.iterator.push-all(target)

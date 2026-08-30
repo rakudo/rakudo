@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -283,6 +283,79 @@ subtest 'Triangle reduce meta-op on left associative operator' => {
 
     is-deeply $deparsed, '[\+] 1, 2, 3', 'deparse';
     is-deeply $_, (1,3,6), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Reduce meta-op on reversed left associative operator' => {
+    # [R-] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new('-')
+      ),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(1),
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3)
+      )
+    );
+
+    is-deeply $deparsed, '[R-] 1, 2, 3', 'deparse';
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Reduce meta-op on reversed right associative operator' => {
+    # [R**] 2, 3, 4
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new('**')
+      ),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3),
+        RakuAST::IntLiteral.new(4)
+      )
+    );
+
+    is-deeply $deparsed, '[R**] 2, 3, 4', 'deparse';
+    is-deeply $_, 262144, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Reduce meta-op on reversed list associative operator' => {
+    # [R,] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new(',')
+      ),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(1),
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3)
+      )
+    );
+
+    is-deeply $deparsed, '[R,] 1, 2, 3', 'deparse';
+    is-deeply $_, (3,2,1), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Triangle reduce meta-op on reversed left associative operator' => {
+    # [\R-] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new('-')
+      ),
+      args => RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(1),
+        RakuAST::IntLiteral.new(2),
+        RakuAST::IntLiteral.new(3)
+      ),
+      triangle => True
+    );
+
+    is-deeply $deparsed, '[\R-] 1, 2, 3', 'deparse';
+    is-deeply $_, (3,1,0), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

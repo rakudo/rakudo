@@ -2047,7 +2047,7 @@ class RakuAST::MetaInfix::Reverse
 
     method action { 'reverse the args of' }
 
-    method reducer-name() { '&METAOP_REDUCE_LEFT' }
+    method reducer-name() { self.properties.reducer-name }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);

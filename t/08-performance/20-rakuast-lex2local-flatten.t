@@ -11,26 +11,43 @@ plan 30;
 # as frame-confined and is lowered to a local. Both frontends flatten
 # and lower, so the shape assertions hold for either.
 
-sub qast-var-decl (Mu $qast, Str:D $name, Str:D $decl --> Bool:D) {
-    if nqp::istype($qast, QAST::Var) && $qast.name eq $name && $qast.decl eq $decl {
+sub qast-var-decl (Mu $qast, Str:D $name, Str:D $decl, &value-ok? --> Bool:D) {
+    if nqp::istype($qast, QAST::Var) && $qast.name eq $name && $qast.decl eq $decl
+      && (!&value-ok || value-ok($qast.value)) {
         return True;
     }
     if qast-descendable $qast {
         for $qast.list {
-            qast-var-decl $_, $name, $decl and return True;
+            qast-var-decl($_, $name, $decl, &value-ok) and return True;
         }
     }
     False
 }
 
+sub is-sentinel (Mu $value --> Bool:D) {
+    so nqp::eqaddr(nqp::decont($value), Rakudo::Internals::LoweredAwayLexical)
+}
+
+# The sentinel that replaces a lowered declaration's by-name symbol.
+sub lowered-away (Mu $qast, Str:D $name --> Bool:D) {
+    qast-var-decl($qast, $name, 'static', &is-sentinel)
+}
+
+# A declaration whose container stays under its name, whichever decl
+# carries it.
+sub kept-lexical (Mu $qast, Str:D $name --> Bool:D) {
+    qast-var-decl($qast, $name, 'contvar')
+      or qast-var-decl($qast, $name, 'static', -> Mu $value { !is-sentinel($value) })
+}
+
 qast-is 'my $sum = 0; my int $i = 0; while $i < 3 { $sum = $sum + 1; $i = $i + 1 }; say $sum',
     :full, -> \v {
-    qast-var-decl(v, '$sum', 'static')
+    lowered-away(v, '$sum')
 }, 'an accumulator used only from a flattenable loop body is lowered';
 
 qast-is 'my $x = 0; my int $i = 0; while $i < 3 { my $c = { $x }; $c(); $i = $i + 1 }; say $x',
     :full, -> \v {
-    qast-var-decl(v, '$x', 'contvar')
+    kept-lexical(v, '$x')
 }, 'a lexical captured by a closure inside the loop body keeps its lexical';
 
 # The smartmatch guard is this frontend's own conservatism: it reaches
@@ -40,7 +57,7 @@ qast-is 'my $x = 0; my int $i = 0; while $i < 3 { my $c = { $x }; $c(); $i = $i 
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my $x = 0; my int $i = 0; while $i < 3 { $x = $x ~~ Int ?? 1 !! 2; $i = $i + 1 }; say $x',
         :full, -> \v {
-        qast-var-decl(v, '$x', 'contvar')
+        kept-lexical(v, '$x')
     }, 'a smartmatch in the loop body keeps the body a real frame';
 }
 else {
@@ -117,7 +134,7 @@ else {
 
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my $x = 0; { $x = 5 }; say $x', :full, -> \v {
-        qast-var-decl(v, '$x', 'static')
+        lowered-away(v, '$x')
     }, 'a lexical used only from a flattenable bare block statement is lowered';
 }
 else {
@@ -140,7 +157,7 @@ else {
 
 qast-is 'my $sum = 0; my int $i = 0; while $i < 9 { if $i % 2 { $sum = $sum + $i } else { $sum = $sum - 1 }; $i = $i + 1 }; say $sum',
     :full, -> \v {
-    qast-var-decl(v, '$sum', 'static')
+    lowered-away(v, '$sum')
 }, 'an accumulator used from branch bodies inside a loop body is lowered';
 
 {
@@ -183,17 +200,17 @@ qast-is 'my $sum = 0; my int $i = 0; while $i < 9 { if $i % 2 { $sum = $sum + $i
 
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my $sum = 0; for ^9 -> $x { $sum = $sum + $x }; say $sum', :full, -> \v {
-        qast-var-decl(v, '$sum', 'static')
-            and not qast-var-decl(v, '$x', 'contvar')
+        lowered-away(v, '$sum')
+            and not kept-lexical(v, '$x')
             and not qast-var-decl(v, '$x', 'var')
     }, 'a pointy for body flattens, lowering the accumulator and dissolving the parameter';
 
     qast-is 'my $n = 0; for ^5 { $n = $n + 1 }; say $n', :full, -> \v {
-        qast-var-decl(v, '$n', 'static')
+        lowered-away(v, '$n')
     }, 'a topic-free for body flattens and lowers the accumulator';
 
     qast-is 'my $x = 0; given 42 { $x = 1 }; say $x', :full, -> \v {
-        qast-var-decl(v, '$x', 'static')
+        lowered-away(v, '$x')
     }, 'a topic-free given body flattens';
 }
 else {

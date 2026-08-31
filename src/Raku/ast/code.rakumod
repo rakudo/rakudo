@@ -3492,6 +3492,12 @@ class RakuAST::RoleBody
 class RakuAST::Methodish
   is RakuAST::Routine
 {
+    # A %_ in the body is the implicit slurpy parameter rather than a
+    # placeholder that builds a signature. The 'method' target says so.
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['method', 'routine', 'block'])
+    }
+
     method default-scope() {
         self.name ?? 'has' !! 'anon'
     }
@@ -3696,10 +3702,6 @@ class RakuAST::Method
 
     method set-private(Bool $private) {
         nqp::bindattr(self, RakuAST::Method, '$!private', $private ?? True !! False);
-    }
-
-    method attach-target-names() {
-        self.IMPL-WRAP-LIST(['method', 'routine', 'block'])
     }
 
     method IMPL-META-OBJECT-TYPE() { Method }

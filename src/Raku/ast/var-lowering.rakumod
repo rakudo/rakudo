@@ -384,10 +384,13 @@ class RakuAST::IMPL::VarLowering {
         # declaration it wraps, so the target registers the declaration
         # under both identities, and the wrapped declaration itself is
         # skipped when the walk reaches it as a child.
-        # A %_ appearing in a method body is a slurpy hash placeholder
-        # node rather than a variable lookup, and it is what makes the
-        # signature's implicit slurpy hash matter.
-        if nqp::istype($node, RakuAST::VarDeclaration::Placeholder::SlurpyHash) {
+        # A %_ appearing in a method body is what makes the signature's
+        # implicit slurpy hash matter. The first one parses to a slurpy
+        # hash placeholder, and once that name is taken a later one is
+        # an ordinary lookup, which counts the same way.
+        if nqp::istype($node, RakuAST::VarDeclaration::Placeholder::SlurpyHash)
+            || (nqp::istype($node, RakuAST::Var::Lexical)
+                && $node.name eq '%_') {
             my int $i := nqp::elems($!frames);
             while --$i >= 0 {
                 my $frame := nqp::atpos($!frames, $i);

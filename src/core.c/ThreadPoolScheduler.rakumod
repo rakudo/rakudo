@@ -785,7 +785,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     method !SET-SELF($initial_threads, $max_threads) {
         my $default_max = (Kernel.cpu-cores * 8) max 64;
-        with $max_threads // %*ENV<RAKUDO_MAX_THREADS> {
+        with $max_threads {
             $!max_threads = nqp::istype($_,Whatever)
               ?? UNLIMITED_THREADS
               !! nqp::istype($_, Numeric) && $_ == Inf
@@ -797,6 +797,13 @@ my class ThreadPoolScheduler does Scheduler {
                       ?? UNLIMITED_THREADS
                       !! die "Cannot use '$_' as a value for maximum threads"
                     !! die "Cannot use a '" ~ $_.^name ~ "' for maximum threads value"
+        }
+        elsif nqp::atkey(nqp::getenvhash,'RAKUDO_MAX_THREADS') -> $max {
+            $!max_threads = ($max.lc eq any(<unlimited inf>))
+              ?? UNLIMITED_THREADS
+              !! (my $nummax := $max.Int).defined && $nummax >= 0
+                ?? ($nummax || UNLIMITED_THREADS)
+                !! die "Cannot use '$max' as a value for maximum threads value"
         }
         else {
             $!max_threads = $default_max;

@@ -2235,6 +2235,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                           where => "in a subscope"
                         ) unless $outer =:= $*UNIT;
 
+                        # The body of a unit scoped package is entered once
+                        # from the mainline. A role body runs per
+                        # specialization, so it is left out.
+                        $*W.cur_lexpad().annotate('unit_body', 1)
+                            unless $*PKGDECL eq 'role';
+
                         $*begin_compunit := 0;
                     }
                     { $*IN_DECL := ''; }

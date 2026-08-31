@@ -738,11 +738,17 @@ my class BlockVarOptimizer {
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for @!decls -> $qast {
-            # We're looking for lexical var/contvar decls.
+            # We're looking for lexical var/contvar decls. A unit container
+            # is declared static, and its block symbol carries a descriptor,
+            # which the other static decls lack, so it lowers as a contvar.
             my str $scope := $qast.scope;
             next unless $scope eq 'lexical';
             my str $decl := $qast.decl;
             my int $is_contvar := $decl eq 'contvar';
+            if $decl eq 'static' {
+                my %sym := $block.symbol($qast.name);
+                $is_contvar := nqp::ishash(%sym) && nqp::existskey(%sym, 'descriptor');
+            }
             next unless $is_contvar || $decl eq 'var' || $decl eq 'param';
 
             # Also ensure not dynamic or with an implicit lexical usage.

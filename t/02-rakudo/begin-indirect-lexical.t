@@ -27,8 +27,8 @@ is (BEGIN ::('&sprintf'))("%d", 3), '3',
 is (BEGIN ::('ScriptClass')).which, 'script-class',
     'a BEGIN indirect lookup finds a class declared in the compiling unit';
 
-is (BEGIN ::('$script-value')).^name, 'Any',
-    'a BEGIN indirect lookup of a scalar reaches its container, unassigned so far';
+is (BEGIN ::('$script-value')), 7,
+    'a BEGIN indirect lookup of a scalar reaches the container the unit assigns at run time';
 
 my constant $constant-sub = ::('&script-hex');
 is $constant-sub("b"), 'script-b',

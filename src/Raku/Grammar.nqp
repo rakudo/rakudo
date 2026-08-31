@@ -4643,7 +4643,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?before v\d+\w*
             [ '.' \d
               || <!{ $*R.resolve-lexical(~$/) }> ]>
-        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-']? ]
+        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-' <!before \w>]? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 

@@ -218,9 +218,18 @@ class RakuAST::Package
                     self.stubbed-meta-object(:$resolver, :$context)
                 );
                 my $full-name := self.IMPL-FULL-NAME($resolver);
+                # A HOW written in Raku receives the name its type is created
+                # with through a Raku signature, which boxes it, and its own
+                # methods read the attribute back expecting a value they can
+                # call methods on. Rename it with the flavour it already holds
+                # rather than always with a raw VM string.
+                my $current-name := $type-object.HOW.name($type-object);
+                my str $full-name-str := $full-name.canonicalize(:colonpairs(0));
                 $type-object.HOW.set_name(
                     $type-object,
-                    $full-name.canonicalize(:colonpairs(0))
+                    nqp::istype($current-name, Str)
+                      ?? nqp::box_s($full-name-str, Str)
+                      !! $full-name-str
                 );
 
                 # Update the Stash's name, too.

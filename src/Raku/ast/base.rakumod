@@ -1929,7 +1929,7 @@ class RakuAST::Node {
         return Nil unless self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $lexname);
         my $routine := self.IMPL-DECLARATION-VALUE($resolution);
         return Nil unless nqp::isconcrete($routine)
-            && nqp::istype($routine, Code)
+            && nqp::istype($routine, Routine)
             && nqp::can($routine, 'signature');
 
         my @info := self.IMPL-CT-ARG-TYPES($resolver, @args);

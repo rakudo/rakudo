@@ -4,7 +4,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 27;
+plan 30;
 
 # A call whose argument types decide the dispatch at compile time is
 # replaced by the chosen routine's recorded body, with the argument
@@ -162,3 +162,14 @@ qast-is 'my class Earlier { }; multi sub infix:<+>(Earlier $a, Earlier $b) { 1 }
 {
     is ([+] 1..5), 15, 'the reduce metaop over an inlinable operator still works';
 }
+
+# A constant in the outermost scope bound to a bare block, rather than a
+# routine, passes the same argument analysis but carries no inline info
+# to splice. Each string is compiled as its own unit so the constant
+# sits in that outermost scope.
+is EVAL(q[constant &c = -> { 42 }; c()]), 42,
+    'a unit-scope constant bound to a pointy block is called as a block';
+is EVAL(q[constant &d = -> int $a { $a + 1 }; my int $i = 4; d($i)]), 5,
+    'a unit-scope constant bound to a pointy block taking a native is called as a block';
+is EVAL(q[constant &infix:<plus> = -> $a, $b { $a + $b }; 1 plus 2]), 3,
+    'a unit-scope infix constant bound to a pointy block dispatches as a block';

@@ -1,13 +1,36 @@
 my class Rakudo::Sorting is implementation-detail {
 
+    # Classifying costs a walk before a single comparison is made, which a
+    # shorter list does not do enough comparisons to repay.  Sorting
+    # elements and sorting by an extracted key cross over alike here.
+    my constant SORT-CLASSIFY-FROM = 16;
+
+    # helper sub to report whether reading a slot runs no code of its own,
+    # which is true of a plain value and of a Scalar, and not of a
+    # container that answers with a FETCH, such as a Proxy.  The slot is
+    # taken as Mu so that binding it does not read it either.
+    sub slot-reads-the-same(Mu \slot) {
+        nqp::not_i(nqp::iscont(slot))
+          || nqp::eqaddr(nqp::what_nd(slot),Scalar)
+    }
+
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
     method MERGESORT-REIFIED-LIST(\list) {
+        # $A has the items to sort; $B is a work array
+        my $A := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+
+        my int $kind = nqp::isge_i($n,SORT-CLASSIFY-FROM)
+          ?? self!SORT-ELEMENT-KIND(list)
+          !! 0;
+        return self!MERGESORT-REIFIED-LIST-Int(list)
+          if nqp::iseq_i($kind,1);
+        return self!MERGESORT-REIFIED-LIST-Str(list)
+          if nqp::iseq_i($kind,2);
+
         nqp::if(
-          nqp::isgt_i((my int $n = nqp::elems(
-            # $A has the items to sort; $B is a work array
-            my $A := nqp::getattr(list,List,'$!reified')
-          )),2),
+          nqp::isgt_i($n,2),
           nqp::stmts(     # we actually need to sort
             (my $B := nqp::setelems(nqp::create(IterationBuffer),$n)),
 
@@ -83,6 +106,196 @@ my class Rakudo::Sorting is implementation-detail {
               Order::More
             ),
             nqp::push($A,nqp::shift($A))  # wrong order, so swap
+          )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
+    }
+
+    # Report which specialized merge, if any, may sort the given HLL List:
+    # 1 for a list of Int, 2 for a list of Str, 0 for anything else.  Every
+    # element has to be concrete and of exactly that type: an Allomorph
+    # carries both a numeric and a string value and picks the infix:<cmp>
+    # candidate that breaks a numeric tie on the string, where nqp::cmp_I
+    # calls the pair equal, so it would sort differently rather than
+    # complain.
+    method !SORT-ELEMENT-KIND(\list) {
+        # The reified buffer is fetched here rather than passed in.  A list
+        # built from a literal reifies into a bare VM array rather than an
+        # IterationBuffer, and a bare VM array handed to a method call
+        # arrives HLLized into a List, which nqp::elems cannot count.
+        my $A := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+        my int $kind = 0;
+
+        # The first slot only says which type to expect.  Every element,
+        # that one included, is then checked by the loop.
+        nqp::if(
+          nqp::isgt_i($n,2)
+            && nqp::isgt_i(
+                 ($kind = nqp::eqaddr(
+                   (my $wanted := slot-reads-the-same(
+                     my $slot := nqp::ifnull(nqp::atpos($A,0),Mu)
+                   ) ?? nqp::what($slot) !! Mu),Int)
+                   ?? 1
+                   !! nqp::eqaddr($wanted,Str) ?? 2 !! 0),
+                 0
+               ),
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,$n)
+                && slot-reads-the-same(
+                     $slot := nqp::ifnull(nqp::atpos($A,$i),Mu)
+                   )
+                && nqp::isconcrete(my $value := nqp::decont($slot))
+                && nqp::eqaddr(nqp::what($value),$wanted),
+              nqp::null
+            ),
+            nqp::unless(nqp::iseq_i($i,$n),($kind = 0))
+          )
+        );
+
+        $kind
+    }
+
+    # Takes the HLL List to be sorted *in place*, every element of which is
+    # exactly an Int, so cmp reduces to nqp::cmp_I on the two values, which
+    # a Scalar element is decontainerized for.  The left run always sits
+    # entirely before the right, so taking the left of an equal pair is
+    # what the general merge's explicit tie-break amounts to.
+    method !MERGESORT-REIFIED-LIST-Int(\list) {
+        # $A has the items to sort; $B is a work array
+        my $A := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+        my $B := nqp::setelems(nqp::create(IterationBuffer),$n);
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(nqp::cmp_I(
+                             nqp::decont(nqp::atpos($A,$i)),
+                             nqp::decont(nqp::atpos($A,$j))
+                           ),0)
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
+          )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
+    }
+
+    # As MERGESORT-REIFIED-LIST-Int, for a list of exactly Str, where cmp
+    # reduces to nqp::cmp_s on the unboxed strings.
+    method !MERGESORT-REIFIED-LIST-Str(\list) {
+        # $A has the items to sort; $B is a work array
+        my $A := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+        my $B := nqp::setelems(nqp::create(IterationBuffer),$n);
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(nqp::cmp_s(
+                             nqp::unbox_s(nqp::decont(nqp::atpos($A,$i))),
+                             nqp::unbox_s(nqp::decont(nqp::atpos($A,$j)))
+                           ),0)
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
           )
         );
 
@@ -311,11 +524,42 @@ my class Rakudo::Sorting is implementation-detail {
             (my $A := nqp::setelems(nqp::list_i,$n)),       # indexes to sort
             (my $B := nqp::setelems(nqp::list_i,$n)),       # work array
             (my int $s = -1),
+            # $kind reports the one type every key came out as, as
+            # !SORT-ELEMENT-KIND reports it for elements, and stays -1
+            # until the first key is seen.  A key inside a container does
+            # not qualify at all, whatever it holds: the mapper runs over
+            # the whole list before any comparison, so a later call to it
+            # can still change a key already classified.
+            (my int $kind = nqp::isge_i($n,SORT-CLASSIFY-FROM) ?? -1 !! 0),
             nqp::while(  # set up the Schwartz and the initial indexes
               nqp::islt_i(($s = nqp::add_i($s,1)),$n),
-              nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),
-                mapper(nqp::atpos($O,$s)))
+              nqp::stmts(
+                nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),
+                  (my $key := mapper(nqp::atpos($O,$s)))),
+                nqp::unless(
+                  nqp::iseq_i($kind,0),
+                  nqp::stmts(
+                    (my $keytype := nqp::isconcrete_nd($key)
+                      ?? nqp::what_nd($key)
+                      !! Mu),
+                    (my int $this = nqp::eqaddr($keytype,Int)
+                      ?? 1
+                      !! nqp::eqaddr($keytype,Str) ?? 2 !! 0),
+                    nqp::if(
+                      nqp::iseq_i($kind,-1),
+                      ($kind = $this),
+                      nqp::unless(nqp::iseq_i($kind,$this),($kind = 0))
+                    )
+                  )
+                )
+              )
             ),
+            nqp::if(
+              nqp::isgt_i($kind,0),
+              nqp::iseq_i($kind,1)
+                ?? self!MERGESORT-AS-Int(list,$S,$indices)
+                !! self!MERGESORT-AS-Str(list,$S,$indices),
+              nqp::stmts(
 
             # Each 1-element run in $A is already "sorted"
             # Make successively longer sorted runs of length 2, 4, 8, 16...
@@ -395,6 +639,8 @@ my class Rakudo::Sorting is implementation-detail {
               )
             ),
             nqp::bindattr(list,List,'$!reified',$S)
+              )
+            )
           ),
 
           # N <= 2
@@ -417,6 +663,186 @@ my class Rakudo::Sorting is implementation-detail {
 
         list   # we did changes in place
     }
+    # Sorts the index array against a Schwartz of Int keys, where cmp reduces to nqp::cmp_I. The left run always
+    # sits entirely before the right, so taking the left of an equal pair is
+    # what the general merge's explicit tie-break amounts to and leaves the
+    # result, or the indices that produced it, in that same buffer.
+    method !MERGESORT-AS-Int(\list, \S, $indices) {
+        my $O := nqp::getattr(list,List,'$!reified');   # Original
+        my int $n = nqp::elems(S);
+        my $A := nqp::setelems(nqp::list_i,$n);         # indexes to sort
+        my $B := nqp::setelems(nqp::list_i,$n);         # work array
+        my int $s = -1;
+        nqp::while(
+          nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+          nqp::bindpos_i($A,$s,$s)
+        );
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(
+                             nqp::cmp_I(
+                               nqp::atpos(S,nqp::atpos_i($A,$i)),
+                               nqp::atpos(S,nqp::atpos_i($A,$j))
+                             ),0)
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
+          )
+        );
+
+        $s = -1;
+        # repurpose the Schwartz for the result
+        nqp::if(
+          $indices,
+          nqp::while(   # indices only
+            nqp::islt_i(++$s,$n),
+            nqp::bindpos(S,$s,nqp::atpos_i($A,$s))
+          ),
+          nqp::while(   # actual values
+            nqp::islt_i(++$s,$n),
+            nqp::bindpos(S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
+          )
+        );
+        nqp::bindattr(list,List,'$!reified',S)
+    }
+
+    # Sorts the index array against a Schwartz of Str keys, where cmp reduces to nqp::cmp_s on the unboxed strings and leaves the
+    # result, or the indices that produced it, in that same buffer.
+    method !MERGESORT-AS-Str(\list, \S, $indices) {
+        my $O := nqp::getattr(list,List,'$!reified');   # Original
+        my int $n = nqp::elems(S);
+        my $A := nqp::setelems(nqp::list_i,$n);         # indexes to sort
+        my $B := nqp::setelems(nqp::list_i,$n);         # work array
+        my int $s = -1;
+        nqp::while(
+          nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+          nqp::bindpos_i($A,$s,$s)
+        );
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(
+                             nqp::cmp_s(
+                               nqp::unbox_s(nqp::atpos(S,nqp::atpos_i($A,$i))),
+                               nqp::unbox_s(nqp::atpos(S,nqp::atpos_i($A,$j)))
+                             ),0)
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
+          )
+        );
+
+        $s = -1;
+        # repurpose the Schwartz for the result
+        nqp::if(
+          $indices,
+          nqp::while(   # indices only
+            nqp::islt_i(++$s,$n),
+            nqp::bindpos(S,$s,nqp::atpos_i($A,$s))
+          ),
+          nqp::while(   # actual values
+            nqp::islt_i(++$s,$n),
+            nqp::bindpos(S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
+          )
+        );
+        nqp::bindattr(list,List,'$!reified',S)
+    }
+
 
     # Takes the HLL List to be sorted *in place* using the comparator
     # and always produce indices

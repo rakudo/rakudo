@@ -11,6 +11,7 @@ class RakuAST::IMPL::VarLoweringFrame {
     has RakuAST::Node $!node;
     has int $!is-scope;
     has int $!poisoned;
+    has int $!slurpy-reachable;
     has Mu $!candidates;
     has Mu $!candidate-ids;
     has Mu $!candidate-names;
@@ -39,11 +40,22 @@ class RakuAST::IMPL::VarLoweringFrame {
 
     method node() { $!node }
     method is-scope() { $!is-scope }
+    # Poisoning a frame says its lexicals stay addressable by name, %_
+    # among them. A construct that reaches the lexicals without being
+    # able to name %_ poisons the frame except for the slurpy hash,
+    # which may then still be dropped where nothing uses it.
     method poison() {
+        nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!poisoned', 1);
+        nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame,
+            '$!slurpy-reachable', 1);
+        Nil
+    }
+    method poison-except-slurpy() {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!poisoned', 1);
         Nil
     }
     method is-poisoned() { $!poisoned }
+    method slurpy-reachable() { $!slurpy-reachable }
 
     method note-call() {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!makes-calls', 1);
@@ -620,7 +632,7 @@ class RakuAST::IMPL::VarLowering {
     method IMPL-DECIDE-IMPLICITS(Mu $frame) {
         my int $poisoned := $frame.is-poisoned;
         my str $slurpy-id := $frame.implicit-slurpy-id;
-        if $slurpy-id && !$poisoned {
+        if $slurpy-id && !$frame.slurpy-reachable {
             my $record := $frame.record-for-id($slurpy-id);
             nqp::atkey($record, 'decl').IMPL-SET-UNUSED-SLURPY()
                 unless nqp::isnull($record) || nqp::existskey($record, 'used');
@@ -1107,8 +1119,14 @@ class RakuAST::IMPL::VarLowering {
             # Regex code reaches lexicals of its enclosing frames late,
             # through the cursor, not through resolved lookups this walk
             # can see. Substitutions and transliterations carry regex
-            # and replacement code the same way.
-            self.IMPL-POISON-ALL();
+            # and replacement code the same way. The one lexical the
+            # cursor cannot reach is %_, and a regex declaration is the
+            # one of these carrying an implicit slurpy hash of its own,
+            # so a body of one that never names %_ may still drop it.
+            # Enclosing frames keep theirs.
+            nqp::istype($node, RakuAST::RegexDeclaration)
+              ?? self.IMPL-POISON-ALL-EXCEPT-SLURPY($node)
+              !! self.IMPL-POISON-ALL();
         }
         Nil
     }
@@ -1130,6 +1148,20 @@ class RakuAST::IMPL::VarLowering {
         my int $i := nqp::elems($!frames);
         while --$i >= 0 {
             nqp::atpos($!frames, $i).poison();
+        }
+        Nil
+    }
+
+    # The frame the given node made, if it made one, may still drop an
+    # unused implicit slurpy hash. Every frame around it is poisoned
+    # outright.
+    method IMPL-POISON-ALL-EXCEPT-SLURPY(RakuAST::Node $node) {
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            $frame.node =:= $node
+              ?? $frame.poison-except-slurpy()
+              !! $frame.poison();
         }
         Nil
     }

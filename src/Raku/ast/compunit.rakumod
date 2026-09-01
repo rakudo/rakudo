@@ -194,10 +194,16 @@ class RakuAST::CompUnit
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {
         if @*LEADING-DOC {
-            self.add-worry:
-              $resolver.build-exception:
-                'X::Syntax::Doc::Declarator::MissingDeclarand',
-                :position<leading>;
+            # A leading declarator doc that reached a lexical (a non-podifiable
+            # declarand) is dropped, as legacy does: the lexical is a valid
+            # place for the doc to land even though it surfaces nowhere. Only a
+            # doc that never reached any declarand is a missing declarand.
+            unless nqp::isconcrete($*LEADING-DOC-FALLBACK) {
+                self.add-worry:
+                  $resolver.build-exception:
+                    'X::Syntax::Doc::Declarator::MissingDeclarand',
+                    :position<leading>;
+            }
         }
 
         $!mainline.IMPL-CHECK($resolver, $!context);

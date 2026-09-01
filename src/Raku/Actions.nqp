@@ -986,19 +986,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my $from    := $/.from;
             my $worries := $*DECLARAND-WORRIES;
+            # A trailing `#=` that could not attach to a preceding declarand
+            # is dropped here rather than reported: legacy is silent about an
+            # orphaned trailing doc, so a following declarand must not turn
+            # one into a worry.
             for $worries {
-                $_.value.typed-worry:
-                  'X::Syntax::Doc::Declarator::MissingDeclarand'
-                  if $_.key < $from;
                 nqp::deletekey($worries, $_.key);
             }
 
             $*DECLARAND          := $it;
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
 
-            if $it.podifiable && @*LEADING-DOC -> @leading {
-                $it.set-leading(@leading);
-                @*LEADING-DOC := [];
+            if @*LEADING-DOC -> @leading {
+                if $it.podifiable {
+                    $it.set-leading(@leading);
+                    @*LEADING-DOC          := [];
+                    $*LEADING-DOC-FALLBACK := NQPMu;
+                }
+                # A non-podifiable declarand (a lexical) does not surface the
+                # doc anywhere, so leave the leading doc collected for a later
+                # podifiable target. Remember the first such lexical: if
+                # nothing else claims the doc it lands here and is dropped,
+                # rather than being reported as a missing declarand.
+                elsif !nqp::isconcrete($*LEADING-DOC-FALLBACK) {
+                    $*LEADING-DOC-FALLBACK := $it;
+                }
             }
             $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
         }

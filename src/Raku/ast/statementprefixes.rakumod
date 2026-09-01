@@ -255,6 +255,15 @@ class RakuAST::StatementPrefix::Thunky
                    $context, :$blocktype, :$expression)
     }
 
+    # A thunk with a block body hands out that block's code object, so
+    # the block is also the node carrying the dynamic compilation mark
+    # and the QAST block a closure of it binds.
+    method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
+        nqp::istype(self.blorst, RakuAST::Block)
+            ?? self.blorst.IMPL-CLOSURE-QAST($context, :$regex)
+            !! nqp::findmethod(RakuAST::Code, 'IMPL-CLOSURE-QAST')(self, $context, :$regex)
+    }
+
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         if nqp::istype(self.blorst, RakuAST::Block) {
             # Block already, so we need add nothing.

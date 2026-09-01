@@ -66,13 +66,23 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
-    my $world := $*W;
-    my $cu    := CALLERS::.EXISTS-KEY('$*CU') ?? $*CU !! Nil;
-    $world.suspend_recording_precompilation_dependencies if $world;
-    $cu.suspend-recording-precompilation-dependencies    if $cu;
-    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
-    $cu.resume-recording-precompilation-dependencies     if $cu;
-    $world.resume_recording_precompilation_dependencies  if $world;
+    if $*CU -> $cu {
+        $cu.suspend-recording-precompilation-dependencies;
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+        $cu.resume-recording-precompilation-dependencies;
+    }
+    # Can be removed as soon as 6.e is default
+    elsif $*W -> $world {
+        $world.suspend_recording_precompilation_dependencies;
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+        $world.resume_recording_precompilation_dependencies;
+    }
+
+    # huh?  No compunit?
+    else {
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+    }
+
     PROCESS::<$REPO> # Cannot be $repo, as CU:RepositoryRegistry changes $*REPO
 }
 

@@ -107,6 +107,10 @@ class RakuAST::Code
     # record that the cache was formed early, and with what arguments,
     # so the block can be re-formed once the marks are known.
     has int $!begin-time-cached;
+    # Set when a dynamic compilation forms this block, so the sites that
+    # hand out a closure of it or declare it bind its do to the running
+    # compilation.
+    has int $!dynamically-compiled;
     has str $!begin-cache-blocktype;
     has Mu $!begin-cache-expression;
 
@@ -158,7 +162,66 @@ class RakuAST::Code
             QAST::WVal.new( :value($code-obj) ).annotate_self('past_block', $!qast-block).annotate_self('code_object', $code-obj)
         );
         self.IMPL-TWEAK-REGEX-CLONE($context, $clone) if $regex;
-        QAST::Op.new( :op('p6capturelex'), $clone )
+        my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
+        $!dynamically-compiled && !$context.is-precompilation-mode
+            ?? QAST::Stmts.new(self.IMPL-DYNAMIC-DO-REBIND-QAST($context), $closure)
+            !! $closure
+    }
+
+    # A dynamic compilation binds the do it produced, whose outer is a
+    # snapshot of the compile-time scope. A unit run as a script emits the
+    # same block again, and a closure captured at BEGIN time keeps running
+    # the dynamic frame, so both compilations stay live at runtime. Each
+    # site that clones the code object first binds its do to the block of
+    # the compilation that is running, so the clone captures that frame.
+    # A clone registered before the dynamic compilation never captured a
+    # frame, so it gets a fresh do from that block as well. A precompiled
+    # unit needs none of this: loading it binds every do to its own
+    # frames.
+    method IMPL-DYNAMIC-DO-REBIND-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $code-obj := self.meta-object;
+        my $block := $!qast-block;
+        nqp::die('IMPL-DYNAMIC-DO-REBIND-QAST needs the QAST block formed first')
+            unless $block;
+        my $stmts := QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bindattr'),
+                QAST::WVal.new( :value($code-obj) ),
+                QAST::WVal.new( :value(Code) ),
+                QAST::SVal.new( :value('$!do') ),
+                QAST::BVal.new( :value($block) )
+            )
+        );
+        my %clones := $context.sub-id-to-cloned-code-objects();
+        if nqp::existskey(%clones, $!cuid) {
+            for %clones{$!cuid} -> $clone {
+                $context.ensure-sc($clone);
+                my $tmp := $stmts.unique('dynamic_do');
+                $stmts.push(QAST::Stmt.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                        QAST::Op.new( :op('clone'), QAST::BVal.new( :value($block) ) )
+                    ),
+                    # The fresh do takes its code object before the clone
+                    # binds it, so a call racing this rebind never runs a
+                    # do that answers for the original.
+                    QAST::Op.new(
+                        :op('setcodeobj'),
+                        QAST::Var.new( :name($tmp), :scope('local') ),
+                        QAST::WVal.new( :value($clone) )
+                    ),
+                    QAST::Op.new(
+                        :op('bindattr'),
+                        QAST::WVal.new( :value($clone) ),
+                        QAST::WVal.new( :value(Code) ),
+                        QAST::SVal.new( :value('$!do') ),
+                        QAST::Var.new( :name($tmp), :scope('local') )
+                    )
+                ));
+            }
+        }
+        $stmts
     }
 
     method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
@@ -193,6 +256,7 @@ class RakuAST::Code
         nqp::bindattr(self, RakuAST::Code, '$!qast-block', $block);
         if nqp::ifnull(nqp::getlexdyn('$*IMPL-COMPILE-DYNAMICALLY'), 0) {
             nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 1);
+            nqp::bindattr_i(self, RakuAST::Code, '$!dynamically-compiled', 1);
             if self.IMPL-REBUILD-ELIGIBLE {
                 nqp::bindattr_s(self, RakuAST::Code, '$!begin-cache-blocktype', $blocktype);
                 nqp::bindattr(self, RakuAST::Code, '$!begin-cache-expression', $expression);
@@ -666,6 +730,7 @@ class RakuAST::Code
     }
 
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
+        nqp::bindattr_i(self, RakuAST::Code, '$!dynamically-compiled', 1);
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
 
@@ -718,7 +783,12 @@ class RakuAST::Code
         ));
 
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
-            if nqp::istype($_, RakuAST::CompileTimeValue) {
+            # A code node the compiled block takes a closure of, declared
+            # here as the scope enclosing that block would in a unit.
+            if nqp::istype($_, RakuAST::Code) && !nqp::istype($_, RakuAST::Declaration) {
+                $wrapper[0].push($_.IMPL-QAST-DECL-CODE($context));
+            }
+            elsif nqp::istype($_, RakuAST::CompileTimeValue) {
                 my $value := $_.compile-time-value;
                 $context.ensure-sc($value);
                 $wrapper[0].push(QAST::Var.new(
@@ -897,6 +967,10 @@ class RakuAST::ExpressionThunk
     # content (a loop's NEXT phasers) is only known once the body compiles.
     has Mu $!prelude-producer;
 
+    # The expression the block was formed around, for a compilation of
+    # the thunk on its own.
+    has RakuAST::Expression $!formed-expression;
+
     method new() {
         nqp::create(self)
     }
@@ -933,6 +1007,15 @@ class RakuAST::ExpressionThunk
     # into the passed `$target`. If there is a next thunk in `$!next` then it
     # should be compiled recursively and the expression passed along; otherwise,
     # the expression itself should be compiled and used as the body.
+    # An expression that is itself a code node, as `try` of a bare
+    # statement is, has the thunk body take a closure of it, and the
+    # scope enclosing the thunk is what declares its block. A thunk
+    # compiled on its own, as a constant's value is, has that
+    # compilation's wrapper declare the block instead.
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::istype($!formed-expression, RakuAST::Code) ?? [$!formed-expression] !! []
+    }
+
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 
@@ -943,6 +1026,7 @@ class RakuAST::ExpressionThunk
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
             str :$blocktype, RakuAST::Expression :$expression!) {
+        nqp::bindattr(self, RakuAST::ExpressionThunk, '$!formed-expression', $expression);
         # From the block, compiling the signature.
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
         my $stmts := QAST::Stmts.new();
@@ -1401,9 +1485,50 @@ class RakuAST::ScopePhaser {
         }
     }
 
+    # A phaser fires as the code object the routine holds, with no
+    # closure site of its own, so a routine compiled dynamically binds
+    # each phaser's do to the running compilation on entry. A phaser
+    # node that is not code itself, such as QUIT, hands its blorst out
+    # as the code object.
+    method IMPL-PHASER-DO-REBINDS(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new;
+        my @nodes;
+        for '$!ENTER', '$!FIRST', '$!NEXT', '$!LAST', '$!QUIT', '$!PRE', '$!POST', '$!CLOSE' {
+            my $list := nqp::getattr(self, RakuAST::ScopePhaser, $_);
+            if $list {
+                nqp::push(@nodes, $_) for $list;
+            }
+        }
+        if $!LEAVE-ORDER {
+            nqp::push(@nodes, $_[1]) for $!LEAVE-ORDER;
+        }
+        nqp::push(@nodes, $!let) if $!let;
+        nqp::push(@nodes, $!temp) if $!temp;
+        for @nodes {
+            # A thunked phaser with a block body shares that block's code
+            # object, so the block is the node the dynamic compilation
+            # marked. A phaser that is not code itself, such as QUIT,
+            # hands its blorst out as the code object too.
+            my $code := nqp::can($_, 'blorst') && nqp::istype($_.blorst, RakuAST::Code)
+                ?? $_.blorst
+                !! nqp::istype($_, RakuAST::Code) ?? $_ !! Mu;
+            next unless nqp::isconcrete($code);
+            $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+            if nqp::getattr_i($code, RakuAST::Code, '$!dynamically-compiled') {
+                $stmts.push($code.IMPL-DYNAMIC-DO-REBIND-QAST($context));
+            }
+        }
+        $stmts
+    }
+
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
         my $phasers := nqp::isconcrete($block) ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
+
+        unless $context.is-precompilation-mode {
+            my $rebinds := self.IMPL-PHASER-DO-REBINDS($context);
+            $qast[0].push($rebinds) if nqp::elems($rebinds.list);
+        }
 
         if $!has-exit-handler || self.needs-result > 1 || $phasers && (nqp::istype($phasers, Code) || nqp::existskey($phasers, 'LEAVE') || nqp::existskey($phasers, 'POST')) {
             $qast.has_exit_handler(1);
@@ -3123,6 +3248,15 @@ class RakuAST::Routine
             return $stmts;
         }
 
+        # A multi candidate has no lexical of its own, so its placement in
+        # the enclosing block is where its do gets bound to the running
+        # compilation.
+        if self.multiness eq 'multi'
+          && nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+          && !$context.is-precompilation-mode {
+            return QAST::Stmts.new($block, self.IMPL-DYNAMIC-DO-REBIND-QAST($context));
+        }
+
         $block
     }
 
@@ -3152,7 +3286,11 @@ class RakuAST::Routine
                     # The comp unit's frame runs once per load, so the
                     # serialized routine works as the lexical's value as is.
                     $context.ensure-sc(self.meta-object);
-                    QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) )
+                    my $decl := QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) );
+                    nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+                      && !$context.is-precompilation-mode
+                        ?? QAST::Stmts.new($decl, self.IMPL-DYNAMIC-DO-REBIND-QAST($context))
+                        !! $decl
                 }
             }
         }

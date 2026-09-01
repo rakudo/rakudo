@@ -883,9 +883,11 @@ class RakuAST::IMPL::VarLowering {
     }
 
     # Walk the body of a sunk loop statement as a flatten candidate when
-    # its shape allows flattening at all: a plain block, no signature or
-    # placeholders, no phasers. Everything else about eligibility is
-    # decided from what the walk observes, when the frame pops.
+    # its shape allows flattening at all: a plain block, or a pointy
+    # block with one plain parameter, with no placeholders, no phasers,
+    # and no signature that needs the runtime binder. Everything else
+    # about eligibility is decided from what the walk observes, when
+    # the frame pops.
     method IMPL-WALK-FLATTEN-CANDIDATE(RakuAST::Node $body, :$arg?) {
         my int $shape-ok := nqp::eqaddr($body.WHAT, RakuAST::Block);
         $shape-ok := 1 if $arg
@@ -893,7 +895,8 @@ class RakuAST::IMPL::VarLowering {
             && !nqp::isnull($body.IMPL-FLATTEN-ARG-DECLARATION);
         unless $shape-ok
             && !nqp::isconcrete($body.placeholder-signature)
-            && !$body.has-any-phasers {
+            && !$body.has-any-phasers
+            && !$body.custom-args {
             self.IMPL-WALK($body);
             return Nil;
         }

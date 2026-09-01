@@ -273,14 +273,7 @@ class RakuAST::StatementPrefix::Thunky
             QAST::Op.new( :op('call'), self.blorst.IMPL-TO-QAST($context) )
         }
         else {
-            my $block := self.meta-object;
-            $context.ensure-sc($block);
-            my $clone := QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($block) ).annotate_self('past_block', self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))).annotate_self('code_object', $block)
-            );
-            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
-            QAST::Op.new( :op('call'), $closure)
+            QAST::Op.new( :op('call'), self.IMPL-CLOSURE-QAST($context) )
         }
     }
 }

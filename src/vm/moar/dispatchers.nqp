@@ -741,7 +741,8 @@ sub guard-type-concreteness($tracker) {
             }
 
             # A container assignment without type information
-            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::Untyped) {
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::Untyped)
+               || nqp::eqaddr($desc-WHAT, ContainerDescriptor::IsolatedMatch) {
                 if nqp::eqaddr($value, Nil) {
                     # Nil case is NYI.
                 }

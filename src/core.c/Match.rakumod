@@ -443,11 +443,41 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
 }
 
 
+# Attach to the match of the nearest enclosing regex frame when there is
+# one. Its cursor cannot be disturbed by user code, however a match run
+# inside the regex's code block can overwrite $/. In a 6.e scope, where
+# $/ carries the isolation marker, the next candidate is the Match in
+# the immediate caller frame's own $/, i.e. the match that frame most
+# recently established. After that comes a Match topic, so a block
+# iterating match results attaches to its topic even when it never set
+# up a $/ of its own. Everything else attaches to the caller's $/, as
+# in an action method, whose $/ parameter carries no marker in any
+# revision. The caller lookups must stay at routine level. From inside
+# a nested block they would see this routine's own frame as the caller
+# and find its own $/. The topic lookup must stay behind the marker
+# check. A native $_ in the caller chain makes the lexical walk itself
+# die, so callers outside a 6.e scope must never trigger it.
 sub make(Mu \made) {
-    my $slash := nqp::decont(nqp::getlexcaller('$/'));
-    nqp::istype($slash, NQPMatchRole)
-        ?? nqp::bindattr($slash,Match,'$!made',made)
-        !! X::Make::MatchRequired.new(:got($slash)).throw
+    my $cursor      := nqp::decont(nqp::getlexcaller('$¢'));
+    my \pad         := nqp::ctxlexpad(nqp::ctxcallerskipthunks(nqp::ctx()));
+    my \nearby-cont := nqp::existskey(pad,'$/')
+      ?? nqp::atkey(pad,'$/')
+      !! nqp::null();
+    my \slash-cont  := nqp::getlexcaller('$/');
+    my $slash       := nqp::decont(slash-cont);
+    nqp::isconcrete($cursor) && nqp::istype($cursor, NQPMatchRole)
+      ?? nqp::bindattr($cursor.MATCH, Match, '$!made', made)
+      !! Rakudo::Internals.IS-ISOLATED-MATCH(nearby-cont)
+           && nqp::isconcrete(my $nearby := nqp::decont(nearby-cont))
+           && nqp::istype($nearby, NQPMatchRole)
+        ?? nqp::bindattr($nearby, Match, '$!made', made)
+        !! Rakudo::Internals.IS-ISOLATED-MATCH(slash-cont)
+             && nqp::isconcrete(my $topic := nqp::decont(nqp::getlexcaller('$_')))
+             && nqp::istype($topic, NQPMatchRole)
+          ?? nqp::bindattr($topic, Match, '$!made', made)
+          !! nqp::istype($slash, NQPMatchRole)
+            ?? nqp::bindattr($slash,Match,'$!made',made)
+            !! X::Make::MatchRequired.new(:got($slash)).throw
 }
 
 # A concrete Match matcher is a match result already, so the smartmatch

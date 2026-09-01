@@ -66,6 +66,7 @@ class RakuAST::CompUnit
 
         my $mainline := RakuAST::Block.new();
         $mainline.set-implicit-topic(0);
+        $mainline.set-no-implicit-match();
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
 
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name',

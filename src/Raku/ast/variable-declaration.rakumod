@@ -296,9 +296,12 @@ class RakuAST::ContainerCreator {
         # type itself as a value.
         $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
+        my int $isolated-match := self.lexical-name eq '$/'
+            && nqp::getcomp('Raku').language_revision >= 3;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
             RakuAST::IMPL::Containers.create-descriptor(
-                :$of, :$default, :$dynamic, :name(self.lexical-name)));
+                :$of, :$default, :$dynamic, :name(self.lexical-name),
+                :$isolated-match));
 
         Nil
     }
@@ -2770,7 +2773,10 @@ class RakuAST::VarDeclaration::Implicit::Special
             ),
             nqp::hash(  # 6.e
                 '$_', ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-                '$/', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                # The IsolatedMatch type marks the container so method forms
+                # such as .match leave it alone instead of writing the match
+                # into their caller's $/.
+                '$/', ContainerDescriptor::IsolatedMatch.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
                 '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             )
         );
@@ -2800,6 +2806,56 @@ class RakuAST::VarDeclaration::Implicit::Special
           :op('bind'),
           QAST::Var.new( :name(self.name), :scope('lexical') ),
           $source-qast
+        )
+    }
+}
+
+# The implicit match variable of a 6.e block: a fresh container per
+# invocation, initialized at entry from the topic when the topic is a
+# Match, and otherwise from the value of the enclosing $/. A regex
+# operator in the block then writes the block's own container, so
+# matching in one block never disturbs the match state of another frame,
+# and a block invoked with a Match reads that Match's captures.
+class RakuAST::VarDeclaration::Implicit::BlockMatch
+  is RakuAST::VarDeclaration::Implicit::Special
+{
+    # The declaration is emitted after the topic parameter so its entry
+    # initialization can read the topic, while lookups of $/ anywhere in
+    # the block are its uses. That order is not a post-declaration worth
+    # reporting.
+    method report-redeclaration() {
+        False
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        # The topic check is against NQPMatchRole rather than Match: the
+        # role is resolvable here at compile time, while a lexical lookup
+        # of the name Match would bind to any user type of that name.
+        QAST::Stmts.new(
+            QAST::Var.new(
+                :scope('lexical'), :decl('contvar'), :name(self.name),
+                :value($container)
+            ),
+            QAST::Op.new(
+                :op('p6assign'),
+                QAST::Var.new( :scope('lexical'), :name(self.name) ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :scope('lexical'), :name('$_') )
+                        ),
+                        QAST::WVal.new( :value(NQPMatchRole) )
+                    ),
+                    QAST::Var.new( :scope('lexical'), :name('$_') ),
+                    QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value(self.name) ) )
+                )
+            )
         )
     }
 }

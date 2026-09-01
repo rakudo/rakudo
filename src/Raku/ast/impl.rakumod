@@ -362,9 +362,19 @@ class RakuAST::IMPL::Archetypes {
 # nominals so STORE accepts NQP-typed values. Emulates create_container_descriptor
 # in src/Perl6/World.nqp.
 class RakuAST::IMPL::Containers {
-    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name) {
+    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name, int :$isolated-match) {
         my $d := nqp::eqaddr($default, Mu) ?? $of !! $default;
-        my $cd-type := nqp::eqaddr($of, Mu) ?? ContainerDescriptor::Untyped !! ContainerDescriptor;
+        # An untyped $/ in a 6.e scope is isolated no matter how it was
+        # declared: an explicit `my $/` gets the same marker descriptor as
+        # the implicit one, so method forms treat both alike. The marker
+        # is untyped, so a typed declaration such as `my Match $/` keeps
+        # the plain descriptor even when the flag is passed, and method
+        # forms write into it as they do for earlier revisions.
+        my $cd-type := nqp::eqaddr($of, Mu)
+            ?? $isolated-match
+                ?? ContainerDescriptor::IsolatedMatch
+                !! ContainerDescriptor::Untyped
+            !! ContainerDescriptor;
         $cd-type.new(:$of, :default($d), :$dynamic, :$name)
     }
 }

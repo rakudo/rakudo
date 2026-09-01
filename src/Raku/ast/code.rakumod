@@ -792,6 +792,7 @@ class RakuAST::Code
         my $resolver := $context.parse-time-resolver($!cuid);
         my $throwaway_block_ast := RakuAST::Block.new(:!implicit-topic);
         $throwaway_block_ast.set-implicit-topic(0);
+        $throwaway_block_ast.set-no-implicit-match();
         $throwaway_block_ast.to-begin-time($resolver, $context);
         my $throwaway_block_past := $throwaway_block_ast.IMPL-QAST-BLOCK($context, :blocktype<declaration>);
         $throwaway_block_past.name('!LEXICAL_FIXUP');
@@ -806,6 +807,7 @@ class RakuAST::Code
 
         # Set up capturing code.
         my $c_block_ast := RakuAST::Block.new(:!implicit-topic);
+        $c_block_ast.set-no-implicit-match();
         $c_block_ast.to-begin-time($resolver, $context);
         my $c_block := $c_block_ast.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
         $c_block.name('!LEXICAL_FIXUP_CSCOPE');
@@ -1659,6 +1661,11 @@ class RakuAST::Block
     # Should this block declare a fresh implicit `$/`?
     has int $!fresh-match;
 
+    # Set on blocks whose QAST merges into a frame that already declares
+    # the implicit specials, such as the compilation unit mainline, so
+    # they must not declare an implicit `$/` of their own.
+    has int $!no-implicit-match;
+
     # Should this block declare a fresh implicit `$!`?
     has int $!fresh-exception;
 
@@ -1982,6 +1989,11 @@ class RakuAST::Block
         nqp::bindattr_i(self, RakuAST::Block, '$!fresh-exception', $exception ?? 1 !! 0);
     }
 
+    method set-no-implicit-match() {
+        nqp::bindattr_i(self, RakuAST::Block, '$!no-implicit-match', 1);
+        Nil
+    }
+
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['block'])
     }
@@ -2013,7 +2025,11 @@ class RakuAST::Block
                     :exception);
             }
         }
-        if $!fresh-match {
+        if nqp::getcomp('Raku').language_revision >= 3 && !$!no-implicit-match {
+            nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::BlockMatch.new(:name('$/')))
+                unless self.IMPL-HAS-PARAMETER('$/');
+        }
+        elsif $!fresh-match {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
         }
         if $!fresh-exception {

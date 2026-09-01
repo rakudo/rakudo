@@ -1175,7 +1175,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # All of these !match methods take a nqp::getlexcaller value for the $/
     # to be set as the first parameter.  The second parameter is usually
     # the Match object to be used (or something from which a Match can
-    # be made).
+    # be made).  Each writing method routes that value through
+    # Rakudo::Internals.SLASH-WRITE-TARGET, so a 6.e caller's $/ is left
+    # alone.
 
     # Generic fallback for matching with a pattern
     method !match-pattern(Mu \slash, $pattern, str $name, $value, \opts) {
@@ -1264,7 +1266,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Match object at given position
     method !match-one(Mu \slash, \cursor) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
           ?? cursor.MATCH
           !! Nil;
@@ -1273,7 +1275,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Some object at given position
     method !match-as-one(Mu \slash, \cursor, \as) {
-        slash = my $match := nqp::if(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           nqp::if(nqp::istype(as,Str), &POST-STR, &POST-MATCH)(cursor),
           Nil
@@ -1283,7 +1285,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Create list from the appropriate Sequence given the move
     method !match-list(Mu \slash, \cursor, \move, \post) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
             ?? Seq.new(POST-ITERATOR.new(cursor, move, post)).list
             !! List.new;
@@ -1336,7 +1338,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give back the nth match found
     method !match-nth-int(Mu \slash, \cursor, \move, \post, int $nth) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
           ?? nqp::eqaddr(
               (my $pulled := POST-ITERATOR.new(cursor, move, post)
@@ -1351,7 +1353,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give back the N-tail match found
     method !match-nth-tail(Mu \slash, \cursor, \move, int $tail) {
-        slash = my $match := nqp::eqaddr(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::eqaddr(
           (my $pulled := Rakudo::Iterator.LastNValues(
             CURSOR-ITERATOR.new(cursor, move), $tail, 'match', 1
           ).pull-one),
@@ -1362,7 +1364,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give last value of given iterator, or Nil if none
     method !match-last(Mu \slash, \cursor, \move) {
-        slash = my $match := nqp::eqaddr(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::eqaddr(
           (my $pulled := Rakudo::Iterator.LastValue(
             CURSOR-ITERATOR.new(cursor, move), 'match')
           ),
@@ -1374,7 +1376,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # These !match methods take an iterator instead of a cursor.
     # Give list with matches found given a range with :nth
     method !match-nth-range(Mu \slash, \iterator, $min, $max) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           (my int $skip = $min),
           nqp::if(
             nqp::islt_i($skip,1),
@@ -1427,7 +1429,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give list with matches found given an iterator with :nth
     method !match-nth-iterator(Mu \slash, \source, \indexes) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           Seq.new(Rakudo::Iterator.MonotonicIndexes(
             source, indexes, 1,
             -> $got,$next {
@@ -1465,7 +1467,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::istype($x,Range),
               self!match-x-range(slash, $iterator, $x.min, $x.max),
               nqp::stmts(
-                (slash = Nil),
+                (Rakudo::Internals.SLASH-WRITE-TARGET(slash) = Nil),
                 X::Str::Match::x.new(:got($x)).Failure
               )
             )
@@ -1475,7 +1477,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give list with matches found given a range with :x
     method !match-x-range(Mu \slash, $iterator, $min, $max) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
           (my $matches := nqp::create(IterationBuffer)),
           nqp::until(
@@ -1639,7 +1641,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options
     ) {
         my $global = %options<g> || %options<global>;
-        my \caller_dollar_slash := nqp::getlexcaller('$/');
+        my \caller_dollar_slash :=
+          Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
@@ -1670,7 +1673,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result := nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))
             && nqp::isgt_i(nqp::elems($opts),1),
-          self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
+          self!SUBST(
+            Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
+            $original,$final,|%options),
           nqp::if(
             nqp::elems($opts),
             nqp::if(                                      # one named
@@ -1679,7 +1684,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::if(                                    # no trueish g/global
                 nqp::existskey($opts,'g') || nqp::existskey($opts,'global'),
                 Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final),
-                self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options)
+                self!SUBST(
+                  Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
+                  $original,$final,|%options)
               )
             ),
             Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final) # no nameds
@@ -1693,7 +1700,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method subst(Str:D: $matcher, $replacement = "", *%options) {
         nqp::istype(
           (my $result := self!SUBST(
-            nqp::getlexcaller('$/'),
+            Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
             $matcher,
             $replacement,
             |%options
@@ -3221,7 +3228,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         invalid-trans-arg(@specs.are) unless @specs.are(Pair);
 
         # Make sure we have a writable $/
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
         $/ := my $ unless nqp::iscont($/);
 
         # Set up needles and pins
@@ -3287,7 +3294,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my sub trans-with-nameds(Str:D $string, @specs, %_) {
 
         # Make sure we have access to the caller's lexical $/
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
 
         # Get the named arguments manually
         my int $complement = %_<c> // %_<complement> // 0;
@@ -3412,7 +3419,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               && self.chars;
 
         # Callables need access to the lexically visible $/ of the caller
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
 
         # Slow path for any nameds
         if nqp::elems(nqp::getattr(%_,Map,'$!storage')) {

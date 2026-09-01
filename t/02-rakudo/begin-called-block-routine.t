@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 32;
+plan 53;
 
 # The bind belongs to the RakuAST frontend, so the legacy frontend runs
 # none of this.
@@ -13,11 +13,11 @@ unless nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast'
 # A routine called at BEGIN time is compiled ahead of the unit, in a
 # compilation of its own whose outer is a snapshot of the compile-time
 # scope. A unit run as a script binds such a routine to the block of its
-# own compilation where the routine is declared, so a routine declared in
-# a block closes over the frame of the block at runtime and not over that
-# snapshot. Each case reads a lexical of an enclosing bare block, which
-# is what tells the two compilations apart. A lexical at unit scope
-# reads the same either way and would assert nothing.
+# own compilation where the routine is declared, so a routine declared
+# in a block closes over the frame of the block at runtime and not over
+# that snapshot. The cases that read a lexical read one of an enclosing
+# bare block, which is what tells the two compilations apart. A lexical
+# at unit scope reads the same either way and would assert nothing.
 
 {
     my $x = 5;
@@ -244,7 +244,228 @@ our $temporized = 1;
     sub hands-out-closure() { -> $y { { $y } } }
     my &saved = BEGIN hands-out-closure();
     is saved(9), 9,
-        'a closure a BEGIN-called sub handed out still runs once the sub is bound again';
+        'a closure handed out by a sub called at BEGIN time still runs once the sub is bound again';
+}
+
+# A loop clones its body block, and the clone copies that block's NEXT,
+# LAST, QUIT and CLOSE phasers, so such a phaser binds before the clone.
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-next() { for 1..2 { NEXT $seen = $x }; 1 }
+    BEGIN with-next();
+    $x = 7;
+    with-next();
+    is $seen, 7, 'a NEXT phaser of a loop in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-last() { for 1..2 { LAST $seen = $x }; 1 }
+    BEGIN with-last();
+    $x = 7;
+    with-last();
+    is $seen, 7, 'a LAST phaser of a loop in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    sub with-start() { start { $x } }
+    BEGIN with-start();
+    $x = 7;
+    is await(with-start()), 7,
+        'a start block in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    sub with-react() {
+        my @seen;
+        react { whenever supply { emit $x } -> $v { @seen.push($v); done } }
+        @seen[0]
+    }
+    BEGIN with-react();
+    $x = 7;
+    is with-react(), 7,
+        'a whenever block in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-while-next() { my $i = 0; while $i++ < 2 { NEXT $seen = $x }; 1 }
+    BEGIN with-while-next();
+    $x = 7;
+    with-while-next();
+    is $seen, 7,
+        'a NEXT phaser of a while loop in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-quit() {
+        react { whenever supply { die 'stop' } { QUIT { $seen = $x; done; True } } }
+        1
+    }
+    BEGIN { try with-quit() }
+    $x = 7;
+    try with-quit();
+    is $seen, 7, 'a QUIT phaser in a sub called at BEGIN time reads the runtime value';
+}
+
+# A statement prefix with a block body hands that block out as its code
+# object, so each prefix reaches the block through the same closure.
+
+{
+    my $x = 5;
+    sub with-gather() { gather { take $x } }
+    BEGIN with-gather().list;
+    $x = 7;
+    is with-gather().list[0], 7,
+        'a gather block in a sub called at BEGIN time takes the runtime value';
+}
+
+{
+    my $x = 5;
+    sub with-do() { do { $x } }
+    BEGIN with-do();
+    $x = 7;
+    is with-do(), 7, 'a do block in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    sub with-try-block() { try { $x } }
+    BEGIN with-try-block();
+    $x = 7;
+    is with-try-block(), 7,
+        'a try block in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    sub with-once() { once { $x } }
+    BEGIN with-once();
+    $x = 7;
+    is with-once(), 7, 'a once block in a sub called at BEGIN time reads the runtime value';
+}
+
+# A loop body that runs immediate has no clone of its own, so entering
+# the block is the only site its phasers bind at.
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-until-next() { my $i = 0; until $i++ >= 2 { NEXT $seen = $x }; 1 }
+    BEGIN with-until-next();
+    $x = 7;
+    with-until-next();
+    is $seen, 7,
+        'a NEXT phaser of an until loop in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-repeat-next() { my $i = 0; repeat { NEXT $seen = $x } while $i++ < 1; 1 }
+    BEGIN with-repeat-next();
+    $x = 7;
+    with-repeat-next();
+    is $seen, 7,
+        'a NEXT phaser of a repeat loop in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-loop-last() { loop (my $i = 0; $i < 2; $i++) { LAST $seen = $x }; 1 }
+    BEGIN with-loop-last();
+    $x = 7;
+    with-loop-last();
+    is $seen, 7,
+        'a LAST phaser of a loop statement in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-first-in-loop() { for 1..2 { FIRST $seen = $x }; 1 }
+    BEGIN with-first-in-loop();
+    $x = 7;
+    with-first-in-loop();
+    is $seen, 7,
+        'a FIRST phaser of a loop in a sub called at BEGIN time reads the runtime value';
+}
+
+our $let-restored = 1;
+{
+    my $x = 5;
+    my $seen;
+    sub with-let() { let $let-restored = $x; $seen = $let-restored; fail 'undo' }
+    BEGIN { try with-let() }
+    $x = 7;
+    try with-let();
+    is $seen, 7, 'a let in a sub called at BEGIN time assigns the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-close() {
+        my $tap = (supply { CLOSE { $seen = $x }; emit 1 }).tap;
+        $tap.close;
+        1
+    }
+    BEGIN with-close();
+    $x = 7;
+    $seen = Nil;
+    with-close();
+    is $seen, 7, 'a CLOSE phaser of a supply in a sub called at BEGIN time reads the runtime value';
+}
+
+# PRE and POST walk the same rebind list as the other phasers, and
+# UNDO rides the LEAVE order.
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-pre() { PRE { $seen = $x; True }; 1 }
+    BEGIN with-pre();
+    $x = 7;
+    with-pre();
+    is $seen, 7, 'a PRE phaser in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-post() { POST { $seen = $x; True }; 1 }
+    BEGIN with-post();
+    $x = 7;
+    with-post();
+    is $seen, 7, 'a POST phaser in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my $seen;
+    sub with-undo() { UNDO $seen = $x; fail 'undo' }
+    BEGIN { try with-undo() }
+    $x = 7;
+    try with-undo();
+    is $seen, 7, 'an UNDO phaser in a sub called at BEGIN time reads the runtime value';
+}
+
+{
+    my $x = 5;
+    my class WithMethod { method m() { $x } }
+    BEGIN WithMethod.m;
+    $x = 7;
+    is WithMethod.m, 7,
+        'a method of a class in a block called at BEGIN time reads the runtime value';
 }
 
 # A constant's value runs in a compilation of its own that holds the
@@ -281,3 +502,13 @@ our $temporized = 1;
     s/(.)/x/ for $modified;
     is $modified, 'x', 'a substitution under a for modifier runs from its enclosing scope';
 }
+
+# A runtime EVAL is itself a dynamic compilation.
+
+is EVAL(q[
+    my $x = 5;
+    sub evaled() { $x }
+    BEGIN evaled();
+    $x = 7;
+    evaled();
+]), 7, 'a sub called at BEGIN time inside a runtime EVAL reads the runtime value';

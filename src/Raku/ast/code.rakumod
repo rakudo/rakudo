@@ -163,9 +163,21 @@ class RakuAST::Code
         );
         self.IMPL-TWEAK-REGEX-CLONE($context, $clone) if $regex;
         my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
-        $!dynamically-compiled && !$context.is-precompilation-mode
-            ?? QAST::Stmts.new(self.IMPL-DYNAMIC-DO-REBIND-QAST($context), $closure)
-            !! $closure
+        if $!dynamically-compiled && !$context.is-precompilation-mode {
+            my $stmts := QAST::Stmts.new(self.IMPL-DYNAMIC-DO-REBIND-QAST($context));
+            # A block clone copies its NEXT, LAST, QUIT and CLOSE
+            # phasers, so those bind here. The block's own declarations
+            # run after the clone has taken its copy.
+            if nqp::istype(self, RakuAST::ScopePhaser) {
+                my $phaser-binds := self.IMPL-PHASER-DO-REBINDS($context, :captured);
+                $stmts.push($phaser-binds) if nqp::elems($phaser-binds.list);
+            }
+            $stmts.push($closure);
+            $stmts
+        }
+        else {
+            $closure
+        }
     }
 
     # A dynamic compilation binds the do it produced, whose outer is a
@@ -1487,34 +1499,48 @@ class RakuAST::ScopePhaser {
 
     # A phaser fires as the code object the routine holds, with no
     # closure site of its own, so a routine compiled dynamically binds
-    # each phaser's do to the running compilation on entry. A phaser
-    # node that is not code itself, such as QUIT, hands its blorst out
-    # as the code object.
-    method IMPL-PHASER-DO-REBINDS(RakuAST::IMPL::QASTContext $context) {
+    # each phaser's do to the running compilation at whichever site
+    # reaches the phaser. A thunked phaser shares its blorst's code
+    # object when the blorst is code, and a phaser that is not code
+    # itself, such as QUIT, hands its blorst out the same way. A
+    # thunked phaser whose blorst is a bare statement is itself the
+    # code object. In each case the rebind reads the node the dynamic
+    # compilation marked.
+    method IMPL-PHASER-DO-REBINDS(RakuAST::IMPL::QASTContext $context, :$captured) {
         my $stmts := QAST::Stmts.new;
         my @nodes;
-        for '$!ENTER', '$!FIRST', '$!NEXT', '$!LAST', '$!QUIT', '$!PRE', '$!POST', '$!CLOSE' {
+        # A block clone copies its NEXT, LAST, QUIT and CLOSE phasers,
+        # so a clone site binds those ahead of the clone. Entering the
+        # block binds them all, which is the only site a loop body that
+        # runs immediate, with no clone of its own, ever reaches. The
+        # captured names are the ones BOOTSTRAP !clone_phasers copies
+        # and !capture_phasers walks, and have to stay in step with them.
+        my @names := $captured
+            ?? ['$!NEXT', '$!LAST', '$!QUIT', '$!CLOSE']
+            !! ['$!ENTER', '$!FIRST', '$!NEXT', '$!LAST', '$!QUIT',
+                '$!CLOSE', '$!PRE', '$!POST'];
+        for @names {
             my $list := nqp::getattr(self, RakuAST::ScopePhaser, $_);
             if $list {
                 nqp::push(@nodes, $_) for $list;
             }
         }
-        if $!LEAVE-ORDER {
-            nqp::push(@nodes, $_[1]) for $!LEAVE-ORDER;
+        unless $captured {
+            if $!LEAVE-ORDER {
+                nqp::push(@nodes, $_[1]) for $!LEAVE-ORDER;
+            }
+            nqp::push(@nodes, $!let) if $!let;
+            nqp::push(@nodes, $!temp) if $!temp;
         }
-        nqp::push(@nodes, $!let) if $!let;
-        nqp::push(@nodes, $!temp) if $!temp;
         for @nodes {
-            # A thunked phaser with a block body shares that block's code
-            # object, so the block is the node the dynamic compilation
-            # marked. A phaser that is not code itself, such as QUIT,
-            # hands its blorst out as the code object too.
-            my $code := nqp::can($_, 'blorst') && nqp::istype($_.blorst, RakuAST::Code)
+            my $code := nqp::can($_, 'blorst') && nqp::istype($_.blorst, RakuAST::Block)
                 ?? $_.blorst
                 !! nqp::istype($_, RakuAST::Code) ?? $_ !! Mu;
+            # A phaser that is not code and holds no code blorst has no
+            # do of its own to rebind.
             next unless nqp::isconcrete($code);
-            $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
             if nqp::getattr_i($code, RakuAST::Code, '$!dynamically-compiled') {
+                $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                 $stmts.push($code.IMPL-DYNAMIC-DO-REBIND-QAST($context));
             }
         }

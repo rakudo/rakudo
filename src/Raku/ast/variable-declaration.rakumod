@@ -712,6 +712,7 @@ class RakuAST::VarDeclaration::Simple
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
     has RakuAST::Code        $!block;
+    has RakuAST::Package     $!unit-package;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -1046,6 +1047,14 @@ class RakuAST::VarDeclaration::Simple
             $block := $compunit.mainline if $compunit;
         }
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!block', $block);
+
+        # The body of a unit scoped package is entered once from the
+        # mainline, so its declarations get the mainline treatment. A role
+        # body runs per specialization, so it is left out.
+        my $package := $resolver.find-attach-target('package');
+        if $package && $package.scope eq 'unit' && !nqp::istype($package, RakuAST::Role) {
+            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!unit-package', $package);
+        }
 
         if self.is-attribute {
             # $_ is the attribute's current value; type it Mu so a value
@@ -1623,6 +1632,13 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
+    # Whether the declaration belongs to the mainline block or to the body
+    # of a unit scoped package, each of which runs exactly once.
+    method IMPL-IS-UNIT-SCOPED() {
+        nqp::isconcrete($*CU) && nqp::eqaddr($!block, $*CU.mainline)
+          || nqp::isconcrete($!unit-package) && nqp::eqaddr($!block, $!unit-package.body)
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
@@ -1682,8 +1698,7 @@ class RakuAST::VarDeclaration::Simple
                 }
             }
             else {
-                # Need to vivify the object. Note: maybe we want to drop the
-                # contvar, though we'll need an alternative for BEGIN.
+                # Need to vivify the object.
                 my $container := self.meta-object;
                 $context.ensure-sc($container);
                 my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
@@ -1697,9 +1712,12 @@ class RakuAST::VarDeclaration::Simple
                     )
                 }
                 else {
+                    # A unit scoped container lives in a frame entered once,
+                    # so it stays the serialized one that code run at BEGIN
+                    # time already resolves the variable to.
                     my $qast := QAST::Var.new(
-                        :scope('lexical'), :decl('contvar'), :name(self.name),
-                        :value($container)
+                        :scope('lexical'), :name(self.name), :value($container),
+                        :decl(self.IMPL-IS-UNIT-SCOPED ?? 'static' !! 'contvar')
                     );
                     if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
                         $qast := QAST::Op.new( :op('bind'), $qast,

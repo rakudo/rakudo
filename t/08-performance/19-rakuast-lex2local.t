@@ -14,26 +14,33 @@ plan 26;
 # reach by name at runtime, keeps its ordinary lexical declaration. Both
 # frontends lower, so these assertions hold for either.
 
-sub qast-var-decl (Mu $qast, Str:D $name, Str:D $decl --> Bool:D) {
-    if nqp::istype($qast, QAST::Var) && $qast.name eq $name && $qast.decl eq $decl {
+sub qast-var-decl (Mu $qast, Str:D $name, Str:D $decl, &value-ok? --> Bool:D) {
+    if nqp::istype($qast, QAST::Var) && $qast.name eq $name && $qast.decl eq $decl
+      && (!&value-ok || value-ok($qast.value)) {
         return True;
     }
     if qast-descendable $qast {
         for $qast.list {
-            qast-var-decl $_, $name, $decl and return True;
+            qast-var-decl($_, $name, $decl, &value-ok) and return True;
         }
     }
     False
 }
 
-# The sentinel that replaces a lowered declaration's by-name symbol.
-sub lowered-away (Mu $qast, Str:D $name --> Bool:D) {
-    qast-var-decl($qast, $name, 'static')
+sub is-sentinel (Mu $value --> Bool:D) {
+    so nqp::eqaddr(nqp::decont($value), Rakudo::Internals::LoweredAwayLexical)
 }
 
-# An ordinary containerized lexical declaration.
+# The sentinel that replaces a lowered declaration's by-name symbol.
+sub lowered-away (Mu $qast, Str:D $name --> Bool:D) {
+    qast-var-decl($qast, $name, 'static', &is-sentinel)
+}
+
+# A declaration whose container stays under its name, whichever decl
+# carries it.
 sub kept-lexical (Mu $qast, Str:D $name --> Bool:D) {
     qast-var-decl($qast, $name, 'contvar')
+      or qast-var-decl($qast, $name, 'static', -> Mu $value { !is-sentinel($value) })
 }
 
 qast-is 'my $x = 1; say $x', :full, -> \v {

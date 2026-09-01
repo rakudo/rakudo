@@ -1787,7 +1787,7 @@ class Perl6::World is HLL::World {
     # the type of container to install.
     method install_lexical_container($block, str $name, %cont_info, $descriptor,
             :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor),
-            :$init_removal) {
+            :$init_removal, :$magical) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -1851,7 +1851,15 @@ class Perl6::World is HLL::World {
 
         # Tweak var to have container.
         $var.value($cont);
-        $var.decl($scope eq 'state' ?? 'statevar' !! 'contvar');
+        # The unit block and the body of a unit scoped package each run once,
+        # so their containers stay the ones compile_in_context already hands
+        # to code run at BEGIN time. A magical stays cloned, since every
+        # block of the unit shares its master.
+        $var.decl($scope eq 'state'
+            ?? 'statevar'
+            !! ($block =:= $*UNIT || $block.ann('unit_body')) && !$magical
+                ?? 'static'
+                !! 'contvar');
 
         # Evaluate to the container.
         $cont
@@ -2194,7 +2202,7 @@ class Perl6::World is HLL::World {
         my %magical_cds := self.context().magical_cds();
 
         if nqp::atkey(%magical_cds, $name) -> @mcd {
-            self.install_lexical_container($block, $name, @mcd[0], @mcd[1], :cont(@mcd[2]));
+            self.install_lexical_container($block, $name, @mcd[0], @mcd[1], :cont(@mcd[2]), :magical);
         }
         else {
             my $Mu     := self.find_single_symbol_in_setting('Mu');
@@ -2215,7 +2223,7 @@ class Perl6::World is HLL::World {
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 
             %magical_cds{$name} := [%info, $desc, $cont];
-            self.install_lexical_container($block, $name, %info, $desc, :cont($cont));
+            self.install_lexical_container($block, $name, %info, $desc, :cont($cont), :magical);
         }
     }
 

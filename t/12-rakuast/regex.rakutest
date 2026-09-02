@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 56;
+plan 57;
 
 my $ast;
 my $deparsed;
@@ -772,6 +772,26 @@ subtest 'Match with a dba name' => {
     todo('the legacy frontend breaks matching on :dba', 1)
         unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
     match-ok "42", '42';
+}
+
+subtest 'Perl 5 regexes are rejected' => {
+    plan 2;
+
+    # rx:P5/o/
+    my $P5 := RakuAST::QuotedRegex.new(
+      body    => RakuAST::Regex::Literal.new("o"),
+      adverbs => RakuAST::ColonPair::True.new("P5")
+    );
+    throws-like { EVAL($P5) }, X::Syntax::Regex::P5,
+      'the :P5 adverb on a quoted regex is a compile time error';
+
+    # rx:!P5/o/
+    my $not-P5 := RakuAST::QuotedRegex.new(
+      body    => RakuAST::Regex::Literal.new("o"),
+      adverbs => RakuAST::ColonPair::False.new("P5")
+    );
+    throws-like { EVAL($not-P5) }, X::Syntax::Regex::P5,
+      'a negated :P5 adverb on a quoted regex is a compile time error as well';
 }
 
 # vim: expandtab shiftwidth=4

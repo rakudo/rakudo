@@ -1,8 +1,9 @@
 use lib <t/packages/Test-Helpers>;
+use nqp;
 use Test;
 use Test::Helpers;
 
-plan 30;
+plan 31;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -228,6 +229,24 @@ subtest 'constraint failure on an unpassed optional parameter explains the impli
         X::TypeCheck::Binding::Parameter,
         message => { not .contains('was not passed') },
         'an explicit default failing the constraint does not claim the parameter has none';
+}
+
+subtest 'Perl 5 regexes report they are not supported' => {
+    plan 4;
+
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        throws-like ｢"foo" ~~ m:P5/o+/｣, X::Syntax::Regex::P5,
+            'the :P5 adverb on a match is a compile time error';
+        throws-like ｢"foo" ~~ rx:Perl5/o+/｣, X::Syntax::Regex::P5,
+            'the :Perl5 adverb on an rx quote is a compile time error';
+        throws-like ｢my $x = "foo"; $x ~~ s:P5/o+/i/｣, X::Syntax::Regex::P5,
+            'the :P5 adverb on a substitution is a compile time error';
+        throws-like ｢"foo" ~~ m:!P5/o+/｣, X::Syntax::Regex::P5,
+            'a negated :P5 adverb is a compile time error as well';
+    }
+    else {
+        skip 'only the Raku AST grammar rejects Perl 5 regexes', 4;
+    }
 }
 
 # vim: expandtab shiftwidth=4

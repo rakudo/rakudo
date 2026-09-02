@@ -1,8 +1,9 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
+use nqp;
 use Test::Helpers;
 
-plan 30;
+plan 31;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -228,6 +229,104 @@ subtest 'constraint failure on an unpassed optional parameter explains the impli
         X::TypeCheck::Binding::Parameter,
         message => { not .contains('was not passed') },
         'an explicit default failing the constraint does not claim the parameter has none';
+}
+
+subtest 'a compile time problem shows the source around it' => {
+    plan 14;
+
+    throws-like ｢sub f(Int $x) { }; f("str")｣,
+        X::TypeCheck::Argument,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str")',
+        gist => *.contains('------> '),
+        'a check time sorry carries the source on either side of the problem';
+
+    throws-like ｢my $a = 1;
+sub f(Int $x) { }; f("str");
+my $b = 2｣,
+        X::TypeCheck::Argument,
+        line => 2,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str");',
+        'the source shown is cut to the line the problem is on';
+
+    throws-like "my \$a = 1;\r\nsub f(Int \$x) \{ }; f(\"str\");\r\nmy \$b = 2",
+        X::TypeCheck::Argument,
+        line => 2,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str");',
+        'a source with carriage return line endings is cut to the line too';
+
+    throws-like ｢my $aaaa = 1; my $bbbb = 2; my $cccc = 3; sub f(Int $x) { }; f("str"); my $dddd = 4; my $eeee = 5; my $ffff = 6｣,
+        X::TypeCheck::Argument,
+        pre  => { .chars == 40 && .ends-with('sub f(Int $x) { }; ') },
+        post => { .chars == 40 && .starts-with('f("str"); my $dddd') },
+        'each side of the source shown is cut to forty characters';
+
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        throws-like ｢my $a = 1; $a xx 2 :foo｣,
+            X::Syntax::Adverb,
+            pre  => 'my $a = 1; ',
+            post => '$a xx 2 :foo',
+            'the source is split where the node reporting the problem starts';
+
+        throws-like ｢my $a = 1;
+$a xx 2 :foo｣,
+            X::Syntax::Adverb,
+            pre  => '<BOL>',
+            'a problem at the start of a line names the line start';
+
+        throws-like ｢my $a = 1; $a xx 2 :foo
+｣,
+            X::Syntax::Adverb,
+            post => '$a xx 2 :foo',
+            'the source after the problem stops at the line end';
+
+        throws-like ｢BEGIN die "boom"｣,
+            X::Comp::BeginTime,
+            pre  => '<BOL>',
+            post => 'BEGIN die "boom"',
+            gist => *.contains('------> '),
+            'a BEGIN time failure carries the source of the BEGIN';
+
+        throws-like ｢my $a = 1; CHECK die "boom"; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; ',
+            post => 'CHECK die "boom"; my $b = 2',
+            'a CHECK time failure carries the source of the CHECK';
+
+        throws-like ｢my $a = 1; use Nope::Missing; my $b = 2｣,
+            X::CompUnit::UnsatisfiedDependency,
+            pre  => 'my $a = 1; ',
+            post => 'use Nope::Missing; my $b = 2',
+            'a failed module load carries the source of the use';
+
+        throws-like ｢my $a = 1; constant x = die "boom"; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; ',
+            post => 'constant x = die "boom"; my $b = 2',
+            'a constant whose value fails carries the source of the constant';
+
+        throws-like ｢my $a = 1; no worries (die "boom"); my $b = 2｣,
+            X::AdHoc,
+            pre  => 'my $a = 1; ',
+            post => 'no worries (die "boom"); my $b = 2',
+            'a pragma argument that fails carries the source of the pragma';
+
+        throws-like ｢my $a = 1; class A:auth(do { die "boom" }) { }; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; class A',
+            post => ':auth(do { die "boom" }) { }; my $b = 2',
+            'a colonpair value that fails carries the source of the colonpair';
+
+        throws-like ｢my $a = 1; $a xx 2 :foo; $a xx 3 :bar｣,
+            X::Comp::Group,
+            gist => { .comb('------> ').elems == 2 },
+            'each problem in a group shows its own source';
+    }
+    else {
+        skip 'the source split is placed by the RakuAST frontend', 10;
+    }
 }
 
 # vim: expandtab shiftwidth=4

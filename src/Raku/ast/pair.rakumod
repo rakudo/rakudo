@@ -408,15 +408,12 @@ class RakuAST::ColonPair::Value
         return $value if $!has-cached-value;
         # Not IMPL-INTERPRET-able; fall through to BEGIN-time evaluation.
         # The CATCH re-attaches the colonpair's source location because
-        # IMPL-BEGIN-TIME-EVALUATE attributes through self.origin, which
-        # is unset on the BeginTime type object we dispatch through.
+        # IMPL-BEGIN-TIME-EVALUATE locates through the BeginTime type
+        # object it is dispatched on, which has no origin.
         {
             CATCH {
                 my $ex := $resolver.convert-begin-time-exception($_);
-                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
-                    my $origin-match := $origin.as-match;
-                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                }
+                self.IMPL-LOCATE-EXCEPTION($ex);
                 $ex.rethrow;
             }
             $value := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(

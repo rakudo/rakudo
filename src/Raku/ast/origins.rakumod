@@ -203,6 +203,28 @@ class RakuAST::Origin::Source {
         self.location-of-pos($pos)[1]
     }
 
+    # The source on either side of a position, cut to the line the
+    # position is on and to a fixed width.
+    method prepost-of-pos(int $pos) {
+        my int $width := 40;
+        my int $chars := nqp::chars($!orig);
+        $pos := 0 if $pos < 0;
+        $pos := $chars if $pos > $chars;
+
+        my int $linestart := $pos - (self.original-line-column($pos)[1] - 1);
+        my int $prestart := $pos - $width;
+        $prestart := $linestart if $prestart < $linestart;
+        my str $pre := nqp::substr($!orig, $prestart, $pos - $prestart);
+        $pre := '<BOL>' if $pre eq '';
+
+        my int $postend := nqp::findcclass(nqp::const::CCLASS_NEWLINE,
+            $!orig, $pos, $pos + $width > $chars ?? $chars - $pos !! $width);
+        my str $post := nqp::substr($!orig, $pos, $postend - $pos);
+        $post := '<EOL>' if $post eq '';
+
+        [$pre, $post]
+    }
+
     # $from-to can be either NQPMatch, or Match, or RakuAST::Origin,
     # or anything else with .from/.to methods available
     method match-from($from-to) {

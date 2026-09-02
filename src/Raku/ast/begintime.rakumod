@@ -69,12 +69,7 @@ class RakuAST::BeginTime
 
             # Alas, need to rethrow wil line info if possible
             else {
-                if nqp::can($ex,'SET_FILE_LINE')
-                  && self
-                  && my $origin := self.origin {
-                    my $origin-match := $origin.as-match;
-                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                }
+                self.IMPL-LOCATE-EXCEPTION($ex);
                 $ex.rethrow;
             }
         }

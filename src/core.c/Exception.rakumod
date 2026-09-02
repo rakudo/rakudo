@@ -972,6 +972,10 @@ my role X::Comp is Exception {
         $!line     = $line;
         $!is-compile-time = True;
     }
+    method SET_PRE_POST($pre, $post) is implementation-detail {
+        $!pre  = $pre;
+        $!post = $post;
+    }
 }
 
 class X::Comp::Group is Exception {
@@ -1039,6 +1043,11 @@ my class X::Comp::BeginTime does X::Comp {
     multi method gist(::?CLASS:D: :$sorry = True) {
         my $r = $sorry ?? self.sorry_heading() !! "";
         $r ~= "$.message\nat $.filename():$.line";
+        if defined $.pre {
+            my ($red,$clear,$green,$yellow,$eject) =
+              Rakudo::Internals.error-rcgye;
+            $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear";
+        }
         for @.modules.reverse.skip {
             my $line = nqp::p6box_i($_<line>);
             $r ~= $_<module>.defined

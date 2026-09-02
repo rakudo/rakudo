@@ -466,10 +466,8 @@ class RakuAST::CompUnit
                     my $coercer := $lookups[3].resolution.compile-time-value;
                     $exception := $coercer($_);
                     my $wrapped := $BeginTime.new(:$exception, :use-case('evaluating a CHECK'));
-                    if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check) && (my $origin := $check-phaser.origin) {
-                        my $origin-match := $origin.as-match;
-                        $wrapped.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                    }
+                    $check-phaser.IMPL-LOCATE-EXCEPTION($wrapped)
+                        if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check);
                     $wrapped.throw;
                 }
             }
@@ -1128,6 +1126,8 @@ class RakuAST::BOOTException {
     has Hash $!opts;
     has Str $!filename;
     has Mu $!line;
+    has Str $!pre;
+    has Str $!post;
     method new(Str $message, %opts) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
@@ -1137,6 +1137,10 @@ class RakuAST::BOOTException {
     method SET_FILE_LINE($filename, $line) {
         nqp::bindattr(self, RakuAST::BOOTException, '$!filename', $filename);
         nqp::bindattr(self, RakuAST::BOOTException, '$!line', $line);
+    }
+    method SET_PRE_POST($pre, $post) {
+        nqp::bindattr(self, RakuAST::BOOTException, '$!pre', $pre);
+        nqp::bindattr(self, RakuAST::BOOTException, '$!post', $post);
     }
     # There is no sort op, and the NQP setting's sorted_keys is out of reach
     # here, so the keys are put in order by hand.
@@ -1174,6 +1178,8 @@ class RakuAST::BOOTException {
             ?? $!message ~ '(' ~ nqp::join(', ', @opts) ~ ')'
             !! $!message;
         $message := $message ~ ' at ' ~ $!filename ~ ':' ~ $!line if $!filename;
+        # The marker X::Comp prints while the setting compiles.
+        $message := $message ~ "\n------> " ~ $!pre ~ '<HERE>' ~ $!post if $!pre;
         $message
     }
     method gist(*%_) { nqp::hllizefor(self.message, 'Raku') }

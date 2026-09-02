@@ -58,6 +58,21 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
+    # A context whose chain of outers never reaches a setting is the
+    # compiler's own, as CALLER:: is inside a BEGIN block, and holds
+    # nothing the code could use. The setting of the compilation in
+    # progress stands in for it.
+    if $*CU && nqp::istype($*CU, RakuAST::CompUnit) {
+        my Mu $walk := $eval_ctx;
+        $walk := nqp::ctxouterskipthunks($walk)
+          until nqp::isnull($walk)
+            || nqp::existskey(nqp::ctxlexpad($walk), 'CORE-SETTING-REV');
+        if nqp::isnull($walk) {
+            my Mu $setting := $*CU.setting;
+            $eval_ctx := $setting if nqp::isconcrete($setting);
+        }
+    }
+
     # Compile a RakuAST comp-unit the rest of the way to a code object.
     # Only the RakuAST frontend's pipeline has a stage that lowers a
     # RakuAST tree, and this runs under either frontend, so the lowering

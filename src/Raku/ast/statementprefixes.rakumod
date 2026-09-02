@@ -255,6 +255,15 @@ class RakuAST::StatementPrefix::Thunky
                    $context, :$blocktype, :$expression)
     }
 
+    # A thunk with a block body hands out that block's code object, so
+    # the block is also the node carrying the dynamic compilation mark
+    # and the QAST block a closure of it binds.
+    method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
+        nqp::istype(self.blorst, RakuAST::Block)
+            ?? self.blorst.IMPL-CLOSURE-QAST($context, :$regex)
+            !! nqp::findmethod(RakuAST::Code, 'IMPL-CLOSURE-QAST')(self, $context, :$regex)
+    }
+
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         if nqp::istype(self.blorst, RakuAST::Block) {
             # Block already, so we need add nothing.
@@ -273,14 +282,7 @@ class RakuAST::StatementPrefix::Thunky
             QAST::Op.new( :op('call'), self.blorst.IMPL-TO-QAST($context) )
         }
         else {
-            my $block := self.meta-object;
-            $context.ensure-sc($block);
-            my $clone := QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($block) ).annotate_self('past_block', self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))).annotate_self('code_object', $block)
-            );
-            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
-            QAST::Op.new( :op('call'), $closure)
+            QAST::Op.new( :op('call'), self.IMPL-CLOSURE-QAST($context) )
         }
     }
 }

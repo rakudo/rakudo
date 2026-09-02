@@ -3,16 +3,16 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 116;
+plan 117;
 
 # A routine invoked at BEGIN time compiles ahead of the unit's optimize
 # walk and caches its QAST. That compilation runs its own optimize walk
 # and lowering first. The unit emission re-forms the cached block after
 # the unit's own walk, so a precompiled unit runs such routines with
-# the same lowerings as routines compiled in the ordinary order, while
-# a script runs the frames of the early compilation. The behavioral
-# tests hold on both frontends. The QAST shape tests are specific to
-# the RakuAST frontend.
+# the same lowerings as routines compiled in the ordinary order, and a
+# script binds such routines to the unit's own frames where they are
+# declared. The behavioral tests hold on both frontends. The QAST shape
+# tests are specific to the RakuAST frontend.
 
 # Dynamic compilation is per code object, so each method the BEGIN
 # block invokes compiles ahead of the optimize walk.
@@ -307,17 +307,19 @@ with-leave();
 is $left, 1,
     'a LEAVE phaser in a sub used at BEGIN fires once per runtime call';
 
-# On both frontends a FIRST phaser in a sub invoked at BEGIN fires
-# during that call, so a runtime call finds the trigger container
-# already set. This pins that the runtime frame consults the container
-# the BEGIN compilation minted, not a fresh one from a later formation.
+# A FIRST phaser in a sub invoked at BEGIN fires during that call. Under
+# the RakuAST frontend the script binds the sub to the unit's own
+# compilation at load, whose trigger container starts unset, so the
+# first runtime call fires the phaser again, as a precompiled unit does.
+# The legacy frontend keeps the trigger state of the BEGIN compilation.
 our $first-runs = 0;
 sub with-first() { FIRST $first-runs++; 'x' }
 BEGIN { with-first(); with-first() }
 with-first();
 with-first();
-is $first-runs, 0,
-    'the runtime frame consults the FIRST trigger container the BEGIN compilation minted';
+is $first-runs,
+    nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' ?? 1 !! 0,
+    'a FIRST phaser in a sub used at BEGIN fires once at runtime under the RakuAST frontend and not at all under the legacy frontend';
 
 # A placeholder signature takes the reset on its own signature object.
 sub ph { $^a + 1 }
@@ -382,6 +384,14 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         our sub nested-role-attr() { my role NA { has $.a = 42; method m() { $!a + 1 } }; my class NCA does NA { }; NCA.new.m }
         our $guarded-at-begin;
         our sub var-op() { my $s = 0; for 1..3 { $s = $s + $_ }; $s }
+        our &block-held;
+        {
+            my $bx = 5;
+            sub block-lexical() { $bx }
+            BEGIN block-lexical();
+            &block-held = &block-lexical;
+            $bx = 7;
+        }
         grammar PG { token TOP { ( "ab" | "a" | ( "b" ) ) } }
         BEGIN PG.parse("ab");
         class PC {
@@ -483,6 +493,8 @@ is EVAL(q[my class E { has int $!i; method m() { ++$!i } }; my $e := E.new; BEGI
         'a precompiled grammar parsed at BEGIN still captures its alternation';
     is ::('PrecompRemark::PG').parse("b")[0][0].Str, 'b',
         'a capturing group nested in another group survives precompilation of a BEGIN used grammar';
+    is &::('PrecompRemark::block-held')(), 7,
+        'a sub scoped to a bare block used at BEGIN reads the value the block assigns at load time';
     sub nuke(IO::Path $d) {
         for $d.dir { $_.d ?? nuke($_) !! $_.unlink }
         $d.rmdir;

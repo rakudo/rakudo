@@ -217,31 +217,12 @@ class RakuAST::StatementModifier::Without
   is RakuAST::StatementModifier::Condition
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        if nqp::istype($statement-qast, QAST::Block && $statement-qast.code_object.count) {
-            my $code-obj := $statement-qast.code_object;
-            $context.ensure-sc($code-obj);
-            my $clone := QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($code-obj) ).annotate_self('past_block', $statement-qast).annotate_self('code_object', $code-obj)
-            );
-            my $closure := QAST::Op.new( :op('p6capturelex'), $clone );
-
-            my $tested := QAST::Node.unique('without_tested');
+        if nqp::istype($statement-qast, QAST::Block) {
+            # It's a block, so just use the `without` compilation.
             QAST::Op.new(
-                :op('unless'),
-                QAST::Op.new(
-                    :op('callmethod'), :name('defined'),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
-                        self.expression.IMPL-TO-QAST($context),
-                    ),
-                ),
-                QAST::Op.new(
-                    :op('call'),
-                    $closure,
-                    QAST::Var.new( :name($tested), :scope('local') ),
-                ),
+                :op('without'),
+                self.expression.IMPL-TO-QAST($context),
+                $statement-qast,
                 self.IMPL-EMPTY($context)
             )
         }

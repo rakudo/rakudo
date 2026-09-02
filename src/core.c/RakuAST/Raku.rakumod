@@ -203,6 +203,9 @@ augment class RakuAST::Node {
           'match-immediately', -> {
               :match-immediately if self.match-immediately
           },
+          'may-have-signature', -> {
+              :may-have-signature if self.may-have-signature
+          },
           'meta', -> {
               my $meta := self.meta;
               :$meta if $meta
@@ -347,7 +350,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Block:D: --> Str:D) {
         self!add-WHY: self!nameds:
-          <implicit-topic required-topic exception body>
+          <implicit-topic required-topic exception may-have-signature body>
     }
 
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {

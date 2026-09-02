@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -185,6 +185,215 @@ subtest 'The postfix "without" statement works with a type object' => {
 
     is-deeply $deparsed, '.Str without Int', 'deparse';
     is-deeply $_, "", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "without" statement runs a zero-parameter block' => {
+    # -> { 42 } without Any
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Any')
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    42
+} without Any
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "without" statement passes the tested value to a block parameter' => {
+    # -> $param { $param } without Int
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            )
+          )
+        )
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $param {
+    $param
+} without Int
+CODE
+
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The postfix "without" statement skips a block for a defined false value' => {
+    # -> $param { $param } without 0
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>)
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            )
+          )
+        )
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::IntLiteral.new(0)
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $param {
+    $param
+} without 0
+CODE
+
+    # cannot put Empty as an entity in a for
+    is-deeply EVAL($ast), Empty, @type[$++];
+    is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
+}
+
+subtest 'A zero-parameter block keeps the topic of its outer scope' => {
+    # $_ = 666; -> { $_ } without Any
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(666)
+        ),
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::PointyBlock.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$_')
+              )
+            )
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::Without.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Any')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$_ = 666;
+-> {
+    $_
+} without Any
+CODE
+
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A bare block topicalizes the tested value' => {
+    # $_ = 666; { $_ } without Any
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(666)
+        ),
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$_')
+              )
+            )
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::Without.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Any')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$_ = 666;
+{
+    $_
+} without Any
+CODE
+
+    is-deeply $_, Any, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A placeholder block receives the tested value' => {
+    # { $^a } without Int
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Block.new(
+        may-have-signature => True,
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Placeholder::Positional.new('$a')
+            )
+          )
+        )
+      ),
+      condition-modifier => RakuAST::StatementModifier::Without.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+{
+    $^a
+} without Int
+CODE
+
+    is-deeply $_, Int, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

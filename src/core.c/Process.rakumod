@@ -82,7 +82,7 @@ augment class Rakudo::Internals {
     }
 
     my $initializers := nqp::hash(
-      '$*ARGFILES', my sub ARGFILES() is raw {
+      '$*ARGFILES', anon sub ARGFILES() is raw {
           PROCESS::<$ARGFILES> := do if @*ARGS -> @ARGS {
               if %*SUB-MAIN-OPTS<dash-as-STDIN> {
                   $_ = $*IN if $_ eq '-' for @ARGS;
@@ -94,23 +94,23 @@ augment class Rakudo::Internals {
           }
       },
 
-      '@*ARGS', my sub ARGS() is raw {
+      '@*ARGS', anon sub ARGS() is raw {
           my @ARGS;
           my Mu $argiter := nqp::getcurhllsym('$!ARGITER');
           @ARGS.push(nqp::p6box_s(nqp::shift($argiter))) while $argiter;
           PROCESS::<@ARGS> := @ARGS
       },
 
-      '$*COLLATION', my sub COLLATION() is raw {
+      '$*COLLATION', anon sub COLLATION() is raw {
           PROCESS::<$COLLATION> := Collation.new
       },
 
-      '$*DEFAULT-READ-ELEMS', my sub DEFAULT-READ-ELEMS() is raw {
+      '$*DEFAULT-READ-ELEMS', anon sub DEFAULT-READ-ELEMS() is raw {
           PROCESS::<$DEFAULT_READ_ELEMS> :=
             %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
       },
 
-      '$*DISTRO', my sub DISTRO() is raw {
+      '$*DISTRO', anon sub DISTRO() is raw {
 #?if jvm
           my $properties := VM.new.properties;
           my $name       := $properties<os.name>;
@@ -210,7 +210,7 @@ augment class Rakudo::Internals {
           );
       },
 
-      '%*ENV', my sub ENV() is raw {
+      '%*ENV', anon sub ENV() is raw {
           my %env;
           my $iter := nqp::iterator(nqp::getenvhash);
           nqp::while(
@@ -223,7 +223,7 @@ augment class Rakudo::Internals {
           PROCESS::<%ENV> := %env
       },
 
-      '$*EXECUTABLE', my sub EXECUTABLE() is raw {
+      '$*EXECUTABLE', anon sub EXECUTABLE() is raw {
           PROCESS::<$EXECUTABLE> := IO::Path.new(:CWD(INIT nqp::cwd()),
             nqp::execname()
 #?if jvm
@@ -240,11 +240,11 @@ augment class Rakudo::Internals {
         )
       },
 
-      '$*EXECUTABLE-NAME', my sub EXECUTABLE-NAME() is raw {
+      '$*EXECUTABLE-NAME', anon sub EXECUTABLE-NAME() is raw {
           PROCESS::<$EXECUTABLE-NAME> := $*EXECUTABLE.basename
       },
 
-      '&*EXIT', my sub EXIT() is raw {
+      '&*EXIT', anon sub EXIT() is raw {
           PROCESS::<&EXIT> := my sub exit($status) {
               state $exit = $status;  # first call to exit sets value
 
@@ -255,11 +255,11 @@ augment class Rakudo::Internals {
           }
       },
 
-      '$*GROUP', my sub GROUP() is raw {
+      '$*GROUP', anon sub GROUP() is raw {
           Rakudo::Internals.FETCH-USER-GROUP('$GROUP')
       },
 
-      '$*HOME', my sub HOME() is raw {
+      '$*HOME', anon sub HOME() is raw {
           my $HOME is default(Nil);
 
           if %*ENV<HOME> -> $home {
@@ -276,7 +276,7 @@ augment class Rakudo::Internals {
             !! $HOME # keep Nil default
       },
 
-      '$*INIT-INSTANT', my sub INIT-INSTANT() is raw {
+      '$*INIT-INSTANT', anon sub INIT-INSTANT() is raw {
           PROCESS::<$INIT-INSTANT> := nqp::p6bindattrinvres(
             nqp::create(Instant),
             Instant,
@@ -287,31 +287,31 @@ augment class Rakudo::Internals {
           )
       },
 
-      '$*KERNEL', my sub KERNEL() is raw {
+      '$*KERNEL', anon sub KERNEL() is raw {
           PROCESS::<KERNEL> := Kernel.new
       },
 
       # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
       # my $perl := BEGIN Perl.new;
-      '$*PERL', my sub PERL() is raw {
+      '$*PERL', anon sub PERL() is raw {
           PROCESS::<$PERL> := Raku.new
       },
 
-      '$*PROGRAM', my sub PROGRAM() is raw {
+      '$*PROGRAM', anon sub PROGRAM() is raw {
           PROCESS::<$PROGRAM> :=
             IO::Path.new(:CWD(INIT nqp::cwd()), $*PROGRAM-NAME)
       },
 
-      '$*PROGRAM-NAME', my sub PROGRAM-NAME() is raw {
+      '$*PROGRAM-NAME', anon sub PROGRAM-NAME() is raw {
           PROCESS::<PROGRAM-NAME> :=
             my $ = nqp::getcomp('Raku').user-progname;
       },
 
-      '$*RAKU', my sub RAKU() is raw {
+      '$*RAKU', anon sub RAKU() is raw {
           PROCESS::<$RAKU> := Raku.new
       },
 
-      '$*RAKUDO_MODULE_DEBUG', my sub RAKUDO_MODULE_DEBUG() is raw {
+      '$*RAKUDO_MODULE_DEBUG', anon sub RAKUDO_MODULE_DEBUG() is raw {
           PROCESS::<$RAKUDO_MODULE_DEBUG> := ?%*ENV<RAKUDO_MODULE_DEBUG>
             ?? -> *@str --> Nil {
                    state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
@@ -340,7 +340,7 @@ augment class Rakudo::Internals {
               !! False
       },
 
-          '$*REPO', my sub REPO() is raw {
+          '$*REPO', anon sub REPO() is raw {
               my $repo := PROCESS::<$REPO> :=
                 CompUnit::RepositoryRegistry.setup-repositories;
 
@@ -356,7 +356,7 @@ augment class Rakudo::Internals {
               PROCESS::<$REPO>
           },
 
-          '$*SCHEDULER', my sub SCHEDULER() is raw {
+          '$*SCHEDULER', anon sub SCHEDULER() is raw {
 #?if !js
               PROCESS::<$SCHEDULER> := ThreadPoolScheduler.new
 #?endif
@@ -366,7 +366,7 @@ augment class Rakudo::Internals {
 #?endif
           },
 
-          '$*THREAD', my sub THREAD() is raw {
+          '$*THREAD', anon sub THREAD() is raw {
               my $init_thread := nqp::create(Thread);
               nqp::bindattr(
                 $init_thread,Thread,'$!vm_thread',Rakudo::Internals.INITTHREAD
@@ -376,15 +376,15 @@ augment class Rakudo::Internals {
               PROCESS::<$THREAD> := $init_thread
           },
 
-          '$*TMPDIR', my sub TMPDIR() is raw {
+          '$*TMPDIR', anon sub TMPDIR() is raw {
               PROCESS::<$TMPDIR> := my IO $ = $*SPEC.tmpdir
           },
 
-          '$*TOLERANCE', my sub TOLERANCE() is raw {
+          '$*TOLERANCE', anon sub TOLERANCE() is raw {
               PROCESS::<$TOLERANCE> := my $ = 1e-15
           },
 
-          '$*TZ', my sub TZ is raw {
+          '$*TZ', anon sub TZ is raw {
               PROCESS::<$TZ> := Proxy.new(
                 FETCH => -> $ {
                     Rakudo::Internals.GET-LOCAL-TIMEZONE-OFFSET
@@ -396,11 +396,11 @@ augment class Rakudo::Internals {
               )
           },
 
-          '$*USER', my sub USER() is raw {
+          '$*USER', anon sub USER() is raw {
               Rakudo::Internals.FETCH-USER-GROUP('$USER')
           },
 
-          '$*VM', my sub VM() is raw { PROCESS::<$VM> := VM.new }
+          '$*VM', anon sub VM() is raw { PROCESS::<$VM> := VM.new }
     );
 
     method REGISTER-DYNAMIC(

@@ -59,9 +59,13 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
     # Compile a RakuAST comp-unit the rest of the way to a code object.
-    # IMPL-TO-QAST-COMP-UNIT runs outside the compiler's qast stage here,
-    # so bind the dynamic that stage provides, and run the comp-unit's
-    # cleanup even when a later stage throws.
+    # Only the RakuAST frontend's pipeline has a stage that lowers a
+    # RakuAST tree, and this runs under either frontend, so the lowering
+    # happens here with the $*COMPILING_CORE_SETTING that stage would
+    # bind, and compilation resumes after the last stage that produces
+    # QAST. Link the code objects to their coderefs as the compiler does
+    # for a unit it lowers itself, and run the comp-unit's cleanup even
+    # when a later stage throws.
     my sub compile-rakuast-comp-unit($comp-unit) {
         LEAVE $comp-unit.cleanup;
         my $*COMPILING_CORE_SETTING := 0;
@@ -151,27 +155,13 @@ $lang = 'Raku' if $lang eq 'perl6';
 
         my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
         my $*INSIDE-EVAL := 1;
-        # The RakuAST frontend (the only frontend with a qast stage) stops
-        # at the AST so the comp-unit can take the same finishing path as
-        # AST EVAL, fixing up code objects to survive an enclosing
-        # compilation's precomp and wrapping nested EVAL output.
-        my $rakuast-frontend := $compiler.exists_stage('qast');
-        my $result := $compiler.compile:
+        $compiled := $compiler.compile:
             $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
             :language_version(nqp::getcomp('Raku').language_version),
-            |(%(:target('ast'), :compunit_ok(1)) if $rakuast-frontend),
             |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
             |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
-        # Stopping at the AST skips the optimize stage that sits between it
-        # and the QAST stage, so that stage runs here.
-        $result := $compiler.optimize($result,
-            |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>))
-            if $rakuast-frontend;
-        $compiled := $rakuast-frontend
-            ?? compile-rakuast-comp-unit($result)
-            !! $result;
     }
 
     if $check {

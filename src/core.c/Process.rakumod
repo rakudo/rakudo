@@ -458,16 +458,17 @@ augment class Rakudo::Internals {
               $process.AT-KEY($key),      # yes, so use that
               nqp::if(                    # attempt to fetch init code
                 nqp::isnull(
-                  (my $code := nqp::ifnull(
-                    nqp::atkey(
-                      $initializers,
-                      nqp::concat(
-                        nqp::getcomp('Raku').language_version,
-                        nqp::concat("\0",$name)
-                      )
-                    ),
-                    nqp::atkey($initializers,$name)
-                  ))
+                  (my $code := nqp::atkey($initializers,$name))
+#                  (my $code := nqp::ifnull(
+#                    nqp::atkey(
+#                      $initializers,
+#                      nqp::concat(
+#                        nqp::getcomp('Raku').language_version,
+#                        nqp::concat("\0",$name)
+#                      )
+#                    ),
+#                    nqp::atkey($initializers,$name)
+#                  ))
                 ),
                 dynamic-not-found($key, $name),   # alas, no init code
                 nqp::stmts(                       # haz init code

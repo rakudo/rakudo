@@ -216,14 +216,18 @@ class RakuAST::Resolver {
     }
 
     # Obtains the current package. This is not a RakuAST::Package node, but
-    # rather the type object of the package we are currently in.
+    # rather the type object of the package we are currently in. The walk
+    # over the outer contexts ends at the first one declaring $?PACKAGE, at
+    # the setting itself, or when the contexts run out, and falls back to
+    # GLOBAL. A context reached by walking is a fresh object, so the
+    # setting check only matches when the outer context is the setting.
     method current-package() {
         if nqp::elems($!packages) {
             $!packages[nqp::elems($!packages) - 1].compile-time-value
         }
         else {
             my $current := $!outer;
-            until nqp::eqaddr($current, $!setting) {
+            until nqp::isnull($current) || nqp::eqaddr($current, $!setting) {
                 return nqp::atkey($current, '$?PACKAGE')
                   if nqp::existskey($current, '$?PACKAGE');
                 $current := nqp::ctxouterskipthunks($current);
@@ -1500,13 +1504,23 @@ class RakuAST::Resolver::Compile
         # first, but lexicals living in an already-running caller frame
         # (like $/ and $!) are only reachable through the runtime context
         # chain, which also ends in the setting.
-        self.new(
+        my $obj := self.new(
             :$setting,
             :outer($context),
             :$global,
             :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
             :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),
-        )
+        );
+        # The EVAL is in the package its context declares, and otherwise in
+        # the package of the enclosing compilation, which a setting context
+        # cannot name.
+        if $resolver {
+            my $package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
+            nqp::bindattr($obj, RakuAST::Resolver, '$!packages', $package
+                ?? [$package]
+                !! nqp::clone(nqp::getattr($resolver, RakuAST::Resolver, '$!packages')));
+        }
+        $obj
     }
 
     method clone() {

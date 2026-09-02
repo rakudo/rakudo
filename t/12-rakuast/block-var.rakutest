@@ -1,4 +1,5 @@
 use v6.e.PREVIEW;
+use MONKEY-SEE-NO-EVAL;
 use Test;
 
 # &?BLOCK names the innermost enclosing real block, and a control-flow branch
@@ -7,7 +8,7 @@ use Test;
 # must hold whether or not the branch is compiled as its own frame, so each
 # case pairs the reference with a smartmatch, which forces a branch frame.
 
-plan 8;
+plan 12;
 
 {
     sub s($p) { if $p { &?BLOCK } else { Nil } }
@@ -76,5 +77,14 @@ plan 8;
     is @emitted.elems, 2,
       'the self-continuation emits one result per group, not one per value';
 }
+
+# A unit's mainline takes no parameters, and its code object carries an
+# empty signature rather than none, so introspection reads it like any
+# other block's.
+ok &?BLOCK.signature.defined, '&?BLOCK at unit scope has a signature';
+is &?BLOCK.arity, 0, '&?BLOCK at unit scope has arity 0';
+is &?BLOCK.count, 0, '&?BLOCK at unit scope has count 0';
+is EVAL(Q[&?BLOCK.signature.params.elems]), 0,
+  "an EVAL unit's &?BLOCK has an empty signature";
 
 # vim: expandtab shiftwidth=4

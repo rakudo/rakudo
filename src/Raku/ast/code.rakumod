@@ -2293,6 +2293,16 @@ class RakuAST::Block
             nqp::bindattr($sig, Signature, '$!code', $block);
             nqp::bindattr($block, Code, '$!signature', $sig);
         }
+        # Code.arity and Code.count read the signature unguarded, so a block
+        # with neither gets an empty one.
+        else {
+            my $sig := nqp::create(Signature);
+            nqp::bindattr($sig, Signature, '@!params', []);
+            nqp::bindattr_i($sig, Signature, '$!arity', 0);
+            nqp::bindattr($sig, Signature, '$!count', nqp::box_i(0, Int));
+            nqp::bindattr($sig, Signature, '$!code', $block);
+            nqp::bindattr($block, Code, '$!signature', $sig);
+        }
         self.add-phasers-to-code-object($block);
         $block
     }

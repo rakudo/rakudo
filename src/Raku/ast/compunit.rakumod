@@ -184,6 +184,9 @@ class RakuAST::CompUnit
     # Perform all outstanding BEGIN-time activities on the compilation unit.
     # This implies outstanding parse-time activities.
     method begin(RakuAST::Resolver $resolver) {
+        # A unit built rather than parsed first meets its resolver here.
+        nqp::bindattr(self, RakuAST::CompUnit, '$!resolver', $resolver)
+          unless nqp::isconcrete($!resolver);
         $!mainline.IMPL-BEGIN($resolver, $!context);
         self.IMPL-BEGIN($resolver, $!context);
     }
@@ -513,6 +516,18 @@ class RakuAST::CompUnit
         # it as the current package.
         if $!is-eval {
             add(RakuAST::VarDeclaration::Implicit::BlockTopic.new(:!parameter));
+            # A setting context declares no $?PACKAGE, and the unit then
+            # declares its own for the package the resolver stands in.
+            if nqp::isconcrete($!resolver)
+              && !$!resolver.resolve-lexical-constant-in-outer('$?PACKAGE') {
+                my $package := $!resolver.current-package;
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?PACKAGE', value => $package
+                ));
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?PACKAGE', value => $package
+                ));
+            }
         }
         else {
             my $global := RakuAST::Package.new(

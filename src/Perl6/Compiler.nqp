@@ -234,6 +234,32 @@ class Perl6::Compiler is HLL::Compiler {
         $super(self, |@args, |%options);
     }
 
+    # An EVAL's code objects live in the enclosing compilation's
+    # serialization context, so the coderefs the backend produces for them
+    # have to be linked back once the pipeline has run, or an enclosing
+    # precompilation serializes code its loader cannot find. The stage
+    # that lowers the tree records the comp unit when that unit is an
+    # EVAL. A compile that starts past that stage records nothing: its
+    # caller built the QAST and owns the linking. Only a compile that runs
+    # to the final stage hands back a compilation unit to link.
+    method compile($source, :$from, *%adverbs) {
+        my $*RAKUAST-EVAL-COMP-UNIT := NQPMu;
+        my %options := nqp::clone(%adverbs);
+        %options<compunit_ok> := 1;
+        my $super := nqp::findmethod(HLL::Compiler, 'compile');
+        my $result := $super(self, $source, :$from, |%options);
+
+        my $comp-unit := $*RAKUAST-EVAL-COMP-UNIT;
+        my str $target := nqp::lc(%adverbs<target>);
+        my @stages := self.stages();
+        if nqp::isconcrete($comp-unit)
+          && ($target eq '' || $target eq @stages[nqp::elems(@stages) - 1]) {
+            $comp-unit.context.IMPL-FIXUP-COMPILED-CODEREFS(
+                nqp::compunitcodes($result));
+        }
+        %adverbs<compunit_ok> ?? $result !! self.backend.compunit_mainline($result)
+    }
+
     # The stage whose output is the finished QAST tree. Compilation that
     # starts with an already-built QAST tree passes this as the :from stage.
     # The legacy frontend produces its final QAST in its optimize stage, the
@@ -297,7 +323,21 @@ class Perl6::Compiler is HLL::Compiler {
         # such EVALs don't compile into an ephemeral context that breaks
         # precompilation.
         my $*CU := $rakuast;
-        my $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
+        $*RAKUAST-EVAL-COMP-UNIT := $rakuast
+            if $rakuast.is-eval && !nqp::isnull(nqp::getlexdyn('$*RAKUAST-EVAL-COMP-UNIT'));
+        # The cleanup nulls the compiler state stubbed code objects carry.
+        # An EVAL's code objects sit in the enclosing compilation's
+        # serialization context, so a lowering that throws still runs it,
+        # and a failure in the cleanup itself must not hide the error
+        # that got here.
+        my $comp_unit;
+        {
+            $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
+            CATCH {
+                try { $rakuast.cleanup() }
+                nqp::rethrow($_);
+            }
+        }
         $rakuast.cleanup();
         $comp_unit;
     }

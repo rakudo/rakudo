@@ -849,16 +849,21 @@ class RakuAST::StatementPrefix::Phaser::Enter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::Enter, '$!result-name',
-            ($resolver.find-attach-target('block')
-              // $resolver.find-attach-target('compunit')
-            ).add-enter-phaser(self)
-        );
+        ($resolver.find-attach-target('block')
+          // $resolver.find-attach-target('compunit')
+        ).add-enter-phaser(self);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 
-    method IMPL-RESULT-NAME() {
+    # The name of the lexical the enclosing scope declares for this
+    # phaser's result, handed over when the scope takes the phaser.
+    method result-name() {
         $!result-name
+    }
+
+    method set-result-name(str $name) {
+        nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::Enter, '$!result-name', $name);
+        Nil
     }
 
     # Call the phaser's code object directly rather than a fresh clone per

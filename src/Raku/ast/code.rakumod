@@ -1290,11 +1290,14 @@ class RakuAST::ScopePhaser {
         self.IMPL-ADD-PHASER-TO-LEAVE-ORDER('UNDO', $phaser);
     }
 
-    method add-enter-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
+    # The scope names the phaser's result lexical here. A phaser node
+    # added outside a parse never reaches begin time, so it has to supply
+    # its own meta-object.
+    method add-enter-phaser(RakuAST::StatementPrefix::Phaser::Enter $phaser) {
         self.add-phaser('ENTER', $phaser);
-        my $result-name := '__enter_phaser_result_' ~ $!next-enter-phaser-result;
+        $phaser.set-result-name('__enter_phaser_result_' ~ $!next-enter-phaser-result);
         nqp::bindattr_i(self, RakuAST::ScopePhaser, '$!next-enter-phaser-result', $!next-enter-phaser-result + 1);
-        $result-name
+        Nil
     }
 
     method set-needs-result(Bool $needs-result) {
@@ -1484,7 +1487,7 @@ class RakuAST::ScopePhaser {
             my %seen;
             if $!ENTER {
                 for $!ENTER {
-                    my $result-name := $_.IMPL-RESULT-NAME;
+                    my $result-name := $_.result-name;
                     $enter-setup.push(
                       QAST::Op.new(
                         :op<bind>,

@@ -217,8 +217,4 @@ class Kernel does Systemic {
     }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {
-    PROCESS::<$KERNEL> := Kernel.new;
-}
-
 # vim: expandtab shiftwidth=4

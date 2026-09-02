@@ -1171,82 +1171,6 @@ my class Rakudo::Internals is implementation-detail {
         )
     }
 
-    my $initializers;
-#nqp::print("running mainline\n");
-#method INITIALIZERS() { $initializers }
-
-    method REGISTER-DYNAMIC(
-      str $name,
-      &code,
-      str $version = '6.c',
-      :$override
-    --> Nil) {
-#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
-#nqp::say("$id: Registering $name");
-        $initializers := nqp::hash unless $initializers;
-        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
-
-        nqp::if(
-          $override,
-          nqp::stmts(
-            nqp::bindkey($initializers,$with,&code),
-            nqp::bindkey($initializers,$name,&code)
-          ),
-          nqp::stmts(
-            nqp::if(
-              nqp::existskey($initializers,$with),
-              (die "Already have initializer for '$name' ('$version')"),
-              nqp::bindkey($initializers,$with,&code)
-            ),
-            nqp::unless(  # first come, first kept
-              nqp::existskey($initializers,$name),
-              nqp::bindkey($initializers,$name,&code)
-            )
-          )
-        )
-    }
-    my $dynamics-not-found := nqp::hash;
-    sub dynamic-not-found(str $key, str $name) {
-#nqp::say("failed: $name");
-        nqp::ifnull(
-          nqp::atkey($dynamics-not-found,$key),
-          nqp::bindkey($dynamics-not-found,$key,
-            X::Dynamic::NotFound.new(:$name).Failure
-          )
-        )
-    }
-    my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
-    method INITIALIZE-DYNAMIC(str $name, @deprecation?) is raw {
-        my str $key = nqp::replace($name,1,1,'');
-        $DYNAMIC-INITIALIZATION-LOCK.protect: {
-#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
-#nqp::say("$id: Initializing $name");
-            PROCESS::.EXISTS-KEY($key)   # beat another thread us to it?
-              ?? PROCESS::.AT-KEY($key)  # yes, so just return that
-              !! nqp::isnull(
-                   my $code := nqp::ifnull(
-                     nqp::atkey(
-                       $initializers,
-                       nqp::concat(
-                         nqp::getcomp('Raku').language_version,
-                         nqp::concat("\0",$name)
-                       )
-                     ),
-                     nqp::atkey($initializers,$name)
-                   )
-                 ) ?? dynamic-not-found($key, $name)
-                   !! do {
-                       Rakudo::Deprecations.DEPRECATED(@deprecation[1],
-                                                       '6.' ~ @deprecation[0],
-                                                       :what($name),
-                                                       :file(@deprecation[2]),
-                                                       :line(@deprecation[3]))
-                        if @deprecation;
-                       $code()
-                   }
-        }
-    }
-
     my int $VERBATIM-EXCEPTION = 0;
     method VERBATIM-EXCEPTION($set?) {
         my int $value = $VERBATIM-EXCEPTION;
@@ -1886,16 +1810,6 @@ my constant $?BITS = nqp::objprimbits(int);
 # we need this to run *after* the mainline of Rakudo::Internals has run
 PROCESS::<$EXIT> = 0;
 PROCESS::<$EXCEPTION> = Exception;
-Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
-    PROCESS::<&EXIT> := sub exit($status) {
-        state $exit = $status;  # first call to exit sets value
-
-        $*EXIT = $exit;
-        nqp::getcurhllsym('&THE_END')()
-          ?? $exit
-          !! nqp::exit(nqp::unbox_i($exit.Int))
-    }
-}
 
 proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }

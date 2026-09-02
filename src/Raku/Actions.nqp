@@ -2395,7 +2395,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             || nqp::eqat($file,'-',0) # '-e', '-'
             || nqp::eqat($file,':',1) # Windows drive letter
             || nqp::eqat($file,'<',0) # '<unknown file>'
-            || nqp::isconcrete(nqp::atkey(%*COMPILING<%?OPTIONS>,'outer_ctx'))
+            || $file ~~ /^ 'EVAL_' \d+ $/ # an EVAL's pseudo-file
             ?? $file
             !! nqp::cwd() ~ '/' ~ $file
         )

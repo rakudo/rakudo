@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
 use Test;
+use nqp;
 
-plan 36; # Do not change this file to done-testing because of END block tests
+plan 39; # Do not change this file to done-testing because of END block tests
 
 my $ast;
 my $deparsed;
@@ -1666,6 +1667,72 @@ CODE
           phaser  => "POST",
           "$type: POST phaser throws";
         is-deeply $post, $result, "$type: POST actually ran";
+    }
+}
+
+subtest 'ENTER phaser subclass added to a scope outside a parse' => {
+    plan 2;
+
+    # The scope declares a lexical for each ENTER phaser's result under a
+    # name it hands the phaser when taking it, so two phasers added this
+    # way need two names.
+    my class MyEnter is RakuAST::StatementPrefix::Phaser::Enter {
+        has $.code is rw;
+        method meta-object() { $!code }
+    }
+    my @ran;
+    my $block = RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+    for <first second> -> $tag {
+        my $phaser = MyEnter.new(RakuAST::Block.new);
+        $phaser.code = { @ran.push($tag) };
+        $block.add-enter-phaser($phaser);
+    }
+    is EVAL(RakuAST::StatementPrefix::Do.new($block)), 42,
+      'block with two subclass ENTER phasers returns its value';
+    is-deeply @ran, [<first second>],
+      'each subclass phaser meta-object was called';
+}
+
+subtest 'two ENTER phasers in one scope keep their own values' => {
+    plan 1;
+    is-deeply EVAL(q[{ my $a = ENTER 'a'; my $b = ENTER 'b'; ($a, $b) }()]),
+      ('a', 'b'),
+      'each ENTER result reads back its own lexical';
+}
+
+subtest 'ENTER phaser subclass added to the compilation unit at BEGIN' => {
+    plan 1;
+    # A string compiles with the running frontend, and only the RakuAST
+    # frontend has a compilation unit node to add to.
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') ne 'rakuast' {
+        skip 'the legacy frontend has no RakuAST compilation unit', 1;
+    }
+    else {
+    my $code = q:to/CODE/;
+        use experimental :rakuast;
+        my class UnitEnter is RakuAST::StatementPrefix::Phaser::Enter {
+            has $.code is rw;
+            method meta-object() { $!code }
+        }
+        my @ran;
+        BEGIN {
+            my $phaser = UnitEnter.new(RakuAST::Block.new);
+            $phaser.code = { @ran.push('unit') };
+            $*CU.add-enter-phaser($phaser);
+        }
+        my $mine = ENTER 'mine';
+        ($mine, @ran)
+        CODE
+    is-deeply EVAL($code), ('mine', ['unit']),
+      'the added phaser ran and the parsed ENTER kept its own value';
     }
 }
 

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 9;
+plan 15;
 
 # Each EVAL below runs at BEGIN time, while this file is still being
 # compiled, so the EVAL'd unit is nested inside the file's compilation.
@@ -47,5 +47,28 @@ class OurSubFromEval {
 }
 is OurSubFromEval::from-eval(), 'made-in-eval',
     'our-scoped sub EVALed at BEGIN time lands in the caller package';
+
+# A setting context declares no package, so the EVAL takes the package
+# of the compilation it runs inside.
+my $core-call;
+BEGIN { $core-call = EVAL Q[my sub inner() { 42 }; inner()], :context(CORE::) }
+is $core-call, 42,
+    'BEGIN-time string EVAL with the CORE:: context resolves a call';
+
+BEGIN { EVAL Q[our sub from-core-eval() { "made-in-core-eval" }; our $from-core-eval = 7], :context(CORE::) }
+is GLOBAL::<&from-core-eval>(), 'made-in-core-eval',
+    'our-scoped sub EVALed at BEGIN time with the CORE:: context lands in GLOBAL';
+is GLOBAL::<$from-core-eval>, 7,
+    'our-scoped variable EVALed at BEGIN time with the CORE:: context lands in GLOBAL';
+
+class OurFromCoreEval {
+    BEGIN { EVAL Q[our $in-class = 8; class Inner { }], :context(CORE::) }
+}
+is OurFromCoreEval::<$in-class>, 8,
+    'our-scoped variable EVALed at BEGIN time with the CORE:: context lands in the caller package';
+ok OurFromCoreEval::<Inner>:exists,
+    'class EVALed at BEGIN time with the CORE:: context lands in the caller package';
+nok GLOBAL::<Inner>:exists,
+    'class EVALed at BEGIN time with the CORE:: context does not leak into GLOBAL';
 
 # vim: expandtab shiftwidth=4

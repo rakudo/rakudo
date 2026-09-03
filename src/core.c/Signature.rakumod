@@ -22,6 +22,12 @@ my class Signature { # declared in BOOTSTRAP
         my int $positionals;
         my int $unbounded;
         for @params {
+            X::TypeCheck.new(
+              operation => 'constructing a Signature',
+              got       => $_,
+              expected  => Parameter
+            ).throw unless nqp::istype(nqp::decont($_),Parameter)
+                        && nqp::isconcrete(nqp::decont($_));
             if .positional {
                 ++$positionals;
                 ++$required unless .optional;

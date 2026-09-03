@@ -11754,6 +11754,64 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
+    method nibbler($/) {
+        self.reject-modifier-only($<termseq><termaltseq>, 0);
+        make $<termseq>.ast;
+    }
+
+    method termaltseq($/) {
+        self.reject-modifier-only-branches($/, 'termconjseq');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termaltseq')(self, $/)
+    }
+    method termconjseq($/) {
+        self.reject-modifier-only-branches($/, 'termalt');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termconjseq')(self, $/)
+    }
+    method termalt($/) {
+        self.reject-modifier-only-branches($/, 'termconj');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termalt')(self, $/)
+    }
+    method termconj($/) {
+        self.reject-modifier-only-branches($/, 'termish');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termconj')(self, $/)
+    }
+
+    # A lone part is not a branch. The nibbler checks it as the whole regex.
+    method reject-modifier-only-branches($/, str $key) {
+        my @parts := nqp::atkey($/, $key);
+        if nqp::elems(@parts) > 1 {
+            for @parts { self.reject-modifier-only($_, 1) }
+        }
+    }
+
+    # Internal modifiers are not atoms, so a regex, or a branch of an
+    # alternation or conjunction, holding nothing but modifiers would match
+    # the empty string. Walk down through the levels that hold a single part
+    # to the termish and refuse it when every noun is a modifier, from 6.e
+    # on. Earlier revisions compile it as that empty match.
+    method reject-modifier-only($branch, int $in-branch) {
+        return 0 if nqp::getcomp('Raku').language_revision < 3;
+        my $termish := $branch;
+        until $termish<noun> {
+            my $inner := $termish<termconjseq> || $termish<termalt>
+                || $termish<termconj> || $termish<termish>;
+            return 0 unless $inner && nqp::elems($inner) == 1;
+            $termish := $inner[0];
+        }
+        my @modifiers;
+        for $termish<noun> {
+            my $metachar := $_<atom><metachar>;
+            return 0 unless $metachar && $metachar<mod_internal>;
+            @modifiers.push(~$metachar);
+        }
+        my $pos := $termish.pos;
+        $termish.'!clear_highwater'();
+        $termish.'!cursor_pos'($termish.from);
+        $termish.typed_sorry('X::Syntax::Regex::SolitaryModifier',
+            :modifiers($*W.p6ize_recursive(@modifiers)), :branch($in-branch));
+        $termish.'!cursor_pos'($pos);
+    }
+
     # Duplicates the QRegex::P6Regex::Actions base, adding the 6.e gate below.
     # It lives here, not in the base, so NQP's own regexes stay ungated. Keep
     # the c/w handling in sync with the base.

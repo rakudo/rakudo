@@ -4951,11 +4951,37 @@ Please use $worry.";
 class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method nibbler($/) {
+        self.reject-modifier-only($<termseq><termaltseq>, 0);
         self.attach: $/, $<termseq>.ast;
     }
 
     method termseq($/) {
         self.attach: $/, $<termaltseq>.ast;
+    }
+
+    # Internal modifiers are not atoms, so a regex, or a branch of an
+    # alternation or conjunction, holding nothing but modifiers would match
+    # the empty string. Walk down through the levels that hold a single part
+    # to the termish and refuse it when every noun is a modifier, from 6.e
+    # on. Earlier revisions compile it as that empty match.
+    method reject-modifier-only($branch, int $in-branch) {
+        return 0 if nqp::getcomp('Raku').language_revision < 3;
+        my $termish := $branch;
+        until $termish<noun> {
+            my $inner := $termish<termconjseq> || $termish<termalt>
+              || $termish<termconj> || $termish<termish>;
+            return 0 unless $inner && nqp::elems($inner) == 1;
+            $termish := $inner[0];
+        }
+        my @modifiers;
+        for $termish<noun> {
+            my $metachar := $_<atom><metachar>;
+            return 0 unless $metachar && $metachar<modifier>;
+            @modifiers.push(~$metachar);
+        }
+        $termish.typed-sorry-at($termish.from,
+          'X::Syntax::Regex::SolitaryModifier',
+          :modifiers(p6ize_recursive(@modifiers)), :branch($in-branch));
     }
 
     # helper method to handle regex sequences
@@ -4970,6 +4996,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             my @branches;
             for @parts {
                 @branches.push($_.ast);
+            }
+            unless $class eq 'Sequence' {
+                for @parts { self.reject-modifier-only($_, 1) }
             }
             $ast := Nodify('Regex::' ~ $class).new(|@branches);
         }

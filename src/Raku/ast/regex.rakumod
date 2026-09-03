@@ -286,9 +286,11 @@ class RakuAST::Regex::Branching
         my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
         for $!branches {
             my $branch-qast := $_.IMPL-REGEX-QAST($context, %mods);
-            # An internal modifier (e.g. :i) as a sole branch compiles to
-            # Nil. Emit an empty concat so the alternation has a real QAST
-            # child for the NFA and capnames helpers.
+            # A branch that is a bare internal modifier compiles to Nil. The
+            # parser refuses that from 6.e on, but earlier revisions and the
+            # RakuAST API still build it. Emit an empty concat so the
+            # alternation has a real QAST child for the NFA and capnames
+            # helpers.
             $branch-qast := QAST::Regex.new(:rxtype<concat>) unless $branch-qast;
             $branch-qast.backtrack('r') if %mods<r> && !$branch-qast.backtrack;
             $qast.push($branch-qast);

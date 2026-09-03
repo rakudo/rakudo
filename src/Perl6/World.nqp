@@ -1511,8 +1511,7 @@ class Perl6::World is HLL::World {
                 :op('loadbytecode'),
                 QAST::VM.new(
                     :jvm(QAST::SVal.new( :value('ModuleLoader.class') )),
-                    :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') )),
-                    :js(QAST::SVal.new( :value('ModuleLoader') ))
+                    :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') ))
                 )),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
@@ -2737,12 +2736,9 @@ class Perl6::World is HLL::World {
             }
 
             my $code_obj := nqp::getcodeobj(nqp::curcode());
-#?if !js
-            # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
                 return $code_obj(|@pos, |%named);
             }
-#?endif
 
             $precomp(|@pos, |%named);
         });

@@ -26,8 +26,6 @@ Makefile
 *.lib
 *.jar
 *.moarvm
-*.js.map
-blib/Perl6/**/*.js
 lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir
@@ -67,11 +65,6 @@ perl6.rc
 /perl6-eval-server
 /perl6-eval-server.bat
 /eval-client.pl
-/perl6.js
-/rakudo.js
-/perl6-debug.js
-/perl6-js
-/perl6-js.bat
 /perl6-m
 /perl6-m.exe
 /perl6-debug-m
@@ -124,7 +117,6 @@ config.default
 /bin
 rakudo-runtime.jar
 CORE.?.setting.class
-CORE.?.setting.js
 *.rakudo.moar
 *.rakudo.jvm
 .precomp
@@ -133,6 +125,5 @@ t/03-jvm/*.class
 .DS_Store
 node_modules/*
 rakudo-m-early-build
-rakudo-js-build
 rakudo-j-build
 win-runner.exe-tmpl

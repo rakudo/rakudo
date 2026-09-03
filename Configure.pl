@@ -211,7 +211,7 @@ General Options:
     --sdkroot=<path>   When given, use for searching build tools here, e.g.
                        nqp, java, node etc.
     --sysroot=<path>   When given, use for searching runtime components here
-    --backends=jvm,moar,js
+    --backends=jvm,moar
                        Which backend(s) to use (or ALL for all of them)
     --gen-nqp[=branch] Download, build, and install a copy of NQP before writing
                        the Makefile

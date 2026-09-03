@@ -124,8 +124,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::substr(
             self,
             0,
-            nqp::chars(self) - nqp::iscclass(                       #?js: NFG
-              nqp::const::CCLASS_NEWLINE,self,nqp::chars(self) - 1  #?js: NFG
+            nqp::chars(self) - nqp::iscclass(
+              nqp::const::CCLASS_NEWLINE,self,nqp::chars(self) - 1
             )
           ),
           self
@@ -944,7 +944,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
             nqp::islt_i(++$!pos,nqp::chars($!str))
-              ?? nqp::box_s(nqp::substr($!str,$!pos,1),$!what) #?js: NFG
+              ?? nqp::box_s(nqp::substr($!str,$!pos,1),$!what)
               !! IterationEnd
         }
         method skip-one() {
@@ -957,7 +957,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my Mu $what  := $!what;
             nqp::while(
               nqp::islt_i(++$pos,$chars),
-              target.push(nqp::box_s(nqp::substr($str,$pos,1),$what)) #?js: NFG
+              target.push(nqp::box_s(nqp::substr($str,$pos,1),$what))
             );
             $!pos = $pos;
         }
@@ -3726,21 +3726,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method substr(Str:D: --> Str:D) { self }
     multi method substr(Str:D: Int:D $from --> Str:D) {
-        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))
           ?? self!SUBSTR-START-OOR($from)
-          !! nqp::box_s(nqp::substr(self,$from),self)                #?js: NFG
+          !! nqp::box_s(nqp::substr(self,$from),self)
     }
     multi method substr(Str:D: Int:D $from, Int:D $want --> Str:D) {
-        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))
           ?? self!SUBSTR-START-OOR($from)
           !! nqp::islt_i($want,0)
             ?? self!SUBSTR-CHARS-OOR($want)
-            !! nqp::box_s(nqp::substr(self,$from,$want),self)        #?js: NFG
+            !! nqp::box_s(nqp::substr(self,$from,$want),self)
     }
     multi method substr(Str:D: Int:D $from, &want --> Str:D) {
         self.substr(
           $from,
-          want(nqp::sub_i(nqp::chars(self),$from)).Int               #?js: NFG
+          want(nqp::sub_i(nqp::chars(self),$from)).Int
         )
     }
     multi method substr(Str:D: Int:D $from, Whatever --> Str:D) {
@@ -3754,10 +3754,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self.substr($from, $want.Int)
     }
     multi method substr(Str:D: &want --> Str:D) {
-        self.substr(want(nqp::chars(self)).Int)                      #?js: NFG
+        self.substr(want(nqp::chars(self)).Int)
     }
     multi method substr(Str:D: &from, Int:D $want --> Str:D) {
-        self.substr(from(nqp::chars(self)).Int, $want)               #?js: NFG
+        self.substr(from(nqp::chars(self)).Int, $want)
     }
     multi method substr(Str:D: &from, &want --> Str:D) {
         my int $from = from(nqp::chars(self)).Int;
@@ -3765,15 +3765,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method substr(Str:D: Range:D \start --> Str:D) {
         nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
-          || nqp::isgt_i($from,nqp::chars($!value))                    #?js: NFG
+          || nqp::isgt_i($from,nqp::chars($!value))
           ?? self!SUBSTR-START-OOR($from)
           !! nqp::box_s(
                (start.max == Inf
-                 ?? nqp::substr($!value,$from)                         #?js: NFG
+                 ?? nqp::substr($!value,$from)
                  !! nqp::substr(
                       $!value,
                       $from,
-                      (start.max - start.excludes-max - $from + 1).Int #?js: NFG
+                      (start.max - start.excludes-max - $from + 1).Int
                     )
                ),
                self
@@ -3869,7 +3869,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method chars(Str:D: --> Int:D) {
-        nqp::p6box_i(nqp::chars($!value)) #?js: NFG
+        nqp::p6box_i(nqp::chars($!value))
     }
     multi method chars(Str:U: --> Int:D) {
         self.Str;  # generate undefined warning
@@ -3884,7 +3884,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method tc(Str:D: --> Str:D) {
         nqp::box_s(
-          nqp::concat(                                 #?js: NFG
+          nqp::concat(
             nqp::tc(nqp::substr(self,0,1)),
             nqp::substr(self,1)
           ),
@@ -4052,11 +4052,11 @@ multi sub infix:<cmp>(str $a, str $b) {
 multi sub infix:<===>(Str:D $a, Str:D $b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr($a.WHAT,$b.WHAT)
-      && nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b)) #?js: NFG
+      && nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b))
     )
 }
 multi sub infix:<===>(str $a, str $b --> Bool:D) {
-    nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
+    nqp::hllbool(nqp::iseq_s($a, $b))
 }
 
 multi sub infix:<leg>(Str:D $a, Str:D $b) {
@@ -4067,10 +4067,10 @@ multi sub infix:<leg>(str $a, str $b) {
 }
 
 multi sub infix:<eq>(Str:D $a, Str:D $b --> Bool:D) {
-    nqp::hllbool(nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b))) #?js: NFG
+    nqp::hllbool(nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b)))
 }
 multi sub infix:<eq>(str $a, str $b --> Bool:D) {
-    nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
+    nqp::hllbool(nqp::iseq_s($a, $b))
 }
 
 multi sub infix:<ne>(Str:D $a, Str:D $b --> Bool:D) {

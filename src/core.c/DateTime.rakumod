@@ -118,12 +118,7 @@ my class DateTime does Dateish {
         nqp::join('',$parts)
     }
 
-#?if !js
     my constant $valid-units = nqp::hash(
-#?endif
-#?if js
-    my $valid-units := nqp::hash(
-#?endif
       'second',  0,
       'seconds', 0,
       'minute',  0,

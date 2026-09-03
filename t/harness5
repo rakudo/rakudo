@@ -31,7 +31,6 @@ GetOptions(
     'precompile'        => \my $precompile,
     'evalserver'        => \my $evalserver,
     'jvm'               => \my $jvm,
-    'js'                => \my $js,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
@@ -42,7 +41,7 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-$ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
+$ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($moar ? "m" : $jvm ? "j" : "m");
 $ENV{'RAKULIB'} = "./lib";
 my $rakuast = $ENV{'RAKUDO_RAKUAST'};
 
@@ -213,7 +212,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $js ? 'rakudo.js' : $moar ? 'rakudo.moar' : 'rakudo.jvm';
+    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -269,7 +268,7 @@ Options:
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
     --evalserver - use EvalServer. Only has effect for JVM backend
-    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend
+    --moar/--jvm - mutually exclusive. Use MoarVM/JVM backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
     --precompile - precompile tests before running them
 

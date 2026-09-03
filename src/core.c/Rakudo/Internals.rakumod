@@ -339,12 +339,7 @@ my class Rakudo::Internals is implementation-detail {
     }
     # Fast mapping for identicals
     ### If updating encodings, also update src/core.c/Encoding/Registry.rakumod
-#?if !js
     my constant $encodings = nqp::hash(
-#?endif
-#?if js
-    my $encodings := nqp::hash(
-#?endif
       # utf8
       'utf8',            'utf8',
       'utf-8',           'utf8',
@@ -841,10 +836,8 @@ my class Rakudo::Internals is implementation-detail {
     my num $init-time-num = nqp::div_n(nqp::time,1000000000e0);
     method INITTIME() is raw { $init-time-num }
 
-#?if !js
     my $init-thread := nqp::currentthread();
     method INITTHREAD() { $init-thread }
-#?endif
 
     # easy access to compile options
     my Mu $compiling-options := nqp::ifnull(  # cannot be lazy
@@ -940,10 +933,6 @@ my class Rakudo::Internals is implementation-detail {
     method PRECOMP-EXT(   --> "jar") { }
     method PRECOMP-TARGET(--> "jar") { }
 #?endif
-#?if js
-    method PRECOMP-EXT(   --> "js") { }
-    method PRECOMP-TARGET(--> "js") { }
-#?endif
     method TARGET() { "--target=" ~ Rakudo::Internals.PRECOMP-TARGET }
 
 # Keep track of the differences between TAI and UTC for internal use.
@@ -956,12 +945,7 @@ my class Rakudo::Internals is implementation-detail {
     my int constant $initial-offset = 10;
     # TAI - UTC at the Unix epoch (1970-01-01T00:00:00Z).
 
-#?if !js
     my constant $dates = nqp::list_s(
-#?endif
-#?if js
-    my $dates := nqp::list_s(
-#?endif
         #BEGIN leap-second-dates
         '1972-06-30',
         '1972-12-31',
@@ -992,19 +976,9 @@ my class Rakudo::Internals is implementation-detail {
         '2016-12-31',
         #END leap-second-dates
     );
-#?if !js
     my int constant $elems = nqp::elems($dates);
-#?endif
-#?if js
-    my int $elems = nqp::elems($dates);
-#?endif
 
-#?if !js
     my constant $daycounts = nqp::list_i(
-#?endif
-#?if js
-    my $daycounts := nqp::list_i(
-#?endif
         #BEGIN leap-second-daycount
         41498,
         41682,
@@ -1054,12 +1028,7 @@ my class Rakudo::Internals is implementation-detail {
     # %leap-seconds{$d} seconds behind TAI.
 
     # Ambiguous POSIX times.
-#?if !js
     my constant $posixes = nqp::list_i(
-#?endif
-#?if js
-    my $posixes := nqp::list_i(
-#?endif
         #BEGIN leap-second-posix
           78796800,
           94694400,
@@ -1282,12 +1251,7 @@ my class Rakudo::Internals is implementation-detail {
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-#?if !js
     my constant $clean-parts-nul = nqp::hash(
-#?endif
-#?if js
-    my $clean-parts-nul := nqp::hash(
-#?endif
       '..', 1, '.', 1, '', 1
     );
 

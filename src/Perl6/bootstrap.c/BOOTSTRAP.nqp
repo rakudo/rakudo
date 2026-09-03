@@ -108,13 +108,6 @@ my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub BOOTLanguageRevision metaclass Perl6::Metamodel::ClassHOW { ... };
 
-#?if js
-my stub Int64LexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64AttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?endif
-
 #- NativeInstantiation ---------------------------------------------------------
 # Role bodies compile against generic types with object access ops and boxed
 # value semantics, and are never recompiled for an instantiation. A generic
@@ -2587,13 +2580,6 @@ BEGIN {
     setup_native_ref_type(UIntMultidimRef, uint, 'multidim');
     setup_native_ref_type(NumMultidimRef,   num, 'multidim');
     setup_native_ref_type(StrMultidimRef,   str, 'multidim');
-
-#?if js
-    setup_native_ref_type(Int64LexRef,      int64, 'lexical'   );
-    setup_native_ref_type(Int64AttrRef,     int64, 'attribute' );
-    setup_native_ref_type(Int64PosRef,      int64, 'positional');
-    setup_native_ref_type(Int64MultidimRef, int64, 'multidim'  );
-#?endif
 
 #- Proxy -----------------------------------------------------------------------
 # class Proxy is Any {
@@ -5202,13 +5188,7 @@ BEGIN {
                 $result
             }
             else {
-#?if js
-                # HACK js backend bug workaround
-                nqp::list
-#?endif
-#?if !js
                 @EMPTY-LIST
-#?endif
             }
         }
 
@@ -5231,13 +5211,7 @@ BEGIN {
                 $result
             }
             else {
-#?if js
-                # HACK js backend bug workaround
-                nqp::hash
-#?endif
-#?if !js
                 %EMPTY-HASH
-#?endif
             }
         }
 
@@ -5733,12 +5707,6 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
-#?if js
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64LexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64AttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64PosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64MultidimRef);
-#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
@@ -5881,11 +5849,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<UIntPosRef> := UIntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
-#?if js
-    EXPORT::DEFAULT.WHO<Int64LexRef>  := Int64LexRef;
-    EXPORT::DEFAULT.WHO<Int64AttrRef> := Int64AttrRef;
-    EXPORT::DEFAULT.WHO<Int64PosRef>  := Int64PosRef;
-#?endif
     EXPORT::DEFAULT.WHO<Proxy>      := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>    := Grammar;
     EXPORT::DEFAULT.WHO<Junction>   := Junction;
@@ -6169,12 +6132,6 @@ nqp::sethllconfig('Raku', nqp::hash(
     'uint_multidim_ref', UIntMultidimRef,
     'num_multidim_ref',  NumMultidimRef,
     'str_multidim_ref',  StrMultidimRef,
-#?if js
-    'int64_lex_ref',      Int64LexRef,
-    'int64_attr_ref',     Int64AttrRef,
-    'int64_pos_ref',      Int64PosRef,
-    'int64_multidim_ref', Int64MultidimRef,
-#?endif
 
 #?if moar
     'call_dispatcher',         'raku-call',

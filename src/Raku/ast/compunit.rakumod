@@ -733,8 +733,7 @@ class RakuAST::CompUnit
                 :op('loadbytecode'),
                 QAST::VM.new(
                     :jvm(QAST::SVal.new( :value('ModuleLoader.class') )),
-                    :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') )),
-                    :js(QAST::SVal.new( :value('ModuleLoader') ))
+                    :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') ))
                 )),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),

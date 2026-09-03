@@ -136,6 +136,13 @@ my class Parameter { # declared in BOOTSTRAP
         if %args.EXISTS-KEY('type') {
             my $type := %args.AT-KEY('type');
             $type := $type.WHAT if $type.DEFINITE;
+            # Definedness lives in the flags, the type being the base type
+            if nqp::istype($type.HOW,Metamodel::DefiniteHOW) {
+                $flags +|= $type.^definite
+                  ?? nqp::const::SIG_ELEM_DEFINED_ONLY
+                  !! nqp::const::SIG_ELEM_UNDEFINED_ONLY;
+                $type := $type.^base_type;
+            }
             $!type := nqp::eqaddr($sigil-type,Mu)
               ?? $type
               !! $sigil-type.^parameterize($type);

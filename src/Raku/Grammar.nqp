@@ -622,6 +622,7 @@ role Raku::Common {
         }
         elsif !nqp::eqat($file,'/', 0)    # does not start with /
           &&  !nqp::eqat($file,'-e',0)    # and it's not -e
+          &&  !nqp::eqat($file,'-M',0)    # and it's not -M
           &&  !nqp::eqat($file,':', 1) {  # and no drive letter at start
             $file := nqp::cwd ~ '/' ~ $file;
         }

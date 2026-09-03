@@ -770,23 +770,43 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $M := %*OPTIONS<M>;
         return Nil unless nqp::defined($M); # nothing to do here
 
-        # shortcuts
-        my $R       := $*R;
-        my $context := $*CU.context;
-
-        # Create a RakuAST statement list with -use- statements
-        # of the specified module names and attach that
         my $ast := Nodify('StatementList').new;
-        for nqp::islist($M) ?? $M !! [$M] -> $longname {
-            my $use := Nodify('Statement::Use').new(
-              module-name => Nodify('Name').from-identifier-parts(
-                |nqp::split('::', $longname)
-              )
-            );
-            $use.ensure-begin-performed($R, $context);
-            $ast.add-statement: $use;
+        for nqp::islist($M) ?? $M !! [$M] -> $spec {
+            $ast.add-statement: self.parse-M-module($/, $spec);
         }
         self.attach: $/, $ast;
+    }
+
+    # Parse a -M argument as the use statement it stands for.  The cursor
+    # shares the braid of the compilation unit, so pragmas and the
+    # declarators and operators a module exports reach the code being
+    # compiled.  The newline makes the use rule settle any heredoc the
+    # argument starts before the program is parsed.  Diagnostics name
+    # -M as their source.
+    method parse-M-module($/, str $spec) {
+        my str $source := 'use ' ~ $spec ~ "\n";
+        my $cursor := $/.'!cursor_init'($source, :p(0));
+        $cursor.set_braid_from($/);
+
+        my %COMPILING := %*COMPILING;
+        my $match;
+        {
+            my $?FILES := '-M';
+            my %*COMPILING := nqp::clone(%COMPILING);
+            %*COMPILING<%?OPTIONS> := nqp::clone(%COMPILING<%?OPTIONS>);
+            %*COMPILING<%?OPTIONS><source-name> := '-M';
+            my $*ORIGIN-SOURCE := Nodify('Origin::Source').new(
+              :orig($cursor.target)
+            );
+            my $*LASTQUOTE := [0,0];
+            my $*LANG := $/;
+            $match := $cursor.'statement-control:sym<use>'().MATCH;
+            unless $match.pos == nqp::chars($source) {
+                $cursor.'!cursor_pos'($match.pos) if $match.pos >= 0;
+                $cursor.malformed('-M argument');
+            }
+        }
+        $match.ast
     }
 
     # Only needed for compiling CORE.setting

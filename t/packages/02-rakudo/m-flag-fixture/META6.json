@@ -1,0 +1,10 @@
+{
+    "name": "MFlag::Fixture",
+    "ver": "1.5",
+    "auth": "test:fixture",
+    "api": "2",
+    "description": "Fixture distribution for -M module specification tests",
+    "provides": {
+        "MFlag::Fixture": "lib/MFlag/Fixture.rakumod"
+    }
+}

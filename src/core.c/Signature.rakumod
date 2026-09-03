@@ -75,11 +75,14 @@ my class Signature { # declared in BOOTSTRAP
         my $r-named-sink := False;
 
         for @r-params -> $r-param is raw {
-            if $r-param.positional {
-                if $r-param.slurpy {
-                    $r-pos-sink := True;
-                }
-                elsif $todo {
+            if $r-param.capture {
+                $r-pos-sink := $r-named-sink := True;
+            }
+            elsif $r-param.slurpy && !$r-param.named {
+                $r-pos-sink := True;
+            }
+            elsif $r-param.positional {
+                if $todo {
                     # When a required or optional positional parameter exists
                     # in a signature, it will be prepended. Typechecks can be
                     # predicted when such parameters exist in the topic too.
@@ -104,18 +107,18 @@ my class Signature { # declared in BOOTSTRAP
                     %r-named-queue{$_} := $r-param for $r-param.named_names;
                 }
             }
-            else {
-                $r-pos-sink := $r-named-sink := True;
-            }
         }
 
         for @l-params.tail: $todo -> $l-param is raw {
             state %r-to-l-named{Mu};
-            if $l-param.positional {
-                if $l-param.slurpy {
-                    return False unless $r-pos-sink;
-                }
-                elsif @r-pos-queue {
+            if $l-param.capture {
+                return False unless $r-pos-sink && $r-named-sink;
+            }
+            elsif $l-param.slurpy && !$l-param.named {
+                return False unless $r-pos-sink;
+            }
+            elsif $l-param.positional {
+                if @r-pos-queue {
                     return False unless $l-param ~~ @r-pos-queue.shift;
                 }
                 else {
@@ -144,9 +147,6 @@ my class Signature { # declared in BOOTSTRAP
                 else {
                     return False unless $r-named-sink;
                 }
-            }
-            else {
-                return False unless $r-pos-sink && $r-named-sink;
             }
         }
 

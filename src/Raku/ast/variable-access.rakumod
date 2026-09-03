@@ -161,6 +161,17 @@ class RakuAST::Var::Lexical::Constant
             self.set-resolution($resolved);
         }
     }
+
+    # A ::? name is declared on entering the package it names, so one
+    # still unresolved is undeclared. An implicit lookup of ::?CLASS is
+    # not a child of its node and never reaches this check.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Var::Lexical, 'PERFORM-CHECK')(self, $resolver, $context);
+        if !self.is-resolved && nqp::eqat(self.name, '::?', 0) {
+            self.add-sorry:
+              $resolver.build-exception('X::NoSuchSymbol', :symbol(self.name));
+        }
+    }
 }
 
 # A lexical looked up in the setting (used for when we really want the setting

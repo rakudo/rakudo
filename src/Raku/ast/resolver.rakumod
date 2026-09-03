@@ -1187,7 +1187,7 @@ class RakuAST::Resolver::EVAL
     # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
-    method new(Mu :$global!, Mu :$context!, Mu :$setting) {
+    method new(Mu :$global!, Mu :$context!, Mu :$setting, Mu :$outer-resolver) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
@@ -1200,7 +1200,11 @@ class RakuAST::Resolver::EVAL
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
-            $cur-package ?? [$cur-package] !! []);
+            $cur-package
+              ?? [$cur-package]
+              !! nqp::isconcrete($outer-resolver)
+                ?? nqp::clone(nqp::getattr($outer-resolver, RakuAST::Resolver, '$!packages'))
+                !! []);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
         $obj
     }

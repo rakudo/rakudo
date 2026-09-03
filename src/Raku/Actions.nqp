@@ -2395,7 +2395,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             || nqp::eqat($file,'-',0) # '-e', '-'
             || nqp::eqat($file,':',1) # Windows drive letter
             || nqp::eqat($file,'<',0) # '<unknown file>'
-            || nqp::isconcrete(nqp::atkey(%*COMPILING<%?OPTIONS>,'outer_ctx'))
+            || $file ~~ /^ 'EVAL_' \d+ $/ # an EVAL's pseudo-file
             ?? $file
             !! nqp::cwd() ~ '/' ~ $file
         )
@@ -3980,9 +3980,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method type-for-name($/, $name) {
         my $base-name := $name.without-colonpair('_').without-colonpair('D').without-colonpair('U');
-        my $type := Nodify('Type::Simple').new(
-          $base-name
-        ).to-begin-time($*R, $*CU.context);
+        my $type := Nodify('Type::Simple').new($base-name);
+        # Resolving the name can report it, so the node needs its origin
+        # before it is begun.
+        self.SET-NODE-ORIGIN($/, $type);
+        $type.to-begin-time($*R, $*CU.context);
 
         for $base-name.IMPL-UNWRAP-LIST($base-name.colonpairs) {
             $/.typed-sorry('X::InvalidTypeSmiley', :name($_.key));

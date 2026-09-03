@@ -131,6 +131,17 @@ class RakuAST::Type::Simple
                 }
             }
         }
+        # A ::? name is declared on entering the package it names, so one
+        # missing here is not going to be declared later.
+        elsif nqp::eqat($!name.canonicalize, '::?', 0) {
+            my $exception := $resolver.build-exception('X::NoSuchSymbol',
+              :symbol($!name.canonicalize));
+            if nqp::can($exception, 'SET_FILE_LINE') && my $origin := self.origin {
+                my $match := $origin.as-match;
+                $exception.SET_FILE_LINE($match.file, $match.line);
+            }
+            $exception.throw;
+        }
     }
 
     # Second chance to resolve for compiling the setting.

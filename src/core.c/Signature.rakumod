@@ -12,10 +12,31 @@ my class Signature { # declared in BOOTSTRAP
     multi method new(Signature:U:
             :@params,
          Mu :$returns,
-      Int:D :$arity = @params.elems,
-      Num:D :$count = $arity.Num
+        Int :$arity,
+        Num :$count
     ) {
-        nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
+        # Arity is the required positionals and count all of them, or Inf
+        # once a slurpy positional or a capture is present. Count never
+        # drops below an explicit arity.
+        my int $required;
+        my int $positionals;
+        my int $unbounded;
+        for @params {
+            if .positional {
+                ++$positionals;
+                ++$required unless .optional;
+            }
+            elsif !.named {
+                $unbounded = 1;
+            }
+        }
+        my $arity-used := $arity // $required;
+        nqp::create(self)!SET-SELF(
+          @params,
+          $returns,
+          $arity-used,
+          $count // ($unbounded ?? Inf !! ($positionals max $arity-used).Num)
+        )
     }
 
     method !SET-SELF(@params, Mu $returns, $arity, $count) {

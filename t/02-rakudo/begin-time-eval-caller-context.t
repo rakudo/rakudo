@@ -9,7 +9,7 @@ use nqp;
 # BEGIN blocks below run while the string holding them compiles, so the
 # tests are skipped as a whole on a frontend that dies at that point.
 
-plan 6;
+plan 8;
 
 if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
     EVAL q:to/TESTS/;
@@ -35,17 +35,30 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
     ok $class-package === PackageFromCallerEval,
       'BEGIN-time string EVAL with the CALLER:: context inside a class starts in that class';
 
+    class OurFromCallerEval {
+        BEGIN { EVAL Q[our sub from-caller-eval() { "made-in-caller-eval" }], :context(CALLER::) }
+    }
+    is OurFromCallerEval::from-caller-eval(), 'made-in-caller-eval',
+      'an our sub EVALed at BEGIN time with the CALLER:: context lands in the enclosing class';
+
     my $ast-package;
     BEGIN { $ast-package = EVAL RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'), :context(CALLER::) }
     ok $ast-package === GLOBAL,
       'BEGIN-time AST EVAL with the CALLER:: context sees GLOBAL rather than a compiler lexical';
+
+    my $ast-class-package;
+    class PackageFromCallerASTEval {
+        BEGIN { $ast-class-package = EVAL RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'), :context(CALLER::) }
+    }
+    ok $ast-class-package === PackageFromCallerASTEval,
+      'BEGIN-time AST EVAL with the CALLER:: context inside a class starts in that class';
 
     throws-like 'BEGIN { EVAL Q[$nope], :context(CALLER::) }', X::Comp::BeginTime,
       'a compile error in a BEGIN-time string EVAL with the CALLER:: context surfaces';
     TESTS
 }
 else {
-    skip 'the legacy frontend cannot compile against the frame that runs a BEGIN block', 6;
+    skip 'the legacy frontend cannot compile against the frame that runs a BEGIN block', 8;
 }
 
 # vim: expandtab shiftwidth=4

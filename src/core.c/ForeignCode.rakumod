@@ -139,14 +139,17 @@ $lang = 'Raku' if $lang eq 'perl6';
         }
 
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
-        # When called from a BEGIN block the captured outer-context chain may
-        # not yet be linked to the setting; in that case thread the setting
-        # through from the currently-compiling CompUnit so lexicals like &say
-        # can still be resolved at compile time.
-        my $outer-setting := $*CU && nqp::istype($*CU, RakuAST::CompUnit)
-            ?? $*CU.setting !! Mu;
+        # The compilation in progress, if any, lends its setting and its
+        # package stack, as it does to a string EVAL.
+        my $outer-setting  := Mu;
+        my $outer-resolver := Mu;
+        if $*CU && nqp::istype($*CU, RakuAST::CompUnit) {
+            $outer-setting  := $*CU.setting;
+            $outer-resolver := $*CU.resolver;
+        }
         my $resolver := RakuAST::Resolver::EVAL.new(
-            :context($eval_ctx), :global(GLOBAL), :setting($outer-setting));
+            :context($eval_ctx), :global(GLOBAL),
+            :setting($outer-setting), :$outer-resolver);
         $comp-unit.begin($resolver);
         $comp-unit.check($resolver);
         if $resolver.has-compilation-errors {

@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 4;
+plan 5;
 
 throws-like { EVAL(RakuAST::Term::Self.new) },
     X::Syntax::Self::WithoutObject;
@@ -16,7 +16,7 @@ throws-like { EVAL(RakuAST::Term::Self.new) },
 }
 
 subtest 'a stand-in exception for a setting still compiling renders readably' => {
-    plan 9;
+    plan 10;
 
     my $with-string := RakuAST::BOOTException.new('X::Redeclaration', nqp::hash('symbol', '$_'));
     is $with-string.message, 'X::Redeclaration(symbol => $_)',
@@ -48,6 +48,45 @@ subtest 'a stand-in exception for a setting still compiling renders readably' =>
     $with-string.SET_FILE_LINE('bar.raku', 7);
     is $with-string.message, 'X::Redeclaration(symbol => $_) at bar.raku:7',
       'a file and line set on the stand-in render after the options';
+
+    $with-string.SET_PRE_POST('my $_; my ', '$_;');
+    is $with-string.message,
+      "X::Redeclaration(symbol => \$_) at bar.raku:7\n------> my \$_; my <HERE>\$_;",
+      'the source around the problem renders on its own line after the location';
+}
+
+subtest 'the source excerpt around a position is cut to its line and width' => {
+    plan 12;
+
+    sub prepost(str $orig, int $pos) {
+        RakuAST::Origin::Source.new(:$orig).prepost-of-pos($pos).List
+    }
+
+    is-deeply prepost('abc', 1), ('a', 'bc'),
+      'a position inside one line splits it there';
+    is-deeply prepost('abc', 3), ('abc', '<EOL>'),
+      'a position at the end of the source marks the line end';
+    is-deeply prepost('abc', 0), ('<BOL>', 'abc'),
+      'a position at the start of the source marks the line start';
+    is-deeply prepost('', 0), ('<BOL>', '<EOL>'),
+      'an empty source marks both sides';
+    is-deeply prepost('abc', -5), ('<BOL>', 'abc'),
+      'a position before the source counts as its start';
+    is-deeply prepost('abc', 99), ('abc', '<EOL>'),
+      'a position past the source counts as its end';
+    is-deeply prepost("ab\ncd", 2), ('ab', '<EOL>'),
+      'a position before a newline stops the post side there';
+    is-deeply prepost("ab\ncd", 3), ('<BOL>', 'cd'),
+      'a position after a newline starts the pre side there';
+    is-deeply prepost("ab\r\ncd", 3), ('<BOL>', 'cd'),
+      'a carriage return newline pair is one line break';
+    is-deeply prepost("ab\rcd", 3), ('<BOL>', 'cd'),
+      'a lone carriage return is a line break';
+    is-deeply prepost("ab\x[2028]cd", 3), ('<BOL>', 'cd'),
+      'a unicode line separator is a line break';
+    my ($pre, $post) = prepost('x' x 100, 50);
+    ok $pre.chars == 40 && $post.chars == 40,
+      'each side is cut to forty characters';
 }
 
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {

@@ -717,10 +717,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
         {
             CATCH {
                 my $ex := $resolver.convert-begin-time-exception($_);
-                if nqp::can($ex, 'SET_FILE_LINE') && my $origin := self.origin {
-                    my $origin-match := $origin.as-match;
-                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                }
+                self.IMPL-LOCATE-EXCEPTION($ex);
                 $ex.rethrow;
             }
             nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,

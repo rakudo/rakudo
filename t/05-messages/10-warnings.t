@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 23;
+plan 24;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -162,6 +162,15 @@ is-run ｢my $_; class A { }; foo()｣,
       'a setting file with {YOU_ARE_HERE} as a statement runs';
     is $proc.err.slurp(:close), '',
       'a sunk {YOU_ARE_HERE} is not a useless use';
+}
+
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is-run ｢my $a = 1; 1 == 2; print "ran"｣,
+        'a worry shows the source around the statement it is about',
+        :out<ran>, :err(/'Useless use' .*? '------> my $a = 1; <HERE>1 == 2;'/);
+}
+else {
+    skip 'the source split is placed by the RakuAST frontend', 1;
 }
 
 # vim: expandtab shiftwidth=4

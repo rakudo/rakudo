@@ -1715,13 +1715,27 @@ class RakuAST::VarDeclaration::Simple
                     # A unit scoped container lives in a frame entered once,
                     # so it stays the serialized one that code run at BEGIN
                     # time already resolves the variable to.
+                    my int $unit-scoped := self.IMPL-IS-UNIT-SCOPED;
                     my $qast := QAST::Var.new(
                         :scope('lexical'), :name(self.name), :value($container),
-                        :decl(self.IMPL-IS-UNIT-SCOPED ?? 'static' !! 'contvar')
+                        :decl($unit-scoped ?? 'static' !! 'contvar')
                     );
                     if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
                         $qast := QAST::Op.new( :op('bind'), $qast,
                           self.IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST($context, $of) );
+                    }
+                    # The static container is the serialized one, so a
+                    # module that uses the unit and changes it while
+                    # precompiling repossesses it, and loading that module
+                    # hands back the state its precompilation saw. The
+                    # neverrepossess mark is not serialized, so it is set
+                    # at unit entry.
+                    if $unit-scoped {
+                        $qast := QAST::Stmts.new(
+                            $qast,
+                            QAST::Op.new( :op('neverrepossess'),
+                                QAST::Var.new( :scope('lexical'), :name(self.name) ) )
+                        );
                     }
                     $qast
                 }

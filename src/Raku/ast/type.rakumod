@@ -45,7 +45,7 @@ class RakuAST::Type
     method IMPL-MAYBE-DEFINITE-HOW-BASE($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        nqp::getcomp('Raku').language_revision >= 2
+        self.IMPL-LANGUAGE-REVISION >= 2
             && nqp::eqaddr($v.HOW, Perl6::Metamodel::DefiniteHOW)
             ?? $v.HOW.base_type: $v
             !! $v
@@ -57,7 +57,7 @@ class RakuAST::Type
         my $v-how := $v.HOW;
         (nqp::can($v-how, 'language_revision')
                 ?? $v-how.language_revision($v) < 3
-                !! nqp::getcomp('Raku').language_revision < 3)
+                !! self.IMPL-LANGUAGE-REVISION < 3)
             ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
             !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
     }
@@ -71,7 +71,7 @@ class RakuAST::Type
         !$v-how.archetypes($v).coercive
             && (nqp::can($v-how, 'language_revision')
                     ?? $v-how.language_revision($v) < 3
-                    !! nqp::getcomp('Raku').language_revision < 3)
+                    !! self.IMPL-LANGUAGE-REVISION < 3)
             ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
             !! $v-how.archetypes($v).nominalizable ?? $v-how.nominalize($v) !! $v
     }

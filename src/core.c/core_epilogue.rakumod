@@ -817,7 +817,7 @@ augment class Cool {
           self.Str,
           :outer_ctx($eval_ctx),
           :global(GLOBAL),
-          :language_version($compiler.language_version),
+          :language_version(Rakudo::Internals.LANGUAGE-VERSION-OF-CONTEXT($eval_ctx)),
           |(:optimize($_) with $compiler.cli-options<optimize>),
           :target<ast>, :compunit_ok(1), :$grammar, :$actions;
 

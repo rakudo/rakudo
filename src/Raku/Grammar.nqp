@@ -52,7 +52,7 @@ role Raku::Common {
     token fatty { \h* [ '=>' | '⇒' ] }
 
     # The current language revision (1 = 6.c, 2 = 6.d, 3 = 6.e)
-    method language-revision() { nqp::getcomp('Raku').language_revision }
+    method language-revision() { $*LANGUAGE-REVISION }
 
     # Helper method for chars of match
     method leading-char()   { nqp::substr(self.orig, self.from,     1) }
@@ -1324,6 +1324,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*ORIGIN-SOURCE;   # current RakuAST::Origin::Source object
         :my @*ORIGIN-NESTINGS := [];  # handling nested origins
         :my $*R;               # current RakuAST::Resolver::xxx object
+        :my $*LANGUAGE-REVISION;  # language revision of this compilation unit
         :my $*LITERALS;        # current RakuAST::LiteralBuilder object
         :my &*DD;              # debug helper to dd()
         {
@@ -4248,7 +4249,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || ';'
              {
                  # Allow all subs with ; but require "unit" scope from 6.e
-                 if nqp::getcomp('Raku').language_revision >= 3 {
+                 if $*LANGUAGE-REVISION >= 3 {
                      $/.typed_panic("X::UnitScope::MustHaveUnit","sub")
                        unless $*SCOPE eq 'unit';
                  }

@@ -349,6 +349,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $context       := %OPTIONS<outer_ctx>;
         my $resolver-type := Nodify('Resolver::Compile');
 
+        # Start from the revision the compile options select
+        nqp::getcomp('Raku').reset_language_version();
+
         my $setting-name := %OPTIONS<setting>;
         if nqp::eqat($setting-name, 'NULL.', 0) {
             my $comp := nqp::getcomp('Raku');
@@ -362,6 +365,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     ?? $setting_revision
                     !! $default_revision );
         }
+
+        $*LANGUAGE-REVISION := nqp::getcomp('Raku').language_revision;
 
         my $RESOLVER := $*R := nqp::isconcrete($context)
           ?? $resolver-type.from-context(
@@ -565,6 +570,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif !$is-EVAL && !$*COMPILING_CORE_SETTING {
             resolver-from-revision();
         }
+
+        $*LANGUAGE-REVISION := $language-revision;
 
         # Locate an EXPORTHOW and set those mappings on our current language.
         my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');
@@ -2710,7 +2717,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 # block, shadowing the outer one. See:
                 #   https://github.com/Raku/roast/commit/0b8c717e6
                 #   https://github.com/Raku/old-issue-tracker/issues/1488
-                if nqp::getcomp('Raku').language_revision < 3
+                if $*LANGUAGE-REVISION < 3
                   && $*R.resolve-lexical($name) {
                     $ast := Nodify('Var::Lexical').new(:$sigil, :$desigilname);
                 }
@@ -2840,7 +2847,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # In 6.c an empty contextualizer operates on $/. `$()` yields the
         # smartmatch result of $/ (its made AST if any, else its matched
         # string), while `@()` and `%()` coerce $/ itself.
-        if nqp::getcomp('Raku').language_revision < 2 && $<coercee> eq '' {
+        if $*LANGUAGE-REVISION < 2 && $<coercee> eq '' {
             if $sigil eq '$' {
                 self.attach: $/, Nodify('Ternary').new(
                     condition => self.IMPL-MATCH-VAR-METHOD-CALL('ast'),
@@ -5369,7 +5376,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             # Only `w` and `c` are real boundaries, so any other name is a typo.
             # Pre-6.e code already compiles it as a silent no-op, so the error is
             # gated on 6.e to keep that working.
-            if nqp::getcomp('Raku').language_revision >= 3 {
+            if $*LANGUAGE-REVISION >= 3 {
                 $/.typed-panic: 'X::Syntax::Regex::UnrecognizedBoundary', :boundary($name);
             }
             else {

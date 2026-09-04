@@ -279,6 +279,8 @@ class Perl6::Compiler is HLL::Compiler {
             my $optimize := %adverbs<optimize>;
             unless nqp::defined($optimize)
               && ($optimize eq 'off' || $optimize eq '0') {
+                # The parse frame that declared this is gone by now
+                my $*LANGUAGE-REVISION := $past.language-revision.Int;
                 $past.optimize($past.resolver,
                     :interactive(%adverbs<interactive> ?? 1 !! 0));
             }
@@ -323,6 +325,7 @@ class Perl6::Compiler is HLL::Compiler {
         # such EVALs don't compile into an ephemeral context that breaks
         # precompilation.
         my $*CU := $rakuast;
+        my $*LANGUAGE-REVISION := $rakuast.language-revision.Int;
         $*RAKUAST-EVAL-COMP-UNIT := $rakuast
             if $rakuast.is-eval && !nqp::isnull(nqp::getlexdyn('$*RAKUAST-EVAL-COMP-UNIT'));
         # The cleanup nulls the compiler state stubbed code objects carry.

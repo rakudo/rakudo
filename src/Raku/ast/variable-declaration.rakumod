@@ -236,7 +236,7 @@ class RakuAST::ContainerCreator {
                             $bind-constraint, $of, $key-type);
                     }
                     else {
-                        my $value-default := nqp::getcomp('Raku').language_revision >= 3 ?? Mu !! Any;
+                        my $value-default := self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any;
                         $container-type := Hash.HOW.parameterize(
                             Hash, $value-default, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
@@ -269,7 +269,7 @@ class RakuAST::ContainerCreator {
             else {
                 my $value-type := self.type
                     ?? $of
-                    !! (nqp::getcomp('Raku').language_revision >= 3 ?? Mu !! Any);
+                    !! (self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any);
                 $container-type := $explicit-base.HOW.parameterize(
                     $explicit-base, $value-type, $key-type);
             }
@@ -297,7 +297,7 @@ class RakuAST::ContainerCreator {
         $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         my int $isolated-match := self.lexical-name eq '$/'
-            && nqp::getcomp('Raku').language_revision >= 3;
+            && self.IMPL-LANGUAGE-REVISION >= 3;
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-descriptor',
             RakuAST::IMPL::Containers.create-descriptor(
                 :$of, :$default, :$dynamic, :name(self.lexical-name),
@@ -2777,7 +2777,7 @@ class RakuAST::VarDeclaration::Implicit::Special
                 '$!', ContainerDescriptor::Untyped.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             )
         );
-        my $cont-desc := COMMON[nqp::getcomp('Raku').language_revision]{self.name} //
+        my $cont-desc := COMMON[self.IMPL-LANGUAGE-REVISION]{self.name} //
             RakuAST::IMPL::Containers.create-descriptor(
                 :of(Mu), :default(Any), :dynamic(0), :name(self.name));
         my $container := nqp::create(Scalar);

@@ -541,7 +541,14 @@ class Perl6::World is HLL::World {
         }
     }
 
+    # !load-lang-ver returns early on several paths, so the unit's
+    # revision is recorded here
     method load-lang-ver($ver-match, $comp) {
+        self.'!load-lang-ver'($ver-match, $comp);
+        $*LANGUAGE-REVISION := $comp.language_revision;
+    }
+
+    method !load-lang-ver($ver-match, $comp) {
         if $*INSIDE-EVAL && $!have_outer {
             # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
             # now.
@@ -810,8 +817,8 @@ class Perl6::World is HLL::World {
             $*UNIT, '$=pod', $*POD_PAST.compile_time_value
         );
 
-        # Install $?LANGUAGE-REVISION to whatever the current compiler version is
-        self.install_lexical_symbol($*UNIT, '$?LANGUAGE-REVISION', nqp::getcomp('Raku').language_revision);
+        # Install $?LANGUAGE-REVISION as the revision of this compilation unit
+        self.install_lexical_symbol($*UNIT, '$?LANGUAGE-REVISION', $*LANGUAGE-REVISION);
 
         # Tag UNIT with a magical lexical unless it is CORE.
         self.add_unit_marker($/, '!UNIT_MARKER') unless $*COMPILING_CORE_SETTING;
@@ -1657,7 +1664,7 @@ class Perl6::World is HLL::World {
                 # legacy silent-replace behavior where the new package
                 # simply overwrites the module in the outer stash via
                 # steal_WHO below.
-                my $use-nested := nqp::getcomp('Raku').language_revision >= 3
+                my $use-nested := $*LANGUAGE-REVISION >= 3
                     && +@parts == 1
                     && nqp::existskey($resolved_pkg.WHO, $name)
                     && ($resolved_pkg.WHO){$name} =:= $package;
@@ -1724,7 +1731,7 @@ class Perl6::World is HLL::World {
     # kind on pre-6.e code. All gating lives here so the installer
     # call site stays readable.
     method maybe_worry_same_name_as_enclosing($/, $existing, $symbol, $pkgdecl, $package) {
-        if nqp::getcomp('Raku').language_revision < 3
+        if $*LANGUAGE-REVISION < 3
           && $existing =:= $package {
             my $existing-how := $existing.HOW.HOW.name($existing.HOW);
             my $enclosing-kind :=
@@ -1825,7 +1832,7 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    nqp::getcomp('Raku').language_revision < 2
+                    $*LANGUAGE-REVISION < 2
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
                 );
@@ -2081,7 +2088,7 @@ class Perl6::World is HLL::World {
             }
             if $shape {
                 @value_type[0] := self.find_single_symbol_in_setting(
-                    nqp::getcomp('Raku').language_revision >= 3 ?? 'Mu' !! 'Any'
+                    $*LANGUAGE-REVISION >= 3 ?? 'Mu' !! 'Any'
                 ) unless +@value_type;
                 my $shape_ast := $shape[0].ast;
                 if nqp::istype($shape_ast, QAST::Stmts) {
@@ -2176,7 +2183,7 @@ class Perl6::World is HLL::World {
     method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        nqp::getcomp('Raku').language_revision >= 2
+        $*LANGUAGE-REVISION >= 2
             && nqp::eqaddr($v.HOW, self.find_symbol(['Metamodel','DefiniteHOW'], :setting-only))
             ?? $v.HOW.base_type: $v
             !! $v
@@ -2189,7 +2196,7 @@ class Perl6::World is HLL::World {
         !$v-how.archetypes($v).coercive
             && (nqp::can($v-how, 'language_revision')
                     ?? $v-how.language_revision($v) < 3
-                    !! nqp::getcomp('Raku').language_revision < 3)
+                    !! $*LANGUAGE-REVISION < 3)
             ?? self.maybe-definite-how-base($v)
             !! ($v-how.archetypes($v).nominalizable
                 ?? $v-how.nominalize($v)
@@ -2217,7 +2224,7 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $dynamic := nqp::getcomp('Raku').language_revision < 2 || $name ne '$_';
+            my $dynamic := $*LANGUAGE-REVISION < 2 || $name ne '$_';
             my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);

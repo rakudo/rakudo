@@ -161,7 +161,7 @@ class RakuAST::IMPL::VarLowering {
         # From 6.d the topic is not a dynamic variable, so a callee
         # cannot reach an unused one and its declaration can go.
         nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering, '$!topic-not-dynamic',
-            nqp::getcomp('Raku').language_revision >= 2 ?? 1 !! 0);
+            RakuAST::Node.IMPL-LANGUAGE-REVISION >= 2 ?? 1 !! 0);
 
         # The sentinel type that stands in for a lowered lexical's
         # by-name symbol. Without it (very early bootstrap) nothing is

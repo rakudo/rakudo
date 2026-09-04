@@ -1819,7 +1819,7 @@ class RakuAST::PackageInstaller {
             # In 6.d and earlier, let $resolved stand so the legacy
             # silent-replace path below does the ModuleHOW steal_WHO
             # overwrite, matching the traditional grammar.
-            if $resolved && nqp::getcomp('Raku').language_revision >= 3 {
+            if $resolved && self.IMPL-LANGUAGE-REVISION >= 3 {
                 my $check := self.IMPL-UNWRAP-LIST($resolved);
                 my $check-target := $check[0];
                 my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
@@ -1968,7 +1968,7 @@ class RakuAST::PackageInstaller {
     # the setting), matching legacy `install_package`.
     method IMPL-SHOULD-SILENT-REPLACE(Mu $existing, Mu $current-package, RakuAST::Name $name, str $orig-scope, int $target-from-setting) {
         nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
-        || (nqp::getcomp('Raku').language_revision < 3
+        || (self.IMPL-LANGUAGE-REVISION < 3
             && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
             && $existing =:= $current-package)
         || $name.is-identifier
@@ -1981,7 +1981,7 @@ class RakuAST::PackageInstaller {
     # kind on pre-6.e code. All gating lives here so the installer
     # call site stays readable.
     method IMPL-MAYBE-WORRY-SAME-NAME-AS-ENCLOSING($resolver, $existing, $type-object, $current-package, $name) {
-        if nqp::getcomp('Raku').language_revision < 3
+        if self.IMPL-LANGUAGE-REVISION < 3
           && !$name.is-identifier
           && $existing =:= $current-package {
             my $enclosing-kind :=

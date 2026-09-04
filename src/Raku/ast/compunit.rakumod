@@ -676,7 +676,7 @@ class RakuAST::CompUnit
               QAST::WVal.new(:value($main.meta-object)),
               QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
             );
-            unless nqp::getcomp('Raku').language_revision < 2 {
+            unless $!language-revision.Int < 2 {
                 $run-main.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => True,

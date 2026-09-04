@@ -350,7 +350,7 @@ role STD {
         <?{ $*COMPILING_CORE_SETTING
             || ((try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)))
                 && ($feature ne 'macros'
-                    || nqp::getcomp('Raku').language_revision < 3)) }>
+                    || $*LANGUAGE-REVISION < 3)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 
@@ -848,9 +848,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # for runaway detection
         :my $*LASTQUOTE := [0,0];
 
+        # Revision checks read this rather than the compiler object, which
+        # every unit compiled in the process writes to
+        :my $*LANGUAGE-REVISION;
         {
             nqp::getcomp('Raku').reset_language_version();
-            $*W.comp_unit_stage0($/)
+            $*W.comp_unit_stage0($/);
+            $*LANGUAGE-REVISION := nqp::getcomp('Raku').language_revision;
         }
 
         <.bom>?
@@ -1212,7 +1216,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<whenever> {
         <sym><.kok>
         [
-        || <?{ nqp::getcomp('Raku').language_revision == 1 || $*WHENEVER_COUNT >= 0 }>
+        || <?{ $*LANGUAGE-REVISION == 1 || $*WHENEVER_COUNT >= 0 }>
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
         ]
         { $*WHENEVER_COUNT++ }
@@ -2496,7 +2500,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 # Allow all subs with ; but require "unit" scope from 6.e
-                if nqp::getcomp('Raku').language_revision >= 3 {
+                if $*LANGUAGE-REVISION >= 3 {
                     $/.typed_panic("X::UnitScope::MustHaveUnit", :what<sub>)
                       unless $*SCOPE eq 'unit';
                 }
@@ -3123,7 +3127,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token term:sym<time> { <sym> <.tok> }
 
     token term:sym<nano> {
-        <?{ (nqp::getcomp('Raku').language_revision >= 3)
+        <?{ ($*LANGUAGE-REVISION >= 3)
             || $*W.is_name(['&term:<nano>']) }>
         <sym> <.tok>
     }
@@ -3566,7 +3570,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     }
 
     token quote:sym</null/> {
-        :my $rev := nqp::getcomp('Raku').language_revision;
+        :my $rev := $*LANGUAGE-REVISION;
           <?{ $rev < 3 }>
           '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
         | <?{ $rev >= 3 }>
@@ -4159,7 +4163,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
     token prefix:sym<//>  {
-        <?{ nqp::getcomp('Raku').language_revision >= 3 }>
+        <?{ $*LANGUAGE-REVISION >= 3 }>
         <sym> <O(|%symbolic_unary)>
     }
 
@@ -4675,7 +4679,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && nqp::getcomp('Raku').language_revision < 2;
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*LANGUAGE-REVISION < 2;
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')

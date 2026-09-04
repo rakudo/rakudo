@@ -476,6 +476,26 @@ my class Rakudo::Internals is implementation-detail {
         )
     }
 
+    # The revision of the unit a context belongs to, or the compiler's
+    # for a context without one
+    method LANGUAGE-REVISION-OF-CONTEXT(Mu \ctx) {
+        my \context  := nqp::decont(ctx);
+        my \revision := nqp::isconcrete(context)
+          ?? nqp::getlexrel(context, '$?LANGUAGE-REVISION')
+          !! nqp::null;
+        nqp::isnull(revision)
+          ?? nqp::getcomp('Raku').language_revision
+          !! nqp::unbox_i(revision)
+    }
+
+    # The same as the language version string a compile takes, without a
+    # modifier, which the compiler does not keep after a pragma either
+    method LANGUAGE-VERSION-OF-CONTEXT(Mu \ctx) {
+        '6.' ~ nqp::getcomp('Raku').lvs.p6rev(
+          self.LANGUAGE-REVISION-OF-CONTEXT(ctx)
+        )
+    }
+
     method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }

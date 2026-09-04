@@ -2478,7 +2478,7 @@ class Perl6::World is HLL::World {
                 unless nqp::can($package.HOW, 'hidden') && $package.HOW.hidden($package) {
                     @params.push(hash(
                         variable_name => '%_',
-                        type => self.find_single_symbol_in_setting('Mu'),
+                        type => self.find_single_symbol_in_setting('Associative'),
                         named_slurpy => 1,
                         is_multi_invocant => 1,
                         sigil => '%'

@@ -12,15 +12,44 @@ my class Signature { # declared in BOOTSTRAP
     multi method new(Signature:U:
             :@params,
          Mu :$returns,
-      Int:D :$arity = @params.elems,
-      Num:D :$count = $arity.Num
+        Int :$arity,
+        Num :$count
     ) {
-        nqp::create(self)!SET-SELF(@params, $returns, $arity, $count)
+        # Arity is the required positionals and count all of them, or Inf
+        # once a slurpy positional or a capture is present. Count never
+        # drops below an explicit arity.
+        my int $required;
+        my int $positionals;
+        my int $unbounded;
+        for @params {
+            X::TypeCheck.new(
+              operation => 'constructing a Signature',
+              got       => $_,
+              expected  => Parameter
+            ).throw unless nqp::istype(nqp::decont($_),Parameter)
+                        && nqp::isconcrete(nqp::decont($_));
+            if .positional {
+                ++$positionals;
+                ++$required unless .optional;
+            }
+            elsif !.named {
+                $unbounded = 1;
+            }
+        }
+        my $arity-used := $arity // $required;
+        nqp::create(self)!SET-SELF(
+          @params,
+          $returns,
+          $arity-used,
+          $count // ($unbounded ?? Inf !! ($positionals max $arity-used).Num)
+        )
     }
 
     method !SET-SELF(@params, Mu $returns, $arity, $count) {
-        nqp::bind(@!params,nqp::getattr(@params,List,'$!reified'));
-        $!returns := $returns;
+        my $params := nqp::list;
+        nqp::push($params, nqp::decont($_)) for @params;
+        nqp::bind(@!params, $params);
+        $!returns := nqp::decont($returns);
         $!arity    = $arity;
         $!count   := $count;
         self
@@ -46,11 +75,14 @@ my class Signature { # declared in BOOTSTRAP
         my $r-named-sink := False;
 
         for @r-params -> $r-param is raw {
-            if $r-param.positional {
-                if $r-param.slurpy {
-                    $r-pos-sink := True;
-                }
-                elsif $todo {
+            if $r-param.capture {
+                $r-pos-sink := $r-named-sink := True;
+            }
+            elsif $r-param.slurpy && !$r-param.named {
+                $r-pos-sink := True;
+            }
+            elsif $r-param.positional {
+                if $todo {
                     # When a required or optional positional parameter exists
                     # in a signature, it will be prepended. Typechecks can be
                     # predicted when such parameters exist in the topic too.
@@ -75,18 +107,18 @@ my class Signature { # declared in BOOTSTRAP
                     %r-named-queue{$_} := $r-param for $r-param.named_names;
                 }
             }
-            else {
-                $r-pos-sink := $r-named-sink := True;
-            }
         }
 
         for @l-params.tail: $todo -> $l-param is raw {
             state %r-to-l-named{Mu};
-            if $l-param.positional {
-                if $l-param.slurpy {
-                    return False unless $r-pos-sink;
-                }
-                elsif @r-pos-queue {
+            if $l-param.capture {
+                return False unless $r-pos-sink && $r-named-sink;
+            }
+            elsif $l-param.slurpy && !$l-param.named {
+                return False unless $r-pos-sink;
+            }
+            elsif $l-param.positional {
+                if @r-pos-queue {
                     return False unless $l-param ~~ @r-pos-queue.shift;
                 }
                 else {
@@ -115,9 +147,6 @@ my class Signature { # declared in BOOTSTRAP
                 else {
                     return False unless $r-named-sink;
                 }
-            }
-            else {
-                return False unless $r-pos-sink && $r-named-sink;
             }
         }
 

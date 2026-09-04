@@ -494,6 +494,10 @@ do {
                     my $exception,
                     $previous-evals.List,
                     :outer_ctx($!save_ctx),
+                    # the revision of the saved context, not the compiler's
+                    :language_version(
+                      Rakudo::Internals.LANGUAGE-VERSION-OF-CONTEXT($!save_ctx)
+                    ),
                     |%adverbs);
 
                 if self.input-incomplete($output) {

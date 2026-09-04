@@ -2179,7 +2179,7 @@ class RakuAST::Block
                     :exception);
             }
         }
-        if nqp::getcomp('Raku').language_revision >= 3 && !$!no-implicit-match {
+        if self.IMPL-LANGUAGE-REVISION >= 3 && !$!no-implicit-match {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::BlockMatch.new(:name('$/')))
                 unless self.IMPL-HAS-PARAMETER('$/');
         }

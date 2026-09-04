@@ -453,6 +453,16 @@ class RakuAST::Node {
         nqp::die('Missing IMPL-INTERPRET implementation on ' ~ self.HOW.name(self))
     }
 
+    # The revision of the compilation unit in dynamic scope, or the
+    # compiler's for a tree compiled outside one, as through the RakuAST
+    # API at runtime
+    method IMPL-LANGUAGE-REVISION() {
+        my $revision := nqp::getlexdyn('$*LANGUAGE-REVISION');
+        nqp::isnull($revision)
+          ?? nqp::getcomp('Raku').language_revision
+          !! $revision
+    }
+
     method IMPL-WRAP-LIST(Mu $vm-array) {
         if nqp::istype($vm-array, List) {
             # It already is a list

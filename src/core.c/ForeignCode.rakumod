@@ -120,8 +120,11 @@ $lang = 'Raku' if $lang eq 'perl6';
             RakuAST::CompUnit.new:
                 :outer-cu($*CU // RakuAST::CompUnit),
                 :eval, :$statement-list,
-                :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id)
+                :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id),
+                :language-revision(Rakudo::Internals.LANGUAGE-REVISION-OF-CONTEXT($eval_ctx))
         }
+
+        my $*LANGUAGE-REVISION := $comp-unit.language-revision.Int;
 
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
         # When called from a BEGIN block the captured outer-context chain may
@@ -154,12 +157,14 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
 
         my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
+
         my $*INSIDE-EVAL := 1;
         $compiled := $compiler.compile:
             $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
-            :language_version(nqp::getcomp('Raku').language_version),
+            # the revision of the unit calling EVAL, not the compiler's
+            :language_version(Rakudo::Internals.LANGUAGE-VERSION-OF-CONTEXT($eval_ctx)),
             |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
             |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
     }

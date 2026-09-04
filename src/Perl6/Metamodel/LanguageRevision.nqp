@@ -30,11 +30,16 @@ role Perl6::Metamodel::LanguageRevision
             # may not represent the CORE's revision. But the World's
             # instance knows it.
             # TODO RakuAST needs different approach.
+            # The revision of the unit declaring the type, or of the unit
+            # composing it at runtime
+            my $unit-rev := nqp::getlexdyn('$*LANGUAGE-REVISION');
+            $unit-rev := nqp::getlexcaller('$?LANGUAGE-REVISION')
+                if nqp::isnull($unit-rev);
             nqp::push(
                 @lang-ver,
                 $*COMPILING_CORE_SETTING
                 ?? $*W ?? $*W.setting_revision !! $*COMPILING_CORE_SETTING
-                !! $comp.language_revision
+                !! nqp::isnull($unit-rev) ?? $comp.language_revision !! $unit-rev
             );
         }
         else {

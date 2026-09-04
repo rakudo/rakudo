@@ -18,7 +18,7 @@ my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 sub block_closure($code, :$regex) {
     my $clone := QAST::Op.new( :op('callmethod'), :name('clone'), $code );
     if $regex {
-        if nqp::getcomp('Raku').language_revision < 2 {
+        if $*LANGUAGE-REVISION < 2 {
             my $marker := $*W.find_symbol(['Rakudo', 'Internals', 'RegexBoolification6cMarker']);
             $clone.push(QAST::WVal.new( :value($marker), :named('topic') ));
         }
@@ -1435,7 +1435,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
               QAST::WVal.new(:value($main<value>)),
               $mainline             # run the mainline and get its result
             );
-            unless nqp::getcomp('Raku').language_revision < 2 {
+            unless $*LANGUAGE-REVISION < 2 {
                 $mainline.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => $world.find_symbol(['Bool','True'], :setting-only),
@@ -1632,7 +1632,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $statements[0].ast;
 
                 # an op and 6e or higher?
-                if nqp::istype($ast,QAST::Op) && nqp::getcomp('Raku').language_revision >= 3 {
+                if nqp::istype($ast,QAST::Op) && $*LANGUAGE-REVISION >= 3 {
                     sub is-pipe-pipe($ast) {
                         nqp::istype($ast,QAST::Op)
                           && $ast.name eq '&prefix:<|>'
@@ -2572,7 +2572,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub single_top_level_whenever($block) {
         if $*WHENEVER_COUNT == 1
-        && nqp::getcomp('Raku').language_revision > 1 {
+        && $*LANGUAGE-REVISION > 1 {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;
@@ -2657,7 +2657,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::WVal.new( :value($world.find_single_symbol_in_setting('Promise')) ),
             $<blorst>.ast
         );
-        if nqp::getcomp('Raku').language_revision > 1 {
+        if $*LANGUAGE-REVISION > 1 {
             $qast.push(QAST::WVal.new(
                 :value($world.find_symbol(['Bool', 'True'])),
                 :named('report-broken-if-sunk')
@@ -3017,7 +3017,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        my $has_magic := nqp::getcomp('Raku').language_revision < 2 && $<coercee> eq '';
+        my $has_magic := $*LANGUAGE-REVISION < 2 && $<coercee> eq '';
         my $sigil := ~$<sigil>;
 
         if $has_magic && $sigil eq '$' { # for '$()'
@@ -3081,7 +3081,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if nqp::existskey(%variable_deprecations, $name)
             && nqp::isge_i(
-                nqp::getcomp('Raku').language_revision,
+                $*LANGUAGE-REVISION,
                 %variable_deprecations{$name}[0])
         {
             @deprecation := nqp::clone(%variable_deprecations{$name});
@@ -3178,7 +3178,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # under 6.e so that an if/while/etc. CONDITION (which is
             # parsed in the outer pad, before the body's new pad gets
             # pushed) doesn't try to redeclare an explicit *@_ parameter.
-            if (nqp::getcomp('Raku').language_revision < 3
+            if ($*LANGUAGE-REVISION < 3
                 && $world.nearest_signatured_block_declares('@_'))
               || +$world.cur_lexpad().symbol('@_') {
                 $past.scope('lexical');
@@ -3191,7 +3191,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $name eq '%_' {
             # Same 6.e gate as @_ above. The $*METHODTYPE check stays
             # unconditional: methods auto-have *%_ in every revision.
-            if (nqp::getcomp('Raku').language_revision < 3
+            if ($*LANGUAGE-REVISION < 3
                 && $world.nearest_signatured_block_declares('%_'))
               || +$world.cur_lexpad().symbol('%_')
               || $*METHODTYPE {
@@ -4194,7 +4194,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub decontrv_op() {
 #?if moar
-        nqp::getcomp('Raku').language_revision < 2
+        $*LANGUAGE-REVISION < 2
           ?? 'p6decontrv_6c'
           !! 'p6decontrv'
 #?endif
@@ -5544,7 +5544,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         if $sigil eq '%' {
             nqp::defined($*OFTYPE) && $world.throw: $/, 'X::ParametricConstant';
-            nqp::getcomp('Raku').language_revision < 2
+            $*LANGUAGE-REVISION < 2
               ?? check-type($world.find_symbol: ['Associative'])
               !! check-type-maybe-coerce('Map', $world.find_symbol: ['Associative'])
         }
@@ -11773,7 +11773,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         else {
             # Any name other than w/c is a typo: an error from 6.e. Before then
             # $qast stays null, which the base matches as the empty string.
-            if nqp::getcomp('Raku').language_revision >= 3 {
+            if $*LANGUAGE-REVISION >= 3 {
                 $/.typed_panic('X::Syntax::Regex::UnrecognizedBoundary', :boundary($name));
             }
         }

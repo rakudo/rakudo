@@ -823,6 +823,17 @@ my class BlockVarOptimizer {
                     # as it is bound immediately.
                     $qast.decl('var');
                     unless $qast.ann('our_decl') {
+                        # The container is now created on each frame entry,
+                        # so a unit declaration's mark against repossession
+                        # has nothing left to protect.
+                        my @kept;
+                        for @($block[0]) {
+                            @kept.push($_) unless nqp::istype($_, QAST::Op)
+                                && $_.op eq 'neverrepossess'
+                                && nqp::istype($_[0], QAST::Var)
+                                && $_[0].name eq $name;
+                        }
+                        $block[0].set_children(@kept);
                         my $type := nqp::what_nd($qv);
                         my $setup := QAST::Op.new(
                             :op('create'),

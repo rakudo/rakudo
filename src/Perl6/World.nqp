@@ -1868,6 +1868,17 @@ class Perl6::World is HLL::World {
                 ?? 'static'
                 !! 'contvar');
 
+        # A static container is the serialized one, so a module that uses
+        # the unit and changes it while precompiling repossesses it, and
+        # loading that module hands back the state its precompilation saw.
+        # The neverrepossess mark is not serialized, so it is set at unit
+        # entry. A package scoped container is bound from the stash at
+        # entry, as the RakuAST frontend declares it, and is left alone.
+        if $var.decl eq 'static' && $scope ne 'our' {
+            $block[0].push(QAST::Op.new( :op('neverrepossess'),
+                QAST::Var.new( :name($name), :scope('lexical') ) ));
+        }
+
         # Evaluate to the container.
         $cont
     }

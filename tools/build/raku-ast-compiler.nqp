@@ -103,7 +103,7 @@ grammar RakuASTParser {
         <!ww>
         [
         | \s+
-        | '#' \N+
+        | '#' \N*
         ]*
     }
 

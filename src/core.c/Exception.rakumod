@@ -2290,6 +2290,25 @@ my class X::Syntax::Regex::NullRegex does X::Syntax {
     method message() { "Null regex not allowed.  Please use .comb if you wanted to produce a sequence of characters from a string.".naive-word-wrapper }
 }
 
+my class X::Syntax::Regex::SolitaryModifier is X::Syntax::Regex::NullRegex {
+    has @.modifiers;
+    has Bool $.branch;
+    submethod BUILD(:@!modifiers, Bool() :$!branch) {}
+    method message() {
+        my $modifiers = @!modifiers.join(' ');
+        my $plural = @!modifiers > 1;
+        my $message = $plural
+          ?? "The regex modifiers $modifiers do not match anything by themselves"
+          !! "The regex modifier $modifiers does not match anything by itself";
+        ("Null regex not allowed. $message" ~ ($!branch
+          ?? ", so this branch would match the empty string. To apply "
+               ~ ($plural ?? 'them' !! 'it')
+               ~ " to every branch, put the branches in a group: $modifiers [ ... ]"
+          !! '.'
+        )).naive-word-wrapper
+    }
+}
+
 my class X::Syntax::Regex::MalformedRange does X::Syntax {
     method message() {
         'Malformed Range. If attempting to use variables for end points, '

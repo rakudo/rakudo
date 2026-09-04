@@ -443,12 +443,16 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
 }
 
 
-# Attach to the match of the nearest enclosing regex frame when there is
-# one. Its cursor cannot be disturbed by user code, however a match run
-# inside the regex's code block can overwrite $/. In a 6.e scope, where
-# $/ carries the isolation marker, the next candidate is the Match in
-# the immediate caller frame's own $/, i.e. the match that frame most
-# recently established. After that comes a Match topic, so a block
+# Inside a regex frame, attach to the caller's $/ when it belongs to the
+# parse the frame's cursor belongs to, and otherwise to the cursor's
+# match. In a capture group's code block the cursor the block sees can
+# be the enclosing regex's while $/ is the capture's own match, so $/ is
+# the one to attach to. A match run inside the code block overwrites $/
+# with a match of another parse, which leaves the cursor's match as the
+# target. Outside any regex frame, in a 6.e scope where $/ carries the
+# isolation marker, the next candidate is the Match in the immediate
+# caller frame's own $/, i.e. the match that frame most recently
+# established. After that comes a Match topic, so a block
 # iterating match results attaches to its topic even when it never set
 # up a $/ of its own. Everything else attaches to the caller's $/, as
 # in an action method, whose $/ parameter carries no marker in any
@@ -466,7 +470,14 @@ sub make(Mu \made) {
     my \slash-cont  := nqp::getlexcaller('$/');
     my $slash       := nqp::decont(slash-cont);
     nqp::isconcrete($cursor) && nqp::istype($cursor, NQPMatchRole)
-      ?? nqp::bindattr($cursor.MATCH, Match, '$!made', made)
+      ?? nqp::bindattr(
+           nqp::isconcrete($slash) && nqp::istype($slash, Match)
+             && nqp::eqaddr(
+                  nqp::getattr($slash,  Match, '$!shared'),
+                  nqp::getattr($cursor, Match, '$!shared'))
+             ?? $slash
+             !! $cursor.MATCH,
+           Match, '$!made', made)
       !! Rakudo::Internals.IS-ISOLATED-MATCH(nearby-cont)
            && nqp::isconcrete(my $nearby := nqp::decont(nearby-cont))
            && nqp::istype($nearby, NQPMatchRole)

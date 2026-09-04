@@ -1734,9 +1734,14 @@ class RakuAST::Regex::Assertion::Lookahead
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := $!assertion.IMPL-REGEX-QAST($context, %mods);
-        $qast.subtype('zerowidth');
-        if $!negated {
-            $qast.negate(!$qast.negate);
+        # An anchor is already zero width, and changing its subtype would
+        # turn a failing one into a check that always passes.
+        if $qast.rxtype eq 'anchor' {
+            $qast.subtype($qast.subtype eq 'fail' ?? 'pass' !! 'fail') if $!negated;
+        }
+        else {
+            $qast.subtype('zerowidth');
+            $qast.negate(!$qast.negate) if $!negated;
         }
         $qast
     }
@@ -1928,15 +1933,27 @@ class RakuAST::Regex::Assertion::CharClass
             while $i < nqp::elems($!elements) {
                 my $elem := $!elements[$i];
                 my $elem-qast := $elem.IMPL-CCLASS-QAST($context, %mods, False);
-                if $elem.negated {
-                    $elem-qast.subtype('zerowidth');
-                    $qast := QAST::Regex.new:
-                        :rxtype<concat>, :subtype<zerowidth>, :negate,
-                        QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, $elem-qast ),
-                        $qast;
-                }
-                else {
+                if !$elem.negated {
                     $qast := QAST::Regex.new( :rxtype<alt>, $qast, $elem-qast );
+                }
+                # An enumeration with nothing in it compiles to an anchor that
+                # fails, and subtracting nothing leaves the class alone.
+                elsif $elem-qast.rxtype ne 'anchor' {
+                    # A subtracted element compiles negated, so a zerowidth
+                    # check of it ahead of the class built so far excludes its
+                    # characters. A subtracted enumeration with more than one
+                    # part already compiles to that check, ahead of the `.`
+                    # that consumes the character.
+                    # Mirrors QRegex::P6Regex::Actions.assertion:sym<[>.
+                    my $check;
+                    if $elem-qast.rxtype eq 'concat' {
+                        $check := $elem-qast[0];
+                    }
+                    else {
+                        $elem-qast.subtype('zerowidth');
+                        $check := QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, $elem-qast );
+                    }
+                    $qast := QAST::Regex.new( :rxtype<concat>, $check, $qast );
                 }
                 $i++;
             }
@@ -2115,7 +2132,7 @@ class RakuAST::Regex::CharClassElement::Enumeration
 
         else {
             self.negated ??
-                QAST::Regex.new( :rxtype<concat>, :negate(1),
+                QAST::Regex.new( :rxtype<concat>,
                     QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, |@alts ),
                     QAST::Regex.new( :rxtype<cclass>, :name<.> ) ) !!
                 QAST::Regex.new( :rxtype<alt>, |@alts );

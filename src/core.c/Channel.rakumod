@@ -23,6 +23,12 @@ my class Channel does Awaitable {
     # Flag for if the channel is closed to senders.
     has int $!closed;
 
+    # The first CHANNEL_CLOSE or CHANNEL_FAIL marker, bound before it is
+    # pushed onto the queue. A reader that shifted the marker and is about
+    # to push it back leaves the queue momentarily empty, so a reader that
+    # finds the queue empty consults this instead.
+    has $!terminal;
+
     # We use a Supplier to send async notifications that there may be a new
     # message to read from the channel (there may be many things competing
     # over them).
@@ -34,6 +40,7 @@ my class Channel does Awaitable {
 
     submethod BUILD(--> Nil) {
         $!queue := nqp::create(Queue);
+        $!terminal := Mu;
         $!closed_promise = Promise.new;
         $!closed_promise_vow = $!closed_promise.vow;
         $!async-notify = Supplier.new;
@@ -56,12 +63,14 @@ my class Channel does Awaitable {
           nqp::istype(msg,CHANNEL_CLOSE),
           nqp::stmts(
             nqp::push($!queue, msg),    # make sure other readers see it
+            self!settle(msg),
             X::Channel::ReceiveOnClosed.new(channel => self).throw
           ),
           nqp::if(
             nqp::istype(msg,CHANNEL_FAIL),
             nqp::stmts(
               nqp::push($!queue,msg),   # make sure other readers see it
+              self!settle(msg),
               msg.error.rethrow
             ),
             nqp::stmts(
@@ -75,17 +84,22 @@ my class Channel does Awaitable {
     method poll(Channel:D:) {
         nqp::if(
           nqp::isnull(my \msg := nqp::queuepoll($!queue)),
-          Nil,
+          nqp::stmts(
+            nqp::if($!closed, self!settle($!terminal)),
+            Nil
+          ),
           nqp::if(
             nqp::istype(msg, CHANNEL_CLOSE),
             nqp::stmts(
               nqp::push($!queue, msg),
+              self!settle(msg),
               Nil
             ),
             nqp::if(
               nqp::istype(msg, CHANNEL_FAIL),
               nqp::stmts(
                 nqp::push($!queue, msg),
+                self!settle(msg),
                 Nil
               ),
               nqp::stmts(
@@ -97,22 +111,33 @@ my class Channel does Awaitable {
         )
     }
 
+    # Settles the closed promise from an end marker. A reader passes the
+    # marker it shifted, or $!terminal after finding the queue empty. Every
+    # value sent before the close was pushed ahead of the marker, so an
+    # empty queue on a closed channel means they have all been taken.
+    method !settle(Channel:D: Mu \marker --> Nil) {
+        if nqp::eqaddr($!closed_promise.status, Planned) {
+            if nqp::istype(marker, CHANNEL_CLOSE) {
+                try $!closed_promise_vow.keep(Nil);
+            }
+            elsif nqp::istype(marker, CHANNEL_FAIL) {
+                try $!closed_promise_vow.break(marker.error);
+            }
+        }
+    }
+
     method !peek(Channel:D:) {
         my \msg := nqp::atpos($!queue, 0);
         if nqp::isnull(msg) {
+            self!settle($!terminal) if $!closed;
             Nil
-        } else {
-            if nqp::istype(msg, CHANNEL_CLOSE) {
-                try $!closed_promise_vow.keep(Nil);
-                Nil
-            }
-            elsif nqp::istype(msg, CHANNEL_FAIL) {
-                try $!closed_promise_vow.break(msg.error);
-                Nil
-            }
-            else {
-                msg
-            }
+        }
+        elsif nqp::istype(msg, CHANNEL_CLOSE) || nqp::istype(msg, CHANNEL_FAIL) {
+            self!settle(msg);
+            Nil
+        }
+        else {
+            msg
         }
     }
 
@@ -277,13 +302,26 @@ my class Channel does Awaitable {
         }
     }
 
-    method close(--> Nil) {
+    method !end(Channel:D: \marker --> Nil) {
         $!closed = 1;
-        nqp::push($!queue, CHANNEL_CLOSE);
+        unless nqp::istype($!terminal, CHANNEL_CLOSE)
+          || nqp::istype($!terminal, CHANNEL_FAIL) {
+#?if moar
+            nqp::atomicbindattr(self, Channel, '$!terminal', marker);
+#?endif
+#?if !moar
+            nqp::bindattr(self, Channel, '$!terminal', marker);
+#?endif
+        }
+        nqp::push($!queue, marker);
         # if $!queue is otherwise empty, make sure that $!closed_promise
         # learns about the new value
         self!peek();
         $!async-notify.emit(True);
+    }
+
+    method close(--> Nil) {
+        self!end(CHANNEL_CLOSE)
     }
 
     multi method elems(Channel:D:) {
@@ -291,11 +329,8 @@ my class Channel does Awaitable {
     }
 
     method fail($error is copy) {
-        $!closed = 1;
         $error = X::AdHoc.new(payload => $error) unless nqp::istype($error, Exception);
-        nqp::push($!queue, CHANNEL_FAIL.new(:$error));
-        self!peek();
-        $!async-notify.emit(True);
+        self!end(CHANNEL_FAIL.new(:$error));
         Nil
     }
 

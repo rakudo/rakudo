@@ -1,11 +1,6 @@
 my class RakuAST::HTML::Entities {
 
-#?if moar
     my constant $entity2ord = nqp::hash(
-#?endif
-#?if js
-    my $entity2ord := nqp::hash(
-#?endif
 
 #?if !jvm
 

@@ -12,12 +12,6 @@ class VM does Systemic {
     has $.precomp-ext    is built(:bind) = "jar";
     has $.precomp-target is built(:bind) = "jar";
 #?endif
-#?if js
-    has $.config         is built(:bind) = nqp::backendconfig;
-    has $.prefix         is built(:bind) = 'todo-prefix';
-    has $.precomp-ext    is built(:bind) = "js";
-    has $.precomp-target is built(:bind) = "js";
-#?endif
 
     submethod TWEAK(--> Nil) {
 #?if moar
@@ -35,14 +29,6 @@ class VM does Systemic {
         nqp::bind($!version,Version.new($!properties<java.specification.version> // "unknown"));
         $!config<os.name> := $!properties<os.name> // 'unknown';
 #?endif
-#?if js
-        # https://github.com/rakudo/rakudo/issues/3436
-        nqp::bind($!name,'js');
-        nqp::bind($!desc,'JavaScript');
-        nqp::bind($!auth,'unknown');
-        nqp::bind($!version,Version.new($!config<version> // 'unknown'));
-#?endif
-# add new backends here please
     }
 
 #?if jvm

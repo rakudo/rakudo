@@ -105,10 +105,8 @@ my class IO::Socket::INET does IO::Socket {
         }
 
         if $!listening {
-#?if !js
             $!localport = nqp::getport($PIO)
                    unless $!localport || ($!family == PF_UNIX);
-#?endif
         }
         elsif $!type == SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::decont_i($!family));

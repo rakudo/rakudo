@@ -2097,10 +2097,8 @@ class RakuAST::Regex::CharClassElement::Enumeration
         # If we collected characters, add the enumeration to the alternation
         # parts we'll compile into.
         if $enum {
-            @alts.push: QAST::Regex.new:
-                :rxtype<enumcharlist>, :negate(self.negated),
-                :subtype(%mods<m> ?? 'ignoremark' !! ''),
-                $enum
+            $enum := self.IMPL-FOLD-ENUM($enum, %mods, @alts) if %mods<i> || %mods<m>;
+            @alts.push(self.IMPL-ENUMCHARLIST-QAST($enum, %mods)) if $enum;
         }
 
         # A single alternation part can compile into just that.
@@ -2119,6 +2117,52 @@ class RakuAST::Regex::CharClassElement::Enumeration
                     QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, |@alts ),
                     QAST::Regex.new( :rxtype<cclass>, :name<.> ) ) !!
                 QAST::Regex.new( :rxtype<alt>, |@alts );
+        }
+    }
+
+    method IMPL-ENUMCHARLIST-QAST(str $chars, %mods) {
+        QAST::Regex.new:
+            :rxtype<enumcharlist>, :negate(self.negated),
+            :subtype(%mods<m> ?? 'ignoremark' !! ''),
+            $chars
+    }
+
+    # Folds the assembled entries for ignoremark and ignorecase. This happens
+    # after assembly since adjacent entries can form one grapheme. A folded
+    # entry that would form one with the entry before it is pushed onto @alts
+    # as an enumeration of its own. A case form that is not a single
+    # character cannot be an entry and is left out.
+    method IMPL-FOLD-ENUM(str $entries, %mods, @alts) {
+        my str $folded := '';
+        my int $n := nqp::chars($entries);
+        my int $i;
+        while $i < $n {
+            my str $c := %mods<m>
+                ?? nqp::chr(nqp::ordbaseat($entries, $i))
+                !! nqp::substr($entries, $i, 1);
+            $folded := self.IMPL-ADD-ENTRY($folded, $c, %mods, @alts);
+            if %mods<i> {
+                for nqp::list(nqp::fc($c), nqp::uc($c), nqp::lc($c), nqp::tc($c)) -> str $form {
+                    $folded := self.IMPL-ADD-ENTRY($folded, $form, %mods, @alts)
+                        if nqp::chars($form) == 1 && $form ne $c;
+                }
+            }
+            ++$i;
+        }
+        $folded
+    }
+
+    method IMPL-ADD-ENTRY(str $folded, str $c, %mods, @alts) {
+        my str $joined := $folded ~ $c;
+        if nqp::index($folded, $c) >= 0 {
+            $folded
+        }
+        elsif nqp::chars($joined) == nqp::chars($folded) + 1 {
+            $joined
+        }
+        else {
+            @alts.push(self.IMPL-ENUMCHARLIST-QAST($c, %mods));
+            $folded
         }
     }
 
@@ -2143,14 +2187,7 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
         $obj
     }
 
-    method IMPL-CCLASS-ENUM-CHARS(%mods) {
-        my str $c := %mods<m>
-            ?? nqp::chr(nqp::ordbaseat($!character, 0))
-            !! $!character;
-        %mods<i>
-            ?? nqp::fc($c) ~ nqp::uc($c)
-            !! $c
-    }
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { $!character }
 }
 
 # A range of characters in a character class enumeration, for example the a..f

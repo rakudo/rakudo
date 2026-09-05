@@ -1081,19 +1081,18 @@ class RakuAST::Mixin
             :name('&infix:<' ~ self.operator ~ '>'),
             $left-qast
         );
-        if nqp::istype($right-qast, QAST::Op) && $right-qast.op eq 'call' {
-            if $right-qast.name && +@($right-qast) == 1 {
-                $qast.push($right-qast);
-            }
-            else {
-                if +@($right-qast) == 2 && $right-qast[0].has_compile_time_value {
-                    $qast.push($right-qast[0]); $right-qast[1].named('value');
-                    $qast.push($right-qast[1]);
-                }
-                else {
-                    $qast.push($right-qast);
-                }
-            }
+        # Role<value> and Role(value) are split into the role and a named
+        # value; any other call is one argument even when its own
+        # arguments look the same.
+        if nqp::istype($right-qast, QAST::Op)
+          && ($right-qast.op eq 'call' || $right-qast.op eq 'callstatic')
+          && (!$right-qast.name || $right-qast.name eq '&postcircumfix:<{ }>')
+          && +@($right-qast) == 2
+          && $right-qast[0].has_compile_time_value
+          && !nqp::isconcrete($right-qast[0].compile_time_value) {
+            $qast.push($right-qast[0]);
+            $right-qast[1].named('value');
+            $qast.push($right-qast[1]);
         }
         elsif nqp::istype($right-qast, QAST::Stmts) && +@($right-qast) == 1 &&
                 nqp::istype($right-qast[0], QAST::Op) && $right-qast[0].name eq '&infix:<,>' {

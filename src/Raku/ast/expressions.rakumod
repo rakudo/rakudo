@@ -1110,7 +1110,6 @@ class RakuAST::Mixin
 
 class RakuAST::Feed
   is RakuAST::Infix
-  is RakuAST::BeginTime
 {
     method new(str $operator) {
         my $obj := nqp::create(self);
@@ -1120,23 +1119,15 @@ class RakuAST::Feed
 
     method is-pure() { False }
 
-    method PERFORM-BEGIN(Resolver $resolver, Context $context) {
-        my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
-        if $operator eq "==>>" || $operator eq "<<==" {
-            self.add-sorry:
-              $resolver.build-exception: 'X::Comp::NYI',
-                :feature($operator ~ " feed operator");
-        }
-    }
-
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         my @stages;
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
-        if $operator eq "==>" {
+        my int $appending := $operator eq "==>>" || $operator eq "<<==";
+        if $operator eq "==>" || $operator eq "==>>" {
             for $operands {
                 @stages.push: $_;
             }
-        } else {  # "<<==" and "==>>" are NYI
+        } else {
             for $operands {
                 @stages.unshift: $_;
             }
@@ -1177,7 +1168,8 @@ class RakuAST::Feed
             elsif nqp::istype($stage, QAST::Var) {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
-                # could well be a tap.
+                # could well be a tap. The appending forms instead pass on
+                # the variable's whole contents, prior values included.
                 my $tmp := QAST::Node.unique('feed_tmp');
                 $stage := QAST::Stmts.new(
                     QAST::Op.new(
@@ -1192,9 +1184,10 @@ class RakuAST::Feed
                         :op('callmethod'), :name('append'),
                         $stage,
                         QAST::Var.new( :scope('local'), :name($tmp) )
-                        ),
-                    QAST::Var.new( :scope('local'), :name($tmp) )
+                        )
                     );
+                $stage.push(QAST::Var.new( :scope('local'), :name($tmp) ))
+                    unless $appending;
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {

@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 23;
+plan 26;
 
 # Compile-time validation of `==>` / `<==` stages, matching the
 # legacy frontend's `make_feed` in src/Perl6/Actions.nqp.
@@ -98,6 +98,18 @@ is-run q|say ((1..3) ==> map(* + 10))|,
 is-run q|my @a <== gather for 1..3 -> $i { take $i }; say @a|,
     'bare my @a <== source compiles (declaration acts as Var)',
     :out("[1 2 3]\n");
+
+is-run q|my @sink = <a>; 1..6 ==>> grep(* %% 2) ==>> @sink; say @sink|,
+    'forward appending feed keeps existing sink contents',
+    :out("[a 2 4 6]\n");
+
+is-run q|my @sink = <a>; @sink <<== grep(* %% 2) <<== 1..6; say @sink|,
+    'backward appending feed keeps existing sink contents',
+    :out("[a 2 4 6]\n");
+
+is-run q|my @tap = <t>; my @out; 1..3 ==>> @tap ==>> @out; say @out|,
+    'appending feed tap passes on its whole contents, prior values included',
+    :out("[t 1 2 3]\n");
 
 # A feed stage receives the fed value as an extra argument at code-gen
 # time, so its arity must not be trial-bound against the arguments

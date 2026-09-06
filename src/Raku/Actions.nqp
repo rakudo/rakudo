@@ -2736,6 +2736,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $*R.declare-lexical($ast);
             }
 
+            # indirect name like &::("foo"): looked up at run time
+            elsif $desigilname.is-indirect-lookup {
+                $ast := Nodify('Var::Package').new(
+                  :$sigil, :name($desigilname)
+                );
+            }
+
             # simple variable
             elsif $desigilname.is-identifier {
 

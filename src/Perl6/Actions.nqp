@@ -8056,14 +8056,18 @@ Did you mean a call like '"
                     CATCH { $past.push($rhs); }
                 }
             }
+            elsif (!$rhs.name || $rhs.name eq '&postcircumfix:<{ }>')
+              && +@($rhs) == 2
+              && $rhs[0].has_compile_time_value
+              && !nqp::isconcrete($rhs[0].compile_time_value) {
+                # Role<value> and Role(value) are split into the role and a
+                # named value; any other call is one argument even when its
+                # own arguments look the same.
+                $past.push($rhs[0]); $rhs[1].named('value');
+                $past.push($rhs[1]);
+            }
             else {
-                if +@($rhs) == 2 && $rhs[0].has_compile_time_value {
-                    $past.push($rhs[0]); $rhs[1].named('value');
-                    $past.push($rhs[1]);
-                }
-                else {
-                    $past.push($rhs);
-                }
+                $past.push($rhs);
             }
         }
         elsif nqp::istype($rhs, QAST::Stmts) && +@($rhs) == 1 &&

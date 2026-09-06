@@ -22,6 +22,16 @@ class RakuAST::Resolver {
     # Nodes that are unresolved after check time.
     has Mu $!nodes-unresolved-after-check-time;
 
+    # Stores of a value their variable can never accept, held until the whole
+    # comp unit has been checked. A bind anywhere replaces the container the
+    # declaration made, and it may be written after the store it excuses.
+    has Mu $!pending-impossible-values;
+
+    # Whether a bind written through a pseudo package appeared. It replaces the
+    # container of a lexical the compiler cannot name, so no store in the unit
+    # can be judged against the type its declaration made.
+    has int $!pseudo-package-bind;
+
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
@@ -751,6 +761,37 @@ class RakuAST::Resolver {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
         }
         nqp::push($!nodes-with-check-time-problems, $node);
+        Nil
+    }
+
+    # Hold a store to report once every bind in the comp unit is known.
+    method add-pending-impossible-value(Mu $node, Mu $declaration, Mu $exception) {
+        unless $!pending-impossible-values {
+            nqp::bindattr(self, RakuAST::Resolver, '$!pending-impossible-values', []);
+        }
+        nqp::push($!pending-impossible-values, [$node, $declaration, $exception]);
+        Nil
+    }
+
+    method mark-pseudo-package-bind() {
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!pseudo-package-bind', 1);
+        Nil
+    }
+
+    # Report the held stores whose variable no bind has taken over.
+    method report-pending-impossible-values() {
+        if $!pending-impossible-values && !$!pseudo-package-bind {
+            for $!pending-impossible-values -> @pending {
+                unless @pending[1].IMPL-BIND-TARGETED {
+                    # A node already on the list is reported whole, so listing
+                    # it twice repeats every complaint it carries.
+                    my int $listed := @pending[0].has-check-time-problems ?? 1 !! 0;
+                    @pending[0].add-sorry(@pending[2]);
+                    self.add-node-with-check-time-problems(@pending[0]) unless $listed;
+                }
+            }
+            nqp::bindattr(self, RakuAST::Resolver, '$!pending-impossible-values', []);
+        }
         Nil
     }
 

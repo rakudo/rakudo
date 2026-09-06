@@ -303,6 +303,21 @@ class Perl6::World is HLL::World {
             nqp::die("Could not find container descriptor for $name");
         }
 
+        # Hunts through scopes to find a lexical and records that a bind has
+        # replaced the container its declaration made.
+        method mark_lexical_bind_targeted(str $name) {
+            my int $i := +@!PADS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!PADS[$i].symbol($name);
+                if %sym {
+                    @!PADS[$i].symbol($name, :bind_targeted(1));
+                    return 1;
+                }
+            }
+            0;
+        }
+
         # Hunts through scopes to find a lexical and returns if it is
         # known to be read-only.
         method is_lexical_marked_ro(str $name) {
@@ -479,6 +494,11 @@ class Perl6::World is HLL::World {
 
     has int $!in_unit_parse;
     has int $!have_outer;
+
+    # Whether a bind written through a pseudo package appeared. It replaces the
+    # container of a lexical the compiler cannot name, so no store in the unit
+    # can be judged against the type its declaration made.
+    has int $!pseudo_package_bind;
     has int $!setting_loaded;
     has $!setting_name;
     has $!setting_revision;
@@ -1816,7 +1836,9 @@ class Perl6::World is HLL::World {
             $var.annotate('our_decl', 1) if $scope eq 'our';
             $block[0].unshift($var);
         }
-        $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>), :descriptor($descriptor));
+        $block.symbol($name, :scope('lexical'), :type(%cont_info<bind_constraint>),
+            :descriptor($descriptor),
+            :explicit_container(%cont_info<explicit_container> ?? 1 !! 0));
 
         # If it's a native type, no container as we inline natives straight
         # into registers. Do need to take care of initial value though.
@@ -2058,6 +2080,7 @@ class Perl6::World is HLL::World {
             if @cont_type {
                 %info<bind_constraint> := @cont_type[0];
                 %info<container_base> := @cont_type[0];
+                %info<explicit_container> := 1;
             }
             else {
                 %info<bind_constraint> := self.find_single_symbol_in_setting('Positional');
@@ -2288,6 +2311,15 @@ class Perl6::World is HLL::World {
     method is_lexical_marked_ro(str $name) {
         self.context().is_lexical_marked_ro($name)
     }
+
+    # Hunts through scopes to find a lexical and records that a bind has
+    # replaced the container its declaration made.
+    method mark_lexical_bind_targeted(str $name) {
+        self.context().mark_lexical_bind_targeted($name)
+    }
+
+    method mark_pseudo_package_bind() { $!pseudo_package_bind := 1 }
+    method has_pseudo_package_bind()  { $!pseudo_package_bind }
 
     # Installs a symbol into the package.
     method install_package_symbol($/, $package, $name, $obj, $declaration) {
@@ -2564,7 +2596,24 @@ class Perl6::World is HLL::World {
                     nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
                     $lexpad.symbol($varname, :descriptor($desc), :$type);
                 }
-                $lexpad.symbol($varname, :ro(0));
+                # A type as written narrower than a plain type is recorded here
+                # already widened, keeping what it narrowed as a flag or as a
+                # post constraint, so the type the symbol carries is not the
+                # whole of what the parameter accepts. A subset is kept as the
+                # type object itself. A where clause and a literal value are
+                # kept concrete, and both only narrow what the recorded type
+                # already accepts, so they leave it speaking for a store.
+                my int $constrained := $flags +& (nqp::const::SIG_ELEM_DEFINED_ONLY
+                    +| nqp::const::SIG_ELEM_UNDEFINED_ONLY) ?? 1 !! 0;
+                if !$constrained && $_<post_constraints> {
+                    for $_<post_constraints> -> $constraint {
+                        unless nqp::isconcrete($constraint) {
+                            $constrained := 1;
+                            last;
+                        }
+                    }
+                }
+                $lexpad.symbol($varname, :ro(0), :constrained($constrained));
             }
             elsif $varname { $lexpad.symbol($varname, :ro(1)) }
 
@@ -5042,6 +5091,17 @@ class Perl6::World is HLL::World {
         LongName.is_pseudo_package($comp)
     }
 
+    # The pseudo-packages naming a lexical scope, which a bind through them can
+    # reach. A package stash aliases the container a lexical holds rather than
+    # holding the lexical, so a bind there leaves the lexical with what it had.
+    my %lexical_pseudo := nqp::hash(
+        'MY', 1, 'OUTER', 1, 'OUTERS', 1, 'UNIT', 1,
+        'SETTING', 1, 'CORE', 1, 'LEXICAL', 1, 'CALLER', 1,
+        'CALLERS', 1, 'DYNAMIC', 1, 'CLIENT', 1, 'COMPILING', 1);
+    method is_lexical_pseudo_package($comp) {
+        nqp::existskey(%lexical_pseudo, $comp)
+    }
+
     # Checks if a given symbol is declared.
     method is_name(@name) {
         my int $is_name := 0;
@@ -5431,6 +5491,10 @@ class Perl6::World is HLL::World {
                     $lookup,
                     self.add_string_constant($_));
             }
+            # The leading part settles what the lookup can reach, and it is the
+            # only place the name survives into what is built here.
+            $lookup.annotate('lexical_pseudo_package', 1)
+                if self.is_lexical_pseudo_package(@name[0]);
             return $lookup;
         }
 

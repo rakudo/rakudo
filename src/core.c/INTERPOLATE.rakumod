@@ -316,6 +316,10 @@ augment class Match {
         }
 #?endif
 
+        # a fold can change the grapheme count
+        $len = INTERPOLATE_FOLDED_LENGTH($tgt, $pos, $topic_str, $len)
+          if $match && $len && (im == 1 || im == 3);
+
         if $match
           && nqp::isgt_i($len,$maxlen)
           && nqp::isle_i(nqp::add_i($pos,$len),nqp::chars($tgt)) {
@@ -552,6 +556,10 @@ augment class Match {
                 $match = nqp::eqatic($tgt, $topic_str, $pos);
             }
 
+            # a fold can change the grapheme count
+            $len = INTERPOLATE_FOLDED_LENGTH($tgt, $pos, $topic_str, $len)
+              if $match && $len && ($im == 1 || $im == 3) && !nqp::istype($topic,Regex);
+
             if $match && nqp::isle_i(nqp::add_i($pos,$len),$eos) {
                 my \found := nqp::istype($match, Match)
                   ?? $match
@@ -599,6 +607,25 @@ augment class Match {
             ++$i;
         }
         cursor.'!cursor_start_cur'()
+    }
+
+    # How many target graphemes a case insensitive match took: the shortest
+    # run whose fold is as long as the pattern's, else the pattern's length.
+    sub INTERPOLATE_FOLDED_LENGTH(str $tgt, int $pos, str $topic, int $len --> int) {
+        my int $want = nqp::chars(nqp::fc($topic));
+        my int $eos  = nqp::chars($tgt);
+        return $len
+          if nqp::iseq_i($want,$len)
+          && nqp::isle_i(nqp::add_i($pos,$len),$eos)
+          && nqp::iseq_i(nqp::chars(nqp::fc(nqp::substr($tgt,$pos,$len))),$len);
+
+        my int $k    = 0;
+        my int $have = 0;
+        while nqp::islt_i($have,$want) && nqp::islt_i(nqp::add_i($pos,$k),$eos) {
+            ++$k;
+            $have = nqp::chars(nqp::fc(nqp::substr($tgt,$pos,$k)));
+        }
+        nqp::iseq_i($have,$want) ?? $k !! $len
     }
 
     sub HASH_ASSERTION_RESERVED() {

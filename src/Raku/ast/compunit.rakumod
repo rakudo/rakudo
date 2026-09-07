@@ -961,38 +961,106 @@ class RakuAST::LiteralBuilder {
     # Build a decimal Int constant and intern it
     method intern-Int(str $source) {
         my $lookup := $!interned-int;
-
-        # Logic to reliably convert a string in a base to n Int
-        my sub build-Int() {
-            my $res := nqp::radix_I(10,$source,0,2,Int);
-            nqp::atpos($res,2) == nqp::chars($source)
-              ?? nqp::atpos($res, 0)
-              !! nqp::die("'$source' is not a valid number")
-        }
-
         nqp::ifnull(
           nqp::atkey($lookup,$source),
-          nqp::bindkey($lookup,$source,build-Int())
+          nqp::bindkey($lookup,$source,
+            nqp::ifnull(
+              self.IMPL-DECIMAL-INT($source),
+              nqp::die("'$source' is not a valid number")
+            )
+          )
         )
+    }
+
+    # Convert an optionally signed decimal literal, single underscores
+    # between digits allowed, to an Int. Returns null on anything else.
+    method IMPL-DECIMAL-INT(str $source) {
+        my int $from := 0;
+        my int $negate;
+        if nqp::eqat($source, '-', 0) || nqp::eqat($source, '−', 0) {
+            $negate := 1;
+            $from   := 1;
+        }
+        elsif nqp::eqat($source, '+', 0) {
+            $from := 1;
+        }
+        my $parsed := self.IMPL-PARSE-DIGITS($source, $from, nqp::chars($source));
+        nqp::isnull($parsed)
+          ?? $parsed
+          !! $negate
+            ?? nqp::neg_I(nqp::atpos($parsed, 0), Int)
+            !! nqp::atpos($parsed, 0)
+    }
+
+    # Returns the Int value of the digits in the given range and the number
+    # of digits in it, underscores not counted, or null when the range is
+    # not digits with single underscores between them. nqp::radix_I is
+    # quadratic in the digit count, so the range is halved recursively
+    # down to at most 18 characters, the longest run of decimal digits
+    # that cannot overflow a native int, and the halves are recombined
+    # with bigint multiplication.
+    method IMPL-PARSE-DIGITS(str $source, int $from, int $to) {
+        my int $n := $to - $from;
+        if $n <= 18 {
+            my $res := nqp::radix(10, nqp::substr($source, $from, $n), 0, 0);
+            return nqp::null unless nqp::atpos($res, 2) == $n;
+            my int $value := nqp::atpos($res, 0);
+            return [nqp::box_i($value, Int), nqp::atpos($res, 1)];
+        }
+
+        # An underscore is only valid between two digits, so one at the
+        # split is dropped rather than left at the edge of either half.
+        my int $mid     := $from + nqp::div_i($n, 2);
+        my int $lo-from := $mid;
+        if nqp::eqat($source, '_', $mid) {
+            $lo-from := $mid + 1;
+        }
+        elsif nqp::eqat($source, '_', $mid - 1) {
+            $mid := $mid - 1;
+        }
+
+        my $hi := self.IMPL-PARSE-DIGITS($source, $from, $mid);
+        return $hi if nqp::isnull($hi);
+        my $lo := self.IMPL-PARSE-DIGITS($source, $lo-from, $to);
+        return $lo if nqp::isnull($lo);
+
+        my int $hi-digits := nqp::atpos($hi, 1);
+        my int $lo-digits := nqp::atpos($lo, 1);
+        my $scale := nqp::pow_I(
+          nqp::box_i(10, Int), nqp::box_i($lo-digits, Int), Num, Int
+        );
+        [
+          nqp::add_I(nqp::mul_I(nqp::atpos($hi, 0), $scale, Int), nqp::atpos($lo, 0), Int),
+          $hi-digits + $lo-digits
+        ]
     }
 
     # Build an Int constant by any base and intern it
     method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
-        my $res := nqp::radix_I($base,$source,0,2,Int);
-
-        # Successfully converted to Int
-        if nqp::atpos($res,2) == nqp::chars($source) {
-            my $key := $base == 10 ?? $source !! "$base:$source";
-            nqp::ifnull(
-              nqp::atkey($!interned-int,$key),
-              nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))
-            )
-        }
-        elsif $error-reporter {
-            $error-reporter();
+        my $value;
+        my str $key;
+        if $base == 10 {
+            $value := self.IMPL-DECIMAL-INT($source);
+            $key   := $source;
         }
         else {
-            nqp::die("'$source' is not a valid number")
+            my $res := nqp::radix_I($base,$source,0,2,Int);
+            $value := nqp::atpos($res,2) == nqp::chars($source)
+              ?? nqp::atpos($res,0)
+              !! nqp::null;
+            $key   := "$base:$source";
+        }
+
+        if nqp::isnull($value) {
+            $error-reporter
+              ?? $error-reporter()
+              !! nqp::die("'$source' is not a valid number")
+        }
+        else {
+            nqp::ifnull(
+              nqp::atkey($!interned-int,$key),
+              nqp::bindkey($!interned-int,$key,$value)
+            )
         }
     }
 

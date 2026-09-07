@@ -5470,6 +5470,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method assertion:sym<var>($/) {
+        if nqp::eqat(~$<var>, '%', 0) {
+            $<var>.typed-panic('X::Syntax::Reserved', :reserved('use of a hash as a regex assertion'))
+        }
         if $<call> {
             my $node := Nodify('Regex::Assertion::Callable');
             self.attach: $/, $<arglist>

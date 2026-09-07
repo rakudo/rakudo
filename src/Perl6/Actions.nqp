@@ -12018,6 +12018,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
+        if nqp::eqat(~$<var>, '%', 0) {
+            $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of a hash as a regex assertion'))
+        }
         if $<arglist> {
             my $ast := make QAST::Regex.new(
                 QAST::NodeList.new(

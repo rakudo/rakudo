@@ -1751,7 +1751,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # need to do something special
         if SDS || space || case || mark || callable {
             my \noargs        := callable ?? $replacement.count == 0 !! False;
-            my \fancy         := space || case || mark || word_by_word;
+            my \fancy         := space || case || mark;
             my \case-and-mark := case && mark;
 
             # fast path for something like `s:g[ \w+ ] = "foo"`

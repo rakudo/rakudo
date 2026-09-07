@@ -1785,7 +1785,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             ?? -> $w,$p { $w.samemark($p).samecase($p) }
                             !! case
                                 ?? -> $w,$p { $w.samecase($p) }
-                                !! -> $w,$p { $w.samemark($p) }
+                                !! mark
+                                    ?? -> $w,$p { $w.samemark($p) }
+                                    !! Callable;
                             nqp::push_s($result,nqp::unbox_s(
                               $it!word-by-word($mstr,&filter,:samespace(?space))
                             ) );

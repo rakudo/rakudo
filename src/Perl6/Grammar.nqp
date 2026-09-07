@@ -3055,8 +3055,8 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
 
     proto token initializer { <...> }
     token initializer:sym<=> {
-            [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         <sym>
+        [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         [
             <.ws>
             [

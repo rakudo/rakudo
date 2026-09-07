@@ -334,10 +334,12 @@ augment class Match {
     proto method INTERPOLATE_ASSERTION(|) is implementation-detail {*}
 
     multi method INTERPOLATE_ASSERTION(Associative:D $, $, $, $, $, $) {
-        return self.'!cursor_start_cur'().'!cursor_start_cur'()
+        HASH_ASSERTION_RESERVED()
     }
 
     multi method INTERPOLATE_ASSERTION(Iterable:D \var, int \im, int \monkey, int \s, $, \context) {
+        HASH_ASSERTION_RESERVED() if nqp::istype(var,Associative);
+
         my str $tgt = self.target;
         my int $pos = nqp::getattr_i(self, $?CLASS, '$!pos');
         my int $start  = 1;
@@ -355,6 +357,12 @@ augment class Match {
             my int $elems = varlist.elems; # reifies
             my \list     := nqp::getattr(varlist,List,'$!reified');
 
+            # reject a hash element before any element gets tried
+            my int $j = -1;
+            HASH_ASSERTION_RESERVED()
+              if nqp::istype(nqp::atpos(list,$j),Associative)
+              while nqp::islt_i(++$j,$elems);
+
             # Order matters for sequential matching, so no NFA involved.
             if s {
                 $order := $elems
@@ -367,7 +375,7 @@ augment class Match {
                 my Mu \nfa  := QRegex::NFA.new;
                 my Mu \alts := nqp::setelems(nqp::list,$elems);
                 my int $fate = 0;
-                my int $j    = -1;
+                $j = -1;
 
                 while nqp::islt_i(++$j,$elems) {
                     my Mu $topic := nqp::atpos(list,$j);
@@ -375,7 +383,6 @@ augment class Match {
 
                     # We are in a regex assertion, the strings we get will
                     # be treated as regex rules.
-                    return self.'!cursor_start_cur'() if nqp::istype($topic,Associative);
                     my $rx := MAKE_REGEX($topic,im == 1 || im == 3,im == 2 || im == 3,monkey,context);
                     nfa.mergesubstates($start,0,nqp::decont($fate),nqp::findmethod($rx,'NFA')($rx),Mu);
 
@@ -577,9 +584,6 @@ augment class Match {
 
             # We are in a regex assertion, the strings we get will be
             # treated as regex rules.
-            return cursor.'!cursor_start_cur'()
-              if nqp::istype($topic,Associative);
-
             my $rx := MAKE_REGEX($topic,$im == 1 || $im == 3,$im == 2 || $im == 3,$monkey,context);
             my $match := cursor.$rx;
             if $match {
@@ -595,6 +599,12 @@ augment class Match {
             ++$i;
         }
         cursor.'!cursor_start_cur'()
+    }
+
+    sub HASH_ASSERTION_RESERVED() {
+        X::Syntax::Reserved.new(
+          reserved => "use of a hash as a regex assertion",
+        ).throw
     }
 
     sub FLAG_SLOT(\i, \m, int \monkey --> int) {

@@ -4631,13 +4631,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
     token bare-rational-number {
-        <?before <.[-−+0..9<>:boxd]>+? '/'>
+        <?before <.[-−+0..9<>:boxd]>+ '/'>
         <nu=.signed-integer> '/' <de=integer>
     }
 
     token complex-number { '<' <bare-complex-number> '>' }
     token bare-complex-number {
-        <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'>
+        <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+ 'i'>
         <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i'
     }
 

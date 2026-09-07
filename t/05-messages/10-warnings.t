@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 24;
+plan 40;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -172,5 +172,70 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
 else {
     skip 'the source split is placed by the RakuAST frontend', 1;
 }
+
+# https://github.com/rakudo/rakudo/issues/2765
+is-run ｢print so "a b" ~~ m:s/a b/｣,
+    ':s on a match does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢print so "(ab)" ~~ / "(" ~ ")" [ a b ] /｣,
+    'a space between atoms after a goal separator does not warn',
+    :out<True>, :err('');
+
+is-run ｢$_ = "a b"; s:ss/a b/x/; print $_｣,
+    ':ss on a substitution parses the regex with sigspace and does not warn',
+    :out<x>, :err('');
+
+is-run ｢print so "a b" ~~ m:sigspace/a b/｣,
+    ':sigspace on a match does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢print S:samespace/a b/x/ given "a b"｣,
+    ':samespace on a non-destructive substitution does not warn',
+    :out<x>, :err('');
+
+is-run ｢grammar G { token T { :s a b } }; print so "a b" ~~ /<G::T>/｣,
+    ':s inside a token does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢grammar G { regex T { :sigspace a b } }; print so "a b" ~~ /<G::T>/｣,
+    ':sigspace inside a regex does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢$_ = "ab"; s:!s/a b/x/; print $_｣,
+    'a negated :s on a substitution still warns about a space between atoms',
+    :out<x>, :err(/'Space is not significant'/);
+
+is-run ｢print so "ab" ~~ m:!sigspace/a b/｣,
+    'a negated :sigspace on a match still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢$_ = "ab"; s:0s/a b/x/; print $_｣,
+    'a :0s adverb on a substitution still warns about a space between atoms',
+    :out<x>, :err(/'Space is not significant'/);
+
+is-run ｢print so "ab" ~~ / :!s a b /｣,
+    'a negated :s inside a regex still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule T { :!s a b } }; print so "ab" ~~ /<G::T>/｣,
+    'a negated :s inside a rule still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule T { a [ :!s b ] c d } }; print so "a b c d" ~~ /<G::T>/｣,
+    'a negated :s inside a group does not reach the rest of the rule',
+    :out<True>, :err('');
+
+is-run ｢print so "ab cd e f gh" ~~ / a [ :s b [ :!s cd ] e f ] g h /｣,
+    'sigspace changes inside nested groups do not reach the rest of the regex',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢print so "abc de" ~~ / a [ :s bc ] d e /｣,
+    'a :s inside a group does not silence the warning after the group',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule R { a { my token T { c d } } b } }; print so "a b" ~~ /<G::R>/｣,
+    'a token declared inside a rule body block warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
 
 # vim: expandtab shiftwidth=4

@@ -65,10 +65,13 @@ role Raku::Common {
 
     # Control special functionality associated with rx adverbs, also in
     # natural slangs
-    method adverb-rx2str-control(str $key) {
+    my constant SIGSPACE-ADVERBS := nqp::hash(
+      's', 1, 'sigspace', 1, 'ss', 1, 'samespace', 1
+    );
+    method adverb-rx2str-control(str $key, int $negated = 0) {
         my str $translated := self.adverb-rx2str($key);
-        if $translated eq 's' {
-            try $*WHITESPACE-OK := 1;
+        if nqp::existskey(SIGSPACE-ADVERBS, $translated) {
+            %*RX<sigspace> := $negated ?? 0 !! 1;
         }
         $translated
     }
@@ -4326,7 +4329,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'rule';
-        :my $*WHITESPACE-OK := 1;
+        { %*RX<sigspace> := 1 }
         <regex-def>
     }
 
@@ -4781,7 +4784,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote:sym</ /> {
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE-OK := 0;
         '/'
         <nibble(self.quote-lang(self.Regex, '/', '/'))>
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
@@ -4791,7 +4793,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-rx>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4803,7 +4804,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-m>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4815,8 +4815,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ms>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
         <quibble(self.Regex(%*RX<P5>))>
@@ -4827,7 +4826,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-s>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4839,8 +4837,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
         <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
@@ -4851,7 +4848,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-S>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4863,8 +4859,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-Ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
         <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
@@ -4984,7 +4979,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             for $<quotepair> {
                 my $ast := $_.ast;
-                $ast.set-key(self.adverb-rx2str-control($ast.key));
+                $ast.set-key(
+                  self.adverb-rx2str-control($ast.key,
+                    $_<neg> || ($_<num> && !+~$_<num>) ?? 1 !! 0)
+                );
             }
         }
     }
@@ -6697,7 +6695,9 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*MODIFIER;
         {
             $*NEGATED := $<n>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
-            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str-control(~$<modifier>);
+            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str-control(
+              ~$<modifier>, $*NEGATED ?? 1 !! 0
+            );
         }
     }
 
@@ -6753,7 +6753,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         [
           | \w
           [ <?before ' ' \w <!before <.quantifier> > >
-            <!{ $*WHITESPACE-OK }>
+            <!{ %*RX<sigspace> || $*HAS_GOAL }>
             <.typed-worry: 'X::Syntax::Regex::InsignificantWhitespace'>
           ]?
           <.SIGOK>

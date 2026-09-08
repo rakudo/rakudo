@@ -1271,6 +1271,10 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
+    multi method raku(RakuAST::Var::Compiler::Distribution:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
         self!positional(self.file)
     }
@@ -1281,6 +1285,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Compiler::Lookup:D: --> Str:D) {
         self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Var::Compiler::Resources:D: --> Str:D) {
+        self!none
     }
 
     multi method raku(RakuAST::Var::Compiler::Routine:D: --> Str:D) {

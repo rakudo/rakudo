@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 65;
+plan 66;
 
 my $ast;
 my $deparsed;
@@ -1571,6 +1571,28 @@ f()
 CODE
     is-deeply $_, 'f', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The $?DISTRIBUTION compile time variable' => {
+    # $?DISTRIBUTION;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Compiler::Distribution.new
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+$?DISTRIBUTION;
+42
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply RakuAST::Var::Compiler::Resources.new.raku,
+      'RakuAST::Var::Compiler::Resources.new',
+      'the .raku of $?RESOURCES takes no arguments';
 }
 
 # vim: expandtab shiftwidth=4

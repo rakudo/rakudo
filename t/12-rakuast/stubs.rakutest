@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -151,6 +151,28 @@ subtest 'can make a ??? stub with info' => {
             .resume;
         }
         EVAL($it);
+    }
+}
+
+subtest 'can make a ... stub with an empty argument list' => {
+    # ...
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Stub::Fail.new(args => RakuAST::ArgList.new)
+      )
+    );
+    is-deeply $deparsed, qq/...\n/, 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $result := sub () {
+            CONTROL {
+                isa-ok $_, CX::Return, "$type: did we get return?";
+            }
+            EVAL($it);
+        }();
+        isa-ok $result, Failure, "$type: did we get a Failure";
+        isa-ok $result.exception, X::StubCode,
+          "$type: did we get right exception";
     }
 }
 

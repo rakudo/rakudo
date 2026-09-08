@@ -2647,12 +2647,10 @@ CODE
 
     multi method deparse(RakuAST::Stub:D $ast --> Str:D) {
         my str $hsyn = self.hsyn('stub', $ast.name);
-        if $ast.args -> $real-args {
-            $hsyn ~ ' ' ~ self.deparse($real-args)
-        }
-        else {
-            $hsyn
-        }
+        my $args := $ast.args;
+        $args && $args.args
+          ?? $hsyn ~ ' ' ~ self.deparse($args)
+          !! $hsyn
     }
 
 #- Su --------------------------------------------------------------------------

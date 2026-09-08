@@ -399,22 +399,50 @@ CODE
     }
 
     method parenthesize($ast, :$only-non-empty --> Str:D) {
+        # a declaration inside the parens would add the statement delimiter
+        my $*DELIMITER = '';
         my str $deparsed = $ast.defined ?? self.deparse($ast).chomp !! '';
         $deparsed || !$only-non-empty
           ?? $.parens-open ~ $deparsed ~ $.parens-close
           !! $deparsed
     }
 
+        my $*DELIMITER = '';
     method bracketize($ast --> Str:D) {
+        my $*DELIMITER = '';
         $.bracket-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.bracket-close
     }
 
     method squarize($ast --> Str:D) {
+        my $*DELIMITER = '';
         $.square-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.square-close
+    }
+
+    # An operand that deparses to more than a single term must be
+    # parenthesized under a postfix, or the postfix binds to its last
+    # term only
+    method postfix-operand-needs-parens($operand --> Bool:D) {
+        nqp::istype($operand,RakuAST::ApplyInfix)
+          || nqp::istype($operand,RakuAST::ApplyListInfix)
+          || nqp::istype($operand,RakuAST::ApplyDottyInfix)
+          || nqp::istype($operand,RakuAST::ApplyPrefix)
+          || nqp::istype($operand,RakuAST::Ternary)
+          || nqp::istype($operand,RakuAST::FatArrow)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Simple)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Term)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Signature)
+          || nqp::istype($operand,RakuAST::Block)
+          || nqp::istype($operand,RakuAST::Routine)
+          || nqp::istype($operand,RakuAST::StatementPrefix)
+          || nqp::istype($operand,RakuAST::Term::Reduce)
+          || nqp::istype($operand,RakuAST::Call::Name::WithoutParentheses)
+          ?? True
+          !! False
     }
 
     method meta-infix-letter($ast, str $letter --> Str:D) {
@@ -664,16 +692,11 @@ CODE
             $deparsed-postfix
         }
         else {
-            my     $operand         := $ast.operand;
-            my str $deparsed-operand = self.deparse($operand);
-
-            nqp::istype($operand,RakuAST::ApplyInfix)
-              || nqp::istype($operand,RakuAST::ApplyListInfix)
-              ?? $.parens-open
-                   ~ $deparsed-operand
-                   ~ $.parens-close
-                   ~ $deparsed-postfix
-              !! $deparsed-operand ~ $deparsed-postfix
+            my $operand := $ast.operand;
+            (self.postfix-operand-needs-parens($operand)
+              ?? self.parenthesize($operand)
+              !! self.deparse($operand)
+            ) ~ $deparsed-postfix
         }
     }
 

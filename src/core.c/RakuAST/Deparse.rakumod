@@ -634,8 +634,13 @@ CODE
     }
 
     method syn-type($ast, :$skip) {
-        my str $name = self.deparse($ast.name);
-        $skip && $skip eq $name ?? "" !! self.hsyn("type-$name", $name)
+        # a type without a name, such as a coercion, deparses its base
+        # type through this method, so it must not be highlighted twice
+        my int $named = nqp::can($ast,'name');
+        my str $name  = self.deparse($named ?? $ast.name !! $ast);
+        $skip && $skip eq $name
+          ?? ""
+          !! $named ?? self.hsyn("type-$name", $name) !! $name
     }
 
     method syn-typer($typer) {

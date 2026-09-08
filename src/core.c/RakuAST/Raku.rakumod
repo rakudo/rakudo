@@ -1141,6 +1141,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 

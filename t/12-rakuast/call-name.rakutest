@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -119,6 +119,20 @@ subtest 'Can make a call on a term with two positional arguments' => {
     );
     is-deeply $deparsed, '$target(9, 4)', 'deparsed';
     is-deeply $_, 5, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+my $nullary = -> { 42 }
+subtest 'Can make a call on a term without arguments' => {
+    # $nullary()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('$nullary'),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new
+      )
+    );
+    is-deeply $deparsed, '$nullary()', 'deparsed';
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -847,7 +847,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
-        self.parenthesize($ast.args, :only-non-empty)
+        self.parenthesize($ast.args)
     }
 
 #- Circumfix -------------------------------------------------------------------

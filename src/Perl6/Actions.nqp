@@ -11780,6 +11780,54 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         nqp::findmethod(QRegex::P6Regex::Actions, 'termconj')(self, $/)
     }
 
+    # The ratchet goes on the atom's own node: before the whitespace that
+    # sigspace inserts after the atom is attached, and on the quantifier
+    # inside the concat that `%%` builds, with the trailing separator
+    # following the quantifier. A ratchet on a concat does nothing, so on the
+    # wrapper it would let the atom backtrack across the whitespace or
+    # separator. Overrides QRegex::P6Regex::Actions.quantified_atom rather
+    # than changing it, since that method also compiles the grammars of NQP
+    # and Rakudo themselves.
+    method quantified_atom($/) {
+        my $qast := $<atom>.ast;
+
+        my $sigmaybe := $<sigmaybe>.ast if $<sigmaybe>;
+        $qast := QAST::Regex.new(:rxtype<concat>, $qast, $sigmaybe) if $sigmaybe;
+
+        if $<quantifier> {
+            $/.panic('Quantifier quantifies nothing')
+                unless $qast;
+            my str $rxtype := $qast.rxtype;
+            $/.throw_non_quantifiable()
+                if $rxtype eq 'qastnode' || $rxtype eq 'anchor';
+            my $ast := $<quantifier>.ast;
+            $ast.unshift($qast);
+            $qast := $ast;
+        }
+
+        $qast.backtrack('r') if $qast && !$qast.backtrack
+          && nqp::if($<backmod>, (~$<backmod> eq ':'), %*RX<r>);
+
+        if $<separator> {
+            if $qast.rxtype ne 'quant' && $qast.rxtype ne 'dynquant' {
+                $/.panic("'" ~ $<separator><septype> ~
+                    "' may only be used immediately following a quantifier")
+            }
+            $qast.push($<separator>.ast);
+            if $<separator><septype> eq '%%' {
+                my $trailing := QAST::Regex.new( :rxtype<quant>, :min(0), :max(1), $<separator>.ast );
+                $trailing.backtrack('r') if $qast.backtrack eq 'r';
+                $qast := QAST::Regex.new( :rxtype<concat>, $qast, $trailing );
+            }
+        }
+
+        my $sigfinal := $<sigfinal>.ast if $<sigfinal>;
+        $qast := QAST::Regex.new(:rxtype<concat>, $qast, $sigfinal) if $sigfinal;
+
+        $qast.node($/) if $qast;
+        make $qast;
+    }
+
     # A lone part is not a branch. The nibbler checks it as the whole regex.
     method reject-modifier-only-branches($/, str $key) {
         my @parts := nqp::atkey($/, $key);

@@ -4,13 +4,15 @@ class RakuAST::Regex
 {
     has str $!alt-nfa-prefix;
 
-    # In a ratchet regex each atom position carries the ratchet on its
-    # outermost compiled node, once any significant whitespace is attached, so
-    # a quantifier inside can still give its match back across that whitespace
-    # while the position as a whole does not backtrack. Callers hand this the
-    # compiled QAST of a nested body they embed: a sequence or an alternation
+    # In a ratchet regex each atom carries the ratchet on its own compiled
+    # node. Sigspace whitespace after the atom is attached outside that node,
+    # so a quantifier, alternation or subrule call is ratcheted when
+    # whitespace follows it too. Called on the node that compiled to the QAST
+    # it is handed, by whatever embeds that node outside a sequence: a
+    # whitespace wrapper, or the bodies of captures, nested goals, regex
+    # arguments and the regex as a whole. A sequence or an alternation
     # overrides it to do nothing, since those ratchet their own terms and
-    # branches and stay re-enterable for a further match themselves.
+    # branches.
     method IMPL-APPLY-ATOM-RATCHET(Mu $qast, %mods) {
         $qast.backtrack('r')
           if %mods<r> && nqp::istype($qast, QAST::Regex) && !$qast.backtrack;
@@ -2367,16 +2369,19 @@ class RakuAST::Regex::QuantifiedAtom
                 $!separator.IMPL-REGEX-QAST($context, %mods), %mods);
             $quantified.push($separator-qast);
             if $!trailing-separator {
-                QAST::Regex.new(
-                    :rxtype<concat>,
-                    $quantified,
-                    QAST::Regex.new(
-                        :rxtype<quant>, :min(0), :max(1),
-                        #NOTE this has to be the same QAST object as pushed into quantified, so
-                        # it'll get the same capture group assigned.
-                        $separator-qast,
-                    )
-                )
+                my $trailing := QAST::Regex.new(
+                    :rxtype<quant>, :min(0), :max(1),
+                    #NOTE this has to be the same QAST object as pushed into quantified, so
+                    # it'll get the same capture group assigned.
+                    $separator-qast,
+                );
+                # The enclosing sequence or whitespace wrapper ratchets the
+                # concat around the quantifier and its trailing separator, and
+                # a ratchet on a concat does nothing, so the quantifier takes
+                # it here and the trailing separator follows the quantifier.
+                $quantified.backtrack('r') if %mods<r> && !$quantified.backtrack;
+                $trailing.backtrack('r') if $quantified.backtrack eq 'r';
+                QAST::Regex.new(:rxtype<concat>, $quantified, $trailing)
             }
             else {
                 $quantified
@@ -2571,8 +2576,9 @@ class RakuAST::Regex::Backtrack
 
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         # A default quantifier carries no backtrack of its own. In a ratchet
-        # regex the enclosing atom position applies the ratchet via
-        # IMPL-APPLY-ATOM-RATCHET, once any significant whitespace is attached.
+        # regex the node that embeds it applies the ratchet: the enclosing
+        # sequence directly, or IMPL-APPLY-ATOM-RATCHET for a whitespace
+        # wrapper or a body.
         $quant-qast
     }
 }
@@ -2614,7 +2620,8 @@ class RakuAST::Regex::WithWhitespace
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        my $qast := $!regex.IMPL-APPLY-ATOM-RATCHET(
+            $!regex.IMPL-REGEX-QAST($context, %mods), %mods);
         %mods<s>
           ?? QAST::Regex.new(:rxtype<concat>,
                $qast,

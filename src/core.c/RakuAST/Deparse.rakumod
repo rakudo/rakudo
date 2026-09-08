@@ -1518,16 +1518,17 @@ CODE
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
         my str @parts;
-        if @captures {
-            @parts.push(@captures.map({ self.deparse($_) }).join(' '));
-        }
-
-        # the implicit Any of a target is not written, a parameter
-        # that is only a type has nothing else to show
-        elsif $ast.type -> $type {
-            if self.deparse($type, :skip($target ?? 'Any' !! '')) -> $deparsed {
+        # the implicit Any of a target or a type capture is not written,
+        # a parameter that is only a type has nothing else to show
+        if $ast.type -> $type {
+            my str $skip = $target || @captures ?? 'Any' !! '';
+            if self.deparse($type, :$skip) -> $deparsed {
                 @parts.push($deparsed);
             }
+        }
+        if @captures {
+            @parts.push(' ') if @parts;
+            @parts.push(@captures.map({ self.deparse($_) }).join(' '));
         }
         @parts.push(' ') if @parts && $target;
 

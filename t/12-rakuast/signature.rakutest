@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -926,6 +926,55 @@ CODE
     is-deeply $_, 2, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+}
+
+subtest 'Type capture with a type and a target' => {
+    # sub f (Int ::T $x) { T }; f(42)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type          => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Int')
+                ),
+                type-captures => (
+                  RakuAST::Type::Capture.new(
+                    RakuAST::Name.from-identifier('T')
+                  ),
+                ),
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('T')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f (Int ::T $x) {
+    T
+}
+f(42)
+CODE
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

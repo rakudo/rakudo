@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -312,6 +312,114 @@ subtest 'Quote nested by its own delimiters' => {
 
     is-deeply $deparsed, '"a \{ b }"', 'deparse';
     is-deeply $_, 'a { b }', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call in an interpolation keeps its parentheses' => {
+    # my $x = 42;
+    # "val $x.Str() end $x.Str().chars() $x.DEFINITE()"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::StrLiteral.new('val '),
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$x'),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('Str')
+              )
+            ),
+            RakuAST::StrLiteral.new(' end '),
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Var::Lexical.new('$x'),
+                postfix => RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('Str')
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('chars')
+              )
+            ),
+            RakuAST::StrLiteral.new(' '),
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$x'),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('DEFINITE')
+              )
+            )
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = 42;
+"val $x.Str() end $x.Str().chars() $x.DEFINITE()"
+CODE
+    is-deeply $_, 'val 42 end 2 True', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Block method call in an interpolation keeps its parentheses' => {
+    # my $x = "a";
+    # "$x.&{
+    #     .uc
+    # }()"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$x'),
+              postfix => RakuAST::Call::BlockMethod.new(
+                block => RakuAST::Contextualizer::Item.new(
+                  RakuAST::Block.new(
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::Term::TopicCall.new(
+                            RakuAST::Call::Method.new(
+                              name => RakuAST::Name.from-identifier('uc')
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+"$x.&{
+    .uc
+}()"
+CODE
+    is-deeply $_, 'A', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

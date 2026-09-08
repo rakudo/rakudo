@@ -147,6 +147,7 @@ class RakuAST::Deparse {
         if nqp::isnull(nqp::getlexcaller('$*INDENT')) {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
+            my $*INTERPOLATING := False;  # in a call interpolated in a string
             {*}
         }
         else {
@@ -371,6 +372,8 @@ CODE
             }
             else {
                 $interpolated = 1;
+                # a method call only interpolates with its parentheses
+                my $*INTERPOLATING := nqp::istype($_,RakuAST::ApplyPostfix);
                 self.deparse($_)
             }
         }).join
@@ -525,7 +528,13 @@ CODE
               ?? self.hsyn("core-$name", self.xsyn('core', $name))
               !! $name
             )
-          ~ ($macroish ?? '' !! self.parenthesize($ast.args, :$only-non-empty))
+          ~ ($macroish && !$*INTERPOLATING
+              ?? ''
+              !! self.parenthesize(
+                   $ast.args,
+                   :only-non-empty($only-non-empty && !$*INTERPOLATING)
+                 )
+            )
     }
 
     method quote-if-needed(str $literal) {
@@ -794,6 +803,7 @@ CODE
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
         my $*IN-ARGLIST := True;
+        my $*INTERPOLATING := False;
         # a declaration argument would add the statement delimiter
         my $*DELIMITER = '';
         $ast.args.map({
@@ -885,7 +895,7 @@ CODE
               ?? '&' ~ self.deparse($block.target)
               !! self.deparse($block)
             )
-          ~ self.parenthesize($ast.args, :only-non-empty)
+          ~ self.parenthesize($ast.args, :only-non-empty(!$*INTERPOLATING))
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
@@ -2334,6 +2344,7 @@ CODE
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        my $*INTERPOLATING := False;
         my @statements := $ast.statements;
         my $statement  := @statements.head;
         @statements == 1
@@ -2600,6 +2611,7 @@ CODE
     }
 
     multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {
+        my $*INTERPOLATING := False;
 
         if $ast.statements -> @statements {
             my str @parts;

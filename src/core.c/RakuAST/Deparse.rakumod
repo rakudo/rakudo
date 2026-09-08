@@ -674,6 +674,8 @@ CODE
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
+        # a declaration operand would add the statement delimiter
+        my $*DELIMITER = '';
         my str $deparsed = self.deparse($ast.left)
           ~ $.before-infix
           ~ self.deparse($ast.infix)
@@ -689,6 +691,7 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         self.deparse($ast.left)
           ~ self.deparse($ast.infix)
           # lose the ".", as it is provided by the infix
@@ -696,6 +699,7 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         my $infix       := $ast.infix;
         my str $operator = self.deparse($infix);
 

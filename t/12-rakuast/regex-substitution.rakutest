@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -188,6 +188,24 @@ CODE
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
         is $string, "fxo", "$type: is the result correct";
+    }
+}
+
+subtest 'Substitution with the delimiter in both sides' => {
+    # s/"a\/b"/x\/y/;
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("a/b"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x/y")]
+      ),
+    );
+    is-deeply $deparsed, 's/"a\/b"/x\/y/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "a/b";
+
+        is-deeply EVAL($it).gist, '｢a/b｣', "$type: did we get right return value";
+        is $_, "x/y", "$type: is topic changed";
     }
 }
 

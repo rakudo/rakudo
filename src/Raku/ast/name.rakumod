@@ -6,18 +6,22 @@ class RakuAST::Name
     has List $!parts;
     has List $.colonpairs;
 
-    method new(*@parts) {
+    method new(*@parts, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
-        nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', []);
+        my @colonpairs;
+        if $colonpairs {
+            nqp::push(@colonpairs, $_) for self.IMPL-UNWRAP-LIST($colonpairs);
+        }
+        nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', @colonpairs);
         $obj
     }
 
-    method from-identifier(Str $identifier) {
-        self.new(RakuAST::Name::Part::Simple.new($identifier))
+    method from-identifier(Str $identifier, List :$colonpairs) {
+        self.new(RakuAST::Name::Part::Simple.new($identifier), :$colonpairs)
     }
 
-    method from-identifier-parts(*@identifiers) {
+    method from-identifier-parts(*@identifiers, List :$colonpairs) {
         my @parts;
         for @identifiers {
             unless nqp::istype($_, Str) || nqp::isstr($_) {
@@ -25,7 +29,7 @@ class RakuAST::Name
             }
             @parts.push(RakuAST::Name::Part::Simple.new($_));
         }
-        self.new(|@parts)
+        self.new(|@parts, :$colonpairs)
     }
 
     method add-colonpair(RakuAST::ColonPairish $pair) {

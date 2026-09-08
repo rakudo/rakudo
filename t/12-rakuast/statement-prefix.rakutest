@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -631,6 +631,84 @@ CODE
         is-deeply EVAL($it), Nil, "$type: is the result Nil";
         is-deeply $a, 42, "$type: did the code get run";
     }
+}
+
+subtest 'A statement prefix over a statement emits one delimiter' => {
+    # try 42; 666
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Try.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666)
+      )
+    );
+
+    is-deeply $deparsed, "try 42;\n666\n", 'deparse';
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A statement prefix over a heredoc keeps the body intact' => {
+    # my $x = do q:to/END/; hi END; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StatementPrefix::Do.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Heredoc.new(
+                  :segments[RakuAST::StrLiteral.new("hi\n")],
+                  :stop("END\n")
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+
+    is-deeply $deparsed, "my \$x = do qq:to/END/\nhi\nEND\n;\n\$x\n", 'deparse';
+    is-deeply $_, "hi\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A statement prefix over a for loop drops the delimiter' => {
+    # do for 1 { 42 }; 666
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Do.new(
+          RakuAST::Statement::For.new(
+            source => RakuAST::IntLiteral.new(1),
+            body   => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(42)
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666)
+      )
+    );
+
+    is-deeply $deparsed, "do for 1 \{\n    42\n}\n666\n", 'deparse';
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

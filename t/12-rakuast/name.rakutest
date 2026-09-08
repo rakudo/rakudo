@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 4;
+plan 6;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -69,6 +69,38 @@ RakuAST::Name.new(
   )
 )
 CODE
+}
+
+subtest "name from identifier parts with colonpairs" => {
+    $_ := RakuAST::Name.from-identifier-parts('Foo','Bar',
+      colonpairs => (RakuAST::ColonPair::True.new('x'),)
+    );
+    is-deeply .colonpairs.elems, 1, 'Has one colonpair';
+    is-deeply .DEPARSE, 'Foo::Bar:x', 'deparses in an expected way';
+    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
+RakuAST::Name.from-identifier-parts("Foo","Bar", colonpairs => (
+  RakuAST::ColonPair::True.new("x"),
+))
+CODE
+    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE, 'round trips through .raku';
+}
+
+subtest "name from colonpairs only" => {
+    $_ := RakuAST::Name.new(
+      colonpairs => (RakuAST::ColonPair::True.new('x'),)
+    );
+    is-deeply .parts.elems, 0, 'Has no parts';
+    is-deeply .colonpairs.elems, 1, 'Has one colonpair';
+    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
+RakuAST::Name.new(
+  colonpairs => (
+    RakuAST::ColonPair::True.new("x"),
+  )
+)
+CODE
+    is-deeply EVAL("use experimental :rakuast; " ~ .raku).colonpairs.elems, 1, 'round trips through .raku';
+    .add-colonpair(RakuAST::ColonPair::True.new('y'));
+    is-deeply .colonpairs.elems, 2, 'a colonpair can still be added';
 }
 
 # vim: expandtab shiftwidth=4

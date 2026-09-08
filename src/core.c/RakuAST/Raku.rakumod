@@ -144,6 +144,9 @@ augment class RakuAST::Node {
               my $config := nqp::decont(self.config);
               :config($config.Hash) if $config
           },
+          'destructive', -> {
+              :destructive(self.destructive)
+          },
           'directive', -> {
               :directive if self.directive
           },
@@ -561,15 +564,26 @@ augment class RakuAST::Node {
 #- N ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Name:D: --> Str:D) {
-        my @parts := self.parts;
-        if nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+        my @parts      := self.parts;
+        my $colonpairs := self.colonpairs;
+
+        if @parts && nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+            my str $args = @parts.map(*.name.raku).join(',');
+            $args ~= ', colonpairs => ' ~ rakufy($colonpairs) if $colonpairs;
             self.^name ~ (@parts.elems == 1
-              ?? ".from-identifier(@parts.head.name.raku())"
-              !! ".from-identifier-parts(@parts.map(*.name.raku).join(','))"
+              ?? ".from-identifier($args)"
+              !! ".from-identifier-parts($args)"
             )
         }
         else {
-            self!positionals(@parts)
+            indent;
+            my str @lines = @parts.map({ $*INDENT ~ rakufy($_) });
+            @lines.push($*INDENT ~ 'colonpairs => ' ~ rakufy($colonpairs))
+              if $colonpairs;
+            dedent;
+            @lines
+              ?? self.^name ~ ".new(\n" ~ @lines.join(",\n") ~ "\n$*INDENT)"
+              !! self.^name ~ '.new()'
         }
     }
 
@@ -861,6 +875,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::RegexDeclaration:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
@@ -903,6 +918,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Regex::NamedCapture:D: --> Str:D) {
         self!nameds: <name regex>
+    }
+
+    multi method raku(RakuAST::Regex::Nested:D: --> Str:D) {
+        self!positionals([self.goal, self.expr])
     }
 
 #- Regex::Q --------------------------------------------------------------------
@@ -1192,6 +1211,12 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {
         self!positional(self.expr)
+    }
+
+#- Transliteration -------------------------------------------------------------
+
+    multi method raku(RakuAST::Transliteration:D: --> Str:D) {
+        self!nameds: <destructive left right adverbs>
     }
 
 #- Type ------------------------------------------------------------------------

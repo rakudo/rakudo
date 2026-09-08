@@ -1040,7 +1040,7 @@ while $guard {
     $result = FIRST {
         is-deeply($run, 0, "inside FIRST");
         $guard = False
-    }
+    };
     ++$run
 }
 CODE
@@ -1134,7 +1134,7 @@ sub s {
     $guard = FIRST {
         is-deeply($run, 0, "in FIRST");
         $guard + 1
-    }
+    };
     $run++
 }
 s() xx 3

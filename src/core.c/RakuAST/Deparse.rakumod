@@ -93,6 +93,8 @@ class RakuAST::Deparse {
     method regex-match-from(--> '<( ') { }
     method regex-match-to(  --> ')> ') { }
 
+    method regex-nested(--> '~ ') { }
+
     method before-infix(--> ' ')  { }
     method after-infix( --> ' ')  { }
 
@@ -122,7 +124,7 @@ class RakuAST::Deparse {
     method assign(--> ' = ')  { }
     method bind(  --> ' := ') { }
 
-    method before-list-infix(--> '') { }
+    method before-list-infix(--> ' ') { }
     method after-list-infix(--> ' ') { }
 
     method loop-separator(--> '; ') { }
@@ -370,6 +372,16 @@ CODE
         }
     }
 
+    # Word characters never need escaping inside <[ ]>.  Everything else
+    # is escaped rather than enumerating which characters are ignored or
+    # meaningful there, such as whitespace, dots, hyphens, backslashes
+    # and the closing bracket
+    method charclass-character(str $char --> Str:D) {
+        nqp::iscclass(nqp::const::CCLASS_WORD,$char,0)
+          ?? $char
+          !! '\\' ~ $char
+    }
+
     method colonpairs($ast, Str:D $xsyn = "") {
         $ast.colonpairs.map({ self.deparse($_, $xsyn) }).join
     }
@@ -387,22 +399,86 @@ CODE
     }
 
     method parenthesize($ast, :$only-non-empty --> Str:D) {
+        # a declaration inside the parens would add the statement delimiter
+        my $*DELIMITER = '';
         my str $deparsed = $ast.defined ?? self.deparse($ast).chomp !! '';
         $deparsed || !$only-non-empty
           ?? $.parens-open ~ $deparsed ~ $.parens-close
           !! $deparsed
     }
 
+    # A block or control statement ends in a newline the enclosing
+    # statement supplies again, an expression statement may end in a
+    # heredoc body that has to stay intact
+    method blorst($blorst --> Str:D) {
+        my $*DELIMITER = '';
+        my str $deparsed = self.deparse($blorst);
+        nqp::istype($blorst,RakuAST::Statement::Expression)
+          ?? $deparsed
+          !! $deparsed.chomp
+    }
+
+    method assignee($ast --> Str:D) {
+        my $assignee := $ast.assignee;
+        nqp::isconcrete($assignee)
+          ?? self.syn-infix-ws($.assign) ~ self.deparse($assignee)
+          !! ''
+    }
+
     method bracketize($ast --> Str:D) {
+        my $*DELIMITER = '';
         $.bracket-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.bracket-close
     }
 
     method squarize($ast --> Str:D) {
+        my $*DELIMITER = '';
         $.square-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.square-close
+    }
+
+    # An operand that deparses to more than a single term must be
+    # parenthesized under a postfix, or the postfix binds to its last
+    # term only
+    method postfix-operand-needs-parens($operand --> Bool:D) {
+        nqp::istype($operand,RakuAST::ApplyInfix)
+          || nqp::istype($operand,RakuAST::ApplyListInfix)
+          || nqp::istype($operand,RakuAST::ApplyDottyInfix)
+          || nqp::istype($operand,RakuAST::ApplyPrefix)
+          || nqp::istype($operand,RakuAST::Ternary)
+          || nqp::istype($operand,RakuAST::FatArrow)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Simple)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Term)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
+          || nqp::istype($operand,RakuAST::VarDeclaration::Signature)
+          || nqp::istype($operand,RakuAST::Block)
+          || nqp::istype($operand,RakuAST::Routine)
+          || nqp::istype($operand,RakuAST::StatementPrefix)
+          || nqp::istype($operand,RakuAST::Term::Reduce)
+          || nqp::istype($operand,RakuAST::Call::Name::WithoutParentheses)
+          ?? True
+          !! False
+    }
+
+    # True only for a statement prefix over a block or a control
+    # statement with no modifier, the one statement whose closing brace
+    # may end it without a delimiter.  Any other trailing brace may close
+    # a subscript, a closure or a hash composer and keeps it
+    method statement-is-prefixed-block($statement --> Bool:D) {
+        if nqp::istype($statement,RakuAST::Statement::Expression)
+          && !$statement.condition-modifier
+          && !$statement.loop-modifier {
+            my $expression := $statement.expression;
+            nqp::istype($expression,RakuAST::StatementPrefix)
+              && !nqp::istype($expression.blorst,RakuAST::Statement::Expression)
+              ?? True
+              !! False
+        }
+        else {
+            False
+        }
     }
 
     method meta-infix-letter($ast, str $letter --> Str:D) {
@@ -507,6 +583,7 @@ CODE
     }
 
     method statement-modifier(str $type, $ast) {
+        my $*DELIMITER = '';
         self.syn-modifier($type) ~ ' ' ~ self.deparse($ast.expression)
     }
 
@@ -604,6 +681,8 @@ CODE
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
+        # a declaration operand would add the statement delimiter
+        my $*DELIMITER = '';
         my str $deparsed = self.deparse($ast.left)
           ~ $.before-infix
           ~ self.deparse($ast.infix)
@@ -619,6 +698,7 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         self.deparse($ast.left)
           ~ self.deparse($ast.infix)
           # lose the ".", as it is provided by the infix
@@ -626,11 +706,9 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         my $infix       := $ast.infix;
-        my str $operator = nqp::istype($infix,RakuAST::MetaInfix)
-          || nqp::istype($infix,RakuAST::Feed)
-          ?? (' ' ~ self.deparse($infix))
-          !! self.deparse($infix);
+        my str $operator = self.deparse($infix);
 
         my str @parts = $ast.operands.map({ self.deparse($_) });
         @parts
@@ -652,16 +730,11 @@ CODE
             $deparsed-postfix
         }
         else {
-            my     $operand         := $ast.operand;
-            my str $deparsed-operand = self.deparse($operand);
-
-            nqp::istype($operand,RakuAST::ApplyInfix)
-              || nqp::istype($operand,RakuAST::ApplyListInfix)
-              ?? $.parens-open
-                   ~ $deparsed-operand
-                   ~ $.parens-close
-                   ~ $deparsed-postfix
-              !! $deparsed-operand ~ $deparsed-postfix
+            my $operand := $ast.operand;
+            (self.postfix-operand-needs-parens($operand)
+              ?? self.parenthesize($operand)
+              !! self.deparse($operand)
+            ) ~ $deparsed-postfix
         }
     }
 
@@ -781,7 +854,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
-        self.parenthesize($ast.args, :only-non-empty)
+        self.parenthesize($ast.args)
     }
 
 #- Circumfix -------------------------------------------------------------------
@@ -838,13 +911,16 @@ CODE
     multi method deparse(
       RakuAST::ColonPair::Value:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my $value  := $ast.value;
+        my $value        := $ast.value;
+        my str $deparsed  = self.deparse($value);
 
         ':'
           ~ self.named-arg($xsyn, $ast.key)
-          ~ (nqp::istype($value,RakuAST::QuotedString)
-              ?? self.deparse($value)
-              !! $.parens-open ~ self.deparse($value) ~ $.parens-close
+          ~ (nqp::istype($value,RakuAST::Circumfix::Parentheses)
+               || (nqp::istype($value,RakuAST::QuotedString)
+                    && $deparsed.starts-with('<'))
+              ?? $deparsed
+              !! $.parens-open ~ $deparsed ~ $.parens-close
             )
     }
 
@@ -1399,9 +1475,6 @@ CODE
                 elsif $ast.is-declared-optional {
                     @parts.push('?');
                 }
-                elsif $ast.is-declared-required {
-                    @parts.push('!');
-                }
             }
 
             if $ast.traits -> @traits {
@@ -1498,7 +1571,9 @@ CODE
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        self.squarize($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
+        self.squarize($ast.index)
+          ~ self.colonpairs($ast, 'adverb-pc')
+          ~ self.assignee($ast)
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
@@ -1508,7 +1583,9 @@ CODE
     multi method deparse(
       RakuAST::Postcircumfix::LiteralHashIndex:D $ast
     --> Str:D) {
-        self.deparse($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
+        self.deparse($ast.index)
+          ~ self.colonpairs($ast, 'adverb-pc')
+          ~ self.assignee($ast)
     }
 
     multi method deparse(RakuAST::Postfix:D $ast --> Str:D) {
@@ -1873,13 +1950,15 @@ CODE
     multi method deparse(
       RakuAST::Regex::CharClassEnumerationElement::Character:D $ast
     --> Str:D) {
-        $ast.character
+        self.charclass-character($ast.character)
     }
 
     multi method deparse(
       RakuAST::Regex::CharClassEnumerationElement::Range:D $ast
     --> Str:D) {
-        $ast.from.chr ~ '..' ~ $ast.to.chr
+        self.charclass-character($ast.from.chr)
+          ~ '..'
+          ~ self.charclass-character($ast.to.chr)
     }
 
 #- Regex::Co -------------------------------------------------------------------
@@ -1928,6 +2007,14 @@ CODE
     multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> Str:D) {
         self.hsyn('capture-named', '$<' ~ $ast.name ~ '>=')
           ~ self.deparse($ast.regex)
+    }
+
+    multi method deparse(RakuAST::Regex::Nested:D $ast --> Str:D) {
+        my str $goal = self.deparse($ast.goal);
+        $.regex-nested
+          ~ $goal
+          ~ ($goal.ends-with(' ') ?? '' !! ' ')
+          ~ self.deparse($ast.expr)
     }
 
 #- Regex::Q --------------------------------------------------------------------
@@ -2092,6 +2179,16 @@ CODE
             @parts.push($traits);
         }
 
+        my $body := $ast.body;
+        if nqp::istype($body,RakuAST::OnlyStar) {
+            @parts.push(self.deparse($body));
+            if $ast.WHY -> $WHY {
+                my $*DELIMITER = '';
+                return self.add-any-docs(@parts.join(' '), $WHY);
+            }
+            return @parts.join(' ');
+        }
+
         if $ast.WHY -> $WHY {
             @parts.push('{');
             # https://github.com/rakudo/rakudo/issues/5978
@@ -2104,7 +2201,7 @@ CODE
             @parts = @parts.join(' ');
         }
 
-        @parts.push(self.deparse($ast.body));
+        @parts.push(self.deparse($body));
         @parts.push('}');
         @parts.join
     }
@@ -2113,12 +2210,17 @@ CODE
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
         my @statements := $ast.statements;
+        my $statement  := @statements.head;
         @statements == 1
-          ?? self.deparse(@statements.head.expression)
+          && !(nqp::istype($statement,RakuAST::Statement::Expression)
+               && ($statement.condition-modifier || $statement.loop-modifier))
+          ?? self.deparse($statement.expression)
           !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }
 
-    multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
+    multi method deparse(
+      RakuAST::Signature:D $ast, :$no-returns
+    --> Str:D) {
         my str @parts;
 
         if $ast.parameters -> @parameters {
@@ -2149,9 +2251,11 @@ CODE
             }
         }
 
-        with $ast.returns {
-            @parts.push(self.hsyn('arrow-two', '-->'));
-            @parts.push(self.deparse($_));
+        unless $no-returns {
+            with $ast.returns {
+                @parts.push(self.hsyn('arrow-two', '-->'));
+                @parts.push(self.deparse($_));
+            }
         }
 
         @parts.join(' ')
@@ -2275,16 +2379,18 @@ CODE
     }
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
-        my $condition := $ast.setup
-          ?? (' ('
-               ~ self.deparse($ast.setup)
-               ~ $.loop-separator
-               ~ self.deparse($ast.condition)
-               ~ $.loop-separator
-               ~ self.deparse($ast.increment)
-               ~ ') '
-             )
-          !! " ";
+        my str $condition = " ";
+        if $ast.setup || $ast.condition || $ast.increment {
+            # a declaration in the setup would add the statement delimiter
+            my $*DELIMITER = '';
+            $condition = ' ('
+              ~ ($ast.setup     ?? self.deparse($ast.setup)     !! '')
+              ~ $.loop-separator
+              ~ ($ast.condition ?? self.deparse($ast.condition) !! '')
+              ~ $.loop-separator
+              ~ ($ast.increment ?? self.deparse($ast.increment) !! '')
+              ~ ') ';
+        }
 
         self.labels($ast)
           ~ self.syn-block('loop')
@@ -2376,7 +2482,9 @@ CODE
                   ?? $.last-statement
                   !! $.end-statement;
                 my $deparsed := self.deparse($statement);
-                $deparsed := $deparsed.chop(2) if $deparsed.ends-with("};\n");
+                $deparsed := $deparsed.chop(2)
+                  if $deparsed.ends-with("};\n")
+                  && self.statement-is-prefixed-block($statement);
 
                 @parts.push($spaces);
                 @parts.push($deparsed);
@@ -2438,18 +2546,16 @@ CODE
         my str $prefix = $ast.type;
         self.hsyn("stmt-prefix-$prefix", self.xsyn('stmt-prefix', $prefix))
           ~ ' '
-          ~ self.deparse($ast.blorst).chomp
+          ~ self.blorst($ast.blorst)
     }
 
     # handles most phasers
     multi method deparse(RakuAST::StatementPrefix::Phaser:D $ast --> Str:D) {
-        my $*DELIMITER = '';
-        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
+        self.syn-phaser($ast.type) ~ ' ' ~ self.blorst($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Phaser::First:D $ast --> Str:D) {
-        my $*DELIMITER = '';
-        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.original-blorst).chomp
+        self.syn-phaser($ast.type) ~ ' ' ~ self.blorst($ast.original-blorst)
     }
 
     multi method deparse(
@@ -2535,9 +2641,11 @@ CODE
         }
         else {
             @parts.push('/');
-            @parts.push(self.deparse($ast.pattern));
+            @parts.push(self.deparse($ast.pattern).subst('/', '\/', :g));
             @parts.push('/');
-            @parts.push(self.deparse($ast.replacement).substr(1,*-1));
+            @parts.push(
+              self.deparse($ast.replacement).substr(1,*-1).subst('/', '\/', :g)
+            );
             @parts.push('/');
         }
 
@@ -2713,6 +2821,24 @@ CODE
 
     multi method deparse(RakuAST::Trait::WillBuild:D $ast --> Str:D) {
         "" # XXX for now
+    }
+
+#- Transliteration -------------------------------------------------------------
+
+    multi method deparse(RakuAST::Transliteration:D $ast --> Str:D) {
+        my str @parts = $ast.destructive ?? 'tr' !! 'TR';
+
+        if $ast.adverbs -> @adverbs {
+            @parts.push(self.deparse($_)) for @adverbs;
+        }
+
+        for $ast.left, $ast.right {
+            @parts.push('/');
+            @parts.push(self.deparse($_).substr(1,*-1).subst('/', '\/', :g));
+        }
+        @parts.push('/');
+
+        @parts.join
     }
 
 #- Type ------------------------------------------------------------------------
@@ -2927,13 +3053,14 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
         my str @parts = self.syn-scope($ast.scope);
         @parts.push(self.syn-type($_)) with $ast.type;
-        @parts.push('(' ~ self.deparse($ast.signature) ~ ')');
-
-        if $ast.initializer -> $initializer {
-            @parts.push(self.deparse($initializer));
-        }
+        # a declared type is stored as the return type as well
+        @parts.push('('
+          ~ self.deparse($ast.signature, :no-returns($ast.type.defined))
+          ~ ')'
+        );
 
         @parts.join(' ')
+          ~ ($ast.initializer ?? self.deparse($ast.initializer) !! '')
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {

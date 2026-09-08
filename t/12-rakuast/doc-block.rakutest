@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -284,6 +284,70 @@ subtest 'abbreviated defn in a statement list' => {
 
 42
 CODE
+    }
+}
+
+subtest 'pod block inside a class body' => {
+    # my class A {␤    =begin pod␤␤    hi␤    =end pod␤␤    method x {␤        42␤    }␤}␤A.x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('A'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Doc::Block.new(
+                  margin     => '    ',
+                  type       => 'pod',
+                  paragraphs => ("hi\n",)
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('x'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(42)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('A')
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('x')
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/, "$type: deparse";
+my class A {
+    =begin pod
+
+    hi
+    =end pod
+
+    method x {
+        42
+    }
+}
+A.x
+CODE
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the method after the pod block runs";
     }
 }
 

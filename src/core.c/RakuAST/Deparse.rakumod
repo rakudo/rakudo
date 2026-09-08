@@ -2553,7 +2553,9 @@ CODE
                   if $deparsed.ends-with("};\n")
                   && self.statement-is-prefixed-block($statement);
 
-                @parts.push($spaces);
+                # a doc block carries its own margin
+                @parts.push($spaces)
+                  unless nqp::istype($statement,RakuAST::Doc::Block);
                 @parts.push($deparsed);
                 @parts.push("\n") if $deparsed.ends-with('}');
             }

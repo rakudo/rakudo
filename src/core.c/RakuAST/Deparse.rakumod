@@ -385,7 +385,8 @@ CODE
                 # a closure ends the interpolation
                 $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
                 # a method call only interpolates with its parentheses
-                my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix);
+                my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
+                  || nqp::istype($segment,RakuAST::ApplyDottyInfix);
                 @parts.push(self.deparse($segment));
             }
         }
@@ -810,8 +811,11 @@ CODE
 
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {
         my $*DELIMITER = '';
+        my str $infix = self.deparse($ast.infix);
+        # whitespace around the infix would end an interpolation
+        $infix = $infix.trim if $*INTERPOLATING;
         self.deparse($ast.left)
-          ~ self.deparse($ast.infix)
+          ~ $infix
           # lose the ".", as it is provided by the infix
           ~ self.deparse($ast.right).substr(1)
     }

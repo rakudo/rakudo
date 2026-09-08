@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 24;
 
 my $ast;
 my $deparsed;
@@ -582,6 +582,44 @@ $_ = 42;
 "val $_.gist() end"
 CODE
     is-deeply $_, 'val 42 end', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Dotty infix in an interpolation keeps its shape' => {
+    # my $x = "a";
+    # "$x.=uc() $x"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::ApplyDottyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$x'),
+              infix => RakuAST::DottyInfix::CallAssign.new,
+              right => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('uc')
+              )
+            ),
+            RakuAST::StrLiteral.new(' '),
+            RakuAST::Var::Lexical.new('$x')
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+"$x.=uc() $x"
+CODE
+    is-deeply $_, 'A A', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -975,6 +975,50 @@ f(42)
 CODE
     is-deeply $_, Int, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Named parameter made required by a trait' => {
+    # sub (:$named is required) { $named }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$named>),
+            names  => ['named'],
+            traits => [
+              RakuAST::Trait::Is.new(
+                name => RakuAST::Name.from-identifier('required')
+              ),
+            ]
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$named')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (:$named is required) {
+    $named
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
+        ok $sub.signature.params[0].named, "$type: parameter is named";
+        nok $sub.signature.params[0].optional, "$type: parameter is required";
+        is $sub(named => 42), 42, "$type: the argument is passed";
+        dies-ok { $sub() }, "$type: the argument is required";
+    }
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
 }
 
 # vim: expandtab shiftwidth=4

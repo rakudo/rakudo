@@ -1631,7 +1631,13 @@ CODE
                 @parts.push($var);
                 @parts.push(nqp::x(')',$parens)) if $parens;
                 @parts.push('?') if $ast.is-declared-optional;
-                @parts.push('!') if $ast.is-declared-required;
+                # the is required trait marks the parameter required
+                @parts.push('!') if $ast.is-declared-required
+                  && !$ast.traits.first({
+                       nqp::istype($_,RakuAST::Trait::Is)
+                         && .name
+                         && .name.canonicalize eq 'required'
+                     });
             }
 
             # positional parameter

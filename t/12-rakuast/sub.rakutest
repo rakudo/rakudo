@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -438,6 +438,60 @@ CODE
         dies-ok { ::<&frobnicate>(666) }, 'can NOT call with positionals';
         dies-ok { ::<&frobnicate>(:bar) }, 'can NOT call with nameds';
     }
+}
+
+subtest 'A sub with an operator name' => {
+    # sub infix:<+++> ($a, $b) { $a + $b }; 1 +++ 2
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('infix',
+            colonpairs => (
+              RakuAST::QuotedString.new(
+                segments   => [RakuAST::StrLiteral.new('+++')],
+                processors => <words val>
+              ),
+            )
+          ),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$a'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$b')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::IntLiteral.new(1),
+          infix => RakuAST::Infix.new('+++'),
+          right => RakuAST::IntLiteral.new(2)
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub infix:<+++> ($a, $b) {
+    $a + $b
+}
+1 +++ 2
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

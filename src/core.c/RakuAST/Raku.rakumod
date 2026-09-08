@@ -564,15 +564,26 @@ augment class RakuAST::Node {
 #- N ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Name:D: --> Str:D) {
-        my @parts := self.parts;
-        if nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+        my @parts      := self.parts;
+        my $colonpairs := self.colonpairs;
+
+        if @parts && nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+            my str $args = @parts.map(*.name.raku).join(',');
+            $args ~= ', colonpairs => ' ~ rakufy($colonpairs) if $colonpairs;
             self.^name ~ (@parts.elems == 1
-              ?? ".from-identifier(@parts.head.name.raku())"
-              !! ".from-identifier-parts(@parts.map(*.name.raku).join(','))"
+              ?? ".from-identifier($args)"
+              !! ".from-identifier-parts($args)"
             )
         }
         else {
-            self!positionals(@parts)
+            indent;
+            my str @lines = @parts.map({ $*INDENT ~ rakufy($_) });
+            @lines.push($*INDENT ~ 'colonpairs => ' ~ rakufy($colonpairs))
+              if $colonpairs;
+            dedent;
+            @lines
+              ?? self.^name ~ ".new(\n" ~ @lines.join(",\n") ~ "\n$*INDENT)"
+              !! self.^name ~ '.new()'
         }
     }
 

@@ -2533,9 +2533,12 @@ class RakuAST::WhateverApplicable
             my $operand := $_;
             if nqp::bitand_i(self.operator.IMPL-PRIMES, 1)
             && (nqp::istype($_, RakuAST::Term::Whatever) || nqp::istype($_, RakuAST::Term::HyperWhatever)) {
-                nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!hyperwhatever', 1)
-                    if nqp::istype($_, RakuAST::Term::HyperWhatever);
-                @operands[$index] := RakuAST::WhateverCode::Argument.new;
+                my $argument := RakuAST::WhateverCode::Argument.new;
+                if nqp::istype($_, RakuAST::Term::HyperWhatever) {
+                    nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!hyperwhatever', 1);
+                    $argument.set-hyper;
+                }
+                @operands[$index] := $argument;
             }
 
             # If we can prime WhateverCodes, unprime them first, i.e. move the thunk up to this node

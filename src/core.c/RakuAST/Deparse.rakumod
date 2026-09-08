@@ -2958,8 +2958,10 @@ CODE
         self.hsyn('var-term', $.term-whatever)
     }
 
-    multi method deparse(RakuAST::WhateverCode::Argument:D $ --> Str:D) {
-        self.hsyn('var-term', $.term-whatever)
+    multi method deparse(RakuAST::WhateverCode::Argument:D $ast --> Str:D) {
+        self.hsyn('var-term',
+          $ast.is-hyper ?? $.term-hyperwhatever !! $.term-whatever
+        )
     }
 
 #- Ternary ---------------------------------------------------------------------

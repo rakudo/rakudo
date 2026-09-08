@@ -1383,6 +1383,16 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
         self!nameds: <scope type name initializer>
     }
+
+#- WhateverCode ----------------------------------------------------------------
+
+    # BEGIN time makes one from the * or ** of a WhateverCode expression
+    multi method raku(RakuAST::WhateverCode::Argument:D: --> Str:D) {
+        (self.is-hyper
+          ?? RakuAST::Term::HyperWhatever
+          !! RakuAST::Term::Whatever
+        ).new.raku
+    }
 }
 
 #-------------------------------------------------------------------------------

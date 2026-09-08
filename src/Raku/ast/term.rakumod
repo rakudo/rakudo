@@ -434,10 +434,20 @@ class RakuAST::WhateverCode::Argument
   is RakuAST::BeginTime
 {
     has RakuAST::Name $!name;
+    # Set when the argument stands for a ** rather than a *
+    has int $!hyper;
 
     method new() {
         my $obj := nqp::create(self);
         $obj
+    }
+
+    method set-hyper() {
+        nqp::bindattr_i(self, RakuAST::WhateverCode::Argument, '$!hyper', 1);
+    }
+
+    method is-hyper() {
+        $!hyper ?? True !! False
     }
 
     method set-name(RakuAST::Name $name) {

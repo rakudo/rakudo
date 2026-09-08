@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 33;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -790,6 +790,60 @@ t.(1) + $f(1)
 CODE
     is-deeply $_, 84, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'WhateverCode keeps its .raku after BEGIN time' => {
+    # (* > 1)(2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(2))
+      )
+    );
+    is-deeply $deparsed, '(* > 1)(2)', 'deparse';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku), True,
+      'EVAL of the .raku after BEGIN time';
+}
+
+subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
+    # (** + 1)(1, 2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::HyperWhatever.new,
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(1),
+          RakuAST::IntLiteral.new(2)
+        )
+      )
+    );
+    is-deeply $deparsed, '(** + 1)(1, 2)', 'deparse';
+    is-deeply $_.List, (2, 3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
+      (2, 3), 'EVAL of the .raku after BEGIN time';
 }
 
 # vim: expandtab shiftwidth=4

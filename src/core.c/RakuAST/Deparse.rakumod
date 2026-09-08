@@ -349,34 +349,91 @@ CODE
     # backslash and its own brackets
     method assemble-quoted-string($ast, :$raw --> Str:D) {
         my int $interpolated;
-        $ast.segments.map({
-            if nqp::istype($_,RakuAST::StrLiteral) {
+        my @segments := $ast.segments;
+        my str @parts;
+        for @segments.kv -> $i, $segment {
+            if nqp::istype($segment,RakuAST::StrLiteral) {
                 my str $text = $raw
-                  ?? .value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
-                  !! .value.raku.substr(1,*-1);
+                  ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                  !! $segment.value.raku.substr(1,*-1);
                 if $text {
                     # a bracket right after an interpolation would continue
-                    # it as a call or an index
+                    # it as a call or an index, and so would a dot that
+                    # leads to one
+                    my $next := @segments[$i + 1];
                     $text = '\\' ~ $text
                       if $interpolated
-                      && nqp::index('([{<',$text.substr(0,1)) >= 0;
+                      && (nqp::index('([{<',$text.substr(0,1)) >= 0
+                           || self.dot-continues-interpolation(
+                                $text,
+                                $next.defined
+                                  && !nqp::istype($next,RakuAST::StrLiteral)
+                                  && !nqp::istype($next,RakuAST::QuotedString)
+                              ));
                     $interpolated = 0;
                 }
-                $text
+                @parts.push($text);
             }
             # the text between a nested pair of the delimiters is a quote of
             # its own, one without processors belongs to this one
-            elsif nqp::istype($_,RakuAST::QuotedString) && !.processors {
+            elsif nqp::istype($segment,RakuAST::QuotedString)
+              && !$segment.processors {
                 $interpolated = 0;
-                self.assemble-quoted-string($_, :$raw)
+                @parts.push(self.assemble-quoted-string($segment, :$raw));
             }
             else {
-                $interpolated = 1;
+                # a closure ends the interpolation
+                $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
                 # a method call only interpolates with its parentheses
-                my $*INTERPOLATING := nqp::istype($_,RakuAST::ApplyPostfix);
-                self.deparse($_)
+                my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix);
+                @parts.push(self.deparse($segment));
             }
-        }).join
+        }
+        @parts.join
+    }
+
+    # Whether text that starts with a dot would continue the
+    # interpolation before it: a chain of method names, each with or
+    # without a dispatch prefix, that ends in a bracket or a quote, or
+    # in a dot when an interpolation follows the text
+    method dot-continues-interpolation(
+      str $text,
+          $next-interpolates
+    --> Bool:D) {
+        my int $chars = nqp::chars($text);
+        my int $i;
+        while $i < $chars && nqp::eqat($text,'.',$i) {
+            ++$i;
+            return True if $i == $chars && $next-interpolates;
+            ++$i if $i < $chars
+              && nqp::index('?&^*+=',nqp::substr($text,$i,1)) >= 0;
+            return True if $i < $chars
+              && nqp::index(q/([{<'"/,nqp::substr($text,$i,1)) >= 0;
+
+            # a method name, a hyphen or apostrophe that a letter follows
+            # and a package separator are part of it
+            my int $start = $i;
+            loop {
+                $i = nqp::findnotcclass(
+                  nqp::const::CCLASS_WORD,$text,$i,$chars - $i
+                );
+                if nqp::eqat($text,'::',$i) {
+                    $i = $i + 2;
+                }
+                elsif $i + 1 < $chars
+                  && nqp::index(q/-'/,nqp::substr($text,$i,1)) >= 0
+                  && nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,$text,$i + 1) {
+                    ++$i;
+                }
+                else {
+                    last;
+                }
+            }
+            return False if $i == $start;
+            return True if $i < $chars
+              && nqp::index('([{<',nqp::substr($text,$i,1)) >= 0;
+        }
+        False
     }
 
     method multiple-processors(str $string, @processors --> Str:D) {

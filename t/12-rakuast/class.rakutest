@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -787,6 +787,107 @@ X::Foo.new ~~ Exception
 CODE
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), True, "$type: is an Exception";
+    }
+}
+
+subtest 'class with a representation' => {
+    # my class Foo is repr("CStruct") { has int $.x }; Foo.REPR
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Foo'),
+          repr  => 'CStruct',
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    type        => RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier('int')
+                    ),
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('x')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Foo')
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('REPR')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class Foo is repr("CStruct") {
+    has int $.x
+}
+Foo.REPR
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 'CStruct', "$type: has the representation";
+    }
+}
+
+subtest 'native type with a representation' => {
+    # my native myint is repr("P6int") is Int is nativesize(64) { }
+    # my myint $x = 5;
+    # $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Native.new(
+          scope  => 'my',
+          name   => RakuAST::Name.from-identifier('myint'),
+          repr   => 'P6int',
+          traits => (
+            RakuAST::Trait::Is.new-from-type(
+              type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            ),
+            RakuAST::Trait::Is.new(
+              name     => RakuAST::Name.from-identifier('nativesize'),
+              argument => RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(64)
+                  )
+                )
+              )
+            ),
+          ),
+          body   => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('myint')),
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(5))
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my native myint is repr("P6int") is Int is nativesize(64) { }
+my myint $x = 5;
+$x
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: the native type holds the value";
     }
 }
 

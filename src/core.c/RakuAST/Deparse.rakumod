@@ -1388,6 +1388,15 @@ CODE
             }
         }
 
+        # the parser takes `is repr` out of the traits and stores it on
+        # the package
+        if $ast.repr -> $repr {
+            @parts.push(self.syn-trait('is')
+              ~ ' repr'
+              ~ self.parenthesize(RakuAST::StrLiteral.new($repr))
+            );
+        }
+
         if $ast.traits -> @traits {
             for @traits -> $trait {
                 @parts.push(self.deparse($trait));

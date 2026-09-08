@@ -93,6 +93,8 @@ class RakuAST::Deparse {
     method regex-match-from(--> '<( ') { }
     method regex-match-to(  --> ')> ') { }
 
+    method regex-nested(--> '~ ') { }
+
     method before-infix(--> ' ')  { }
     method after-infix( --> ' ')  { }
 
@@ -1928,6 +1930,14 @@ CODE
     multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> Str:D) {
         self.hsyn('capture-named', '$<' ~ $ast.name ~ '>=')
           ~ self.deparse($ast.regex)
+    }
+
+    multi method deparse(RakuAST::Regex::Nested:D $ast --> Str:D) {
+        my str $goal = self.deparse($ast.goal);
+        $.regex-nested
+          ~ $goal
+          ~ ($goal.ends-with(' ') ?? '' !! ' ')
+          ~ self.deparse($ast.expr)
     }
 
 #- Regex::Q --------------------------------------------------------------------

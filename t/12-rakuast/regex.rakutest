@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 56;
+plan 58;
 
 my $ast;
 my $deparsed;
@@ -772,6 +772,45 @@ subtest 'Match with a dba name' => {
     todo('the legacy frontend breaks matching on :dba', 1)
         unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
     match-ok "42", '42';
+}
+
+subtest 'Goal matching' => {
+    # /"(" ~ ")" \d+/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Literal.new("(")
+      ),
+      RakuAST::Regex::Nested.new(
+        RakuAST::Regex::WithWhitespace.new(
+          RakuAST::Regex::Literal.new(")")
+        ),
+        RakuAST::Regex::QuantifiedAtom.new(
+          atom       => RakuAST::Regex::CharClass::Digit.new,
+          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+        )
+      )
+    );
+    is-deeply $deparsed, '/"(" ~ ")" \d+/', 'deparse';
+
+    match-ok "foo(42)bar", '(42)';
+    match-nok "foo(42bar";
+}
+
+subtest 'Goal matching with a goal that has no trailing whitespace' => {
+    # /"("~ ")" \d+/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("("),
+      RakuAST::Regex::Nested.new(
+        RakuAST::Regex::Literal.new(")"),
+        RakuAST::Regex::QuantifiedAtom.new(
+          atom       => RakuAST::Regex::CharClass::Digit.new,
+          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+        )
+      )
+    );
+    is-deeply $deparsed, '/"("~ ")" \d+/', 'deparse';
+
+    match-ok "foo(42)bar", '(42)';
 }
 
 # vim: expandtab shiftwidth=4

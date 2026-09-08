@@ -905,6 +905,10 @@ augment class RakuAST::Node {
         self!nameds: <name regex>
     }
 
+    multi method raku(RakuAST::Regex::Nested:D: --> Str:D) {
+        self!positionals([self.goal, self.expr])
+    }
+
 #- Regex::Q --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::QuantifiedAtom:D: --> Str:D) {

@@ -775,7 +775,14 @@ CODE
             (self.postfix-operand-needs-parens($operand)
               ?? self.parenthesize($operand)
               !! self.deparse($operand)
-            ) ~ $deparsed-postfix
+            )
+              # a term followed by a bare argument list is a routine call
+              ~ (nqp::istype($postfix,RakuAST::Call::Term)
+                  && nqp::istype($operand,RakuAST::Term::Name)
+                  ?? '.'
+                  !! ''
+                )
+              ~ $deparsed-postfix
         }
     }
 

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 64;
+plan 65;
 
 my $ast;
 my $deparsed;
@@ -1534,6 +1534,42 @@ my Int() $x = "42";
 $x
 CODE
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The &?BLOCK compile time variable' => {
+    # sub f { &?BLOCK.name }; f()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('f'),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Compiler::Block.new,
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('name')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f')
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f {
+    &?BLOCK.name
+}
+f()
+CODE
+    is-deeply $_, 'f', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

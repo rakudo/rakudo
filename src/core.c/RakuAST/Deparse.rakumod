@@ -3006,6 +3006,10 @@ CODE
         }
     }
 
+    multi method deparse(RakuAST::Var::Compiler::Block:D $ --> Str:D) {
+        self.hsyn('var-lexical','&?BLOCK')
+    }
+
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
         self.hsyn('var-compile',$.var-compiler-file)
     }

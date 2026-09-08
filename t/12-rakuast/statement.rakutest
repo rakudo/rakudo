@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 33; # Do not change this file to done-testing
+plan 37; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -49,6 +49,54 @@ CODE
         is $y, $expected,
           "$type: Second side-effecting statement was executed";
         ++$expected;
+    }
+}
+
+subtest 'Statement list keeps the delimiter after a trailing brace' => {
+    # my %h = a => 1; my $x = %h{"a"}; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::FatArrow.new(
+              key   => 'a',
+              value => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('%h'),
+              postfix => RakuAST::Postcircumfix::HashIndex.new(
+                index => RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::StrLiteral.new('a')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my %h = a => 1;
+my $x = %h{"a"};
+$x
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 1, "$type: the index is evaluated";
     }
 }
 
@@ -1160,6 +1208,115 @@ CODE
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), True, "$type: did eval work";
     }
+}
+
+subtest 'A statement prefix over an expression keeps the delimiter' => {
+    my %h = a => 1;
+
+    # do %h{"a"}; 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Do.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('%h'),
+              postfix => RakuAST::Postcircumfix::HashIndex.new(
+                index => RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::StrLiteral.new('a')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+do %h{"a"};
+42
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A block statement with a modifier keeps the delimiter' => {
+    my %h = a => 1;
+
+    # do { 1 } if %h{"a"}; 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Do.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::IntLiteral.new(1)
+                )
+              )
+            )
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::If.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('%h'),
+              postfix => RakuAST::Postcircumfix::HashIndex.new(
+                index => RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::StrLiteral.new('a')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+do {
+    1
+} if %h{"a"};
+42
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A statement prefix over a block drops the delimiter' => {
+    # do { 1 }; 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Do.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::IntLiteral.new(1)
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+do {
+    1
+}
+42
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'loop with only a condition and an increment' => {

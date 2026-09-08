@@ -407,7 +407,17 @@ CODE
           !! $deparsed
     }
 
+    # A block or control statement ends in a newline the enclosing
+    # statement supplies again, an expression statement may end in a
+    # heredoc body that has to stay intact
+    method blorst($blorst --> Str:D) {
         my $*DELIMITER = '';
+        my str $deparsed = self.deparse($blorst);
+        nqp::istype($blorst,RakuAST::Statement::Expression)
+          ?? $deparsed
+          !! $deparsed.chomp
+    }
+
     method bracketize($ast --> Str:D) {
         my $*DELIMITER = '';
         $.bracket-open
@@ -443,6 +453,25 @@ CODE
           || nqp::istype($operand,RakuAST::Call::Name::WithoutParentheses)
           ?? True
           !! False
+    }
+
+    # True only for a statement prefix over a block or a control
+    # statement with no modifier, the one statement whose closing brace
+    # may end it without a delimiter.  Any other trailing brace may close
+    # a subscript, a closure or a hash composer and keeps it
+    method statement-is-prefixed-block($statement --> Bool:D) {
+        if nqp::istype($statement,RakuAST::Statement::Expression)
+          && !$statement.condition-modifier
+          && !$statement.loop-modifier {
+            my $expression := $statement.expression;
+            nqp::istype($expression,RakuAST::StatementPrefix)
+              && !nqp::istype($expression.blorst,RakuAST::Statement::Expression)
+              ?? True
+              !! False
+        }
+        else {
+            False
+        }
     }
 
     method meta-infix-letter($ast, str $letter --> Str:D) {
@@ -547,6 +576,7 @@ CODE
     }
 
     method statement-modifier(str $type, $ast) {
+        my $*DELIMITER = '';
         self.syn-modifier($type) ~ ' ' ~ self.deparse($ast.expression)
     }
 
@@ -2433,7 +2463,9 @@ CODE
                   ?? $.last-statement
                   !! $.end-statement;
                 my $deparsed := self.deparse($statement);
-                $deparsed := $deparsed.chop(2) if $deparsed.ends-with("};\n");
+                $deparsed := $deparsed.chop(2)
+                  if $deparsed.ends-with("};\n")
+                  && self.statement-is-prefixed-block($statement);
 
                 @parts.push($spaces);
                 @parts.push($deparsed);
@@ -2495,18 +2527,16 @@ CODE
         my str $prefix = $ast.type;
         self.hsyn("stmt-prefix-$prefix", self.xsyn('stmt-prefix', $prefix))
           ~ ' '
-          ~ self.deparse($ast.blorst).chomp
+          ~ self.blorst($ast.blorst)
     }
 
     # handles most phasers
     multi method deparse(RakuAST::StatementPrefix::Phaser:D $ast --> Str:D) {
-        my $*DELIMITER = '';
-        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
+        self.syn-phaser($ast.type) ~ ' ' ~ self.blorst($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Phaser::First:D $ast --> Str:D) {
-        my $*DELIMITER = '';
-        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.original-blorst).chomp
+        self.syn-phaser($ast.type) ~ ' ' ~ self.blorst($ast.original-blorst)
     }
 
     multi method deparse(

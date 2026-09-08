@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 29; # Do not change this file to done-testing
+plan 33; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -723,6 +723,55 @@ CODE
     }
 }
 
+subtest 'loop with a declaration in its setup inside a statement list' => {
+    my $count;
+
+    # loop (my $i = 9; $i; --$i) { ++$count }; $count
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Loop.new(
+        setup => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('i'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(9)
+          )
+        ),
+        condition => RakuAST::Var::Lexical.new('$i'),
+        increment => RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('--'),
+          operand => RakuAST::Var::Lexical.new('$i')
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$count')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$count')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+loop (my $i = 9; $i; --$i) {
+    ++$count
+}
+$count
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $count = 0;
+
+        is-deeply EVAL($it), 9, "$type: loop ran as expected";
+    }
+}
+
 subtest 'Statement level for loop' => {
     my $count;
 
@@ -1110,6 +1159,158 @@ CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), True, "$type: did eval work";
+    }
+}
+
+subtest 'loop with only a condition and an increment' => {
+    my $i;
+    my $count;
+
+    # loop (; $i < 3; $i++) { last if ++$count > 3 }
+    ast RakuAST::Statement::Loop.new(
+      condition => RakuAST::ApplyInfix.new(
+        left  => RakuAST::Var::Lexical.new('$i'),
+        infix => RakuAST::Infix.new('<'),
+        right => RakuAST::IntLiteral.new(3)
+      ),
+      increment => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Var::Lexical.new('$i'),
+        postfix => RakuAST::Postfix.new(:operator<++>)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name::WithoutParentheses.new(
+                name => RakuAST::Name.from-identifier('last')
+              ),
+              condition-modifier => RakuAST::StatementModifier::If.new(
+                RakuAST::ApplyInfix.new(
+                  left => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$count')
+                  ),
+                  infix => RakuAST::Infix.new('>'),
+                  right => RakuAST::IntLiteral.new(3)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+loop (; $i < 3; $i++) {
+    last if ++$count > 3
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $i = 0;
+        $count = 0;
+
+        is-deeply EVAL($it), Nil, "$type: loop evaluates to Nil";
+        is-deeply $count, 3, "$type: loop ran as expected";
+    }
+}
+
+subtest 'loop without a condition' => {
+    my $count;
+
+    # loop (my $i = 0; ; $i++) { last if ++$count > 2 }
+    ast RakuAST::Statement::Loop.new(
+      setup => RakuAST::VarDeclaration::Simple.new(
+        sigil => '$',
+        desigilname => RakuAST::Name.from-identifier('i'),
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(0)
+        )
+      ),
+      increment => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Var::Lexical.new('$i'),
+        postfix => RakuAST::Postfix.new(:operator<++>)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name::WithoutParentheses.new(
+                name => RakuAST::Name.from-identifier('last')
+              ),
+              condition-modifier => RakuAST::StatementModifier::If.new(
+                RakuAST::ApplyInfix.new(
+                  left => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$count')
+                  ),
+                  infix => RakuAST::Infix.new('>'),
+                  right => RakuAST::IntLiteral.new(2)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+loop (my $i = 0; ; $i++) {
+    last if ++$count > 2
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $count = 0;
+
+        is-deeply EVAL($it), Nil, "$type: loop evaluates to Nil";
+        is-deeply $count, 3, "$type: loop ran until last";
+    }
+}
+
+subtest 'loop without an increment' => {
+    my $count;
+
+    # loop (my $i = 0; $i < 3; ) { $count = ++$i }
+    ast RakuAST::Statement::Loop.new(
+      setup => RakuAST::VarDeclaration::Simple.new(
+        sigil => '$',
+        desigilname => RakuAST::Name.from-identifier('i'),
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(0)
+        )
+      ),
+      condition => RakuAST::ApplyInfix.new(
+        left  => RakuAST::Var::Lexical.new('$i'),
+        infix => RakuAST::Infix.new('<'),
+        right => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left  => RakuAST::Var::Lexical.new('$count'),
+                infix => RakuAST::Infix.new('='),
+                right => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$i')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+loop (my $i = 0; $i < 3; ) {
+    $count = ++$i
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $count = 0;
+
+        is-deeply EVAL($it), Nil, "$type: loop evaluates to Nil";
+        is-deeply $count, 3, "$type: loop ran as expected";
     }
 }
 

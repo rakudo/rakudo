@@ -2330,16 +2330,18 @@ CODE
     }
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
-        my $condition := $ast.setup
-          ?? (' ('
-               ~ self.deparse($ast.setup)
-               ~ $.loop-separator
-               ~ self.deparse($ast.condition)
-               ~ $.loop-separator
-               ~ self.deparse($ast.increment)
-               ~ ') '
-             )
-          !! " ";
+        my str $condition = " ";
+        if $ast.setup || $ast.condition || $ast.increment {
+            # a declaration in the setup would add the statement delimiter
+            my $*DELIMITER = '';
+            $condition = ' ('
+              ~ ($ast.setup     ?? self.deparse($ast.setup)     !! '')
+              ~ $.loop-separator
+              ~ ($ast.condition ?? self.deparse($ast.condition) !! '')
+              ~ $.loop-separator
+              ~ ($ast.increment ?? self.deparse($ast.increment) !! '')
+              ~ ') ';
+        }
 
         self.labels($ast)
           ~ self.syn-block('loop')

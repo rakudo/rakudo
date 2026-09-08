@@ -2117,6 +2117,16 @@ CODE
             @parts.push($traits);
         }
 
+        my $body := $ast.body;
+        if nqp::istype($body,RakuAST::OnlyStar) {
+            @parts.push(self.deparse($body));
+            if $ast.WHY -> $WHY {
+                my $*DELIMITER = '';
+                return self.add-any-docs(@parts.join(' '), $WHY);
+            }
+            return @parts.join(' ');
+        }
+
         if $ast.WHY -> $WHY {
             @parts.push('{');
             # https://github.com/rakudo/rakudo/issues/5978
@@ -2129,7 +2139,7 @@ CODE
             @parts = @parts.join(' ');
         }
 
-        @parts.push(self.deparse($ast.body));
+        @parts.push(self.deparse($body));
         @parts.push('}');
         @parts.join
     }

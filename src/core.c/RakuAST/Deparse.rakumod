@@ -2210,10 +2210,15 @@ CODE
 
 #- Regex::Q --------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> Str:D) {
+    multi method deparse(
+      RakuAST::Regex::QuantifiedAtom:D $ast, :$whitespace
+    --> Str:D) {
         my str @parts = self.deparse($ast.atom), self.deparse($ast.quantifier);
 
         if $ast.separator -> $separator {
+            # the whitespace of a quantified atom with a separator sits
+            # between the quantifier and the separator
+            @parts.push(' ') if $whitespace;
             @parts.push($ast.trailing-separator ?? '%% ' !! '% ');
             @parts.push(self.deparse($separator));
         }
@@ -2344,7 +2349,10 @@ CODE
 #- Regex::W --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::WithWhitespace:D $ast --> Str:D) {
-        self.deparse($ast.regex) ~ " "
+        my $regex := $ast.regex;
+        nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator
+          ?? self.deparse($regex, :whitespace)
+          !! self.deparse($regex) ~ " "
     }
 
 #- RegexD ----------------------------------------------------------------------

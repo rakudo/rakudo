@@ -1728,8 +1728,10 @@ CODE
         }
 
         else {
-            @parts.push(self.deparse($signature))
-              if $signature.parameters-initialized;
+            if $signature.parameters-initialized
+              && self.deparse($signature) -> $deparsed {
+                @parts.push($deparsed);
+            }
 
             if $WHY {
                 @parts.push('{');

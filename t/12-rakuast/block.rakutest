@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 6;
 
 my $ast;
 my $deparsed;
@@ -219,6 +219,40 @@ CODE
           "$type: Block has default $type parameter";
         lives-ok { $block() },
           "$type: That $type parameter is optional";
+    }
+}
+
+subtest 'A pointy block with an empty signature' => {
+    # -> { 101 }
+    my $signature := RakuAST::Signature.new;
+    $signature.set-parameters-initialized;
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        :$signature,
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(101)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        is $block.signature.params.elems, 0,
+          "$type: The block has no parameters";
+        is $block(), 101,
+          "$type: Invoking the block returns the expected value";
     }
 }
 

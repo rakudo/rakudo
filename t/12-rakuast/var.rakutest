@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 66;
+plan 68;
 
 my $ast;
 my $deparsed;
@@ -1593,6 +1593,75 @@ CODE
     is-deeply RakuAST::Var::Compiler::Resources.new.raku,
       'RakuAST::Var::Compiler::Resources.new',
       'the .raku of $?RESOURCES takes no arguments';
+}
+
+subtest 'Shaped array declaration' => {
+    # my @a[2; 3];
+    # @a.shape
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          shape       => RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(2)
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(3)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('@a'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('shape')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my @a[2; 3];
+@a.shape
+CODE
+    is-deeply $_, (2, 3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Shaped hash declaration' => {
+    # my %h{Str};
+    # %h.keyof
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h'),
+          shape       => RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Str')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('keyof')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my %h{Str};
+%h.keyof
+CODE
+    is-deeply $_, Str, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

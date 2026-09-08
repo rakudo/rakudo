@@ -766,6 +766,10 @@ CODE
         @parts.push(
           self.hsyn(%twigil2type{$twigil} // 'var-lexical', $name)
         );
+        @parts.push($ast.sigil eq '%'
+          ?? self.bracketize($_)
+          !! self.squarize($_)
+        ) with $ast.shape;
 
         if $ast.traits.grep({
             nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))

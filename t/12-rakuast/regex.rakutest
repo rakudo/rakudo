@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 60;
+plan 61;
 
 my $ast;
 my $deparsed;
@@ -830,6 +830,21 @@ subtest 'Quoted words in a regex holding a slash' => {
     );
     is-deeply $deparsed, '/< a/b c\<d >/', 'deparse';
     match-ok "xc<d", 'c<d';
+}
+
+subtest 'Match with numbered capture' => {
+    # /$0=o/
+    ast RakuAST::Regex::NamedCapture.new(
+      name  => '0',
+      regex => RakuAST::Regex::Literal.new("o"),
+    );
+    is-deeply $deparsed, '/$0=o/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $regex := EVAL($it);
+        is "foo" ~~ $regex, 'o', "$type: matched";
+        is $/[0], 'o', "$type: capture is numbered";
+    }
 }
 
 # vim: expandtab shiftwidth=4

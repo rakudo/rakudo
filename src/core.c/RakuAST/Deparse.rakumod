@@ -2188,8 +2188,16 @@ CODE
 #- Regex::N --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> Str:D) {
-        self.hsyn('capture-named', '$<' ~ $ast.name ~ '>=')
-          ~ self.deparse($ast.regex)
+        my str $name  = $ast.name;
+        my int $chars = nqp::chars($name);
+        # a numbered capture is written without the brackets
+        self.hsyn('capture-named',
+          $chars && nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,$name,0,$chars
+          ) == $chars
+            ?? '$' ~ $name ~ '='
+            !! '$<' ~ $name ~ '>='
+        ) ~ self.deparse($ast.regex)
     }
 
     multi method deparse(RakuAST::Regex::Nested:D $ast --> Str:D) {

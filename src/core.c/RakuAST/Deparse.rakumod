@@ -2156,8 +2156,19 @@ CODE
     multi method deparse(RakuAST::Regex::Quote:D $ast --> Str:D) {
         my $quoted := $ast.quoted;
 
+        my @processors := $quoted.processors;
+
+        # the < a b > form, the space after < is what tells it from an assertion
+        if @processors == 1
+          && @processors.head eq 'words'
+          && !$quoted.has-variables {
+            self.hsyn('literal',
+              '< ' ~ self.assemble-quoted-string($quoted, :raw).trim ~ ' >'
+            )
+        }
+
         # Complicated stuff
-        if $quoted.processors {
+        elsif @processors {
             self.hsyn('regex-code', '<{ ')
               ~ self.deparse($quoted)
               ~ self.hsyn('regex-code', ' }>')

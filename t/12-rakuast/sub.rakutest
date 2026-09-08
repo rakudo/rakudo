@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -437,6 +437,40 @@ CODE
         is-deeply ::<&frobnicate>(), 42, 'can call without args';
         dies-ok { ::<&frobnicate>(666) }, 'can NOT call with positionals';
         dies-ok { ::<&frobnicate>(:bar) }, 'can NOT call with nameds';
+    }
+}
+
+subtest 'A required positional parameter needs no marker' => {
+    # sub ($param) { $param }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>),
+              :!optional
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            ),
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub ($param) {
+    $param
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        is-deeply $sub(199), 199, "$type: the argument is passed";
+        dies-ok { $sub() }, "$type: the parameter is still required";
     }
 }
 

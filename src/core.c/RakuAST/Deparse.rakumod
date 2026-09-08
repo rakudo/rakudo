@@ -1475,9 +1475,6 @@ CODE
                 elsif $ast.is-declared-optional {
                     @parts.push('?');
                 }
-                elsif $ast.is-declared-required {
-                    @parts.push('!');
-                }
             }
 
             if $ast.traits -> @traits {
@@ -2221,7 +2218,9 @@ CODE
           !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }
 
-    multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
+    multi method deparse(
+      RakuAST::Signature:D $ast, :$no-returns
+    --> Str:D) {
         my str @parts;
 
         if $ast.parameters -> @parameters {
@@ -2252,9 +2251,11 @@ CODE
             }
         }
 
-        with $ast.returns {
-            @parts.push(self.hsyn('arrow-two', '-->'));
-            @parts.push(self.deparse($_));
+        unless $no-returns {
+            with $ast.returns {
+                @parts.push(self.hsyn('arrow-two', '-->'));
+                @parts.push(self.deparse($_));
+            }
         }
 
         @parts.join(' ')
@@ -3052,13 +3053,14 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
         my str @parts = self.syn-scope($ast.scope);
         @parts.push(self.syn-type($_)) with $ast.type;
-        @parts.push('(' ~ self.deparse($ast.signature) ~ ')');
-
-        if $ast.initializer -> $initializer {
-            @parts.push(self.deparse($initializer));
-        }
+        # a declared type is stored as the return type as well
+        @parts.push('('
+          ~ self.deparse($ast.signature, :no-returns($ast.type.defined))
+          ~ ')'
+        );
 
         @parts.join(' ')
+          ~ ($ast.initializer ?? self.deparse($ast.initializer) !! '')
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {

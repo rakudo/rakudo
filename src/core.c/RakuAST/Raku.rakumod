@@ -1388,6 +1388,10 @@ augment class RakuAST::Name::Part {
         self.^name
     }
 
+    multi method raku(RakuAST::Name::Part::Empty:D: --> Str:D) {
+        self.^name ~ '.new'
+    }
+
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {
         my str @parts = self.^name ~ '.new(';
         RakuAST::Node::indent();

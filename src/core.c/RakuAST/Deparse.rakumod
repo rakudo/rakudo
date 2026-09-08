@@ -1335,7 +1335,18 @@ CODE
 #- N ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Name:D $ast --> Str:D) {
-        $ast.is-installable ?? $ast.canonicalize !! '::'
+        return '::' if $ast.is-anonymous;
+
+        my @parts := $ast.parts;
+        (nqp::istype(@parts.head,RakuAST::Name::Part::Expression) ?? '::' !! '')
+          ~ @parts.map({
+                nqp::istype($_,RakuAST::Name::Part::Expression)
+                  ?? '(' ~ self.deparse(.expr) ~ ')'
+                  !! nqp::istype($_,RakuAST::Name::Part::Empty)
+                    ?? ''
+                    !! .name
+            }).join('::')
+          ~ $ast.colonpair-suffix
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {

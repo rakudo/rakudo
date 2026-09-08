@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
 use Test;
+use nqp;
 
-plan 6;
+plan 8;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -61,7 +62,7 @@ subtest "name from expressions" => {
     ok .is-identifier, 'the element is NOT considered an identifier';
     is-deeply .parts.elems, 1, 'Has one parts';
     isa-ok .parts[0], RakuAST::Name::Part::Expression, 'second part is ok';
-    is-deeply .DEPARSE, 'Int', 'deparses in an expected way';
+    is-deeply .DEPARSE, '::("Int")', 'deparses in an expected way';
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Name.new(
   RakuAST::Name::Part::Expression.new(
@@ -101,6 +102,51 @@ CODE
     is-deeply EVAL("use experimental :rakuast; " ~ .raku).colonpairs.elems, 1, 'round trips through .raku';
     .add-colonpair(RakuAST::ColonPair::True.new('y'));
     is-deeply .colonpairs.elems, 2, 'a colonpair can still be added';
+}
+
+subtest "indirect name lookup" => {
+    # ::("Int")
+    $_ := RakuAST::Term::Name.new(
+      RakuAST::Name.new(
+        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new("Int"))
+      )
+    );
+    is-deeply .DEPARSE, '::("Int")', 'deparses the lookup as written';
+    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
+RakuAST::Term::Name.new(
+  RakuAST::Name.new(
+    RakuAST::Name::Part::Empty.new,
+    RakuAST::Name::Part::Expression.new(
+      RakuAST::StrLiteral.new("Int")
+    )
+  )
+)
+CODE
+    is-deeply EVAL($_), Int, 'AST: looks up the type';
+    is-deeply EVAL(.DEPARSE), Int, 'Str: looks up the type';
+    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+      'round trips through .raku';
+}
+
+subtest "indirect name lookup as a term" => {
+    # IO::("Path")
+    $_ := RakuAST::Call::Name.new(
+      name => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new("IO"),
+        RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new("Path"))
+      )
+    );
+    is-deeply .DEPARSE, 'IO::("Path")()', 'deparses as a call';
+    is-deeply EVAL($_), IO::Path, 'AST: looks up the type';
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        is-deeply EVAL(.DEPARSE), IO::Path, 'Str: looks up the type';
+    }
+    else {
+        skip 'the legacy frontend does not parse an indirect name term', 1;
+    }
+    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+      'round trips through .raku';
 }
 
 # vim: expandtab shiftwidth=4

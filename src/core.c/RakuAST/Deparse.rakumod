@@ -1819,7 +1819,7 @@ CODE
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
                 if %single-processor-prefix{$processor} -> str $p is copy {
-                    $p = 'qqx/' if $p eq 'exec' && $ast.has-variables;
+                    $p = 'qqx/' if $processor eq 'exec' && $ast.has-variables;
                     self.hsyn("adverb-q-$p", self.xsyn('adverb-q', $p))
                       ~ $string ~ '/'
                 }

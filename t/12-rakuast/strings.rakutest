@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -620,6 +620,43 @@ my $x = "a";
 "$x.=uc() $x"
 CODE
     is-deeply $_, 'A A', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Exec processor with an interpolated call keeps interpolating' => {
+    # my $x = "a";
+    # qqx/echo $x.uc()/
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::StrLiteral.new('echo '),
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$x'),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('uc')
+              )
+            )
+          ],
+          :processors['exec']
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+qqx/echo $x.uc()/
+CODE
+    is-deeply $_, "A\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

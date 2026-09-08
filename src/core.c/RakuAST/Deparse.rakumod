@@ -272,10 +272,8 @@ CODE
             add-traits;
 
             if $WHY {
-                $*DELIMITER = "";
                 @parts.push('{');
-                return self.add-any-docs(@parts.join(' '), $WHY)
-                  ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
+                return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
             }
         }
 
@@ -546,10 +544,11 @@ CODE
 
     method prefix-any-leading-doc(str $body, $WHY) {
         if $WHY && $WHY.leading -> @leading {
+            # the parser stores a leading doc line without its newline
             self.hsyn('doc-leading', @leading.map({
-                self.deparse-unquoted($_).lines(:!chomp).Slip
+                self.deparse-unquoted($_).lines.Slip
             }).map({
-                "#| $_$*INDENT"
+                "#| $_\n$*INDENT"
             }).join)
               ~ $body
         }
@@ -574,6 +573,14 @@ CODE
         else {
             $body ~ $*DELIMITER
         }
+    }
+
+    # a trailing doc follows the opening brace on its line, the body
+    # supplies the newline after the brace
+    method block-with-docs(str $prefix, $WHY, $body --> Str:D) {
+        $*DELIMITER = "";
+        self.add-any-docs($prefix, $WHY).chomp
+          ~ self.deparse($body, :multi).substr(1)  # lose {
     }
 
     method add-any-docs(str $body, $WHY) {
@@ -764,9 +771,7 @@ CODE
 
     multi method deparse(RakuAST::Block:D $ast --> Str:D) {
         if $ast.WHY -> $WHY {
-            $*DELIMITER = "";
-            self.add-any-docs('{', $WHY)
-              ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
+            self.block-with-docs('{', $WHY, $ast.body)
         }
         else {
             self.deparse($ast.body, |%_)
@@ -1559,10 +1564,8 @@ CODE
               if $signature.parameters-initialized;
 
             if $WHY {
-                $*DELIMITER = "";
                 @parts.push('{');
-                return self.add-any-docs(@parts.join(' '), $WHY)
-                  ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
+                return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
             }
         }
 

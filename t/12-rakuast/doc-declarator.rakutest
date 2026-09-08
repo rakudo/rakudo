@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -854,6 +854,35 @@ CODE
       )
     ),
     'did we find the paragraphs ok';
+}
+
+subtest 'Leading pod declarator without a trailing newline' => {
+    # #| leading comment␤sub a {␤    42␤}
+    ast RakuAST::Sub.new(
+      name => RakuAST::Name.from-identifier("a"),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    ).declarator-docs(
+      leading => ("leading comment",)
+    ), :no-pod;
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+sub a {
+    42
+}
+CODE
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).WHY.leading, "leading comment",
+          "$type: is the leading comment attached";
+    }
 }
 
 # vim: expandtab shiftwidth=4

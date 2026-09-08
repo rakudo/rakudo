@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -136,6 +136,26 @@ subtest 'Hash composer with list of fat arrows works correctly' => {
     );
     is-deeply $deparsed, '{x => 11, y => 22}', 'deparsed';
     is-deeply $_, {:11x, :22y}, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized single statement keeps its modifier' => {
+    # (42 if 1)
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42),
+          condition-modifier => RakuAST::StatementModifier::If.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '(42 if 1)', 'deparse';
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

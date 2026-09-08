@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -721,6 +721,52 @@ my class A {
 A.new.m(42).elems
 CODE
     is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Type capture with a target' => {
+    # sub f (::T $x) { T }; f(42)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type-captures => (
+                  RakuAST::Type::Capture.new(
+                    RakuAST::Name.from-identifier('T')
+                  ),
+                ),
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('T')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f (::T $x) {
+    T
+}
+f(42)
+CODE
+    is-deeply $_, Int, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

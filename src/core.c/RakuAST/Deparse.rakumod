@@ -1454,9 +1454,11 @@ CODE
         }
 
         if @captures {
-            @parts.push(self.deparse($_)) for @captures;
+            @parts.push(@captures.map({ self.deparse($_) }).join(' '));
+            @parts.push(' ') if $target;
         }
-        elsif $target {
+
+        if $target {
             my str $var = self.deparse($target, :slurpy($ast.slurpy));
 
             # named parameter

@@ -268,7 +268,9 @@ CODE
 
         else {
             @parts.push(self.parenthesize($signature))
-              if $signature && $signature.parameters-initialized;
+              if $signature
+              && $signature.parameters-initialized
+              && ($signature.parameters || $signature.returns);
             add-traits;
 
             if $WHY {

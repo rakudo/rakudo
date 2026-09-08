@@ -150,7 +150,7 @@ ok optimized-deparse(Q[sub f() { 2 ** 3 }; multi sub infix:<**>(Int $a, Int $b) 
     'a user multi declared after the use keeps the operator';
 {
     my $t = optimized-deparse(Q[sub outer() { 2 ** 3 }; sub inner() { { sub infix:<**>($a, $b) { 'user' }; 2 ** 3 } }]);
-    ok $t.subst(/\s+/, ' ', :g).contains('sub outer () { 8 }') && $t.contains('2 ** 3'),
+    ok $t.subst(/\s+/, ' ', :g).contains('sub outer { 8 }') && $t.contains('2 ** 3'),
         'a user infix in an inner block leaves a use outside it folding and keeps its own';
 }
 {

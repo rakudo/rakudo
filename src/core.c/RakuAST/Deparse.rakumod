@@ -2725,6 +2725,24 @@ CODE
         "" # XXX for now
     }
 
+#- Transliteration -------------------------------------------------------------
+
+    multi method deparse(RakuAST::Transliteration:D $ast --> Str:D) {
+        my str @parts = $ast.destructive ?? 'tr' !! 'TR';
+
+        if $ast.adverbs -> @adverbs {
+            @parts.push(self.deparse($_)) for @adverbs;
+        }
+
+        for $ast.left, $ast.right {
+            @parts.push('/');
+            @parts.push(self.deparse($_).substr(1,*-1).subst('/', '\/', :g));
+        }
+        @parts.push('/');
+
+        @parts.join
+    }
+
 #- Type ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Type::Capture:D $ast --> Str:D) {

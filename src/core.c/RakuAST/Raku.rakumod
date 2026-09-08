@@ -144,6 +144,9 @@ augment class RakuAST::Node {
               my $config := nqp::decont(self.config);
               :config($config.Hash) if $config
           },
+          'destructive', -> {
+              :destructive(self.destructive)
+          },
           'directive', -> {
               :directive if self.directive
           },
@@ -1196,6 +1199,12 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {
         self!positional(self.expr)
+    }
+
+#- Transliteration -------------------------------------------------------------
+
+    multi method raku(RakuAST::Transliteration:D: --> Str:D) {
+        self!nameds: <destructive left right adverbs>
     }
 
 #- Type ------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 27;
+plan 28;
 
 my $ast;
 my $deparsed;
@@ -218,6 +218,29 @@ subtest 'Negated character class enumeration assertion works' => {
     );
     is-deeply $deparsed, '/<-[a \d c..f]>/', 'deparse';
     match-ok "fooa9cbar", 'o';
+}
+
+subtest 'Character class enumeration with characters needing an escape' => {
+    # /<+[\] \\ \- \  \!..\/]>+/
+    ast RakuAST::Regex::QuantifiedAtom.new(
+      atom => RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("]"),
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("\\"),
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("-"),
+            RakuAST::Regex::CharClassEnumerationElement::Character.new(" "),
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => "!".ord,
+              to   => "/".ord
+            )
+          ]
+        )
+      ),
+      quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+    );
+    is-deeply $deparsed, Q|/<+[\] \\ \- \  \!..\/]>+/|, 'deparse';
+    match-ok "abc]\\- !/x", Q|]\- !/|;
 }
 
 subtest 'Character property assertion works' => {

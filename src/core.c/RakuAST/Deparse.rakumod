@@ -372,6 +372,16 @@ CODE
         }
     }
 
+    # Word characters never need escaping inside <[ ]>.  Everything else
+    # is escaped rather than enumerating which characters are ignored or
+    # meaningful there, such as whitespace, dots, hyphens, backslashes
+    # and the closing bracket
+    method charclass-character(str $char --> Str:D) {
+        nqp::iscclass(nqp::const::CCLASS_WORD,$char,0)
+          ?? $char
+          !! '\\' ~ $char
+    }
+
     method colonpairs($ast, Str:D $xsyn = "") {
         $ast.colonpairs.map({ self.deparse($_, $xsyn) }).join
     }
@@ -1878,13 +1888,15 @@ CODE
     multi method deparse(
       RakuAST::Regex::CharClassEnumerationElement::Character:D $ast
     --> Str:D) {
-        $ast.character
+        self.charclass-character($ast.character)
     }
 
     multi method deparse(
       RakuAST::Regex::CharClassEnumerationElement::Range:D $ast
     --> Str:D) {
-        $ast.from.chr ~ '..' ~ $ast.to.chr
+        self.charclass-character($ast.from.chr)
+          ~ '..'
+          ~ self.charclass-character($ast.to.chr)
     }
 
 #- Regex::Co -------------------------------------------------------------------

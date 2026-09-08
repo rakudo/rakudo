@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -1108,6 +1108,85 @@ CODE
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after the class was compiled';
     is-deeply 'use experimental :rakuast; ' ~ $ast.raku, $raku,
       '.raku after the class was compiled';
+}
+
+subtest 'class with a private submethod' => {
+    # my class E {
+    #     submethod !m {
+    #         42
+    #     }
+    #     method n {
+    #         self!m
+    #     }
+    # }
+    # E.n
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('E'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Submethod.new(
+                    private => True,
+                    name    => RakuAST::Name.from-identifier('m'),
+                    body    => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(42)
+                        )
+                      )
+                    )
+                  )
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('n'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::ApplyPostfix.new(
+                            operand => RakuAST::Term::Self.new,
+                            postfix => RakuAST::Call::PrivateMethod.new(
+                              name => RakuAST::Name.from-identifier('m')
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('E')),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('n')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class E {
+    submethod !m {
+        42
+    }
+    method n {
+        self!m
+    }
+}
+E.n
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the private submethod is called";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
 }
 
 # vim: expandtab shiftwidth=4

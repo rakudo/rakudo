@@ -837,7 +837,10 @@ CODE
         my     $postfix         := $ast.postfix;
         my str $deparsed-postfix = self.deparse($postfix);
 
-        if $ast.on-topic && nqp::istype($postfix,RakuAST::Call::Method) {
+        # a method call on the topic interpolates only with the topic written
+        if $ast.on-topic
+          && nqp::istype($postfix,RakuAST::Call::Method)
+          && !$*INTERPOLATING {
             $deparsed-postfix
         }
         else {

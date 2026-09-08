@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 22;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -547,6 +547,41 @@ sub f {
 "$x\.&f()"
 CODE
     is-deeply $_, 'a.F', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call on the topic in an interpolation keeps the topic' => {
+    # $_ = 42;
+    # "val $_.gist() end"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(42)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::StrLiteral.new('val '),
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$_'),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('gist')
+              )
+            ),
+            RakuAST::StrLiteral.new(' end')
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+$_ = 42;
+"val $_.gist() end"
+CODE
+    is-deeply $_, 'val 42 end', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

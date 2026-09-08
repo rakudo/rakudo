@@ -137,7 +137,7 @@ subtest "indirect name lookup as a term" => {
         RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new("Path"))
       )
     );
-    is-deeply .DEPARSE, 'IO::("Path")()', 'deparses as a call';
+    is-deeply .DEPARSE, 'IO::("Path")', 'deparses without a call';
     is-deeply EVAL($_), IO::Path, 'AST: looks up the type';
     if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         is-deeply EVAL(.DEPARSE), IO::Path, 'Str: looks up the type';

@@ -865,13 +865,17 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        my $name     := self.deparse($ast.name);
-        my $complete := $name.ends-with('::');
+        my $name-ast := $ast.name;
+        my $args     := $ast.args;
+        my $name     := self.deparse($name-ast);
+        # an indirect lookup without arguments is a term, not a call
+        my $complete := $name.ends-with('::')
+          || !($args && $args.args) && $name-ast.is-indirect-lookup;
 
         $name := self.hsyn("core-$name", self.xsyn('core', $name));
         $complete
           ?? $name
-          !! $name ~ self.parenthesize($ast.args)
+          !! $name ~ self.parenthesize($args)
     }
 
     multi method deparse(RakuAST::Call::Name::WithoutParentheses:D $ast
@@ -1484,7 +1488,6 @@ CODE
 
         if @captures {
             @parts.push(@captures.map({ self.deparse($_) }).join(' '));
-            @parts.push(' ') if $target;
         }
 
         if $target {

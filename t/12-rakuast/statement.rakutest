@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 39; # Do not change this file to done-testing
+plan 40; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1515,6 +1515,56 @@ require "Test.rakumod";
 42
 CODE
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+}
+
+subtest 'repeat while loop followed by a statement' => {
+    # my $i = 0;
+    # repeat {
+    #     $i++
+    # } while $i < 3;
+    # $i
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('i'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(0)
+          )
+        )
+      ),
+      RakuAST::Statement::Loop::RepeatWhile.new(
+        condition => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$i'),
+          infix => RakuAST::Infix.new('<'),
+          right => RakuAST::IntLiteral.new(3)
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new('$i'),
+                  postfix => RakuAST::Postfix.new(:operator<++>)
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$i')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $i = 0;
+repeat {
+    $i++
+} while $i < 3;
+$i
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

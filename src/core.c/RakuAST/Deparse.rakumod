@@ -341,6 +341,7 @@ CODE
          ~ self.syn-modifier($type)
          ~ ' '
          ~ self.deparse($ast.condition)
+         ~ $*DELIMITER
     }
 
     # :raw is for the < > form, which processes no escape but the

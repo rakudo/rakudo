@@ -2626,9 +2626,11 @@ CODE
         }
         else {
             @parts.push('/');
-            @parts.push(self.deparse($ast.pattern));
+            @parts.push(self.deparse($ast.pattern).subst('/', '\/', :g));
             @parts.push('/');
-            @parts.push(self.deparse($ast.replacement).substr(1,*-1));
+            @parts.push(
+              self.deparse($ast.replacement).substr(1,*-1).subst('/', '\/', :g)
+            );
             @parts.push('/');
         }
 

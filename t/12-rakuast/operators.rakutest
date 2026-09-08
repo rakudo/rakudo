@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 31;
 
 my $ast;
 my $deparsed;
@@ -187,6 +187,22 @@ subtest 'Application of a list infix operator on three operands' => {
 
     is-deeply $deparsed, '10, 11, 12', 'deparse';
     is-deeply $_, (10, 11, 12), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of a word list infix operator on three operands' => {
+    # 10 min 11 min 12
+    ast RakuAST::ApplyListInfix.new(
+      infix => RakuAST::Infix.new('min'),
+      operands => (
+        RakuAST::IntLiteral.new(10),
+        RakuAST::IntLiteral.new(11),
+        RakuAST::IntLiteral.new(12),
+      )
+    );
+
+    is-deeply $deparsed, '10 min 11 min 12', 'deparse';
+    is-deeply $_, 10, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

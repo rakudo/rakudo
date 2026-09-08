@@ -124,7 +124,7 @@ class RakuAST::Deparse {
     method assign(--> ' = ')  { }
     method bind(  --> ' := ') { }
 
-    method before-list-infix(--> '') { }
+    method before-list-infix(--> ' ') { }
     method after-list-infix(--> ' ') { }
 
     method loop-separator(--> '; ') { }
@@ -667,10 +667,7 @@ CODE
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
         my $infix       := $ast.infix;
-        my str $operator = nqp::istype($infix,RakuAST::MetaInfix)
-          || nqp::istype($infix,RakuAST::Feed)
-          ?? (' ' ~ self.deparse($infix))
-          !! self.deparse($infix);
+        my str $operator = self.deparse($infix);
 
         my str @parts = $ast.operands.map({ self.deparse($_) });
         @parts

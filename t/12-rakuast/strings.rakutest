@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 17;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -295,6 +295,23 @@ my $x = "a";
 "$x\(1)"
 CODE
     is-deeply $_, 'a(1)', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quote nested by its own delimiters' => {
+    # "a \{ b }"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('a {'),
+        RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new(' b ')]
+        ),
+        RakuAST::StrLiteral.new('}')
+      ]
+    );
+
+    is-deeply $deparsed, '"a \{ b }"', 'deparse';
+    is-deeply $_, 'a { b }', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

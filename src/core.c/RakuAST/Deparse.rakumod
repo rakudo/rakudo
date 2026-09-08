@@ -363,6 +363,12 @@ CODE
                 }
                 $text
             }
+            # the text between a nested pair of the delimiters is a quote of
+            # its own, one without processors belongs to this one
+            elsif nqp::istype($_,RakuAST::QuotedString) && !.processors {
+                $interpolated = 0;
+                self.assemble-quoted-string($_, :$raw)
+            }
             else {
                 $interpolated = 1;
                 self.deparse($_)

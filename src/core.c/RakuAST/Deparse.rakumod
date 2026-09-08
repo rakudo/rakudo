@@ -2969,11 +2969,15 @@ CODE
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
         my str @parts = self.syn-typer('enum');
 
+        # the type of the values only parses between a scope and the
+        # declarator, so a type makes the scope explicit: `my Str enum`
+        my $of := $ast.of;
+        @parts.unshift(self.deparse($of)) if $of;
+
         my str $scope = $ast.scope;
         @parts.unshift(self.syn-scope($scope))
-          if $scope && $scope ne $ast.default-scope;
+          if $scope && ($of || $scope ne $ast.default-scope);
 
-        @parts.unshift(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) with $ast.name;
 
         if $ast.clean-clone.traits -> @traits {

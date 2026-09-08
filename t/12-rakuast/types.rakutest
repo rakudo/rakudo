@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -270,6 +270,23 @@ my Hash:D[Str] %h;
 CODE
     is-deeply $_, 0, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with a written Any coercion' => {
+    # Int(Any)
+    ast RakuAST::Type::Coercion.new(
+      base-type  => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      constraint => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Any")
+      )
+    );
+    is-deeply $deparsed, 'Int(Any)', 'deparse';
+
+    is-deeply $_, Int(Any), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, 'Int(Any)', 'deparse of the .raku';
 }
 
 # vim: expandtab shiftwidth=4

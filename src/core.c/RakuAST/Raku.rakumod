@@ -1234,7 +1234,10 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
-        self!nameds: (try self.constraint.name.canonicalize eq 'Any')
+        # only the setting Any the constructor supplies is left out
+        my $constraint := self.constraint;
+        self!nameds: nqp::istype($constraint,RakuAST::Type::Setting)
+          && $constraint.name.canonicalize eq 'Any'
           ?? <base-type>
           !! <base-type constraint>
     }

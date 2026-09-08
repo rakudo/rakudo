@@ -1514,7 +1514,7 @@ CODE
         }
 
         if $ast.sub-signature -> $signature {
-            @parts.push(' (');
+            @parts.push(@parts ?? ' (' !! '(');
             @parts.push(self.deparse($signature));
             @parts.push(')');
         }

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 19;
 
 my $ast;
 my $deparsed;
@@ -807,6 +807,76 @@ sub f ($x where 42) {
 f(42)
 CODE
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parameter that is only a sub-signature' => {
+    # sub f ($x, ($y, $z)) { $y + $z }; f(1, (2, 3))
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$y>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$z>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$y'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$z')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(1),
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(','),
+                    operands => (
+                      RakuAST::IntLiteral.new(2),
+                      RakuAST::IntLiteral.new(3),
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f ($x, ($y, $z)) {
+    $y + $z
+}
+f(1, (2, 3))
+CODE
+    is-deeply $_, 5, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

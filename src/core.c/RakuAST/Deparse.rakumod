@@ -765,6 +765,8 @@ CODE
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
         my $*IN-ARGLIST := True;
+        # a declaration argument would add the statement delimiter
+        my $*DELIMITER = '';
         $ast.args.map({
             if nqp::istype($_,RakuAST::Heredoc) {
                 my ($top, $bottom) = self.deparse($_, :split);

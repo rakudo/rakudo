@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -197,6 +197,37 @@ subtest 'Can make a call that flattens into hash' => {
     );
     is-deeply $deparsed, 'two-named(|%args)', 'deparsed';
     is-deeply $_, 5.0, "@type[$++]: flattening two named arguments"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Declaration as the first argument of a call without parentheses' => {
+    # max my $x = 1, 2;
+    # $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name::WithoutParentheses.new(
+          name => RakuAST::Name.from-identifier('max'),
+          args => RakuAST::ArgList.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('x'),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(1)
+              )
+            ),
+            RakuAST::IntLiteral.new(2)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+max my $x = 1, 2;
+$x
+CODE
+    is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

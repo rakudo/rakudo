@@ -589,6 +589,10 @@ CODE
         )
     }
 
+    method where-constraint($where --> Str:D) {
+        ' ' ~ self.xsyn('constraint', 'where') ~ ' ' ~ self.deparse($where)
+    }
+
     method statement-modifier(str $type, $ast) {
         my $*DELIMITER = '';
         self.syn-modifier($type) ~ ' ' ~ self.deparse($ast.expression)
@@ -676,12 +680,7 @@ CODE
             }
         }
 
-        if $ast.where -> $where {
-            @parts.push(' ');
-            @parts.push(self.xsyn('constraint', 'where'));
-            @parts.push(' ');
-            @parts.push(self.deparse($where));
-        }
+        @parts.push(self.where-constraint($_)) with $ast.where;
 
         if $ast.initializer -> $initializer {
             @parts.push(self.deparse($initializer));
@@ -1519,6 +1518,8 @@ CODE
             @parts.push(self.deparse($signature));
             @parts.push(')');
         }
+
+        @parts.push(self.where-constraint($_)) with $ast.where;
 
         @parts = self.hsyn('param', @parts.join);
         if $ast.default -> $default {

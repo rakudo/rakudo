@@ -373,11 +373,13 @@ CODE
     # Word characters never need escaping inside <[ ]>.  Everything else
     # is escaped rather than enumerating which characters are ignored or
     # meaningful there, such as whitespace, dots, hyphens, backslashes
-    # and the closing bracket
+    # and the closing bracket.  A character that does not print is given
+    # by its codepoint, as a backslashed control character does not parse
     method charclass-character(str $char --> Str:D) {
-        nqp::iscclass(nqp::const::CCLASS_WORD,$char,0)
-          ?? $char
-          !! '\\' ~ $char
+        return $char if nqp::iscclass(nqp::const::CCLASS_WORD,$char,0);
+        nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
+          ?? '\\' ~ $char
+          !! '\\x[' ~ $char.ord.base(16) ~ ']'
     }
 
     method colonpairs($ast, Str:D $xsyn = "") {
@@ -1921,10 +1923,18 @@ CODE
     multi method deparse(
       RakuAST::Regex::CharClass::Specified:D $ast
     --> Str:D) {
-        ($ast.negated ?? '\\C' !! '\\c')
-          ~ '['
-          ~ $ast.characters.ords.map(*.uniname).join(', ')
-          ~ ']'
+        my str $characters = $ast.characters;
+        my int $chars      = nqp::chars($characters);
+        my @ords           = $characters.ords;
+
+        # a character that does not print has no name to write
+        nqp::findnotcclass(
+          nqp::const::CCLASS_PRINTING,$characters,0,$chars
+        ) == $chars
+          ?? ($ast.negated ?? '\\C' !! '\\c')
+               ~ '[' ~ @ords.map(*.uniname).join(', ') ~ ']'
+          !! ($ast.negated ?? '\\X' !! '\\x')
+               ~ '[' ~ @ords.map(*.base(16)).join(', ') ~ ']'
     }
 
     multi method deparse(RakuAST::Regex::CharClass::Tab:D $ast --> Str:D) {

@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 58;
+plan 59;
 
 my $ast;
 my $deparsed;
@@ -811,6 +811,13 @@ subtest 'Goal matching with a goal that has no trailing whitespace' => {
     is-deeply $deparsed, '/"("~ ")" \d+/', 'deparse';
 
     match-ok "foo(42)bar", '(42)';
+}
+
+subtest 'Characters that do not print specified by codepoint' => {
+    # /\x[9, B]/
+    ast RakuAST::Regex::CharClass::Specified.new(characters => "\t\x[B]");
+    is-deeply $deparsed, '/\x[9, B]/', 'deparse';
+    match-ok "a\t\x[B]b", "\t\x[B]";
 }
 
 # vim: expandtab shiftwidth=4

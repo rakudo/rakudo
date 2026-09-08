@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 15;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -740,6 +740,53 @@ CODE
           "$type: inner class is installed with full nested name";
         is $class.x, 42,
           "$type: inner class method is callable";
+    }
+}
+
+subtest 'class inheriting through a type trait' => {
+    # my class X::Foo is Exception { }; X::Foo.new ~~ Exception
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope  => 'my',
+          name   => RakuAST::Name.from-identifier-parts('X', 'Foo'),
+          traits => (
+            RakuAST::Trait::Is.new-from-type(
+              type => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Exception')
+              )
+            ),
+          ),
+          body   => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new()
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier-parts('X', 'Foo')
+            ),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('new')
+            )
+          ),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Exception')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class X::Foo is Exception { }
+X::Foo.new ~~ Exception
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), True, "$type: is an Exception";
     }
 }
 

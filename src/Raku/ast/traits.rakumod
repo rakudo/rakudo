@@ -177,20 +177,22 @@ class RakuAST::Trait::Is
     has RakuAST::Circumfix $.argument;
     has RakuAST::Type $.type;
 
-    method new(RakuAST::Name :$name!, RakuAST::Circumfix :$argument) {
+    method new(
+           RakuAST::Name :$name,
+           RakuAST::Type :$type,
+      RakuAST::Circumfix :$argument
+    ) {
+        nqp::die('Must specify a name or a type') unless $name || $type;
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Is, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Trait::Is, '$!argument',
             $argument // RakuAST::Circumfix);
         $obj
     }
 
     method new-from-type(RakuAST::Type :$type!, RakuAST::Circumfix :$argument) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Is, '$!type', $type);
-        nqp::bindattr($obj, RakuAST::Trait::Is, '$!argument',
-            $argument // RakuAST::Circumfix);
-        $obj
+        self.new(:$type, :$argument)
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

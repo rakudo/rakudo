@@ -840,13 +840,16 @@ CODE
     multi method deparse(
       RakuAST::ColonPair::Value:D $ast, Str:D $xsyn = ""
     --> Str:D) {
-        my $value  := $ast.value;
+        my $value        := $ast.value;
+        my str $deparsed  = self.deparse($value);
 
         ':'
           ~ self.named-arg($xsyn, $ast.key)
-          ~ (nqp::istype($value,RakuAST::QuotedString)
-              ?? self.deparse($value)
-              !! $.parens-open ~ self.deparse($value) ~ $.parens-close
+          ~ (nqp::istype($value,RakuAST::Circumfix::Parentheses)
+               || (nqp::istype($value,RakuAST::QuotedString)
+                    && $deparsed.starts-with('<'))
+              ?? $deparsed
+              !! $.parens-open ~ $deparsed ~ $.parens-close
             )
     }
 

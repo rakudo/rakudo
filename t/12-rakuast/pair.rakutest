@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -99,6 +99,53 @@ subtest 'Value colonpair forms a Pair with the correct value (3)' => {
 
     is-deeply $deparsed, ':cheese<cheddar limburg>', 'deparse';
     is-deeply $_, Pair.new('cheese', <cheddar limburg>), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair with a parenthesized value' => {
+    # :cheese(42)
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, ':cheese(42)', 'deparse';
+    is-deeply $_, Pair.new('cheese', 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair with a plain quoted string value' => {
+    # :cheese("brie")
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('brie')]
+      )
+    );
+
+    is-deeply $deparsed, ':cheese("brie")', 'deparse';
+    is-deeply $_, Pair.new('cheese', 'brie'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair with a quoted string value without brackets' => {
+    # :cheese(qqw/brie gouda/)
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('brie gouda')],
+        processors => ("words",)
+      )
+    );
+
+    is-deeply $deparsed, ':cheese(qqw/brie gouda/)', 'deparse';
+    is-deeply $_, Pair.new('cheese', ('brie', 'gouda')), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

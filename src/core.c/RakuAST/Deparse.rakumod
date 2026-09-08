@@ -646,13 +646,14 @@ CODE
     }
 
     method syn-type($ast, :$skip) {
-        # a type without a name, such as a coercion, deparses its base
-        # type through this method, so it must not be highlighted twice
-        my int $named = nqp::can($ast,'name');
+        # a derived type, such as a coercion, deparses its base type
+        # through this method, so it must not be highlighted twice
+        my int $named = nqp::istype($ast,RakuAST::Type::Simple)
+          || nqp::istype($ast,RakuAST::Type::Setting);
         my str $name  = self.deparse($named ?? $ast.name !! $ast);
-        $skip && $skip eq $name
-          ?? ""
-          !! $named ?? self.hsyn("type-$name", $name) !! $name
+
+        return "" if $skip && $skip eq $name;
+        $named ?? self.hsyn("type-$name", $name) !! $name
     }
 
     method syn-typer($typer) {
@@ -2942,7 +2943,19 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        my str $name   = self.deparse($ast.base-type.name);
+        my $base-type := $ast.base-type;
+
+        # the smiley of a parameterized type goes before the arguments
+        my str $args;
+        if nqp::istype($base-type,RakuAST::Type::Parameterized) {
+            my str $deparsed = self.deparse($base-type.args);
+            $args = "[$deparsed]" if $deparsed;
+            $base-type := $base-type.base-type;
+        }
+
+        my str $name   = self.deparse(
+          nqp::can($base-type,'name') ?? $base-type.name !! $base-type
+        );
         my str $smiley = $ast.definite ?? 'D' !! 'U';
 
         self.hsyn("type-$name", $ast.through-pragma
@@ -2950,7 +2963,7 @@ CODE
             ?? ''
             !! $name
           !! $name ~ self.hsyn("smiley-$smiley", ":$smiley")
-        )
+        ) ~ $args
     }
 
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {

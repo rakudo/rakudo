@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -159,6 +159,117 @@ subtest 'Multi-part type from the setting' => {
         is-deeply EVAL($it), SETTING-Parts,
           "$type: did we get the setting version";
     }
+}
+
+subtest 'Definedness of a parameterized type' => {
+    # sub f (Positional:D[Int] $x) { $x.elems }; f(Array[Int].new(1, 2))
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type => RakuAST::Type::Definedness.new(
+                  base-type => RakuAST::Type::Parameterized.new(
+                    base-type => RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier('Positional')
+                    ),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Type::Simple.new(
+                        RakuAST::Name.from-identifier('Int')
+                      )
+                    )
+                  ),
+                  definite => True
+                ),
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new('$x'),
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('elems')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Type::Parameterized.new(
+                base-type => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Array')
+                ),
+                args => RakuAST::ArgList.new(
+                  RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('Int')
+                  )
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new'),
+                args => RakuAST::ArgList.new(
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(2)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f (Positional:D[Int] $x) {
+    $x.elems
+}
+f(Array[Int].new(1, 2))
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Declaration with the definedness of a parameterized type' => {
+    # my Hash:D[Str] %h;
+    # %h.elems
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::Definedness.new(
+            base-type => RakuAST::Type::Parameterized.new(
+              base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Hash')),
+              args      => RakuAST::ArgList.new(
+                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+              )
+            ),
+            definite  => True
+          ),
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('elems'))
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Hash:D[Str] %h;
+%h.elems
+CODE
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -156,6 +156,42 @@ subtest 'Parenthesized single statement keeps its modifier' => {
 
     is-deeply $deparsed, '(42 if 1)', 'deparse';
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized for statement' => {
+    # (for 1 .. 2 { $_ }).elems
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::For.new(
+            source => RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('..'),
+              right => RakuAST::IntLiteral.new(2)
+            ),
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$_')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('elems')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparsed';
+(for 1 .. 2 {
+    $_
+}).elems
+CODE
+    is-deeply $_, 2, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

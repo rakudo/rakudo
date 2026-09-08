@@ -78,7 +78,7 @@ CODE
     <magenta>has</magenta> <green>Str</green> <cyan>$.foo</cyan> <yellow>=</yellow> <red>"foo"</red>;
     <magenta>has</magenta> <green>Int</green> <cyan>$.bar</cyan> <yellow>=</yellow> <red>42</red>;
 
-    <yellow>method</yellow> zippo () {
+    <yellow>method</yellow> zippo {
 
         <yellow><yellow>so</yellow> </yellow><cyan>$!foo</cyan> <yellow>+</yellow> <cyan>$.bar</cyan>
     }

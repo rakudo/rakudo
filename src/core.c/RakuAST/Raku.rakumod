@@ -629,7 +629,8 @@ augment class RakuAST::Node {
         self!add-WHY: $self!nameds:
           <scope name how repr traits body>,
           (parameterization => $signature
-            if $signature && $signature.parameters.elems)
+            if $signature && $signature.parameters.elems),
+          (:is-stub if self.is-stub)
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {
@@ -640,9 +641,14 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Parameter:D: --> Str:D) {
         my str @nameds;
-        @nameds.push("type") if self.type && self.type.DEPARSE ne 'Any';
+        # Any is the implicit type of a target, a parameter that is only
+        # a type has nothing else
+        my $type := self.type;
+        @nameds.push("type")
+          if $type && ($type.DEPARSE ne 'Any' || !self.target);
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
+        @nameds.push("invocant") if self.invocant;
         @nameds.append: <
           target optional slurpy traits default where sub-signature value
         >;
@@ -1052,7 +1058,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Statement::Require:D: --> Str:D) {
-        self!nameds: <labels module-name>
+        self!nameds: <labels module-name file argument>
     }
 
     multi method raku(RakuAST::Statement::Unless:D: --> Str:D) {
@@ -1135,6 +1141,8 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("private")   if self.private;
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
@@ -1265,6 +1273,10 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
+    multi method raku(RakuAST::Var::Compiler::Distribution:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
         self!positional(self.file)
     }
@@ -1275,6 +1287,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Compiler::Lookup:D: --> Str:D) {
         self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Var::Compiler::Resources:D: --> Str:D) {
+        self!none
     }
 
     multi method raku(RakuAST::Var::Compiler::Routine:D: --> Str:D) {
@@ -1350,9 +1366,15 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
+        # the build trait of an attribute is made from its initializer
+        my @traits = self.traits.grep({
+            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
+        });
         self!add-WHY:
           self!nameds:
-            <scope original-type shape sigil twigil desigilname traits initializer where>
+            <scope original-type shape sigil twigil desigilname>,
+            (:@traits if @traits),
+            <initializer where>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
@@ -1385,6 +1407,10 @@ augment class RakuAST::Name::Part {
 
     multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
         self.^name
+    }
+
+    multi method raku(RakuAST::Name::Part::Empty:D: --> Str:D) {
+        self.^name ~ '.new'
     }
 
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {

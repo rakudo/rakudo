@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -239,6 +239,79 @@ subtest 'Using the exec processor alone gives expected result' => {
 
     is-deeply $deparsed, 'qx/echo 123/', 'deparse';
     is-deeply $_, "123\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor keeps the text of the < > form' => {
+    # <$a
+    # b>
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new("\$a\nb")],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, "<\$a\nb>", 'deparse';
+    is-deeply $_, ("\$a", "b"), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor escapes the backslash and brackets of the < > form' => {
+    # <a\\b c\<d\>e>
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('a\\b c<d>e')],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, '<a\\\\b c\\<d\\>e>', 'deparse';
+    is-deeply $_, ('a\\b', 'c<d>e'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Bracket after an interpolation is escaped' => {
+    # my $x = "a";
+    # "$x\(1)"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::Var::Lexical.new('$x'),
+            RakuAST::StrLiteral.new('(1)')
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+"$x\(1)"
+CODE
+    is-deeply $_, 'a(1)', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Quote nested by its own delimiters' => {
+    # "a \{ b }"
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('a {'),
+        RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new(' b ')]
+        ),
+        RakuAST::StrLiteral.new('}')
+      ]
+    );
+
+    is-deeply $deparsed, '"a \{ b }"', 'deparse';
+    is-deeply $_, 'a { b }', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 15;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -741,6 +741,452 @@ CODE
         is $class.x, 42,
           "$type: inner class method is callable";
     }
+}
+
+subtest 'class inheriting through a type trait' => {
+    # my class X::Foo is Exception { }; X::Foo.new ~~ Exception
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope  => 'my',
+          name   => RakuAST::Name.from-identifier-parts('X', 'Foo'),
+          traits => (
+            RakuAST::Trait::Is.new-from-type(
+              type => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Exception')
+              )
+            ),
+          ),
+          body   => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new()
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier-parts('X', 'Foo')
+            ),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('new')
+            )
+          ),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Exception')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class X::Foo is Exception { }
+X::Foo.new ~~ Exception
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), True, "$type: is an Exception";
+    }
+}
+
+subtest 'class with a representation' => {
+    # my class Foo is repr("CStruct") { has int $.x }; Foo.REPR
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Foo'),
+          repr  => 'CStruct',
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    type        => RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier('int')
+                    ),
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('x')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Foo')
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('REPR')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class Foo is repr("CStruct") {
+    has int $.x
+}
+Foo.REPR
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 'CStruct', "$type: has the representation";
+    }
+}
+
+subtest 'native type with a representation' => {
+    # my native myint is repr("P6int") is Int is nativesize(64) { }
+    # my myint $x = 5;
+    # $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Native.new(
+          scope  => 'my',
+          name   => RakuAST::Name.from-identifier('myint'),
+          repr   => 'P6int',
+          traits => (
+            RakuAST::Trait::Is.new-from-type(
+              type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            ),
+            RakuAST::Trait::Is.new(
+              name     => RakuAST::Name.from-identifier('nativesize'),
+              argument => RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(64)
+                  )
+                )
+              )
+            ),
+          ),
+          body   => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('myint')),
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(5))
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my native myint is repr("P6int") is Int is nativesize(64) { }
+my myint $x = 5;
+$x
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: the native type holds the value";
+    }
+}
+
+subtest 'stubbed class' => {
+    # my class B {...}
+    # my class B {
+    #     method m {
+    #         42
+    #     }
+    # }
+    # B.m
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope   => 'my',
+          name    => RakuAST::Name.from-identifier('B'),
+          is-stub => True,
+          body    => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('B'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('m'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(42)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('B')
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('m')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class B {...}
+my class B {
+    method m {
+        42
+    }
+}
+B.m
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the definition completes the stub";
+    }
+}
+
+subtest 'class with a multi submethod' => {
+    # my class C {
+    #     multi submethod m (Int $x) {
+    #         $x
+    #     }
+    #     multi submethod m (Str $x) {
+    #         $x.chars
+    #     }
+    # }
+    # C.m(42) + C.m("abc")
+    sub candidate($type, $body) {
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::Submethod.new(
+            multiness => 'multi',
+            name      => RakuAST::Name.from-identifier('m'),
+            signature => RakuAST::Signature.new(
+              parameters => (
+                RakuAST::Parameter.new(
+                  type   => RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier($type)
+                  ),
+                  target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+                ),
+              )
+            ),
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(expression => $body)
+              )
+            )
+          )
+        )
+    }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('C'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                candidate('Int', RakuAST::Var::Lexical.new('$x')),
+                candidate('Str', RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new('$x'),
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('chars')
+                  )
+                ))
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('C')),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('m'),
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+            )
+          ),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('C')),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('m'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('abc'))
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class C {
+    multi submethod m (Int $x) {
+        $x
+    }
+    multi submethod m (Str $x) {
+        $x.chars
+    }
+}
+C.m(42) + C.m("abc")
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 45, "$type: both candidates dispatch";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+}
+
+subtest 'attribute with a computed default' => {
+    # my class D {
+    #     has $.t = 1 + 1
+    # }
+    # D.new.t
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('D'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('t'),
+                    initializer => RakuAST::Initializer::Assign.new(
+                      RakuAST::ApplyInfix.new(
+                        left  => RakuAST::IntLiteral.new(1),
+                        infix => RakuAST::Infix.new('+'),
+                        right => RakuAST::IntLiteral.new(1)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('D')),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('new')
+            )
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('t')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class D {
+    has $.t = 1 + 1
+}
+D.new.t
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 2, "$type: the default is computed";
+    }
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after the class was compiled';
+    is-deeply 'use experimental :rakuast; ' ~ $ast.raku, $raku,
+      '.raku after the class was compiled';
+}
+
+subtest 'class with a private submethod' => {
+    # my class E {
+    #     submethod !m {
+    #         42
+    #     }
+    #     method n {
+    #         self!m
+    #     }
+    # }
+    # E.n
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('E'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Submethod.new(
+                    private => True,
+                    name    => RakuAST::Name.from-identifier('m'),
+                    body    => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(42)
+                        )
+                      )
+                    )
+                  )
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('n'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::ApplyPostfix.new(
+                            operand => RakuAST::Term::Self.new,
+                            postfix => RakuAST::Call::PrivateMethod.new(
+                              name => RakuAST::Name.from-identifier('m')
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('E')),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('n')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class E {
+    submethod !m {
+        42
+    }
+    method n {
+        self!m
+    }
+}
+E.n
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the private submethod is called";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
 }
 
 # vim: expandtab shiftwidth=4

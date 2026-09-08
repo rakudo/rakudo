@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 28;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -530,6 +530,26 @@ subtest 'Assertion with callable works' => {
         is $/.list.elems, 0, "$type: No positional captures";
         is $/.hash.elems, 0, "$type: No named captures";
     }
+}
+
+subtest 'Character class enumeration with characters that do not print' => {
+    # /<+[\x[9] \x[B]..\x[C]]>+/
+    ast RakuAST::Regex::QuantifiedAtom.new(
+      atom => RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("\t"),
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => 0xB,
+              to   => 0xC
+            )
+          ]
+        )
+      ),
+      quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+    );
+    is-deeply $deparsed, Q|/<+[\x[9] \x[B]..\x[C]]>+/|, 'deparse';
+    match-ok "a\t\x[B]b", "\t\x[B]";
 }
 
 # vim: expandtab shiftwidth=4

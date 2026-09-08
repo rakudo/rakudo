@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -234,6 +234,66 @@ subtest 'Anonymous enum (enum ::)' => {
         'Source: anonymous enum compiles outside a role';
     is-deeply EVAL('enum :: <a b c>'), $abc,
         'Source: anonymous enum yields expected Map';
+}
+
+subtest 'Enum with a type for its values' => {
+    # my Str enum foo (a => "x"); a.value
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Enum.new(
+          scope => 'my',
+          of    => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+          name  => RakuAST::Name.from-identifier('foo'),
+          term  => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::FatArrow.new(
+                  key   => 'a',
+                  value => RakuAST::StrLiteral.new('x')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('a')),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('value')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Str enum foo (a => "x");
+a.value
+CODE
+    is-deeply $_, 'x', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Enum with a type for its values and the default scope' => {
+    # our Str enum bar (a => "x")
+    ast RakuAST::Type::Enum.new(
+      scope => 'our',
+      of    => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+      name  => RakuAST::Name.from-identifier('bar'),
+      term  => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::FatArrow.new(
+              key   => 'a',
+              value => RakuAST::StrLiteral.new('x')
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'our Str enum bar (a => "x")', 'deparse';
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+    my package four { EVAL($ast); is OUR::<bar>.enums<a>, 'x', 'AST: the enum has the value' }
+    my package five { EVAL($deparsed); is OUR::<bar>.enums<a>, 'x', 'Str: the enum has the value' }
 }
 
 # vim: expandtab shiftwidth=4

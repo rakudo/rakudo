@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 15;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -248,6 +248,81 @@ subtest 'Can make a method call on a sub' => {
     );
     is-deeply $deparsed, '"foo".&uc()', 'deparsed';
     is-deeply $_, "FOO", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can call a method held in a variable' => {
+    # my $f = method { self + 1 };
+    # 41.$f
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('f'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Method.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyInfix.new(
+                      left  => RakuAST::Term::Self.new,
+                      infix => RakuAST::Infix.new('+'),
+                      right => RakuAST::IntLiteral.new(1)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::IntLiteral.new(41),
+          postfix => RakuAST::Call::BlockMethod.new(
+            block => RakuAST::Var::Lexical.new('$f')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparsed';
+my $f = method {
+    self + 1
+};
+41.$f
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can call a block as a method' => {
+    # 41.&{ $_ + 1 }
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(41),
+      postfix => RakuAST::Call::BlockMethod.new(
+        block => RakuAST::Contextualizer::Item.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::Var::Lexical.new('$_'),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparsed';
+41.&{
+    $_ + 1
+}
+CODE
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

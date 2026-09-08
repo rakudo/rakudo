@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 58;
+plan 60;
 
 my $ast;
 my $deparsed;
@@ -538,14 +538,14 @@ subtest 'Match involving a quoted string with interpolation works' => {
 }
 
 subtest 'Match involving quote words works' => {
-    # /<{ qqw/link inky linky/ }>/
+    # /< link inky linky >/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('link inky linky')],
         :processors['words']
       )
     );
-    is-deeply $deparsed, '/<{ qqw/link inky linky/ }>/', 'deparse';
+    is-deeply $deparsed, '/< link inky linky >/', 'deparse';
 
     match-ok "slinky sprint", 'linky';
 }
@@ -811,6 +811,25 @@ subtest 'Goal matching with a goal that has no trailing whitespace' => {
     is-deeply $deparsed, '/"("~ ")" \d+/', 'deparse';
 
     match-ok "foo(42)bar", '(42)';
+}
+
+subtest 'Characters that do not print specified by codepoint' => {
+    # /\x[9, B]/
+    ast RakuAST::Regex::CharClass::Specified.new(characters => "\t\x[B]");
+    is-deeply $deparsed, '/\x[9, B]/', 'deparse';
+    match-ok "a\t\x[B]b", "\t\x[B]";
+}
+
+subtest 'Quoted words in a regex holding a slash' => {
+    # /< a/b c\<d >/
+    ast RakuAST::Regex::Quote.new(
+      RakuAST::QuotedString.new(
+        processors => <words>,
+        segments   => (RakuAST::StrLiteral.new(' a/b c<d '),)
+      )
+    );
+    is-deeply $deparsed, '/< a/b c\<d >/', 'deparse';
+    match-ok "xc<d", 'c<d';
 }
 
 # vim: expandtab shiftwidth=4

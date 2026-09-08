@@ -1362,16 +1362,33 @@ CODE
     multi method deparse(RakuAST::Name:D $ast --> Str:D) {
         return '::' if $ast.is-anonymous;
 
-        my @parts := $ast.parts;
-        (nqp::istype(@parts.head,RakuAST::Name::Part::Expression) ?? '::' !! '')
-          ~ @parts.map({
-                nqp::istype($_,RakuAST::Name::Part::Expression)
-                  ?? '(' ~ self.deparse(.expr) ~ ')'
-                  !! nqp::istype($_,RakuAST::Name::Part::Empty)
-                    ?? ''
-                    !! .name
+        my @name-parts := $ast.parts;
+        (nqp::istype(@name-parts.head,RakuAST::Name::Part::Expression) ?? '::' !! '')
+          ~ @name-parts.map({
+                if nqp::istype($_,RakuAST::Name::Part::Expression) {
+                    '(' ~ self.deparse(.expr) ~ ')'
+                }
+                elsif nqp::istype($_,RakuAST::Name::Part::Empty) {
+                    ''
+                }
+                else {
+                    .name
+                }
             }).join('::')
-          ~ $ast.colonpair-suffix
+          ~ $ast.colonpairs.map({
+                if nqp::istype($_,RakuAST::ColonPair) {
+                    self.deparse($_)
+                }
+                # the `<+++>` of an operator name is a bare quote, not a
+                # pair, and an empty `<>` colonpair is a Nil term
+                elsif nqp::istype($_,RakuAST::Term::Name)
+                  && .name.canonicalize eq 'Nil' {
+                    ':<>'
+                }
+                else {
+                    ':' ~ self.deparse($_)
+                }
+            }).join
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {

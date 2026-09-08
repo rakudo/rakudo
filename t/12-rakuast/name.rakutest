@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 8;
+plan 9;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -145,6 +145,21 @@ subtest "indirect name lookup as a term" => {
     else {
         skip 'the legacy frontend does not parse an indirect name term', 1;
     }
+    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+      'round trips through .raku';
+}
+
+subtest "name with a colonpair holding an expression" => {
+    # Foo:ver($v)
+    $_ := RakuAST::Name.from-identifier('Foo',
+      colonpairs => (
+        RakuAST::ColonPair::Value.new(
+          key   => 'ver',
+          value => RakuAST::Var::Lexical.new('$v')
+        ),
+      )
+    );
+    is-deeply .DEPARSE, 'Foo:ver($v)', 'deparses the value in parens';
     is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
       'round trips through .raku';
 }

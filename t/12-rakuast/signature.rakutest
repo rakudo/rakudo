@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 15;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -644,6 +644,84 @@ subtest 'set-sub-signature mutator on a Parameter' => {
       ),
     );
     is $sub([10, 20]), '10|20', 'mutator path: destructure binds';
+}
+
+subtest 'Invocant parameter with a following parameter' => {
+    # my class A { method m ($self: $x) { $self, $x } }; A.new.m(42).elems
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('A'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name      => RakuAST::Name.from-identifier('m'),
+                    signature => RakuAST::Signature.new(
+                      parameters => (
+                        RakuAST::Parameter.new(
+                          target   => RakuAST::ParameterTarget::Var.new(:name<$self>),
+                          invocant => True
+                        ),
+                        RakuAST::Parameter.new(
+                          target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+                        ),
+                      )
+                    ),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::ApplyListInfix.new(
+                            infix    => RakuAST::Infix.new(','),
+                            operands => (
+                              RakuAST::Var::Lexical.new('$self'),
+                              RakuAST::Var::Lexical.new('$x'),
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('A')
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new')
+              )
+            ),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('m'),
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+            )
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('elems')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class A {
+    method m ($self: $x) {
+        $self, $x
+    }
+}
+A.new.m(42).elems
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

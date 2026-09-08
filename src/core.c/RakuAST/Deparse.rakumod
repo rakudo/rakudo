@@ -2231,12 +2231,14 @@ CODE
             # need special handling for declarator doc
             if @parameters.first(*.WHY) {
                 my $last      := @parameters.tail;
-                my $*DELIMITER = $.list-infix-comma.trim ~ "\n";
+                my $*DELIMITER;
 
                 my str @atoms;
                 self.indent('  ');
                 for @parameters -> $param {
-                    $*DELIMITER = "\n" if $param === $last;
+                    $*DELIMITER = $param === $last || $param.invocant
+                      ?? "\n"
+                      !! $.list-infix-comma.trim ~ "\n";
                     @atoms.push($*INDENT);
                     @atoms.push(self.deparse($param));
                 }
@@ -2247,10 +2249,15 @@ CODE
 
             # no special action
             else {
-                my $*DELIMITER = $.list-infix-comma;
+                my $*DELIMITER = '';
+                my $last := @parameters.tail;
                 @parts.push(@parameters.map({
-                    self.deparse($_)
-                }).join.chomp($.list-infix-comma))
+                    # an invocant is set off by its colon, not by a comma
+                    my str $separator = $.list-infix-comma;
+                    $separator = ' ' if .invocant;
+                    $separator = ''  if $_ === $last;
+                    self.deparse($_) ~ $separator
+                }).join)
             }
         }
 

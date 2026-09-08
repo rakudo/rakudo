@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -264,6 +264,37 @@ subtest 'Words processor escapes the backslash and brackets of the < > form' => 
 
     is-deeply $deparsed, '<a\\\\b c\\<d\\>e>', 'deparse';
     is-deeply $_, ('a\\b', 'c<d>e'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Bracket after an interpolation is escaped' => {
+    # my $x = "a";
+    # "$x\(1)"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::Var::Lexical.new('$x'),
+            RakuAST::StrLiteral.new('(1)')
+          ]
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+"$x\(1)"
+CODE
+    is-deeply $_, 'a(1)', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -347,13 +347,27 @@ CODE
     # :raw is for the < > form, which processes no escape but the
     # backslash and its own brackets
     method assemble-quoted-string($ast, :$raw --> Str:D) {
+        my int $interpolated;
         $ast.segments.map({
-            nqp::istype($_,RakuAST::StrLiteral)
-              ?? $raw
-                ?? .value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
-                !! .value.raku.substr(1,*-1)
-              !! self.deparse($_)
-            }).join
+            if nqp::istype($_,RakuAST::StrLiteral) {
+                my str $text = $raw
+                  ?? .value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                  !! .value.raku.substr(1,*-1);
+                if $text {
+                    # a bracket right after an interpolation would continue
+                    # it as a call or an index
+                    $text = '\\' ~ $text
+                      if $interpolated
+                      && nqp::index('([{<',$text.substr(0,1)) >= 0;
+                    $interpolated = 0;
+                }
+                $text
+            }
+            else {
+                $interpolated = 1;
+                self.deparse($_)
+            }
+        }).join
     }
 
     method multiple-processors(str $string, @processors --> Str:D) {

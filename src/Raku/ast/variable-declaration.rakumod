@@ -699,6 +699,7 @@ class RakuAST::VarDeclaration::Simple
     has str                  $.twigil;
     has RakuAST::Initializer $.initializer;
     has RakuAST::Method      $.initializer-method;
+    has int                  $!initializer-in-method;
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $.attribute-package;
     has RakuAST::Role        $!generics-package;
@@ -963,7 +964,7 @@ class RakuAST::VarDeclaration::Simple
 
     method visit-children(Code $visitor) {
         $visitor($!type)        if nqp::isconcrete($!type);
-        if nqp::isconcrete($!initializer) {
+        if !$!initializer-in-method && nqp::isconcrete($!initializer) {
             $visitor($!initializer);
             $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
         }
@@ -1294,9 +1295,9 @@ class RakuAST::VarDeclaration::Simple
                     self.add-trait(
                         RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
                     );
-                    # No need anymore, since the initializer is already referenced by the method.
-                    # Avoids double CHECK on the initializer code.
-                    nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer', RakuAST::Initializer);
+                    # The initializer stays as written for deparsing. The
+                    # method carries it from here on, so it is not visited again.
+                    nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!initializer-in-method', 1);
                 }
             }
             else {

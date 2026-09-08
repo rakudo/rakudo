@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -1047,6 +1047,67 @@ CODE
         is-deeply EVAL($it), 45, "$type: both candidates dispatch";
     }
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+}
+
+subtest 'attribute with a computed default' => {
+    # my class D {
+    #     has $.t = 1 + 1
+    # }
+    # D.new.t
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('D'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('t'),
+                    initializer => RakuAST::Initializer::Assign.new(
+                      RakuAST::ApplyInfix.new(
+                        left  => RakuAST::IntLiteral.new(1),
+                        infix => RakuAST::Infix.new('+'),
+                        right => RakuAST::IntLiteral.new(1)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('D')),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('new')
+            )
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('t')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class D {
+    has $.t = 1 + 1
+}
+D.new.t
+CODE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 2, "$type: the default is computed";
+    }
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after the class was compiled';
+    is-deeply 'use experimental :rakuast; ' ~ $ast.raku, $raku,
+      '.raku after the class was compiled';
 }
 
 # vim: expandtab shiftwidth=4

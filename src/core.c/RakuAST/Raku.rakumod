@@ -1365,9 +1365,15 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
+        # the build trait of an attribute is made from its initializer
+        my @traits = self.traits.grep({
+            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
+        });
         self!add-WHY:
           self!nameds:
-            <scope original-type shape sigil twigil desigilname traits initializer where>
+            <scope original-type shape sigil twigil desigilname>,
+            (:@traits if @traits),
+            <initializer where>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {

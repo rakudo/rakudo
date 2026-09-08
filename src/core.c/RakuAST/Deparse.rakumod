@@ -341,10 +341,14 @@ CODE
          ~ self.deparse($ast.condition)
     }
 
-    method assemble-quoted-string($ast --> Str:D) {
+    # :raw is for the < > form, which processes no escape but the
+    # backslash and its own brackets
+    method assemble-quoted-string($ast, :$raw --> Str:D) {
         $ast.segments.map({
             nqp::istype($_,RakuAST::StrLiteral)
-              ?? .value.raku.substr(1,*-1)
+              ?? $raw
+                ?? .value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                !! .value.raku.substr(1,*-1)
               !! self.deparse($_)
             }).join
     }
@@ -1673,7 +1677,9 @@ CODE
             elsif @processors == 2 && !$ast.has-variables {
                 my str $joined = @processors.join(' ');
                 if $joined eq 'words val' {
-                    $.pointy-open ~ $string ~ $.pointy-close
+                    $.pointy-open
+                      ~ self.assemble-quoted-string($ast, :raw)
+                      ~ $.pointy-close
                 }
                 elsif $joined eq 'quotewords val' {
                     $.double-pointy-open ~ $string ~ $.double-pointy-close

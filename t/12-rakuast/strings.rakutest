@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -239,6 +239,31 @@ subtest 'Using the exec processor alone gives expected result' => {
 
     is-deeply $deparsed, 'qx/echo 123/', 'deparse';
     is-deeply $_, "123\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor keeps the text of the < > form' => {
+    # <$a
+    # b>
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new("\$a\nb")],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, "<\$a\nb>", 'deparse';
+    is-deeply $_, ("\$a", "b"), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Words processor escapes the backslash and brackets of the < > form' => {
+    # <a\\b c\<d\>e>
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('a\\b c<d>e')],
+      :processors['words', 'val']
+    );
+
+    is-deeply $deparsed, '<a\\\\b c\\<d\\>e>', 'deparse';
+    is-deeply $_, ('a\\b', 'c<d>e'), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

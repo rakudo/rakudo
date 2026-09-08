@@ -2308,8 +2308,8 @@ CODE
         my @statements := $ast.statements;
         my $statement  := @statements.head;
         @statements == 1
-          && !(nqp::istype($statement,RakuAST::Statement::Expression)
-               && ($statement.condition-modifier || $statement.loop-modifier))
+          && nqp::istype($statement,RakuAST::Statement::Expression)
+          && !($statement.condition-modifier || $statement.loop-modifier)
           ?? self.deparse($statement.expression)
           !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }

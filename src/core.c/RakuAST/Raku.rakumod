@@ -65,8 +65,13 @@ augment class RakuAST::Node {
 
     method !none() { self.^name ~ '.new' }
 
-    method !literal($value) {
-        self.^name ~ '.new(' ~ nqp::decont($value).raku ~ ')';
+    # a junction value must not autothread, and the base class is only
+    # made through from-value
+    method !literal(Mu $value) {
+        (nqp::eqaddr(self.WHAT,RakuAST::Literal)
+          ?? 'RakuAST::Literal.from-value('
+          !! self.^name ~ '.new('
+        ) ~ nqp::decont($value).raku ~ ')'
     }
 
     method !positional($value) {

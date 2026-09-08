@@ -2799,7 +2799,12 @@ class RakuAST::Statement::Require
     has RakuAST::Package $!module;
     has RakuAST::Node $!existing-lookup;
 
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$file, RakuAST::Expression :$argument) {
+    method new(
+           RakuAST::Name :$module-name,
+     RakuAST::Expression :$file,
+     RakuAST::Expression :$argument
+    ) {
+        nqp::die('Must specify a module-name or a file') unless $module-name || $file;
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Statement::Require, '$!file', $file // RakuAST::Expression);

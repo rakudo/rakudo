@@ -1053,7 +1053,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Statement::Require:D: --> Str:D) {
-        self!nameds: <labels module-name>
+        self!nameds: <labels module-name file argument>
     }
 
     multi method raku(RakuAST::Statement::Unless:D: --> Str:D) {

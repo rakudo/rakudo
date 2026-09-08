@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 37; # Do not change this file to done-testing
+plan 39; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1469,6 +1469,52 @@ CODE
         is-deeply EVAL($it), Nil, "$type: loop evaluates to Nil";
         is-deeply $count, 3, "$type: loop ran as expected";
     }
+}
+
+subtest 'require statement with an import list' => {
+    # require Test <&nok>;
+    # &nok.name
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Require.new(
+        module-name => RakuAST::Name.from-identifier('Test'),
+        argument    => RakuAST::QuotedString.new(
+          processors => <words val>,
+          segments   => (RakuAST::StrLiteral.new('&nok'),)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('&nok'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('name')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+require Test <&nok>;
+&nok.name
+CODE
+    is-deeply $_, 'nok', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'require statement with a file' => {
+    # require "Test.rakumod";
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Require.new(
+        file => RakuAST::StrLiteral.new('Test.rakumod')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+require "Test.rakumod";
+42
+CODE
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
 }
 
 # vim: expandtab shiftwidth=4

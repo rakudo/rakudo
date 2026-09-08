@@ -2513,8 +2513,11 @@ CODE
     }
 
     multi method deparse(RakuAST::Statement::Require:D $ast --> Str:D) {
-        self.labels($ast)
-          ~ self.xsyn('use', 'require') ~ ' ' ~ self.deparse($ast.module-name)
+        my str @parts = self.xsyn('use', 'require');
+        @parts.push(self.deparse($_)) with $ast.module-name;
+        @parts.push(self.deparse($_)) with $ast.file;
+        @parts.push(self.deparse($_)) with $ast.argument;
+        self.labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::Unless:D $ast --> Str:D) {

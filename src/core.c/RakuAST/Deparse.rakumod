@@ -846,6 +846,17 @@ CODE
         self.method-call($ast, $ast.dispatch || '.')
     }
 
+    multi method deparse(RakuAST::Call::BlockMethod:D $ast --> Str:D) {
+        my $block := $ast.block;
+        # the parser wraps the block of `.&{ }` in an item contextualizer
+        self.syn-routine($ast.dispatch || '.')
+          ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
+              ?? '&' ~ self.deparse($block.target)
+              !! self.deparse($block)
+            )
+          ~ self.parenthesize($ast.args, :only-non-empty)
+    }
+
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
         my $dispatch := $ast.dispatch;
         self.method-call($ast, ($ast.dispatch || '.') ~ '&')

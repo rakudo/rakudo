@@ -418,6 +418,13 @@ CODE
           !! $deparsed.chomp
     }
 
+    method assignee($ast --> Str:D) {
+        my $assignee := $ast.assignee;
+        nqp::isconcrete($assignee)
+          ?? self.syn-infix-ws($.assign) ~ self.deparse($assignee)
+          !! ''
+    }
+
     method bracketize($ast --> Str:D) {
         my $*DELIMITER = '';
         $.bracket-open
@@ -1567,7 +1574,9 @@ CODE
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        self.squarize($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
+        self.squarize($ast.index)
+          ~ self.colonpairs($ast, 'adverb-pc')
+          ~ self.assignee($ast)
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
@@ -1577,7 +1586,9 @@ CODE
     multi method deparse(
       RakuAST::Postcircumfix::LiteralHashIndex:D $ast
     --> Str:D) {
-        self.deparse($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
+        self.deparse($ast.index)
+          ~ self.colonpairs($ast, 'adverb-pc')
+          ~ self.assignee($ast)
     }
 
     multi method deparse(RakuAST::Postfix:D $ast --> Str:D) {

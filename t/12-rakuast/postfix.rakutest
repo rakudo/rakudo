@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -674,6 +674,55 @@ $v
 CODE
     is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Array index with an assignee' => {
+    my @a;
+
+    # @a[0] = 42
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('@a'),
+      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+        index => RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(0)
+          )
+        ),
+        assignee => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, '@a[0] = 42', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        @a = ();
+
+        is-deeply EVAL($it), 42, "$type: did we get the assigned value";
+        is-deeply @a[0], 42, "$type: was the element assigned";
+    }
+}
+
+subtest 'Literal hash index with an assignee' => {
+    my %h;
+
+    # %h<a> = 42
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('%h'),
+      postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+        index => RakuAST::QuotedString.new(
+          segments => [RakuAST::StrLiteral.new('a')],
+          processors => ['words','val']
+        ),
+        assignee => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, '%h<a> = 42', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        %h = ();
+
+        is-deeply EVAL($it), 42, "$type: did we get the assigned value";
+        is-deeply %h<a>, 42, "$type: was the element assigned";
+    }
 }
 
 # vim: expandtab shiftwidth=4

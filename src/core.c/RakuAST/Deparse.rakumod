@@ -1475,7 +1475,7 @@ CODE
               ~ self.deparse($body, :unit).chomp
         }
         else {
-            @parts.push(self.deparse($body));
+            @parts.push($ast.is-stub ?? '{...}' !! self.deparse($body));
             @parts.join(' ')
         }
     }

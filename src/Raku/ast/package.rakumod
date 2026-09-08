@@ -53,6 +53,7 @@ class RakuAST::Package
                           Mu :$how,
                          Str :$repr,
                         Bool :$augmented,
+                        Bool :$is-stub,
                         Bool :$is-require-stub,
                          str :$parsed-declarator,
     RakuAST::Doc::Declarator :$WHY
@@ -67,13 +68,13 @@ class RakuAST::Package
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
         nqp::bindattr($obj, RakuAST::Package, '$!is-require-stub',$is-require-stub // False);
+        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', $is-stub // False);
         nqp::bindattr_s($obj, RakuAST::Package, '$!parsed-declarator', $parsed-declarator);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
         $obj.set-WHY($WHY);
 
-        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
         nqp::bindattr($obj, RakuAST::Package, '$!stub-defused', False);
 
         $obj
@@ -538,6 +539,7 @@ class RakuAST::Package::Attachable
                           Mu :$how,
                          Str :$repr,
                         Bool :$augmented,
+                        Bool :$is-stub,
                          str :$parsed-declarator,
     RakuAST::Doc::Declarator :$WHY
     ) {
@@ -551,12 +553,11 @@ class RakuAST::Package::Attachable
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
         nqp::bindattr_s($obj, RakuAST::Package, '$!parsed-declarator', $parsed-declarator);
+        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', $is-stub // False);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
         $obj.set-WHY($WHY);
-
-        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
 
         # Set up internal defaults
         nqp::bindattr($obj, RakuAST::Package::Attachable,

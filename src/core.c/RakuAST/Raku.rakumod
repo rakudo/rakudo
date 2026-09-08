@@ -629,7 +629,8 @@ augment class RakuAST::Node {
         self!add-WHY: $self!nameds:
           <scope name how repr traits body>,
           (parameterization => $signature
-            if $signature && $signature.parameters.elems)
+            if $signature && $signature.parameters.elems),
+          (:is-stub if self.is-stub)
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {

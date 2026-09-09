@@ -7600,16 +7600,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub make_feed($/) {
         # Assemble into list of AST of each step in the pipeline.
         my @stages;
-        if $/<infix><sym> eq '==>' {
+        my $sym := ~$/<infix><sym>;
+        my int $appending := $sym eq '==>>' || $sym eq '<<==';
+        if $sym eq '==>' || $sym eq '==>>' {
             for @($/) { @stages.push($_); }
         }
-        elsif $/<infix><sym> eq '<==' {
-            for @($/) { @stages.unshift($_); }
-        }
         else {
-            $*W.throw($/, 'X::Comp::NYI',
-                feature => $/<infix> ~ " feed operator"
-            );
+            for @($/) { @stages.unshift($_); }
         }
 
         # Check what's in each stage and make a chain of blocks
@@ -7635,7 +7632,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::istype($stage, QAST::Var) {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
-                # could well be a tap.
+                # could well be a tap. The appending forms instead pass on
+                # the variable's whole contents, prior values included.
                 my $tmp := QAST::Node.unique('feed_tmp');
                 $stage := QAST::Stmts.new(
                     QAST::Op.new(
@@ -7650,9 +7648,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         :op('callmethod'), :name('append'),
                         $stage,
                         QAST::Var.new( :scope('local'), :name($tmp) )
-                    ),
-                    QAST::Var.new( :scope('local'), :name($tmp) )
+                    )
                 );
+                $stage.push(QAST::Var.new( :scope('local'), :name($tmp) ))
+                    unless $appending;
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {

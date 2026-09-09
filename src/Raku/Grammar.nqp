@@ -6472,51 +6472,59 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
 
     token do-nibbling {
-        :my int $from := self.pos;
-        :my int $to   := $from;
-        :my $orig     := self.orig;
+        :my @from := nqp::list_i(self.pos);   # a list so the subrules can advance it
         :my @NIBBLES;
         [
           <!stopper>
           [
-            || <starter>
-               <nibbler>
-               <stopper>
-               {
-                   my $c := $/;
-                   my $starter := $<starter>.pop;
-                   $to   := $starter.from;
-                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
-                     if $from != $to;
-
-                   nqp::push(@NIBBLES,$starter.Str);
-                   nqp::push(@NIBBLES,$<nibbler>.pop);
-                   nqp::push(@NIBBLES,$<stopper>.pop.Str);
-
-                   $from := $to := $c.pos;
-               }
-            || <escape>
-               {
-                   my $c      := $/;
-                   my $escape := $<escape>.pop;
-                   $to        := $escape.from;
-                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
-                     if $from != $to;
-
-                   nqp::push(@NIBBLES,$escape);
-
-                   $from := $to := $c.pos;
-               }
+            || <.nibble-nesting(@from, @NIBBLES)>
+            || <.nibble-escape(@from, @NIBBLES)>
             || .
           ]
         ]*
         {
             my $c := $/;
-            $to   := $c.pos;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
               if $from != $to || !@NIBBLES;
             @*NIBBLES := @NIBBLES;
+        }
+    }
+
+    # separate tokens so each block sees a short capture stack, not the whole string's
+    token nibble-nesting(@from, @NIBBLES) {
+        <starter>
+        <nibbler>
+        <stopper>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $<starter>.from;
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+              if $from != $to;
+
+            nqp::push(@NIBBLES,$<starter>.Str);
+            nqp::push(@NIBBLES,$<nibbler>);
+            nqp::push(@NIBBLES,$<stopper>.Str);
+
+            nqp::bindpos_i(@from,0,$c.pos);
+        }
+    }
+
+    token nibble-escape(@from, @NIBBLES) {
+        <escape>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $<escape>.from;
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+              if $from != $to;
+
+            nqp::push(@NIBBLES,$<escape>);
+
+            nqp::bindpos_i(@from,0,$c.pos);
         }
     }
 

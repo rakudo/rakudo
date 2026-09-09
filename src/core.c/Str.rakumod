@@ -1751,7 +1751,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # need to do something special
         if SDS || space || case || mark || callable {
             my \noargs        := callable ?? $replacement.count == 0 !! False;
-            my \fancy         := space || case || mark || word_by_word;
+            my \fancy         := space || case || mark;
             my \case-and-mark := case && mark;
 
             # fast path for something like `s:g[ \w+ ] = "foo"`
@@ -1785,7 +1785,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             ?? -> $w,$p { $w.samemark($p).samecase($p) }
                             !! case
                                 ?? -> $w,$p { $w.samecase($p) }
-                                !! -> $w,$p { $w.samemark($p) }
+                                !! mark
+                                    ?? -> $w,$p { $w.samemark($p) }
+                                    !! Callable;
                             nqp::push_s($result,nqp::unbox_s(
                               $it!word-by-word($mstr,&filter,:samespace(?space))
                             ) );

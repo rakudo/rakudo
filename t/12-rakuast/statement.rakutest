@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 40; # Do not change this file to done-testing
+plan 41; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1563,6 +1563,99 @@ repeat {
 } while $i < 3;
 $i
 CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A declaration in a condition does not end the statement' => {
+    # while my $z = 0 { 1 }; for my @a { 1 }; given my $x = 2 { 1 }; if my $y = 3 { $y }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Loop::While.new(
+        condition => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('z'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(0)
+          )
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(1)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::For.new(
+        source => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a')
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(1)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Given.new(
+        source => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(2)
+          )
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(1)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::If.new(
+        condition => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('y'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(3)
+          )
+        ),
+        then => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+while my $z = 0 {
+    1
+}
+for my @a {
+    1
+}
+given my $x = 2 {
+    1
+}
+if my $y = 3 {
+    $y
+}
+CODE
+
     is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }

@@ -319,19 +319,25 @@ CODE
         self.handle-signature($ast, @parts.join(' '))
     }
 
+    # a declaration in a condition would add the statement delimiter
+    method condition($ast --> Str:D) {
+        my $*DELIMITER = '';
+        self.deparse($ast)
+    }
+
     method conditional($self: $ast, str $type --> Str:D) {
         self.syn-block($type)
-         ~ " $self.deparse($ast.condition) $self.deparse($ast.then)$.last-statement"
+         ~ " $self.condition($ast.condition) $self.deparse($ast.then)$.last-statement"
     }
 
     method negated-conditional($self: $ast, str $type --> Str:D) {
         self.syn-block($type)
-          ~ " $self.deparse($ast.condition) $self.deparse($ast.body)$.last-statement"
+          ~ " $self.condition($ast.condition) $self.deparse($ast.body)$.last-statement"
     }
 
     method simple-loop($self: $ast, str $type --> Str:D) {
         self.syn-block($type)
-          ~ " $self.deparse($ast.condition) $self.deparse($ast.body)"
+          ~ " $self.condition($ast.condition) $self.deparse($ast.body)"
     }
 
     method simple-repeat($ast, str $type --> Str:D) {
@@ -341,7 +347,7 @@ CODE
          ~ ' '
          ~ self.syn-modifier($type)
          ~ ' '
-         ~ self.deparse($ast.condition)
+         ~ self.condition($ast.condition)
          ~ $*DELIMITER
     }
 
@@ -2594,7 +2600,7 @@ CODE
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {
         my str @parts =
           self.syn-block('for'),
-          self.deparse($ast.source),
+          self.condition($ast.source),
           self.deparse($ast.body)
         ;
 
@@ -2609,7 +2615,7 @@ CODE
         self.labels($ast)
           ~ self.syn-block('given')
           ~ ' '
-          ~ self.deparse($ast.source)
+          ~ self.condition($ast.source)
           ~ ' '
           ~ self.deparse($ast.body)
     }
@@ -2724,7 +2730,7 @@ CODE
         self.labels($ast)
           ~ self.syn-block('whenever')
           ~ ' '
-          ~ self.deparse($ast.trigger)
+          ~ self.condition($ast.trigger)
           ~ ' '
           ~ self.deparse($ast.body)
     }

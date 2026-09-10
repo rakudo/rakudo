@@ -1505,11 +1505,24 @@ CODE
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
-        my str $left  = $ast.dwim-left  ?? '<<' !! '>>';
-        my str $right = $ast.dwim-right ?? '>>' !! '<<';
+        my str $infix = self.deparse($ast.infix);
+
+        # the ASCII markers run into an operator that starts with one of
+        # their characters, with the = of a fat arrow, or with a ! that one
+        # of their characters follows
+        my int $wide = nqp::index(
+          '=<>!',
+          nqp::substr(self.deparse-without-highlighting($ast.infix),0,1)
+        ) >= 0;
+        my str $left  = $ast.dwim-left
+          ?? ($wide ?? '«' !! '<<')
+          !! ($wide ?? '»' !! '>>');
+        my str $right = $ast.dwim-right
+          ?? ($wide ?? '»' !! '>>')
+          !! ($wide ?? '«' !! '<<');
 
         self.hsyn("meta-hyper-left", $left)
-          ~ self.deparse($ast.infix)
+          ~ $infix
           ~ self.hsyn("meta-hyper-right", $right)
     }
 

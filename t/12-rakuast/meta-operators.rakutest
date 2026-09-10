@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 19;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -508,6 +508,56 @@ my @b = 1, 2;
 CODE
 
     is-deeply $_, [False, False], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A hyper of an operator that starts with an equals sign uses the wide markers' => {
+    # my %h; %h<a b> »=» 42; %h<b>
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+              index => RakuAST::QuotedString.new(
+                :segments[RakuAST::StrLiteral.new('a b')],
+                :processors<words val>
+              )
+            )
+          ),
+          infix => RakuAST::MetaInfix::Hyper.new(
+            infix      => RakuAST::Assignment.new(:item),
+            dwim-right => True
+          ),
+          right => RakuAST::IntLiteral.new(42)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            index => RakuAST::QuotedString.new(
+              :segments[RakuAST::StrLiteral.new('b')],
+              :processors<words val>
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my %h;
+%h<a b> »=» 42;
+%h<b>
+CODE
+
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -531,7 +531,7 @@ augment class RakuAST::Node {
 #- L ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Label:D: --> Str:D) {
-        self!nameds: <name>
+        self!literal(self.name)
     }
 
     # handles all RakuAST::xxxLiteral classes

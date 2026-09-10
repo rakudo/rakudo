@@ -368,11 +368,17 @@ CODE
                 if $text {
                     # a bracket right after an interpolation would continue
                     # it as a call or an index, and so would a dot that
-                    # leads to one
+                    # leads to one.  A hyphen or apostrophe that a letter or
+                    # underscore follows would continue the name of a variable
                     my $next := @segments[$i + 1];
                     $text = '\\' ~ $text
                       if $interpolated
                       && (nqp::index('([{<',$text.substr(0,1)) >= 0
+                           || (nqp::istype(@segments[$i - 1],RakuAST::Var)
+                                && nqp::index(q/-'/,$text.substr(0,1)) >= 0
+                                && (nqp::iscclass(
+                                      nqp::const::CCLASS_ALPHABETIC,$text,1
+                                    ) || nqp::eqat($text,'_',1)))
                            || self.dot-continues-interpolation(
                                 $text,
                                 $next.defined

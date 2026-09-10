@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 10;
 
 # NOTE: this only works when there are no variable references
 sub ast-ok(
@@ -72,5 +72,10 @@ ast-ok RakuAST::VersionLiteral.new(v4.2), v4.2, 'v4.2',
 # v6.66
 ast-ok RakuAST::VersionLiteral.new(Version.new('6.66')), v6.66, 'v6.66',
   'RakuAST::VersionLiteral with constructed version';
+
+
+# v1.2.3-
+ast-ok RakuAST::VersionLiteral.new(v1.2.3-), v1.2.3-, 'v1.2.3-',
+  'RakuAST::VersionLiteral with a trailing minus';
 
 # vim: expandtab shiftwidth=4

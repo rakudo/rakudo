@@ -149,6 +149,7 @@ class RakuAST::Deparse {
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
+            my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
             {*}
         }
         else {
@@ -607,13 +608,35 @@ CODE
           ~ self.deparse($ast.infix)
     }
 
+    # a dotty infix supplies the dot of the method call it applies
+    method method-dot(str $dot --> Str:D) {
+        my str $shown = $dot;
+        if $*DOTTY-INFIX {
+            $shown = $dot.substr(1);
+            $*DOTTY-INFIX = False;  # the arguments have their own dots
+        }
+        $shown ?? self.syn-routine($shown) !! ''
+    }
+
+    method dotty-right($ast --> Str:D) {
+        if nqp::istype($ast,RakuAST::Call::Methodish) {
+            my $*DOTTY-INFIX = True;
+            self.deparse($ast)
+        }
+        # a postcircumfix has no dot to leave to the infix
+        else {
+            self.deparse($ast)
+        }
+    }
+
     method method-call(
       $ast, str $dot, $macroish?, :$xsyn, :$only-non-empty
     --> Str:D) {
+        my str $dot-syn = self.method-dot($dot);
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
-        self.syn-routine($dot)
+        $dot-syn
           ~ ($xsyn
               ?? self.hsyn("core-$name", self.xsyn('core', $name))
               !! $name
@@ -849,10 +872,7 @@ CODE
         my str $infix = self.deparse($ast.infix);
         # whitespace around the infix would end an interpolation
         $infix = $infix.trim if $*INTERPOLATING;
-        self.deparse($ast.left)
-          ~ $infix
-          # lose the ".", as it is provided by the infix
-          ~ self.deparse($ast.right).substr(1)
+        self.deparse($ast.left) ~ $infix ~ self.dotty-right($ast.right)
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
@@ -1011,8 +1031,9 @@ CODE
 
     multi method deparse(RakuAST::Call::BlockMethod:D $ast --> Str:D) {
         my $block := $ast.block;
+        my str $dot-syn = self.method-dot($ast.dispatch || '.');
         # the parser wraps the block of `.&{ }` in an item contextualizer
-        self.syn-routine($ast.dispatch || '.')
+        $dot-syn
           ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
               ?? '&' ~ self.deparse($block.target)
               !! self.deparse($block)
@@ -1492,7 +1513,7 @@ CODE
 
     multi method deparse(RakuAST::Initializer::CallAssign:D $ast --> Str:D) {
         self.syn-infix-ws($.dotty-infix-call-assign)
-          ~ self.deparse($ast.postfixish).subst('.')  # YUCK
+          ~ self.dotty-right($ast.postfixish)
     }
 
 #- L ---------------------------------------------------------------------------

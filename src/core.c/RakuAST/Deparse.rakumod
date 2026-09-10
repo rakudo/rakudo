@@ -3057,10 +3057,9 @@ CODE
 
         ($ast.triangle ?? $.reduce-triangle !! $.reduce-open)
           ~ self.deparse($ast.infix)
-          ~ $.reduce-close
-          ~ ($args.defined && $args.elems == 1
-              ?? self.deparse($args)
-              !! self.parenthesize($args)
+          ~ ($args.defined && $args.args
+              ?? $.reduce-close ~ self.deparse($args)
+              !! $.reduce-close.trim-trailing
             )
     }
 

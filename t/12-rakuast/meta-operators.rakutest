@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -558,6 +558,19 @@ my %h;
 CODE
 
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The .raku of a reduce without arguments keeps its argument list' => {
+    # [+]
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::Infix.new('+'),
+      args  => RakuAST::ArgList.new
+    );
+    is-deeply $deparsed, '[+]', 'deparse';
+
+    is-deeply $_, 0, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

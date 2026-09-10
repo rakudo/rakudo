@@ -1924,15 +1924,23 @@ CODE
                     NYI("Quoted string processor '$processor'").throw
                 }
             }
-            elsif @processors == 2 && !$ast.has-variables {
+            elsif @processors == 2 {
                 my str $joined = @processors.join(' ');
-                if $joined eq 'words val' {
+                # the double angles interpolate, the single ones do not.
+                # The ASCII form ends early when the list starts with < or
+                # ends with >, the wide form when the list holds a wide angle
+                if $joined eq 'quotewords val' {
+                    my int $wide = $string.starts-with('<') || $string.ends-with('>');
+                    $wide && ($string.contains('«') || $string.contains('»'))
+                      ?? self.multiple-processors($string, @processors)
+                      !! $wide
+                        ?? '«' ~ $string ~ '»'
+                        !! $.double-pointy-open ~ $string ~ $.double-pointy-close
+                }
+                elsif $joined eq 'words val' && !$ast.has-variables {
                     $.pointy-open
                       ~ self.assemble-quoted-string($ast, :raw)
                       ~ $.pointy-close
-                }
-                elsif $joined eq 'quotewords val' {
-                    $.double-pointy-open ~ $string ~ $.double-pointy-close
                 }
                 else {
                     self.multiple-processors($string, @processors)

@@ -7940,12 +7940,7 @@ Did you mean a call like '"
     }
 
     # The _i64 and _u64 are only used on backends that emulate int64/uint64
-#?if !js
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
-#?endif
-#?if js
-    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64'];
-#?endif
     sub assign_op($/, $lhs_ast, $rhs_ast, :$initialize) {
         my $past;
         my $var_sigil;

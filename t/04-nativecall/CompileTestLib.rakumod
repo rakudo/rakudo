@@ -27,7 +27,7 @@ sub compile_test_lib($name) is export {
 
         @cleanup = << "$libname" "$name$o" >>;
     }
-    elsif $VM.name eq 'jvm' || $VM.name eq 'js' {
+    elsif $VM.name eq 'jvm' {
         $c_line = "$cfg<nativecall.cc> -c $cfg<nativecall.ccdlflags> -o$name$cfg<nativecall.o> $cfg<nativecall.ccflags> t/04-nativecall/$name.c";
         $l_line = "$cfg<nativecall.ld> $cfg<nativecall.perllibs> $cfg<nativecall.lddlflags> $cfg<nativecall.ldflags> $cfg<nativecall.ldout>$libname $name$cfg<nativecall.o>";
         @cleanup = << $libname "$name$cfg<nativecall.o>" >>;

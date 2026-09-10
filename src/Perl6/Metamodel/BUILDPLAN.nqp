@@ -171,10 +171,6 @@ role Perl6::Metamodel::BUILDPLAN {
                 if $attribute.is_built {
                     my str $name     := nqp::atpos_s(@names, $i);
                     my int $primspec := nqp::atpos_i(@primspecs,  $i);
-#?if js
-                    $primspec := nqp::const::BIND_VAL_OBJ
-                      if $primspec == 4 || $primspec == 5;
-#?endif
 
                     # Set attribute from init hash
                     if $primspec || !$attribute.is_bound {
@@ -235,10 +231,6 @@ role Perl6::Metamodel::BUILDPLAN {
                 my str $name     := nqp::atpos_s(@names,     $i);
                 my     $type     := nqp::atpos(  @types,     $i);
                 my int $primspec := nqp::atpos_i(@primspecs, $i);
-#?if js
-                $primspec := nqp::const::BIND_VAL_OBJ
-                  if $primspec == 4 || $primspec == 5;
-#?endif
 
                 # Binding defaults to additional check at runtime
                 my int $check-at-runtime :=

@@ -228,7 +228,6 @@ my class Lock::Soft {
 
     # Note that the meaning of returned promise is different from Lock::Async
     method lock(--> Nil) {
-#?if !js
         my $stack-id := +$*STACK-ID; # Reduce dynamic lookups by caching
         my $node-kept := nqp::null();
         my $node-unkept := nqp::null();
@@ -255,11 +254,9 @@ my class Lock::Soft {
         }
         # Await for our turn unless we're first on the queue
         $*AWAITER.await: $promise;
-#?endif
     }
 
     method unlock(--> Nil) {
-#?if !js
         my $stack-id := +$*STACK-ID;
         my $queue := $!queue;
         X::Lock::Unlock::NoMutex.new.throw unless nqp::elems($queue);
@@ -274,29 +271,21 @@ my class Lock::Soft {
             }
             return
         }
-#?endif
     }
 
     proto method protect(|) {*}
     multi method protect(::?CLASS:D: &code --> Mu) is raw {
-#?if !js
         self.lock;
         LEAVE self.unlock;
-#?endif
         code()
     }
 
     method condition {
-#?if !js
         without ⚛$!cond {
             nqp::cas($!cond, ConditionVariable, ConditionVariable.new(self));
         }
         $!cond
     }
-#?endif
-#?if js
-        $!cond //= ConditionVariable.new(self)
-#?endif
 }
 
 # vim: expandtab shiftwidth=4

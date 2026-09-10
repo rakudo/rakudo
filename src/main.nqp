@@ -47,10 +47,6 @@ my @clo := $comp.commandline_options();
 @clo.push('rakudo-home=s');
 @clo.push('disable-rakudo-opt');
 
-#?if js
-@clo.push('beautify');
-#?endif
-
 # Make Raku grammar / actions visible to HLL
 nqp::bindhllsym('Raku', 'Grammar', Raku::Grammar);
 nqp::bindhllsym('Raku', 'Actions', Raku::Actions);
@@ -66,9 +62,6 @@ sub MAIN(*@ARGS) {
 #?endif
 #?if moar
 sub MAIN(@ARGS) {
-#?endif
-#?if js
-sub MAIN(*@ARGS) {
 #?endif
 
     # Check standard options specified

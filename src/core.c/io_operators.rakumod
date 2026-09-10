@@ -23,12 +23,7 @@ augment class Rakudo::Internals {
     }
 
     # Set up the skeletons at compile time
-#?if !js
     my constant $skeletons = nqp::hash(
-#?endif
-#?if js
-    my $skeletons := nqp::hash(
-#?endif
       'IN',  setup-handle('<STDIN>'),
       'OUT', setup-handle('<STDOUT>'),
       'ERR', setup-handle('<STDERR>')

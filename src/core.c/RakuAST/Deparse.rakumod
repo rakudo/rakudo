@@ -737,7 +737,7 @@ CODE
     # a trailing doc follows the opening brace on its line, the body
     # supplies the newline after the brace
     method block-with-docs(str $prefix, $WHY, $body --> Str:D) {
-        $*DELIMITER = "";
+        my $*DELIMITER = "";
         self.add-any-docs($prefix, $WHY).chomp
           ~ self.deparse($body, :multi).substr(1)  # lose {
     }

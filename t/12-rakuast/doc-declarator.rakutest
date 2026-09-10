@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -882,6 +882,80 @@ CODE
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it).WHY.leading, "leading comment",
           "$type: is the leading comment attached";
+    }
+}
+
+
+subtest 'A block with declarator docs as an initializer keeps the delimiter' => {
+    # my $block = #| this is
+    # { #= a block
+    #     ;
+    # };
+    # $block
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('block'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(RakuAST::Statement::Empty.new)
+              )
+            ).declarator-docs(
+              leading  => ('this is',),
+              trailing => ('a block',)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$block')
+      )
+    ), :no-pod;
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $block = #| this is
+{ #= a block
+    ;
+};
+$block
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        isa-ok EVAL($it), Block, "$type: the value is the block";
+    }
+}
+
+
+subtest 'A documented block with a modifier ends its statement' => {
+    # { #= documented
+    #     ;
+    # } if 1;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(RakuAST::Statement::Empty.new)
+          )
+        ).declarator-docs(trailing => ('documented',)),
+        condition-modifier => RakuAST::StatementModifier::If.new(
+          RakuAST::IntLiteral.new(1)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    ), :no-pod;
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+{ #= documented
+    ;
+} if 1;
+42
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the statement after the block runs";
     }
 }
 

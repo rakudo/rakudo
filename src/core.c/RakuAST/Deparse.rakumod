@@ -263,6 +263,9 @@ CODE
         my $WHY       := $ast.WHY;
         if $signature && $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
+            # the docs of the routine go around its header, the statement
+            # ends with the body
+            my $*DELIMITER = '';
             @parts.push("(\n");
             @parts = self.add-any-docs(@parts.join(' '), $WHY)
               ~ self.deparse($signature)

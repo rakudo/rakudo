@@ -875,16 +875,9 @@ CODE
         # a declaration argument would add the statement delimiter
         my $*DELIMITER = '';
         $ast.args.map({
-            if nqp::istype($_,RakuAST::Heredoc) {
-                my ($top, $bottom) = self.deparse($_, :split);
-                @*HEREDOCS.push($bottom);
-                $top
-            }
-            else {
-                nqp::istype($_,RakuAST::ColonPair)
-                  ?? self.deparse($_, "named")
-                  !! self.deparse($_)
-            }
+            nqp::istype($_,RakuAST::ColonPair)
+              ?? self.deparse($_, "named")
+              !! self.deparse($_)
         }).join($.list-infix-comma)
     }
 
@@ -1368,7 +1361,33 @@ CODE
 
 #- H ---------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Heredoc:D $ast, :$split) {
+    # each body goes after the line that holds its opener, which is the
+    # line after the text when the opener is on its last line
+    method insert-heredocs(str $text, @heredocs --> Str:D) {
+        my str $result = $text;
+        my int $from;
+        for @heredocs {
+            my str $top    = .key;
+            my str $bottom = .value;
+            my int $at = nqp::index($result,$top,$from);
+            my int $nl = $at < 0 ?? -1 !! nqp::index($result,"\n",$at);
+            if $nl < 0 {
+                $result = $result
+                  ~ ($result.ends-with("\n") ?? '' !! "\n")
+                  ~ $bottom;
+                $from   = nqp::chars($result);
+            }
+            else {
+                $result = nqp::substr($result,0,$nl + 1)
+                  ~ $bottom
+                  ~ nqp::substr($result,$nl + 1);
+                $from   = $nl + 1 + nqp::chars($bottom);
+            }
+        }
+        $result
+    }
+
+    multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
         my $string := self.assemble-quoted-string($ast);
         my @processors = $ast.processors;
         @processors.push('heredoc');
@@ -1383,7 +1402,15 @@ CODE
             $_ ?? "$indent$_\n" !! "\n"
         }).join ~ $stop;
 
-        $split ?? ($top, $bottom) !! "$top\n$bottom"
+        # a statement list places the bodies of the heredocs in a statement
+        my $heredocs := nqp::getlexdyn('@*HEREDOCS');
+        if nqp::isnull($heredocs) {
+            "$top\n$bottom"
+        }
+        else {
+            $heredocs.push($top => $bottom);
+            $top
+        }
     }
 
 #- I ---------------------------------------------------------------------------
@@ -2522,7 +2549,11 @@ CODE
     }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
-        my @*HEREDOCS;
+        # a statement deparsed on its own has no statement list to place
+        # the bodies of its heredocs, so it places them itself
+        my $outer := nqp::getlexdyn('@*HEREDOCS');
+        my $own   := nqp::isnull($outer);
+        my @*HEREDOCS := $own ?? [] !! $outer;
         my $expression := $ast.expression;
         my str $deparsed = self.deparse($expression);
 
@@ -2555,8 +2586,8 @@ CODE
               !! $*DELIMITER
             );
 
-        @*HEREDOCS
-          ?? $text ~ @*HEREDOCS.join
+        $own && @*HEREDOCS
+          ?? self.insert-heredocs($text, @*HEREDOCS)
           !! $text
     }
 
@@ -2720,16 +2751,19 @@ CODE
                 $*DELIMITER = $statement === $last-statement
                   ?? $.last-statement
                   !! $.end-statement;
+                my @*HEREDOCS;
                 my $deparsed := self.deparse($statement);
                 $deparsed := $deparsed.chop(2)
                   if $deparsed.ends-with("};\n")
                   && self.statement-is-prefixed-block($statement);
+                $deparsed := $deparsed ~ "\n" if $deparsed.ends-with('}');
+                $deparsed := self.insert-heredocs($deparsed, @*HEREDOCS)
+                  if @*HEREDOCS;
 
                 # a doc block carries its own margin
                 @parts.push($spaces)
                   unless nqp::istype($statement,RakuAST::Doc::Block);
                 @parts.push($deparsed);
-                @parts.push("\n") if $deparsed.ends-with('}');
             }
 
             @parts.join
@@ -2974,24 +3008,16 @@ CODE
 #- Ternary ---------------------------------------------------------------------
 
     multi method deparse(RakuAST::Ternary:D $ast --> Str:D) {
-        my $heredoc := $*HEREDOC;
+        my $intern := $*TERNARY;
 
-        # no place to store heredocs, make one, try again, add them at the end
-        if nqp::istype($heredoc,Failure) {
-            my $*TERNARY = "";  # indenting for nested ternaries
-
-            $heredoc := my $*HEREDOC := my str @;
-            my $deparsed := self.deparse($ast);
-
-            return nqp::elems($heredoc)
-              ?? $deparsed ~ $heredoc.join ~ "\n"
-              !! $deparsed
+        # indenting for nested ternaries
+        if nqp::istype($intern,Failure) {
+            my $*TERNARY = "";
+            return self.deparse($ast);
         }
 
-        # already have a place to store heredocs
         my $then := $ast.then;
         my $else := $ast.else;
-        my $intern := $*TERNARY;
         my $nested := $intern
           || nqp::istype($then,RakuAST::Ternary)
           || nqp::istype($else,RakuAST::Ternary);
@@ -3004,22 +3030,10 @@ CODE
           $indent,
           self.hsyn('ternary-one', $.ternary1);
 
-        # helper sub for a ternary part
-        sub deparse-part($node --> Nil) {
-            if nqp::istype($node,RakuAST::Heredoc) {
-                my str ($header,$rest) = self.deparse($node).split("\n",2);
-                @parts.push($header);
-                $heredoc.push("\n" ~ $rest.chomp);
-            }
-            else {
-                @parts.push(self.deparse($node));
-            }
-        }
-
-        deparse-part($then);
+        @parts.push(self.deparse($then));
         @parts.push($indent);
         @parts.push(self.hsyn('ternary-two', $.ternary2));
-        deparse-part($else);
+        @parts.push(self.deparse($else));
 
         @parts.join
     }

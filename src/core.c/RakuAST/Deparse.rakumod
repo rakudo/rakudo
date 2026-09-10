@@ -2484,9 +2484,11 @@ CODE
         my str @parts;
         my $previous;
         for $ast.terms {
-            # a word right after a backtrack modifier would read as an adverb
+            # a word right after a backtrack modifier would read as an
+            # adverb, one right after a variable as part of its name
             my $*QUOTE-REGEX-WORD :=
-              nqp::istype($previous,RakuAST::Regex::BacktrackModifiedAtom);
+              nqp::istype($previous,RakuAST::Regex::BacktrackModifiedAtom)
+              || nqp::istype($previous,RakuAST::Regex::Interpolation);
             @parts.push(nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
               ?? ('"' ~ self.deparse($_) ~ '"')
               !! self.deparse($_)

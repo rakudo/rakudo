@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 68;
+plan 69;
 
 my $ast;
 my $deparsed;
@@ -972,6 +972,22 @@ subtest 'A postfix on a declaration in a regex statement needs no parentheses' =
     is-deeply $deparsed, '/:state $z++; c/', 'deparse';
 
     match-ok "c", 'c';
+}
+
+
+subtest 'A word after an interpolated variable keeps its quotes' => {
+    my $x = 'x';
+
+    # /$x"d"/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Interpolation.new(var => RakuAST::Var::Lexical.new('$x')),
+      RakuAST::Regex::Literal.new('d')
+    );
+    is-deeply $deparsed, '/$x"d"/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is "axd" ~~ EVAL($it), 'xd', "$type: the variable and the word both match";
+    }
 }
 
 # vim: expandtab shiftwidth=4

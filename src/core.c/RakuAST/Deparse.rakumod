@@ -149,6 +149,7 @@ class RakuAST::Deparse {
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
+            my $*QUOTE-DELIMITER  := '';     # delimiter to escape in quoted text
             my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
             {*}
         }
@@ -388,6 +389,8 @@ CODE
                               ));
                     $interpolated = 0;
                 }
+                $text = $text.subst($*QUOTE-DELIMITER, '\\' ~ $*QUOTE-DELIMITER, :g)
+                  if $*QUOTE-DELIMITER;
                 @parts.push($text);
             }
             # the text between a nested pair of the delimiters is a quote of
@@ -403,6 +406,7 @@ CODE
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
+                my $*QUOTE-DELIMITER := '';
                 @parts.push(self.deparse($segment));
             }
         }
@@ -3068,9 +3072,10 @@ CODE
             @parts.push('/');
             @parts.push(self.deparse($ast.pattern).subst('/', '\/', :g));
             @parts.push('/');
-            @parts.push(
-              self.deparse($ast.replacement).substr(1,*-1).subst('/', '\/', :g)
-            );
+            # only the text of the replacement escapes the delimiter, the
+            # code of a closure in it is closed by its braces
+            my $*QUOTE-DELIMITER := '/';
+            @parts.push(self.assemble-quoted-string($ast.replacement));
             @parts.push('/');
         }
 

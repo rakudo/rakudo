@@ -605,9 +605,9 @@ CODE
         my int $find = nqp::findnotcclass(
           nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
         );
-        $find == nqp::chars($literal)
+        nqp::chars($literal) && $find == nqp::chars($literal)
           ?? $literal       # just word chars
-          !! $literal.raku  # need quoting
+          !! $literal.raku  # need quoting, an empty literal too
     }
 
     method deparse-unquoted($ast) {
@@ -2364,7 +2364,7 @@ CODE
             my str $unquoted = $deparsed.substr(1).chop;
             self.hsyn(
               'literal',
-              $unquoted.contains(/\W/) ?? $deparsed !! $unquoted
+              !$unquoted || $unquoted.contains(/\W/) ?? $deparsed !! $unquoted
             )
         }
     }

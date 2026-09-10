@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 65;
+plan 66;
 
 my $ast;
 my $deparsed;
@@ -916,6 +916,19 @@ subtest 'Sigspace separator with whitespace before it only' => {
 
     match-ok "ab ab a", 'a';
     match-nok "ab ab";
+}
+
+
+subtest 'An empty quoted string in a regex stays quoted' => {
+    # /""/
+    ast RakuAST::Regex::Quote.new(
+      RakuAST::QuotedString.new(
+        :segments[RakuAST::StrLiteral.new('')]
+      )
+    );
+    is-deeply $deparsed, '/""/', 'deparse';
+
+    match-ok "abc", '';
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 37;
+plan 38;
 
 my $ast;
 my $deparsed;
@@ -881,6 +881,26 @@ subtest 'A number with a qualified method call keeps its parentheses' => {
 
     throws-like { EVAL($_) }, X::Method::InvalidQualifier, @type[$++]
       for $ast, $deparsed, EVAL($raku);
+}
+
+
+subtest 'An imaginary postfix after a word is separated from it' => {
+    # π\i + Inf\i
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('π')),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      ),
+      infix => RakuAST::Infix.new('+'),
+      right => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::NumLiteral.new(Inf),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      )
+    );
+    is-deeply $deparsed, 'π\i + Inf\i', 'deparse';
+
+    is-deeply $_, π\i + Inf\i, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

@@ -879,12 +879,29 @@ CODE
         else {
             my $operand := $ast.operand;
             # a number followed by a dot and a colon reads as a broken decimal
-            (self.postfix-operand-needs-parens($operand, $postfix)
+            my str $deparsed-operand = self.postfix-operand-needs-parens($operand, $postfix)
               || (self.is-numeric-literal($operand)
                    && self.deparse-without-highlighting($postfix).starts-with('.::'))
               ?? self.parenthesize($operand)
-              !! self.deparse($operand)
-            )
+              !! self.deparse($operand);
+
+            # an imaginary postfix after a letter would become part of the
+            # name, and so would one after the digit or underscore that
+            # ends anything but a number
+            if nqp::istype($postfix,RakuAST::Postfix)
+              && $postfix.operator eq 'i' {
+                my int $last = nqp::chars($deparsed-operand) - 1;
+                $deparsed-operand ~= '\\'
+                  if nqp::iscclass(
+                       nqp::const::CCLASS_ALPHABETIC,$deparsed-operand,$last
+                     )
+                  || (!self.is-numeric-literal($operand)
+                       && nqp::iscclass(
+                            nqp::const::CCLASS_WORD,$deparsed-operand,$last
+                          ));
+            }
+
+            $deparsed-operand
               # a term followed by a bare argument list is a routine call
               ~ (nqp::istype($postfix,RakuAST::Call::Term)
                   && nqp::istype($operand,RakuAST::Term::Name)

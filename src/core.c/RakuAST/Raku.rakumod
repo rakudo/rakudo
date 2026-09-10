@@ -1260,6 +1260,10 @@ augment class RakuAST::Node {
           !! <base-type constraint>
     }
 
+    multi method raku(RakuAST::Type::AnyDefinedness:D: --> Str:D) {
+        self!nameds: <base-type>
+    }
+
     multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
         self!nameds: <base-type definite through-pragma>
     }

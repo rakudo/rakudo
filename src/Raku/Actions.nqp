@@ -4033,7 +4033,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('Type::Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
           !! $name.has-colonpair('U')
             ?? Nodify('Type::Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
-            !! $type;
+            !! $name.has-colonpair('_')
+              ?? Nodify('Type::AnyDefinedness').new(:base-type($type)).to-begin-time($*R, $*CU.context)
+              !! $type;
 
         $<accept>
           ?? Nodify('Type::Coercion').new(

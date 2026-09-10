@@ -3234,10 +3234,21 @@ CODE
         self.deparse($ast.base-type) ~ "($constraint)"
     }
 
-    multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        my $base-type := $ast.base-type;
+    multi method deparse(RakuAST::Type::AnyDefinedness:D $ast --> Str:D) {
+        self.type-with-smiley($ast.base-type, '_')
+    }
 
-        # the smiley of a parameterized type goes before the arguments
+    multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
+        self.type-with-smiley(
+          $ast.base-type,
+          $ast.through-pragma ?? '' !! $ast.definite ?? 'D' !! 'U'
+        )
+    }
+
+    # the smiley of a parameterized type goes before the arguments, a
+    # smiley that came from a pragma is not written
+    method type-with-smiley($type, str $smiley --> Str:D) {
+        my $base-type := $type;
         my str $args;
         if nqp::istype($base-type,RakuAST::Type::Parameterized) {
             my str $deparsed = self.deparse($base-type.args);
@@ -3245,16 +3256,13 @@ CODE
             $base-type := $base-type.base-type;
         }
 
-        my str $name   = self.deparse(
+        my str $name = self.deparse(
           nqp::can($base-type,'name') ?? $base-type.name !! $base-type
         );
-        my str $smiley = $ast.definite ?? 'D' !! 'U';
 
-        self.hsyn("type-$name", $ast.through-pragma
-          ?? $name eq 'Any'
-            ?? ''
-            !! $name
-          !! $name ~ self.hsyn("smiley-$smiley", ":$smiley")
+        self.hsyn("type-$name", $smiley
+          ?? $name ~ self.hsyn("smiley-$smiley", ":$smiley")
+          !! ($name eq 'Any' ?? '' !! $name)
         ) ~ $args
     }
 

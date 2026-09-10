@@ -473,6 +473,55 @@ class RakuAST::Type::Definedness
     }
 }
 
+# The :_ smiley.  The meta-object is the base type itself, the node
+# exists so the smiley is written back.
+class RakuAST::Type::AnyDefinedness
+  is RakuAST::Type::Derived
+{
+    method new(RakuAST::Type :$base-type!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
+        $obj
+    }
+
+    method name() {
+        RakuAST::Name.from-identifier:
+          self.base-type.name.canonicalize ~ ':_'
+    }
+
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        self.base-type.compile-time-value
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.base-type.IMPL-EXPR-QAST($context)
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.base-type.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.base-type.IMPL-INTERPRET($ctx)
+    }
+
+    method IMPL-VALUE-TYPE() {
+        self.base-type
+    }
+
+    method is-native() {
+        self.base-type.is-native
+    }
+
+    method is-simple-lexical-declaration() {
+        False
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.base-type.IMPL-VALUE-TYPE);
+    }
+}
+
 class RakuAST::Type::Capture
   is RakuAST::Type
   is RakuAST::Declaration

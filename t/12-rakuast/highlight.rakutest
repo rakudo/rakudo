@@ -339,11 +339,13 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
   foo | bar | baz
   ----|-----|----
   42  | 666 | 137
+
 CODE
   <red>=table</red> <red>#</red>
   foo <blue>|</blue> bar <blue>|</blue> baz
   <blue>----|-----|----</blue>
   42  <blue>|</blue> 666 <blue>|</blue> 137
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
@@ -351,11 +353,13 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
   foo | bar | baz
   ----|-----|----
   42  | 666 | 137
+
 CODE
   <green>=for</green> <red>table</red> <red>:numbered</red>
   foo <blue>|</blue> bar <blue>|</blue> baz
   <blue>----|-----|----</blue>
   42  <blue>|</blue> 666 <blue>|</blue> 137
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';

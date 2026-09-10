@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -369,6 +369,40 @@ subtest 'The .raku of a table row rebuilds a row that stringifies' => {
     is-deeply $deparsed, "=begin table\n\na | b\n\n=end table\n\n", 'deparse';
 
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'An abbreviated table is followed by the blank line that ends it' => {
+    # =table
+    # a  1
+    # b  2
+    #
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Doc::Block.new(
+        type        => 'table',
+        abbreviated => True,
+        paragraphs  => (
+          RakuAST::Doc::LegacyRow.new(
+            column-dividers => '',
+            column-offsets  => (0, 3),
+            cells           => ('a', '1')
+          ),
+          RakuAST::Doc::LegacyRow.new(
+            column-dividers => '',
+            column-offsets  => (0, 3),
+            cells           => ('b', '2')
+          ),
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, "=table\na  1\nb  2\n\n42\n", 'deparse';
+
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+    is-deeply EVAL($deparsed), 42, 'Str: the statement after the table runs';
 }
 
 # vim: expandtab shiftwidth=4

@@ -1340,7 +1340,7 @@ CODE
             }).join;
 
             return $abbreviated || $ast.for
-              ?? $deparsed
+              ?? "$deparsed\n"
               !! ("$deparsed\n" ~ $margin ~ directive("=end") ~ $type ~ "\n\n")
         }
 

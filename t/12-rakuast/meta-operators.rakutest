@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 22;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -588,6 +588,19 @@ subtest 'A function infix under a reverse metaop deparses' => {
 
     is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A sequence metaop deparses with its letter' => {
+    # 1 S+ 2
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::MetaInfix::Sequence.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(2)
+    );
+    is-deeply $deparsed, '1 S+ 2', 'deparse';
+
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
 
 # vim: expandtab shiftwidth=4

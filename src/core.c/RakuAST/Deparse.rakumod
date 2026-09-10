@@ -1549,6 +1549,10 @@ CODE
         self.meta-infix-letter($ast, 'R')
     }
 
+    multi method deparse(RakuAST::MetaInfix::Sequence:D $ast --> Str:D) {
+        self.meta-infix-letter($ast, 'S')
+    }
+
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
         self.meta-infix-letter($ast, 'Z')
     }

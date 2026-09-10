@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 35;
+plan 36;
 
 my $ast;
 my $deparsed;
@@ -844,6 +844,24 @@ subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
     is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
       (2, 3), 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'An anonymous declaration under a method call keeps its parentheses' => {
+    # ($).WHAT
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::VarDeclaration::Anonymous.new(
+        scope => 'state',
+        sigil => '$'
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHAT')
+      )
+    );
+    is-deeply $deparsed, '($).WHAT', 'deparse';
+
+    is-deeply $_, Any, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

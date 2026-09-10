@@ -537,14 +537,20 @@ CODE
     # An operand that deparses to more than a single term must be
     # parenthesized under a postfix, or the postfix binds to its last
     # term only
-    method postfix-operand-needs-parens($operand --> Bool:D) {
+    method postfix-operand-needs-parens($operand, $postfix? --> Bool:D) {
         nqp::istype($operand,RakuAST::ApplyInfix)
           || nqp::istype($operand,RakuAST::ApplyListInfix)
           || nqp::istype($operand,RakuAST::ApplyDottyInfix)
           || nqp::istype($operand,RakuAST::ApplyPrefix)
           || nqp::istype($operand,RakuAST::Ternary)
           || nqp::istype($operand,RakuAST::FatArrow)
-          || nqp::istype($operand,RakuAST::VarDeclaration::Simple)
+          # a declaration binds tighter than a postfix.  Only an initializer
+          # or a subscript that would read as a shape needs the parentheses.
+          # After an anonymous declaration a dot would read as a twigil
+          || (nqp::istype($operand,RakuAST::VarDeclaration::Simple)
+               && ($operand.initializer
+                    || nqp::istype($postfix,RakuAST::Postcircumfix)
+                    || nqp::istype($operand,RakuAST::VarDeclaration::Anonymous)))
           || nqp::istype($operand,RakuAST::VarDeclaration::Term)
           || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
           || nqp::istype($operand,RakuAST::VarDeclaration::Signature)
@@ -846,6 +852,8 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
+        # a declaration operand would add the statement delimiter
+        my $*DELIMITER = '';
         my     $postfix         := $ast.postfix;
         my str $deparsed-postfix = self.deparse($postfix);
 
@@ -857,7 +865,7 @@ CODE
         }
         else {
             my $operand := $ast.operand;
-            (self.postfix-operand-needs-parens($operand)
+            (self.postfix-operand-needs-parens($operand, $postfix)
               ?? self.parenthesize($operand)
               !! self.deparse($operand)
             )

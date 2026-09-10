@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 67;
+plan 68;
 
 my $ast;
 my $deparsed;
@@ -949,6 +949,29 @@ subtest 'A backtrack modifier on an unquantified atom keeps its colon' => {
     is-deeply $deparsed, '/[ab|| a]:!"b"/', 'deparse';
 
     match-ok "ab", 'ab';
+}
+
+
+subtest 'A postfix on a declaration in a regex statement needs no parentheses' => {
+    # /:state $z++; c/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Statement.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::VarDeclaration::Simple.new(
+              scope       => 'state',
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('z')
+            ),
+            postfix => RakuAST::Postfix.new(operator => '++')
+          )
+        )
+      ),
+      RakuAST::Regex::Literal.new('c')
+    );
+    is-deeply $deparsed, '/:state $z++; c/', 'deparse';
+
+    match-ok "c", 'c';
 }
 
 # vim: expandtab shiftwidth=4

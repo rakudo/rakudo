@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 66;
+plan 67;
 
 my $ast;
 my $deparsed;
@@ -929,6 +929,26 @@ subtest 'An empty quoted string in a regex stays quoted' => {
     is-deeply $deparsed, '/""/', 'deparse';
 
     match-ok "abc", '';
+}
+
+
+subtest 'A backtrack modifier on an unquantified atom keeps its colon' => {
+    # /[ab|| a]:!"b"/
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::BacktrackModifiedAtom.new(
+        atom => RakuAST::Regex::Group.new(
+          RakuAST::Regex::SequentialAlternation.new(
+            RakuAST::Regex::Literal.new('ab'),
+            RakuAST::Regex::Literal.new('a')
+          )
+        ),
+        backtrack => RakuAST::Regex::Backtrack::Greedy
+      ),
+      RakuAST::Regex::Literal.new('b')
+    );
+    is-deeply $deparsed, '/[ab|| a]:!"b"/', 'deparse';
+
+    match-ok "ab", 'ab';
 }
 
 # vim: expandtab shiftwidth=4

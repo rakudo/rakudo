@@ -148,6 +148,7 @@ class RakuAST::Deparse {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
+            my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
             {*}
         }
         else {
@@ -606,6 +607,7 @@ CODE
           nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
         );
         nqp::chars($literal) && $find == nqp::chars($literal)
+          && !$*QUOTE-REGEX-WORD
           ?? $literal       # just word chars
           !! $literal.raku  # need quoting, an empty literal too
     }
@@ -2050,10 +2052,15 @@ CODE
         $.regex-backtrack-ratchet
     }
 
+    # without a quantifier the modifier needs the colon to be one
     multi method deparse(
       RakuAST::Regex::BacktrackModifiedAtom:D $ast
     --> Str:D) {
-        self.deparse($ast.atom) ~ self.deparse($ast.backtrack)
+        my $backtrack := $ast.backtrack;
+        self.deparse($ast.atom)
+          ~ $.regex-backtrack-ratchet
+          ~ (self.deparse($backtrack)
+              unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack::Ratchet))
     }
 
     multi method deparse(RakuAST::Regex::Block:D $ast --> Str:D) {
@@ -2364,7 +2371,9 @@ CODE
             my str $unquoted = $deparsed.substr(1).chop;
             self.hsyn(
               'literal',
-              !$unquoted || $unquoted.contains(/\W/) ?? $deparsed !! $unquoted
+              !$unquoted || $*QUOTE-REGEX-WORD || $unquoted.contains(/\W/)
+                ?? $deparsed
+                !! $unquoted
             )
         }
     }
@@ -2372,11 +2381,19 @@ CODE
 #- Regex::S --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::Sequence:D $ast --> Str:D) {
-        $ast.terms.map({
-            nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
+        my str @parts;
+        my $previous;
+        for $ast.terms {
+            # a word right after a backtrack modifier would read as an adverb
+            my $*QUOTE-REGEX-WORD :=
+              nqp::istype($previous,RakuAST::Regex::BacktrackModifiedAtom);
+            @parts.push(nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
               ?? ('"' ~ self.deparse($_) ~ '"')
               !! self.deparse($_)
-        }).join
+            );
+            $previous := $_;
+        }
+        @parts.join
     }
 
     multi method deparse(

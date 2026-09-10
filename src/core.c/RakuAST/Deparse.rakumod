@@ -2690,8 +2690,9 @@ CODE
         }
 
         # condition or loop modifier
+        my int $chop;
         if @parts {
-            my $chop := $deparsed.ends-with(self.end-statement)
+            $chop = $deparsed.ends-with(self.end-statement)
               ?? self.end-statement.chars
               !! $deparsed.ends-with(self.last-statement)
                 ?? self.last-statement.chars
@@ -2702,9 +2703,13 @@ CODE
               ~ $deparsed.substr(* - $chop)
         }
 
+        # a declarator target writes its own delimiter, one that ends in a
+        # body, a block or a routine, writes none, so a modifier after it
+        # needs the delimiter here
         my $text := self.labels($ast)
           ~ $deparsed
           ~ (nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
+               && !(@parts && !$chop)
               ?? ""
               !! $*DELIMITER
             );

@@ -1545,6 +1545,11 @@ CODE
             )
     }
 
+    multi method deparse(RakuAST::MetaPrefix::Hyper:D $ast --> Str:D) {
+        # the space that sets a word prefix off is taken by the marker
+        self.deparse($ast.prefix).trim-trailing ~ self.hsyn("meta-hyper", '<<')
+    }
+
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
         self.hsyn("meta-!", '!') ~ self.deparse($ast.infix)
     }

@@ -1653,9 +1653,13 @@ CODE
             );
         }
 
+        # trusts is only written as a statement inside the body
+        my str @trusts;
         if $ast.traits -> @traits {
             for @traits -> $trait {
-                @parts.push(self.deparse($trait));
+                nqp::istype($trait,RakuAST::Trait::Trusts)
+                  ?? @trusts.push(self.deparse($trait))
+                  !! @parts.push(self.deparse($trait));
             }
         }
 
@@ -1673,24 +1677,40 @@ CODE
         if $ast.WHY -> $WHY {
             if $scope eq 'unit' {
                 self.add-any-docs(@parts.join(' ') ~ ';', $WHY)
-                  ~ self.deparse($body, :unit).chomp
+                  ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts).chomp
             }
             else {
                 @parts.push('{');
                 my $*DELIMITER = '';
                 self.add-any-docs(@parts.join(' '), $WHY).chomp
-                  ~ self.deparse($body, :multi).substr(1).chomp
+                  ~ self.block-with-trusts(self.deparse($body, :multi), @trusts).substr(1).chomp
             }
         }
         elsif $scope eq 'unit' {
             @parts.join(' ')
               ~ $.end-statement
-              ~ self.deparse($body, :unit).chomp
+              ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts).chomp
         }
         else {
-            @parts.push($ast.is-stub ?? '{...}' !! self.deparse($body));
+            @parts.push($ast.is-stub
+              ?? '{...}'
+              !! self.block-with-trusts(
+                   self.deparse($body, :multi(?@trusts)), @trusts
+                 )
+            );
             @parts.join(' ')
         }
+    }
+
+    # the body is on several lines, the trusts go after its first
+    method block-with-trusts(str $body, @trusts --> Str:D) {
+        @trusts
+          ?? $body.subst("\n", "\n" ~ @trusts.map({ "$*INDENT    $_;\n" }).join)
+          !! $body
+    }
+
+    method unit-with-trusts(str $body, @trusts --> Str:D) {
+        @trusts.map({ "$_;\n" }).join ~ $body
     }
 
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
@@ -3144,6 +3164,10 @@ CODE
 
     multi method deparse(RakuAST::Trait::Handles:D $ast --> Str:D) {
         self.syn-trait("handles") ~ ' ' ~ self.deparse($ast.term)
+    }
+
+    multi method deparse(RakuAST::Trait::Trusts:D $ast --> Str:D) {
+        self.syn-trait("trusts") ~ ' ' ~ self.deparse($ast.type)
     }
 
     multi method deparse(RakuAST::Trait::Is:D $ast --> Str:D) {

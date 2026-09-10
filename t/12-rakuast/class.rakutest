@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -1298,6 +1298,76 @@ $o.get
 CODE
 
     is-deeply EVAL($deparsed), 42, 'Str: the method reads the attribute';
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'A trusts trait deparses' => {
+    # my class TrustsBase { }
+    # my class TrustsMe {
+    #     trusts TrustsBase;
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('TrustsBase')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope  => 'my',
+          name   => RakuAST::Name.from-identifier('TrustsMe'),
+          traits => [
+            RakuAST::Trait::Trusts.new(
+              type => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('TrustsBase')
+              )
+            )
+          ]
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class TrustsBase { }
+my class TrustsMe {
+    trusts TrustsBase;
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).^trusts.map(*.^name).List, ('TrustsBase',),
+          "$type: the class trusts";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'A class with a trusts trait in an argument list keeps its body' => {
+    # sub pick (|c) {
+    #     c[0]
+    # }
+    # pick(my class TrustsArg {
+    #     trusts Int;
+    #     has $.x
+    # }).^trusts
+    ast Q:to/SOURCE/.AST;
+    sub pick(|c) { c[0] }; pick(my class TrustsArg { trusts Int; has $.x }).^trusts
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub pick (|c) {
+    c[0]
+}
+pick(my class TrustsArg {
+    trusts Int;
+    has $.x
+}).^trusts
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).map(*.^name).List, ('Int',),
+          "$type: the class trusts";
+    }
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
 

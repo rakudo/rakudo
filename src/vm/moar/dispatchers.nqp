@@ -1210,6 +1210,11 @@ nqp::register('raku-meth-call-mega', -> $capture {
     if nqp::isconcrete(nqp::atkey(%lookup, $name)) {
         my $Tobj := nqp::track('arg', $capture, 0);
         my $Thow := nqp::track('how', $Tobj);
+
+        # A table that came from deserialization carries the tag of the
+        # process that built it, so it fails this guard and gets rebuilt
+        nqp::guard('literal', nqp::track('attr',
+          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
         my $Ttable := nqp::track('attr',
           $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
         my $Tname := nqp::track('arg', $capture, 1);
@@ -4056,6 +4061,12 @@ nqp::register('raku-find-meth-mega', -> $capture {
     # Make sure there's a method table from now on
     $how.all_method_table($obj);
 
+    # A table that came from deserialization carries the tag of the
+    # process that built it, so it fails this guard and gets rebuilt
+    my $Thow := nqp::track('how', nqp::track('arg', $capture, 0));
+    nqp::guard('literal', nqp::track('attr',
+      $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
+
     # Track the HOW and then the attribute holding the table.  Do the
     # lookup of the method in the table we found in the meta-object.
     # If it's not found, the outcome will be a null, which is exactly
@@ -4064,9 +4075,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
       $capture,
       nqp::syscall('dispatcher-index-tracked-lookup-table',
         nqp::track('attr',
-          nqp::track('how', nqp::track('arg', $capture, 0)),
-          Perl6::Metamodel::ClassHOW,
-          '$!cached_all_method_table'
+          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table'
         ),
         nqp::track('arg', $capture, 1)
       )

@@ -269,10 +269,12 @@ CODE
         }
 
         else {
-            @parts.push(self.parenthesize($signature))
-              if $signature
-              && $signature.parameters-initialized
-              && ($signature.parameters || $signature.returns);
+            # a trait right after the declarator would read as the name
+            @parts.push($signature ?? self.parenthesize($signature) !! '()')
+              if ($signature
+                   && $signature.parameters-initialized
+                   && ($signature.parameters || $signature.returns))
+              || (!$ast.name && $ast.traits);
             add-traits;
 
             if $WHY {

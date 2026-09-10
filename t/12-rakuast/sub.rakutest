@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 15;
 
 my $ast;
 my $deparsed;
@@ -559,6 +559,31 @@ CODE
     is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after the sub was compiled';
+}
+
+
+subtest 'An anonymous sub with a trait keeps its parentheses' => {
+    # sub () is rw { 42 }
+    ast RakuAST::Sub.new(
+      traits => [
+        RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('rw'))
+      ],
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub () is rw {
+    42
+}
+CODE
+
+    is-deeply $_(), 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

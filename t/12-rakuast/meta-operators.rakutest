@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -571,6 +571,22 @@ subtest 'The .raku of a reduce without arguments keeps its argument list' => {
     is-deeply $deparsed, '[+]', 'deparse';
 
     is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A function infix under a reverse metaop deparses' => {
+    # 3 R[&min] 4
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(3),
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::FunctionInfix.new(RakuAST::Var::Lexical.new('&min'))
+      ),
+      right => RakuAST::IntLiteral.new(4)
+    );
+    is-deeply $deparsed, '3 R[&min] 4', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

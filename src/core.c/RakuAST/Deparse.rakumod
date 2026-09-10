@@ -603,9 +603,8 @@ CODE
     }
 
     method meta-infix-letter($ast, str $letter --> Str:D) {
-        my str $operator = $ast.infix.operator;
         self.hsyn("meta-$letter", self.xsyn('meta',$letter))
-          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
+          ~ self.deparse($ast.infix)
     }
 
     method method-call(
@@ -1543,9 +1542,7 @@ CODE
     }
 
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
-        my str $operator = $ast.infix.operator;
-        self.hsyn("meta-!", '!')
-          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
+        self.hsyn("meta-!", '!') ~ self.deparse($ast.infix)
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {

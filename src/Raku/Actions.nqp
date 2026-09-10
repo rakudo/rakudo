@@ -840,7 +840,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method collect-statements($/, $typename) {
         my $statements := Nodify($typename).new;
         for $<statement> {
-            $_.ast.add-to-statements($statements);
+            my $ast := $_.ast;
+            # A statement control that only sets a trait on its target, or
+            # an inert DOC use, attaches an empty statement.  A written `;`
+            # has no text, so the text tells them apart.  The doc blocks
+            # such a statement owns are kept.
+            if nqp::istype($ast, Nodify('Statement::Empty'))
+              && nqp::chars($_.Str)
+              && !nqp::elems($ast.IMPL-UNWRAP-LIST($ast.labels)) {
+                my $blocks := $ast.take-doc-blocks;
+                if $blocks {
+                    for $blocks {
+                        $statements.add-doc-block($_);
+                    }
+                }
+                next;
+            }
+            $ast.add-to-statements($statements);
         }
         self.attach: $/, $statements;
         $statements

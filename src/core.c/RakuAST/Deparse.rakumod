@@ -2669,8 +2669,9 @@ CODE
         self.conditional($ast, 'elsif')  # cannot have labels
     }
 
+    # an empty statement keeps a block that holds nothing else a block
     multi method deparse(RakuAST::Statement::Empty:D $ast --> Str:D) {
-        self.labels($ast) ~ $*DELIMITER
+        self.labels($ast) ~ ($*DELIMITER ?? $.end-statement !! ';')
     }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {

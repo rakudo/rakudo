@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25;
+plan 27;
 
 my $ast;
 my $deparsed;
@@ -1367,6 +1367,58 @@ CODE
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it).map(*.^name).List, ('Int',),
           "$type: the class trusts";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'A hoisted trait leaves no statement behind' => {
+    # my class HoistedTrait is Any {
+    #     trusts Int;
+    # }
+    ast Q:to/SOURCE/.AST;
+    my class HoistedTrait { also is Any; trusts Int }
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class HoistedTrait is Any {
+    trusts Int;
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).^name, 'HoistedTrait', "$type: the class declares";
+    }
+}
+
+
+subtest 'A hoisted trait keeps the doc block before it' => {
+    # my class HoistedDoc is Any {
+    # =begin comment
+    #
+    # kept
+    # =end comment
+    #
+    # }
+    ast Q:to/SOURCE/.AST;
+    my class HoistedDoc {
+    =begin comment
+    kept
+    =end comment
+        also is Any;
+    }
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class HoistedDoc is Any {
+=begin comment
+
+kept
+=end comment
+
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).^name, 'HoistedDoc', "$type: the class declares";
     }
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }

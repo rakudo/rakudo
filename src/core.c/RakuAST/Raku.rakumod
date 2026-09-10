@@ -1339,6 +1339,10 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
+    multi method raku(RakuAST::Var::Slang:D: --> Str:D) {
+        self!nameds: <name>
+    }
+
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {
         self!literal(self.index)
     }

@@ -2838,6 +2838,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $twigil eq '~' {
             my $name := $desigilname.canonicalize;
             $ast := Nodify('Var::Slang').new(
+              name    => $name,
               grammar => $/.slang_grammar($name),
               actions => $/.slang_actions($name)
             );

@@ -3362,6 +3362,10 @@ CODE
         self.hsyn('var-dynamic', $ast.name)
     }
 
+    multi method deparse(RakuAST::Var::Slang:D $ast --> Str:D) {
+        self.hsyn('var-slang', '$~' ~ $ast.name)
+    }
+
     multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
         my $name := $ast.name;
         self.hsyn('var-lexical', $name)

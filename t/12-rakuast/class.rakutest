@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 22;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -1187,6 +1187,118 @@ CODE
         is-deeply EVAL($it), 42, "$type: the private submethod is called";
     }
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
+}
+
+
+subtest 'An attribute declared without a twigil keeps its bare name' => {
+    # my class WithAlias { has $x; method set ($a) { $x = $a }; method get { $x } }
+    # my $o = WithAlias.new; $o.set(42); $o.get
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('WithAlias'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    sigil       => '$',
+                    desigilname => RakuAST::Name.from-identifier('x')
+                  )
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('set'),
+                    signature => RakuAST::Signature.new(
+                      parameters => (
+                        RakuAST::Parameter.new(
+                          target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+                        ),
+                      )
+                    ),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::ApplyInfix.new(
+                            left  => RakuAST::Var::Lexical.new('$x'),
+                            infix => RakuAST::Infix.new('='),
+                            right => RakuAST::Var::Lexical.new('$a')
+                          )
+                        )
+                      )
+                    )
+                  )
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('get'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::Var::Lexical.new('$x')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('o'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('WithAlias')
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('$o'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('set'),
+            args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('$o'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('get')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class WithAlias {
+    has $x;
+    method set ($a) {
+        $x = $a
+    }
+    method get {
+        $x
+    }
+}
+my $o = WithAlias.new;
+$o.set(42);
+$o.get
+CODE
+
+    is-deeply EVAL($deparsed), 42, 'Str: the method reads the attribute';
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
 
 # vim: expandtab shiftwidth=4

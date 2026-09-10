@@ -764,8 +764,10 @@ CODE
         self.hsyn("typer-$typer", self.xsyn('typer', $typer))
     }
 
+    # an attribute declared without a twigil keeps its bare name, .name
+    # adds the twigil
     method var-declaration(RakuAST::VarDeclaration::Simple:D
-      $ast, str $name = $ast.name
+      $ast, str $name = $ast.sigil ~ $ast.twigil ~ $ast.desigilname.canonicalize
     ) {
         my str @parts;
 

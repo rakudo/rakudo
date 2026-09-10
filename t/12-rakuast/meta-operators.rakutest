@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 19;
 
 my $ast;
 my $deparsed;
@@ -474,6 +474,41 @@ subtest 'Triangle reduce meta-op on reversed left associative operator' => {
             @expected = @expected Z+ (10, 20, 30);
         }
     }
+}
+
+
+subtest 'A hyper of a negated infix deparses the negation' => {
+    # my @b = 1, 2; @b »!==« @b
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('b'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('@b'),
+          infix => RakuAST::MetaInfix::Hyper.new(
+            infix => RakuAST::MetaInfix::Negate.new(RakuAST::Infix.new('=='))
+          ),
+          right => RakuAST::Var::Lexical.new('@b')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @b = 1, 2;
+@b »!==« @b
+CODE
+
+    is-deeply $_, [False, False], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

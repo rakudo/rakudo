@@ -1505,12 +1505,11 @@ CODE
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
-        my str $left     = $ast.dwim-left  ?? '<<' !! '>>';
-        my str $right    = $ast.dwim-right ?? '>>' !! '<<';
-        my str $operator = $ast.infix.operator;
+        my str $left  = $ast.dwim-left  ?? '<<' !! '>>';
+        my str $right = $ast.dwim-right ?? '>>' !! '<<';
 
         self.hsyn("meta-hyper-left", $left)
-          ~ self.hsyn("infix-$operator", self.xsyn("infix", $operator))
+          ~ self.deparse($ast.infix)
           ~ self.hsyn("meta-hyper-right", $right)
     }
 

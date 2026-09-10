@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 38;
+plan 39;
 
 my $ast;
 my $deparsed;
@@ -900,6 +900,27 @@ subtest 'An imaginary postfix after a word is separated from it' => {
     is-deeply $deparsed, 'π\i + Inf\i', 'deparse';
 
     is-deeply $_, π\i + Inf\i, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A colonpair under a subscript keeps its parentheses' => {
+    # (:42a)<foo>
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::ColonPair::Number.new(
+        key   => 'a',
+        value => RakuAST::IntLiteral.new(42)
+      ),
+      postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+        index => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('foo')],
+          :processors<words val>
+        )
+      )
+    );
+    is-deeply $deparsed, '(:42a)<foo>', 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

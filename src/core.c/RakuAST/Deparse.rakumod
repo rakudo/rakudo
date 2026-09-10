@@ -568,6 +568,9 @@ CODE
                && ($operand.initializer
                     || nqp::istype($postfix,RakuAST::Postcircumfix)
                     || nqp::istype($operand,RakuAST::VarDeclaration::Anonymous)))
+          # a subscript would read as the value of the pair
+          || (nqp::istype($operand,RakuAST::ColonPair)
+               && nqp::istype($postfix,RakuAST::Postcircumfix))
           || nqp::istype($operand,RakuAST::VarDeclaration::Term)
           || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
           || nqp::istype($operand,RakuAST::VarDeclaration::Signature)

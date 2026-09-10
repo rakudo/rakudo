@@ -539,6 +539,15 @@ CODE
     # An operand that deparses to more than a single term must be
     # parenthesized under a postfix, or the postfix binds to its last
     # term only
+    method is-numeric-literal($node --> Bool:D) {
+        nqp::istype($node,RakuAST::IntLiteral)
+          || nqp::istype($node,RakuAST::NumLiteral)
+          || nqp::istype($node,RakuAST::RatLiteral)
+          || nqp::istype($node,RakuAST::ComplexLiteral)
+          ?? True
+          !! False
+    }
+
     method postfix-operand-needs-parens($operand, $postfix? --> Bool:D) {
         nqp::istype($operand,RakuAST::ApplyInfix)
           || nqp::istype($operand,RakuAST::ApplyListInfix)
@@ -869,7 +878,10 @@ CODE
         }
         else {
             my $operand := $ast.operand;
+            # a number followed by a dot and a colon reads as a broken decimal
             (self.postfix-operand-needs-parens($operand, $postfix)
+              || (self.is-numeric-literal($operand)
+                   && self.deparse-without-highlighting($postfix).starts-with('.::'))
               ?? self.parenthesize($operand)
               !! self.deparse($operand)
             )

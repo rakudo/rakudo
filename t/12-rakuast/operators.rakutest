@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 34;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -532,6 +532,20 @@ CODE
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).raku,
       'any(1, "a")', 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'A bracketed infix deparses with its brackets' => {
+    # 1 [+] 2
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::BracketedInfix.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(2)
+    );
+    is-deeply $deparsed, '1 [+] 2', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

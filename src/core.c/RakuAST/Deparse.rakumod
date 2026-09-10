@@ -949,6 +949,10 @@ CODE
         }
     }
 
+    multi method deparse(RakuAST::BracketedInfix:D $ast --> Str:D) {
+        '[' ~ self.deparse($ast.infix) ~ ']'
+    }
+
     multi method deparse(RakuAST::Blockoid:D $ast, :$multi, :$unit --> Str:D) {
         my $statement-list := $ast.statement-list;
 

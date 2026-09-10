@@ -361,6 +361,10 @@ augment class RakuAST::Node {
           <implicit-topic required-topic exception may-have-signature body>
     }
 
+    multi method raku(RakuAST::BracketedInfix:D: --> Str:D) {
+        self!positional(self.infix)
+    }
+
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {
         (my $statements := self.statement-list)
           ?? self!positional($statements)

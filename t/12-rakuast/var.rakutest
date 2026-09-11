@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 71;
+plan 72;
 
 my $ast;
 my $deparsed;
@@ -1796,6 +1796,56 @@ state Int $;
 CODE
 
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A declaration as the value of another writes no delimiter' => {
+    # my $x = my $y = 1;
+    # my $z := my $w = 2;
+    # $x + $z
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('y'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(1))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('z'),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('w'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$x'),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::Var::Lexical.new('$z')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = my $y = 1;
+my $z := my $w = 2;
+$x + $z
+CODE
+
+    is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

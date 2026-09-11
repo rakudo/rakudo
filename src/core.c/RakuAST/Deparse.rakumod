@@ -1512,11 +1512,15 @@ CODE
         self.hsyn("infix-$operator", self.xsyn('infix', $operator))
     }
 
+    # a declaration as the value of an assignment or a bind would write
+    # the statement delimiter
     multi method deparse(RakuAST::Initializer::Assign:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         self.syn-infix-ws($.assign) ~ self.deparse($ast.expression)
     }
 
     multi method deparse(RakuAST::Initializer::Bind:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         self.syn-infix-ws($.bind) ~ self.deparse($ast.expression)
     }
 

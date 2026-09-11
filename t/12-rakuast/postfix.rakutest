@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -723,6 +723,127 @@ subtest 'Literal hash index with an assignee' => {
         is-deeply EVAL($it), 42, "$type: did we get the assigned value";
         is-deeply %h<a>, 42, "$type: was the element assigned";
     }
+}
+
+subtest 'Argument list applied to a term' => {
+    # my \t = {
+    #     41 + $_
+    # };
+    # my $f = t;
+    # t.(1) + $f(1)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          name        => RakuAST::Name.from-identifier('t'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyInfix.new(
+                      left  => RakuAST::IntLiteral.new(41),
+                      infix => RakuAST::Infix.new('+'),
+                      right => RakuAST::Var::Lexical.new('$_')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('f'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('t'))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Term::Name.new(
+              RakuAST::Name.from-identifier('t')
+            ),
+            postfix => RakuAST::Call::Term.new(
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(1))
+            )
+          ),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('$f'),
+            postfix => RakuAST::Call::Term.new(
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(1))
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my \t = {
+    41 + $_
+};
+my $f = t;
+t.(1) + $f(1)
+CODE
+    is-deeply $_, 84, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'WhateverCode keeps its .raku after BEGIN time' => {
+    # (* > 1)(2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(2))
+      )
+    );
+    is-deeply $deparsed, '(* > 1)(2)', 'deparse';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku), True,
+      'EVAL of the .raku after BEGIN time';
+}
+
+subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
+    # (** + 1)(1, 2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::HyperWhatever.new,
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(1),
+          RakuAST::IntLiteral.new(2)
+        )
+      )
+    );
+    is-deeply $deparsed, '(** + 1)(1, 2)', 'deparse';
+    is-deeply $_.List, (2, 3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
+      (2, 3), 'EVAL of the .raku after BEGIN time';
 }
 
 # vim: expandtab shiftwidth=4

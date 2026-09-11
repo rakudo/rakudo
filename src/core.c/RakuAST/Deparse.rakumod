@@ -147,6 +147,7 @@ class RakuAST::Deparse {
         if nqp::isnull(nqp::getlexcaller('$*INDENT')) {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
+            my $*INTERPOLATING := False;  # in a call interpolated in a string
             {*}
         }
         else {
@@ -348,32 +349,92 @@ CODE
     # backslash and its own brackets
     method assemble-quoted-string($ast, :$raw --> Str:D) {
         my int $interpolated;
-        $ast.segments.map({
-            if nqp::istype($_,RakuAST::StrLiteral) {
+        my @segments := $ast.segments;
+        my str @parts;
+        for @segments.kv -> $i, $segment {
+            if nqp::istype($segment,RakuAST::StrLiteral) {
                 my str $text = $raw
-                  ?? .value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
-                  !! .value.raku.substr(1,*-1);
+                  ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                  !! $segment.value.raku.substr(1,*-1);
                 if $text {
                     # a bracket right after an interpolation would continue
-                    # it as a call or an index
+                    # it as a call or an index, and so would a dot that
+                    # leads to one
+                    my $next := @segments[$i + 1];
                     $text = '\\' ~ $text
                       if $interpolated
-                      && nqp::index('([{<',$text.substr(0,1)) >= 0;
+                      && (nqp::index('([{<',$text.substr(0,1)) >= 0
+                           || self.dot-continues-interpolation(
+                                $text,
+                                $next.defined
+                                  && !nqp::istype($next,RakuAST::StrLiteral)
+                                  && !nqp::istype($next,RakuAST::QuotedString)
+                              ));
                     $interpolated = 0;
                 }
-                $text
+                @parts.push($text);
             }
             # the text between a nested pair of the delimiters is a quote of
             # its own, one without processors belongs to this one
-            elsif nqp::istype($_,RakuAST::QuotedString) && !.processors {
+            elsif nqp::istype($segment,RakuAST::QuotedString)
+              && !$segment.processors {
                 $interpolated = 0;
-                self.assemble-quoted-string($_, :$raw)
+                @parts.push(self.assemble-quoted-string($segment, :$raw));
             }
             else {
-                $interpolated = 1;
-                self.deparse($_)
+                # a closure ends the interpolation
+                $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
+                # a method call only interpolates with its parentheses
+                my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
+                  || nqp::istype($segment,RakuAST::ApplyDottyInfix);
+                @parts.push(self.deparse($segment));
             }
-        }).join
+        }
+        @parts.join
+    }
+
+    # Whether text that starts with a dot would continue the
+    # interpolation before it: a chain of method names, each with or
+    # without a dispatch prefix, that ends in a bracket or a quote, or
+    # in a dot when an interpolation follows the text
+    method dot-continues-interpolation(
+      str $text,
+          $next-interpolates
+    --> Bool:D) {
+        my int $chars = nqp::chars($text);
+        my int $i;
+        while $i < $chars && nqp::eqat($text,'.',$i) {
+            ++$i;
+            return True if $i == $chars && $next-interpolates;
+            ++$i if $i < $chars
+              && nqp::index('?&^*+=',nqp::substr($text,$i,1)) >= 0;
+            return True if $i < $chars
+              && nqp::index(q/([{<'"/,nqp::substr($text,$i,1)) >= 0;
+
+            # a method name, a hyphen or apostrophe that a letter follows
+            # and a package separator are part of it
+            my int $start = $i;
+            loop {
+                $i = nqp::findnotcclass(
+                  nqp::const::CCLASS_WORD,$text,$i,$chars - $i
+                );
+                if nqp::eqat($text,'::',$i) {
+                    $i = $i + 2;
+                }
+                elsif $i + 1 < $chars
+                  && nqp::index(q/-'/,nqp::substr($text,$i,1)) >= 0
+                  && nqp::iscclass(nqp::const::CCLASS_ALPHABETIC,$text,$i + 1) {
+                    ++$i;
+                }
+                else {
+                    last;
+                }
+            }
+            return False if $i == $start;
+            return True if $i < $chars
+              && nqp::index('([{<',nqp::substr($text,$i,1)) >= 0;
+        }
+        False
     }
 
     method multiple-processors(str $string, @processors --> Str:D) {
@@ -525,7 +586,13 @@ CODE
               ?? self.hsyn("core-$name", self.xsyn('core', $name))
               !! $name
             )
-          ~ ($macroish ?? '' !! self.parenthesize($ast.args, :$only-non-empty))
+          ~ ($macroish && !$*INTERPOLATING
+              ?? ''
+              !! self.parenthesize(
+                   $ast.args,
+                   :only-non-empty($only-non-empty && !$*INTERPOLATING)
+                 )
+            )
     }
 
     method quote-if-needed(str $literal) {
@@ -700,6 +767,10 @@ CODE
         @parts.push(
           self.hsyn(%twigil2type{$twigil} // 'var-lexical', $name)
         );
+        @parts.push($ast.sigil eq '%'
+          ?? self.bracketize($_)
+          !! self.squarize($_)
+        ) with $ast.shape;
 
         if $ast.traits.grep({
             nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
@@ -740,8 +811,11 @@ CODE
 
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {
         my $*DELIMITER = '';
+        my str $infix = self.deparse($ast.infix);
+        # whitespace around the infix would end an interpolation
+        $infix = $infix.trim if $*INTERPOLATING;
         self.deparse($ast.left)
-          ~ self.deparse($ast.infix)
+          ~ $infix
           # lose the ".", as it is provided by the infix
           ~ self.deparse($ast.right).substr(1)
     }
@@ -767,7 +841,10 @@ CODE
         my     $postfix         := $ast.postfix;
         my str $deparsed-postfix = self.deparse($postfix);
 
-        if $ast.on-topic && nqp::istype($postfix,RakuAST::Call::Method) {
+        # a method call on the topic interpolates only with the topic written
+        if $ast.on-topic
+          && nqp::istype($postfix,RakuAST::Call::Method)
+          && !$*INTERPOLATING {
             $deparsed-postfix
         }
         else {
@@ -775,7 +852,14 @@ CODE
             (self.postfix-operand-needs-parens($operand)
               ?? self.parenthesize($operand)
               !! self.deparse($operand)
-            ) ~ $deparsed-postfix
+            )
+              # a term followed by a bare argument list is a routine call
+              ~ (nqp::istype($postfix,RakuAST::Call::Term)
+                  && nqp::istype($operand,RakuAST::Term::Name)
+                  ?? '.'
+                  !! ''
+                )
+              ~ $deparsed-postfix
         }
     }
 
@@ -787,6 +871,7 @@ CODE
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
         my $*IN-ARGLIST := True;
+        my $*INTERPOLATING := False;
         # a declaration argument would add the statement delimiter
         my $*DELIMITER = '';
         $ast.args.map({
@@ -878,7 +963,7 @@ CODE
               ?? '&' ~ self.deparse($block.target)
               !! self.deparse($block)
             )
-          ~ self.parenthesize($ast.args, :only-non-empty)
+          ~ self.parenthesize($ast.args, :only-non-empty(!$*INTERPOLATING))
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
@@ -1557,7 +1642,13 @@ CODE
                 @parts.push($var);
                 @parts.push(nqp::x(')',$parens)) if $parens;
                 @parts.push('?') if $ast.is-declared-optional;
-                @parts.push('!') if $ast.is-declared-required;
+                # the is required trait marks the parameter required
+                @parts.push('!') if $ast.is-declared-required
+                  && !$ast.traits.first({
+                       nqp::istype($_,RakuAST::Trait::Is)
+                         && .name
+                         && .name.canonicalize eq 'required'
+                     });
             }
 
             # positional parameter
@@ -1654,8 +1745,10 @@ CODE
         }
 
         else {
-            @parts.push(self.deparse($signature))
-              if $signature.parameters-initialized;
+            if $signature.parameters-initialized
+              && self.deparse($signature) -> $deparsed {
+                @parts.push($deparsed);
+            }
 
             if $WHY {
                 @parts.push('{');
@@ -1726,7 +1819,7 @@ CODE
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
                 if %single-processor-prefix{$processor} -> str $p is copy {
-                    $p = 'qqx/' if $p eq 'exec' && $ast.has-variables;
+                    $p = 'qqx/' if $processor eq 'exec' && $ast.has-variables;
                     self.hsyn("adverb-q-$p", self.xsyn('adverb-q', $p))
                       ~ $string ~ '/'
                 }
@@ -2112,8 +2205,16 @@ CODE
 #- Regex::N --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> Str:D) {
-        self.hsyn('capture-named', '$<' ~ $ast.name ~ '>=')
-          ~ self.deparse($ast.regex)
+        my str $name  = $ast.name;
+        my int $chars = nqp::chars($name);
+        # a numbered capture is written without the brackets
+        self.hsyn('capture-named',
+          $chars && nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,$name,0,$chars
+          ) == $chars
+            ?? '$' ~ $name ~ '='
+            !! '$<' ~ $name ~ '>='
+        ) ~ self.deparse($ast.regex)
     }
 
     multi method deparse(RakuAST::Regex::Nested:D $ast --> Str:D) {
@@ -2126,10 +2227,15 @@ CODE
 
 #- Regex::Q --------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> Str:D) {
+    multi method deparse(
+      RakuAST::Regex::QuantifiedAtom:D $ast, :$whitespace
+    --> Str:D) {
         my str @parts = self.deparse($ast.atom), self.deparse($ast.quantifier);
 
         if $ast.separator -> $separator {
+            # the whitespace of a quantified atom with a separator sits
+            # between the quantifier and the separator
+            @parts.push(' ') if $whitespace;
             @parts.push($ast.trailing-separator ?? '%% ' !! '% ');
             @parts.push(self.deparse($separator));
         }
@@ -2260,7 +2366,10 @@ CODE
 #- Regex::W --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::WithWhitespace:D $ast --> Str:D) {
-        self.deparse($ast.regex) ~ " "
+        my $regex := $ast.regex;
+        nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator
+          ?? self.deparse($regex, :whitespace)
+          !! self.deparse($regex) ~ " "
     }
 
 #- RegexD ----------------------------------------------------------------------
@@ -2327,6 +2436,7 @@ CODE
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        my $*INTERPOLATING := False;
         my @statements := $ast.statements;
         my $statement  := @statements.head;
         @statements == 1
@@ -2593,6 +2703,7 @@ CODE
     }
 
     multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {
+        my $*INTERPOLATING := False;
 
         if $ast.statements -> @statements {
             my str @parts;
@@ -2854,8 +2965,10 @@ CODE
         self.hsyn('var-term', $.term-whatever)
     }
 
-    multi method deparse(RakuAST::WhateverCode::Argument:D $ --> Str:D) {
-        self.hsyn('var-term', $.term-whatever)
+    multi method deparse(RakuAST::WhateverCode::Argument:D $ast --> Str:D) {
+        self.hsyn('var-term',
+          $ast.is-hyper ?? $.term-hyperwhatever !! $.term-whatever
+        )
     }
 
 #- Ternary ---------------------------------------------------------------------

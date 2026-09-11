@@ -2745,9 +2745,12 @@ class RakuAST::Node {
             return Nil;
         }
         return Nil unless nqp::istype($expr, RakuAST::Parameter);
-        my $where := $expr.where;
-        return Nil unless nqp::isconcrete($where)
-            && nqp::istype($where, RakuAST::Block);
+        # Only a constraint that is smartmatched rather than called can be
+        # a junction of types
+        my $written := $expr.where;
+        return Nil unless nqp::isconcrete($written)
+            && !nqp::istype($written, RakuAST::Code)
+            && !$written.IMPL-PRIMED;
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         return Nil if nqp::isnull($Junction);
@@ -2758,18 +2761,6 @@ class RakuAST::Node {
         # one that counts.
         my $nominal := nqp::getattr($expr.meta-object, Parameter, '$!type');
         return Nil if nqp::istype($Junction, nqp::decont($nominal));
-
-        # The written constraint is the invocant of the ACCEPTS call the
-        # begin-time wrapping built around it.
-        my $statements := $where.body.statement-list.IMPL-UNWRAP-LIST(
-            $where.body.statement-list.statements);
-        return Nil unless nqp::elems($statements) == 1
-            && nqp::istype($statements[0], RakuAST::Statement::Expression);
-        my $bool-call := $statements[0].expression;
-        return Nil unless nqp::istype($bool-call, RakuAST::ApplyPostfix);
-        my $accepts-call := $bool-call.operand;
-        return Nil unless nqp::istype($accepts-call, RakuAST::ApplyPostfix);
-        my $written := $accepts-call.operand;
 
         my $data := self.IMPL-JUNCTION-OF-TYPES($resolver, $written);
         return Nil if nqp::isnull($data);

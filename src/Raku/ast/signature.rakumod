@@ -578,6 +578,9 @@ class RakuAST::Parameter
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
+    # The block BEGIN time wraps around a where constraint that is
+    # smartmatched rather than called, so the constraint stays as written
+    has RakuAST::Block             $!where-thunk;
     # Set by the optimize pass when the where constraint is a junction of
     # type objects: the types the argument is checked against inline, and
     # whether it must be all of them rather than any.
@@ -756,6 +759,9 @@ class RakuAST::Parameter
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
+        nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', RakuAST::Block);
+        nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', Mu);
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', 0);
         Nil
     }
 
@@ -890,7 +896,12 @@ class RakuAST::Parameter
         $visitor($!type)          if $!type;
         $visitor($!target)        if $!target;
         $visitor($!default)       if $!default;
-        $visitor($!where)         if $!where;
+        if $!where-thunk {
+            $visitor($!where-thunk);
+        }
+        elsif $!where {
+            $visitor($!where);
+        }
         $visitor($!array-shape)   if $!array-shape;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
@@ -1025,7 +1036,10 @@ class RakuAST::Parameter
                 }
             }
         }
-        if $!where {
+        if $!where-thunk {
+            nqp::push(@post_constraints, $!where-thunk.meta-object);
+        }
+        elsif $!where {
             nqp::push(@post_constraints, $!where.IMPL-PRIMED ?? $!where.IMPL-PRIMED.meta-object !! $!where.meta-object);
         }
         if $!array-shape {
@@ -1176,7 +1190,7 @@ class RakuAST::Parameter
             self.add-sorry: $sorry if $sorry;
         }
 
-        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
+        if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
@@ -1201,7 +1215,7 @@ class RakuAST::Parameter
             );
             $block.IMPL-BEGIN($resolver, $context);
             $block.IMPL-CHECK($resolver, $context);
-            nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
+            nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', $block);
         }
 
         if $!array-shape {
@@ -2023,7 +2037,7 @@ class RakuAST::Parameter
                             :op<istrue>,
                             QAST::Op.new(
                                 :op('callmethod'), :name('ACCEPTS'),
-                                $!where.IMPL-TO-QAST($context),
+                                ($!where-thunk || $!where).IMPL-TO-QAST($context),
                                 $temp-qast-var
                             )
                         )

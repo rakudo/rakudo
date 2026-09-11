@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 33;
+plan 34;
 
 my $ast;
 my $deparsed;
@@ -501,6 +501,37 @@ subtest 'Declaration as an infix operand in a statement list' => {
     is-deeply $deparsed, "my \$x = 1 and 2;\n\$x\n", 'deparse';
     is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Folded junction literal keeps its .raku after BEGIN time' => {
+    # my $j = 1 | "a";
+    # $j
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('j'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('|'),
+              right => RakuAST::StrLiteral.new('a')
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$j')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $j = 1 | "a";
+$j
+CODE
+    is $_.raku, 'any(1, "a")', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).raku,
+      'any(1, "a")', 'EVAL of the .raku after BEGIN time';
 }
 
 # vim: expandtab shiftwidth=4

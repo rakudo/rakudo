@@ -2103,6 +2103,12 @@ class RakuAST::VarDeclaration::Signature
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!sig-literal',
             $sig-literal ?? True !! False);
+        # The variable a parameter declares makes a subset of its type
+        # from the where constraint, and a walk begins it before this
+        # declaration
+        for $obj.IMPL-UNWRAP-LIST($signature.parameters) {
+            $_.target.set-where($_.where) if $_.where && $_.target;
+        }
         $obj
     }
 

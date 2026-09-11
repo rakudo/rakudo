@@ -65,8 +65,13 @@ augment class RakuAST::Node {
 
     method !none() { self.^name ~ '.new' }
 
-    method !literal($value) {
-        self.^name ~ '.new(' ~ nqp::decont($value).raku ~ ')';
+    # a junction value must not autothread, and the base class is only
+    # made through from-value
+    method !literal(Mu $value) {
+        (nqp::eqaddr(self.WHAT,RakuAST::Literal)
+          ?? 'RakuAST::Literal.from-value('
+          !! self.^name ~ '.new('
+        ) ~ nqp::decont($value).raku ~ ')'
     }
 
     method !positional($value) {
@@ -1234,7 +1239,10 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
-        self!nameds: (try self.constraint.name.canonicalize eq 'Any')
+        # only the setting Any the constructor supplies is left out
+        my $constraint := self.constraint;
+        self!nameds: nqp::istype($constraint,RakuAST::Type::Setting)
+          && $constraint.name.canonicalize eq 'Any'
           ?? <base-type>
           !! <base-type constraint>
     }
@@ -1379,6 +1387,16 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
         self!nameds: <scope type name initializer>
+    }
+
+#- WhateverCode ----------------------------------------------------------------
+
+    # BEGIN time makes one from the * or ** of a WhateverCode expression
+    multi method raku(RakuAST::WhateverCode::Argument:D: --> Str:D) {
+        (self.is-hyper
+          ?? RakuAST::Term::HyperWhatever
+          !! RakuAST::Term::Whatever
+        ).new.raku
     }
 }
 

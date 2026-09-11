@@ -256,9 +256,14 @@ class RakuAST::QuotedString
             if self.sunk && $value;
     }
 
+    # Whether anything in the string is interpolated, a nested quote
+    # counts by its own segments
     method has-variables() {
         for $!segments {
-            return True if nqp::istype($_,RakuAST::Var);
+            my $segment := nqp::istype($_,RakuAST::QuoteWordsAtom) ?? $_.atom !! $_;
+            return True unless nqp::istype($segment,RakuAST::StrLiteral)
+              || (nqp::istype($segment,RakuAST::QuotedString)
+                   && !$segment.has-variables);
         }
         False
     }

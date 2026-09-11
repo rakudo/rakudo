@@ -452,7 +452,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Declaration::ResolvedConstant:D: --> Str:D) {
-        self!literal(self.compile-time-value)
+        self!nameds: <compile-time-value>
     }
 
 #- Doc -------------------------------------------------------------------------
@@ -1179,6 +1179,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Term::Capture:D: --> Str:D) {
         self!positional(self.source)
+    }
+
+    multi method raku(RakuAST::Term::Declaration:D: --> Str:D) {
+        self!positional(self.value)
     }
 
     multi method raku(RakuAST::Term::Enum:D: --> Str:D) {

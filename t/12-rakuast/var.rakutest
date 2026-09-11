@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 72;
+plan 73;
 
 my $ast;
 my $deparsed;
@@ -1847,6 +1847,27 @@ CODE
 
     is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The .raku of a literal in a declaration signature evaluates' => {
+    # my ("foo") = "foo";
+    # 1
+    ast Q:to/SOURCE/.AST;
+    my ("foo") = "foo"; 1
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my ("foo") = "foo";
+1
+CODE
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+
+    my $wrong := 'use experimental :rakuast; ' ~ Q{my ("foo") = "bar"}.AST.raku;
+    throws-like { EVAL EVAL $wrong }, X::TypeCheck::Assignment,
+      'Raku: the literal still checks the value';
 }
 
 # vim: expandtab shiftwidth=4

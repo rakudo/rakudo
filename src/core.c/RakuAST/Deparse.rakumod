@@ -21,6 +21,7 @@ class RakuAST::Deparse {
       'val',        'v',
       'words',      'w',
       'heredoc',    'to',
+      'format',     'format',
     ;
 
     my constant %single-processor-prefix =
@@ -28,6 +29,7 @@ class RakuAST::Deparse {
       'quotewords', 'qqww/',
       'val',        'qq:v/',
       'words',      'qqw/',
+      'format',     'qq:format/',
     ;
 
     my constant %twigil2type = <

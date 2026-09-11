@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 28;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -783,6 +783,19 @@ subtest 'A quote written between slashes escapes them' => {
     is-deeply $deparsed, '< a \<b c\> d >', 'deparse: a nested pair of angles';
     is-deeply $_, ('a', '<b', 'c>', 'd'), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The format processor deparses' => {
+    # qq:format/\%5s/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('%5s')],
+      :processors['format']
+    );
+    is-deeply $deparsed, 'qq:format/\%5s/', 'deparse';
+    is EVAL($ast).Str, '%5s', 'AST: is the format';
+    is EVAL($deparsed.AST).Str, '%5s', 'Str: parses back to the format';
+    is EVAL(EVAL $raku).Str, '%5s', 'Raku: is the format';
 }
 
 # vim: expandtab shiftwidth=4

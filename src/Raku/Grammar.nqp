@@ -6559,33 +6559,23 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
         token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
 
+        # Every escape here names a character.  A class like \d names none, so
+        # it is left to the unrecognized sequence panic.
         token backslash:delim { <text=.starter> | <text=.stopper> }
         token backslash:sym<\\> { <text=.sym> }
         token backslash:sym<a> { :i <sym> }
         token backslash:sym<b> { :i <sym> }
         token backslash:sym<c> { :i <sym> <charspec> }
-        token backslash:sym<d> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<e> { :i <sym> }
         token backslash:sym<f> { :i <sym> }
-        token backslash:sym<h> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<N> { <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
         token backslash:sym<n> { :i <sym> }
         token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { :i <sym> }
-        token backslash:sym<s> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<t> { :i <sym> }
-        token backslash:sym<v> { :i <sym> { $*CCSTATE := '' } }
-        token backslash:sym<w> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
 
-        # keep random backslashes like qq does
-        token backslash:misc { {}
-            [
-            | $<text>=(\W)
-            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
-            ]
-        }
         multi method tweak_q($v) { self.panic("Too late for :q") }
         multi method tweak_qq($v) { self.panic("Too late for :qq") }
         multi method tweak_cc($v) { self.panic("Too late for :cc") }

@@ -1990,6 +1990,11 @@ CODE
           ~ ($operator.contains(/\w/) ?? " " !! "")
     }
 
+    # the node holds a single bar as its operator
+    multi method deparse(RakuAST::Prefix::Multislice:D $ --> Str:D) {
+        self.hsyn('prefix-||', self.xsyn('prefix', '||'))
+    }
+
 #- Q ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> Str:D) {

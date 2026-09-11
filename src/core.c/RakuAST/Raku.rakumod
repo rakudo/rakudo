@@ -723,6 +723,10 @@ augment class RakuAST::Node {
         self!literal(self.operator)
     }
 
+    multi method raku(RakuAST::Prefix::Multislice:D: --> Str:D) {
+        self!none
+    }
+
 #- Q ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::QuotedRegex:D: --> Str:D) {

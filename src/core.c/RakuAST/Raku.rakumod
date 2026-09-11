@@ -105,6 +105,9 @@ augment class RakuAST::Node {
           'abbreviated', -> {
               :abbreviated if self.abbreviated && !self.directive
           },
+          'is-array', -> {
+              :is-array if self.is-array
+          },
           'adverbs', -> {
               my $adverbs := nqp::decont(self.adverbs);
               :$adverbs if $adverbs
@@ -1004,7 +1007,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Signature:D: --> Str:D) {
-        self!nameds: <parameters returns>
+        self!nameds: <parameters returns is-array>
     }
 
 #- Statement -------------------------------------------------------------------

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 24;
 
 my $ast;
 my $deparsed;
@@ -1085,6 +1085,154 @@ CODE
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
     is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE,
       $deparsed, 'deparse of the .raku after BEGIN time';
+}
+
+
+subtest 'An unpacking parameter keeps its brackets and slurpy' => {
+    # sub foo ([$a]) {
+    #     $a
+    # }
+    # sub bar (*[$a, $b]) {
+    #     $a + $b
+    # }
+    # sub baz (| ($a)) {
+    #     $a
+    # }
+    # foo([1]) + bar(2, 3) + baz(9)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('foo'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+                    ),
+                  ),
+                  is-array   => True
+                )
+              ),
+            )
+          ),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$a')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('bar'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                slurpy        => RakuAST::Parameter::Slurpy::Flattened,
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+                    ),
+                  ),
+                  is-array   => True
+                )
+              ),
+            )
+          ),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$a'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$b')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('baz'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                slurpy        => RakuAST::Parameter::Slurpy::Capture,
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$a')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('foo'),
+              args => RakuAST::ArgList.new(
+                RakuAST::Circumfix::ArrayComposer.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(1)
+                    )
+                  )
+                )
+              )
+            ),
+            infix => RakuAST::Infix.new('+'),
+            right => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('bar'),
+              args => RakuAST::ArgList.new(
+                RakuAST::IntLiteral.new(2),
+                RakuAST::IntLiteral.new(3)
+              )
+            )
+          ),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier('baz'),
+            args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(9))
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub foo ([$a]) {
+    $a
+}
+sub bar (*[$a, $b]) {
+    $a + $b
+}
+sub baz (| ($a)) {
+    $a
+}
+foo([1]) + bar(2, 3) + baz(9)
+CODE
+
+    is-deeply $_, 15, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

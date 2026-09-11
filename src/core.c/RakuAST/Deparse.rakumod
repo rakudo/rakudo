@@ -1856,9 +1856,15 @@ CODE
         }
 
         if $ast.sub-signature -> $signature {
-            @parts.push(@parts ?? ' (' !! '(');
+            @parts.push(' ') if @parts;
+            # the slurpy of an unpacking parameter without a target goes
+            # right before the brackets
+            @parts.push(self.deparse($ast.slurpy))
+              unless $target
+                || nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture);
+            @parts.push($signature.is-array ?? '[' !! '(');
             @parts.push(self.deparse($signature));
-            @parts.push(')');
+            @parts.push($signature.is-array ?? ']' !! ')');
         }
 
         @parts.push(self.where-constraint($_)) with $ast.where;

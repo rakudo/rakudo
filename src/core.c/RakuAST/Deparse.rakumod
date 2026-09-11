@@ -948,6 +948,8 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyPrefix:D $ast --> Str:D) {
+        # a declaration as the operand would write the statement delimiter
+        my $*DELIMITER = '';
         my str $prefix = self.deparse($ast.prefix);
         self.hsyn("prefix-$prefix", self.xsyn('prefix', $prefix))
           ~ self.deparse($ast.operand)
@@ -3437,9 +3439,12 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Anonymous:D $ast --> Str:D) {
         my str $sigil = $ast.sigil;
 
-        $sigil eq '$' && $ast.scope eq 'state'
+        # a bare $ is the anonymous state scalar with nothing else on it
+        # inside an expression, a statement writes it out
+        $sigil eq '$' && $ast.scope eq 'state' && !$*DELIMITER
+          && !$ast.initializer && !$ast.type && !$ast.traits
           ?? $sigil
-          !! self.var-declaration($ast, $sigil)
+          !! self.var-declaration($ast, $sigil) ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {

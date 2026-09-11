@@ -403,6 +403,19 @@ CODE
                 $interpolated = 0;
                 @parts.push(self.assemble-quoted-string($segment, :$raw));
             }
+            # one with the processors of this one is text as well, and
+            # the quotewords processor starts a word at it and ends one
+            # after it, which spaces do when there are no delimiters to
+            # nest
+            elsif nqp::istype($segment,RakuAST::QuotedString)
+              && $segment.processors eqv $ast.processors {
+                $interpolated = 0;
+                my str $group = self.assemble-quoted-string($segment, :$raw);
+                @parts.push($ast.processors.first('quotewords')
+                  ?? " $group "
+                  !! $group
+                );
+            }
             else {
                 # a closure ends the interpolation
                 $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
@@ -1975,14 +1988,12 @@ CODE
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> Str:D) {
-        my str $string = self.assemble-quoted-string($ast);
-
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
                 if %single-processor-prefix{$processor} -> str $p is copy {
                     $p = 'qqx/' if $processor eq 'exec' && $ast.has-variables;
                     self.hsyn("adverb-q-$p", self.xsyn('adverb-q', $p))
-                      ~ $string ~ '/'
+                      ~ self.slash-quoted-string($ast) ~ '/'
                 }
                 else {
                     NYI("Quoted string processor '$processor'").throw
@@ -1994,9 +2005,10 @@ CODE
                 # The ASCII form ends early when the list starts with < or
                 # ends with >, the wide form when the list holds a wide angle
                 if $joined eq 'quotewords val' {
+                    my str $string = self.assemble-quoted-string($ast);
                     my int $wide = $string.starts-with('<') || $string.ends-with('>');
                     $wide && ($string.contains('«') || $string.contains('»'))
-                      ?? self.multiple-processors($string, @processors)
+                      ?? self.multiple-processors(self.slash-quoted-string($ast), @processors)
                       !! $wide
                         ?? '«' ~ $string ~ '»'
                         !! $.double-pointy-open ~ $string ~ $.double-pointy-close
@@ -2007,16 +2019,22 @@ CODE
                       ~ $.pointy-close
                 }
                 else {
-                    self.multiple-processors($string, @processors)
+                    self.multiple-processors(self.slash-quoted-string($ast), @processors)
                 }
             }
             else {
-                self.multiple-processors($string, @processors)
+                self.multiple-processors(self.slash-quoted-string($ast), @processors)
             }
         }
         else {
-            self.hsyn('literal', '"' ~ $string ~ '"')
+            self.hsyn('literal', '"' ~ self.assemble-quoted-string($ast) ~ '"')
         }
+    }
+
+    # the text of a string between slashes escapes them
+    method slash-quoted-string($ast --> Str:D) {
+        my $*QUOTE-DELIMITER := '/';
+        self.assemble-quoted-string($ast)
     }
 
     multi method deparse(RakuAST::QuoteWordsAtom:D $ast --> Str:D) {
@@ -3083,8 +3101,7 @@ CODE
             @parts.push('/');
             # only the text of the replacement escapes the delimiter, the
             # code of a closure in it is closed by its braces
-            my $*QUOTE-DELIMITER := '/';
-            @parts.push(self.assemble-quoted-string($ast.replacement));
+            @parts.push(self.slash-quoted-string($ast.replacement));
             @parts.push('/');
         }
 

@@ -1342,8 +1342,15 @@ augment class RakuAST::Node {
         self!literal($name.starts-with('$whatevercode_arg_') ?? '*' !! $name)
     }
 
+    # the index is the positional, the sigil and colonpairs are named
     multi method raku(RakuAST::Var::NamedCapture:D: --> Str:D) {
-        self!positional(self.index)
+        indent;
+        my str $index = $*INDENT ~ self.index.raku;
+        dedent;
+        my str $nameds = self!nameds: <sigil colonpairs>;
+        $nameds.ends-with('.new')
+          ?? self.^name ~ ".new(\n$index\n$*INDENT)"
+          !! $nameds.subst(".new(\n", ".new(\n$index,\n")
     }
 
     multi method raku(RakuAST::Var::Package:D: --> Str:D) {

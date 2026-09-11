@@ -972,12 +972,26 @@ class RakuAST::Var::NamedCapture
     has str $.sigil;
     has Mu $!colonpairs;
 
-    method new(RakuAST::QuotedString $index, str :$sigil) {
+    method new(RakuAST::QuotedString $index, str :$sigil, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
         nqp::bindattr_s($obj, RakuAST::Var::NamedCapture, '$!sigil', $sigil);
-        nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!colonpairs', []);
+        $obj.set-colonpairs($colonpairs);
         $obj
+    }
+
+    method set-colonpairs(List $pairs) {
+        my @pairs;
+        if $pairs {
+            for self.IMPL-UNWRAP-LIST($pairs) {
+                nqp::push(@pairs, $_);
+            }
+        }
+        nqp::bindattr(self, RakuAST::Var::NamedCapture, '$!colonpairs', @pairs);
+    }
+
+    method colonpairs() {
+        self.IMPL-WRAP-LIST($!colonpairs)
     }
 
     method add-colonpair(RakuAST::ColonPair $pair) {

@@ -3468,13 +3468,13 @@ CODE
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {
         my $index := $ast.index;
         # a name held as a quoted string without processors needs its angles
-        self.hsyn('capture-named', '$' ~ (
+        self.hsyn('capture-named', ($ast.sigil || '$') ~ (
           nqp::istype($index,RakuAST::QuotedString) && !$index.processors
             ?? $.pointy-open
                  ~ self.assemble-quoted-string($index, :raw)
                  ~ $.pointy-close
             !! self.deparse($index)
-        ))
+        )) ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(RakuAST::Var::Package:D $ast --> Str:D) {

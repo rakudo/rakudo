@@ -90,6 +90,11 @@ class Perl6::Metamodel::Configuration {
           !! $utility_class.NEXT-ID
     }
 
+    # Tags the flattened method tables the classes cache with this process,
+    # so a table that was serialized is rebuilt before it is used.
+    my $method_table_epoch := nqp::list;
+    method method_table_epoch() { $method_table_epoch }
+
     method set_language_revision_type($type) {
         $language-revision-type := $type
     }

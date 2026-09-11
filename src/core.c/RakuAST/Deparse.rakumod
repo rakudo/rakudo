@@ -3460,7 +3460,15 @@ CODE
     }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {
-        self.hsyn('capture-named', '$' ~ self.deparse($ast.index))
+        my $index := $ast.index;
+        # a name held as a quoted string without processors needs its angles
+        self.hsyn('capture-named', '$' ~ (
+          nqp::istype($index,RakuAST::QuotedString) && !$index.processors
+            ?? $.pointy-open
+                 ~ self.assemble-quoted-string($index, :raw)
+                 ~ $.pointy-close
+            !! self.deparse($index)
+        ))
     }
 
     multi method deparse(RakuAST::Var::Package:D $ast --> Str:D) {

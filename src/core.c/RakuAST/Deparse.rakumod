@@ -1062,10 +1062,11 @@ CODE
     multi method deparse(RakuAST::Call::BlockMethod:D $ast --> Str:D) {
         my $block := $ast.block;
         my str $dot-syn = self.method-dot($ast.dispatch || '.');
-        # the parser wraps the block of `.&{ }` in an item contextualizer
+        # the parser wraps the block of `.&{ }` in an item contextualizer,
+        # the code of `.&( )` in a statement sequence inside it
         $dot-syn
           ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
-              ?? '&' ~ self.deparse($block.target)
+              ?? '&' ~ self.context-target($block.target)
               !! self.deparse($block)
             )
           ~ self.parenthesize($ast.args, :only-non-empty(!$*INTERPOLATING))

@@ -1390,7 +1390,9 @@ CODE
             $paragraphs = self.hsyn($style, $paragraphs) if $style;
 
             if $abbreviated {
-                $margin ~ type("=$name") ~ "$config $paragraphs\n"
+                # a paragraph can be just the blank line that ends the block
+                $margin ~ type("=$name") ~ $config
+                  ~ ($paragraphs ?? " $paragraphs\n" !! "\n\n")
             }
             else {
                 $name       = " " ~ type($name);

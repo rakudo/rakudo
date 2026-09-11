@@ -285,6 +285,12 @@ CODE
             add-traits;
 
             if $WHY {
+                # an onlystar body has no brace for the docs to follow
+                if nqp::istype($ast.body,RakuAST::OnlyStar) {
+                    @parts.push(self.deparse($ast.body));
+                    my $*DELIMITER = '';
+                    return self.add-any-docs(@parts.join(' '), $WHY);
+                }
                 @parts.push('{');
                 return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
             }

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 24;
 
 my $ast;
 my $deparsed;
@@ -956,6 +956,32 @@ CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), 42, "$type: the statement after the block runs";
+    }
+}
+
+
+subtest 'A documented onlystar sub' => {
+    # proto sub greeble {*} #= type
+    # &greeble
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          multiness => 'proto',
+          name      => RakuAST::Name.from-identifier('greeble'),
+          body      => RakuAST::OnlyStar.new
+        ).declarator-docs(trailing => ('type',))
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('&greeble')
+      )
+    ), :no-pod;
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+proto sub greeble {*} #= type
+&greeble
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).WHY.trailing, 'type', "$type: the docs are on the sub";
     }
 }
 

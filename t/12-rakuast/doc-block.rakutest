@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 15;
 
 my $ast;
 my $deparsed;
@@ -403,6 +403,73 @@ subtest 'An abbreviated table is followed by the blank line that ends it' => {
 
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
     is-deeply EVAL($deparsed), 42, 'Str: the statement after the table runs';
+}
+
+
+subtest 'A visual table that starts with a divider' => {
+    # =table
+    # +-----+----+---+
+    # |   a | b  | c |
+    # +-----+----+---+
+    # | foo | 52 | Y |
+    # +-----+----+---+
+    #
+    # 42
+    ast Q:to/SOURCE/.AST;
+    =table
+    +-----+----+---+
+    |   a | b  | c |
+    +-----+----+---+
+    | foo | 52 | Y |
+    +-----+----+---+
+
+    42
+    SOURCE
+    is-deeply $ast.EVAL, 42, 'do we get the final result';
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse";
+=table
++-----+----+---+
+|   a | b  | c |
++-----+----+---+
+| foo | 52 | Y |
++-----+----+---+
+
+42
+CODE
+    }
+
+    # =numtable
+    # +---+---+
+    # | a | b |
+    # +---+---+
+    # | 1 | 2 |
+    # +---+---+
+    #
+    # 42
+    ast Q:to/SOURCE/.AST;
+    =numtable
+    +---+---+
+    | a | b |
+    +---+---+
+    | 1 | 2 |
+    +---+---+
+
+    42
+    SOURCE
+    is-deeply $ast.EVAL, 42, 'do we get the final result of the numbered table';
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse of the numbered table";
+=numtable
++---+---+
+| a | b |
++---+---+
+| 1 | 2 |
++---+---+
+
+42
+CODE
+    }
 }
 
 # vim: expandtab shiftwidth=4

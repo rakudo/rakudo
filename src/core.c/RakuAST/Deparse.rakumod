@@ -1290,7 +1290,7 @@ CODE
             }
 
             # =table with header
-            elsif $key eq 'header-row' && $type eq 'table' {
+            elsif $key eq 'header-row' && $type eq 'table' | 'numtable' {
                 Empty
             }
 
@@ -1343,9 +1343,9 @@ CODE
 
         # set up paragraphs
         if $ast.visual-table {
-            my str $type     = " " ~ type("table");
+            my str $type     = " " ~ type($name);
             my str $deparsed = $margin ~ ($abbreviated
-              ?? type("=table") ~ "$config\n"
+              ?? type("=$name") ~ "$config\n"
               !! $ast.for
                 ?? directive("=for") ~ "$type$config\n"
                 !! directive("=begin") ~ "$type$config\n\n"

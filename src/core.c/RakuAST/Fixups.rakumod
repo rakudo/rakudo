@@ -791,7 +791,9 @@ augment class RakuAST::Doc::Block {
     # return True if a legacy, visual type of table
     method visual-table(RakuAST::Doc::Block:D:) {
         $!type eq 'table' | 'numtable'
-          && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
+          && nqp::hllize($!paragraphs).first({
+               nqp::istype($_,RakuAST::Doc::LegacyRow)
+             }).defined
     }
 
     # return a Map with allowed markup codes as keys, conceptually

@@ -150,9 +150,12 @@ class RakuAST::Deparse {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
+            my $*HEREDOC-INDENT := Str;   # indent of the heredoc text being assembled
+            my $*HEREDOC-LINE-START = 0;  # the next heredoc segment starts a line
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
             my $*QUOTE-DELIMITER  := '';     # delimiter to escape in quoted text
             my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
+            my $*POINTY-RW-TRAIT := False;  # a rw parameter of a -> block writes the trait
             {*}
         }
         else {
@@ -374,10 +377,28 @@ CODE
         my @segments := $ast.segments;
         my str @parts;
         for @segments.kv -> $i, $segment {
+            my $heredoc-indent := $*HEREDOC-INDENT;
             if nqp::istype($segment,RakuAST::StrLiteral) {
-                my str $text = $raw
-                  ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
-                  !! $segment.value.raku.substr(1,*-1);
+                my str $text;
+                # the text of a heredoc is written as lines, each indented
+                # as far as the stop marker, the code in it is not
+                if $heredoc-indent.defined {
+                    my str $indent = $heredoc-indent;
+                    my str $value  = $segment.value;
+                    $text = $value.split("\n").kv.map(-> $k, $line {
+                        $line
+                          ?? ($k || $*HEREDOC-LINE-START ?? $indent !! '')
+                               ~ $line.raku.substr(1,*-1)
+                          !! ''
+                    }).join("\n");
+                    # the parser puts empty text before a leading interpolation
+                    $*HEREDOC-LINE-START = $value.ends-with("\n") if $value;
+                }
+                else {
+                    $text = $raw
+                      ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                      !! $segment.value.raku.substr(1,*-1);
+                }
                 if $text {
                     # a bracket right after an interpolation would continue
                     # it as a call or an index, and so would a dot that
@@ -427,11 +448,16 @@ CODE
             else {
                 # a closure ends the interpolation
                 $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
+                # code at the start of a heredoc line is indented as text
+                @parts.push($heredoc-indent)
+                  if $*HEREDOC-LINE-START && $heredoc-indent.defined;
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
                 my $*QUOTE-DELIMITER := '';
+                my $*HEREDOC-INDENT  := Str;
                 @parts.push(self.deparse($segment));
+                $*HEREDOC-LINE-START = 0 if $heredoc-indent.defined;
             }
         }
         @parts.join
@@ -600,6 +626,13 @@ CODE
           # a subscript would read as the value of the pair
           || (nqp::istype($operand,RakuAST::ColonPair)
                && nqp::istype($postfix,RakuAST::Postcircumfix))
+          # an adverb at the end of the operand would take a subscript as
+          # its value, and a dot after it reads as a dotty infix
+          || (nqp::istype($operand,RakuAST::Var::NamedCapture)
+               && $operand.colonpairs)
+          || (nqp::istype($operand,RakuAST::ApplyPostfix)
+               && nqp::istype($operand.postfix,RakuAST::Postcircumfix)
+               && $operand.postfix.colonpairs)
           || nqp::istype($operand,RakuAST::VarDeclaration::Term)
           || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
           || nqp::istype($operand,RakuAST::VarDeclaration::Signature)
@@ -958,9 +991,17 @@ CODE
             }
 
             $deparsed-operand
-              # a term followed by a bare argument list is a routine call
+              # a term followed by a bare argument list is a routine call,
+              # a method name followed by one is a call with those arguments
               ~ (nqp::istype($postfix,RakuAST::Call::Term)
-                  && nqp::istype($operand,RakuAST::Term::Name)
+                  && (nqp::istype($operand,RakuAST::Term::Name)
+                       || (!$deparsed-operand.ends-with(')')
+                            && (nqp::istype($operand,RakuAST::Term::TopicCall)
+                                 || (nqp::istype($operand,RakuAST::ApplyPostfix)
+                                      && nqp::istype(
+                                           $operand.postfix,
+                                           RakuAST::Call::Methodish
+                                         )))))
                   ?? '.'
                   !! ''
                 )
@@ -1381,8 +1422,9 @@ CODE
         # handle implicite code blocks
         if $type eq 'implicit-code' {
 
-            # implicit code blocks are only recognized by their indentation
-            self.hsyn('rakudoc-code', $paragraphs.chomp) ~ "\n\n"
+            # implicit code blocks are only recognized by their indentation,
+            # the paragraph text holds the blank line that ends the block
+            self.hsyn('rakudoc-code', $paragraphs.chomp) ~ "\n"
         }
 
         # other blocks with paragraphs
@@ -1503,7 +1545,6 @@ CODE
     }
 
     multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
-        my $string := self.assemble-quoted-string($ast);
         my @processors = $ast.processors;
         @processors.push('heredoc');
 
@@ -1513,9 +1554,14 @@ CODE
           !! " " x ($stop.chars - $stop.trim-leading.chars);
 
         my $top := self.multiple-processors($stop.trim, @processors);
-        my $bottom := $string.chomp('\n').split(Q/\n/).map({
-            $_ ?? "$indent$_\n" !! "\n"
-        }).join ~ $stop;
+        my $text = do {
+            my $*HEREDOC-INDENT := $indent;
+            my $*HEREDOC-LINE-START = 1;
+            self.assemble-quoted-string($ast)
+        }
+        # the stop marker starts a line of its own
+        $text ~= "\n" unless $text.ends-with("\n");
+        my $bottom := $text ~ $stop;
 
         # a statement list places the bodies of the heredocs in a statement
         my $heredocs := nqp::getlexdyn('@*HEREDOCS');
@@ -1788,6 +1834,13 @@ CODE
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
         my str @parts;
+        my int $named-parens;
+        # the is required trait marks the parameter required
+        my $required-trait := $ast.traits.first({
+            nqp::istype($_,RakuAST::Trait::Is)
+              && .name
+              && .name.canonicalize eq 'required'
+        });
         # the implicit Any of a target or a type capture is not written,
         # a parameter that is only a type has nothing else to show
         if $ast.type -> $type {
@@ -1811,7 +1864,9 @@ CODE
                 my int $parens;
                 my int $seen;
 
-                for @names -> $name {
+                # the parser adds the names from the inside out, so the
+                # first one is the innermost
+                for @names.reverse -> $name {
                     if $name eq $varname {
                         $seen = 1;
                     }
@@ -1827,13 +1882,7 @@ CODE
                 @parts.push($var);
                 @parts.push(nqp::x(')',$parens)) if $parens;
                 @parts.push('?') if $ast.is-declared-optional;
-                # the is required trait marks the parameter required
-                @parts.push('!') if $ast.is-declared-required
-                  && !$ast.traits.first({
-                       nqp::istype($_,RakuAST::Trait::Is)
-                         && .name
-                         && .name.canonicalize eq 'required'
-                     });
+                @parts.push('!') if $ast.is-declared-required && !$required-trait;
             }
 
             # positional parameter
@@ -1856,6 +1905,17 @@ CODE
                     @parts.push(self.deparse($_));
                 }
             }
+
+            # the rw flag of a parameter in a block written with -> has
+            # no starter to carry it
+            if $*POINTY-RW-TRAIT && $ast.default-rw && !$ast.traits.first({
+                nqp::istype($_,RakuAST::Trait::Is)
+                  && .name
+                  && (.name.canonicalize eq 'rw' || .name.canonicalize eq 'copy')
+            }) {
+                @parts.push(' ');
+                @parts.push(self.syn-trait('is') ~ ' rw');
+            }
         }
         elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
             @parts.push(self.deparse($ast.slurpy));
@@ -1863,9 +1923,21 @@ CODE
         elsif $ast.invocant {  # just a type without target
             @parts.push(':');
         }
+        # a named parameter without a variable wraps its sub-signature
+        # in its names, an anonymous variable when it has none
+        elsif $ast.names -> @names {
+            @parts.push(' ') if @parts;
+            for @names.reverse -> $name {
+                @parts.push(':');
+                @parts.push($name);
+                @parts.push('(');
+            }
+            @parts.push('$') unless $ast.sub-signature;
+            $named-parens = @names.elems;
+        }
 
         if $ast.sub-signature -> $signature {
-            @parts.push(' ') if @parts;
+            @parts.push(' ') if @parts && !$named-parens;
             # the slurpy of an unpacking parameter without a target goes
             # right before the brackets
             @parts.push(self.deparse($ast.slurpy))
@@ -1874,6 +1946,20 @@ CODE
             @parts.push($signature.is-array ?? '[' !! '(');
             @parts.push(self.deparse($signature));
             @parts.push($signature.is-array ?? ']' !! ')');
+        }
+
+        if $named-parens {
+            @parts.push(nqp::x(')',$named-parens));
+            @parts.push('?') if $ast.is-declared-optional;
+            @parts.push('!') if $ast.is-declared-required && !$required-trait;
+        }
+
+        # the traits of a parameter with a variable follow the variable
+        if !$target && $ast.traits -> @traits {
+            for @traits {
+                @parts.push(' ');
+                @parts.push(self.deparse($_));
+            }
         }
 
         @parts.push(self.where-constraint($_)) with $ast.where;
@@ -1924,10 +2010,18 @@ CODE
 #- Po --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
-        my str @parts = self.hsyn('arrow-one', '->');
-
         my $signature := $ast.signature;
         my $WHY       := $ast.WHY;
+
+        # the parser flags every parameter of a <-> block rw, a block
+        # with only some of them flagged is written with -> and the trait
+        my @parameters = $signature.parameters-initialized
+          ?? $signature.parameters
+          !! ();
+        my int $all-rw = ?@parameters
+          && !@parameters.first({ !.default-rw }).defined;
+        my str @parts = self.hsyn('arrow-one', $all-rw ?? '<->' !! '->');
+        my $*POINTY-RW-TRAIT := !$all-rw;
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("\n");
@@ -2593,9 +2687,14 @@ CODE
 
     multi method deparse(RakuAST::Regex::WithWhitespace:D $ast --> Str:D) {
         my $regex := $ast.regex;
-        nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator
-          ?? self.deparse($regex, :whitespace)
-          !! self.deparse($regex) ~ " "
+        if nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator {
+            self.deparse($regex, :whitespace)
+        }
+        else {
+            # an anchor writes its own trailing space
+            my str $deparsed = self.deparse($regex);
+            $deparsed.ends-with(' ') ?? $deparsed !! $deparsed ~ ' '
+        }
     }
 
 #- RegexD ----------------------------------------------------------------------
@@ -3434,6 +3533,10 @@ CODE
 
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
         self.hsyn('var-compile',$.var-compiler-file)
+    }
+
+    multi method deparse(RakuAST::Var::Compiler::Lang:D $ --> Str:D) {
+        self.hsyn('var-compile', '$?LANG')
     }
 
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> Str:D) {

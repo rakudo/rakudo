@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -254,6 +254,100 @@ CODE
         is $block(), 101,
           "$type: Invoking the block returns the expected value";
     }
+}
+
+
+subtest 'A pointy block whose parameters are all rw is written with <->' => {
+    # <-> $a { $a = 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>),
+            :default-rw
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+<-> $a {
+    $a = 42
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $v = 1;
+        $block($v);
+        is $v, 42, "$type: the block writes to its argument";
+    }
+
+    # -> $a is rw, $b { $a = $b }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>),
+            :default-rw
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Var::Lexical.new('$b')
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse with only one parameter flagged rw';
+-> $a is rw, $b {
+    $a = $b
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $v = 1;
+        $block($v, 42);
+        is $v, 42, "$type: the flagged parameter writes to its argument";
+    }
+
+    # (<-> $a, $b { }, -> $a is rw, $b { })
+    ast Q:to/SOURCE/.AST;
+    (<-> $a, $b { }, -> $a is rw, $b { })
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of parsed blocks';
+(<-> $a, $b { }, -> $a is rw, $b { })
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the parsed blocks parses back to itself';
 }
 
 # vim: expandtab shiftwidth=4

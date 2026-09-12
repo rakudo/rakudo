@@ -17,6 +17,7 @@ class RakuAST::LexicalScope
     # Handlers related to this scope.
     has int $!need-succeed-handler;
     has int $!nil-on-succeed;
+    has int $!topic-on-fallthrough;
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
@@ -318,6 +319,14 @@ class RakuAST::LexicalScope
         $!nil-on-succeed ?? True !! False
     }
 
+    # Marks this scope as producing its topic when its statements run
+    # to the end, as a QUIT phaser does to hand back the exception it
+    # did not succeed on.
+    method set-topic-on-fallthrough() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!topic-on-fallthrough', 1);
+        Nil
+    }
+
     method attach-catch-handler(RakuAST::Statement::Catch $catch) {
         if $!catch-handlers {
             nqp::push($!catch-handlers, $catch);
@@ -425,6 +434,13 @@ class RakuAST::LexicalScope
 
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,
                                         Bool :$is-handler) {
+        if $!topic-on-fallthrough {
+            $statements := QAST::Stmts.new(
+                $statements,
+                QAST::Var.new( :name('$_'), :scope('lexical') )
+            );
+        }
+
         # If it's an exception handler, add rethrow logic.
         if $is-handler {
             $statements := QAST::Stmts.new(

@@ -1155,8 +1155,8 @@ class RakuAST::VarDeclaration::Simple
             $resolver.find-attach-target('generics-pad'));
 
         # Process traits for `is Type` and `of Type`, which get special
-        # handling by the compiler.
-        my @late-traits;
+        # handling by the compiler. The ones handled here stay in the list,
+        # marked applied, so the declaration still shows how it was written.
         my @traits := self.IMPL-UNWRAP-LIST(self.traits);
 
         my $of-type;
@@ -1164,7 +1164,7 @@ class RakuAST::VarDeclaration::Simple
             if nqp::istype($_, RakuAST::Trait::Of) {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type) if $!type;
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $of-type := $_.type);
-                next;
+                $_.mark-applied;
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
                 my $type := $_.type;
@@ -1174,10 +1174,9 @@ class RakuAST::VarDeclaration::Simple
                     && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
                 {
                     self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type);
-                    next;
+                    $_.mark-applied;
                 }
             }
-            nqp::push(@late-traits, $_);
         }
 
         my $subset;
@@ -1189,9 +1188,6 @@ class RakuAST::VarDeclaration::Simple
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
         }
-
-        # Apply any traits.
-        self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
         self.IMPL-RESOLVE-CONTAINER-VIVIFY-MODE($resolver)
             if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;

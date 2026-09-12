@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24;
+plan 26;
 
 my $ast;
 my $deparsed;
@@ -213,7 +213,7 @@ CODE
 }
 
 subtest 'Required named parameter with alias' => { 
-    # sub (:first(:fst($var))!) { $var }
+    # sub (:fst(:first($var))!) { $var }
     ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
@@ -234,7 +234,7 @@ subtest 'Required named parameter with alias' => {
     );
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-sub (:first(:fst($var))!) {
+sub (:fst(:first($var))!) {
     $var
 }
 CODE
@@ -1233,6 +1233,132 @@ CODE
 
     is-deeply $_, 15, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Nested aliases of a named parameter are written outermost first' => {
+    # sub (:x(:y(:$z))) { $z }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$z>),
+            names => ['z', 'y', 'x']
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$z')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (:x(:y(:$z))) {
+    $z
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku) -> $type, $sub {
+        is-deeply $sub.signature.params[0].named_names, ('z', 'y', 'x'),
+          "$type: the names are the ones written, innermost first";
+        is $sub(x => 1), 1, "$type: the outer alias is accepted";
+        is $sub(y => 2), 2, "$type: the inner alias is accepted";
+        is $sub(z => 3), 3, "$type: the name of the variable is accepted";
+    }
+}
+
+
+subtest 'A named parameter without a variable keeps its name around its sub-signature' => {
+    # sub (Pair :value((Str :key($k), :value($v)))) { $k ~ $v }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            type  => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Pair')),
+            names => ['value'],
+            sub-signature => RakuAST::Signature.new(
+              parameters => (
+                RakuAST::Parameter.new(
+                  type   => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+                  target => RakuAST::ParameterTarget::Var.new(:name<$k>),
+                  names  => ['key']
+                ),
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$v>),
+                  names  => ['value']
+                ),
+              )
+            )
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$k'),
+              infix => RakuAST::Infix.new('~'),
+              right => RakuAST::Var::Lexical.new('$v')
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (Pair :value((Str :key($k), :value($v)))) {
+    $k ~ $v
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku) -> $type, $sub {
+        is $sub(value => (a => 1)), 'a1',
+          "$type: the sub-signature takes the pair apart";
+    }
+
+    # (sub (:v(($a))!) { $a }, sub (:x(:y(($a)))) { $a }, sub (:v((:$k)) is copy) { $k })
+    ast Q:to/SOURCE/.AST;
+    (sub (:v(($a))!) { $a }, sub (:x(:y(($a)))) { $a }, sub (:v((:$k)) is copy) { $k })
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of markers, nested names and a trait';
+(sub (:v(($a))!) {
+    $a
+}, sub (:x(:y(($a)))) {
+    $a
+}, sub (:v((:$k)) is copy) {
+    $k
+})
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of those parameters parses back to itself';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku) -> $type, @subs {
+        is @subs[0](v => (7,)), 7, "$type: the required named parameter binds";
+        is @subs[1](y => (8,)), 8, "$type: the nested alias binds";
+        ok @subs[2].signature.params[0].copy, "$type: the trait is kept";
+    }
+
+    # sub (:v($)) { }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(names => ['v']),
+        )
+      ),
+      body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+    );
+    is-deeply $deparsed, 'sub (:v($)) { }',
+      'a named parameter without a variable or a sub-signature is written anonymous';
+    ok EVAL($deparsed).signature.params[0].named,
+      'Str: the parameter is named';
 }
 
 # vim: expandtab shiftwidth=4

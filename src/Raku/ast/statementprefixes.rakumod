@@ -910,13 +910,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
         if nqp::istype(self.blorst, RakuAST::Block) {
             self.blorst.set-needs-result(True);
             self.blorst.set-nil-on-succeed();
-            self.blorst.body.statement-list.add-statement(
-                RakuAST::Statement::Expression.new(
-                    :expression(
-                        RakuAST::Var::Lexical.new('$_', :sigil('$'), :desigilname(RakuAST::Name.from-identifier('_'))).to-begin-time($resolver, $context)
-                    )
-                )
-            );
+            self.blorst.set-topic-on-fallthrough();
         }
     }
 

@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -431,6 +431,68 @@ $r
 CODE
 
     is-deeply $_, "HI", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The code in a heredoc keeps its escapes and the text keeps its backslashes' => {
+    # my @p = 1, 2;
+    # my $s = qq:to/END/;
+    #   a {
+    #     join "\n", @p
+    # }
+    #   b\\nc
+    #   END
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my @p = 1, 2;
+    my $s = qq:to/END/;
+      a { join "\n", @p }
+      b\\nc
+      END
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @p = 1, 2;
+my $s = qq:to/END/;
+  a {
+    join "\n", @p
+}
+  b\\nc
+  END
+$s
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "a 1\n2\nb\\nc\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my $x = 1;
+    # my $s = qq:to/END/;
+    #   $x \q[b $x]
+    #   END
+    # $s
+    #
+    # the nested quote is written as the escaped text it holds
+    ast Q:to/SOURCE/.AST;
+    my $x = 1;
+    my $s = qq:to/END/;
+      $x \q[b $x]
+      END
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of a heredoc that starts with code';
+my $x = 1;
+my $s = qq:to/END/;
+  $x b \$x
+  END
+$s
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the heredoc that starts with code parses back to itself';
+
+    is-deeply $_, "1 b \$x\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

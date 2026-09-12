@@ -669,6 +669,7 @@ augment class RakuAST::Node {
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
         @nameds.push("invocant") if self.invocant;
+        @nameds.push("default-rw") if self.default-rw;
         @nameds.append: <
           target optional slurpy traits default where sub-signature value
         >;
@@ -985,6 +986,10 @@ augment class RakuAST::Node {
     }
 
 #- Regex::S --------------------------------------------------------------------
+
+    multi method raku(RakuAST::Regex::Sym:D: --> Str:D) {
+        self!positional(self.colonpair)
+    }
 
     multi method raku(RakuAST::Regex::Sequence:D: --> Str:D) {
         self!positionals(self.terms)
@@ -1319,6 +1324,11 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
         self!positional(self.file)
+    }
+
+    # the cursor of the compilation the .raku is evaluated in
+    multi method raku(RakuAST::Var::Compiler::Lang:D: --> Str:D) {
+        self.^name ~ '.new($?LANG)'
     }
 
     multi method raku(RakuAST::Var::Compiler::Line:D: --> Str:D) {

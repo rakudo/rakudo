@@ -218,6 +218,10 @@ augment class RakuAST::Node {
               my $meta := self.meta;
               :$meta if $meta
           },
+          'modifier', -> {
+              my $modifier := self.modifier;
+              :$modifier if $modifier ne self.key
+          },
           'module-names', -> {
               my $module-names := nqp::decont(self.module-names);
               :$module-names if $module-names

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 75;
+plan 76;
 
 my $ast;
 my $deparsed;
@@ -2004,6 +2004,18 @@ CODE
     is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse of attributes';
 
     is-deeply $_, ("Map", 42, Nil), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Special compiler variable $?LANG' => {
+    # $?LANG.^name
+    ast Q:to/SOURCE/.AST;
+    $?LANG.^name
+    SOURCE
+
+    is-deeply $deparsed, "\$?LANG.^name\n", 'deparse';
+    like $_, /Grammar/, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -1322,6 +1322,11 @@ augment class RakuAST::Node {
         self!positional(self.file)
     }
 
+    # the cursor of the compilation the .raku is evaluated in
+    multi method raku(RakuAST::Var::Compiler::Lang:D: --> Str:D) {
+        self.^name ~ '.new($?LANG)'
+    }
+
     multi method raku(RakuAST::Var::Compiler::Line:D: --> Str:D) {
         self!positional(self.line)
     }

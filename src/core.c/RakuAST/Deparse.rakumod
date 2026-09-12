@@ -3535,6 +3535,10 @@ CODE
         self.hsyn('var-compile',$.var-compiler-file)
     }
 
+    multi method deparse(RakuAST::Var::Compiler::Lang:D $ --> Str:D) {
+        self.hsyn('var-compile', '$?LANG')
+    }
+
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> Str:D) {
         self.hsyn('var-compile', $.var-compiler-line)
     }

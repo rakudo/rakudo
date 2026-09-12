@@ -755,12 +755,18 @@ CODE
         self.labels($ast) ~ @parts.join
     }
 
+    # the parser keeps an empty doc line as an empty string
+    method doc-lines(@docs) {
+        @docs.map({
+            my @lines = self.deparse-unquoted($_).lines;
+            @lines ?? @lines.Slip !! ''
+        })
+    }
+
     method prefix-any-leading-doc(str $body, $WHY) {
         if $WHY && $WHY.leading -> @leading {
             # the parser stores a leading doc line without its newline
-            self.hsyn('doc-leading', @leading.map({
-                self.deparse-unquoted($_).lines.Slip
-            }).map({
+            self.hsyn('doc-leading', self.doc-lines(@leading).map({
                 "#| $_\n$*INDENT"
             }).join)
               ~ $body
@@ -772,9 +778,7 @@ CODE
 
     method postfix-any-trailing-doc(str $body, $WHY) {
         if $WHY && $WHY.trailing -> @trailing {
-            my str @lines = @trailing.map: {
-                self.deparse-unquoted($_).lines.Slip
-            }
+            my str @lines = self.doc-lines(@trailing);
             ($body ~ $*DELIMITER).chomp
               ~ (@lines > 1 ?? "\n" !! ' ')
               ~ self.hsyn(

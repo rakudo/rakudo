@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -983,6 +983,49 @@ CODE
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is EVAL($it).WHY.trailing, 'type', "$type: the docs are on the sub";
     }
+}
+
+
+subtest 'An empty line in a leading or trailing doc is kept' => {
+    # #| a
+    # #| 
+    # #| b
+    # sub a {
+    # #= c
+    # #= 
+    # #= d
+    #     42
+    # }
+    ast RakuAST::Doc::Declarator.new(
+      WHEREFORE => RakuAST::Sub.new(
+        name => RakuAST::Name.from-identifier("a"),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      ),
+      leading  => ("a", "", "b"),
+      trailing => ("c", "", "d")
+    ), :no-pod;
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| a
+#| 
+#| b
+sub a {
+#= c
+#= 
+#= d
+    42
+}
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
 }
 
 # vim: expandtab shiftwidth=4

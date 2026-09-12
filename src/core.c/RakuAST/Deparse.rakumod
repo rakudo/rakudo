@@ -2155,11 +2155,15 @@ CODE
             elsif @processors == 2 {
                 my str $joined = @processors.join(' ');
                 # the double angles interpolate, the single ones do not.
-                # The ASCII form ends early when the list starts with < or
-                # ends with >, the wide form when the list holds a wide angle
+                # The ASCII form ends early when the list starts with <,
+                # ends with > or holds a double angle, the wide form when
+                # the list holds a wide angle
                 if $joined eq 'quotewords val' {
                     my str $string = self.assemble-quoted-string($ast);
-                    my int $wide = $string.starts-with('<') || $string.ends-with('>');
+                    my int $wide = $string.starts-with('<')
+                      || $string.ends-with('>')
+                      || $string.contains('>>')
+                      || $string.contains('<<');
                     $wide && ($string.contains('«') || $string.contains('»'))
                       ?? self.multiple-processors(self.slash-quoted-string($ast), @processors)
                       !! $wide

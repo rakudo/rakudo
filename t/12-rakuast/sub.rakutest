@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -632,6 +632,51 @@ documented(42)
 CODE
 
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An operator name that holds a double angle' => {
+    # sub infix:«>>=» ($a, $b) {
+    #     $a ~ "=" ~ $b
+    # }
+    # 1 >>= 2
+    ast Q:to/SOURCE/.AST;
+    sub infix:«>>=»($a, $b) { $a ~ "=" ~ $b }
+    1 >>= 2
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub infix:«>>=» ($a, $b) {
+    $a ~ "=" ~ $b
+}
+1 >>= 2
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "1=2", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'An operator name that holds a double open angle' => {
+    # sub infix:«<<=» ($a, $b) {
+    #     $a ~ "=" ~ $b
+    # }
+    # 1 <<= 2
+    ast Q:to/SOURCE/.AST;
+    sub infix:«<<=»($a, $b) { $a ~ "=" ~ $b }
+    1 <<= 2
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub infix:«<<=» ($a, $b) {
+    $a ~ "=" ~ $b
+}
+1 <<= 2
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "1=2", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

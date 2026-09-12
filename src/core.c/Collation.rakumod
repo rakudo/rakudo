@@ -41,8 +41,4 @@ class Collation {
     method quaternary  { self.check(64, 128) }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*COLLATION', {
-    PROCESS::<$COLLATION> := Collation.new;
-}
-
 # vim: expandtab shiftwidth=4

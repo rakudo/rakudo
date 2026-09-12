@@ -73,24 +73,6 @@ my class Rakudo::Internals::IterationSet is repr('VMHash') { # is implementation
 # The value for \n.
 my constant $?NL = "\x0A";
 
-# Make sure we have an environment
-PROCESS::<%ENV> := do {
-    my $env := nqp::hash;
-    my $iter := nqp::iterator(nqp::getenvhash);
-    nqp::while(
-      $iter,
-      nqp::bindkey(
-        $env,
-        nqp::iterkey_s(nqp::shift($iter)),
-        nqp::assign(
-          nqp::p6scalarfromdesc(nqp::null),
-          val(nqp::box_s(nqp::iterval($iter),Str))
-        )
-      )
-    );
-    nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$env)
-}
-
 #?if jvm
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif

@@ -984,9 +984,17 @@ CODE
             }
 
             $deparsed-operand
-              # a term followed by a bare argument list is a routine call
+              # a term followed by a bare argument list is a routine call,
+              # a method name followed by one is a call with those arguments
               ~ (nqp::istype($postfix,RakuAST::Call::Term)
-                  && nqp::istype($operand,RakuAST::Term::Name)
+                  && (nqp::istype($operand,RakuAST::Term::Name)
+                       || (!$deparsed-operand.ends-with(')')
+                            && (nqp::istype($operand,RakuAST::Term::TopicCall)
+                                 || (nqp::istype($operand,RakuAST::ApplyPostfix)
+                                      && nqp::istype(
+                                           $operand.postfix,
+                                           RakuAST::Call::Methodish
+                                         )))))
                   ?? '.'
                   !! ''
                 )

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 40;
+plan 41;
 
 my $ast;
 my $deparsed;
@@ -954,6 +954,101 @@ subtest 'Multi-dimensional index through a multislice prefix' => {
 
     is-deeply $deparsed, '@a[||(1; 0)]', 'deparse';
     is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A call on the result of a method call keeps its dot' => {
+    # my $o = class { method c { -> { 42 } } }.new;
+    # $o.c.()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('o'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Class.new(
+                body => RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::Method.new(
+                          name => RakuAST::Name.from-identifier('c'),
+                          body => RakuAST::Blockoid.new(
+                            RakuAST::StatementList.new(
+                              RakuAST::Statement::Expression.new(
+                                expression => RakuAST::PointyBlock.new(
+                                  body => RakuAST::Blockoid.new(
+                                    RakuAST::StatementList.new(
+                                      RakuAST::Statement::Expression.new(
+                                        expression => RakuAST::IntLiteral.new(42)
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('$o'),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('c')
+            )
+          ),
+          postfix => RakuAST::Call::Term.new
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $o = class {
+    method c {
+        -> {
+            42
+        }
+    }
+}.new;
+$o.c.()
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my $o = class { method c(|) { -> { 42 } } }.new;
+    # my @r = $o.c(1).(), $o."c"().();
+    # given $o { @r.push(.c.()) };
+    # @r
+    ast Q:to/SOURCE/.AST;
+    my $o = class { method c(|) { -> { 42 } } }.new;
+    my @r = $o.c(1).(), $o."c"().();
+    given $o { @r.push(.c.()) };
+    @r
+    SOURCE
+    ok $deparsed.contains('my @r = $o.c(1)(), $o."c"()();'),
+      'a call on a call with parentheses of its own needs no dot';
+    ok $deparsed.contains('@r.push(.c.())'),
+      'a call on a topic call keeps its dot';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of those calls parses back to itself';
+
+    is-deeply $_, [42, 42, 42], @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

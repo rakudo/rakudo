@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -474,6 +474,120 @@ subtest 'Triangle reduce meta-op on reversed left associative operator' => {
             @expected = @expected Z+ (10, 20, 30);
         }
     }
+}
+
+
+subtest 'A hyper of a negated infix deparses the negation' => {
+    # my @b = 1, 2; @b »!==« @b
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('b'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('@b'),
+          infix => RakuAST::MetaInfix::Hyper.new(
+            infix => RakuAST::MetaInfix::Negate.new(RakuAST::Infix.new('=='))
+          ),
+          right => RakuAST::Var::Lexical.new('@b')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @b = 1, 2;
+@b »!==« @b
+CODE
+
+    is-deeply $_, [False, False], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A hyper of an operator that starts with an equals sign uses the wide markers' => {
+    # my %h; %h<a b> »=» 42; %h<b>
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+              index => RakuAST::QuotedString.new(
+                :segments[RakuAST::StrLiteral.new('a b')],
+                :processors<words val>
+              )
+            )
+          ),
+          infix => RakuAST::MetaInfix::Hyper.new(
+            infix      => RakuAST::Assignment.new(:item),
+            dwim-right => True
+          ),
+          right => RakuAST::IntLiteral.new(42)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            index => RakuAST::QuotedString.new(
+              :segments[RakuAST::StrLiteral.new('b')],
+              :processors<words val>
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my %h;
+%h<a b> »=» 42;
+%h<b>
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The .raku of a reduce without arguments keeps its argument list' => {
+    # [+]
+    ast RakuAST::Term::Reduce.new(
+      infix => RakuAST::Infix.new('+'),
+      args  => RakuAST::ArgList.new
+    );
+    is-deeply $deparsed, '[+]', 'deparse';
+
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A function infix under a reverse metaop deparses' => {
+    # 3 R[&min] 4
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(3),
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::FunctionInfix.new(RakuAST::Var::Lexical.new('&min'))
+      ),
+      right => RakuAST::IntLiteral.new(4)
+    );
+    is-deeply $deparsed, '3 R[&min] 4', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

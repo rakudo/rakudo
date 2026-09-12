@@ -531,7 +531,7 @@ augment class RakuAST::Node {
 #- L ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Label:D: --> Str:D) {
-        self!nameds: <name>
+        self!literal(self.name)
     }
 
     # handles all RakuAST::xxxLiteral classes
@@ -1189,8 +1189,9 @@ augment class RakuAST::Node {
         self!nameds: <radix multi-part value>
     }
 
+    # the argument list is required, even an empty one
     multi method raku(RakuAST::Term::Reduce:D: --> Str:D) {
-        self!nameds: <triangle infix args>
+        self!nameds: 'triangle', 'infix', Pair.new('args', self.args)
     }
 
     multi method raku(RakuAST::Term::TopicCall:D: --> Str:D) {

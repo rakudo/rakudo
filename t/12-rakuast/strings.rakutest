@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25;
+plan 27;
 
 my $ast;
 my $deparsed;
@@ -657,6 +657,80 @@ my $x = "a";
 qqx/echo $x.uc()/
 CODE
     is-deeply $_, "A\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An apostrophe or hyphen after an interpolated variable is escaped' => {
+    # my $name = "x"; "$name\'s $name\-y"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('name'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('x')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::Var::Lexical.new('$name'),
+            RakuAST::StrLiteral.new("'s "),
+            RakuAST::Var::Lexical.new('$name'),
+            RakuAST::StrLiteral.new('-y')
+          ]
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $name = "x";
+"$name\'s $name\-y"
+CODE
+
+    is-deeply $_, "x's x-y", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Quote words in double angles interpolate' => {
+    # my $x = "a"; «$x :k<v>»
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::QuotedString.new(
+          :segments[
+            RakuAST::Var::Lexical.new('$x'),
+            RakuAST::StrLiteral.new(' '),
+            RakuAST::QuoteWordsAtom.new(
+              RakuAST::ColonPair::Value.new(
+                key   => 'k',
+                value => RakuAST::QuotedString.new(
+                  :segments[RakuAST::StrLiteral.new('v')],
+                  :processors<words val>
+                )
+              )
+            )
+          ],
+          :processors<quotewords val>
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "a";
+«$x :k<v>»
+CODE
+
+    is-deeply $_, ('a', :k<v>), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

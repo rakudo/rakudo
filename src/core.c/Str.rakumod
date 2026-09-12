@@ -834,9 +834,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? nqp::findnotcclass(
                nqp::const::CCLASS_WORD,self,0,nqp::chars(self)
              ) == nqp::chars(self)
+               && nqp::not_i(self!prepends-at-end)
             ?? nqp::concat('"',nqp::concat(self,'"'))  # fast path alpha
             !! self!rakufy                             # slow path non-alpha
           !! '""'                                      # empty string
+    }
+
+    # A prepend character at the end of the string, a letter in some
+    # scripts, would take the closing " into its grapheme
+    method !prepends-at-end() {
+        my int $ord = nqp::ordat(self,nqp::chars(self) - 1);
+        nqp::isge_i($ord,768)
+          && nqp::iseq_s(
+               nqp::getuniprop_str(
+                 $ord,
+                 nqp::unipropcode('Grapheme_Cluster_Break')
+               ),
+               'Prepend'
+             )
     }
 
     # Special case escape values for rakufication
@@ -857,6 +872,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $list
     }
 
+    # The Grapheme_Cluster_Break values of a character that joins the
+    # grapheme next to it
+    my constant $joiners = nqp::hash(
+      'Extend', 1, 'SpacingMark', 1, 'ZWJ', 1, 'Prepend', 1
+    );
+
     # Helper method to create hex representation of char
     method !hexify(str $char) is pure {
         nqp::concat(
@@ -873,10 +894,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # Under NFG-supporting implementations, must be sure that any leading
-    # combiners are escaped, otherwise they will be combined onto the "
-    # under concatenation closure, which ruins round-tripping. Also handle
-    # the \r\n grapheme correctly.
+    # Under NFG-supporting implementations a character that joins the
+    # grapheme next to it is escaped, or it would take the " on that side
+    # into itself under concatenation closure, which ruins round-tripping.
+    # Also handle the \r\n grapheme correctly.
     method !rakufy() {
         my $rakufied := nqp::list_s('"');              # array add chars to
         my int $chars = nqp::chars(self);
@@ -894,20 +915,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if !jvm
               nqp::if(
                 nqp::isge_i($ord,768)                  # different from "0" ??
-                  && nqp::isgt_i(
-                       nqp::atpos(
-                         nqp::radix_I(10,              # failure -> value 0
-                           nqp::getuniprop_str(
-                             $ord,
-                             nqp::unipropcode('Canonical_Combining_Class')
-                           ),
-                           0,0,Int
-                         ),
-                         0
-                       ),
-                       0
+                  && nqp::existskey(
+                       $joiners,
+                       nqp::getuniprop_str(
+                         $ord,
+                         nqp::unipropcode('Grapheme_Cluster_Break')
+                       )
                      ),
-                self!hexify($char),                    # escape since > 0
+                self!hexify($char),                    # escape since it joins
 #?endif
                 nqp::if(
                   nqp::iseq_s($char,"\r\n"), # <-- this is a synthetic codepoint

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 19; # Do not change this file to done-testing
+plan 20; # Do not change this file to done-testing
 
 given RakuAST::Label.new('Foo') {
     isa-ok $_, RakuAST::Label, '.new constructs a label';
@@ -551,6 +551,60 @@ CODE
 if 0 {  # runtime support for labels doesn't work yet
     is-deeply EVAL($_), Nil, @type[$++] for $ast, $deparsed, EVAL($raku);
 }
+}
+
+
+subtest 'The .raku of a label passes its name positionally' => {
+    # my $x = 0; A: while $x++ < 2 { last A }; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(0)
+          )
+        )
+      ),
+      RakuAST::Statement::Loop::While.new(
+        labels    => [RakuAST::Label.new('A')],
+        condition => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('$x'),
+            postfix => RakuAST::Postfix.new(operator => '++')
+          ),
+          infix => RakuAST::Infix.new('<'),
+          right => RakuAST::IntLiteral.new(2)
+        ),
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name::WithoutParentheses.new(
+                  name => RakuAST::Name.from-identifier('last'),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Term::Name.new(RakuAST::Name.from-identifier('A'))
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = 0;
+A: while $x++ < 2 {
+    last A
+}
+$x
+CODE
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 35;
+plan 39;
 
 my $ast;
 my $deparsed;
@@ -844,6 +844,84 @@ subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
     is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
       (2, 3), 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'An anonymous declaration under a method call keeps its parentheses' => {
+    # ($).WHAT
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::VarDeclaration::Anonymous.new(
+        scope => 'state',
+        sigil => '$'
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHAT')
+      )
+    );
+    is-deeply $deparsed, '($).WHAT', 'deparse';
+
+    is-deeply $_, Any, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A number with a qualified method call keeps its parentheses' => {
+    # (42).::Str::abs
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.new(
+          RakuAST::Name::Part::Empty.new,
+          RakuAST::Name::Part::Simple.new('Str'),
+          RakuAST::Name::Part::Simple.new('abs')
+        )
+      )
+    );
+    is-deeply $deparsed, '(42).::Str::abs', 'deparse';
+
+    throws-like { EVAL($_) }, X::Method::InvalidQualifier, @type[$++]
+      for $ast, $deparsed, EVAL($raku);
+}
+
+
+subtest 'An imaginary postfix after a word is separated from it' => {
+    # π\i + Inf\i
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('π')),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      ),
+      infix => RakuAST::Infix.new('+'),
+      right => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::NumLiteral.new(Inf),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      )
+    );
+    is-deeply $deparsed, 'π\i + Inf\i', 'deparse';
+
+    is-deeply $_, π\i + Inf\i, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A colonpair under a subscript keeps its parentheses' => {
+    # (:42a)<foo>
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::ColonPair::Number.new(
+        key   => 'a',
+        value => RakuAST::IntLiteral.new(42)
+      ),
+      postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+        index => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('foo')],
+          :processors<words val>
+        )
+      )
+    );
+    is-deeply $deparsed, '(:42a)<foo>', 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

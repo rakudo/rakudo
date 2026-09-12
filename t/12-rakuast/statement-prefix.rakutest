@@ -677,7 +677,7 @@ subtest 'A statement prefix over a heredoc keeps the body intact' => {
       )
     );
 
-    is-deeply $deparsed, "my \$x = do qq:to/END/\nhi\nEND\n;\n\$x\n", 'deparse';
+    is-deeply $deparsed, "my \$x = do qq:to/END/;\nhi\nEND\n\$x\n", 'deparse';
     is-deeply $_, "hi\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }

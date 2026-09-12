@@ -3460,7 +3460,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :of($*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type'))
         );
 
-        $where && $*DECLARAND
+        # a where block was seen before the subset and took its leading
+        # doc, a where expression left the previous declarand in place
+        $where && $*DECLARAND && nqp::eqaddr($*DECLARAND,$where)
           ?? self.steal-declarand($/, $decl)
           !! self.set-declarand($/, $decl);
 

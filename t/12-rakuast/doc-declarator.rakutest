@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25;
+plan 26;
 
 my $ast;
 my $deparsed;
@@ -1025,6 +1025,28 @@ sub a {
 CODE
     }
     is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+}
+
+
+subtest 'A subset with a where expression keeps its own leading doc' => {
+    # #| d1
+    # my enum E <a b>;
+    # #| d2
+    # my subset S of Any where 1;
+    # #| d3
+    # my class C { }
+    my $ast := Q:to/SOURCE/.AST;
+    #| d1
+    my enum E <a b>;
+    #| d2
+    my subset S of Any where 1;
+    #| d3
+    my class C { }
+    SOURCE
+    is-deeply $ast.statements.map(*.expression.WHY.leading.head).List,
+      ("d1", "d2", "d3"), 'each declaration keeps its own leading doc';
+    is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
 }
 

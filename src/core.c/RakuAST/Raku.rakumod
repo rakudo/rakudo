@@ -669,6 +669,7 @@ augment class RakuAST::Node {
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
         @nameds.push("invocant") if self.invocant;
+        @nameds.push("default-rw") if self.default-rw;
         @nameds.append: <
           target optional slurpy traits default where sub-signature value
         >;

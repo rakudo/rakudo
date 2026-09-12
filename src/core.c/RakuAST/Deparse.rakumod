@@ -155,6 +155,7 @@ class RakuAST::Deparse {
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
             my $*QUOTE-DELIMITER  := '';     # delimiter to escape in quoted text
             my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
+            my $*POINTY-RW-TRAIT := False;  # a rw parameter of a -> block writes the trait
             {*}
         }
         else {
@@ -1888,6 +1889,17 @@ CODE
                     @parts.push(self.deparse($_));
                 }
             }
+
+            # the rw flag of a parameter in a block written with -> has
+            # no starter to carry it
+            if $*POINTY-RW-TRAIT && $ast.default-rw && !$ast.traits.first({
+                nqp::istype($_,RakuAST::Trait::Is)
+                  && .name
+                  && (.name.canonicalize eq 'rw' || .name.canonicalize eq 'copy')
+            }) {
+                @parts.push(' ');
+                @parts.push(self.syn-trait('is') ~ ' rw');
+            }
         }
         elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
             @parts.push(self.deparse($ast.slurpy));
@@ -1956,10 +1968,18 @@ CODE
 #- Po --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
-        my str @parts = self.hsyn('arrow-one', '->');
-
         my $signature := $ast.signature;
         my $WHY       := $ast.WHY;
+
+        # the parser flags every parameter of a <-> block rw, a block
+        # with only some of them flagged is written with -> and the trait
+        my @parameters = $signature.parameters-initialized
+          ?? $signature.parameters
+          !! ();
+        my int $all-rw = ?@parameters
+          && !@parameters.first({ !.default-rw }).defined;
+        my str @parts = self.hsyn('arrow-one', $all-rw ?? '<->' !! '->');
+        my $*POINTY-RW-TRAIT := !$all-rw;
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("\n");

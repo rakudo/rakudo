@@ -1834,6 +1834,13 @@ CODE
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
         my str @parts;
+        my int $named-parens;
+        # the is required trait marks the parameter required
+        my $required-trait := $ast.traits.first({
+            nqp::istype($_,RakuAST::Trait::Is)
+              && .name
+              && .name.canonicalize eq 'required'
+        });
         # the implicit Any of a target or a type capture is not written,
         # a parameter that is only a type has nothing else to show
         if $ast.type -> $type {
@@ -1875,13 +1882,7 @@ CODE
                 @parts.push($var);
                 @parts.push(nqp::x(')',$parens)) if $parens;
                 @parts.push('?') if $ast.is-declared-optional;
-                # the is required trait marks the parameter required
-                @parts.push('!') if $ast.is-declared-required
-                  && !$ast.traits.first({
-                       nqp::istype($_,RakuAST::Trait::Is)
-                         && .name
-                         && .name.canonicalize eq 'required'
-                     });
+                @parts.push('!') if $ast.is-declared-required && !$required-trait;
             }
 
             # positional parameter
@@ -1922,9 +1923,21 @@ CODE
         elsif $ast.invocant {  # just a type without target
             @parts.push(':');
         }
+        # a named parameter without a variable wraps its sub-signature
+        # in its names, an anonymous variable when it has none
+        elsif $ast.names -> @names {
+            @parts.push(' ') if @parts;
+            for @names.reverse -> $name {
+                @parts.push(':');
+                @parts.push($name);
+                @parts.push('(');
+            }
+            @parts.push('$') unless $ast.sub-signature;
+            $named-parens = @names.elems;
+        }
 
         if $ast.sub-signature -> $signature {
-            @parts.push(' ') if @parts;
+            @parts.push(' ') if @parts && !$named-parens;
             # the slurpy of an unpacking parameter without a target goes
             # right before the brackets
             @parts.push(self.deparse($ast.slurpy))
@@ -1933,6 +1946,20 @@ CODE
             @parts.push($signature.is-array ?? '[' !! '(');
             @parts.push(self.deparse($signature));
             @parts.push($signature.is-array ?? ']' !! ')');
+        }
+
+        if $named-parens {
+            @parts.push(nqp::x(')',$named-parens));
+            @parts.push('?') if $ast.is-declared-optional;
+            @parts.push('!') if $ast.is-declared-required && !$required-trait;
+        }
+
+        # the traits of a parameter with a variable follow the variable
+        if !$target && $ast.traits -> @traits {
+            for @traits {
+                @parts.push(' ');
+                @parts.push(self.deparse($_));
+            }
         }
 
         @parts.push(self.where-constraint($_)) with $ast.where;

@@ -2073,19 +2073,23 @@ CODE
         my int $all-rw = ?@parameters
           && !@parameters.first({ !.default-rw }).defined;
         my str @parts = self.hsyn('arrow-one', $all-rw ?? '<->' !! '->');
-        my $*POINTY-RW-TRAIT := !$all-rw;
+        # the trait is only for the parameters of this block, a list
+        # declaration in the body has rw parameters of its own
+        my $deparsed-signature := $signature.parameters-initialized
+          ?? do {
+                 my $*POINTY-RW-TRAIT := !$all-rw;
+                 self.deparse($signature)
+             }
+          !! '';
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("\n");
             @parts = self.add-any-docs(@parts.join(' '), $WHY)
-              ~ self.deparse($signature);
+              ~ $deparsed-signature;
         }
 
         else {
-            if $signature.parameters-initialized
-              && self.deparse($signature) -> $deparsed {
-                @parts.push($deparsed);
-            }
+            @parts.push($deparsed-signature) if $deparsed-signature;
 
             if $WHY {
                 @parts.push('{');

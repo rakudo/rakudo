@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -348,6 +348,25 @@ CODE
 CODE
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse of the parsed blocks parses back to itself';
+}
+
+subtest 'A list declaration in the body of a pointy block' => {
+    # -> $x {
+    #     my ($a, %b) = $x, (c => 1);
+    #     $a + %b<c>
+    # }
+    ast Q:to/SOURCE/.AST.statements[0].expression;
+    -> $x { my ($a, %b) = $x, (c => 1); $a + %b<c> }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $x {
+    my ($a, %b) = $x, (c => 1);
+    $a + %b<c>
+}
+CODE
+
+    is-deeply $_.(41), 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

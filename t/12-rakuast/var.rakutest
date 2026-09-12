@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 74;
+plan 75;
 
 my $ast;
 my $deparsed;
@@ -1949,6 +1949,62 @@ CODE
     is-deeply $_, (True, 0, 0), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'The container type and the of type of a declaration survive its compilation' => {
+    # my %h is Map = (a => 1);
+    # my $x of Int = 42;
+    # (%h.^name, %h<a>, $x)
+    ast Q:to/SOURCE/.AST;
+    my %h is Map = (a => 1);
+    my $x of Int = 42;
+    (%h.^name, %h<a>, $x)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my %h is Map = (a => 1);
+my $x of Int = 42;
+(%h.^name, %h<a>, $x)
+CODE
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, ("Map", 1, 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my class C {
+    #     has @.a is Array;
+    #     has %.h is Map;
+    #     has $.i of Int
+    # }
+    # my $c = C.new(h => (a => 1), i => 42);
+    # ($c.h.^name, $c.i, try { $c.i = "x"; "no check" })
+    ast Q:to/SOURCE/.AST;
+    my class C {
+        has @.a is Array;
+        has %.h is Map;
+        has $.i of Int
+    }
+    my $c = C.new(h => (a => 1), i => 42);
+    ($c.h.^name, $c.i, try { $c.i = "x"; "no check" })
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of attributes';
+my class C {
+    has @.a is Array;
+    has %.h is Map;
+    has $.i of Int
+}
+my $c = C.new(h => (a => 1), i => 42);
+($c.h.^name, $c.i, try {
+    $c.i = "x";
+    "no check"
+})
+CODE
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse of attributes';
+
+    is-deeply $_, ("Map", 42, Nil), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

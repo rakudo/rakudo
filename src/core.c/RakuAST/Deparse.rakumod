@@ -1381,8 +1381,9 @@ CODE
         # handle implicite code blocks
         if $type eq 'implicit-code' {
 
-            # implicit code blocks are only recognized by their indentation
-            self.hsyn('rakudoc-code', $paragraphs.chomp) ~ "\n\n"
+            # implicit code blocks are only recognized by their indentation,
+            # the paragraph text holds the blank line that ends the block
+            self.hsyn('rakudoc-code', $paragraphs.chomp) ~ "\n"
         }
 
         # other blocks with paragraphs

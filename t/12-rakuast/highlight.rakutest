@@ -297,7 +297,6 @@ CODE
 <magenta>    my $a = 42;
     say $a;
 </magenta>
-
 <green>=end</green> <red>rakudoc</red>
 
 HIGHLIGHTED

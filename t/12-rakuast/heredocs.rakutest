@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 17;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -493,6 +493,117 @@ CODE
       'the deparse of the heredoc that starts with code parses back to itself';
 
     is-deeply $_, "1 b \$x\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc in a nested statement with the opener of a later one' => {
+    # sub f (&b, $s) {
+    #     b() ~ "|" ~ $s
+    # }
+    # f({
+    #     my $x = qq:to/A/.trim;
+    #   xx
+    #   A
+    #     $x
+    # }, qq:to/A/)
+    #   yy
+    #   A
+    ast Q:to/SOURCE/.AST;
+    sub f(&b, $s) { b() ~ "|" ~ $s }
+    f({ my $x = q:to/A/.trim; $x }, q:to/A/);
+      xx
+      A
+      yy
+      A
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f (&b, $s) {
+    b() ~ "|" ~ $s
+}
+f({
+    my $x = qq:to/A/.trim;
+  xx
+  A
+    $x
+}, qq:to/A/)
+  yy
+  A
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "xx|yy\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Two heredoc openers on one line of a longer statement' => {
+    # my @r = do for qq:to/A/, qq:to/B/ -> $a, $b {
+    # x
+    # A
+    # y
+    # B
+    #     $a ~ $b
+    # };
+    # @r
+    ast Q:to/SOURCE/.AST;
+    my @r = do for q:to/A/, q:to/B/ -> $a, $b {
+    x
+    A
+    y
+    B
+        $a ~ $b
+    }
+    @r
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @r = do for qq:to/A/, qq:to/B/ -> $a, $b {
+x
+A
+y
+B
+    $a ~ $b
+};
+@r
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, ["x\ny\n"], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A heredoc in the code of the text of a heredoc' => {
+    # sub f ($s) {
+    #     $s
+    # }
+    # f(qq:to/A/)
+    # a { qq:to/B/ }
+    # b
+    # B
+    # A
+    ast Q:to/SOURCE/.AST;
+    sub f($s) { $s }
+    f(qq:to/A/)
+    a { q:to/B/ }
+    b
+    B
+    A
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f ($s) {
+    $s
+}
+f(qq:to/A/)
+a { qq:to/B/ }
+b
+B
+A
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "a b\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

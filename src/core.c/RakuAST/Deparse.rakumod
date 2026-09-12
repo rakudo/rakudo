@@ -1524,27 +1524,33 @@ CODE
 
 #- H ---------------------------------------------------------------------------
 
-    # each body goes after the line that holds its opener, which is the
-    # line after the text when the opener is on its last line
+    # each body goes after the line that holds the marker of its opener,
+    # after any body already placed there, which is the line after the
+    # text when the opener is on its last line
     method insert-heredocs(str $text, @heredocs --> Str:D) {
         my str $result = $text;
         my int $from;
-        for @heredocs {
-            my str $top    = .key;
-            my str $bottom = .value;
-            my int $at = nqp::index($result,$top,$from);
-            my int $nl = $at < 0 ?? -1 !! nqp::index($result,"\n",$at);
+        my int $placed;
+        for @heredocs -> str $bottom {
+            my int $at = nqp::index($result,"\0",$from);
+            nqp::die("No marker for the body of a heredoc in: $result")
+              if $at < 0;
+            $result = nqp::substr($result,0,$at) ~ nqp::substr($result,$at + 1);
+            $from = $at;
+            --$placed if $at < $placed;
+            my int $nl = nqp::index($result,"\n",$at);
             if $nl < 0 {
                 $result = $result
                   ~ ($result.ends-with("\n") ?? '' !! "\n")
                   ~ $bottom;
-                $from   = nqp::chars($result);
+                $placed = nqp::chars($result);
             }
             else {
-                $result = nqp::substr($result,0,$nl + 1)
+                my int $insert = $nl + 1 < $placed ?? $placed !! $nl + 1;
+                $result = nqp::substr($result,0,$insert)
                   ~ $bottom
-                  ~ nqp::substr($result,$nl + 1);
-                $from   = $nl + 1 + nqp::chars($bottom);
+                  ~ nqp::substr($result,$insert);
+                $placed = $insert + nqp::chars($bottom);
             }
         }
         $result
@@ -1560,23 +1566,30 @@ CODE
           !! " " x ($stop.chars - $stop.trim-leading.chars);
 
         my $top := self.multiple-processors($stop.trim, @processors);
+        # a heredoc in the code of the text places its body in the text
         my $text = do {
             my $*HEREDOC-INDENT := $indent;
             my $*HEREDOC-LINE-START = 1;
-            self.assemble-quoted-string($ast)
+            my @*HEREDOCS;
+            my str $assembled = self.assemble-quoted-string($ast);
+            @*HEREDOCS
+              ?? self.insert-heredocs($assembled, @*HEREDOCS)
+              !! $assembled
         }
         # the stop marker starts a line of its own
         $text ~= "\n" unless $text.ends-with("\n");
         my $bottom := $text ~ $stop;
 
-        # a statement list places the bodies of the heredocs in a statement
+        # a statement list places the bodies of the heredocs in a statement,
+        # after the line that holds the marker, since a nested statement
+        # can write the same opener
         my $heredocs := nqp::getlexdyn('@*HEREDOCS');
         if nqp::isnull($heredocs) {
             "$top\n$bottom"
         }
         else {
-            $heredocs.push($top => $bottom);
-            $top
+            $heredocs.push($bottom);
+            $top ~ "\0"
         }
     }
 

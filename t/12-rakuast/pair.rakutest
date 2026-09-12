@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -160,6 +160,51 @@ subtest 'Variable colonpair forms a Pair that looks up the variable' => {
 
     is-deeply $deparsed, ':$curry', 'deparse';
     is-deeply $_, Pair.new('curry', 'red'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Variable colonpair with a named capture held as a plain string' => {
+    # "abc" ~~ /a $<foo>=[\w+]/;
+    # :$<foo>
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::Sequence.new(
+              RakuAST::Regex::WithWhitespace.new(RakuAST::Regex::Literal.new('a')),
+              RakuAST::Regex::NamedCapture.new(
+                name  => 'foo',
+                regex => RakuAST::Regex::Group.new(
+                  RakuAST::Regex::QuantifiedAtom.new(
+                    atom       => RakuAST::Regex::CharClass::Word.new,
+                    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ColonPair::Variable.new(
+          key   => 'foo',
+          value => RakuAST::Var::NamedCapture.new(
+            RakuAST::QuotedString.new(
+              segments => (RakuAST::StrLiteral.new('foo'),)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"abc" ~~ /a $<foo>=[\w+]/;
+:$<foo>
+CODE
+
+    is .key ~ .value, 'foobc', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

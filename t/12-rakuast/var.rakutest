@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 70;
+plan 74;
 
 my $ast;
 my $deparsed;
@@ -1720,6 +1720,235 @@ subtest 'A slang variable deparses with its twigil' => {
     is-deeply $parsed.DEPARSE.chomp, '$~MAIN', 'parsed: deparses with its name';
     is EVAL($parsed).grammar.^name, 'Raku::Grammar',
       'parsed: the slang keeps its grammar';
+}
+
+
+subtest 'An anonymous variable declaration ends its statement' => {
+    # my @ = 1, 2;
+    # my % = a => 1;
+    # state $ = 42;
+    # state $;
+    # ++state $ = 3;
+    # state Int $;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          sigil       => '@',
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          sigil       => '%',
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope       => 'state',
+          sigil       => '$',
+          initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(42))
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope => 'state',
+          sigil => '$'
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix  => RakuAST::Prefix.new('++'),
+          operand => RakuAST::VarDeclaration::Anonymous.new(
+            scope       => 'state',
+            sigil       => '$',
+            initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(3))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope => 'state',
+          sigil => '$',
+          type  => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @ = 1, 2;
+my % = a => 1;
+state $ = 42;
+state $;
+++state $ = 3;
+state Int $;
+42
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A declaration as the value of another writes no delimiter' => {
+    # my $x = my $y = 1;
+    # my $z := my $w = 2;
+    # $x + $z
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('y'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(1))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('z'),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('w'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$x'),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::Var::Lexical.new('$z')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = my $y = 1;
+my $z := my $w = 2;
+$x + $z
+CODE
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The .raku of a literal in a declaration signature evaluates' => {
+    # my ("foo") = "foo";
+    # 1
+    ast Q:to/SOURCE/.AST;
+    my ("foo") = "foo"; 1
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my ("foo") = "foo";
+1
+CODE
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+
+    my $wrong := 'use experimental :rakuast; ' ~ Q{my ("foo") = "bar"}.AST.raku;
+    throws-like { EVAL EVAL $wrong }, X::TypeCheck::Assignment,
+      'Raku: the literal still checks the value';
+}
+
+
+subtest 'A named capture keeps its sigil and its adverbs' => {
+    # "abc" ~~ /a $<foo>=[\w+]/;
+    # ($<foo>:exists, @<foo>.elems, %<foo>.elems)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::Sequence.new(
+              RakuAST::Regex::WithWhitespace.new(RakuAST::Regex::Literal.new('a')),
+              RakuAST::Regex::NamedCapture.new(
+                name  => 'foo',
+                regex => RakuAST::Regex::Group.new(
+                  RakuAST::Regex::QuantifiedAtom.new(
+                    atom       => RakuAST::Regex::CharClass::Word.new,
+                    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(','),
+                operands => (
+                  RakuAST::Var::NamedCapture.new(
+                    RakuAST::QuotedString.new(
+                      processors => <words val>,
+                      segments   => (RakuAST::StrLiteral.new('foo'),)
+                    ),
+                    sigil      => '$',
+                    colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('foo'),)
+                      ),
+                      sigil => '@'
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('elems')
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('foo'),)
+                      ),
+                      sigil => '%'
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('elems')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"abc" ~~ /a $<foo>=[\w+]/;
+($<foo>:exists, @<foo>.elems, %<foo>.elems)
+CODE
+
+    is-deeply $_, (True, 0, 0), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
 
 # vim: expandtab shiftwidth=4

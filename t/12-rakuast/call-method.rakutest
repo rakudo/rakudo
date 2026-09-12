@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 17;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -323,6 +323,31 @@ subtest 'Can call a block as a method' => {
 }
 CODE
     is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Can call parenthesized code as a method' => {
+    # "a".&(*.tc)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StrLiteral.new('a'),
+      postfix => RakuAST::Call::BlockMethod.new(
+        block => RakuAST::Contextualizer::Item.new(
+          RakuAST::StatementSequence.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Term::Whatever.new,
+                postfix => RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('tc')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '"a".&(*.tc)', 'deparse';
+    is-deeply $_, 'A', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

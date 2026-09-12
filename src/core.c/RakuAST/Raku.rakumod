@@ -105,6 +105,9 @@ augment class RakuAST::Node {
           'abbreviated', -> {
               :abbreviated if self.abbreviated && !self.directive
           },
+          'is-array', -> {
+              :is-array if self.is-array
+          },
           'adverbs', -> {
               my $adverbs := nqp::decont(self.adverbs);
               :$adverbs if $adverbs
@@ -456,7 +459,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Declaration::ResolvedConstant:D: --> Str:D) {
-        self!literal(self.compile-time-value)
+        self!nameds: <compile-time-value>
     }
 
 #- Doc -------------------------------------------------------------------------
@@ -722,6 +725,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Prefix:D: --> Str:D) {
         self!literal(self.operator)
+    }
+
+    multi method raku(RakuAST::Prefix::Multislice:D: --> Str:D) {
+        self!none
     }
 
 #- Q ---------------------------------------------------------------------------
@@ -1008,7 +1015,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Signature:D: --> Str:D) {
-        self!nameds: <parameters returns>
+        self!nameds: <parameters returns is-array>
     }
 
 #- Statement -------------------------------------------------------------------
@@ -1185,6 +1192,10 @@ augment class RakuAST::Node {
         self!positional(self.source)
     }
 
+    multi method raku(RakuAST::Term::Declaration:D: --> Str:D) {
+        self!positional(self.value)
+    }
+
     multi method raku(RakuAST::Term::Enum:D: --> Str:D) {
         self.^name ~ ".from-identifier('" ~ self.name.canonicalize ~ "')"
     }
@@ -1335,8 +1346,15 @@ augment class RakuAST::Node {
         self!literal($name.starts-with('$whatevercode_arg_') ?? '*' !! $name)
     }
 
+    # the index is the positional, the sigil and colonpairs are named
     multi method raku(RakuAST::Var::NamedCapture:D: --> Str:D) {
-        self!positional(self.index)
+        indent;
+        my str $index = $*INDENT ~ self.index.raku;
+        dedent;
+        my str $nameds = self!nameds: <sigil colonpairs>;
+        $nameds.ends-with('.new')
+          ?? self.^name ~ ".new(\n$index\n$*INDENT)"
+          !! $nameds.subst(".new(\n", ".new(\n$index,\n")
     }
 
     multi method raku(RakuAST::Var::Package:D: --> Str:D) {

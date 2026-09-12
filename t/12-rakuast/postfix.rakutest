@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 39;
+plan 40;
 
 my $ast;
 my $deparsed;
@@ -921,6 +921,39 @@ subtest 'A colonpair under a subscript keeps its parentheses' => {
     is-deeply $deparsed, '(:42a)<foo>', 'deparse';
 
     is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Multi-dimensional index through a multislice prefix' => {
+    my @a = [1, 2], [3, 4];
+
+    # @a[||(1; 0)]
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('@a'),
+      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+        index => RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPrefix.new(
+              prefix  => RakuAST::Prefix::Multislice.new,
+              operand => RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(1)
+                  ),
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(0)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '@a[||(1; 0)]', 'deparse';
+    is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

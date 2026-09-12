@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 27;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -732,6 +732,70 @@ CODE
 
     is-deeply $_, ('a', :k<v>), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A quote written between slashes escapes them' => {
+    # qqww[1 2/3 "a b"]
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new('1 2/3 '),
+        RakuAST::QuoteWordsAtom.new(
+          RakuAST::QuotedString.new(
+            :segments[RakuAST::StrLiteral.new('a b')]
+          )
+        )
+      ],
+      :processors['quotewords']
+    );
+    is-deeply $deparsed, 'qqww/1 2\/3 "a b"/', 'deparse';
+    is-deeply $_, ('1', '2/3', 'a b'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # qqww{ {21*2} }
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new(' {'),
+        RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('21*2')],
+          :processors['quotewords']
+        ),
+        RakuAST::StrLiteral.new('} ')
+      ],
+      :processors['quotewords']
+    );
+    is-deeply $deparsed, 'qqww/ \{ 21*2 } /', 'deparse: a nested pair of delimiters';
+    is-deeply $_, ('{', '21*2', '}'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # < a <b c> d >
+    ast RakuAST::QuotedString.new(
+      :segments[
+        RakuAST::StrLiteral.new(' a <'),
+        RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('b c')],
+          :processors['words', 'val']
+        ),
+        RakuAST::StrLiteral.new('> d ')
+      ],
+      :processors['words', 'val']
+    );
+    is-deeply $deparsed, '< a \<b c\> d >', 'deparse: a nested pair of angles';
+    is-deeply $_, ('a', '<b', 'c>', 'd'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The format processor deparses' => {
+    # qq:format/\%5s/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('%5s')],
+      :processors['format']
+    );
+    is-deeply $deparsed, 'qq:format/\%5s/', 'deparse';
+    is EVAL($ast).Str, '%5s', 'AST: is the format';
+    is EVAL($deparsed.AST).Str, '%5s', 'Str: parses back to the format';
+    is EVAL(EVAL $raku).Str, '%5s', 'Raku: is the format';
 }
 
 # vim: expandtab shiftwidth=4

@@ -454,6 +454,16 @@ CODE
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
+                # a closure of one statement stays on the line of the text,
+                # unless it opens a heredoc inside a heredoc and text
+                # follows it on its line, where the parser does not find
+                # the body of that heredoc
+                my $next := @segments[$i + 1];
+                my $*IN-ARGLIST := !($heredoc-indent.defined
+                  && self.has-interpolating-heredoc($segment, :any)
+                  && $next.defined
+                  && !(nqp::istype($next,RakuAST::StrLiteral)
+                        && (!$next.value || $next.value.starts-with("\n"))));
                 my $*QUOTE-DELIMITER := '';
                 my $*HEREDOC-INDENT  := Str;
                 @parts.push(self.deparse($segment));
@@ -565,10 +575,11 @@ CODE
     # the body of a heredoc is read after the line that holds its opener,
     # outside a block written on that line, so a heredoc that interpolates
     # needs the block on lines of its own
-    method has-interpolating-heredoc($node --> Bool:D) {
+    method has-interpolating-heredoc($node, :$any --> Bool:D) {
         my $found := False;
         my sub walk($node) {
-            if nqp::istype($node,RakuAST::Heredoc) && $node.has-variables {
+            if nqp::istype($node,RakuAST::Heredoc)
+              && ($any || $node.has-variables) {
                 $found := True;
             }
             else {
@@ -1082,8 +1093,10 @@ CODE
             my $in-arglist := $*IN-ARGLIST.Bool;
 
             if $multi || @statements {
-                # Deeper deparsing assumes not in an argument list
+                # Deeper deparsing assumes not in an argument list, and
+                # not in an interpolation
                 my $*IN-ARGLIST := False;
+                my $*INTERPOLATING := False;
 
                 if @statements == 1 && $in-arglist && !$multi
                   && !self.has-interpolating-heredoc(@statements.head) {

@@ -177,9 +177,7 @@ subtest 'Simple Callable substitution on variable' => {
     );
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-$string ~~ s/o/{
-    $x
-}/
+$string ~~ s/o/{ $x }/
 CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -259,9 +257,7 @@ subtest 'A closure in a replacement keeps its slashes' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my $x = "ab";
-$x ~~ s/a/{
-    $/.chars ~ "/"
-}/;
+$x ~~ s/a/{ $/.chars ~ "/" }/;
 $x
 CODE
 

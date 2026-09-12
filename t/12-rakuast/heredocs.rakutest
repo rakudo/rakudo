@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 24;
 
 my $ast;
 my $deparsed;
@@ -118,7 +118,7 @@ subtest 'Heredoc involving an interpolated block' => {
     );
 
     is-deeply $deparsed,
-      qq:!s:!c|qq:to//\nAn {\n    $bv\n} block\n\n|,
+      qq:!s:!c|qq:to//\nAn { $bv } block\n\n|,
       'deparse';
 
     is-deeply $_, "An interpolated block\n", @type[$++]
@@ -438,9 +438,7 @@ CODE
 subtest 'The code in a heredoc keeps its escapes and the text keeps its backslashes' => {
     # my @p = 1, 2;
     # my $s = qq:to/END/;
-    #   a {
-    #     join "\n", @p
-    # }
+    #   a { join "\n", @p }
     #   b\\nc
     #   END
     # $s
@@ -455,9 +453,7 @@ subtest 'The code in a heredoc keeps its escapes and the text keeps its backslas
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my @p = 1, 2;
 my $s = qq:to/END/;
-  a {
-    join "\n", @p
-}
+  a { join "\n", @p }
   b\\nc
   END
 $s
@@ -676,6 +672,38 @@ subtest 'Heredoc with an empty stop marker on an indented line' => {
     is-deeply $deparsed, "my \$s = qq:to//;\n  abc\n  \n\$s\n", 'deparse';
 
     is-deeply $_, "abc\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A closure in a heredoc that opens a heredoc of its own' => {
+    # my $s = qq:to/E/;
+    # a {
+    #     qq:to/F/.chomp
+    # foo
+    # F
+    # } b
+    # E
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my $s = qq:to/E/;
+    a { qq:to/F/.chomp
+    foo
+    F
+    } b
+    E
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $s = qq:to/E/;
+a {
+    qq:to/F/.chomp
+foo
+F
+} b
+E
+$s
+CODE
+    is-deeply $_, "a foo b\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

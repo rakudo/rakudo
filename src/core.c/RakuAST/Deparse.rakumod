@@ -3675,9 +3675,10 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Constant:D $ast --> Str:D) {
         my str @parts;
 
+        # A type needs the scope in front of it to parse
         my str $scope = $ast.scope;
         @parts.push(self.syn-scope($scope))
-          if $scope ne $ast.default-scope;
+          if $scope ne $ast.default-scope || $ast.type;
 
         @parts.push(self.syn-type($_)) with $ast.type;
         @parts.push(self.hsyn("scope-constant", self.xsyn('scope', 'constant')));

@@ -1440,6 +1440,8 @@ CODE
                 !! '';
 
             $paragraphs = $paragraphs.substr($margin.chars).chomp;
+            # the text can be only the blank lines that end the block
+            $paragraphs = '' unless $paragraphs.trim;
             $paragraphs = self.hsyn($style, $paragraphs) if $style;
 
             if $abbreviated {

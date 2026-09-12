@@ -2147,7 +2147,10 @@ CODE
                 if %single-processor-prefix{$processor} -> str $p is copy {
                     $p = 'qqx/' if $processor eq 'exec' && $ast.has-variables;
                     self.hsyn("adverb-q-$p", self.xsyn('adverb-q', $p))
-                      ~ self.slash-quoted-string($ast) ~ '/'
+                      ~ ($p eq 'qx/'
+                          ?? self.slash-q-quoted-string($ast)
+                          !! self.slash-quoted-string($ast))
+                      ~ '/'
                 }
                 else {
                     NYI("Quoted string processor '$processor'").throw
@@ -2193,6 +2196,16 @@ CODE
     method slash-quoted-string($ast --> Str:D) {
         my $*QUOTE-DELIMITER := '/';
         self.assemble-quoted-string($ast)
+    }
+
+    # the text of a string that does not interpolate escapes only its
+    # backslashes and the slashes in it, which would end it
+    method slash-q-quoted-string($ast --> Str:D) {
+        $ast.segments.map({
+            nqp::istype($_,RakuAST::QuotedString)
+              ?? self.slash-q-quoted-string($_)
+              !! .value.subst('\\','\\\\',:g).subst('/','\\/',:g)
+        }).join
     }
 
     multi method deparse(RakuAST::QuoteWordsAtom:D $ast --> Str:D) {

@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 29;
+plan 31;
 
 my $ast;
 my $deparsed;
@@ -796,6 +796,35 @@ subtest 'The format processor deparses' => {
     is EVAL($ast).Str, '%5s', 'AST: is the format';
     is EVAL($deparsed.AST).Str, '%5s', 'Str: parses back to the format';
     is EVAL(EVAL $raku).Str, '%5s', 'Raku: is the format';
+}
+
+
+subtest 'Exec processor with a backslash in the text' => {
+    # qx/echo \\$x/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('echo \$x')],
+      :processors['exec']
+    );
+
+    is-deeply $deparsed, Q[qx/echo \\$x/], 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $_, "\$x\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Exec processor with a slash in the text' => {
+    # qx/echo a\/b/
+    ast RakuAST::QuotedString.new(
+      :segments[RakuAST::StrLiteral.new('echo a/b')],
+      :processors['exec']
+    );
+
+    is-deeply $deparsed, Q[qx/echo a\/b/], 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $_, "a/b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

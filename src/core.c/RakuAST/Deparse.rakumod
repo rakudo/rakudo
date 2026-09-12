@@ -2594,9 +2594,14 @@ CODE
 
     multi method deparse(RakuAST::Regex::WithWhitespace:D $ast --> Str:D) {
         my $regex := $ast.regex;
-        nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator
-          ?? self.deparse($regex, :whitespace)
-          !! self.deparse($regex) ~ " "
+        if nqp::istype($regex,RakuAST::Regex::QuantifiedAtom) && $regex.separator {
+            self.deparse($regex, :whitespace)
+        }
+        else {
+            # an anchor writes its own trailing space
+            my str $deparsed = self.deparse($regex);
+            $deparsed.ends-with(' ') ?? $deparsed !! $deparsed ~ ' '
+        }
     }
 
 #- RegexD ----------------------------------------------------------------------

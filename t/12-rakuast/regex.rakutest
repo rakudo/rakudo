@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use Test;
 
-plan 69;
+plan 70;
 
 my $ast;
 my $deparsed;
@@ -988,6 +988,31 @@ subtest 'A word after an interpolated variable keeps its quotes' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is "axd" ~~ EVAL($it), 'xd', "$type: the variable and the word both match";
     }
+}
+
+
+subtest 'An anchor followed by whitespace keeps a single space' => {
+    # /^ \d+ $ /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Anchor::BeginningOfString.new
+      ),
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::QuantifiedAtom.new(
+          atom       => RakuAST::Regex::CharClass::Digit.new,
+          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+        )
+      ),
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Anchor::EndOfString.new
+      )
+    );
+    is-deeply $deparsed, '/^ \d+ $ /', 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    match-ok "42", "42";
+    match-ok "4a2", Nil;
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 19;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -655,6 +655,21 @@ f    g    h
 
 42
 CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+}
+
+
+subtest 'An abbreviated block whose text is only blank lines' => {
+    # =back␤␤␤␤
+    ast RakuAST::Doc::Block.new(
+      type        => 'back',
+      abbreviated => True,
+      paragraphs  => ("\n\n\n",)
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, "=back\n\n", "$type: deparse";
     }
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse parses back to itself';

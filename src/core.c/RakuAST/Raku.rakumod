@@ -806,7 +806,8 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::Args:D: --> Str:D) {
-        self!nameds: <name args capturing>
+        # the constructor requires the args, even when there are none
+        self!nameds: 'name', Pair.new('args', self.args), 'capturing'
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::RegexArg:D: --> Str:D) {
@@ -1035,6 +1036,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Statement::Default:D: --> Str:D) {
         self!nameds: <labels body>
+    }
+
+    multi method raku(RakuAST::Statement::Also:D: --> Str:D) {
+        self!nameds: <labels traits>
     }
 
     multi method raku(RakuAST::Statement::Empty:D: --> Str:D) {

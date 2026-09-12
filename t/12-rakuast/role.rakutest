@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -280,6 +280,87 @@ CODE
         dies-ok { $one.a(Int) }, "$type: does uninstantiated type die (2)";
         dies-ok { $one.a("foo") }, "$type: does incorrect type die (2)";
     }
+}
+
+
+subtest 'a role with a version in its name' => {
+    # my role TestVersioned:ver<0.0.2> {
+    #     method test-meth {
+    #         42
+    #     }
+    # }
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestVersioned',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::QuotedString.new(
+              processors => <words val>,
+              segments   => (
+                RakuAST::StrLiteral.new('0.0.2'),
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-meth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role TestVersioned:ver<0.0.2> {
+    method test-meth {
+        42
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^ver, v0.0.2, "$type: the role has the version";
+        is $role.test-meth, 42, "$type: the role method can be called";
+    }
+}
+
+subtest 'a role with a version that needs evaluation' => {
+    # my role TestVersionedVar:ver($v) { }
+    #
+    # a hand built package asks for its type without a resolver when its
+    # body is set, a value that needs evaluation is not silently dropped
+    my $v = v1;
+    throws-like {
+        RakuAST::Role.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('TestVersionedVar',
+            colonpairs => (
+              RakuAST::ColonPair::Value.new(
+                key   => 'ver',
+                value => RakuAST::Var::Lexical.new('$v')
+              ),
+            )
+          ),
+          body  => RakuAST::RoleBody.new(
+            body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+          )
+        )
+    }, Exception, message => /'requires resolver and context'/,
+      'a value that needs evaluation is refused without a resolver';
 }
 
 # vim: expandtab shiftwidth=4

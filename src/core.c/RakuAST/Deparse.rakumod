@@ -1083,6 +1083,7 @@ CODE
                   && (nqp::istype($operand,RakuAST::Term::Name)
                        || (!$deparsed-operand.ends-with(')')
                             && (nqp::istype($operand,RakuAST::Term::TopicCall)
+                                 || nqp::istype($operand,RakuAST::Var::Attribute::Public)
                                  || (nqp::istype($operand,RakuAST::ApplyPostfix)
                                       && nqp::istype(
                                            $operand.postfix,

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 42;
+plan 43;
 
 my $ast;
 my $deparsed;
@@ -1154,6 +1154,36 @@ CODE
       'the deparse of those subscripts parses back to itself';
 
     is-deeply $_, ((True,), True, 1), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A call on the value of a public attribute keeps its dot' => {
+    # my class C {
+    #     has $.c = -> {
+    #         42
+    #     };
+    #     method m {
+    #         $.c.()
+    #     }
+    # }
+    # C.new.m
+    ast Q:to/SOURCE/.AST;
+    my class C { has $.c = -> { 42 }; method m { $.c.() } }
+    C.new.m
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class C {
+    has $.c = -> {
+        42
+    };
+    method m {
+        $.c.()
+    }
+}
+C.new.m
+CODE
+
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

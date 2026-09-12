@@ -2880,10 +2880,15 @@ CODE
                 my $last      := @parameters.tail;
                 my $*DELIMITER;
 
+                # a trailing doc on the last parameter must be set off by
+                # a comma from a return type, or it documents the routine
+                my $returns := $no-returns ?? Nil !! $ast.returns;
                 my str @atoms;
                 self.indent('  ');
                 for @parameters -> $param {
-                    $*DELIMITER = $param === $last || $param.invocant
+                    $*DELIMITER = $param.invocant
+                      || ($param === $last
+                           && !($returns.defined && $param.WHY && $param.WHY.trailing))
                       ?? "\n"
                       !! $.list-infix-comma.trim ~ "\n";
                     @atoms.push($*INDENT);

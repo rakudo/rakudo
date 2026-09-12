@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 26;
+plan 27;
 
 my $ast;
 my $deparsed;
@@ -1048,6 +1048,38 @@ subtest 'A subset with a where expression keeps its own leading doc' => {
       ("d1", "d2", "d3"), 'each declaration keeps its own leading doc';
     is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
+}
+
+subtest 'A trailing doc on the last parameter before a return type' => {
+    # sub f (
+    #   $a, #= first
+    #   $b, #= second
+    #  --> Int) {
+    #     $a + $b
+    # }
+    ast Q:to/SOURCE/.AST, :no-pod;
+    sub f (
+      $a, #= first
+      $b, #= second
+     --> Int) {
+        $a + $b
+    }
+    SOURCE
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/, "$type: deparse";
+sub f (
+  $a, #= first
+  $b, #= second
+ --> Int) {
+    $a + $b
+}
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $deparsed.AST.statements.head.expression.signature.parameters.tail.WHY.trailing,
+      ('second',), 'the doc stays on the parameter';
 }
 
 # vim: expandtab shiftwidth=4

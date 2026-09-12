@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 19;
 
 my $ast;
 my $deparsed;
@@ -617,6 +617,47 @@ CODE
     is-deeply $ast.EVAL, 42, 'a row whose | is not a column divider compiles';
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse of that row parses back to itself';
+}
+
+
+subtest 'A row that leaves its last column empty ends without a gap' => {
+    # =begin table
+    #
+    # a    b    c
+    #
+    # d    e
+    # f    g    h
+    #
+    # =end table
+    #
+    # 42
+    ast Q:to/SOURCE/.AST;
+    =begin table
+    a    b    c
+
+    d    e
+    f    g    h
+    =end table
+
+    42
+    SOURCE
+    is-deeply $ast.EVAL, 42, 'do we get the final result';
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse";
+=begin table
+
+a    b    c
+
+d    e
+f    g    h
+
+=end table
+
+42
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
 }
 
 # vim: expandtab shiftwidth=4

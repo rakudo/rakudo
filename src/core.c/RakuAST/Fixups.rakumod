@@ -314,7 +314,8 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
                 @parts.join.trim-trailing ~ "\n"
             }
             else {
-                cells.join('  ') ~ "\n"
+                # an empty last cell would leave the gap before it
+                cells.join('  ').trim-trailing ~ "\n"
             }
         }
 

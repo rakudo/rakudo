@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -642,6 +642,40 @@ CODE
       'the deparse parses back to itself';
 
     is-deeply $_, "yy\n|yy", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc whose stop marker is indented with a tab' => {
+    # qq:to/TAB/
+    # \tfoo
+    # \t  bar
+    # \tTAB
+    ast qq:to/SOURCE/.AST;
+    q:to/TAB/
+    \tfoo
+    \t  bar
+    \tTAB
+    SOURCE
+    is-deeply $deparsed, "qq:to/TAB/\n\tfoo\n\t  bar\n\tTAB\n", 'deparse';
+
+    is-deeply $_, "foo\n  bar\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc with an empty stop marker on an indented line' => {
+    # my $s = qq:to//;
+    #   abc
+    #   
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my $s = qq:to//;
+      abc
+      
+    $s
+    SOURCE
+    is-deeply $deparsed, "my \$s = qq:to//;\n  abc\n  \n\$s\n", 'deparse';
+
+    is-deeply $_, "abc\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

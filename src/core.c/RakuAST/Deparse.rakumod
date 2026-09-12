@@ -1584,10 +1584,11 @@ CODE
         my @processors = $ast.processors;
         @processors.push('heredoc');
 
+        # the text is indented with the whitespace of the stop marker, a
+        # tab counts as more than one column when the indent is removed
         my $stop   := $ast.stop;
-        my $indent := $stop eq "\n"
-          ?? ''
-          !! " " x ($stop.chars - $stop.trim-leading.chars);
+        my $marker := $stop.chomp;
+        my $indent := $marker.substr(0, $marker.chars - $marker.trim-leading.chars);
 
         my $top := self.multiple-processors($stop.trim, @processors);
         # a heredoc in the code of the text places its body in the text

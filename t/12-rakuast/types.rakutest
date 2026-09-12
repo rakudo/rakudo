@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -287,6 +287,92 @@ subtest 'type with a written Any coercion' => {
     is-deeply $_, Int(Any), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply EVAL($raku).DEPARSE, 'Int(Any)', 'deparse of the .raku';
+}
+
+
+subtest 'The :_ smiley stays on a type' => {
+    # my Int:_ $a; $a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::AnyDefinedness.new(
+            base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+          ),
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('a')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my Int:_ $a;
+$a
+CODE
+
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The :_ smiley keeps a declaration out of a definedness pragma' => {
+    # use variables :D;
+    # my Int:_ $a;
+    # $a
+    ast Q:to/SOURCE/.AST;
+    use variables :D; my Int:_ $a; $a
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use variables :D;
+my Int:_ $a;
+$a
+CODE
+
+    is-deeply EVAL($ast), Int, 'AST: the variable is not definite';
+    is-deeply EVAL($deparsed), Int, 'Str: the variable is not definite';
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'The :_ smiley of a parameterized type goes before the arguments' => {
+    # my Positional:_[Int] $p;
+    # $p
+    ast Q:to/SOURCE/.AST;
+    my Positional:_[Int] $p; $p
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my Positional:_[Int] $p;
+$p
+CODE
+
+    is EVAL($ast).^name, 'Positional[Int]', 'AST: the type keeps its arguments';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed, 'Str: parses back to the same';
+    is EVAL(EVAL $raku).^name, 'Positional[Int]', 'Raku: the type keeps its arguments';
+}
+
+
+subtest 'A generic type with the :_ smiley is specialized' => {
+    # my role Generic[::T] {
+    #     method t {
+    #         T:_
+    #     }
+    # }
+    # Generic[Int].new.t
+    ast Q:to/SOURCE/.AST;
+    my role Generic[::T] { method t { T:_ } }; Generic[Int].new.t
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my role Generic[::T] {
+    method t {
+        T:_
+    }
+}
+Generic[Int].new.t
+CODE
+
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

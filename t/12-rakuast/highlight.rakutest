@@ -5,7 +5,7 @@ use Test;
 
 use RakuAST::Deparse::Highlight;
 
-plan 31;
+plan 32;
 
 sub default-mapper(str $color, str $c) {
     $c.trim ?? "<$color>$c\</$color>" !! $c
@@ -85,7 +85,7 @@ CODE
 }
 
 
-<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow></yellow><yellow>new</yellow>;
+<magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow>new</yellow>;
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'vars, if and say';
@@ -339,11 +339,13 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'abbreviated visual table';
   foo | bar | baz
   ----|-----|----
   42  | 666 | 137
+
 CODE
   <red>=table</red> <red>#</red>
   foo <blue>|</blue> bar <blue>|</blue> baz
   <blue>----|-----|----</blue>
   42  <blue>|</blue> 666 <blue>|</blue> 137
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
@@ -351,11 +353,13 @@ is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'for visual table';
   foo | bar | baz
   ----|-----|----
   42  | 666 | 137
+
 CODE
   <green>=for</green> <red>table</red> <red>:numbered</red>
   foo <blue>|</blue> bar <blue>|</blue> baz
   <blue>----|-----|----</blue>
   42  <blue>|</blue> 666 <blue>|</blue> 137
+
 HIGHLIGHTED
 
 is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'visual table';
@@ -392,6 +396,14 @@ use v6;
 CODE
 <blue># comment</blue>
 <green>use</green> <red>v6</red>;
+HIGHLIGHTED
+
+is-highlighted Q:to/CODE/, Q:to/HIGHLIGHTED/, 'dotty infix';
+my @b = 1, 2;
+@b .= map(* + 1);
+CODE
+<magenta>my</magenta> <cyan>@b</cyan> <yellow>=</yellow> <red>1</red>, <red>2</red>;
+<cyan>@b</cyan> .= <yellow>map</yellow>(<cyan>*</cyan> <yellow>+</yellow> <red>1</red>);
 HIGHLIGHTED
 
 # vim: expandtab shiftwidth=4

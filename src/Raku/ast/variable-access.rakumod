@@ -1142,13 +1142,18 @@ class RakuAST::Var::Slang
   is RakuAST::Var
   is RakuAST::ImplicitLookups
 {
-    has Mu $!grammar;
-    has Mu $!actions;
+    has str $.name;
+    has Mu  $!grammar;
+    has Mu  $!actions;
 
-    method new(Mu :$grammar!, Mu :$actions!) {
+    method new(str :$name!, Mu :$grammar, Mu :$actions) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar', $grammar);
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions', $actions);
+        nqp::bindattr_s($obj, RakuAST::Var::Slang, '$!name', $name);
+        # a grammar is a type object, so only an absent one is NQPMu
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar',
+          $grammar =:= NQPMu ?? nqp::null !! $grammar);
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions',
+          $actions =:= NQPMu ?? nqp::null !! $actions);
         $obj
     }
 
@@ -1158,16 +1163,17 @@ class RakuAST::Var::Slang
         ]
     }
 
-    method sigil() { '$' }
+    method sigil()  { '$' }
+    method twigil() { '~' }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
             :op<callmethod>, :name<new>, :returns(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value),
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
-        $context.ensure-sc($g);
         my $a := $!actions;
         if !nqp::isnull($g) {
+            $context.ensure-sc($g);
             my $wval := QAST::WVal.new( :value($g) );
             $wval.named('grammar');
             $qast.push($wval);

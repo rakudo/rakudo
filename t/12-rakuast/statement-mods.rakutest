@@ -317,7 +317,7 @@ subtest 'A zero-parameter block keeps the topic of its outer scope' => {
       )
     );
 
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
 $_ = 666;
 -> {
     $_
@@ -356,7 +356,7 @@ subtest 'A bare block topicalizes the tested value' => {
       )
     );
 
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
 $_ = 666;
 {
     $_

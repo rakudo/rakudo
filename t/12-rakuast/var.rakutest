@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 69;
+plan 70;
 
 my $ast;
 my $deparsed;
@@ -1704,6 +1704,22 @@ $a
 CODE
     is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A slang variable deparses with its twigil' => {
+    # $~MAIN
+    ast RakuAST::Var::Slang.new(name => 'MAIN');
+    is-deeply $deparsed, '$~MAIN', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        isa-ok EVAL($it), Slang, "$type: is a slang";
+    }
+
+    my $parsed := Q{$~MAIN}.AST;
+    is-deeply $parsed.DEPARSE.chomp, '$~MAIN', 'parsed: deparses with its name';
+    is EVAL($parsed).grammar.^name, 'Raku::Grammar',
+      'parsed: the slang keeps its grammar';
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 34;
+plan 36;
 
 my $ast;
 my $deparsed;
@@ -532,6 +532,66 @@ CODE
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).raku,
       'any(1, "a")', 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'A bracketed infix deparses with its brackets' => {
+    # 1 [+] 2
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::BracketedInfix.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(2)
+    );
+    is-deeply $deparsed, '1 [+] 2', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A postcircumfix under a dotty infix keeps its bracket' => {
+    # my @a = 1 .. 3; @a .= [1, 2]; @a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('..'),
+              right => RakuAST::IntLiteral.new(3)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyDottyInfix.new(
+          left  => RakuAST::Var::Lexical.new('@a'),
+          infix => RakuAST::DottyInfix::CallAssign.new,
+          right => RakuAST::Postcircumfix::ArrayIndex.new(
+            index => RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyListInfix.new(
+                  infix    => RakuAST::Infix.new(','),
+                  operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('@a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @a = 1 .. 3;
+@a .= [1, 2];
+@a
+CODE
+
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
 
 # vim: expandtab shiftwidth=4

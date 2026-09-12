@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -206,6 +206,67 @@ subtest 'Substitution with the delimiter in both sides' => {
 
         is-deeply EVAL($it).gist, '｢a/b｣', "$type: did we get right return value";
         is $_, "x/y", "$type: is topic changed";
+    }
+}
+
+
+subtest 'A closure in a replacement keeps its slashes' => {
+    # my $x = "ab"; $x ~~ s/a/{ $/.chars ~ "/" }/; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('ab')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$x'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::Substitution.new(
+            pattern     => RakuAST::Regex::Literal.new('a'),
+            replacement => RakuAST::QuotedString.new(
+              :segments[
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyInfix.new(
+                          left  => RakuAST::ApplyPostfix.new(
+                            operand => RakuAST::Var::Lexical.new('$/'),
+                            postfix => RakuAST::Call::Method.new(
+                              name => RakuAST::Name.from-identifier('chars')
+                            )
+                          ),
+                          infix => RakuAST::Infix.new('~'),
+                          right => RakuAST::StrLiteral.new('/')
+                        )
+                      )
+                    )
+                  )
+                )
+              ]
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "ab";
+$x ~~ s/a/{
+    $/.chars ~ "/"
+}/;
+$x
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), '1/b', "$type: the closure runs";
     }
 }
 

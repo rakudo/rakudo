@@ -216,6 +216,12 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
     has      $.cells          is built(:bind);  # Str or Markup
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
+    # the .raku writes the offsets as a list
+    submethod TWEAK() {
+        $!column-offsets := (my int @ = $!column-offsets)
+          if nqp::istype($!column-offsets,List);
+    }
+
     # Stringify all cells (needed for headers)
     method stringify-cells(RakuAST::Doc::LegacyRow:D: --> Nil) {
         $!cells := $!cells.map(*.Str).List;

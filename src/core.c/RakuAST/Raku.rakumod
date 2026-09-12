@@ -361,6 +361,10 @@ augment class RakuAST::Node {
           <implicit-topic required-topic exception may-have-signature body>
     }
 
+    multi method raku(RakuAST::BracketedInfix:D: --> Str:D) {
+        self!positional(self.infix)
+    }
+
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {
         (my $statements := self.statement-list)
           ?? self!positional($statements)
@@ -552,6 +556,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::MetaPostfix::Hyper:D: --> Str:D) {
         self!positional(self.postfix)
+    }
+
+    multi method raku(RakuAST::MetaPrefix::Hyper:D: --> Str:D) {
+        self!positional(self.prefix)
     }
 
     multi method raku(RakuAST::Method:D: --> Str:D) {
@@ -1210,6 +1218,10 @@ augment class RakuAST::Node {
         self!positional(self.term)
     }
 
+    multi method raku(RakuAST::Trait::Trusts:D: --> Str:D) {
+        self!nameds: <type>
+    }
+
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
         self!nameds: <name argument type>
     }
@@ -1246,6 +1258,10 @@ augment class RakuAST::Node {
           && $constraint.name.canonicalize eq 'Any'
           ?? <base-type>
           !! <base-type constraint>
+    }
+
+    multi method raku(RakuAST::Type::AnyDefinedness:D: --> Str:D) {
+        self!nameds: <base-type>
     }
 
     multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
@@ -1325,6 +1341,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Doc:D: --> Str:D) {
         self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Var::Slang:D: --> Str:D) {
+        self!nameds: <name>
     }
 
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {

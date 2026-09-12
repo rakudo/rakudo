@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 22;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -587,6 +587,87 @@ subtest 'A function infix under a reverse metaop deparses' => {
     is-deeply $deparsed, '3 R[&min] 4', 'deparse';
 
     is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A sequence metaop deparses with its letter' => {
+    # 1 S+ 2
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::MetaInfix::Sequence.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(2)
+    );
+    is-deeply $deparsed, '1 S+ 2', 'deparse';
+
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'A hyper prefix deparses with its markers' => {
+    # my @a = 1, 2; -<<@a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix  => RakuAST::MetaPrefix::Hyper.new(
+            RakuAST::Prefix.new('-')
+          ),
+          operand => RakuAST::Var::Lexical.new('@a')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @a = 1, 2;
+-<<@a
+CODE
+
+    is-deeply $_, [-1, -2], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A hyper word prefix runs into its marker' => {
+    # my @a = 1, 0; so<<@a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(0))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix  => RakuAST::MetaPrefix::Hyper.new(
+            RakuAST::Prefix.new('so')
+          ),
+          operand => RakuAST::Var::Lexical.new('@a')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @a = 1, 0;
+so<<@a
+CODE
+
+    is-deeply $_, [True, False], @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

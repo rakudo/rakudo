@@ -840,7 +840,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method collect-statements($/, $typename) {
         my $statements := Nodify($typename).new;
         for $<statement> {
-            $_.ast.add-to-statements($statements);
+            my $ast := $_.ast;
+            # A statement control that only sets a trait on its target, or
+            # an inert DOC use, attaches an empty statement.  A written `;`
+            # has no text, so the text tells them apart.  The doc blocks
+            # such a statement owns are kept.
+            if nqp::istype($ast, Nodify('Statement::Empty'))
+              && nqp::chars($_.Str)
+              && !nqp::elems($ast.IMPL-UNWRAP-LIST($ast.labels)) {
+                my $blocks := $ast.take-doc-blocks;
+                if $blocks {
+                    for $blocks {
+                        $statements.add-doc-block($_);
+                    }
+                }
+                next;
+            }
+            $ast.add-to-statements($statements);
         }
         self.attach: $/, $statements;
         $statements
@@ -2838,6 +2854,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $twigil eq '~' {
             my $name := $desigilname.canonicalize;
             $ast := Nodify('Var::Slang').new(
+              name    => $name,
               grammar => $/.slang_grammar($name),
               actions => $/.slang_actions($name)
             );
@@ -4032,7 +4049,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('Type::Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
           !! $name.has-colonpair('U')
             ?? Nodify('Type::Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
-            !! $type;
+            !! $name.has-colonpair('_')
+              ?? Nodify('Type::AnyDefinedness').new(:base-type($type)).to-begin-time($*R, $*CU.context)
+              !! $type;
 
         $<accept>
           ?? Nodify('Type::Coercion').new(

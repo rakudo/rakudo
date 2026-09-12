@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 41; # Do not change this file to done-testing
+plan 42; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1657,6 +1657,50 @@ if my $y = 3 {
 CODE
 
     is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A block statement with a modifier ends its statement' => {
+    # my $a; { $a = 1 } if 1; $a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('a')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$a'),
+                  infix => RakuAST::Infix.new('='),
+                  right => RakuAST::IntLiteral.new(1)
+                )
+              )
+            )
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::If.new(
+          RakuAST::IntLiteral.new(1)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $a;
+{
+    $a = 1
+} if 1;
+$a
+CODE
+
+    is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

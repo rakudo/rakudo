@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 41;
+plan 42;
 
 my $ast;
 my $deparsed;
@@ -1049,6 +1049,111 @@ CODE
       'the deparse of those calls parses back to itself';
 
     is-deeply $_, [42, 42, 42], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A term that ends in an adverb is parenthesized under a postfix' => {
+    # "abc" ~~ /$<p>=a/;
+    # (($<p>:exists)[0], (%<p>:exists)<a>, ($<p>:exists).List)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::NamedCapture.new(
+              name  => 'p',
+              regex => RakuAST::Regex::Literal.new('a')
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(','),
+                operands => (
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '$',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                      index => RakuAST::SemiList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(0)
+                        )
+                      )
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '%',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                      index => RakuAST::QuotedString.new(
+                        segments   => (RakuAST::StrLiteral.new('a'),),
+                        processors => <words val>
+                      )
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '$',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('List')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+"abc" ~~ /$<p>=a/;
+(($<p>:exists)[0], (%<p>:exists)<a>, ($<p>:exists).List)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, (True, Nil, (True,)), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my %h = a => 1;
+    # my @a = 1;
+    # ((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)
+    ast Q:to/SOURCE/.AST;
+    my %h = a => 1;
+    my @a = 1;
+    ((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)
+    SOURCE
+    is-deeply $deparsed.lines.tail,
+      '((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)',
+      'deparse of subscripts with an adverb under a postfix';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of those subscripts parses back to itself';
+
+    is-deeply $_, ((True,), True, 1), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

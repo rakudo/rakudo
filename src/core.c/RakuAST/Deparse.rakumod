@@ -626,6 +626,13 @@ CODE
           # a subscript would read as the value of the pair
           || (nqp::istype($operand,RakuAST::ColonPair)
                && nqp::istype($postfix,RakuAST::Postcircumfix))
+          # an adverb at the end of the operand would take a subscript as
+          # its value, and a dot after it reads as a dotty infix
+          || (nqp::istype($operand,RakuAST::Var::NamedCapture)
+               && $operand.colonpairs)
+          || (nqp::istype($operand,RakuAST::ApplyPostfix)
+               && nqp::istype($operand.postfix,RakuAST::Postcircumfix)
+               && $operand.postfix.colonpairs)
           || nqp::istype($operand,RakuAST::VarDeclaration::Term)
           || nqp::istype($operand,RakuAST::VarDeclaration::Constant)
           || nqp::istype($operand,RakuAST::VarDeclaration::Signature)

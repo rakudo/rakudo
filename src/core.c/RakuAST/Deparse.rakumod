@@ -373,8 +373,10 @@ CODE
 
     # :raw is for the < > form, which processes no escape but the
     # backslash and its own brackets
-    method assemble-quoted-string($ast, :$raw --> Str:D) {
-        my int $interpolated;
+    method assemble-quoted-string(
+      $ast, :$raw, :$after-interpolation, :$after-variable
+    --> Str:D) {
+        my int $interpolated = $after-interpolation ?? 1 !! 0;
         my @segments := $ast.segments;
         my str @parts;
         for @segments.kv -> $i, $segment {
@@ -409,7 +411,9 @@ CODE
                     $text = '\\' ~ $text
                       if $interpolated
                       && (nqp::index('([{<',$text.substr(0,1)) >= 0
-                           || (nqp::istype(@segments[$i - 1],RakuAST::Var)
+                           || (($i
+                                 ?? self.ends-in-variable(@segments[$i - 1])
+                                 !! $after-variable)
                                 && nqp::index(q/-'/,$text.substr(0,1)) >= 0
                                 && (nqp::iscclass(
                                       nqp::const::CCLASS_ALPHABETIC,$text,1
@@ -427,11 +431,17 @@ CODE
                 @parts.push($text);
             }
             # the text between a nested pair of the delimiters is a quote of
-            # its own, one without processors belongs to this one
+            # its own, one without processors belongs to this one, and
+            # what it ends in decides whether the text after it continues
+            # an interpolation
             elsif nqp::istype($segment,RakuAST::QuotedString)
               && !$segment.processors {
-                $interpolated = 0;
-                @parts.push(self.assemble-quoted-string($segment, :$raw));
+                @parts.push(self.assemble-quoted-string(
+                  $segment, :$raw,
+                  :after-interpolation($interpolated),
+                  :after-variable($i && self.ends-in-variable(@segments[$i - 1]))
+                ));
+                $interpolated = self.ends-in-interpolation($segment);
             }
             # one with the processors of this one is text as well, and
             # the quotewords processor starts a word at it and ends one
@@ -472,6 +482,31 @@ CODE
             }
         }
         @parts.join
+    }
+
+    # Whether a segment ends in an interpolated variable, looking through
+    # a group without processors to its last segment
+    method ends-in-variable($segment --> Bool:D) {
+        ?(nqp::istype($segment,RakuAST::Var)
+          || (nqp::istype($segment,RakuAST::QuotedString)
+               && !$segment.processors
+               && $segment.segments
+               && self.ends-in-variable($segment.segments.tail)))
+    }
+
+    # Whether a segment ends in an interpolation that text after it
+    # could continue, a closure ends it
+    method ends-in-interpolation($segment --> Bool:D) {
+        if nqp::istype($segment,RakuAST::QuotedString) {
+            my @segments := $segment.segments;
+            @segments
+              ?? self.ends-in-interpolation(@segments.tail)
+              !! False
+        }
+        else {
+            ?(!nqp::istype($segment,RakuAST::StrLiteral)
+              && !nqp::istype($segment,RakuAST::Block))
+        }
     }
 
     # Whether text that starts with a dot would continue the
@@ -2950,6 +2985,10 @@ CODE
           ~ ' '
           ~ $ast.traits.map({ self.deparse($_) }).join(' ')
           ~ $*DELIMITER
+    }
+
+    multi method deparse(RakuAST::Statement::Trusts:D $ast --> Str:D) {
+        self.labels($ast) ~ self.deparse($ast.traits.head) ~ $*DELIMITER
     }
 
     # an empty statement keeps a block that holds nothing else a block

@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 31;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -808,6 +808,21 @@ subtest 'Exec processor with a slash in the text' => {
     is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
       'the deparse parses back to itself';
     is-deeply $_, "a/b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Text after a nested qq group is kept apart from its variable' => {
+    # my $a = "x";
+    # "$a\-b $a\'s $a\[0] $a\-c"
+    ast Q:to/SOURCE/.AST;
+    my $a = "x";
+    q[\qq[$a]-b \qq[$a]'s \qq[$a][0] \qq[$a]\qq[-c]]
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $a = "x";
+"$a\-b $a\'s $a\[0] $a\-c"
+CODE
+    is-deeply $_, "x-b x's x[0] x-c", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

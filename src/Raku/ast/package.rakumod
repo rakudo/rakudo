@@ -404,15 +404,32 @@ class RakuAST::Package
             if $!name {
                 my @colonpairs := $!name.IMPL-UNWRAP-LIST($!name.colonpairs);
                 if nqp::elems(@colonpairs) {
-                    nqp::die("RakuAST::Package.stubbed-meta-object: package with colonpairs `"
-                      ~ $!name.canonicalize
-                      ~ "' requires resolver and context, but caller did not pass them")
-                        unless nqp::isconcrete($resolver) && nqp::isconcrete($context);
-                    my $Failure := $resolver.type-from-setting('Failure');
+                    my int $has-context :=
+                      nqp::isconcrete($resolver) && nqp::isconcrete($context);
+                    my $Failure := $has-context
+                      ?? $resolver.type-from-setting('Failure')
+                      !! nqp::null;
                     for @colonpairs {
                         my $key := $_.key;
-                        my $value := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
-                            $resolver, $context, $Failure);
+                        my $value;
+                        if $has-context {
+                            $value := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
+                                $resolver, $context, $Failure);
+                        }
+                        # the methods of a hand built package ask for its
+                        # type without a resolver, a literal value needs
+                        # none, one that must be evaluated does
+                        elsif nqp::istype($_, RakuAST::ColonPair::Variable)
+                          || nqp::istype($_, RakuAST::ColonPair::Value)
+                             && !$_.IMPL-CAN-INTERPRET {
+                            nqp::die("RakuAST::Package.stubbed-meta-object: package with colonpairs `"
+                              ~ $!name.canonicalize
+                              ~ "' requires resolver and context, but caller did not pass them");
+                        }
+                        else {
+                            $value := $_.IMPL-EVAL-COLONPAIR-VALUE(
+                                RakuAST::Resolver, RakuAST::IMPL::QASTContext);
+                        }
                         next if $key eq 'auth' && nqp::eqaddr($value, Nil);
                         $value := Version.new($value) if $key eq 'ver' || $key eq 'api';
                         %options{$key} := $value;

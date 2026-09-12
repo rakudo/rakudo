@@ -1165,8 +1165,9 @@ in line '$line'";
 
             my int $elems = nqp::elems(@codes);
             @codes.push($space);  # create virtual space at end for trailing |
-            my str @dividers;     # strings of dividers encountered
+            my str @dividers;     # strings of column dividers encountered
             my int @offsets;      # offsets where columns start (except first)
+            my int $seen-divider; # a | or + occurred, column divider or not
 
             # Check the current line for column dividers.  Sets the @dividers
             # and @offsets arrays, returns whether this line should be
@@ -1182,10 +1183,11 @@ in line '$line'";
                     nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$pipe)
                       || nqp::iseq_i($curr,$plus),
                     nqp::stmts(                         # | or +
-                      nqp::push_s(@dividers,nqp::chr($curr)),
+                      ($seen-divider = 1),
                       nqp::if(
                         is-ws($prev) && is-ws(nqp::atpos_i(@codes,$i + 1)),
                         nqp::stmts(                     # real column divider
+                          nqp::push_s(@dividers,nqp::chr($curr)),
                           nqp::push_i(@offsets,nqp::add_i(++$i,1)),
                           ($prev = 0),
                         )
@@ -1207,7 +1209,7 @@ in line '$line'";
             if inspect-real-dividers() {
 
                 # no dividers found, must have at least one
-                mixed-up($line) unless nqp::elems(@dividers);
+                mixed-up($line) unless $seen-divider;
 
                 my     $cells := nqp::create(IterationBuffer);
                 my int $chars  = nqp::chars($line);

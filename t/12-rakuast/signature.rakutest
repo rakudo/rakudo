@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 27;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -1376,6 +1376,67 @@ sub f (::("Int") $x) {
     $x
 }
 f(42)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An invocant with a where clause' => {
+    # my class TestInvocantWhere {
+    #     method m ($x where {
+    #         1
+    #     }: $y) {
+    #         $y
+    #     }
+    # }
+    # TestInvocantWhere.m(42)
+    ast Q:to/SOURCE/.AST;
+    my class TestInvocantWhere { method m($x where { 1 }: $y) { $y } }
+    TestInvocantWhere.m(42)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class TestInvocantWhere {
+    method m ($x where {
+        1
+    }: $y) {
+        $y
+    }
+}
+TestInvocantWhere.m(42)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'An invocant with a trait and a where clause' => {
+    # my class TestInvocantTrait {
+    #     method m ($x is copy where {
+    #         1
+    #     }: $y) {
+    #         $y
+    #     }
+    # }
+    # TestInvocantTrait.m(42)
+    ast Q:to/SOURCE/.AST;
+    my class TestInvocantTrait { method m($x is copy where { 1 }: $y) { $y } }
+    TestInvocantTrait.m(42)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class TestInvocantTrait {
+    method m ($x is copy where {
+        1
+    }: $y) {
+        $y
+    }
+}
+TestInvocantTrait.m(42)
 CODE
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse parses back to itself';

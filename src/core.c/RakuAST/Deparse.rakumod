@@ -1934,12 +1934,7 @@ CODE
                     @parts.push(self.deparse($prefix));
                 }
                 @parts.push($var);
-                if $ast.invocant {
-                    @parts.push(':');
-                }
-                elsif $ast.is-declared-optional {
-                    @parts.push('?');
-                }
+                @parts.push('?') if $ast.is-declared-optional && !$ast.invocant;
             }
 
             if $ast.traits -> @traits {
@@ -1962,9 +1957,6 @@ CODE
         }
         elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
             @parts.push(self.deparse($ast.slurpy));
-        }
-        elsif $ast.invocant {  # just a type without target
-            @parts.push(':');
         }
         # a named parameter without a variable wraps its sub-signature
         # in its names, an anonymous variable when it has none
@@ -2006,6 +1998,9 @@ CODE
         }
 
         @parts.push(self.where-constraint($_)) with $ast.where;
+
+        # the colon of the invocant follows its traits and where
+        @parts.push(':') if $ast.invocant;
 
         @parts = self.hsyn('param', @parts.join);
         if $ast.default -> $default {

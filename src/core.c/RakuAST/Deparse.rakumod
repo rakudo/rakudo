@@ -535,7 +535,13 @@ CODE
     # by its codepoint, as a backslashed control character does not parse
     method charclass-character(str $char --> Str:D) {
         return $char if nqp::iscclass(nqp::const::CCLASS_WORD,$char,0);
+        # a mark or a character of a C category is written as its
+        # codepoint, a mark or a joiner after a backslash reads as one
+        # grapheme with it
+        my str $category = $char.uniprop('General_Category');
         nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
+          && !$category.starts-with('M')
+          && !$category.starts-with('C')
           ?? '\\' ~ $char
           !! '\\x[' ~ $char.ord.base(16) ~ ']'
     }

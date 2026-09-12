@@ -2272,17 +2272,17 @@ CODE
         $.regex-assertion-fail
     }
 
+    # the sequential flag of an interpolation is set by the || alternation
+    # around it and needs no text of its own
     multi method deparse(
       RakuAST::Regex::Assertion::InterpolatedBlock:D $ast
     --> Str:D) {
-        NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
         '<' ~ self.deparse($ast.block).chomp ~ '>'
     }
 
     multi method deparse(
       RakuAST::Regex::Assertion::InterpolatedVar:D $ast
     --> Str:D) {
-        NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
         '<' ~ self.deparse($ast.var) ~ '>'
     }
 

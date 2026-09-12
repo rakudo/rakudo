@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -561,6 +561,62 @@ subtest 'named assertion with an empty argument list' => {
     );
     is-deeply $deparsed, '/<.alpha()>/', 'deparse';
     match-ok "abc", "a";
+}
+
+
+subtest 'interpolated block in a sequential alternation' => {
+    # /b || <{
+    #     "a"
+    # }>/
+    ast RakuAST::Regex::SequentialAlternation.new(
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Literal.new("b")
+      ),
+      RakuAST::Regex::Assertion::InterpolatedBlock.new(
+        block => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::StrLiteral.new("a")
+              )
+            )
+          )
+        ),
+        sequential => True
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+/b || <{
+    "a"
+}>/
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
+        is "a" ~~ $regex, "a", "$type: the variable is interpolated";
+    }
+}
+
+subtest 'interpolated variable in a sequential alternation' => {
+    # /b || <$x>/
+    my $x = "a";
+    ast RakuAST::Regex::SequentialAlternation.new(
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Literal.new("b")
+      ),
+      RakuAST::Regex::Assertion::InterpolatedVar.new(
+        var        => RakuAST::Var::Lexical.new('$x'),
+        sequential => True
+      )
+    );
+    is-deeply $deparsed, '/b || <$x>/', 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
+        is "a" ~~ $regex, "a", "$type: the variable is interpolated";
+    }
 }
 
 # vim: expandtab shiftwidth=4

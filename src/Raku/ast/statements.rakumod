@@ -1072,6 +1072,55 @@ class RakuAST::Statement::Also
     }
 }
 
+# A trusts statement in a package body. It holds the trusts trait and
+# applies it to the package at BEGIN time, and stays a statement of the
+# body.
+class RakuAST::Statement::Trusts
+  is RakuAST::Statement
+  is RakuAST::ParseTime
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
+  is RakuAST::ProducesNil
+{
+    has RakuAST::Trait::Trusts $.trait;
+    has RakuAST::Package       $!target;
+
+    method new(RakuAST::Type :$type!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Trusts, '$!trait',
+          RakuAST::Trait::Trusts.new(:$type));
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method type() { $!trait.type }
+
+    method visit-children(Code $visitor) {
+        self.visit-labels($visitor);
+        $visitor($!trait);
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Statement::Trusts, '$!target',
+          $resolver.find-attach-target('package'));
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!target {
+            $!trait.apply($resolver, $context, $!target);
+        }
+        else {
+            self.add-sorry:
+              $resolver.build-exception: 'X::AdHoc',
+                :payload("Could not find target for 'trusts'");
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
+}
+
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.

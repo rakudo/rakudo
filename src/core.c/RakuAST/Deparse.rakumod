@@ -2988,7 +2988,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Statement::Trusts:D $ast --> Str:D) {
-        self.labels($ast) ~ self.deparse($ast.traits.head) ~ $*DELIMITER
+        self.labels($ast) ~ self.deparse($ast.trait) ~ $*DELIMITER
     }
 
     # an empty statement keeps a block that holds nothing else a block

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -1374,16 +1374,16 @@ CODE
 
 subtest 'An also statement stays a statement in the body' => {
     # my class HoistedTrait {
-    #     trusts Int;
-    #     also is Any
+    #     also is Any;
+    #     trusts Int
     # }
     ast Q:to/SOURCE/.AST;
     my class HoistedTrait { also is Any; trusts Int }
     SOURCE
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my class HoistedTrait {
-    trusts Int;
-    also is Any
+    also is Any;
+    trusts Int
 }
 CODE
 
@@ -1628,6 +1628,119 @@ unit module TestUnitDoc;
 =para text
 
 CODE
+}
+
+subtest 'A trusts statement stays where it was written' => {
+    # my class Outer {
+    #     method !secret {
+    #         42
+    #     }
+    #     my class Peeker {...}
+    #     trusts Peeker;
+    #     my class Peeker {
+    #         method peek (Outer $o) {
+    #             $o!Outer::secret
+    #         }
+    #     }
+    #     method peeker {
+    #         Peeker
+    #     }
+    # }
+    # Outer.peeker.peek(Outer.new)
+    ast Q:to/SOURCE/.AST;
+    my class Outer {
+        method !secret { 42 }
+        my class Peeker { ... };
+        trusts Peeker;
+        my class Peeker { method peek(Outer $o) { $o!Outer::secret } }
+        method peeker { Peeker }
+    }
+    Outer.peeker.peek(Outer.new)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class Outer {
+    method !secret {
+        42
+    }
+    my class Peeker {...}
+    trusts Peeker;
+    my class Peeker {
+        method peek (Outer $o) {
+            $o!Outer::secret
+        }
+    }
+    method peeker {
+        Peeker
+    }
+}
+Outer.peeker.peek(Outer.new)
+CODE
+    isa-ok $ast.statements.head.expression.body.body.statement-list.statements[2],
+      RakuAST::Statement::Trusts, 'the statement is a trusts statement';
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: the trusted class calls the private method";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+subtest 'A hand built trusts statement' => {
+    # my class TrustsBase { }
+    # my class TrustsStatement {
+    #     trusts TrustsBase
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('TrustsBase')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('TrustsStatement'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Trusts.new(
+                  type => RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('TrustsBase')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class TrustsBase { }
+my class TrustsStatement {
+    trusts TrustsBase
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is-deeply $class.^trusts.map(*.^name).List, ('TrustsBase',),
+          "$type: the class trusts the base";
+    }
+}
+
+subtest 'A trusts statement outside a package' => {
+    # trusts Int
+    ast RakuAST::Statement::Trusts.new(
+      type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+    );
+    is-deeply $deparsed, 'trusts Int', 'deparse';
+    isa-ok $ast.trait, RakuAST::Trait::Trusts, 'the statement holds its trait';
+    for 'AST', $ast, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, Exception,
+          message => /"Could not find target for 'trusts'"/,
+          "$type: no package to trust from";
+    }
+    dies-ok { EVAL($deparsed) }, 'Str: no package to trust from';
 }
 
 # vim: expandtab shiftwidth=4

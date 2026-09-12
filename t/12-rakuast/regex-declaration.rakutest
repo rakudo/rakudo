@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -139,6 +139,43 @@ subtest 'Token declaration with a sym colonpair' => {
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is "aaa" ~~ EVAL($it), 'aaa', "$type: did we get match";
+    }
+}
+
+
+subtest 'Token declaration matching its sym' => {
+    # my token t:sym<a> { <sym> }
+    ast RakuAST::TokenDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("t",
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => "sym",
+            value => RakuAST::QuotedString.new(
+              segments   => [RakuAST::StrLiteral.new("a")],
+              processors => <words val>
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Sym.new(
+          RakuAST::ColonPair::Value.new(
+            key   => "sym",
+            value => RakuAST::QuotedString.new(
+              segments   => [RakuAST::StrLiteral.new("a")],
+              processors => <words val>
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my token t:sym<a> { <sym> }', 'deparse';
+    is-deeply EVAL($raku).DEPARSE, $deparsed,
+      'Raku: does the round trip deparse the same';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is "a" ~~ EVAL($it), 'a', "$type: does the sym match";
     }
 }
 

@@ -987,6 +987,10 @@ augment class RakuAST::Node {
 
 #- Regex::S --------------------------------------------------------------------
 
+    multi method raku(RakuAST::Regex::Sym:D: --> Str:D) {
+        self!positional(self.colonpair)
+    }
+
     multi method raku(RakuAST::Regex::Sequence:D: --> Str:D) {
         self!positionals(self.terms)
     }

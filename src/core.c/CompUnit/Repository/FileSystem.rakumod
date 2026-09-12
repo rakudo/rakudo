@@ -333,16 +333,30 @@ class CompUnit::Repository::FileSystem
 
         # Set up hash of hashes of files found that could be modules.
         # Then select the most prominent one from there when done.
-        my %provides-exts = @!extensions.map(* => True);
-        my $provides-files := ls($!prefix.absolute).grep({ my $ext = $_.extension; %provides-exts{$ext} });
         my %provides;
-        %provides{
-          .subst(:g, /\//, "::")
-          .subst(:g, /\:\:+/, '::')
-          .subst(/^.*?'::'/, '')
-          .subst(/\..*/, '')
-        }{ $SPEC.extension($_) } = $_
-          for $provides-files.map(&to-relative);
+
+        try {
+            my %provides-exts = @!extensions.map(* => True);
+            my int $total-files = 0;
+            my $provides-files := ls($!prefix.absolute).grep({ $total-files++; my $ext = $_.extension; %provides-exts{$ext} });
+
+            %provides{
+              .subst(:g, /\//, "::")
+              .subst(:g, /\:\:+/, '::')
+              .subst(/^.*?'::'/, '')
+              .subst(/\..*/, '')
+            }{ $SPEC.extension($_) } = $_
+              for $provides-files.map(&to-relative);
+
+            CATCH {
+                die("Setting up lib path $!prefix.absolute():" ~ ($total-files ?? " after crawling $total-files files:" !! "") ~ "\n    $_");
+            }
+
+            if $total-files > 10000 {
+                my int $relevant-files = %provides.elems();
+                warn("The path $!prefix.absolute() has $total-files files in it (but " ~ ($relevant-files ?? "only $relevant-files" !! "no") ~ " relevant files).\n  Did you put it into rakudo's module search path by accident?");
+            }
+        }
 
         # precedence is determined by the order of @!extensions
         $_ = @!extensions.map(-> $ext { $_{$ext} }).first(*.defined)

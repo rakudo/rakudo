@@ -466,14 +466,14 @@ my class Rakudo::Internals is implementation-detail {
     # Whether the given value is a container carrying the IsolatedMatch
     # descriptor, the $/ of a 6.e scope.
     method IS-ISOLATED-MATCH(Mu \cont) {
-        nqp::hllbool(
-          nqp::eqaddr(nqp::what_nd(cont),Scalar)
-            && nqp::isrwcont(cont)
-            && nqp::eqaddr(
-                 nqp::what_nd(nqp::ifnull(
-                   nqp::getattr(cont,Scalar,'$!descriptor'),Mu)),
-                 ContainerDescriptor::IsolatedMatch)
-        )
+        nqp::eqaddr(nqp::what_nd(cont),Scalar)
+          && nqp::isrwcont(cont)
+          && nqp::eqaddr(
+               nqp::what_nd(nqp::ifnull(
+                 nqp::getattr(cont,Scalar,'$!descriptor'),Mu
+               )),
+               ContainerDescriptor::IsolatedMatch
+             )
     }
 
     # The revision of the unit a context belongs to, or the compiler's

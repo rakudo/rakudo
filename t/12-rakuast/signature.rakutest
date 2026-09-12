@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -213,7 +213,7 @@ CODE
 }
 
 subtest 'Required named parameter with alias' => { 
-    # sub (:first(:fst($var))!) { $var }
+    # sub (:fst(:first($var))!) { $var }
     ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
@@ -234,7 +234,7 @@ subtest 'Required named parameter with alias' => {
     );
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-sub (:first(:fst($var))!) {
+sub (:fst(:first($var))!) {
     $var
 }
 CODE
@@ -1233,6 +1233,44 @@ CODE
 
     is-deeply $_, 15, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Nested aliases of a named parameter are written outermost first' => {
+    # sub (:x(:y(:$z))) { $z }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$z>),
+            names => ['z', 'y', 'x']
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$z')
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (:x(:y(:$z))) {
+    $z
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed), 'Raku', EVAL(EVAL $raku) -> $type, $sub {
+        is-deeply $sub.signature.params[0].named_names, ('z', 'y', 'x'),
+          "$type: the names are the ones written, innermost first";
+        is $sub(x => 1), 1, "$type: the outer alias is accepted";
+        is $sub(y => 2), 2, "$type: the inner alias is accepted";
+        is $sub(z => 3), 3, "$type: the name of the variable is accepted";
+    }
 }
 
 # vim: expandtab shiftwidth=4

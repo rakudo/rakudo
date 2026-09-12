@@ -1812,7 +1812,9 @@ CODE
                 my int $parens;
                 my int $seen;
 
-                for @names -> $name {
+                # the parser adds the names from the inside out, so the
+                # first one is the innermost
+                for @names.reverse -> $name {
                     if $name eq $varname {
                         $seen = 1;
                     }

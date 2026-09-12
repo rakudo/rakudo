@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -823,6 +823,21 @@ my $a = "x";
 "$a\-b $a\'s $a\[0] $a\-c"
 CODE
     is-deeply $_, "x-b x's x[0] x-c", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A colon after a variable does not start an adverb of its name' => {
+    # my $a = "x";
+    # "$a\:ver<1> $a: b $a\::c"
+    ast Q:to/SOURCE/.AST;
+    my $a = "x";
+    q[\qq[$a]:ver<1> \qq[$a]: b \qq[$a]::c]
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $a = "x";
+"$a\:ver<1> $a: b $a\::c"
+CODE
+    is-deeply $_, "x:ver<1> x: b x::c", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

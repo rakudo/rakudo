@@ -1038,6 +1038,10 @@ augment class RakuAST::Node {
         self!nameds: <labels body>
     }
 
+    multi method raku(RakuAST::Statement::Also:D: --> Str:D) {
+        self!nameds: <labels traits>
+    }
+
     multi method raku(RakuAST::Statement::Empty:D: --> Str:D) {
         self!nameds: <labels>
     }

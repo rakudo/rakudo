@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 27;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -1372,16 +1372,18 @@ CODE
 }
 
 
-subtest 'A hoisted trait leaves no statement behind' => {
-    # my class HoistedTrait is Any {
+subtest 'An also statement stays a statement in the body' => {
+    # my class HoistedTrait {
     #     trusts Int;
+    #     also is Any
     # }
     ast Q:to/SOURCE/.AST;
     my class HoistedTrait { also is Any; trusts Int }
     SOURCE
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-my class HoistedTrait is Any {
+my class HoistedTrait {
     trusts Int;
+    also is Any
 }
 CODE
 
@@ -1391,13 +1393,14 @@ CODE
 }
 
 
-subtest 'A hoisted trait keeps the doc block before it' => {
-    # my class HoistedDoc is Any {
+subtest 'An also statement keeps the doc block before it' => {
+    # my class HoistedDoc {
     # =begin comment
     #
     # kept
     # =end comment
     #
+    #     also is Any
     # }
     ast Q:to/SOURCE/.AST;
     my class HoistedDoc {
@@ -1408,12 +1411,13 @@ subtest 'A hoisted trait keeps the doc block before it' => {
     }
     SOURCE
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-my class HoistedDoc is Any {
+my class HoistedDoc {
 =begin comment
 
 kept
 =end comment
 
+    also is Any
 }
 CODE
 
@@ -1421,6 +1425,192 @@ CODE
         is EVAL($it).^name, 'HoistedDoc', "$type: the class declares";
     }
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'class with an also statement' => {
+    my role TestAlsoRole {
+        method test-meth { 'also role meth' }
+    }
+
+    # my class TestAlsoTarget {
+    #     also does TestAlsoRole
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestAlsoTarget'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Also.new(
+              traits => (
+                RakuAST::Trait::Does.new(
+                  RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('TestAlsoRole')
+                  )
+                ),
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestAlsoTarget {
+    also does TestAlsoRole
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        ok $class ~~ TestAlsoRole,
+          "$type: the class does the role of the also statement";
+        is $class.test-meth, 'also role meth',
+          "$type: the role method can be called";
+    }
+
+    # my role TestAlsoOuter {
+    #     method inner {
+    #         42
+    #     }
+    # }
+    # my class TestAlsoOrder {
+    #     method outer {
+    #         self.inner
+    #     }
+    #     also does TestAlsoOuter
+    # }
+    # TestAlsoOrder.outer
+    #
+    # the also statement stays where it was written
+    my $parsed := Q:to/SOURCE/.AST;
+    my role TestAlsoOuter { method inner { 42 } }
+    my class TestAlsoOrder {
+        method outer { self.inner }
+        also does TestAlsoOuter;
+    }
+    TestAlsoOrder.outer
+    SOURCE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'deparse of a parsed also';
+my role TestAlsoOuter {
+    method inner {
+        42
+    }
+}
+my class TestAlsoOrder {
+    method outer {
+        self.inner
+    }
+    also does TestAlsoOuter
+}
+TestAlsoOrder.outer
+CODE
+    for
+      'AST', EVAL($parsed),
+      'Str', EVAL($parsed.DEPARSE),
+      'Raku', EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku)
+    -> $type, $value {
+        is $value, 42, "$type: the role of the also statement is composed";
+    }
+}
+
+subtest 'also statements in a role, a sub and a method' => {
+    # my role TestAlsoBase {
+    #     method base {
+    #         42
+    #     }
+    # }
+    # my role TestAlsoVia {
+    #     also does TestAlsoBase
+    # }
+    # my class TestAlsoUser {
+    #     also does TestAlsoVia
+    # }
+    # sub also-pure {
+    #     also is pure;
+    #     TestAlsoUser.base
+    # }
+    # my method also-rw {
+    #     also is rw;
+    #     also-pure()
+    # }
+    # (&also-pure.is-pure, &also-rw.rw, also-rw(TestAlsoUser))
+    #
+    # a role body is a routine, the statement reaches the role
+    my $parsed := Q:to/SOURCE/.AST;
+    my role TestAlsoBase { method base { 42 } }
+    my role TestAlsoVia { also does TestAlsoBase }
+    my class TestAlsoUser { also does TestAlsoVia }
+    my sub also-pure { also is pure; TestAlsoUser.base }
+    my method also-rw { also is rw; also-pure() }
+    (&also-pure.is-pure, &also-rw.rw, also-rw(TestAlsoUser))
+    SOURCE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'deparse of also in a role, a sub and a method';
+my role TestAlsoBase {
+    method base {
+        42
+    }
+}
+my role TestAlsoVia {
+    also does TestAlsoBase
+}
+my class TestAlsoUser {
+    also does TestAlsoVia
+}
+sub also-pure {
+    also is pure;
+    TestAlsoUser.base
+}
+my method also-rw {
+    also is rw;
+    also-pure()
+}
+(&also-pure.is-pure, &also-rw.rw, also-rw(TestAlsoUser))
+CODE
+    for
+      'AST', EVAL($parsed),
+      'Str', EVAL($parsed.DEPARSE),
+      'Raku', EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku)
+    -> $type, $value {
+        is-deeply $value, (True, True, 42),
+          "$type: each also statement reached the routine or role it is in";
+    }
+
+    # also is rw
+    #
+    # an also statement outside a package or routine is an error
+    my $alone := RakuAST::StatementList.new(
+      RakuAST::Statement::Also.new(
+        traits => (
+          RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('rw')),
+        )
+      )
+    );
+    is-deeply $alone.DEPARSE, "also is rw\n", 'deparse of an also without a target';
+    throws-like { EVAL($alone) }, Exception,
+      message => /"Could not find target for 'also'"/,
+      'an also statement without a target does not compile';
+    is do { try EVAL($alone); $!.message.comb("Could not find target").elems }, 1,
+      'the missing target is reported once';
+
+    # my class TestAlsoEmpty {
+    #     also
+    # }
+    throws-like {
+        EVAL RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('TestAlsoEmpty'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(RakuAST::Statement::Also.new)
+            )
+          )
+        )
+    }, Exception, message => /"No valid trait found after 'also'"/,
+      'an also statement without traits does not compile';
 }
 
 # vim: expandtab shiftwidth=4

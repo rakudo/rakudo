@@ -1143,18 +1143,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             trigger => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
-    # Dummy control statement to set a trait on a target
+    # The traits go on an also statement, which applies them to the
+    # package or routine it is in at BEGIN time
     method statement-control:sym<also>($/) {
-        if $*ALSO-TARGET -> $target {
-            for $<trait> {
-                $target.add-trait($_.ast);
-            }
-            $target.apply-traits($*R, $*CU.context, $target);
-            self.attach: $/, Nodify('Statement::Empty').new;
+        my $also := Nodify('Statement::Also').new;
+        for $<trait> {
+            $also.add-trait($_.ast);
         }
-        else {
-            $/.panic("Could not find target for 'also'");
-        }
+        self.attach: $/, $also;
     }
 
     # Dummy control statement to set a trusts trait on a target

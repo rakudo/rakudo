@@ -2861,6 +2861,14 @@ CODE
         self.conditional($ast, 'elsif')  # cannot have labels
     }
 
+    multi method deparse(RakuAST::Statement::Also:D $ast --> Str:D) {
+        self.labels($ast)
+          ~ self.hsyn('stmt-prefix-also', self.xsyn('stmt-prefix', 'also'))
+          ~ ' '
+          ~ $ast.traits.map({ self.deparse($_) }).join(' ')
+          ~ $*DELIMITER
+    }
+
     # an empty statement keeps a block that holds nothing else a block
     multi method deparse(RakuAST::Statement::Empty:D $ast --> Str:D) {
         self.labels($ast) ~ ($*DELIMITER ?? $.end-statement !! ';')

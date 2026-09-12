@@ -1022,6 +1022,56 @@ class RakuAST::Statement::Empty
     }
 }
 
+# A statement that adds traits to the package or routine it is in, such as
+# `also is Foo`.
+class RakuAST::Statement::Also
+  is RakuAST::Statement
+  is RakuAST::TraitTarget
+  is RakuAST::ParseTime
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
+  is RakuAST::ProducesNil
+{
+    has RakuAST::TraitTarget $!target;
+
+    method new(List :$traits, List :$labels) {
+        my $obj := nqp::create(self);
+        $obj.set-traits($traits) if $traits;
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        self.visit-labels($visitor);
+        self.visit-traits($visitor);
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Statement::Also, '$!target',
+          $resolver.find-attach-target('also'));
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!target {
+            self.apply-traits($resolver, $context, $!target);
+        }
+        else {
+            self.add-sorry:
+              $resolver.build-exception: 'X::AdHoc',
+                :payload("Could not find target for 'also'");
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sorry:
+          $resolver.build-exception: 'X::AdHoc',
+            :payload("No valid trait found after 'also'")
+          unless nqp::elems(self.IMPL-UNWRAP-LIST(self.traits));
+        self.add-trait-sorries;
+        True
+    }
+}
+
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.

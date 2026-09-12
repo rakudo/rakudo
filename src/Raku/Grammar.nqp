@@ -3921,7 +3921,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           { $*IN-DECL := ''; }
         ]?
         { $/.set_package($*PACKAGE) }
-        :my $*ALSO-TARGET := $*PACKAGE;
         :my $*TRUSTS-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
         { $scope := $*R.leave-scope() }
@@ -4244,7 +4243,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         [ '(' <signature(:ON-ROUTINE(1))> ')' ]?
-        :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }

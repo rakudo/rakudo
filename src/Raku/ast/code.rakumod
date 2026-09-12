@@ -2650,7 +2650,7 @@ class RakuAST::Routine
     method needs-sink-call() { False }
 
     method attach-target-names() {
-        self.IMPL-WRAP-LIST(['routine', 'block'])
+        self.IMPL-WRAP-LIST(['routine', 'block', 'also'])
     }
 
     method is-stub() {
@@ -3573,6 +3573,12 @@ class RakuAST::RoleBody
 {
     has RakuAST::LexicalFixup $.fixup;
 
+    # the body of a role is a routine, an also statement in it targets
+    # the role
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['routine', 'block'])
+    }
+
     # The lexical fixup nodes IMPL-FINISH-ROLE-BODY appended to the
     # formed block. The throwaway block's outer annotation names the
     # block object the graft keeps.
@@ -3688,7 +3694,7 @@ class RakuAST::Methodish
     # A %_ in the body is the implicit slurpy parameter rather than a
     # placeholder that builds a signature. The 'method' target says so.
     method attach-target-names() {
-        self.IMPL-WRAP-LIST(['method', 'routine', 'block'])
+        self.IMPL-WRAP-LIST(['method', 'routine', 'block', 'also'])
     }
 
     method default-scope() {

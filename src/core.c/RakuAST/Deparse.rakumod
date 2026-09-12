@@ -156,6 +156,7 @@ class RakuAST::Deparse {
             my $*QUOTE-DELIMITER  := '';     # delimiter to escape in quoted text
             my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
             my $*POINTY-RW-TRAIT := False;  # a rw parameter of a -> block writes the trait
+            my $*DOC-MARGIN := '';  # margin of the doc block that holds the one being deparsed
             {*}
         }
         else {
@@ -1451,12 +1452,22 @@ CODE
         }
 
         # standard paragraphs handling from here on
+        # the margin of an implicit code block is relative to the block
+        # it is in, every other margin is the whole indent
+        my str $line-margin = $type eq 'implicit-code'
+          ?? (nqp::isnull(my $outer := nqp::getlexdyn('$*DOC-MARGIN'))
+               ?? '' !! $outer
+             ) ~ $margin
+          !! $margin;
         my str $paragraphs = $ast.paragraphs.map({
             nqp::istype($_,RakuAST::Doc::Block)
-              ?? self.deparse($_)
+              ?? do {
+                     my $*DOC-MARGIN := $margin;
+                     self.deparse($_)
+                 }
               !! (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
                    .lines(:!chomp).map({
-                       $_ eq "\n" ?? $_ !! "$margin$_"
+                       $_ eq "\n" ?? $_ !! "$line-margin$_"
                    }).join
         }).join;
 

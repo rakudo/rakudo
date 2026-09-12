@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 39; # Do not change this file to done-testing because of END block tests
+plan 40; # Do not change this file to done-testing because of END block tests
 
 my $ast;
 my $deparsed;
@@ -1733,6 +1733,93 @@ subtest 'ENTER phaser subclass added to the compilation unit at BEGIN' => {
         CODE
     is-deeply EVAL($code), ('mine', ['unit']),
       'the added phaser ran and the parsed ENTER kept its own value';
+    }
+}
+
+
+subtest 'A parsed QUIT phaser deparses without the topic it hands back' => {
+    # -> {
+    #     QUIT {
+    #         $*SEEN = .payload
+    #     }
+    # }
+    ast Q:to/SOURCE/.AST;
+    -> {
+        QUIT {
+            $*SEEN = .payload
+        }
+    }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> {
+    QUIT {
+        $*SEEN = .payload
+    }
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        $block.callable_for_phaser("QUIT")(X::AdHoc.new(:payload<foo>));
+        is $*SEEN, 'foo', "$type: the QUIT phaser ran with the exception as its topic";
+    }
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        my $ex = X::AdHoc.new(:payload<foo>);
+        ok $block.callable_for_phaser("QUIT")($ex) === $ex,
+          "$type: the QUIT phaser hands the exception back when it runs to the end";
+    }
+
+    # -> {
+    #     QUIT {
+    #         when X::AdHoc {
+    #             $*SEEN = .payload
+    #         }
+    #     }
+    # }
+    ast Q:to/SOURCE/.AST;
+    -> {
+        QUIT {
+            when X::AdHoc {
+                $*SEEN = .payload
+            }
+        }
+    }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/, 'deparse with a when handler';
+-> {
+    QUIT {
+        when X::AdHoc {
+            $*SEEN = .payload
+        }
+    }
+}
+CODE
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        my $quit := $block.callable_for_phaser("QUIT");
+        is-deeply $quit(X::AdHoc.new(:payload<foo>)), Nil,
+          "$type: a matching when handler succeeds with Nil";
+        is $*SEEN, 'foo', "$type: the when handler ran";
+        my $other = X::NYI.new(feature => 'x');
+        ok $quit($other) === $other,
+          "$type: a when handler that does not match hands the exception back";
     }
 }
 

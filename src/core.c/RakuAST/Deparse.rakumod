@@ -3455,7 +3455,10 @@ CODE
 #- Type ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Type::Capture:D $ast --> Str:D) {
-        '::' ~ self.deparse($ast.name)
+        # a name that is a lookup, such as ::("Foo"), writes its own ::
+        my $name := $ast.name;
+        (nqp::istype($name.parts.head,RakuAST::Name::Part::Expression) ?? '' !! '::')
+          ~ self.deparse($name)
     }
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {

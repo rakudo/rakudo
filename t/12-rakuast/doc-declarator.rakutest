@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 27;
+plan 28;
 
 my $ast;
 my $deparsed;
@@ -1080,6 +1080,35 @@ CODE
       'the deparse parses back to itself';
     is-deeply $deparsed.AST.statements.head.expression.signature.parameters.tail.WHY.trailing,
       ('second',), 'the doc stays on the parameter';
+}
+
+subtest 'A subset with a where block that declares something keeps its doc' => {
+    # #| d1
+    # my subset S of Code where {
+    #     .signature ~~ :(:$x)
+    # };
+    # #| d2
+    # my subset T of Any where 1
+    my $ast := Q:to/SOURCE/.AST;
+    #| d1
+    my subset S of Code where { .signature ~~ :(:$x) };
+    #| d2
+    my subset T of Any where 1;
+    SOURCE
+    is-deeply $ast.statements.map(*.expression.WHY.leading.head).List,
+      ("d1", "d2"), 'each subset keeps its own leading doc';
+    nok $ast.statements.head.expression.where.WHY,
+      'the where block has no doc';
+    is-deeply $ast.DEPARSE, Q:to/CODE/, 'deparse';
+#| d1
+my subset S of Code where {
+    .signature ~~ :(:$x)
+};
+#| d2
+my subset T of Any where 1
+CODE
+    is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
+      'the deparse parses back to itself';
 }
 
 # vim: expandtab shiftwidth=4

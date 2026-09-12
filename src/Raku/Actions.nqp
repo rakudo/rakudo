@@ -1053,8 +1053,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # for cases like subsets with a where, where the where block is
     # seen *before* the subset, causing leading declarator doc to be
     # attached to the where block, rather than to the subset.
-    method steal-declarand($/, $it) {
-        $it.set-WHY($*DECLARAND.cut-WHY);
+    method steal-declarand($/, $it, $from) {
+        $it.set-WHY($from.cut-WHY);
         $*DECLARAND          := $it;
         $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
     }
@@ -3456,10 +3456,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :of($*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type'))
         );
 
-        # a where block was seen before the subset and took its leading
-        # doc, a where expression left the previous declarand in place
-        $where && $*DECLARAND && nqp::eqaddr($*DECLARAND,$where)
-          ?? self.steal-declarand($/, $decl)
+        # a where block is parsed before the subset, so leading doc meant
+        # for the subset lands on the block and is taken back from it
+        $where && nqp::can($where, 'WHY') && $where.WHY
+          ?? self.steal-declarand($/, $decl, $where)
           !! self.set-declarand($/, $decl);
 
         for $<trait> {

@@ -150,6 +150,8 @@ class RakuAST::Deparse {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
+            my $*HEREDOC-INDENT := Str;   # indent of the heredoc text being assembled
+            my $*HEREDOC-LINE-START = 0;  # the next heredoc segment starts a line
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
             my $*QUOTE-DELIMITER  := '';     # delimiter to escape in quoted text
             my $*DOTTY-INFIX = False;  # the infix supplies the dot of the call
@@ -374,10 +376,28 @@ CODE
         my @segments := $ast.segments;
         my str @parts;
         for @segments.kv -> $i, $segment {
+            my $heredoc-indent := $*HEREDOC-INDENT;
             if nqp::istype($segment,RakuAST::StrLiteral) {
-                my str $text = $raw
-                  ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
-                  !! $segment.value.raku.substr(1,*-1);
+                my str $text;
+                # the text of a heredoc is written as lines, each indented
+                # as far as the stop marker, the code in it is not
+                if $heredoc-indent.defined {
+                    my str $indent = $heredoc-indent;
+                    my str $value  = $segment.value;
+                    $text = $value.split("\n").kv.map(-> $k, $line {
+                        $line
+                          ?? ($k || $*HEREDOC-LINE-START ?? $indent !! '')
+                               ~ $line.raku.substr(1,*-1)
+                          !! ''
+                    }).join("\n");
+                    # the parser puts empty text before a leading interpolation
+                    $*HEREDOC-LINE-START = $value.ends-with("\n") if $value;
+                }
+                else {
+                    $text = $raw
+                      ?? $segment.value.subst('\\','\\\\',:g).subst('<','\\<',:g).subst('>','\\>',:g)
+                      !! $segment.value.raku.substr(1,*-1);
+                }
                 if $text {
                     # a bracket right after an interpolation would continue
                     # it as a call or an index, and so would a dot that
@@ -427,11 +447,16 @@ CODE
             else {
                 # a closure ends the interpolation
                 $interpolated = nqp::istype($segment,RakuAST::Block) ?? 0 !! 1;
+                # code at the start of a heredoc line is indented as text
+                @parts.push($heredoc-indent)
+                  if $*HEREDOC-LINE-START && $heredoc-indent.defined;
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
                 my $*QUOTE-DELIMITER := '';
+                my $*HEREDOC-INDENT  := Str;
                 @parts.push(self.deparse($segment));
+                $*HEREDOC-LINE-START = 0 if $heredoc-indent.defined;
             }
         }
         @parts.join
@@ -1504,7 +1529,6 @@ CODE
     }
 
     multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
-        my $string := self.assemble-quoted-string($ast);
         my @processors = $ast.processors;
         @processors.push('heredoc');
 
@@ -1514,9 +1538,14 @@ CODE
           !! " " x ($stop.chars - $stop.trim-leading.chars);
 
         my $top := self.multiple-processors($stop.trim, @processors);
-        my $bottom := $string.chomp('\n').split(Q/\n/).map({
-            $_ ?? "$indent$_\n" !! "\n"
-        }).join ~ $stop;
+        my $text = do {
+            my $*HEREDOC-INDENT := $indent;
+            my $*HEREDOC-LINE-START = 1;
+            self.assemble-quoted-string($ast)
+        }
+        # the stop marker starts a line of its own
+        $text ~= "\n" unless $text.ends-with("\n");
+        my $bottom := $text ~ $stop;
 
         # a statement list places the bodies of the heredocs in a statement
         my $heredocs := nqp::getlexdyn('@*HEREDOCS');

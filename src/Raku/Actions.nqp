@@ -2244,7 +2244,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Empty block is always an empty hash composer
         if $num-statements == 0 {
-            return RakuAST::Circumfix::HashComposer.new(:$object-hash)
+            return Nodify('Circumfix::HashComposer').new(:$object-hash)
         }
 
         # Multiple statements is always a block
@@ -2254,37 +2254,37 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Not a statement always means block
         my $statement := @statements[0];
-        unless nqp::istype($statement, RakuAST::Statement::Expression) {
+        unless nqp::istype($statement, Nodify('Statement::Expression')) {
             return $object-hash ?? Nil !! $ast
         }
 
         # If it's a comma list, then obtain the first element. Otherwise,
         # we have the thing to test already.
         my $expression := $statement.expression;
-        my int $is-comma := nqp::istype($expression, RakuAST::ApplyListInfix)
-          && nqp::istype($expression.infix, RakuAST::Infix)
+        my int $is-comma := nqp::istype($expression, Nodify('ApplyListInfix'))
+          && nqp::istype($expression.infix, Nodify('Infix'))
           && $expression.infix.operator eq ',';
         my $test := $is-comma
             ?? $ast.IMPL-UNWRAP-LIST($expression.operands)[0]
             !! $expression;
 
         # A fatarrow is ok
-        if nqp::istype($test,RakuAST::FatArrow) {
+        if nqp::istype($test, Nodify('FatArrow')) {
         }
         # A colonpair is ok
-        elsif nqp::istype($test,RakuAST::ColonPair) {
+        elsif nqp::istype($test, Nodify('ColonPair')) {
         }
         # A hash sigil'd variable is ok
-        elsif nqp::istype($test,RakuAST::Var) && $test.sigil eq '%' {
+        elsif nqp::istype($test, Nodify('Var')) && $test.sigil eq '%' {
         }
         # Some kind of infix may be ok
-        elsif nqp::istype($test,RakuAST::ApplyInfix) {
+        elsif nqp::istype($test, Nodify('ApplyInfix')) {
 
             # Get the proper infix to check
             my $infix := $test.infix;
-            if nqp::istype($infix,RakuAST::Infix) {
+            if nqp::istype($infix, Nodify('Infix')) {
             }
-            elsif nqp::istype($infix,RakuAST::MetaInfix::Reverse) {
+            elsif nqp::istype($infix, Nodify('MetaInfix::Reverse')) {
                 $infix := $infix.infix;
             }
 
@@ -2308,21 +2308,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my int $seen-decl-or-topic;
         $expression.visit: -> $node {
             # Don't walk into other scopes
-            if nqp::istype($node, RakuAST::LexicalScope) {
+            if nqp::istype($node, Nodify('LexicalScope')) {
                 0
             }
             # A declaration that installs an enclosing symbol blocks; an `anon`
             # one that installs none (e.g. an anon subset) is just a value.
-            elsif nqp::istype($node, RakuAST::Declaration) {
+            elsif nqp::istype($node, Nodify('Declaration')) {
                 if $node.IMPL-INSTALLS-ENCLOSING-SYMBOL {
                     $seen-decl-or-topic := 1;
                 }
                 0
             }
             # If it's a usage of the topic, it also blocks; walk no further
-            elsif nqp::istype($node, RakuAST::Var::Lexical)
+            elsif nqp::istype($node, Nodify('Var::Lexical'))
               && $node.name eq '$_'
-              || nqp::istype($node, RakuAST::Term::TopicCall) {
+              || nqp::istype($node, Nodify('Term::TopicCall')) {
                 $seen-decl-or-topic := 1;
                 0
             }
@@ -2335,7 +2335,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? $object-hash
             ?? Nil
             !! $ast
-          !! RakuAST::Circumfix::HashComposer.new($expression, :$object-hash)
+          !! Nodify('Circumfix::HashComposer').new($expression, :$object-hash)
     }
 
     method circumfix:sym<{ }>($/) {
@@ -4451,7 +4451,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
                 my $existing := $*R.declare-lexical-in-outer($*BLOCK);
                 if $existing {
-                    if nqp::istype($existing, RakuAST::Routine) && $existing.is-stub {
+                    if nqp::istype($existing, Nodify('Routine')) && $existing.is-stub {
                         $*BLOCK.set-replace-stub(1);
                     }
                     else {
@@ -4463,7 +4463,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $*DEFAULT-SCOPE ne 'has' {
                 my $existing := $*R.declare-lexical($*BLOCK);
                 if $existing {
-                    if nqp::istype($existing, RakuAST::Routine) && $existing.is-stub {
+                    if nqp::istype($existing, Nodify('Routine')) && $existing.is-stub {
                         $*BLOCK.set-replace-stub(1);
                     }
                     else {

@@ -518,7 +518,9 @@ CODE
         False
     }
 
-    method multiple-processors(str $string, @processors --> Str:D) {
+    method multiple-processors(
+      str $string, @processors, str :$open = '/', str :$close = '/'
+    --> Str:D) {
         self.hsyn('quote-lang-qq', self.xsyn('quote-lang',"qq"))
           ~ "@processors.map({
               my str $processor = %processor-attribute{$_}
@@ -527,7 +529,17 @@ CODE
                       "adverb-q-$processor",
                       self.xsyn('adverb-q', $processor)
                     )
-            }).join()/$string/"
+            }).join()$open$string$close"
+    }
+
+    # the first pair of delimiters that does not occur in the string
+    method delimiters-for(str $string) {
+        for ('/', '/', '<', '>', '{', '}', '[', ']', '|', '|', '!', '!', '«', '»')
+          -> str $open, str $close {
+            return ($open, $close)
+              unless $string.contains($open) || $string.contains($close);
+        }
+        die "No delimiters left for the heredoc stop marker '$string'";
     }
 
     method branches(RakuAST::Regex::Branching:D $ast, str $joiner --> Str:D) {
@@ -1614,7 +1626,8 @@ CODE
         my $marker := $stop.chomp;
         my $indent := $marker.substr(0, $marker.chars - $marker.trim-leading.chars);
 
-        my $top := self.multiple-processors($stop.trim, @processors);
+        my ($open, $close) = self.delimiters-for($stop.trim);
+        my $top := self.multiple-processors($stop.trim, @processors, :$open, :$close);
         # a heredoc in the code of the text places its body in the text
         my $text = do {
             my $*HEREDOC-INDENT := $indent;

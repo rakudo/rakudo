@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -704,6 +704,21 @@ E
 $s
 CODE
     is-deeply $_, "a foo b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc whose stop marker holds a slash' => {
+    # qq:to<a/b>
+    # x
+    # a/b
+    ast Q:to/SOURCE/.AST;
+    q:to<a/b>
+    x
+    a/b
+    SOURCE
+    is-deeply $deparsed, "qq:to<a/b>\nx\na/b\n", 'deparse';
+
+    is-deeply $_, "x\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

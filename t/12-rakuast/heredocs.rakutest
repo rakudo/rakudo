@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -604,6 +604,44 @@ CODE
       'the deparse parses back to itself';
 
     is-deeply $_, "a b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An interpolating heredoc in a block that is an argument' => {
+    # sub f (&b, $s) {
+    #     b($s) ~ "|" ~ $s
+    # }
+    # f(-> $s {
+    #     qq:to/A/
+    #       $s
+    #       A
+    # }, "yy")
+    #
+    # the block is not written on the line of the call, the body of the
+    # heredoc is read after that line, outside the block
+    ast Q:to/SOURCE/.AST;
+    sub f(&b, $s) { b($s) ~ "|" ~ $s }
+    f(-> $s {
+        qq:to/A/
+          $s
+          A
+    }, "yy");
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f (&b, $s) {
+    b($s) ~ "|" ~ $s
+}
+f(-> $s {
+    qq:to/A/
+      $s
+      A
+}, "yy")
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "yy\n|yy", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -556,6 +556,23 @@ CODE
         $quantifier ~ self.deparse($ast.backtrack)
     }
 
+    # the body of a heredoc is read after the line that holds its opener,
+    # outside a block written on that line, so a heredoc that interpolates
+    # needs the block on lines of its own
+    method has-interpolating-heredoc($node --> Bool:D) {
+        my $found := False;
+        my sub walk($node) {
+            if nqp::istype($node,RakuAST::Heredoc) && $node.has-variables {
+                $found := True;
+            }
+            else {
+                $node.visit-children(&walk) unless $found;
+            }
+        }
+        walk($node);
+        $found
+    }
+
     method parenthesize($ast, :$only-non-empty --> Str:D) {
         # a declaration inside the parens would add the statement delimiter
         my $*DELIMITER = '';
@@ -1062,7 +1079,8 @@ CODE
                 # Deeper deparsing assumes not in an argument list
                 my $*IN-ARGLIST := False;
 
-                if @statements == 1 && $in-arglist && !$multi {
+                if @statements == 1 && $in-arglist && !$multi
+                  && !self.has-interpolating-heredoc(@statements.head) {
                     my $*DELIMITER = '';
                     $.bracket-open
                       ~ ' '

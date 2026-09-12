@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 29;
+plan 30;
 
 my $ast;
 my $deparsed;
@@ -663,7 +663,7 @@ subtest 'unit scoped class' => {
       leading  => ("leading\n",),
       trailing => ("trailing\n",)
     );
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
 #| leading
 unit class Goo; #= trailing
 method goo {
@@ -1611,6 +1611,23 @@ CODE
         )
     }, Exception, message => /"No valid trait found after 'also'"/,
       'an also statement without traits does not compile';
+}
+
+
+subtest 'unit scoped module that ends in a doc block' => {
+    # unit module TestUnitDoc;
+    # =para text
+    #
+    my $parsed := Q:to/SOURCE/.AST;
+    unit module TestUnitDoc;
+    =para text
+
+    SOURCE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'deparse';
+unit module TestUnitDoc;
+=para text
+
+CODE
 }
 
 # vim: expandtab shiftwidth=4

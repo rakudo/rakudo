@@ -1824,7 +1824,7 @@ CODE
         if $ast.WHY -> $WHY {
             if $scope eq 'unit' {
                 self.add-any-docs(@parts.join(' ') ~ ';', $WHY)
-                  ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts).chomp
+                  ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts)
             }
             else {
                 @parts.push('{');
@@ -1836,7 +1836,7 @@ CODE
         elsif $scope eq 'unit' {
             @parts.join(' ')
               ~ $.end-statement
-              ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts).chomp
+              ~ self.unit-with-trusts(self.deparse($body, :unit), @trusts)
         }
         else {
             @parts.push($ast.is-stub

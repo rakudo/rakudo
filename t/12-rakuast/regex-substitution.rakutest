@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -192,14 +192,14 @@ CODE
 }
 
 subtest 'Substitution with the delimiter in both sides' => {
-    # s/"a\/b"/x\/y/;
+    # s/"a/b"/x\/y/;
     ast RakuAST::Substitution.new(
       pattern     => RakuAST::Regex::Literal.new("a/b"),
       replacement => RakuAST::QuotedString.new(
         segments => [RakuAST::StrLiteral.new("x/y")]
       ),
     );
-    is-deeply $deparsed, 's/"a\/b"/x\/y/', 'deparse';
+    is-deeply $deparsed, 's/"a/b"/x\/y/', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "a/b";
@@ -267,6 +267,32 @@ CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), '1/b', "$type: the closure runs";
+    }
+}
+
+
+subtest 'A slash in the character class of a substitution' => {
+    # s/<+[\/]>/-/
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => (
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("/"),
+          )
+        )
+      ),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("-")]
+      ),
+    );
+    is-deeply $deparsed, 's/<+[\/]>/-/', 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "a/b";
+        EVAL($it);
+        is $_, "a-b", "$type: is topic changed";
     }
 }
 

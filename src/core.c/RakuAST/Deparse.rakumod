@@ -3267,8 +3267,9 @@ CODE
             @parts.push(self.deparse($ast.replacement));
         }
         else {
+            # the pattern escapes the slashes it holds itself
             @parts.push('/');
-            @parts.push(self.deparse($ast.pattern).subst('/', '\/', :g));
+            @parts.push(self.deparse($ast.pattern));
             @parts.push('/');
             # only the text of the replacement escapes the delimiter, the
             # code of a closure in it is closed by its braces

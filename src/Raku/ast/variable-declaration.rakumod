@@ -2288,9 +2288,23 @@ class RakuAST::VarDeclaration::Signature
             }
         }
 
+        # a constraint a parameter received after this declaration was
+        # built is too late for its variable, whose container has been
+        # made by now
+        for @parameters -> $param {
+            if $param.where
+              && nqp::istype($param.target, RakuAST::ParameterTarget::Var)
+              && (my $declaration := $param.target.declaration)
+              && !nqp::eqaddr($declaration.where, $param.where) {
+                self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                  payload => "Cannot constrain variable '" ~ $declaration.name
+                    ~ "' with a where clause after its declaration was built."
+                    ~ " Pass the constraint to RakuAST::Parameter.new";
+            }
+        }
+
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            $param.target.set-where($param.where) if $param.where;
             if nqp::defined($param.value) && !$param.target {
                 # We don't have a target that can carry the where clause. Have to synthesize one here
                 my $value := $param.value;

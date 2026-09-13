@@ -86,18 +86,18 @@ class RakuAST::Signature
 
                 if $kind == 3 {               # required
                     if $prev-kind == 2 {      # optional
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 4 { # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.lexical-name;
                     }
 
                 } elsif $kind == 2 {          # optional
                     if $prev-kind == 4 {      # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.lexical-name;
                     }
                 }
 
@@ -577,6 +577,7 @@ class RakuAST::Parameter
 {
     has RakuAST::Type              $.type;
     has RakuAST::Type              $!conflicting-type;
+    has int                        $!outer-type;
     has RakuAST::ParameterTarget   $.target;
     has Mu                         $!names;
     has Bool                       $.invocant;
@@ -678,13 +679,27 @@ class RakuAST::Parameter
     }
 
     method set-type(RakuAST::Type $type, Bool :$replace) {
-        if $!type && !$replace {
+        if $!type && !$replace && !$!outer-type {
             nqp::bindattr(self, RakuAST::Parameter, '$!conflicting-type', $!type);
         }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 0);
         $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
         Nil
     }
+
+    # The type of the list declaration a parameter binds through is the
+    # parameter's type when it has none of its own, so the binder checks
+    # it. The deparse and the .raku leave it to the declaration.
+    method IMPL-SET-OUTER-TYPE(RakuAST::Type $type) {
+        unless $!type {
+            nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+            nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 1);
+        }
+        Nil
+    }
+
+    method outer-type() { $!outer-type }
 
     method set-default-type(RakuAST::Type $type) {
         my str $sigil := self.IMPL-SIGIL;
@@ -1354,7 +1369,7 @@ class RakuAST::Parameter
         if $!conflicting-type {
             self.add-sorry:
                 $resolver.build-exception: 'X::Parameter::MultipleTypeConstraints',
-                    parameter => $!target.name;
+                    parameter => $!target.lexical-name;
         }
 
         if $!default {
@@ -1367,7 +1382,7 @@ class RakuAST::Parameter
             if self.is-declared-required {
                 self.add-sorry:
                   $resolver.build-exception: 'X::Parameter::Default',
-                    how => 'required', parameter => $!target.name;
+                    how => 'required', parameter => $!target.lexical-name;
             }
 
             if nqp::isconcrete($!type) && $!default.has-compile-time-value {
@@ -1393,7 +1408,7 @@ class RakuAST::Parameter
         if !$!attribute-declaration
             && nqp::istype($!owner, RakuAST::Submethod) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.name;
+                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.lexical-name;
         }
 
         # A `!`-twigil attributive parameter is checked by its own
@@ -1407,7 +1422,7 @@ class RakuAST::Parameter
         if !$!attribute-declaration
             && nqp::istype($!owner, RakuAST::Sub) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.name;
+                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.lexical-name;
         }
 
         my $param-obj := self.meta-object;
@@ -1458,7 +1473,7 @@ class RakuAST::Parameter
         if nqp::can(self.meta-object, 'is-item') && self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',
-                                            name        => $!target.name,
+                                            name        => $!target.lexical-name,
                                             reason      => "only '\@' or '\%' sigiled parameters can be constrained to itemized arguments",
                                             declaring   => 'parameter',
                                             type        => 'is',
@@ -2139,6 +2154,7 @@ class RakuAST::ParameterTarget
     method set-var-declaration() { }
     method sigil() { '' }
     method name() { '' }
+    method lexical-name() { '' }
     method desigilname() { self.name }
     method set-bindable(Bool $is-bindable) {
         nqp::die("set-bindable NYI on " ~ self.HOW.name(self));
@@ -2421,9 +2437,11 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::Declaration
   is RakuAST::BeginTime
   is RakuAST::Meta
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Type $.type;
+    has RakuAST::Type $!conflicting-type;
     has RakuAST::Expression $.where;
     has Bool $!is-bindable;
     has int $!lowered-to-local;
@@ -2479,7 +2497,14 @@ class RakuAST::ParameterTarget::Term
     method sigil() { '' }
     method twigil() { '' }
 
-    method set-type(RakuAST::Type $type) {
+    # The type of the list declaration a term sits in becomes the
+    # term's type unless the term has one of its own, and then they
+    # conflict
+    method set-type(RakuAST::Type $type, Bool :$outer, Bool :$replace) {
+        if $outer && $!type && !$replace {
+            nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!conflicting-type', $type);
+            return Nil;
+        }
         nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!type', $type);
         Nil
     }
@@ -2504,14 +2529,22 @@ class RakuAST::ParameterTarget::Term
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if my $where := $!where {
-            my $type := $!type;
-            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
-            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
-            my $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type), :$where;
+        # a type in conflict stays as written for the report
+        if $!where && !$!conflicting-type {
+            my $where := $!where;
+            # An unnamed subset reports as <anon> in a failed type check,
+            # matching the legacy frontend.
+            my $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($!type), :$where;
             $subset.to-begin-time($resolver, $context);
-            self.set-type($subset);
+            self.set-type($subset, :replace);
         }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
+            :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
+        ) if $!conflicting-type;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

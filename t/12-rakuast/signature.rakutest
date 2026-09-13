@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 31;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -1557,6 +1557,56 @@ subtest 'An invocant marker before the first parameter is reported' => {
     # class D { method m(: ) { } }
     throws-like { 'class D { method m(: ) { } }'.AST },
       X::Syntax::Signature::InvocantMarker, 'a marker alone is reported';
+}
+
+subtest 'Term parameter named in a signature sorry' => {
+    # sub f (Int \foo) { }
+    my $parameter := RakuAST::Parameter.new(
+      type   => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+      target => RakuAST::ParameterTarget::Term.new(
+        RakuAST::Name.from-identifier('foo')
+      )
+    );
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier('f'),
+      signature => RakuAST::Signature.new(parameters => ($parameter,)),
+      body      => RakuAST::Blockoid.new
+    );
+    is-deeply $deparsed, 'sub f (Int \foo) { }', 'deparse';
+    $parameter.set-type(
+      RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+    );
+    throws-like { EVAL $ast }, X::Parameter::MultipleTypeConstraints,
+      parameter => 'foo',
+      'a second prefix type on a term parameter names the term';
+
+    # sub g ($x?, \bar) { }
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier('g'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target   => RakuAST::ParameterTarget::Var.new(:name<$x>),
+            optional => True
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('bar')
+            )
+          ),
+        )
+      ),
+      body      => RakuAST::Blockoid.new
+    );
+    is-deeply $deparsed, 'sub g ($x?, \bar) { }', 'deparse';
+    throws-like { EVAL $ast }, X::Parameter::WrongOrder,
+      parameter => 'bar',
+      'AST: a required term after an optional parameter names the term';
+    throws-like { EVAL $deparsed }, X::Parameter::WrongOrder,
+      'Str: a required term after an optional parameter is reported';
+    throws-like { EVAL EVAL $raku }, X::Parameter::WrongOrder,
+      parameter => 'bar',
+      'Raku: a required term after an optional parameter names the term';
 }
 
 # vim: expandtab shiftwidth=4

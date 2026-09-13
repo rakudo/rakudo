@@ -673,11 +673,14 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Parameter:D: --> Str:D) {
         my str @nameds;
-        # Any is the implicit type of a target, a parameter that is only
-        # a type has nothing else
+        # Any is the implicit type of a target, the type of a list
+        # declaration is written by the declaration, a parameter that is
+        # only a type has nothing else
         my $type := self.type;
         @nameds.push("type")
-          if $type && ($type.DEPARSE ne 'Any' || !self.target);
+          if $type
+          && !self.outer-type
+          && ($type.DEPARSE ne 'Any' || !self.target);
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
         @nameds.push("invocant") if self.invocant;

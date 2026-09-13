@@ -432,6 +432,17 @@ class RakuAST::Signature
         }
     }
 
+    # Push the parameters of this signature onto @parameters, those of a
+    # sub-signature after the parameter that holds it, so a list
+    # declaration reaches every variable it declares.
+    method IMPL-COLLECT-PARAMETERS(@parameters) {
+        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
+            nqp::push(@parameters, $param);
+            my $sub := $param.sub-signature;
+            $sub.IMPL-COLLECT-PARAMETERS(@parameters) if $sub;
+        }
+    }
+
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
         my $i := 0;
         my $found := 0;
@@ -1192,6 +1203,10 @@ class RakuAST::Parameter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # the meta-object made below holds the meta-objects of the
+        # sub-signature's parameters, which their BEGIN time completes
+        $!sub-signature.to-begin-time($resolver, $context) if $!sub-signature;
+
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
             if $!where;
 

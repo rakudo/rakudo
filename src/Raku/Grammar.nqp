@@ -1567,7 +1567,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '{'                                     # actual block start
             <.enter-block-body>
             <statementlist=.key-origin('statementlist')>
-            [<.cheat-heredoc> || '}']               # actual block end
+            [<.cheat-heredoc> || '}' <.leave-block-body>]  # actual block end
             <?end-statement>              # mark line-ending } as a terminator
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
@@ -1605,6 +1605,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Helper token to make the actions handle the end of a scope
     token enter-block-body()  { <?> }
+    token leave-block-body()  { <?> }
     token leave-block-scope() { <?> }
 
 #-------------------------------------------------------------------------------

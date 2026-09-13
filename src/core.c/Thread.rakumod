@@ -173,13 +173,4 @@ my class Thread {
     }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*THREAD', {
-    my $init_thread := nqp::create(Thread);
-    nqp::bindattr($init_thread, Thread, '$!vm_thread',
-      Rakudo::Internals.INITTHREAD);
-    nqp::bindattr($init_thread, Thread, '$!app_lifetime', False);
-    nqp::bindattr($init_thread, Thread, '$!name', 'Initial thread');
-    PROCESS::<$THREAD> := $init_thread;
-}
-
 # vim: expandtab shiftwidth=4

@@ -163,7 +163,6 @@ src/core/Cancellation.rakumod
 src/core/Awaitable.rakumod
 src/core/Awaiter.rakumod
 src/core/Scheduler.rakumod
-src/core/Env.rakumod
 src/core/JavaScriptScheduler.rakumod
 src/core/CurrentThreadScheduler.rakumod
 src/core/Promise.rakumod
@@ -208,7 +207,6 @@ src/core/CompUnit/Repository/Perl5.rakumod
 src/core/CompUnit/Repository/Unknown.rakumod
 src/vm/js/CompUnit/Repository/FileSystemWithRecording.rakumod
 src/vm/js/CompUnit/Repository/NodeJs.rakumod
-src/core/Argfiles.rakumod
 src/core/Process.rakumod
 src/core/Slang.rakumod
 src/core/Metamodel/Primitives.rakumod

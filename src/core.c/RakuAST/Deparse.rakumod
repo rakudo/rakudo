@@ -244,7 +244,8 @@ CODE
     # helper method for deparsing contextualizers
     proto method context-target(|) {*}
     multi method context-target(RakuAST::StatementSequence $target --> Str:D) {
-        self.parenthesize($target)
+        my $*DELIMITER = '';
+        $.parens-open ~ self.inline-statements($target) ~ $.parens-close
     }
     multi method context-target($target --> Str:D) {
         self.deparse($target)
@@ -2950,6 +2951,13 @@ CODE
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        self.inline-statements($ast)
+    }
+
+    # a lone expression statement is written as its expression, several
+    # statements set off by semicolons, a statement that is no expression
+    # without the newline that ends its block
+    method inline-statements($ast --> Str:D) {
         my $*INTERPOLATING := False;
         my @statements := $ast.statements;
         my $statement  := @statements.head;
@@ -2958,7 +2966,7 @@ CODE
           && !($statement.condition-modifier || $statement.loop-modifier)
           && !$statement.labels
           ?? self.deparse($statement.expression)
-          !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
+          !! @statements.map({ self.blorst($_) }).join($.list-infix-semi-colon)
     }
 
     multi method deparse(

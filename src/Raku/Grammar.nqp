@@ -3921,7 +3921,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           { $*IN-DECL := ''; }
         ]?
         { $/.set_package($*PACKAGE) }
-        :my $*TRUSTS-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
         { $scope := $*R.leave-scope() }
         <.enter-package-scope($<signature>, $scope)>

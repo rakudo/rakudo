@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 31;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -111,11 +111,7 @@ subtest 'Quoted string involving an interpolated block' => {
       ]
     );
 
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-"An {
-    $bv
-} block"
-CODE
+    is-deeply $deparsed, '"An { $bv } block"', 'deparse';
 
     is-deeply $_, 'An interpolated block', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
@@ -372,9 +368,7 @@ CODE
 
 subtest 'Block method call in an interpolation keeps its parentheses' => {
     # my $x = "a";
-    # "$x.&{
-    #     .uc
-    # }()"
+    # "$x.&{ .uc }()"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
@@ -415,9 +409,7 @@ subtest 'Block method call in an interpolation keeps its parentheses' => {
 
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my $x = "a";
-"$x.&{
-    .uc
-}()"
+"$x.&{ .uc }()"
 CODE
     is-deeply $_, 'A', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
@@ -425,11 +417,7 @@ CODE
 
 subtest 'Dot leading to a call after an interpolation is escaped' => {
     # my $x = "a";
-    # "$x\.Str() $x.txt $x\.foo-bar() $x\.Str.chars() $x\.^name() $x\.'Str'() $x\.Cool::chars() $x. done {
-    #     $x
-    # }.(1) $x\.{
-    #     1
-    # }"
+    # "$x\.Str() $x.txt $x\.foo-bar() $x\.Str.chars() $x\.^name() $x\.'Str'() $x\.Cool::chars() $x. done { $x }.(1) $x\.{ 1 }"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
@@ -487,11 +475,7 @@ subtest 'Dot leading to a call after an interpolation is escaped' => {
 
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my $x = "a";
-"$x\.Str() $x.txt $x\.foo-bar() $x\.Str.chars() $x\.^name() $x\.'Str'() $x\.Cool::chars() $x. done {
-    $x
-}.(1) $x\.{
-    1
-}"
+"$x\.Str() $x.txt $x\.foo-bar() $x\.Str.chars() $x\.^name() $x\.'Str'() $x\.Cool::chars() $x. done { $x }.(1) $x\.{ 1 }"
 CODE
     is-deeply $_,
       "a.Str() a.txt a.foo-bar() a.Str.chars() a.^name() a.'Str'() a.Cool::chars() a. done a.(1) a.1",
@@ -824,6 +808,36 @@ subtest 'Exec processor with a slash in the text' => {
     is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
       'the deparse parses back to itself';
     is-deeply $_, "a/b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Text after a nested qq group is kept apart from its variable' => {
+    # my $a = "x";
+    # "$a\-b $a\'s $a\[0] $a\-c"
+    ast Q:to/SOURCE/.AST;
+    my $a = "x";
+    q[\qq[$a]-b \qq[$a]'s \qq[$a][0] \qq[$a]\qq[-c]]
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $a = "x";
+"$a\-b $a\'s $a\[0] $a\-c"
+CODE
+    is-deeply $_, "x-b x's x[0] x-c", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A colon after a variable does not start an adverb of its name' => {
+    # my $a = "x";
+    # "$a\:ver<1> $a: b $a\::c"
+    ast Q:to/SOURCE/.AST;
+    my $a = "x";
+    q[\qq[$a]:ver<1> \qq[$a]: b \qq[$a]::c]
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $a = "x";
+"$a\:ver<1> $a: b $a\::c"
+CODE
+    is-deeply $_, "x:ver<1> x: b x::c", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

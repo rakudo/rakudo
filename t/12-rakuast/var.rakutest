@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 76;
+plan 77;
 
 my $ast;
 my $deparsed;
@@ -1136,6 +1136,35 @@ subtest 'Lexical my constant' => {
     for "AST", $ast, "Str", $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), "bar", "$type: did it produce 'bar'";
         nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
+}
+
+subtest 'Typed our constant' => {
+    # our Int constant foo = 42
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope       => "our",
+        type        => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        ),
+        name        => "foo",
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    is-deeply $deparsed, 'our Int constant foo = 42', 'deparse';
+    my package one {
+        is-deeply EVAL($ast), 42, "AST: did it produce 42";
+        is-deeply OUR::<foo>, 42, "AST: was the constant installed";
+    }
+    my package two {
+        is-deeply EVAL($deparsed), 42, "Str: did it produce 42";
+        is-deeply OUR::<foo>, 42, "Str: was the constant installed";
+    }
+    my package three {
+        is-deeply EVAL(EVAL $raku), 42, "Raku: did it produce 42";
+        is-deeply OUR::<foo>, 42, "Raku: was the constant installed";
     }
 }
 

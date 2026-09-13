@@ -16,63 +16,13 @@ multi sub prefix:<~>(RakuGrammar:D $/) {
     $/.Str
 }
 
-#- RakuAST::LanguageVersion ----------------------------------------------------
-# A dummy class to give a language version specification (e.g. use v6.d)
-# a place in the statement list, so it can be properly deparsed later
-
-my class RakuAST::LanguageVersion is RakuAST::Node {
-    has Version $.version is built(:bind);
-
-    method new(Version:D $version) { self.bless: :$version }
-
-    multi method raku(RakuAST::LanguageVersion:D:) {
-        self.^name ~ ".new($!version.gist())"
-    }
-}
-
 #- Actions ---------------------------------------------------------------------
 my class Actions is RakuActions {
     has str $.source;  # source being parsed, type object if no comments seen
-    has     $!version; # language version seen
     has     $.finish;  # char pos of =finish, if any
     has     @.eol;     # indices of line endings
     has     @.soc;     # indices of start of comment on associated line endings
     has     %!seen;    # lookup hash to prevent double registrations
-
-    # Get any version specification to be added later
-    method lang-setup(Mu $/) {
-
-        # Appear to have a language version specification, safe it for later
-        with $<version> {
-            self.SET-NODE-ORIGIN(
-              $_,
-              $!version := RakuAST::LanguageVersion.new((~$_).substr(1).Version)
-            );
-        }
-        nextsame;
-    }
-
-    # Tweak compunit handling by inserting any language version in place
-    method comp-unit(Mu $/) {
-
-        # We appear to have a language version specification.  Add our
-        # dummy object as the first element after any Doc::Blocks.  The
-        # reasoning is: if there was code before any Doc::Blocks, it will
-        # be inserted before the code.  In a file where there are only
-        # Doc::Blocks before any code, the most logical place is after
-        # those Doc::Blocks and before any code there.
-        if $!version -> $version {
-            my $stmt-list :=  $<statementlist>.ast;
-            with $stmt-list.statements.first(!(* ~~ RakuAST::Doc::Block), :k) {
-                $stmt-list.insert-doc-block($_, $version);
-            }
-            else {
-                $stmt-list.add-doc-block($version);
-            }
-        }
-
-        nextsame;
-    }
 
     # Handle a comment in the source
     method comment:sym<#>(Mu $/) {
@@ -310,14 +260,6 @@ my class Deparse is RakuDEPARSE {
         else {
             ''
         }
-    }
-
-    # Adds deparsing logic for our special language version handling
-    multi method deparse(RakuAST::LanguageVersion:D $ast --> Str:D) {
-        self.hsyn('pragma-use', self.xsyn('use', 'use'))
-         ~ ' '
-         ~ self.hsyn('version', $ast.version.gist)
-         ~ ";\n"
     }
 }
 

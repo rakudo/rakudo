@@ -656,6 +656,21 @@ class RakuAST::StatementList
         nqp::unshift(     $!statements, $statement);
         nqp::unshift($!code-statements, $statement);
     }
+    method insert-statement(int $i, RakuAST::Statement $statement) {
+        nqp::die("Cannot insert a statement at $i in a list of "
+          ~ nqp::elems($!statements) ~ " statements")
+          if $i < 0 || $i > nqp::elems($!statements);
+        my int $code;
+        my int $j;
+        while $j < $i {
+            ++$code
+              unless nqp::istype(nqp::atpos($!statements, $j), RakuAST::Doc::Block);
+            ++$j;
+        }
+        nqp::splice($!statements, nqp::list($statement), $i, 0);
+        nqp::splice($!code-statements, nqp::list($statement), $code, 0)
+          unless nqp::istype($statement, RakuAST::Doc::Block);
+    }
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
     }
@@ -2793,6 +2808,59 @@ class RakuAST::Statement::Use
         $visitor($!module-name);
         $visitor($!argument) if $!argument;
         self.visit-labels($visitor);
+    }
+}
+
+# A use statement that names a language version, such as
+# `use v6.e.PREVIEW`. The version selects the language of a file before
+# its statement list is parsed, so the statement compiles to Nil and
+# records what was written. A tree that holds one is compiled in the
+# language of its compilation unit, which the statement cannot raise,
+# like an EVAL cannot.
+class RakuAST::Statement::LanguageVersion
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
+  is RakuAST::ProducesNil
+{
+    has Mu $.version;
+
+    method new(Mu $version) {
+        nqp::die("A language version statement needs a Version, got "
+          ~ $version.HOW.name($version))
+          unless nqp::isconcrete($version)
+            && $version.HOW.name($version) eq 'Version';
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::LanguageVersion, '$!version',
+          $version);
+        $obj.set-labels(List);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        self.visit-labels($visitor);
+    }
+
+    # The revision is the letter after the 6, a globbed version names none
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @parts := self.IMPL-UNWRAP-LIST($!version.parts);
+        if nqp::elems(@parts) > 1 && nqp::istype(@parts[1], Str) {
+            my str $letter := @parts[1];
+            if nqp::chars($letter) == 1
+              && nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $letter, 0) {
+                my int $revision :=
+                  nqp::getcomp('Raku').lvs.internal-from-p6($letter);
+                my int $unit := nqp::unbox_i($context.language-revision);
+                self.add-sorry(
+                  $resolver.build-exception: 'X::AdHoc',
+                    payload => "Cannot up language revision $unit to $revision in an EVAL"
+                ) if $revision > $unit;
+            }
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
     }
 }
 

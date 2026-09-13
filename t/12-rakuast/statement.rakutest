@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 42; # Do not change this file to done-testing
+plan 43; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1702,6 +1702,99 @@ CODE
 
     is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A language version statement' => {
+    # use v6.e.PREVIEW;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::LanguageVersion.new(v6.e.PREVIEW),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use v6.e.PREVIEW;
+42
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).raku, $ast.raku, 'the .raku builds the same tree';
+    throws-like { RakuAST::Statement::LanguageVersion.new("6.d") },
+      Exception, message => /Version/, 'a string is not a version';
+
+    # the statement cannot raise the language of the unit it is in
+    my $lowered := RakuAST::CompUnit.new(
+      comp-unit-name    => 'lowered',
+      language-revision => 2,
+      statement-list    => RakuAST::StatementList.new(
+        RakuAST::Statement::LanguageVersion.new(v6.e.PREVIEW),
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    throws-like { EVAL $lowered }, Exception,
+      message => /'Cannot up language revision 2 to 3'/,
+      'a tree with a higher version than its unit does not compile';
+
+    # a doc block written before the statement stays in front of it
+    my $parsed := Q:to/SOURCE/.AST;
+    =begin pod
+    before
+    =end pod
+    use v6.d;
+    =begin pod
+    after
+    =end pod
+    42
+    SOURCE
+    is-deeply $parsed.statements.map(*.^name).List,
+      <RakuAST::Doc::Block RakuAST::Statement::LanguageVersion RakuAST::Doc::Block RakuAST::Statement::Expression>,
+      'parsed: the statement takes its place in the statement list';
+    is-deeply $parsed.statements[1].version, v6.d,
+      'parsed: the statement holds the version';
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'parsed: deparse';
+=begin pod
+
+before
+=end pod
+
+use v6.d;
+=begin pod
+
+after
+=end pod
+
+42
+CODE
+    for 'AST', $parsed, 'Str', $parsed.DEPARSE,
+        'Raku', EVAL('use experimental :rakuast; ' ~ $parsed.raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "parsed: $type";
+    }
+    is-deeply $parsed.DEPARSE.AST.DEPARSE, $parsed.DEPARSE,
+      'parsed: the deparse parses back to itself';
+
+    my $globbed := "use v6.*;\n42".AST;
+    is-deeply $globbed.DEPARSE, "use v6.*;\n42\n",
+      'parsed: a globbed version is written as it was';
+    is-deeply $globbed.statements.head.version, v6.*,
+      'parsed: the statement holds the globbed version';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $globbed.raku).raku,
+      $globbed.raku, 'parsed: the .raku of a globbed version builds the same tree';
+    is-deeply "use v6;\n42".AST.DEPARSE, "use v6;\n42\n",
+      'parsed: a bare v6 is written as it was';
+
+    # a file written for 6.e keeps its language through the deparse
+    my $six-e := Q:to/SOURCE/.AST;
+    use v6.e.PREVIEW;
+    nano.defined
+    SOURCE
+    for 'AST', $six-e, 'Str', $six-e.DEPARSE,
+        'Raku', EVAL('use experimental :rakuast; ' ~ $six-e.raku) -> $type, $it {
+        is-deeply EVAL($it), True, "6.e: $type";
+    }
 }
 
 # vim: expandtab shiftwidth=4

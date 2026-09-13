@@ -3104,6 +3104,13 @@ CODE
         self.labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
     }
 
+    multi method deparse(RakuAST::Statement::LanguageVersion:D $ast --> Str:D) {
+        self.hsyn('pragma-use', self.xsyn('use', 'use'))
+          ~ ' '
+          ~ self.hsyn('version', 'v' ~ $ast.version.Str)
+          ~ $*DELIMITER
+    }
+
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
         my str $condition = " ";
         if $ast.setup || $ast.condition || $ast.increment {

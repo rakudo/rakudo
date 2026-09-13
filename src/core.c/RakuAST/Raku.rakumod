@@ -1071,6 +1071,10 @@ augment class RakuAST::Node {
         self!nameds: <labels module-name argument>
     }
 
+    multi method raku(RakuAST::Statement::LanguageVersion:D: --> Str:D) {
+        self!literal(self.version)
+    }
+
     multi method raku(RakuAST::Statement::Loop:D: --> Str:D) {
         self!nameds: <labels setup condition increment body>
     }

@@ -631,6 +631,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*LITERALS.set-resolver($RESOLVER);
+
+        # The statement takes its place in the statement list once that
+        # has been parsed, see comp-unit.
+        if $<version> {
+            my $statement := Nodify('Statement::LanguageVersion').new(
+              $<version>.ast.value
+            );
+            self.SET-NODE-ORIGIN($<version>, $statement);
+            $statement.to-begin-time($*R, $*CU.context);
+            make $statement;
+        }
     }
 
     method comp-unit($/) {
@@ -649,6 +660,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $statement-list.add-doc-block(nqp::atpos($_, 1));
         }
         $*DOC-BLOCKS-COLLECTED := [];
+
+        # A language version statement goes before the first statement
+        # written after it, so a doc block written before it stays in
+        # front.
+        if $<lang-setup>.ast -> $version {
+            my int $from := $version.origin.from;
+            my int $i;
+            for $statement-list.IMPL-UNWRAP-LIST($statement-list.statements) {
+                my $origin := $_.origin;
+                last unless nqp::isconcrete($origin) && $origin.from < $from;
+                ++$i;
+            }
+            $statement-list.insert-statement($i, $version);
+        }
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             my @wrapped := wrap-in-for-loop($statement-list);

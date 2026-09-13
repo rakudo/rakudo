@@ -3,7 +3,7 @@ use lib <t/packages/12-rakuast/lib>;
 use Test;
 use CustomDeclarator;
 
-plan 35;
+plan 40;
 
 my $ast;
 my $deparsed;
@@ -1838,6 +1838,312 @@ CODE
     }, X::TypeCheck::Attribute::Default,
       name => '$!b', got => 'Str', expected => 'Int',
       'a default of another type is reported';
+}
+
+subtest 'A class whose version, auth and api need evaluation' => {
+    # my class ComputedClass:ver(1 + 1):auth("x" ~ "y"):api(2 + 1) {
+    #     has $.a
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('ComputedClass',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::IntLiteral.new(1),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'auth',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('x'),)
+                    ),
+                    infix => RakuAST::Infix.new('~'),
+                    right => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('y'),)
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'api',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::IntLiteral.new(2),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('a')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class ComputedClass:ver(1 + 1):auth("x" ~ "y"):api(2 + 1) {
+    has $.a
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is-deeply $class.^ver, v2, "$type: the class has the computed version";
+        is-deeply $class.^auth, 'xy', "$type: the class has the computed auth";
+        is-deeply $class.^api, '3', "$type: the class has the computed api";
+        is $class.new(a => 42).a, 42, "$type: the attribute is attached";
+    }
+}
+
+subtest 'A class with a literal version and an auth that needs evaluation' => {
+    # my class MixedVersionClass:ver<1.2>:auth("x" ~ "y") { }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('MixedVersionClass',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::QuotedString.new(
+              processors => <words val>,
+              segments   => (RakuAST::StrLiteral.new('1.2'),)
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'auth',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('x'),)
+                    ),
+                    infix => RakuAST::Infix.new('~'),
+                    right => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('y'),)
+                    )
+                  )
+                )
+              )
+            )
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, 'my class MixedVersionClass:ver<1.2>:auth("x" ~ "y") { }',
+      'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is-deeply $class.^ver, v1.2, "$type: the class has the literal version";
+        is-deeply $class.^auth, 'xy', "$type: the class has the computed auth";
+    }
+}
+
+subtest 'A module whose auth needs evaluation' => {
+    # my module ComputedModule:auth("x" ~ "y") { }
+    ast RakuAST::Module.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('ComputedModule',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'auth',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('x'),)
+                    ),
+                    infix => RakuAST::Infix.new('~'),
+                    right => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('y'),)
+                    )
+                  )
+                )
+              )
+            )
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, 'my module ComputedModule:auth("x" ~ "y") { }', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $module {
+        is $module.^name, 'ComputedModule', "$type: the module is declared";
+        is-deeply $module.^auth, 'xy', "$type: the module has the computed auth";
+    }
+}
+
+subtest 'A class whose version is computed in a scope of its own' => {
+    # my class ScopedVersionClass:ver(do {
+    #     my $x = V;
+    #     $x
+    # }) {
+    #     my constant V = v9;
+    #     method v {
+    #         V
+    #     }
+    # }
+    my constant V = v3;
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('ScopedVersionClass',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::StatementPrefix::Do.new(
+                    RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::VarDeclaration::Simple.new(
+                              sigil       => '$',
+                              desigilname => RakuAST::Name.from-identifier('x'),
+                              initializer => RakuAST::Initializer::Assign.new(
+                                RakuAST::Term::Name.new(
+                                  RakuAST::Name.from-identifier('V')
+                                )
+                              )
+                            )
+                          ),
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::Var::Lexical.new('$x')
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Constant.new(
+                scope       => 'my',
+                name        => 'V',
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::VersionLiteral.new(v9)
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('v'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Term::Name.new(
+                        RakuAST::Name.from-identifier('V')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class ScopedVersionClass:ver(do {
+    my $x = V;
+    $x
+}) {
+    my constant V = v9;
+    method v {
+        V
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is-deeply $class.^ver, v3,
+          "$type: the version is computed outside the class";
+        is-deeply $class.v, v9, "$type: the body keeps its own constant";
+    }
+}
+
+subtest 'A class whose version dies when it is evaluated' => {
+    # my class BoomClass:ver(die("boom")) { }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('BoomClass',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('die'),
+                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('boom'))
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+      )
+    );
+    is-deeply $deparsed, 'my class BoomClass:ver(die("boom")) { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, Exception, message => 'boom',
+          "$type: the exception of the version is thrown";
+    }
 }
 
 # vim: expandtab shiftwidth=4

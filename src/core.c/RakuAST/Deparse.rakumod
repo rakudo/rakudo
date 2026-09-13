@@ -150,6 +150,7 @@ class RakuAST::Deparse {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
+            my $*METHOD-CALL-FOLLOWS := False;  # a method call follows the call
             my $*HEREDOC-INDENT := Str;   # indent of the heredoc text being assembled
             my $*HEREDOC-LINE-START = 0;  # the next heredoc segment starts a line
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
@@ -471,6 +472,7 @@ CODE
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
+                my $*METHOD-CALL-FOLLOWS := False;
                 # a closure of one statement stays on the line of the text,
                 # unless it opens a heredoc inside a heredoc and text
                 # follows it on its line, where the parser does not find
@@ -784,17 +786,21 @@ CODE
         my str $dot-syn = self.method-dot($dot);
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
+        # a call in an interpolation keeps its parentheses unless a method
+        # call follows it, any other postfix after a bare call ends the
+        # interpolation
+        my $ends-interpolation := $*INTERPOLATING && !$*METHOD-CALL-FOLLOWS;
 
         $dot-syn
           ~ ($xsyn
               ?? self.hsyn("core-$name", self.xsyn('core', $name))
               !! $name
             )
-          ~ ($macroish && !$*INTERPOLATING
+          ~ ($macroish && !$ends-interpolation
               ?? ''
               !! self.parenthesize(
                    $ast.args,
-                   :only-non-empty($only-non-empty && !$*INTERPOLATING)
+                   :only-non-empty($only-non-empty && !$ends-interpolation)
                  )
             )
     }
@@ -1059,6 +1065,9 @@ CODE
         }
         else {
             my $operand := $ast.operand;
+            # the postfix was deparsed above, before this is bound
+            my $*METHOD-CALL-FOLLOWS :=
+              nqp::istype($postfix, RakuAST::Call::Methodish);
             # a number followed by a dot and a colon reads as a broken decimal
             my str $deparsed-operand = self.postfix-operand-needs-parens($operand, $postfix)
               || (self.is-numeric-literal($operand)
@@ -1206,7 +1215,10 @@ CODE
               ?? '&' ~ self.context-target($block.target)
               !! self.deparse($block)
             )
-          ~ self.parenthesize($ast.args, :only-non-empty(!$*INTERPOLATING))
+          ~ self.parenthesize(
+              $ast.args,
+              :only-non-empty(!$*INTERPOLATING || $*METHOD-CALL-FOLLOWS)
+            )
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {

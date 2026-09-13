@@ -1479,9 +1479,16 @@ class RakuAST::VarDeclaration::Simple
                     my $expression-type := $expression.return-type;
                     unless $expression-type =:= Mu || $expression-type =:= Nil
                         || nqp::objprimspec($of) || $of.HOW.archetypes.generic {
+                        # a return type says nothing about definedness, and
+                        # a coercion type decides at runtime what it takes
+                        my $base := $of.HOW.archetypes.definite
+                          && nqp::eqaddr($of.HOW.wrappee($of, :definite), $of)
+                          ?? $of.HOW.base_type($of)
+                          !! $of;
                         unless $expression.has-compile-time-value
                             ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
-                            !! nqp::istype($expression-type, $of.IMPL-BASE-TYPE) # bare type can't match definedness
+                            !! $of.HOW.archetypes.coercive
+                                 || nqp::istype($expression-type, $base)
                         {
                             self.add-sorry:
                                 $resolver.build-exception: 'X::TypeCheck::Attribute::Default',

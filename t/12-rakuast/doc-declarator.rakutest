@@ -1,7 +1,9 @@
 use v6.e.PREVIEW;
+use lib <t/packages/Test-Helpers>;
 use Test;
+use Test::Helpers;
 
-plan 30;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -1277,6 +1279,185 @@ CODE
         is-deeply ($b(1, 2), $d(4), $e(1, 2), $f(5)), (3, 4, 3, 5),
           "$type: the blocks run";
     }
+}
+
+subtest 'A trailing doc after a body documents the declaration it closes' => {
+    # my class A { #= class doc
+    #     has $.x; #= attribute doc
+    #     method m { #= method doc
+    #         my $y = 1;
+    #         $y
+    #     }
+    # }
+    # my role R { #= role doc
+    #     method m { }
+    # }
+    # my class B { #= outer doc
+    #     class C { #= inner doc
+    #         has $.y
+    #     }
+    #     has $.z
+    # }
+    # my class E { #= empty doc
+    # }
+    # sub f { #= sub doc
+    #     my $a = 42;
+    #     $a
+    # }
+    # my $g = -> $b { #= block doc
+    #     my $c = $b;
+    #     $c
+    # };
+    # sub h { #= next line doc
+    #     my $d = 1
+    # }
+    # sub k {
+    # #= first line
+    # #= second line
+    #     1
+    # }
+    # my $l = { #= bare block doc
+    #     my $e = 1;
+    #     $e
+    # };
+    # (A, R, B, E, &f, $g, &h, &k, $l)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.x; #= attribute doc
+        method m {
+            my $y = 1;
+            $y
+        } #= method doc
+    } #= class doc
+    my role R {
+        method m { }
+    } #= role doc
+    my class B {
+        class C {
+            has $.y;
+        } #= inner doc
+        has $.z;
+    } #= outer doc
+    my class E {
+    } #= empty doc
+    sub f {
+        my $a = 42;
+        $a
+    } #= sub doc
+    my $g = -> $b {
+        my $c = $b;
+        $c
+    } #= block doc
+    sub h {
+        my $d = 1;
+    }
+    #= next line doc
+    sub k {
+        1
+    } #= first line
+    #= second line
+    my $l = {
+        my $e = 1;
+        $e
+    } #= bare block doc
+    (A, R, B, E, &f, $g, &h, &k, $l)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A { #= class doc
+    has $.x; #= attribute doc
+    method m { #= method doc
+        my $y = 1;
+        $y
+    }
+}
+my role R { #= role doc
+    method m { }
+}
+my class B { #= outer doc
+    class C { #= inner doc
+        has $.y
+    }
+    has $.z
+}
+my class E { #= empty doc
+}
+sub f { #= sub doc
+    my $a = 42;
+    $a
+}
+my $g = -> $b { #= block doc
+    my $c = $b;
+    $c
+};
+sub h { #= next line doc
+    my $d = 1
+}
+sub k {
+#= first line
+#= second line
+    1
+}
+my $l = { #= bare block doc
+    my $e = 1;
+    $e
+};
+(A, R, B, E, &f, $g, &h, &k, $l)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my @statements := $tree.statements;
+        sub body-statements($package) {
+            $package.body.body.statement-list.statements
+        }
+        is-deeply @statements[0].expression.WHY.trailing, ('class doc',),
+          "$type: the class takes the doc after its body";
+        is-deeply body-statements(@statements[0].expression).head.expression.WHY.trailing,
+          ('attribute doc',), "$type: the attribute in the class keeps its own doc";
+        is-deeply body-statements(@statements[0].expression)[1].expression.WHY.trailing,
+          ('method doc',), "$type: the method in the class takes the doc after its own body";
+        is-deeply @statements[1].expression.WHY.trailing, ('role doc',),
+          "$type: the role takes the doc after its body";
+        is-deeply @statements[2].expression.WHY.trailing, ('outer doc',),
+          "$type: the outer class takes the doc after its body";
+        is-deeply body-statements(@statements[2].expression).head.expression.WHY.trailing,
+          ('inner doc',), "$type: the inner class takes the doc after its own body";
+        is-deeply @statements[3].expression.WHY.trailing, ('empty doc',),
+          "$type: a class with an empty body takes the doc after it";
+        is-deeply @statements[4].expression.WHY.trailing, ('sub doc',),
+          "$type: the sub takes the doc after its body";
+        is-deeply @statements[5].expression.initializer.expression.WHY.trailing,
+          ('block doc',), "$type: the pointy block takes the doc after its body";
+        is-deeply @statements[6].expression.WHY.trailing, ('next line doc',),
+          "$type: a doc at the start of the line after the body goes to the sub";
+        is-deeply @statements[7].expression.WHY.trailing, ('first line', 'second line'),
+          "$type: a doc after the body continues on the next line";
+        is-deeply @statements[8].expression.initializer.expression.WHY.trailing,
+          ('bare block doc',), "$type: a block takes the doc after its body";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $R, $B, $E, $f, $g, $h, $k, $l) := EVAL($it);
+        is-deeply
+          ($A.WHY.Str, $A.^attributes[0].WHY.Str, $A.^find_method('m').WHY.Str,
+           $R.WHY.Str, $B.WHY.Str, $B.WHO<C>.WHY.Str, $E.WHY.Str, $f.WHY.Str,
+           $g.WHY.Str, $h.WHY.Str, $k.WHY.Str, $l.WHY.Str),
+          ('class doc', 'attribute doc', 'method doc', 'role doc', 'outer doc',
+           'inner doc', 'empty doc', 'sub doc', 'block doc', 'next line doc',
+           'first line second line', 'bare block doc'),
+          "$type: the docs reach the objects";
+        is-deeply ($f(), $g(1), $h(), $k(), $l()), (42, 1, 1, 1, 1),
+          "$type: the code runs";
+    }
+}
+
+subtest 'A trailing doc no declarand claims is a worry at the end of the unit' => {
+    # the worry is written to the stderr of the compiling process
+    is-run Q['say 42; #= stray doc'.AST],
+      :err(/'Missing declarand for trailing declarator doc'/),
+      'a trailing doc after the last declarand is reported';
+    is-run Q['sub f { 42 } #= sub doc'.AST],
+      'a trailing doc the last declarand claims is not';
+    is-run Q['no worries; say 42; #= stray doc'.AST],
+      'the pragma of the unit silences the report';
 }
 
 # vim: expandtab shiftwidth=4

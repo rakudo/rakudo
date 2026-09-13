@@ -687,6 +687,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $RESOLVER.enter-scope($COMPUNIT);
 
+        # a trailing doc no declarand claimed by the end of the unit is
+        # reported inside the unit scope, where its pragmas apply
+        for $*DECLARAND-WORRIES {
+            $_.value.typed-worry:
+              'X::Syntax::Doc::Declarator::MissingDeclarand';
+        }
+
         # Put the body in place.
         $COMPUNIT.replace-statement-list($statement-list);
 
@@ -1117,17 +1124,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    # Action method when leaving a scope.
-    method leave-block-scope($/) {
-        $*R.leave-scope();
-
-        # A doc on the line where the body of a block closes belongs to
-        # the block while the block is still the declarand.
-        if nqp::eqaddr($*DECLARAND, $*BLOCK)
-          && nqp::istype($*BLOCK, Nodify('Block')) {
+    # The declaration whose body closes takes a trailing doc on the
+    # closing line, whatever the body declared: the package when the body
+    # is the package's, otherwise the routine or block that owns it. This
+    # runs right after the closing brace, before the end of statement
+    # lookahead and the whitespace that consume such a doc.
+    method leave-block-body($/) {
+        my $block   := $*BLOCK;
+        my $package := $*PACKAGE;
+        my $owner   := nqp::isconcrete($package)
+          && nqp::eqaddr($*R.outer-scope, $package)
+          ?? $package
+          !! $block;
+        if nqp::istype($owner, Nodify('Doc::DeclaratorTarget')) {
+            $*DECLARAND          := $owner;
             $*LAST-TRAILING-LINE :=
               +$*ORIGIN-SOURCE.original-line($/.from - 1);
         }
+    }
+
+    # Action method when leaving a scope.
+    method leave-block-scope($/) {
+        $*R.leave-scope();
     }
 
 #-------------------------------------------------------------------------------

@@ -2947,6 +2947,7 @@ CODE
         @statements == 1
           && nqp::istype($statement,RakuAST::Statement::Expression)
           && !($statement.condition-modifier || $statement.loop-modifier)
+          && !$statement.labels
           ?? self.deparse($statement.expression)
           !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 28;
+plan 29;
 
 my $ast;
 my $deparsed;
@@ -1109,6 +1109,97 @@ my subset T of Any where 1
 CODE
     is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
+}
+
+subtest 'A trailing doc on the line where a body closes documents its block' => {
+    # my subset S of Int where {
+    #     $_ > 1
+    # }; #= subset doc
+    # my $b = -> $a { #= block doc
+    #     42
+    # };
+    # sub f { #= sub doc
+    #     42
+    # }
+    # my $c = -> $a { #= brace doc
+    #     42
+    # };
+    # sub g { #= stray doc
+    #     42
+    # }
+    # my $d = do { #= do doc
+    #     42
+    # };
+    # (S, $b, &f, $c, &g, $d)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my subset S of Int where {
+        $_ > 1
+    }; #= subset doc
+    my $b = -> $a {
+        42
+    }; #= block doc
+    sub f {
+        42
+    } #= sub doc
+    my $c = -> $a { #= brace doc
+        42
+    };
+    sub g {
+        42; #= stray doc
+    }
+    my $d = do {
+        42
+    }; #= do doc
+    (S, $b, &f, $c, &g, $d)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my subset S of Int where {
+    $_ > 1
+}; #= subset doc
+my $b = -> $a { #= block doc
+    42
+};
+sub f { #= sub doc
+    42
+}
+my $c = -> $a { #= brace doc
+    42
+};
+sub g { #= stray doc
+    42
+}
+my $d = do { #= do doc
+    42
+};
+(S, $b, &f, $c, &g, $d)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my @statements := $tree.statements;
+        is-deeply @statements[0].expression.WHY.trailing, ('subset doc',),
+          "$type: the subset keeps the doc after its where block";
+        my $b := @statements[1].expression.initializer.expression;
+        is-deeply $b.WHY.trailing, ('block doc',),
+          "$type: the block keeps the doc after its body";
+        nok $b.signature.parameters.head.WHY,
+          "$type: the parameter of the block has no doc";
+        is-deeply @statements[2].expression.WHY.trailing, ('sub doc',),
+          "$type: the sub keeps the doc after its body";
+        my $c := @statements[3].expression.initializer.expression;
+        is-deeply $c.WHY.trailing, ('brace doc',),
+          "$type: the block keeps the doc after its opening brace";
+        nok $c.signature.parameters.head.WHY,
+          "$type: the parameter of that block has no doc";
+        is-deeply @statements[4].expression.WHY.trailing, ('stray doc',),
+          "$type: a sub without parameters takes a doc inside its body";
+        is-deeply @statements[5].expression.initializer.expression.blorst.WHY.trailing,
+          ('do doc',), "$type: a do block keeps the doc after its body";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($S, $b, $f, $c, $g, $d) := EVAL($it);
+        is-deeply ($S.^name, $b(1), $f(), $c(1), $g(), $d), ('S', 42, 42, 42, 42, 42),
+          "$type: the code runs";
+    }
 }
 
 # vim: expandtab shiftwidth=4

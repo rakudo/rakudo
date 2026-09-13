@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 34;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -1550,6 +1550,56 @@ CODE
            ('Parameter', 'Parameter', 'Regex')),
           "$type: the docs reach the token and its parameters";
         ok '5' ~~ $t, "$type: the token matches";
+    }
+}
+
+subtest 'A multi line trailing doc keeps the indent of its declaration' => {
+    # my class A {
+    #     has $.x;
+    #     #= first line
+    #     #= second line
+    #     method m {
+    #     #= method line
+    #     #= method more
+    #         1
+    #     }
+    # }
+    # (A, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.x; #= first line
+        #= second line
+        method m {
+            1
+        } #= method line
+        #= method more
+    }
+    (A, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A {
+    has $.x;
+    #= first line
+    #= second line
+    method m {
+    #= method line
+    #= method more
+        1
+    }
+}
+(A, $=pod)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the deparse is the same text';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $pod) := EVAL($it);
+        is-deeply
+          ($A.^attributes[0].WHY.trailing, $A.^find_method('m').WHY.trailing),
+          ('first line second line', 'method line method more'),
+          "$type: both lines of each doc reach the object";
+        is-deeply $pod.map(*.WHEREFORE.^name).List, ('Attribute', 'Method'),
+          "$type: the docs are collected";
     }
 }
 

@@ -874,10 +874,10 @@ CODE
         if $WHY && $WHY.trailing -> @trailing {
             my str @lines = self.doc-lines(@trailing);
             ($body ~ $*DELIMITER).chomp
-              ~ (@lines > 1 ?? "\n" !! ' ')
+              ~ (@lines > 1 ?? "\n$*INDENT" !! ' ')
               ~ self.hsyn(
                   'doc-trailing',
-                  @lines.map({ "#= $_" }).join("$*INDENT\n")
+                  @lines.map({ "#= $_" }).join("\n$*INDENT")
                 )
               ~ "\n"
         }

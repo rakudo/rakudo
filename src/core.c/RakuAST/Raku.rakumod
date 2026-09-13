@@ -263,6 +263,10 @@ augment class RakuAST::Node {
               my $sigil := self.sigil;
               :$sigil if $sigil
           },
+          'smiley', -> {
+              my $smiley := self.smiley;
+              :$smiley if $smiley
+          },
           'signature', -> {
               my $signature := self.signature;
               :$signature
@@ -1289,7 +1293,13 @@ augment class RakuAST::Node {
 #- Type ------------------------------------------------------------------------
 
     multi method raku(RakuAST::Type::Capture:D: --> Str:D) {
-        self!positional(self.name)
+        indent;
+        my str $name = $*INDENT ~ self.name.raku;
+        dedent;
+        my str $nameds = self!nameds: <smiley>;
+        $nameds.ends-with('.new')
+          ?? self.^name ~ ".new(\n$name\n$*INDENT)"
+          !! $nameds.subst(".new(\n", ".new(\n$name,\n")
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {

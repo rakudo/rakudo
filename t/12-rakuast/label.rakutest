@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20; # Do not change this file to done-testing
+plan 21; # Do not change this file to done-testing
 
 given RakuAST::Label.new('Foo') {
     isa-ok $_, RakuAST::Label, '.new constructs a label';
@@ -605,6 +605,43 @@ CODE
 
     is-deeply $_, 1, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A label on the statement inside parentheses' => {
+    # my @a = (L3: 42); @a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  labels     => [RakuAST::Label.new('L3')],
+                  expression => RakuAST::IntLiteral.new(42)
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('@a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @a = (L3: 42);
+@a
+CODE
+
+    is-deeply $_, [42], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    is-deeply 'my @a = (L3: 42)'.AST.DEPARSE, "my @a = (L3: 42)\n",
+      'a parsed label inside parentheses is kept';
+    is-deeply 'my @a = [L3: 42]'.AST.DEPARSE, "my @a = [L3: 42]\n",
+      'a parsed label inside an array composer is kept';
 }
 
 # vim: expandtab shiftwidth=4

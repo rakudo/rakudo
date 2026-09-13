@@ -2947,6 +2947,7 @@ CODE
         @statements == 1
           && nqp::istype($statement,RakuAST::Statement::Expression)
           && !($statement.condition-modifier || $statement.loop-modifier)
+          && !$statement.labels
           ?? self.deparse($statement.expression)
           !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }
@@ -3616,9 +3617,11 @@ CODE
 
     multi method deparse(RakuAST::Type::Capture:D $ast --> Str:D) {
         # a name that is a lookup, such as ::("Foo"), writes its own ::
-        my $name := $ast.name;
+        my $name   := $ast.name;
+        my $smiley := $ast.smiley;
         (nqp::istype($name.parts.head,RakuAST::Name::Part::Expression) ?? '' !! '::')
           ~ self.deparse($name)
+          ~ ($smiley ?? ':' ~ $smiley !! '')
     }
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {

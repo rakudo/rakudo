@@ -2105,11 +2105,16 @@ class RakuAST::VarDeclaration::Signature
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!sig-literal',
             $sig-literal ?? True !! False);
-        # The variable a parameter declares makes a subset of its type
-        # from the where constraint, and a walk begins it before this
-        # declaration
-        for $obj.IMPL-UNWRAP-LIST($signature.parameters) {
-            $_.target.set-where($_.where) if $_.where && $_.target;
+        # The variable a parameter declares takes the declared type and
+        # makes a subset of it from the where constraint, and a walk
+        # begins it before this declaration
+        my @parameters;
+        $signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters {
+            if $_.target {
+                $_.target.set-type($type, :outer) if $type;
+                $_.target.set-where($_.where) if $_.where;
+            }
         }
         $obj
     }
@@ -2172,12 +2177,9 @@ class RakuAST::VarDeclaration::Signature
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $traits := self.IMPL-UNWRAP-LIST(self.traits);
         my str $scope := self.scope;
-        my $type := $!type;
-        for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            # tell the parameter targets to create containers
-            if $type {
-                $param.target.set-type($type, :outer);
-            }
+        my @parameters;
+        self.signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters -> $param {
             if $param.target {
                 $param.target.replace-scope($scope);
                 for $traits {
@@ -2286,9 +2288,23 @@ class RakuAST::VarDeclaration::Signature
             }
         }
 
+        # a constraint a parameter received after this declaration was
+        # built is too late for its variable, whose container has been
+        # made by now
+        for @parameters -> $param {
+            if $param.where
+              && nqp::istype($param.target, RakuAST::ParameterTarget::Var)
+              && (my $declaration := $param.target.declaration)
+              && !nqp::eqaddr($declaration.where, $param.where) {
+                self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                  payload => "Cannot constrain variable '" ~ $declaration.name
+                    ~ "' with a where clause after its declaration was built."
+                    ~ " Pass the constraint to RakuAST::Parameter.new";
+            }
+        }
+
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            $param.target.set-where($param.where) if $param.where;
             if nqp::defined($param.value) && !$param.target {
                 # We don't have a target that can carry the where clause. Have to synthesize one here
                 my $value := $param.value;
@@ -2307,10 +2323,6 @@ class RakuAST::VarDeclaration::Signature
             $param.set-bindable(False) if $binding;
             $param.set-default-rw unless $binding;
             $param.target.set-var-declaration if $param.target;
-            for $traits {
-                $param.target.replace-scope($scope);
-                $param.target.add-trait(nqp::clone($_)) if $param.target;
-            }
         }
         self.signature.to-begin-time($resolver, $context);
     }

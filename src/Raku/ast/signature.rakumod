@@ -432,6 +432,17 @@ class RakuAST::Signature
         }
     }
 
+    # Push the parameters of this signature onto @parameters, those of a
+    # sub-signature after the parameter that holds it, so a list
+    # declaration reaches every variable it declares.
+    method IMPL-COLLECT-PARAMETERS(@parameters) {
+        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
+            nqp::push(@parameters, $param);
+            my $sub := $param.sub-signature;
+            $sub.IMPL-COLLECT-PARAMETERS(@parameters) if $sub;
+        }
+    }
+
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
         my $i := 0;
         my $found := 0;
@@ -824,6 +835,16 @@ class RakuAST::Parameter
         self.IMPL-WRAP-LIST($!type-captures)
     }
 
+    # The definedness the smiley of a type capture asks for, Bool when
+    # none has one.
+    method IMPL-CAPTURE-DEFINITE() {
+        my $definite := Bool;
+        for $!type-captures {
+            $definite := $_.definite if nqp::isconcrete($_.definite);
+        }
+        $definite
+    }
+
     # Tests if the parameter is a simple positional parameter.
     method is-positional() {
         $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
@@ -1104,8 +1125,11 @@ class RakuAST::Parameter
                 $flags := $flags + nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR;
             }
         }
-        if nqp::istype($!type, RakuAST::Type::Definedness) {
-            $flags := $flags +| ($!type.definite
+        my $definite := nqp::istype($!type, RakuAST::Type::Definedness)
+          ?? $!type.definite
+          !! self.IMPL-CAPTURE-DEFINITE;
+        if nqp::isconcrete($definite) {
+            $flags := $flags +| ($definite
               ?? nqp::const::SIG_ELEM_DEFINED_ONLY
               !! nqp::const::SIG_ELEM_UNDEFINED_ONLY
             );
@@ -1179,6 +1203,10 @@ class RakuAST::Parameter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # the meta-object made below holds the meta-objects of the
+        # sub-signature's parameters, which their BEGIN time completes
+        $!sub-signature.to-begin-time($resolver, $context) if $!sub-signature;
+
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
             if $!where;
 
@@ -1627,8 +1655,11 @@ class RakuAST::Parameter
                     }
                 }
             }
-            if nqp::istype($!type.IMPL-TARGET-TYPE, RakuAST::Type::Definedness) {
-                if $!type.IMPL-TARGET-TYPE.definite {
+            my $definite := nqp::istype($!type.IMPL-TARGET-TYPE, RakuAST::Type::Definedness)
+              ?? $!type.IMPL-TARGET-TYPE.definite
+              !! self.IMPL-CAPTURE-DEFINITE;
+            if nqp::isconcrete($definite) {
+                if $definite {
                     $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('isconcrete_nd'),
                         $get-decont-var()

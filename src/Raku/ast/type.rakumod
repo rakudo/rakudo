@@ -527,11 +527,21 @@ class RakuAST::Type::Capture
   is RakuAST::Declaration
 {
     has RakuAST::Name $.name;
+    has str           $.smiley;
 
-    method new(RakuAST::Name $name) {
+    method new(RakuAST::Name $name, str :$smiley) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Capture, '$!name', $name);
+        my str $written := $smiley // '';
+        nqp::die("A type capture smiley is D, U or _, not '$written'")
+          unless $written eq '' || $written eq 'D' || $written eq 'U' || $written eq '_';
+        nqp::bindattr_s($obj, RakuAST::Type::Capture, '$!smiley', $written);
         $obj
+    }
+
+    # The definedness the smiley asks for, Bool when neither :D nor :U
+    method definite() {
+        $!smiley eq 'D' ?? True !! $!smiley eq 'U' ?? False !! Bool
     }
 
     method lexical-name() {

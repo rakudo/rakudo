@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 79;
+plan 81;
 
 my $ast;
 my $deparsed;
@@ -2110,6 +2110,230 @@ subtest 'A standard slang variable finds its grammar outside a parse' => {
     ok $slang.grammar.^name.ends-with('::RegexGrammar')
          && $slang.actions.^name.ends-with('::RegexActions'),
       'the .raku of a parsed slang variable builds its slang at runtime';
+}
+
+subtest 'Typed signature declaration with a sub-signature' => {
+    # my Int ($p, ($q, $r)) := 1, (2, 3); $r
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Int')
+          ),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$r')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int ($p, ($q, $r)) := 1, (2, 3);
+$r
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my Int ($p, ($q, $r)); $r = "x"
+    # checked on the tree, which both frontends build the same way
+    my $assign := 'my Int ($p, ($q, $r)); $r = "x"'.AST;
+    is-deeply $assign.DEPARSE, q:to/CODE/, 'deparse of a parsed nested declaration';
+my Int ($p, ($q, $r));
+$r = "x"
+CODE
+    for 'AST', $assign, 'Raku', EVAL('use experimental :rakuast; ' ~ $assign.raku) -> $type, $it {
+        throws-like { EVAL $it }, X::TypeCheck::Assignment,
+          "$type: a variable inside a sub-signature is typed";
+    }
+
+    # my ($a, ($b where 1, $c)) := 2, (2, 3); $b
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$b>),
+                      where  => RakuAST::IntLiteral.new(1)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$c>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(2),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$b')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse of a where inside a sub-signature';
+my ($a, ($b where 1, $c)) := 2, (2, 3);
+$b
+CODE
+    throws-like { EVAL $_ }, X::TypeCheck::Binding::Parameter, @type[$++]
+      for $ast, $deparsed, EVAL($raku);
+
+    is-deeply 'my ($p, ($q where 2, $r))'.AST.DEPARSE,
+      "my (\$p, (\$q where 2, \$r))\n",
+      'a parsed where inside a sub-signature is kept';
+
+    # my Int ($p, @q ($r, $s)); $s = "x"
+    my $sigiled := 'my Int ($p, @q ($r, $s)); $s = "x"'.AST;
+    is-deeply $sigiled.DEPARSE, q:to/CODE/, 'deparse of a sub-signature after a sigiled variable';
+my Int ($p, @q ($r, $s));
+$s = "x"
+CODE
+    throws-like { EVAL $sigiled }, X::TypeCheck::Assignment,
+      'a variable inside a sub-signature after a sigiled variable is typed';
+
+    # my ($p, ($q, @a)) := 1, (2, [3]); @a
+    is-deeply EVAL('my ($p, ($q, @a)) := 1, (2, [3]); @a'.AST), [3],
+      'an array inside a sub-signature is declared';
+    # my ($p, ($q, $r)) is default(7); $r
+    is-deeply EVAL('my ($p, ($q, $r)) is default(7); $r'.AST), 7,
+      'a trait on a list declaration reaches a variable inside a sub-signature';
+}
+
+subtest 'A where constraint added to a parameter of a list declaration late' => {
+    # my ($a where 1) = 2; $a
+    my $parameter := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+    );
+    my $declaration := RakuAST::VarDeclaration::Signature.new(
+      scope       => 'my',
+      signature   => RakuAST::Signature.new(parameters => ($parameter,)),
+      initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(2))
+    );
+    $parameter.set-where(RakuAST::IntLiteral.new(1));
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(expression => $declaration),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($a where 1) = 2;
+$a
+CODE
+    throws-like { EVAL $ast }, Exception,
+      message => /"Cannot constrain variable '\$a'"/,
+      'AST: a constraint added after the declaration was built is reported';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      'Str: the constraint is enforced';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      'Raku: the constraint is enforced';
+
+    # my ($a, ($b where 1))
+    my $inner := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+    );
+    my $nested := RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+          ),
+          RakuAST::Parameter.new(
+            sub-signature => RakuAST::Signature.new(parameters => ($inner,))
+          ),
+        )
+      )
+    );
+    $inner.set-where(RakuAST::IntLiteral.new(1));
+    is-deeply $nested.DEPARSE, 'my ($a, ($b where 1))',
+      'deparse of a constraint added late inside a sub-signature';
+    throws-like { EVAL $nested }, Exception,
+      message => /"Cannot constrain variable '\$b'"/,
+      'a constraint added late inside a sub-signature is reported';
+
+    # my ($c where 2)
+    my $replaced := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$c>),
+      where  => RakuAST::IntLiteral.new(1)
+    );
+    my $holder := RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(parameters => ($replaced,))
+    );
+    $replaced.set-where(RakuAST::IntLiteral.new(2));
+    is-deeply $holder.DEPARSE, 'my ($c where 2)',
+      'deparse of a constraint replaced after the declaration was built';
+    throws-like { EVAL $holder }, Exception,
+      message => /"Cannot constrain variable '\$c'"/,
+      'a constraint replaced after the declaration was built is reported';
 }
 
 # vim: expandtab shiftwidth=4

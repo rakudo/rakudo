@@ -1,4 +1,5 @@
 use lib <t/packages/Test-Helpers>;
+use nqp;
 use Test;
 use Test::Helpers;
 
@@ -26,16 +27,23 @@ is-run q:to/CODE/,
     :out("ok"), :err(""),
     'trailing declarator docs on our and state declarations do not warn either';
 
-# A lexical only takes trailing doc. A leading `#|` before it still falls
-# through to the next documentable declarand (here the anon sub), rather than
-# being consumed by the lexical, where it would be hidden from $=pod.
-is-run q:to/CODE/,
-        #| documented
-        my $f = anon sub bar { };
-        print $=pod.elems;
-        CODE
-    :out("1"), :err(""),
-    'leading declarator doc before a lexical falls through to the next declarand';
+# A leading `#|` before a lexical documents the lexical, like a trailing
+# one does, and stays out of $=pod with it; the routine assigned to the
+# lexical is not what the doc precedes.
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is-run q:to/CODE/,
+            #| documented
+            my $f = anon sub bar { };
+            print $=pod.elems;
+            print "|";
+            print $f.WHY.defined;
+            CODE
+        :out("0|False"), :err(""),
+        'a leading declarator doc before a lexical documents the lexical';
+}
+else {
+    skip 'the legacy frontend gives the doc to the next declarand';
+}
 
 # A lexical has no runtime meta-object to carry documentation, so its doc
 # must not be surfaced through the meta-object of its *type*.

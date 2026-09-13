@@ -5097,7 +5097,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*SEPS := nqp::list();
         <.ws>
         [
-          | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+          | <?before '-->' | ')' | ']' | '{' | ';;' >
+          | <?before ':'\s>
+            { $/.typed-sorry('X::Syntax::Signature::InvocantMarker') }
           | <parameter>
         ]+ % <param-sep>
         <.ws>
@@ -5200,11 +5202,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule post-constraint {
         :my $*IN-DECL := '';
+        :my $*OFTYPE;
         :dba('constraint')
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
           | <.constraint-where> <EXPR('i=')>
         ]
@@ -5212,10 +5215,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token param-var {
         :dba('formal parameter')
+        # a sub-signature does not take the type of the declaration
+        # holding it as its return type; in a list declaration its
+        # variables are declared like those of the signature that holds
+        # it, and the type reaches them through the declaration
+        :my $*OFTYPE;
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ARRAY)>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION), :ARRAY)>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
           | $<declname>=[
               <sigil>

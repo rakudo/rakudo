@@ -1210,6 +1210,9 @@ CODE
         my str $dot-syn = self.method-dot($ast.dispatch || '.');
         # the parser wraps the block of `.&{ }` in an item contextualizer,
         # the code of `.&( )` in a statement sequence inside it
+        # a block of one statement stays on the line of the call, as it
+        # does in an argument list
+        my $*IN-ARGLIST := True;
         $dot-syn
           ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
               ?? '&' ~ self.context-target($block.target)

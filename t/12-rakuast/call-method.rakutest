@@ -317,13 +317,16 @@ subtest 'Can call a block as a method' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparsed';
+    is-deeply $deparsed, '41.&{ $_ + 1 }', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply Q{41.&{ .say; $_ + 1 }}.AST.DEPARSE,
+      Q:to/CODE/, 'parsed: a block of two statements keeps its lines';
 41.&{
+    .say;
     $_ + 1
 }
 CODE
-    is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 

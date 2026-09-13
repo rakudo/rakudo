@@ -2871,9 +2871,7 @@ CODE
         # at least one parameter with declarator doc
         my $signature := $ast.signature;
         if $signature.parameters.first(*.WHY) {
-            @parts.push("(\n");
-            @parts.push(self.deparse($signature));
-            @parts.push(')');
+            @parts.push("(\n" ~ self.deparse($signature) ~ ')');
         }
 
         # no parameters with declarator doc

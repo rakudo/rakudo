@@ -2112,7 +2112,14 @@ class RakuAST::VarDeclaration::Signature
         $signature.IMPL-COLLECT-PARAMETERS(@parameters);
         for @parameters {
             if $_.target {
-                $_.target.set-type($type, :outer) if $type;
+                if $type {
+                    $_.target.set-type($type, :outer);
+                    # a slurpy with a type is a compile error and a
+                    # capture takes any type, so only their variables
+                    # carry it
+                    $_.IMPL-SET-OUTER-TYPE($type)
+                        if nqp::eqaddr($_.slurpy, RakuAST::Parameter::Slurpy);
+                }
                 $_.target.set-where($_.where) if $_.where;
                 $_.target.set-var-declaration;
             }

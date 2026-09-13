@@ -577,6 +577,7 @@ class RakuAST::Parameter
 {
     has RakuAST::Type              $.type;
     has RakuAST::Type              $!conflicting-type;
+    has int                        $!outer-type;
     has RakuAST::ParameterTarget   $.target;
     has Mu                         $!names;
     has Bool                       $.invocant;
@@ -678,13 +679,27 @@ class RakuAST::Parameter
     }
 
     method set-type(RakuAST::Type $type, Bool :$replace) {
-        if $!type && !$replace {
+        if $!type && !$replace && !$!outer-type {
             nqp::bindattr(self, RakuAST::Parameter, '$!conflicting-type', $!type);
         }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 0);
         $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
         Nil
     }
+
+    # The type of the list declaration a parameter binds through is the
+    # parameter's type when it has none of its own, so the binder checks
+    # it. The deparse and the .raku leave it to the declaration.
+    method IMPL-SET-OUTER-TYPE(RakuAST::Type $type) {
+        unless $!type {
+            nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+            nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 1);
+        }
+        Nil
+    }
+
+    method outer-type() { $!outer-type }
 
     method set-default-type(RakuAST::Type $type) {
         my str $sigil := self.IMPL-SIGIL;

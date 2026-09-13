@@ -3747,6 +3747,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     my %sig_info := $<signature>.ast;
+                    type_list_params($/, %sig_info<parameters>, $common_of.ast)
+                        if $common_of;
                     my $signature := $*W.create_signature_and_params($/, %sig_info, $*W.cur_lexpad(), 'Mu');
                     $list := QAST::Op.new(
                         :op('p6bindcaptosig'),
@@ -3903,6 +3905,51 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 $/.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
+        }
+    }
+
+    # The type of a list declaration is the type of every parameter it
+    # binds through that has no type of its own, so the binder checks it
+    sub type_list_params($/, @params, $of_type) {
+        my $world := $*W;
+        for @params {
+            type_list_params($/, $_<sub_signature_params><parameters>, $of_type)
+                if nqp::existskey($_, 'sub_signature_params');
+            next if nqp::existskey($_, 'of_type')
+                || !($_<variable_name> || nqp::existskey($_, 'sigil'))
+                || $_<pos_slurpy> || $_<pos_lol> || $_<pos_onearg>
+                || $_<named_slurpy> || $_<is_capture>;
+            my $type := $of_type;
+            my $archetypes := $type.HOW.archetypes($type);
+            # a signature bound to at runtime is never instantiated
+            next if $archetypes.generic;
+            if $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
+                if $type.HOW.definite($type) {
+                    $_<defined_only> := 1;
+                }
+                else {
+                    $_<undefined_only> := 1;
+                }
+                $type := $type.HOW.base_type($type);
+                $archetypes := $type.HOW.archetypes($type);
+            }
+            if $archetypes.nominalizable
+                && !$archetypes.nominal
+                && !$archetypes.coercive
+                && !$archetypes.generic {
+                $_<post_constraints> := [] unless $_<post_constraints>;
+                $_<post_constraints>.push($type);
+                $type := $type.HOW.nominalize($type);
+            }
+            my $sigil := $_<sigil>;
+            my $role := $sigil eq '@' ?? 'Positional'
+              !! $sigil eq '%' ?? 'Associative'
+              !! $sigil eq '&' ?? 'Callable'
+              !! '';
+            $type := $world.parameterize_type_with_args($/,
+                $world.find_single_symbol_in_setting($role), [$type], nqp::hash())
+                if $role;
+            $_<type> := $type;
         }
     }
 

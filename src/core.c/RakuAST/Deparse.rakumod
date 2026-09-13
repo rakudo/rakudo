@@ -1999,8 +1999,9 @@ CODE
               && .name.canonicalize eq 'required'
         });
         # the implicit Any of a target or a type capture is not written,
+        # nor the type of the list declaration the parameter sits in,
         # a parameter that is only a type has nothing else to show
-        if $ast.type -> $type {
+        if !$ast.outer-type && $ast.type -> $type {
             my str $skip = $target || @captures ?? 'Any' !! '';
             if self.deparse($type, :$skip) -> $deparsed {
                 @parts.push($deparsed);

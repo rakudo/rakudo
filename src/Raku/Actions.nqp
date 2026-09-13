@@ -4163,27 +4163,40 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Types
 
+    # The definedness smiley of a type name, D, U, _ or none; any other
+    # colonpair and a second smiley are reported
+    method type-smiley($/, $name) {
+        my str $smiley := '';
+        for $name.IMPL-UNWRAP-LIST($name.colonpairs) {
+            my str $key := $_.key;
+            if $key eq 'D' || $key eq 'U' || $key eq '_' {
+                $/.typed-sorry('X::MultipleTypeSmiley') if $smiley;
+                $smiley := $key;
+            }
+            else {
+                $/.typed-sorry('X::InvalidTypeSmiley', :name($key));
+            }
+        }
+        $smiley
+    }
+
     method type-for-name($/, $name) {
-        my $base-name := $name.without-colonpair('_').without-colonpair('D').without-colonpair('U');
-        my $type := Nodify('Type::Simple').new($base-name);
+        my str $smiley := self.type-smiley($/, $name);
+        my $type := Nodify('Type::Simple').new($name.without-colonpairs);
         # Resolving the name can report it, so the node needs its origin
         # before it is begun.
         self.SET-NODE-ORIGIN($/, $type);
         $type.to-begin-time($*R, $*CU.context);
 
-        for $base-name.IMPL-UNWRAP-LIST($base-name.colonpairs) {
-            $/.typed-sorry('X::InvalidTypeSmiley', :name($_.key));
-        }
-
         $type := Nodify('Type::Parameterized').new(
           :base-type($type), :args($<arglist>.ast)
         ).to-begin-time($*R, $*CU.context) if $<arglist>;
 
-        $type := $name.has-colonpair('D')
+        $type := $smiley eq 'D'
           ?? Nodify('Type::Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
-          !! $name.has-colonpair('U')
+          !! $smiley eq 'U'
             ?? Nodify('Type::Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
-            !! $name.has-colonpair('_')
+            !! $smiley eq '_'
               ?? Nodify('Type::AnyDefinedness').new(:base-type($type)).to-begin-time($*R, $*CU.context)
               !! $type;
 
@@ -4214,7 +4227,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $longname eq '::' {
                 $/.panic("Cannot use :: as a type name");
             }
-            my $type-capture := Nodify('Type::Capture').new($base-name.without-colonpairs);
+            my $type-capture := Nodify('Type::Capture').new(
+              $base-name.without-colonpairs,
+              :smiley(self.type-smiley($/, $base-name))
+            );
             self.attach: $/, $type-capture;
 
             # Declare the lexical so it is available right away (e.g. for traits)

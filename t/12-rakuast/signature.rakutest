@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 29;
+plan 30;
 
 my $ast;
 my $deparsed;
@@ -1443,6 +1443,105 @@ CODE
 
     is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Type capture with a definedness smiley' => {
+    # sub f (::T:D $x) { T }; f(42)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type-captures => (
+                  RakuAST::Type::Capture.new(
+                    RakuAST::Name.from-identifier('T'),
+                    smiley => 'D'
+                  ),
+                ),
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('T')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f (::T:D $x) {
+    T
+}
+f(42)
+CODE
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # sub f (::T:D $x) { T }; f(Int)
+    my $type-object := $deparsed.subst('f(42)', 'f(Int)');
+    throws-like { EVAL $type-object }, X::Parameter::InvalidConcreteness,
+      'a defined only capture rejects a type object';
+
+    # sub f (::T:U $x) { T }; f(Int)
+    my $undefined := 'sub f (::T:U $x) { T }; f(Int)';
+    is-deeply $undefined.AST.DEPARSE, q:to/CODE/, 'deparse of an undefined only capture';
+sub f (::T:U $x) {
+    T
+}
+f(Int)
+CODE
+    is-deeply EVAL($undefined), Int, 'an undefined only capture binds a type object';
+    throws-like { EVAL $undefined.subst('f(Int)', 'f(42)') },
+      X::Parameter::InvalidConcreteness,
+      'an undefined only capture rejects an instance';
+    throws-like { 'sub f (::T:X $x) { }'.AST }, X::InvalidTypeSmiley,
+      'an unknown smiley on a capture is reported';
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $undefined.AST.raku), Int,
+      'Raku: an undefined only capture binds a type object';
+
+    # sub f (::T:D) { T }; f(Int)
+    throws-like { EVAL 'sub f (::T:D) { T }; f(Int)' },
+      X::Parameter::InvalidConcreteness,
+      'a defined only capture without a target rejects a type object';
+    # sub f (::T:D $x, ::T $y) { }
+    throws-like { EVAL 'sub f (::T:D $x, ::T $y) { }' }, X::Redeclaration,
+      'a capture with a smiley declares the same name as one without';
+
+    # sub f (::T:_ $x) { T }; f(Int)
+    my $any := 'sub f (::T:_ $x) { T }; f(Int)';
+    is-deeply $any.AST.DEPARSE, q:to/CODE/, 'deparse of a capture with an any definedness smiley';
+sub f (::T:_ $x) {
+    T
+}
+f(Int)
+CODE
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $any.AST.raku), Int,
+      'Raku: a capture with an any definedness smiley binds a type object';
+    throws-like { 'sub f (::T:D:U $x) { }'.AST }, X::MultipleTypeSmiley,
+      'two smileys on a capture are reported';
+    throws-like { 'sub f (Int:D:U $x) { }'.AST }, X::MultipleTypeSmiley,
+      'two smileys on a type are reported';
+    throws-like { EVAL 'sub f (::T() $x) { }' }, Exception,
+      message => /'coercion type on a type capture'/,
+      'a coercion based on a capture is reported';
+    # role R[::T:D] { }; class C does R[Int] { }
+    throws-like { EVAL 'role R[::T:D] { }; class C does R[Int] { }' }, Exception,
+      message => /'No appropriate parametric role variant'/,
+      'a role parameter capture with a smiley checks the argument';
 }
 
 # vim: expandtab shiftwidth=4

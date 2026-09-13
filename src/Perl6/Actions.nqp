@@ -5983,7 +5983,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my str $typename := ~$<typename>;
             if nqp::eqat($typename, '::', 0) && !nqp::eqat($typename, '?', 2) {
                 # Set up signature so it will find the typename.
-                my str $desigilname := nqp::substr($typename, 2);
+                my str $desigilname := nqp::substr(~$<typename><longname><name>, 2);
                 unless %param_info<type_captures> {
                     %param_info<type_captures> := nqp::list_s()
                 }
@@ -5994,6 +5994,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # view it's a type variable to be reified.
                 $world.install_lexical_symbol($world.cur_lexpad(), $desigilname,
                     $<typename>.ast);
+
+                if $<typename><colonpairs> {
+                    my $ast := $<typename><colonpairs>.ast;
+                    %param_info<defined_only>   := 1 if $ast<D>;
+                    %param_info<undefined_only> := 1 if $ast<U>;
+                }
             }
             else {
                 if nqp::existskey(%param_info,'type') {
@@ -8972,17 +8978,17 @@ Did you mean a call like '"
                 if $<arglist> || $<typename> {
                     $/.panic("Cannot put type parameters on a type capture");
                 }
-                if $<accepts> || $<accepts_any> {
+                if $<accept> || $<accept_any> {
                     $/.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {
                     $/.panic("Cannot use :: as a type name");
                 }
-                if $world.cur_lexpad.symbol(nqp::substr($str_longname, 2)) {
-                    $world.throw($/, ['X', 'Redeclaration'],
-                        symbol => nqp::substr($str_longname, 2));
+                my str $capture := nqp::substr(~$<longname><name>, 2);
+                if $world.cur_lexpad.symbol($capture) {
+                    $world.throw($/, ['X', 'Redeclaration'], symbol => $capture);
                 }
-                make $world.pkg_create_mo($/, $world.resolve_mo($/, 'generic'), :name(nqp::substr($str_longname, 2)));
+                make $world.pkg_create_mo($/, $world.resolve_mo($/, 'generic'), :name($capture));
             }
         }
         else {

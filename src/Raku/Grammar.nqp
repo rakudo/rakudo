@@ -1179,14 +1179,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Raku::QGrammar,       Raku::QActions],
+          'Regex',   [Raku::RegexGrammar,   Raku::RegexActions],
+          'P5Regex', [Raku::P5RegexGrammar, Raku::P5RegexActions],
+        )
+    }
+
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;
         my $*MAIN := 'MAIN';
-        self.define_slang('MAIN',    self.WHAT,            self.actions);
-        self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
-        self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
-        self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # we default to strict!
         self.set_pragma('strict',1);
@@ -1567,7 +1578,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '{'                                     # actual block start
             <.enter-block-body>
             <statementlist=.key-origin('statementlist')>
-            [<.cheat-heredoc> || '}']               # actual block end
+            [<.cheat-heredoc> || '}' <.leave-block-body>]  # actual block end
             <?end-statement>              # mark line-ending } as a terminator
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
@@ -1605,6 +1616,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Helper token to make the actions handle the end of a scope
     token enter-block-body()  { <?> }
+    token leave-block-body()  { <?> }
     token leave-block-scope() { <?> }
 
 #-------------------------------------------------------------------------------
@@ -4362,8 +4374,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               }
           }
           { if $<deflongname> { %*RX<name> := $*BLOCK.name } }
-          { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
+          { $*IN-DECL := '' }
           <trait($*BLOCK)>*
           '{'<.regex-whitespace>[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}

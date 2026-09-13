@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 78;
+plan 79;
 
 my $ast;
 my $deparsed;
@@ -2086,6 +2086,30 @@ subtest 'Special compiler variable $?LANG' => {
     is-deeply $deparsed, "\$?LANG.^name\n", 'deparse';
     like $_, /Grammar/, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A standard slang variable finds its grammar outside a parse' => {
+    for Quote => 'Q', Regex => 'Regex', P5Regex => 'P5Regex'
+      -> (:key($name), :value($prefix)) {
+        # $~Quote, then $~Regex and $~P5Regex
+        ast RakuAST::Var::Slang.new(:$name);
+        is-deeply $deparsed, "\$~$name", "$name: deparse";
+
+        for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+            my $slang := EVAL($it);
+            isa-ok $slang, Slang, "$type: \$~$name is a slang";
+            ok $slang.grammar.^name.ends-with("::{$prefix}Grammar"),
+              "$type: \$~$name has the $name grammar";
+            ok $slang.actions.^name.ends-with("::{$prefix}Actions"),
+              "$type: \$~$name has the $name actions";
+        }
+    }
+
+    my $rebuilt := EVAL 'use experimental :rakuast; ' ~ Q{$~Regex}.AST.raku;
+    my $slang   := EVAL($rebuilt);
+    ok $slang.grammar.^name.ends-with('::RegexGrammar')
+         && $slang.actions.^name.ends-with('::RegexActions'),
+      'the .raku of a parsed slang variable builds its slang at runtime';
 }
 
 # vim: expandtab shiftwidth=4

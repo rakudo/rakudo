@@ -1,7 +1,9 @@
 use v6.e.PREVIEW;
+use lib <t/packages/Test-Helpers>;
 use Test;
+use Test::Helpers;
 
-plan 30;
+plan 37;
 
 my $ast;
 my $deparsed;
@@ -587,7 +589,7 @@ CODE
 }
 
 subtest 'Simple regex with declarator pod' => {
-    # #| leading comment␤my regex foo {␤#= trailing comment␤bar }␤$=pod
+    # #| leading comment␤my regex foo { #= trailing comment␤bar }, $=pod
     ast RakuAST::RegexDeclaration.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("foo"),
@@ -603,7 +605,7 @@ subtest 'Simple regex with declarator pod' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 #| leading comment
-my regex foo {  #= trailing comment
+my regex foo { #= trailing comment
 bar }, $=pod
 CODE
 
@@ -1277,6 +1279,504 @@ CODE
         is-deeply ($b(1, 2), $d(4), $e(1, 2), $f(5)), (3, 4, 3, 5),
           "$type: the blocks run";
     }
+}
+
+subtest 'A trailing doc after a body documents the declaration it closes' => {
+    # my class A { #= class doc
+    #     has $.x; #= attribute doc
+    #     method m { #= method doc
+    #         my $y = 1;
+    #         $y
+    #     }
+    # }
+    # my role R { #= role doc
+    #     method m { }
+    # }
+    # my class B { #= outer doc
+    #     class C { #= inner doc
+    #         has $.y
+    #     }
+    #     has $.z
+    # }
+    # my class E { #= empty doc
+    # }
+    # sub f { #= sub doc
+    #     my $a = 42;
+    #     $a
+    # }
+    # my $g = -> $b { #= block doc
+    #     my $c = $b;
+    #     $c
+    # };
+    # sub h { #= next line doc
+    #     my $d = 1
+    # }
+    # sub k {
+    # #= first line
+    # #= second line
+    #     1
+    # }
+    # my $l = { #= bare block doc
+    #     my $e = 1;
+    #     $e
+    # };
+    # (A, R, B, E, &f, $g, &h, &k, $l)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.x; #= attribute doc
+        method m {
+            my $y = 1;
+            $y
+        } #= method doc
+    } #= class doc
+    my role R {
+        method m { }
+    } #= role doc
+    my class B {
+        class C {
+            has $.y;
+        } #= inner doc
+        has $.z;
+    } #= outer doc
+    my class E {
+    } #= empty doc
+    sub f {
+        my $a = 42;
+        $a
+    } #= sub doc
+    my $g = -> $b {
+        my $c = $b;
+        $c
+    } #= block doc
+    sub h {
+        my $d = 1;
+    }
+    #= next line doc
+    sub k {
+        1
+    } #= first line
+    #= second line
+    my $l = {
+        my $e = 1;
+        $e
+    } #= bare block doc
+    (A, R, B, E, &f, $g, &h, &k, $l)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A { #= class doc
+    has $.x; #= attribute doc
+    method m { #= method doc
+        my $y = 1;
+        $y
+    }
+}
+my role R { #= role doc
+    method m { }
+}
+my class B { #= outer doc
+    class C { #= inner doc
+        has $.y
+    }
+    has $.z
+}
+my class E { #= empty doc
+}
+sub f { #= sub doc
+    my $a = 42;
+    $a
+}
+my $g = -> $b { #= block doc
+    my $c = $b;
+    $c
+};
+sub h { #= next line doc
+    my $d = 1
+}
+sub k {
+#= first line
+#= second line
+    1
+}
+my $l = { #= bare block doc
+    my $e = 1;
+    $e
+};
+(A, R, B, E, &f, $g, &h, &k, $l)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my @statements := $tree.statements;
+        sub body-statements($package) {
+            $package.body.body.statement-list.statements
+        }
+        is-deeply @statements[0].expression.WHY.trailing, ('class doc',),
+          "$type: the class takes the doc after its body";
+        is-deeply body-statements(@statements[0].expression).head.expression.WHY.trailing,
+          ('attribute doc',), "$type: the attribute in the class keeps its own doc";
+        is-deeply body-statements(@statements[0].expression)[1].expression.WHY.trailing,
+          ('method doc',), "$type: the method in the class takes the doc after its own body";
+        is-deeply @statements[1].expression.WHY.trailing, ('role doc',),
+          "$type: the role takes the doc after its body";
+        is-deeply @statements[2].expression.WHY.trailing, ('outer doc',),
+          "$type: the outer class takes the doc after its body";
+        is-deeply body-statements(@statements[2].expression).head.expression.WHY.trailing,
+          ('inner doc',), "$type: the inner class takes the doc after its own body";
+        is-deeply @statements[3].expression.WHY.trailing, ('empty doc',),
+          "$type: a class with an empty body takes the doc after it";
+        is-deeply @statements[4].expression.WHY.trailing, ('sub doc',),
+          "$type: the sub takes the doc after its body";
+        is-deeply @statements[5].expression.initializer.expression.WHY.trailing,
+          ('block doc',), "$type: the pointy block takes the doc after its body";
+        is-deeply @statements[6].expression.WHY.trailing, ('next line doc',),
+          "$type: a doc at the start of the line after the body goes to the sub";
+        is-deeply @statements[7].expression.WHY.trailing, ('first line', 'second line'),
+          "$type: a doc after the body continues on the next line";
+        is-deeply @statements[8].expression.initializer.expression.WHY.trailing,
+          ('bare block doc',), "$type: a block takes the doc after its body";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $R, $B, $E, $f, $g, $h, $k, $l) := EVAL($it);
+        is-deeply
+          ($A.WHY.Str, $A.^attributes[0].WHY.Str, $A.^find_method('m').WHY.Str,
+           $R.WHY.Str, $B.WHY.Str, $B.WHO<C>.WHY.Str, $E.WHY.Str, $f.WHY.Str,
+           $g.WHY.Str, $h.WHY.Str, $k.WHY.Str, $l.WHY.Str),
+          ('class doc', 'attribute doc', 'method doc', 'role doc', 'outer doc',
+           'inner doc', 'empty doc', 'sub doc', 'block doc', 'next line doc',
+           'first line second line', 'bare block doc'),
+          "$type: the docs reach the objects";
+        is-deeply ($f(), $g(1), $h(), $k(), $l()), (42, 1, 1, 1, 1),
+          "$type: the code runs";
+    }
+}
+
+subtest 'A trailing doc no declarand claims is a worry at the end of the unit' => {
+    # the worry is written to the stderr of the compiling process
+    is-run Q['say 42; #= stray doc'.AST],
+      :err(/'Missing declarand for trailing declarator doc'/),
+      'a trailing doc after the last declarand is reported';
+    is-run Q['sub f { 42 } #= sub doc'.AST],
+      'a trailing doc the last declarand claims is not';
+    is-run Q['no worries; say 42; #= stray doc'.AST],
+      'the pragma of the unit silences the report';
+}
+
+subtest 'A trailing doc of a regex declaration follows its body' => {
+    # my grammar G {
+    #     token t { \d } #= token doc
+    #     rule r { \w+ } #= rule doc
+    #     #| leading regex doc
+    #     regex x { \s } #= trailing regex doc
+    #     proto token p {*} #= proto doc
+    #     method m { }
+    # }
+    # (G, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my grammar G {
+        token t { \d } #= token doc
+        rule r {
+            \w+
+        } #= rule doc
+        #| leading regex doc
+        regex x { \s } #= trailing regex doc
+        proto token p {*} #= proto doc
+        method m { }
+    }
+    (G, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my grammar G {
+    token t { \d } #= token doc
+    rule r { \w+ } #= rule doc
+    #| leading regex doc
+    regex x { \s } #= trailing regex doc
+    proto token p {*} #= proto doc
+    method m { }
+}
+(G, $=pod)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($G, $pod) := EVAL($it);
+        is-deeply
+          ($G.^find_method('t').WHY.Str, $G.^find_method('r').WHY.Str,
+           $G.^find_method('x').WHY.leading, $G.^find_method('x').WHY.trailing,
+           $G.^find_method('p').WHY.Str),
+          ('token doc', 'rule doc', 'leading regex doc', 'trailing regex doc',
+           'proto doc'),
+          "$type: the docs reach the regexes";
+        is-deeply $pod.map(*.WHEREFORE.name).List, ('t', 'r', 'x', 'p'),
+          "$type: the docs are collected in order";
+        is-deeply (~$G.parse('5', :rule<t>), ~$G.parse('ab', :rule<r>)),
+          ('5', 'ab'), "$type: the regexes match";
+    }
+}
+
+subtest 'A trailing doc on the parameter of a regex declaration stays on it' => {
+    # my token t (
+    #   $a?, #= first parameter doc
+    #   $b? #= second parameter doc
+    # ) { \d } #= token doc
+    # (&t, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my token t(
+        $a? #= first parameter doc
+        , $b? #= second parameter doc
+    ) { \d } #= token doc
+    (&t, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my token t (
+  $a?, #= first parameter doc
+  $b? #= second parameter doc
+) { \d } #= token doc
+(&t, $=pod)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my $token := $tree.statements.head.expression;
+        is-deeply $token.WHY.trailing, ('token doc',),
+          "$type: the token keeps the doc after its body";
+        is-deeply $token.signature.parameters.map(*.WHY.trailing).List,
+          (('first parameter doc',), ('second parameter doc',)),
+          "$type: each parameter keeps its own doc";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($t, $pod) := EVAL($it);
+        is-deeply
+          ($t.WHY.Str, $t.signature.params[1].WHY.Str,
+           $t.signature.params[2].WHY.Str,
+           $pod.map(*.WHEREFORE.^name).sort.List),
+          ('token doc', 'first parameter doc', 'second parameter doc',
+           ('Parameter', 'Parameter', 'Regex')),
+          "$type: the docs reach the token and its parameters";
+        ok '5' ~~ $t, "$type: the token matches";
+    }
+}
+
+subtest 'A multi line trailing doc keeps the indent of its declaration' => {
+    # my class A {
+    #     has $.x;
+    #     #= first line
+    #     #= second line
+    #     method m {
+    #     #= method line
+    #     #= method more
+    #         1
+    #     }
+    # }
+    # (A, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.x; #= first line
+        #= second line
+        method m {
+            1
+        } #= method line
+        #= method more
+    }
+    (A, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A {
+    has $.x;
+    #= first line
+    #= second line
+    method m {
+    #= method line
+    #= method more
+        1
+    }
+}
+(A, $=pod)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the deparse is the same text';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $pod) := EVAL($it);
+        is-deeply
+          ($A.^attributes[0].WHY.trailing, $A.^find_method('m').WHY.trailing),
+          ('first line second line', 'method line method more'),
+          "$type: both lines of each doc reach the object";
+        is-deeply $pod.map(*.WHEREFORE.^name).List, ('Attribute', 'Method'),
+          "$type: the docs are collected";
+    }
+}
+
+subtest 'A trailing doc consumed inside a declaration documents it' => {
+    # my class A {
+    #     has $.z is rw
+    #     #= attribute doc
+    #     #= attribute more
+    # }
+    # my class B {
+    #     subset S of Int where * > 1
+    #     #= subset doc
+    #     #= subset more
+    # }
+    # my class C {
+    #     has $.y is rw #= bracket doc
+    # }
+    # my class D {
+    #     enum E <a b> #= enum doc
+    # }
+    # (A, B, C, D)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.z is rw #= attribute doc
+        # an ordinary comment between the lines
+        #= attribute more
+    }
+    my class B {
+        subset S of Int where * > 1 #= subset doc
+        #= subset more
+    }
+    my class C {
+        has $.y is rw #=(bracket doc)
+    }
+    my class D {
+        enum E <a b> #= enum doc
+    }
+    (A, B, C, D)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A {
+    has $.z is rw
+    #= attribute doc
+    #= attribute more
+}
+my class B {
+    subset S of Int where * > 1
+    #= subset doc
+    #= subset more
+}
+my class C {
+    has $.y is rw #= bracket doc
+}
+my class D {
+    enum E <a b> #= enum doc
+}
+(A, B, C, D)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my @statements := $tree.statements;
+        sub first-statement($package) {
+            $package.body.body.statement-list.statements.head.expression
+        }
+        is-deeply first-statement(@statements[0].expression).WHY.trailing,
+          ('attribute doc', 'attribute more'),
+          "$type: the attribute takes the docs after its trait";
+        is-deeply first-statement(@statements[1].expression).WHY.trailing,
+          ('subset doc', 'subset more'),
+          "$type: the subset takes the docs after its where expression";
+        is-deeply first-statement(@statements[2].expression).WHY.trailing,
+          ('bracket doc',),
+          "$type: the attribute takes the bracketed doc after its trait";
+        is-deeply first-statement(@statements[3].expression).WHY.trailing,
+          ('enum doc',),
+          "$type: the enum takes the doc after its values";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $B, $C, $D) := EVAL($it);
+        is-deeply (5 ~~ $B.WHO<S>, 0 ~~ $B.WHO<S>, $D.WHO<E>.enums.keys.sort.List),
+          (True, False, ('a', 'b')),
+          "$type: the subset and the enum are declared";
+    }
+}
+
+subtest 'A term or constant declaration keeps its trailing doc' => {
+    # my \t = 42; #= term doc
+    # my constant C = 7; #= constant doc
+    # t + C
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          scope       => "my",
+          name        => RakuAST::Name.from-identifier("t"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(42)
+          )
+        ).declarator-docs(trailing => ("term doc",))
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Constant.new(
+          scope       => "my",
+          name        => "C",
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(7)
+          )
+        ).declarator-docs(trailing => ("constant doc",))
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Term::Name.new(RakuAST::Name.from-identifier("t")),
+          infix => RakuAST::Infix.new("+"),
+          right => RakuAST::Term::Name.new(RakuAST::Name.from-identifier("C"))
+        )
+      )
+    ), :no-pod;
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my \t = 42; #= term doc
+my constant C = 7; #= constant doc
+t + C
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 49, "$type: the term and the constant have their values";
+    }
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        is-deeply $tree.statements.map(*.expression.WHY.trailing).head(2).List,
+          (('term doc',), ('constant doc',)),
+          "$type: the docs are on the declarations";
+    }
+
+    # my \u = 1;
+    # #= one
+    # #= two
+    # my $w = do {
+    #     my \x = 5 #= no semicolon
+    # };
+    # my class K {
+    #     my constant D = 42 #= last in a body
+    # }
+    # u + $w
+    my $parsed := Q:to/SOURCE/.AST;
+    my \u = 1; #= one
+    #= two
+    my $w = do {
+        my \x = 5 #= no semicolon
+    };
+    my class K {
+        my constant D = 42 #= last in a body
+    }
+    u + $w
+    SOURCE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'parsed: deparse';
+my \u = 1;
+#= one
+#= two
+my $w = do {
+    my \x = 5 #= no semicolon
+};
+my class K {
+    my constant D = 42 #= last in a body
+}
+u + $w
+CODE
+    is-deeply $parsed.DEPARSE.AST.DEPARSE, $parsed.DEPARSE,
+      'parsed: the deparse of the deparse is the same text';
+    my @statements := $parsed.statements;
+    is-deeply @statements[0].expression.WHY.trailing, ('one', 'two'),
+      'parsed: both lines are on the term declaration';
+    is-deeply @statements[1].expression.initializer.expression.blorst
+      .body.statement-list.statements.head.expression.WHY.trailing,
+      ('no semicolon',),
+      'parsed: a term declaration that ends a block takes the doc after its value';
+    is-deeply @statements[2].expression.body.body.statement-list.statements
+      .head.expression.WHY.trailing, ('last in a body',),
+      'parsed: a constant that ends a body takes the doc after its value';
+    is-deeply EVAL($parsed), 6, 'parsed: the code runs';
 }
 
 # vim: expandtab shiftwidth=4

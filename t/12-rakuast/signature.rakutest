@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -1607,6 +1607,274 @@ subtest 'Term parameter named in a signature sorry' => {
     throws-like { EVAL EVAL $raku }, X::Parameter::WrongOrder,
       parameter => 'bar',
       'Raku: a required term after an optional parameter names the term';
+}
+
+subtest 'A parameter mutated after its BEGIN time' => {
+    # the binder's inline check follows the tree while the meta-object
+    # keeps what it was made with, so a stale meta-object shows as an
+    # "inconsistent bind result" X::AdHoc rather than the typecheck the
+    # tests below expect
+    my sub sub-around(RakuAST::Parameter $param, :$assign) {
+        RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(parameters => ($param,)),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              |($assign
+                ?? RakuAST::Statement::Expression.new(
+                     expression => RakuAST::ApplyInfix.new(
+                       left  => RakuAST::Var::Lexical.new('$x'),
+                       infix => RakuAST::Infix.new('='),
+                       right => RakuAST::StrLiteral.new('b')
+                     )
+                   )
+                !! Empty),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+    }
+    my sub block-where(Str $op) {
+        RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$_'),
+                  infix => RakuAST::Infix.new($op),
+                  right => RakuAST::IntLiteral.new(1)
+                )
+              )
+            )
+          )
+        )
+    }
+    my sub whatever-where(Str $op) {
+        RakuAST::ApplyInfix.new(
+          left  => RakuAST::Term::Whatever.new,
+          infix => RakuAST::Infix.new($op),
+          right => RakuAST::IntLiteral.new(1)
+        )
+    }
+    my sub type(Str $name) {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($name))
+    }
+
+    # sub f ($x where * < 1) {
+    #     $x
+    # }
+    my $where-param = RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+      where  => whatever-where('>')
+    );
+    my &compiled = EVAL sub-around($where-param);
+    $where-param.set-where(whatever-where('<'));
+    throws-like { compiled(0) }, X::TypeCheck::Binding::Parameter,
+      'the compiled routine keeps the constraint it was compiled with';
+    is-deeply compiled(5), 5, 'and accepts what that constraint accepts';
+
+    ast sub-around($where-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f ($x where * < 1) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh(0), 0, "$type: a fresh routine has the new where";
+        throws-like { fresh(5) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new where refuses";
+    }
+    my &first-fresh = EVAL $ast;
+
+    # sub f ($x where (* > 3)) {
+    #     $x
+    # }
+    $where-param.set-where(RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Term::Whatever.new,
+            infix => RakuAST::Infix.new('>'),
+            right => RakuAST::IntLiteral.new(3)
+          )
+        )
+      )
+    ));
+    ast sub-around($where-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f ($x where (* > 3)) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh(5), 5,
+          "$type: a fresh routine has the where set in parentheses";
+        throws-like { fresh(0) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what that where refuses";
+    }
+    is-deeply first-fresh(0), 0,
+      'the routine built between the two mutations keeps its where';
+
+    # sub f ($x where {
+    #     $_ < 1
+    # }) {
+    #     $x
+    # }
+    my $block-param = RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+      where  => block-where('>')
+    );
+    &compiled = EVAL sub-around($block-param);
+    $block-param.set-where(block-where('<'));
+    throws-like { compiled(0) }, X::TypeCheck::Binding::Parameter,
+      'the compiled routine keeps the block it was compiled with';
+
+    ast sub-around($block-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f ($x where {
+        $_ < 1
+    }) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh(0), 0, "$type: a fresh routine has the new block";
+        throws-like { fresh(5) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new block refuses";
+    }
+
+    $block-param.set-where(RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => whatever-where('<')
+          )
+        )
+      )
+    ));
+    throws-like { EVAL sub-around($block-param) }, X::Syntax::Malformed,
+      'a double closure set after BEGIN time is the sorry it is when written';
+
+    # sub f ($x where 2) {
+    #     $x
+    # }
+    my $literal-param = RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+      where  => RakuAST::IntLiteral.new(1)
+    );
+    &compiled = EVAL sub-around($literal-param);
+    $literal-param.set-where(RakuAST::IntLiteral.new(2));
+    is-deeply compiled(1), 1,
+      'the compiled routine keeps the literal it was compiled with';
+
+    ast sub-around($literal-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f ($x where 2) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh(2), 2, "$type: a fresh routine has the new literal";
+        throws-like { fresh(1) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new literal refuses";
+    }
+
+    # sub f (Str $x) {
+    #     $x
+    # }
+    my $typed-param = RakuAST::Parameter.new(
+      type   => type('Int'),
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+    );
+    &compiled = EVAL sub-around($typed-param);
+    $typed-param.set-type(type('Str'), :replace);
+    throws-like { compiled('a') }, X::TypeCheck::Binding::Parameter,
+      'the compiled routine keeps the type it was compiled with';
+
+    ast sub-around($typed-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f (Str $x) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh('a'), 'a', "$type: a fresh routine has the new type";
+        throws-like { fresh(1) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new type refuses";
+        is-deeply &fresh.signature.params[0].type, Str,
+          "$type: the signature reports the new type";
+    }
+
+    # sub f (Str $x is copy) {
+    #     $x
+    # }
+    my $copy-param = RakuAST::Parameter.new(
+      type   => type('Int'),
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+      traits => (
+        RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('copy')),
+      )
+    );
+    &compiled = EVAL sub-around($copy-param);
+    $copy-param.set-type(type('Str'), :replace);
+    throws-like { compiled('a') }, X::TypeCheck::Binding::Parameter,
+      'the compiled routine with a trait keeps the type it was compiled with';
+
+    ast sub-around($copy-param);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f (Str $x is copy) {
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        is-deeply fresh('a'), 'a', "$type: a fresh routine has the new type";
+        throws-like { fresh(1) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new type refuses";
+        is-deeply &fresh.signature.params[0].copy, True,
+          "$type: the trait is on the parameter";
+    }
+
+    # sub f (Str $x is rw) {
+    #     $x = "b";
+    #     $x
+    # }
+    my $rw-param = RakuAST::Parameter.new(
+      type   => type('Int'),
+      target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+      traits => (
+        RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('rw')),
+      )
+    );
+    &compiled = EVAL sub-around($rw-param, :assign);
+    $rw-param.set-type(type('Str'), :replace);
+    throws-like { compiled(my Str $s = 'a') }, X::TypeCheck::Binding::Parameter,
+      'the compiled rw routine keeps the type it was compiled with';
+
+    ast sub-around($rw-param, :assign);
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+    sub f (Str $x is rw) {
+        $x = "b";
+        $x
+    }
+    CODE
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> &fresh {
+        my $type = @type[$++];
+        my Str $s = 'a';
+        is-deeply fresh($s), 'b', "$type: a fresh routine has the new type";
+        is-deeply $s, 'b', "$type: the assignment reaches the argument";
+        throws-like { fresh(my Int $i = 1) }, X::TypeCheck::Binding::Parameter,
+          "$type: its binder refuses what the new type refuses";
+        is-deeply &fresh.signature.params[0].rw, True,
+          "$type: the trait is on the parameter";
+    }
 }
 
 # vim: expandtab shiftwidth=4

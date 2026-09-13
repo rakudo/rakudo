@@ -61,6 +61,7 @@ class RakuAST::Signature
         if $!parameters {
             for $!parameters {
                 $_.to-begin-time($resolver, $context);
+                $_.IMPL-BEGIN-AFTER-MUTATION($resolver, $context);
 
                 my $sigil := $_.IMPL-SIGIL;
                 if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $sigil ne '%'
@@ -684,7 +685,20 @@ class RakuAST::Parameter
         }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
         nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 0);
-        $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
+        $!target.set-type($type, :$replace) if $!target && nqp::can($!target, 'set-type');
+        self.IMPL-CLEAR-META-OBJECT;
+        Nil
+    }
+
+    # A where or type set after the parameter's BEGIN time changes what
+    # its meta-object holds, so drop it and let the traits apply again to
+    # the one made next. The trait calls are what set their flags on the
+    # object.
+    method IMPL-CLEAR-META-OBJECT() {
+        nqp::findmethod(RakuAST::Meta, 'IMPL-CLEAR-META-OBJECT')(self);
+        for self.IMPL-UNWRAP-LIST(self.traits) {
+            $_.IMPL-CLEAR-APPLIED;
+        }
         Nil
     }
 
@@ -788,6 +802,7 @@ class RakuAST::Parameter
         nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', RakuAST::Block);
         nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', Mu);
         nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', 0);
+        self.IMPL-CLEAR-META-OBJECT;
         Nil
     }
 
@@ -1222,44 +1237,7 @@ class RakuAST::Parameter
         # sub-signature's parameters, which their BEGIN time completes
         $!sub-signature.to-begin-time($resolver, $context) if $!sub-signature;
 
-        nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
-            if $!where;
-
-        # Catch a double closure in the user's own where block, before it is
-        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
-        # block, so it is left alone and its wrapper is not mistaken for one.
-        if $!where && nqp::istype($!where, RakuAST::Block) {
-            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
-            self.add-sorry: $sorry if $sorry;
-        }
-
-        if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
-            my $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!where,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context);
-            nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', $block);
-        }
+        self.IMPL-BEGIN-WHERE($resolver, $context);
 
         if $!array-shape {
             my $block := RakuAST::Block.new(
@@ -1325,6 +1303,64 @@ class RakuAST::Parameter
         self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         $!target.to-begin-time($resolver, $context) if $!target;
+    }
+
+    # Call after to-begin-time. A parameter whose where or type was set
+    # after its own BEGIN time has no meta-object. A signature built
+    # around it brings the where to its BEGIN time again and applies the
+    # traits to the meta-object made next, so the routine compiles
+    # against the mutated parameter.
+    method IMPL-BEGIN-AFTER-MUTATION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.has-meta-object {
+            self.IMPL-BEGIN-WHERE($resolver, $context);
+            self.apply-traits($resolver, $context, self);
+        }
+        Nil
+    }
+
+    # The BEGIN time of the where constraint: the parentheses it was
+    # written in come off, a double closure is a sorry, and a where that
+    # is smartmatched rather than called is wrapped in a block. A where
+    # that has its block keeps it.
+    method IMPL-BEGIN-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
+            if $!where;
+
+        # Catch a double closure in the user's own where block, before it is
+        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
+        # block, so it is left alone and its wrapper is not mistaken for one.
+        if $!where && nqp::istype($!where, RakuAST::Block) {
+            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
+            self.add-sorry: $sorry if $sorry;
+        }
+
+        if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
+            my $block := RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::ApplyPostfix.new(
+                                    operand => $!where,
+                                    postfix => RakuAST::Call::Method.new(
+                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
+                                        args => RakuAST::ArgList.new(
+                                            RakuAST::Var::Lexical.new('$_'),
+                                        ),
+                                    ),
+                                ),
+                                postfix => RakuAST::Call::Method.new(
+                                    name => RakuAST::Name.from-identifier('Bool'),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+            $block.IMPL-BEGIN($resolver, $context);
+            $block.IMPL-CHECK($resolver, $context);
+            nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', $block);
+        }
     }
 
     # Type captures are the only generic parameter types the lowered

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 31;
 
 my $ast;
 my $deparsed;
@@ -1542,6 +1542,21 @@ CODE
     throws-like { EVAL 'role R[::T:D] { }; class C does R[Int] { }' }, Exception,
       message => /'No appropriate parametric role variant'/,
       'a role parameter capture with a smiley checks the argument';
+}
+
+subtest 'An invocant marker before the first parameter is reported' => {
+    # class A { method m(: :$a) { } }
+    throws-like { 'class A { method m(: :$a) { } }'.AST },
+      X::Syntax::Signature::InvocantMarker, 'parsing reports the marker';
+    throws-like { EVAL 'class B { method m(: :$a) { } }' },
+      X::Syntax::Signature::InvocantMarker, 'compiling reports the marker';
+
+    # class C { method m($a: :$b) { }; method n($a: ) { } }
+    lives-ok { 'class C { method m($a: :$b) { }; method n($a: ) { } }'.AST },
+      'a marker after the first parameter parses';
+    # class D { method m(: ) { } }
+    throws-like { 'class D { method m(: ) { } }'.AST },
+      X::Syntax::Signature::InvocantMarker, 'a marker alone is reported';
 }
 
 # vim: expandtab shiftwidth=4

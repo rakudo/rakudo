@@ -2712,7 +2712,9 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         <.ws>
         [
-        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+        | <?before '-->' | ')' | ']' | '{' | ';;' >
+        | <?before ':'\s>
+          { $/.typed_sorry('X::Syntax::Signature::InvocantMarker') }
         | <parameter>
         ]+ % <param_sep>
         <.ws>

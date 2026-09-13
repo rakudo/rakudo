@@ -5097,7 +5097,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*SEPS := nqp::list();
         <.ws>
         [
-          | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+          | <?before '-->' | ')' | ']' | '{' | ';;' >
+          | <?before ':'\s>
+            { $/.typed-sorry('X::Syntax::Signature::InvocantMarker') }
           | <parameter>
         ]+ % <param-sep>
         <.ws>

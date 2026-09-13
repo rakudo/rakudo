@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 81;
+plan 82;
 
 my $ast;
 my $deparsed;
@@ -2334,6 +2334,47 @@ CODE
     throws-like { EVAL $holder }, Exception,
       message => /"Cannot constrain variable '\$c'"/,
       'a constraint replaced after the declaration was built is reported';
+}
+
+subtest 'Signature declaration with a term assigned to' => {
+    # my ($p, \foo) = 1, 2; foo
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Term.new(
+                  RakuAST::Name.from-identifier('foo')
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($p, \foo) = 1, 2;
+foo
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

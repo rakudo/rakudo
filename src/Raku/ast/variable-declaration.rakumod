@@ -2114,6 +2114,14 @@ class RakuAST::VarDeclaration::Signature
             if $_.target {
                 $_.target.set-type($type, :outer) if $type;
                 $_.target.set-where($_.where) if $_.where;
+                $_.target.set-var-declaration;
+            }
+        }
+        # A parameter that is assigned to, not bound, holds a container
+        # of its own, decided before its meta-object exists
+        unless nqp::isconcrete($initializer) && $initializer.is-binding {
+            for $obj.IMPL-UNWRAP-LIST($signature.parameters) {
+                $_.set-default-rw;
             }
         }
         $obj

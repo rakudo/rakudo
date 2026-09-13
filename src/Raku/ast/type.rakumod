@@ -1191,13 +1191,18 @@ class RakuAST::Type::Subset
         $obj
     }
 
+    # An of trait is applied from the trait list like any other trait.
+    # The of attribute is for a type written before the declarator, as
+    # in `my Int subset P`, and giving both is refused.
     method set-traits($traits) {
+        my int $has-of := $!of ?? 1 !! 0;
         for self.IMPL-UNWRAP-LIST($traits) {
-            nqp::istype($_, RakuAST::Trait::Of)
-              ?? $!of
-                ?? nqp::die("Cannot declare more than one 'of' trait per subset")
-                !! nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $_.type)
-              !! self.add-trait($_);
+            if nqp::istype($_, RakuAST::Trait::Of) {
+                nqp::die("Cannot declare more than one 'of' trait per subset")
+                  if $has-of;
+                $has-of := 1;
+            }
+            self.add-trait($_);
         }
     }
 

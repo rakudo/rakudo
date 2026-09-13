@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -312,6 +312,84 @@ subtest 'Subset with a where regex' => {
         nok 41    ~~ $subset, "$type: subset does not accept 41";
         nok "foo" ~~ $subset, "$type: subset does not accept foo";
     }
+}
+
+subtest 'An of trait stays where it was written' => {
+    # my subset OfAfterExport is export of Int
+    ast RakuAST::Type::Subset.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('OfAfterExport'),
+      traits => (
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('export')
+        ),
+        RakuAST::Trait::Of.new(
+          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my subset OfAfterExport is export of Int', 'deparse';
+    is-deeply EVAL($raku).DEPARSE, $deparsed,
+      'Raku: the trait keeps its place through the .raku';
+    # a hand built export trait needs a compilation around it, so only
+    # the deparsed text is compiled
+    is EVAL($deparsed).^refinee.^name, 'Int', 'Str: the subset refines Int';
+
+    # my subset OfAfterDeprecated is DEPRECATED of Int
+    ast RakuAST::Type::Subset.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('OfAfterDeprecated'),
+      traits => (
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('DEPRECATED')
+        ),
+        RakuAST::Trait::Of.new(
+          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my subset OfAfterDeprecated is DEPRECATED of Int',
+      'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is $subset.^refinee.^name, 'Int', "$type: the subset refines Int";
+    }
+
+    dies-ok {
+        RakuAST::Type::Subset.new(
+          name   => RakuAST::Name.from-identifier('OfTwice'),
+          traits => (
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            ),
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+            ),
+          )
+        )
+    }, 'a second of trait is refused';
+    dies-ok {
+        RakuAST::Type::Subset.new(
+          name   => RakuAST::Name.from-identifier('OfBoth'),
+          of     => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+          traits => (
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+            ),
+          )
+        )
+    }, 'an of trait next to an of attribute is refused';
+
+    my $parsed := 'subset OfParsed is export of Int'.AST;
+    is-deeply $parsed.DEPARSE, "subset OfParsed is export of Int\n",
+      'parsed: the trait is written where it was';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
+      $parsed.DEPARSE,
+      'parsed: the trait keeps its place through the .raku';
 }
 
 # vim: expandtab shiftwidth=4

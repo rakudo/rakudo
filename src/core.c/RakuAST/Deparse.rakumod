@@ -2896,21 +2896,29 @@ CODE
             return @parts.join(' ');
         }
 
-        if $ast.WHY -> $WHY {
-            @parts.push('{');
-            # https://github.com/rakudo/rakudo/issues/5978
-            my $*DELIMITER = ' ';  # a ";" here would spoil things
-            @parts = self.add-any-docs(@parts.join(' '), $WHY);
-            @parts.push($*INDENT);
-        }
-        else {
-            @parts.push('{ ');
-            @parts = @parts.join(' ');
-        }
+        my str $regex = '{ ' ~ self.deparse($body) ~ '}';
 
-        @parts.push(self.deparse($body));
-        @parts.push('}');
-        @parts.join
+        if $ast.WHY -> $WHY {
+            my str $header = @parts.join(' ');
+            # a doc after the closing brace ends the statement there, so
+            # inside an expression it follows the opening brace instead;
+            # a leading doc alone leaves the regex on its line, and so
+            # does a deparse without the delimiter bound
+            my $one-line := !$*DELIMITER.defined
+              || $*DELIMITER
+              || !$WHY.trailing;
+            my str $text = do {
+                my $*DELIMITER = '';
+                $one-line
+                  ?? self.postfix-any-trailing-doc("$header $regex", $WHY)
+                  !! self.postfix-any-trailing-doc($header ~ ' {', $WHY)
+                       ~ $*INDENT
+                       ~ $regex.substr(2)
+            }
+            return self.prefix-any-leading-doc($text, $WHY);
+        }
+        @parts.push($regex);
+        @parts.join(' ')
     }
 
 #- S ---------------------------------------------------------------------------

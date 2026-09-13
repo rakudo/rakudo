@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 32;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -589,7 +589,7 @@ CODE
 }
 
 subtest 'Simple regex with declarator pod' => {
-    # #| leading comment␤my regex foo {␤#= trailing comment␤bar }␤$=pod
+    # #| leading comment␤my regex foo { #= trailing comment␤bar }, $=pod
     ast RakuAST::RegexDeclaration.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("foo"),
@@ -605,7 +605,7 @@ subtest 'Simple regex with declarator pod' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 #| leading comment
-my regex foo {  #= trailing comment
+my regex foo { #= trailing comment
 bar }, $=pod
 CODE
 
@@ -1458,6 +1458,57 @@ subtest 'A trailing doc no declarand claims is a worry at the end of the unit' =
       'a trailing doc the last declarand claims is not';
     is-run Q['no worries; say 42; #= stray doc'.AST],
       'the pragma of the unit silences the report';
+}
+
+subtest 'A trailing doc of a regex declaration follows its body' => {
+    # my grammar G {
+    #     token t { \d } #= token doc
+    #     rule r { \w+ } #= rule doc
+    #     #| leading regex doc
+    #     regex x { \s } #= trailing regex doc
+    #     proto token p {*} #= proto doc
+    #     method m { }
+    # }
+    # (G, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my grammar G {
+        token t { \d } #= token doc
+        rule r {
+            \w+
+        } #= rule doc
+        #| leading regex doc
+        regex x { \s } #= trailing regex doc
+        proto token p {*} #= proto doc
+        method m { }
+    }
+    (G, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my grammar G {
+    token t { \d } #= token doc
+    rule r { \w+ } #= rule doc
+    #| leading regex doc
+    regex x { \s } #= trailing regex doc
+    proto token p {*} #= proto doc
+    method m { }
+}
+(G, $=pod)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($G, $pod) := EVAL($it);
+        is-deeply
+          ($G.^find_method('t').WHY.Str, $G.^find_method('r').WHY.Str,
+           $G.^find_method('x').WHY.leading, $G.^find_method('x').WHY.trailing,
+           $G.^find_method('p').WHY.Str),
+          ('token doc', 'rule doc', 'leading regex doc', 'trailing regex doc',
+           'proto doc'),
+          "$type: the docs reach the regexes";
+        is-deeply $pod.map(*.WHEREFORE.name).List, ('t', 'r', 'x', 'p'),
+          "$type: the docs are collected in order";
+        is-deeply (~$G.parse('5', :rule<t>), ~$G.parse('ab', :rule<r>)),
+          ('5', 'ab'), "$type: the regexes match";
+    }
 }
 
 # vim: expandtab shiftwidth=4

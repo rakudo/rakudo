@@ -1420,9 +1420,7 @@ CODE
 
         # preprocess any config
         my %config    := $ast.config;
-        my str @config = %config.sort({
-            .key eq 'numbered' ?? '' !! .key  # numbered always first
-        }).map: {
+        my str @config = $ast.config-pairs.map: {
             my str $key = .key;
             if $key eq 'numbered' && $abbreviated {
                 '#'

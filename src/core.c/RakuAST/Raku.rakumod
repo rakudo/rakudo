@@ -149,8 +149,7 @@ augment class RakuAST::Node {
               }
           },
           'config', -> {
-              my $config := nqp::decont(self.config);
-              :config($config.Hash) if $config
+              :config(self.config-pairs) if self.config
           },
           'destructive', -> {
               :destructive(self.destructive)

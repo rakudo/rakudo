@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 21;
+plan 22;
 
 my $ast;
 my $deparsed;
@@ -712,6 +712,115 @@ CODE
     }
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse parses back to itself';
+}
+
+subtest 'The configuration of a block keeps the order it was written in' => {
+    # =begin pod :kind<Language> :subkind<Language> :category<basic>
+    #
+    # text
+    # =end pod
+    #
+    # 42
+    sub words(str $text) {
+        RakuAST::QuotedString.new(
+          processors => <words val>,
+          segments   => (RakuAST::StrLiteral.new($text),)
+        )
+    }
+    ast RakuAST::StatementList.new(
+      RakuAST::Doc::Block.new(
+        type       => 'pod',
+        config     => (
+          :kind(words("Language")),
+          :subkind(words("Language")),
+          :category(words("basic")),
+        ),
+        paragraphs => (
+          "text\n",
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $ast.EVAL, 42, 'do we get the final result';
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/, "$type: deparse";
+=begin pod :kind<Language> :subkind<Language> :category<basic>
+
+text
+=end pod
+
+42
+CODE
+    }
+    is-deeply $ast.statements.head.config-keys, <kind subkind category>,
+      'the keys are in the order given';
+    is-deeply $ast.statements.head.config.keys.sort, <category kind subkind>,
+      'the config is still a map';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    # a map has no order, so its keys are written sorted, numbered first
+    my $mapped := RakuAST::Doc::Block.new(
+      type       => 'item',
+      for        => True,
+      config     => {
+        :allow(words("B")),
+        :numbered(RakuAST::Term::True.new),
+        :nested(RakuAST::Term::True.new),
+      },
+      paragraphs => ("text\n",)
+    );
+    is-deeply $mapped.config-keys, <numbered allow nested>,
+      'map: numbered first, then sorted';
+    is-deeply $mapped.DEPARSE, qq:to/CODE/, 'map: deparse';
+=for item :numbered :allow<B> :nested
+text
+CODE
+    is-deeply EVAL('use experimental :rakuast; ' ~ $mapped.raku).DEPARSE,
+      $mapped.DEPARSE, 'map: the .raku keeps the order';
+    lives-ok { EVAL RakuAST::StatementList.new($mapped) },
+      'map: the block compiles';
+
+    # the last value of a repeated key wins in its first place
+    my $twice := RakuAST::Doc::Block.new(
+      type       => 'item',
+      for        => True,
+      config     => (:allow(words("B")), :nested(RakuAST::Term::True.new), :allow(words("C"))),
+      paragraphs => ("text\n",)
+    );
+    is-deeply $twice.DEPARSE, qq:to/CODE/, 'list: a repeated key keeps its place';
+=for item :allow<C> :nested
+text
+CODE
+    throws-like { RakuAST::Doc::Block.new(type => 'item', config => (1, 2)) },
+      Exception, message => /'map or a list of pairs'/,
+      'a config that is not pairs is refused';
+
+    # a parsed table keeps its order through the header row fixup
+    my $table := Q:to/SOURCE/.AST;
+    =begin table :caption<Odd> :allow<B>
+    a | b
+    =====
+    1 | 2
+    =end table
+    SOURCE
+    is-deeply $table.statements.head.config-keys, <caption allow header-row>,
+      'parsed table: the keys written come first';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $table.raku).DEPARSE,
+      $table.DEPARSE, 'parsed table: the .raku keeps the order';
+    lives-ok { EVAL $table }, 'parsed table: the block compiles';
+    is-deeply $table.DEPARSE, Q:to/CODE/, 'parsed table: deparse';
+=begin table :caption<Odd> :allow<B>
+
+a | b
+=====
+1 | 2
+
+=end table
+
+CODE
 }
 
 # vim: expandtab shiftwidth=4

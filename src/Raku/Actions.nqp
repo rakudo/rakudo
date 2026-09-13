@@ -4622,32 +4622,35 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    # The pairs of the config, in the order they were written
     method extract-config($/) {
-        my $config := nqp::hash;
-        $config<numbered> := Nodify('IntLiteral').new(1)
+        my $Pair := $*R.setting-constant('Pair');
+        my @config;
+        nqp::push(@config, $Pair.new('numbered', Nodify('IntLiteral').new(1)))
           if $<doc-numbered>;
-        $config<uri> := Nodify('StrLiteral').new(~$<uri>)
+        nqp::push(@config, $Pair.new('uri', Nodify('StrLiteral').new(~$<uri>)))
           if $<uri>;
 
         if $<colonpair> {
             for $<colonpair> -> $/ {
                 my $key := ~$<identifier>;
+                my $value;
                 if $<num> {
-                    $config{$key} := Nodify('IntLiteral').new(+$<num>);
+                    $value := Nodify('IntLiteral').new(+$<num>);
                 }
                 elsif $<coloncircumfix> {  # :bar("foo",42)
-                    $config{$key} := $<coloncircumfix>.ast;
+                    $value := $<coloncircumfix>.ast;
                 }
                 elsif $<var> {             # :$bar
-                    $config{$key} := $<var>.ast;
+                    $value := $<var>.ast;
                 }
                 else {                             # :!bar | :bar
-                    $config{$key} :=
-                      Nodify($<neg> ?? 'Term::False' !! 'Term::True').new;
+                    $value := Nodify($<neg> ?? 'Term::False' !! 'Term::True').new;
                 }
+                nqp::push(@config, $Pair.new($key, $value));
             }
         }
-        $config
+        @config
     }
 
     method extract-type($/) {

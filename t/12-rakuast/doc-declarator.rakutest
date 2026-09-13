@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 33;
+plan 34;
 
 my $ast;
 my $deparsed;
@@ -1508,6 +1508,48 @@ CODE
           "$type: the docs are collected in order";
         is-deeply (~$G.parse('5', :rule<t>), ~$G.parse('ab', :rule<r>)),
           ('5', 'ab'), "$type: the regexes match";
+    }
+}
+
+subtest 'A trailing doc on the parameter of a regex declaration stays on it' => {
+    # my token t (
+    #   $a?, #= first parameter doc
+    #   $b? #= second parameter doc
+    # ) { \d } #= token doc
+    # (&t, $=pod)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my token t(
+        $a? #= first parameter doc
+        , $b? #= second parameter doc
+    ) { \d } #= token doc
+    (&t, $=pod)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my token t (
+  $a?, #= first parameter doc
+  $b? #= second parameter doc
+) { \d } #= token doc
+(&t, $=pod)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my $token := $tree.statements.head.expression;
+        is-deeply $token.WHY.trailing, ('token doc',),
+          "$type: the token keeps the doc after its body";
+        is-deeply $token.signature.parameters.map(*.WHY.trailing).List,
+          (('first parameter doc',), ('second parameter doc',)),
+          "$type: each parameter keeps its own doc";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($t, $pod) := EVAL($it);
+        is-deeply
+          ($t.WHY.Str, $t.signature.params[1].WHY.Str,
+           $t.signature.params[2].WHY.Str,
+           $pod.map(*.WHEREFORE.^name).sort.List),
+          ('token doc', 'first parameter doc', 'second parameter doc',
+           ('Parameter', 'Parameter', 'Regex')),
+          "$type: the docs reach the token and its parameters";
+        ok '5' ~~ $t, "$type: the token matches";
     }
 }
 

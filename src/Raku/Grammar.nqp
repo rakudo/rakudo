@@ -4363,8 +4363,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               }
           }
           { if $<deflongname> { %*RX<name> := $*BLOCK.name } }
-          { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
+          { $*IN-DECL := '' }
           <trait($*BLOCK)>*
           '{'<.regex-whitespace>[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}

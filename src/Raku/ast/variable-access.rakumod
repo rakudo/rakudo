@@ -1183,7 +1183,8 @@ class RakuAST::Var::Slang
     method twigil() { '~' }
 
     # A slang variable built without a grammar takes it from the parse in
-    # progress, or from the compiler for MAIN.
+    # progress, or from the compiler's grammar, which is MAIN and names
+    # its standard slangs.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::isnull($!grammar) {
             my $lang := nqp::getlexdyn('$*LANG');
@@ -1196,12 +1197,25 @@ class RakuAST::Var::Slang
                       $lang.slang_actions($!name));
                 }
             }
-            if nqp::isnull($!grammar) && $!name eq 'MAIN' {
-                my $comp := nqp::getcomp('Raku');
-                nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
-                  $comp.parsegrammar);
-                nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
-                  $comp.parseactions);
+            if nqp::isnull($!grammar) {
+                my $comp    := nqp::getcomp('Raku');
+                my $grammar := $comp.parsegrammar;
+                if $!name eq 'MAIN' {
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                      $grammar);
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                      $comp.parseactions);
+                }
+                elsif nqp::can($grammar, 'standard-slangs') {
+                    my %slangs := $grammar.standard-slangs;
+                    if nqp::existskey(%slangs, $!name) {
+                        my @slang := nqp::atkey(%slangs, $!name);
+                        nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                          @slang[0]);
+                        nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                          @slang[1]);
+                    }
+                }
             }
             self.add-sorry(
               $resolver.build-exception: 'X::AdHoc',

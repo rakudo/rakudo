@@ -1179,14 +1179,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Raku::QGrammar,       Raku::QActions],
+          'Regex',   [Raku::RegexGrammar,   Raku::RegexActions],
+          'P5Regex', [Raku::P5RegexGrammar, Raku::P5RegexActions],
+        )
+    }
+
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;
         my $*MAIN := 'MAIN';
-        self.define_slang('MAIN',    self.WHAT,            self.actions);
-        self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
-        self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
-        self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # we default to strict!
         self.set_pragma('strict',1);

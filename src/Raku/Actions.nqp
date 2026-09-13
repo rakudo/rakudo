@@ -4444,6 +4444,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Create sigilless target to bind into
             my $ast  := $<defterm>.ast;
             my $decl := Nodify('ParameterTarget::Term').new($ast );
+            self.SET-NODE-ORIGIN($/, $decl);
             $/.typed-panic('X::Redeclaration', :symbol($ast.canonicalize))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             make Nodify('Parameter').new(target => $decl);

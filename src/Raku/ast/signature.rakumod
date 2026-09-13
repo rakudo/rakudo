@@ -2421,9 +2421,11 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::Declaration
   is RakuAST::BeginTime
   is RakuAST::Meta
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Type $.type;
+    has RakuAST::Type $!conflicting-type;
     has RakuAST::Expression $.where;
     has Bool $!is-bindable;
     has int $!lowered-to-local;
@@ -2479,7 +2481,14 @@ class RakuAST::ParameterTarget::Term
     method sigil() { '' }
     method twigil() { '' }
 
-    method set-type(RakuAST::Type $type) {
+    # The type of the list declaration a term sits in becomes the
+    # term's type unless the term has one of its own, and then they
+    # conflict
+    method set-type(RakuAST::Type $type, Bool :$outer, Bool :$replace) {
+        if $outer && $!type && !$replace {
+            nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!conflicting-type', $type);
+            return Nil;
+        }
         nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!type', $type);
         Nil
     }
@@ -2504,14 +2513,23 @@ class RakuAST::ParameterTarget::Term
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if my $where := $!where {
+        # a type in conflict stays as written for the report
+        if $!where && !$!conflicting-type {
+            my $where := $!where;
             my $type := $!type;
             my $type-name := $type ?? $type.name.canonicalize !! "Mu";
             my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
             my $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type), :$where;
             $subset.to-begin-time($resolver, $context);
-            self.set-type($subset);
+            self.set-type($subset, :replace);
         }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
+            :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
+        ) if $!conflicting-type;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

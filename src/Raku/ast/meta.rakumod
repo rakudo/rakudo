@@ -35,6 +35,15 @@ class RakuAST::Meta
         $!meta-object-produced || False
     }
 
+    # Drop the produced meta-object so the next request makes a new one,
+    # for a node mutated after its BEGIN time in a way the meta-object
+    # reflects. Code already compiled against the old one keeps it.
+    method IMPL-CLEAR-META-OBJECT() {
+        nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', Mu);
+        nqp::bindattr(self, RakuAST::Meta, '$!meta-object-produced', False);
+        Nil
+    }
+
     method compile-time-value() {
         self.meta-object
     }

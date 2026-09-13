@@ -142,6 +142,13 @@ class RakuAST::Trait
         Nil
     }
 
+    # Forget the application, for a target whose meta-object is made
+    # again after the trait changed the one it had.
+    method IMPL-CLEAR-APPLIED() {
+        nqp::bindattr_i(self, RakuAST::Trait, '$!applied', 0);
+        Nil
+    }
+
     # Apply the trait to the specified target. Checks if it has been applied,
     # and then applies it.
     method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {

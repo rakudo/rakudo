@@ -86,18 +86,18 @@ class RakuAST::Signature
 
                 if $kind == 3 {               # required
                     if $prev-kind == 2 {      # optional
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 4 { # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.lexical-name;
                     }
 
                 } elsif $kind == 2 {          # optional
                     if $prev-kind == 4 {      # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.lexical-name;
                     }
                 }
 
@@ -1354,7 +1354,7 @@ class RakuAST::Parameter
         if $!conflicting-type {
             self.add-sorry:
                 $resolver.build-exception: 'X::Parameter::MultipleTypeConstraints',
-                    parameter => $!target.name;
+                    parameter => $!target.lexical-name;
         }
 
         if $!default {
@@ -1367,7 +1367,7 @@ class RakuAST::Parameter
             if self.is-declared-required {
                 self.add-sorry:
                   $resolver.build-exception: 'X::Parameter::Default',
-                    how => 'required', parameter => $!target.name;
+                    how => 'required', parameter => $!target.lexical-name;
             }
 
             if nqp::isconcrete($!type) && $!default.has-compile-time-value {
@@ -1393,7 +1393,7 @@ class RakuAST::Parameter
         if !$!attribute-declaration
             && nqp::istype($!owner, RakuAST::Submethod) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.name;
+                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.lexical-name;
         }
 
         # A `!`-twigil attributive parameter is checked by its own
@@ -1407,7 +1407,7 @@ class RakuAST::Parameter
         if !$!attribute-declaration
             && nqp::istype($!owner, RakuAST::Sub) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.name;
+                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.lexical-name;
         }
 
         my $param-obj := self.meta-object;
@@ -1458,7 +1458,7 @@ class RakuAST::Parameter
         if nqp::can(self.meta-object, 'is-item') && self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',
-                                            name        => $!target.name,
+                                            name        => $!target.lexical-name,
                                             reason      => "only '\@' or '\%' sigiled parameters can be constrained to itemized arguments",
                                             declaring   => 'parameter',
                                             type        => 'is',
@@ -2139,6 +2139,7 @@ class RakuAST::ParameterTarget
     method set-var-declaration() { }
     method sigil() { '' }
     method name() { '' }
+    method lexical-name() { '' }
     method desigilname() { self.name }
     method set-bindable(Bool $is-bindable) {
         nqp::die("set-bindable NYI on " ~ self.HOW.name(self));

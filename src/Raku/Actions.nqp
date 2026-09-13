@@ -2780,7 +2780,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? self.attach($/, Nodify('Var::NamedCapture').new(
                Nodify('QuotedString').new(
                  :segments([Nodify('StrLiteral').new(~$<desigilname>)])
-               )
+               ),
+               :sigil(~$<sigil>)
              ))
           !! self.simple-variable($/);
     }

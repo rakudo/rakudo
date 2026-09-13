@@ -2905,12 +2905,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method colonpair_variable($/) {
         if $<capvar> {
-            make QAST::Op.new(
+            my $past := QAST::Op.new(
                 :op('call'),
                 :name('&postcircumfix:<{ }>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_string_constant(~$<desigilname>)
             );
+            my str $sigil := ~$<sigil>;
+            if $sigil eq '@' || $sigil eq '%' {
+                my $name := $sigil eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
+            make $past;
         }
         else {
             make make_variable($/, [~$/]);

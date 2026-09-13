@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -205,6 +205,22 @@ subtest 'Variable colonpair with a named capture held as a plain string' => {
 CODE
 
     is .key ~ .value, 'foobc', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Variable colonpair with a named capture keeps its sigil' => {
+    # "ab" ~~ /$<b>=(b)/;
+    # (:@<b>, :%<b>, :$<b>)
+    ast Q:to/SOURCE/.AST;
+    "ab" ~~ /$<b>=(b)/;
+    (:@<b>, :%<b>, :$<b>)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"ab" ~~ /$<b>=(b)/;
+(:@<b>, :%<b>, :$<b>)
+CODE
+
+    is-deeply .map(*.value.^name).List, <List Map Match>, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

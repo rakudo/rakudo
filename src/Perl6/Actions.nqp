@@ -3664,73 +3664,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<signature> {
             # Go over the params and declare the variable defined in them.
-            my $list      := QAST::Op.new( :op('call'), :name('&infix:<,>') );
             my @params    := $<signature>.ast<parameters>;
             my $common_of := $*OFTYPE;
             my @nosigil;
-            for @params {
-                my $*OFTYPE := $common_of;
-                if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
-                    if $common_of {
-                        ($_<node> // $<signature>).typed_sorry(
-                            'X::Syntax::Variable::ConflictingTypes',
-                            outer => $common_of.ast, inner => $_<of_type>);
-                    }
-                    $*OFTYPE := $_<of_type_match>;
-                    $*OFTYPE.make($_<of_type>);
-                }
-
-                my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
-                if $_<variable_name> {
-                    my $name := $_<variable_name>;
-                    my $sigil := $_<sigil>;
-                    my $twigil := $_<twigil>;
-                    my $desigilname := $_<desigilname>;
-                    if $desigilname {
-                        ensure_unused_in_scope($/, $name, $twigil)
-                    }
-                    my $past := QAST::Var.new( :$name );
-                    $past := declare_variable($/, $past, $sigil, $twigil,
-                        $desigilname, $<trait>, :$post);
-                    unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
-                        $list.push($past);
-                        if $sigil eq '' {
-                            nqp::push(@nosigil, ~$desigilname);
-                        }
-                    }
-                }
-                else {
-                    my $world := $*W;
-                    $world.handle_OFTYPE_for_pragma($/,'parameters');
-                    my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
-                    if @value_type && $_<defined_only> {
-                        @value_type[0] := $world.create_definite_type(
-                            $world.resolve_mo($/, 'definite'),
-                            @value_type[0], 1);
-                    }
-                    elsif @value_type && $_<undefined_only> {
-                        @value_type[0] := $world.create_definite_type(
-                            $world.resolve_mo($/, 'definite'),
-                            @value_type[0], 0);
-                    }
-                    my %cont_info := $world.container_type_info($/, :$post,
-                      $_<sigil> || '$', @value_type, []);
-                    $list.push($world.build_container_past(
-                      %cont_info,
-                      $world.create_container_descriptor(
-                        %cont_info<value_type>, 'anon', %cont_info<default_value>)));
-                }
-            }
+            my @groups;
+            my $assign := $<initializer> && $<initializer><sym> eq '=';
+            my $list := list_declaration_targets($/, @params, $<trait>,
+                $common_of, @nosigil, @groups, $assign, 1);
 
             if $<initializer> {
-                my $orig_list := $list;
+                # the value of a state declaration on a later entry is
+                # the containers, built again since the assignment's
+                # targets declare their placeholder locals
+                my $orig_list := $assign && @groups && $*SCOPE eq 'state'
+                    ?? list_declaration_targets($/, @params, $<trait>,
+                        $common_of, [], [], 0, 0)
+                    !! $list;
                 my $initast := $<initializer>.ast;
                 if $<initializer><sym> eq '=' {
                     $/.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
                     $list := assign_op($/, $list, $initast);
-                    if @nosigil {
+                    if @groups || @nosigil {
                         $list := QAST::Stmts.new( :resultchild(0), $list );
+                        # a sub-signature inside a group queues its own group
+                        my int $i := 0;
+                        while $i < nqp::elems(@groups) {
+                            my $group := @groups[$i];
+                            $list.push(assign_op($/,
+                                list_declaration_targets($/, $group[1], $<trait>,
+                                    $common_of, @nosigil, @groups, $assign, 1),
+                                QAST::Op.new( :op('decont'), $group[0] )));
+                            $i++;
+                        }
                         for @nosigil {
                             $list.push(QAST::Op.new(
                                 :op('bind'),
@@ -3906,6 +3872,106 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $/.typed_sorry('X::Redeclaration::Outer', symbol => $name);
             }
         }
+    }
+
+    # The list of what the parameters of a list declaration store into:
+    # the variable each declares, a typed placeholder for an anonymous
+    # one, and for a sub-signature its own list, or when assigning a
+    # placeholder that the sub-signature's list is assigned from after
+    # the whole list, queued in @groups with its source. Sigilless
+    # names go to @nosigil to be rebound afterwards. Without $declare
+    # the variables are looked up, for a list built a second time.
+    sub list_declaration_targets($/, @params, $trait, $common_of, @nosigil, @groups, $assign, $declare) {
+        my $list := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+        for @params {
+            my $*OFTYPE := $common_of;
+            if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
+                if $common_of && $declare {
+                    ($_<node> // $/<signature>).typed_sorry(
+                        'X::Syntax::Variable::ConflictingTypes',
+                        outer => $common_of.ast, inner => $_<of_type>);
+                }
+                $*OFTYPE := $_<of_type_match>;
+                $*OFTYPE.make($_<of_type>);
+            }
+
+            my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
+            my @nested := nqp::existskey($_, 'sub_signature_params')
+                ?? $_<sub_signature_params><parameters>
+                !! [];
+            if $_<variable_name> {
+                my $name := $_<variable_name>;
+                my $sigil := $_<sigil>;
+                my $twigil := $_<twigil>;
+                my $desigilname := $_<desigilname>;
+                if $declare {
+                    if $desigilname {
+                        ensure_unused_in_scope($/, $name, $twigil)
+                    }
+                    my $past := QAST::Var.new( :$name );
+                    $past := declare_variable($/, $past, $sigil, $twigil,
+                        $desigilname, $trait, :$post);
+                    unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
+                        $list.push($past);
+                        if $sigil eq '' {
+                            nqp::push(@nosigil, ~$desigilname);
+                        }
+                    }
+                }
+                else {
+                    $list.push(QAST::Var.new( :$name, :scope('lexical') ));
+                }
+                if @nested {
+                    $assign
+                        ?? nqp::push(@groups, [QAST::Var.new( :$name, :scope('lexical') ), @nested])
+                        !! list_declaration_targets($/, @nested, $trait,
+                            $common_of, @nosigil, @groups, $assign, $declare);
+                }
+            }
+            elsif @nested {
+                if $assign {
+                    my $world := $*W;
+                    my $name := QAST::Node.unique('list_declaration_group');
+                    # the placeholder holds Nil until assigned, so a short
+                    # list leaves the sub-signature's variables at their
+                    # defaults. It is declared where it is bound, so a
+                    # thunk around the statement takes it along.
+                    $list.push(QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :$name, :scope('local'), :decl('var') ),
+                        QAST::Op.new( :op('p6scalarfromdesc'),
+                            QAST::WVal.new( :value($world.create_container_descriptor(
+                              $world.find_single_symbol_in_setting('Mu'), 'anon',
+                              $world.find_single_symbol_in_setting('Nil'))) ))));
+                    nqp::push(@groups, [QAST::Var.new( :$name, :scope('local') ), @nested]);
+                }
+                else {
+                    $list.push(list_declaration_targets($/, @nested, $trait,
+                        $common_of, @nosigil, @groups, $assign, $declare));
+                }
+            }
+            else {
+                my $world := $*W;
+                $world.handle_OFTYPE_for_pragma($/,'parameters');
+                my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
+                if @value_type && $_<defined_only> {
+                    @value_type[0] := $world.create_definite_type(
+                        $world.resolve_mo($/, 'definite'),
+                        @value_type[0], 1);
+                }
+                elsif @value_type && $_<undefined_only> {
+                    @value_type[0] := $world.create_definite_type(
+                        $world.resolve_mo($/, 'definite'),
+                        @value_type[0], 0);
+                }
+                my %cont_info := $world.container_type_info($/, :$post,
+                  $_<sigil> || '$', @value_type, []);
+                $list.push($world.build_container_past(
+                  %cont_info,
+                  $world.create_container_descriptor(
+                    %cont_info<value_type>, 'anon', %cont_info<default_value>)));
+            }
+        }
+        $list
     }
 
     # The type of a list declaration is the type of every parameter it

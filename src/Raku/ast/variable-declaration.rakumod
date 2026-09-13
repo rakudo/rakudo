@@ -2127,7 +2127,7 @@ class RakuAST::VarDeclaration::Signature
         # A parameter that is assigned to, not bound, holds a container
         # of its own, decided before its meta-object exists
         unless nqp::isconcrete($initializer) && $initializer.is-binding {
-            for $obj.IMPL-UNWRAP-LIST($signature.parameters) {
+            for @parameters {
                 $_.set-default-rw;
             }
         }
@@ -2376,32 +2376,72 @@ class RakuAST::VarDeclaration::Signature
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
-        my @terms;
-        my str $scope := self.scope;
-        my $attribute := $scope eq 'has' || $scope eq 'HAS';
-        my int $has-var-inits := 0;
-
+    # The list of what the parameters store into: the variable a
+    # parameter declares, a typed placeholder for an anonymous parameter,
+    # and for a sub-signature its own list, or when assigning a
+    # placeholder that the sub-signature's list is assigned from after
+    # the whole list, queued in @groups with its source. Terms go to
+    # @terms to be rebound afterwards, declarations with an initializer
+    # to @var-inits.
+    method IMPL-STORE-LIST-QAST(
+      RakuAST::IMPL::QASTContext $context,
+      @params,
+      @terms,
+      @groups,
+      @var-inits,
+      int $attribute,
+      int $assign
+    ) {
+        my $value-list := QAST::Op.new( :op('call'), :name('&infix:<,>') );
         for @params {
-            nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-            if $_.target {
+            my $target := $_.target;
+            nqp::push(@terms, $target) if nqp::istype($target, RakuAST::ParameterTarget::Term);
+            my $nested := $_.sub-signature
+                ?? self.IMPL-UNWRAP-LIST($_.sub-signature.parameters)
+                !! Mu;
+            if $target {
                 # A default from the parameter list is the variable's
                 # initializer, so emit the declaration expression, which
                 # runs it, rather than a plain lookup. An attribute
                 # declaration's initializer runs at construction, not here.
-                my $declaration := nqp::istype($_.target, RakuAST::ParameterTarget::Var)
-                    ?? $_.target.declaration
+                my $declaration := nqp::istype($target, RakuAST::ParameterTarget::Var)
+                    ?? $target.declaration
                     !! RakuAST::VarDeclaration::Simple;
                 if !$attribute
                     && nqp::isconcrete($declaration)
                     && nqp::isconcrete($declaration.initializer) {
-                    $has-var-inits := 1;
+                    nqp::push(@var-inits, $declaration);
                     $value-list.push: $declaration.IMPL-TO-QAST($context);
                 }
                 else {
-                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                    $value-list.push: $target.IMPL-LOOKUP-QAST($context);
+                }
+                if $nested {
+                    $assign
+                        ?? nqp::push(@groups, [$target.IMPL-LOOKUP-QAST($context), $nested])
+                        !! self.IMPL-STORE-LIST-QAST($context, $nested, @terms, @groups, @var-inits, $attribute, $assign);
+                }
+            }
+            elsif $nested {
+                if $assign {
+                    # the placeholder holds Nil until assigned, so a
+                    # short list leaves the sub-signature's variables at
+                    # their defaults
+                    my str $name := QAST::Node.unique('list_declaration_group');
+                    my $desc := RakuAST::IMPL::Containers.create-descriptor(
+                        :of(Mu), :default(Nil), :dynamic(0), :name('anon'));
+                    $context.ensure-sc($desc);
+                    $value-list.push: QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($name), :scope('local'), :decl('var') ),
+                        QAST::Op.new(
+                            :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
+                        )
+                    );
+                    nqp::push(@groups, [QAST::Var.new( :name($name), :scope('local') ), $nested]);
+                }
+                else {
+                    $value-list.push: self.IMPL-STORE-LIST-QAST($context, $nested, @terms, @groups, @var-inits, $attribute, $assign);
                 }
             }
             elsif $_.type {
@@ -2418,6 +2458,20 @@ class RakuAST::VarDeclaration::Signature
                 );
             }
         }
+        $value-list
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+        my @terms;
+        my @groups;
+        my @var-inits;
+        my str $scope := self.scope;
+        my int $attribute := $scope eq 'has' || $scope eq 'HAS';
+        my int $assign := nqp::istype($!initializer, RakuAST::Initializer::Assign);
+        my $value-list := self.IMPL-STORE-LIST-QAST($context,
+            @params, @terms, @groups, @var-inits, $attribute, $assign);
+        my int $has-var-inits := nqp::elems(@var-inits) ?? 1 !! 0;
 
         # With no initializer a lexical declaration's value is the list of its
         # own containers, so it can be used as an rvalue, e.g. bound on the
@@ -2436,8 +2490,20 @@ class RakuAST::VarDeclaration::Signature
         if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
             my $init-qast := $!initializer.IMPL-TO-QAST($context);
             my $list := QAST::Op.new( :op('p6store'), $value-list, $init-qast);
-            if 0 < nqp::elems(@terms) {
+            if nqp::elems(@groups) || nqp::elems(@terms) {
                 my $stmts := QAST::Stmts.new(:resultchild(0), $list);
+                # a sub-signature inside a group queues its own group
+                my int $i := 0;
+                while $i < nqp::elems(@groups) {
+                    my $group := @groups[$i];
+                    $stmts.push(QAST::Op.new(
+                        :op('p6store'),
+                        self.IMPL-STORE-LIST-QAST($context,
+                            $group[1], @terms, @groups, @var-inits, $attribute, $assign),
+                        QAST::Op.new( :op('decont'), $group[0] )
+                    ));
+                    $i++;
+                }
                 for @terms {
                     $stmts.push(
                         $_.IMPL-BIND-QAST(
@@ -2469,11 +2535,18 @@ class RakuAST::VarDeclaration::Signature
             nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
         }
         if self.scope eq 'state' {
+            # the value is the containers, built again since the
+            # assignment's targets declare their placeholder locals and
+            # would yield those instead
+            my @later-terms;
+            my @later-groups;
+            my @later-var-inits;
             $perform-init-qast := QAST::Op.new(
               :op('if'),
               QAST::Op.new( :op('p6stateinit') ),
               $perform-init-qast,
-              $value-list
+              self.IMPL-STORE-LIST-QAST($context, @params,
+                  @later-terms, @later-groups, @later-var-inits, $attribute, 0)
             )
         }
         $perform-init-qast

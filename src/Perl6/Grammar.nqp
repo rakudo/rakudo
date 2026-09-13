@@ -491,15 +491,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Perl6::QGrammar,       Perl6::QActions],
+          'Regex',   [Perl6::RegexGrammar,   Perl6::RegexActions],
+          'P5Regex', [Perl6::P5RegexGrammar, Perl6::P5RegexActions],
+          'Pod',     [Perl6::PodGrammar,     Perl6::PodActions],
+        )
+    }
+
     method TOP() {
         # Language braid.
         my $*LANG := self;
         my $*LEAF := self;  # the leaf cursor, workaround for when we can't pass via $/ into world
-        self.define_slang('MAIN',    self.WHAT,             self.actions);
-        self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
-        self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
-        self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
-        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change

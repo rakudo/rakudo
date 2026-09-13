@@ -24,7 +24,7 @@ class RakuAST::Signature
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
           self.IMPL-UNWRAP-LIST($parameters)
-        ) if $parameters;
+        ) if nqp::isconcrete($parameters);
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);

@@ -53,6 +53,12 @@ augment class RakuAST::Node {
                 "(\n$list,\n$*INDENT)"
             }
         }
+        # an itemized empty List writes as $( ), a parameter list as ()
+        elsif nqp::istype($value,List)
+          && $value.defined
+          && nqp::eqaddr($value.WHAT,List) {
+            '()'
+        }
         else {
             nqp::istype($value,Bool)
               ?? ($value.defined ?? $value ?? "True" !! "False" !! 'Bool')
@@ -193,6 +199,9 @@ augment class RakuAST::Node {
           },
           'inverted', -> {
               :inverted if self.inverted
+          },
+          'parameters', -> {
+              :parameters(self.parameters) if self.parameters-initialized
           },
           'labels', -> {
               my $labels := nqp::decont(self.labels);

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -256,6 +256,45 @@ CODE
     }
 }
 
+
+subtest 'An empty parameter list counts as initialized' => {
+    # -> { 101 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(parameters => ()),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(101)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
+    ok $ast.signature.parameters-initialized, 'the signature is initialized';
+    is-deeply $ast.signature.raku, "RakuAST::Signature.new(\n  parameters => ()\n)",
+      'the empty list is written as ()';
+    is-deeply EVAL($raku).raku, $ast.raku, 'the .raku builds the same tree';
+    is-deeply RakuAST::Signature.new.raku, 'RakuAST::Signature.new',
+      'a signature that was never given parameters writes none';
+    my $parsed := Q{-> { 101 }}.AST;
+    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).raku, $parsed.raku,
+      'parsed: the .raku of a block with an empty signature builds the same tree';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        is $block.signature.params.elems, 0,
+          "$type: The block has no parameters";
+        is $block(), 101,
+          "$type: Invoking the block returns the expected value";
+    }
+}
 
 subtest 'A pointy block whose parameters are all rw is written with <->' => {
     # <-> $a { $a = 42 }

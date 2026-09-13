@@ -3270,6 +3270,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # seen within its own initializer; here we just complete it.
             $ast := $*TERM-DECL;
             $ast.set-initializer($<term-init>.ast);
+            self.set-declarand($/, $ast);
         }
         else {
             nqp::die('Unimplemented declarator');
@@ -3552,6 +3553,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $decl := Nodify('VarDeclaration::Constant').new(|%args);
+        self.set-declarand($/, $decl);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         self.attach: $/, $decl;

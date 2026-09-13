@@ -1415,7 +1415,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Constant:D: --> Str:D) {
-        self!nameds: <scope type name traits initializer>
+        self!add-WHY: self!nameds: <scope type name traits initializer>
     }
 
     multi method raku(RakuAST::VarDeclaration::Implicit:D: --> Str:D) {
@@ -1460,7 +1460,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
-        self!nameds: <scope type name initializer>
+        self!add-WHY: self!nameds: <scope type name initializer>
     }
 
 #- WhateverCode ----------------------------------------------------------------

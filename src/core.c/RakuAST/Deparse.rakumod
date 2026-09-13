@@ -3810,7 +3810,7 @@ CODE
         }
         @parts.push(self.deparse($ast.initializer).trim-leading);
 
-        @parts.join(' ');
+        self.add-any-docs(@parts.join(' '), $ast.WHY)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> Str:D) {
@@ -3885,7 +3885,7 @@ CODE
 
         @parts.push(self.deparse($ast.initializer));
 
-        @parts.join
+        self.add-any-docs(@parts.join, $ast.WHY)
     }
 
 }

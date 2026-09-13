@@ -10,14 +10,7 @@ my class Failure is Nil {
 
     method !SET-SELF(\exception) {
         $!exception := exception;
-        $!backtrace := exception.backtrace || Backtrace.new(
-#?if !js
-            4
-#?endif
-#?if js
-            5
-#?endif
-        );
+        $!backtrace := exception.backtrace || Backtrace.new(5);
         exception.reset-backtrace;
         self
     }

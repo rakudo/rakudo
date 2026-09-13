@@ -11,14 +11,14 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!config;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
-    my constant @script-postfixes = '', '-m', '-j', '-js';
+    my constant @script-postfixes = '', '-m', '-j';
     # every file generate-bin-wrapper may produce for a script, plus the
     # .bat wrappers of older repository versions
     my constant @all-script-extensions =
-        '', '-m', '-j', '-js',
-        '.raku', '-m.raku', '-j.raku', '-js.raku',
-        '.exe', '-m.exe', '-j.exe', '-js.exe',
-        '.bat', '-m.bat', '-j.bat', '-js.bat';
+        '', '-m', '-j',
+        '.raku', '-m.raku', '-j.raku',
+        '.exe', '-m.exe', '-j.exe',
+        '.bat', '-m.bat', '-j.bat';
 
     my constant $raku-wrapper-code = 'sub MAIN(*@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#");

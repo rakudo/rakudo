@@ -578,8 +578,8 @@ proto sub split($, $, |) {*}
 multi sub split($pat, $target, |c) { c ?? $target.split($pat, |c) !! $target.split($pat) }
 
 proto sub chars($, *%) is pure {*}
-multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
-multi sub chars(str $x --> int) { nqp::chars($x) } #?js: NFG
+multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) }
+multi sub chars(str $x --> int) { nqp::chars($x) }
 multi sub chars($x)  { $x.chars }
 
 # vim: expandtab shiftwidth=4

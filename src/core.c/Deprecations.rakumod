@@ -94,12 +94,7 @@ class Rakudo::Deprecations {
 
         my $bt = Backtrace.new;
         my $deprecated =
-#?if !js
           $bt[ my $index = $bt.next-interesting-index(1, :named, :setting, :reveal) // 0 ];
-#?endif
-#?if js
-          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting, :reveal) // 0 ];
-#?endif
 
         if $up ~~ Whatever {
             $index = $_ with $bt.next-interesting-index($index, :noproto);

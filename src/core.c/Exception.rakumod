@@ -2148,12 +2148,7 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-#?if !js
     my constant $m = nqp::hash(
-#?endif
-#?if js
-    my $m := nqp::hash(
-#?endif
       '$"',    '.join() method',
       '$$',    '$*PID',
       '$;',    'real multidimensional hashes',

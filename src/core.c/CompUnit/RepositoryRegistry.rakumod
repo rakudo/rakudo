@@ -10,11 +10,6 @@ class CompUnit::Repository::JavaRuntime { ... }
 class CompUnit::Repository::Java { ... }
 #?endif
 
-#?if js
-class CompUnit::Repository::FileSystemWithRecording { ... }
-class CompUnit::Repository::NodeJs { ... }
-#?endif
-
 class CompUnit::RepositoryRegistry {
     my $lock := Lock.new;
     my $include-spec2cur := nqp::hash;
@@ -385,26 +380,15 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-#?if !js
     my constant $short-id2class = nqp::hash(
-#?endif
-#?if js
-    my $short-id2class := nqp::hash(
-#?endif
       'file',   CompUnit::Repository::FileSystem,
       'inst',   CompUnit::Repository::Installation,
       'ap',     CompUnit::Repository::AbsolutePath,
       'nqp',    CompUnit::Repository::NQP,
       'perl5',  CompUnit::Repository::Perl5,
-#?if js
-      'nodejs', CompUnit::Repository::NodeJs,
-#?endif
 #?if jvm
       'javart', CompUnit::Repository::JavaRuntime,
       'java',   CompUnit::Repository::Java,
-#?endif
-#?if js
-      'filerecording', CompUnit::Repository::FileSystemWithRecording,
 #?endif
     );
     my $sid-lock := Lock.new;

@@ -69,8 +69,7 @@ src/core.c/Rakudo/Internals/HyperIteratorBatcher.rakumod
 src/core.c/Rakudo/Internals/HyperToIterator.rakumod
 src/core.c/Rakudo/Internals/RaceToIterator.rakumod
 src/core.c/Rakudo/Internals/HyperRaceSharedImpl.rakumod
-@if(backend!=js
-src/core.c/ParallelSequence.rakumod)@
+src/core.c/ParallelSequence.rakumod
 src/core.c/HyperSeq.rakumod
 src/core.c/RaceSeq.rakumod
 src/core.c/Nil.rakumod
@@ -180,10 +179,7 @@ src/core.c/Awaitable.rakumod
 src/core.c/Awaiter.rakumod
 src/core.c/Scheduler.rakumod
 src/core.c/Env.rakumod
-@if(backend!=js
-src/core.c/ThreadPoolScheduler.rakumod)@
-@if(backend==js
-src/core.c/JavaScriptScheduler.rakumod)@
+src/core.c/ThreadPoolScheduler.rakumod
 src/core.c/CurrentThreadScheduler.rakumod
 src/core.c/Promise.rakumod
 src/core.c/Channel.rakumod
@@ -197,8 +193,6 @@ src/core.c/IO/Socket.rakumod
 src/core.c/IO/Socket/INET.rakumod
 src/core.c/IO/Socket/Async.rakumod
 src/core.c/Proc.rakumod
-@if(backend==js
-src/vm/js/FakeRun.rakumod)@
 src/core.c/signals.rakumod
 src/core.c/Proc/Async.rakumod
 src/core.c/Systemic.rakumod
@@ -242,15 +236,10 @@ src/core.c/WalkList.rakumod
 @if(backend==jvm
 src/vm/jvm/CompUnit/Repository/Java.rakumod
 src/vm/jvm/CompUnit/Repository/JavaRuntime.rakumod)@
-@if(backend==js
-src/vm/js/CompUnit/Repository/FileSystemWithRecording.rakumod
-src/vm/js/CompUnit/Repository/NodeJs.rakumod)@
 src/core.c/Argfiles.rakumod
 src/core.c/Process.rakumod
 src/core.c/Slang.rakumod
 src/core.c/REPL.rakumod
-@if(backend==js
-src/core.c/WrappedJSObject.rakumod)@
 src/core.c/Rakudo/Metaops.rakumod
 src/core.c/Rakudo/Internals/PostcircumfixAdverbs.rakumod
 src/core.c/unicodey.rakumod

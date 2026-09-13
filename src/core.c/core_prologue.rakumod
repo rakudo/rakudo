@@ -12,12 +12,7 @@ my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
 my class Rakudo::Internals::RegexBoolification6cMarker { ... }
 my class Rakudo::Iterator { ... }
-#?if !js
 my class ThreadPoolScheduler { ... }
-#?endif
-#?if js
-my class JavaScriptScheduler { ... }
-#?endif
 my class Whatever { ... }
 my class WhateverCode { ... }
 my class X::Attribute::Required { ... }

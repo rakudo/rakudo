@@ -13,14 +13,8 @@ my class Match is Capture is Cool does NQPMatchRole {
 #    has $!match;     # flag indicating Match object set up (NQPdidMATCH)
 #    has str $!name;  # name if named capture
 
-#?if !js
     my constant $EMPTY_LIST = nqp::list();
     my constant $EMPTY_HASH = nqp::hash();
-#?endif
-#?if js
-    my $EMPTY_LIST := nqp::list();
-    my $EMPTY_HASH := nqp::hash();
-#?endif
 
     method print() {
         callframe(1).my<$¢>
@@ -184,12 +178,6 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-#?if js
-    my sub move_cursor($target, $pos) {
-       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
-    }
-#?endif
-
     # adapted from !cursor_more in nqp
     method CURSOR_OVERLAP() is raw is implementation-detail {
         my $new := nqp::create(self);
@@ -209,12 +197,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr_i($new,$?CLASS,'$!from',
           nqp::bindattr_i($new,$?CLASS,'$!to',-1));
         nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
-#?if !js
           ?? nqp::add_i($!from,1)
-#?endif
-#?if js
-          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
-#?endif
           !! $!pos);
         $!regexsub($new)
     }

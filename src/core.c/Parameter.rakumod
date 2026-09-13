@@ -13,12 +13,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has Mu $!why;
     #     has Signature $!signature_constraint
 
-#?if !js
     my constant $sigils2bit = nqp::hash(
-#?endif
-#?if js
-    my $sigils2bit := nqp::hash(
-#?endif
       Q/@/, nqp::const::SIG_ELEM_ARRAY_SIGIL,
       Q/%/, nqp::const::SIG_ELEM_HASH_SIGIL,
       Q/&/, nqp::const::SIG_ELEM_CODE_SIGIL,

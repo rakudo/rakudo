@@ -3,7 +3,7 @@ use lib <t/packages/12-rakuast/lib>;
 use Test;
 use CustomDeclarator;
 
-plan 40;
+plan 41;
 
 my $ast;
 my $deparsed;
@@ -2143,6 +2143,35 @@ subtest 'A class whose version dies when it is evaluated' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         throws-like { EVAL($it) }, Exception, message => 'boom',
           "$type: the exception of the version is thrown";
+    }
+}
+
+subtest 'A class declared twice in a tree is a redeclaration' => {
+    for 'AST', 'Str', 'Raku' -> $type {
+        for "Redeclared$type", "Redeclared{$type}::Inner" -> $name {
+            # class Redeclared{$type} { }
+            # class Redeclared{$type} { }
+            #
+            # class Redeclared{$type}::Inner { }
+            # class Redeclared{$type}::Inner { }
+            ast RakuAST::StatementList.new(
+              |(^2).map({
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Class.new(
+                      scope => 'our',
+                      name  => RakuAST::Name.from-identifier-parts(|$name.split('::'))
+                    )
+                  )
+              })
+            );
+            is-deeply $deparsed, "class $name \{ }\nclass $name \{ }\n",
+              "$type: deparse of $name";
+
+            throws-like {
+                EVAL($type eq 'AST' ?? $ast !! $type eq 'Str' ?? $deparsed !! EVAL($raku))
+            }, X::Redeclaration, symbol => $name,
+              "$type: redeclaring $name is reported";
+        }
     }
 }
 

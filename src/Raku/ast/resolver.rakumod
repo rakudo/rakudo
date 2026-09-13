@@ -46,6 +46,10 @@ class RakuAST::Resolver {
     # Parametric role groups created in this compunit, keyed by object id.
     has Mu $!compunit-role-groups;
 
+    # Sorries and worries produced by the compiler.
+    has Mu $!sorries;
+    has Mu $!worries;
+
     method register-compunit-role-group(Mu $group) {
         $!compunit-role-groups{nqp::objectid($group)} := $group;
         Nil
@@ -837,8 +841,30 @@ class RakuAST::Resolver {
         nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries)) ?? True !! False
     }
 
-    # Gathers all sorries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Add a sorry check-time problem produced by the compiler.
+    method add-sorry(Any $exception) {
+        nqp::push($!sorries, $exception);
+        Nil
+    }
+    method has-sorries() { nqp::elems($!sorries) > 0 }
+
+    # Add a worry check-time problem produced by the compiler.
+    method add-worry(Any $exception) {
+        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
+        if !nqp::isconcrete($worries) || $worries {
+            nqp::push($!worries, $exception);
+        }
+        Nil
+    }
+    method has-worries() { nqp::elems($!worries) > 0 }
+
+    # Panic with the specified exception. This immediately throws it,
+    # incorporating any sorries and worries.
+    method panic(Any $exception) {
+        self.produce-compilation-exception(:panic($exception)).throw
+    }
+
+    # Gathers the sorries of check time, the unresolved symbols and add-sorry.
     method all-sorries() {
         my @sorries;
         if $!nodes-with-check-time-problems {
@@ -851,11 +877,13 @@ class RakuAST::Resolver {
         for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions) {
             @sorries.push($_);
         }
+        for $!sorries {
+            @sorries.push($_);
+        }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
     }
 
-    # Gathers all worries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Gathers the worries of check time and add-worry.
     method all-worries() {
         my @worries;
         if $!nodes-with-check-time-problems {
@@ -864,6 +892,9 @@ class RakuAST::Resolver {
                     @worries.push($_);
                 }
             }
+        }
+        for $!worries {
+            @worries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
@@ -1198,6 +1229,8 @@ class RakuAST::Resolver::EVAL
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package
@@ -1476,10 +1509,6 @@ class RakuAST::Resolver::Compile
     # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
     has Mu $!scopes;
 
-    # Sorries and worries produced by the compiler.
-    has Mu $!sorries;
-    has Mu $!worries;
-
     # Create a resolver from given arguments
     method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
         my $obj := nqp::create(self);
@@ -1493,8 +1522,8 @@ class RakuAST::Resolver::Compile
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!sorries', []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!worries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
         $obj
     }
 
@@ -1808,49 +1837,6 @@ class RakuAST::Resolver::Compile
             # Fall back to looking in outer scopes
             self.resolve-lexical-constant-in-outer($name)
         }
-    }
-
-    # Add a sorry check-time problem produced by the compiler.
-    method add-sorry(Any $exception) {
-        nqp::push($!sorries, $exception);
-        Nil
-    }
-    method has-sorries() { nqp::elems($!sorries) > 0 }
-
-    # Add a worry check-time problem produced by the compiler.
-    method add-worry(Any $exception) {
-        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
-        if !nqp::isconcrete($worries) || $worries {
-            nqp::push($!worries, $exception);
-        }
-        Nil
-    }
-    method has-worries() { nqp::elems($!worries) > 0 }
-
-    # Panic with the specified exception. This immediately throws it,
-    # incorporating any sorries and worries.
-    method panic(Any $exception) {
-        self.produce-compilation-exception(:panic($exception)).throw
-    }
-
-    # Gathers all sorries (from check time, if performed, and syntactic).
-    method all-sorries() {
-        my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-sorries')(self);
-        for $!sorries {
-            @sorries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@sorries)
-    }
-
-    # Gathers all worries (from check time, if performed, and syntactic).
-    method all-worries() {
-        my @worries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-worries')(self);
-        for $!worries {
-            @worries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
 
     method walk-scopes(Hash $seen, Code $inner-evaluator) {

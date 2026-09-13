@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 35;
+plan 36;
 
 my $ast;
 my $deparsed;
@@ -1600,6 +1600,88 @@ CODE
           "$type: both lines of each doc reach the object";
         is-deeply $pod.map(*.WHEREFORE.^name).List, ('Attribute', 'Method'),
           "$type: the docs are collected";
+    }
+}
+
+subtest 'A trailing doc consumed inside a declaration documents it' => {
+    # my class A {
+    #     has $.z is rw
+    #     #= attribute doc
+    #     #= attribute more
+    # }
+    # my class B {
+    #     subset S of Int where * > 1
+    #     #= subset doc
+    #     #= subset more
+    # }
+    # my class C {
+    #     has $.y is rw #= bracket doc
+    # }
+    # my class D {
+    #     enum E <a b> #= enum doc
+    # }
+    # (A, B, C, D)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my class A {
+        has $.z is rw #= attribute doc
+        # an ordinary comment between the lines
+        #= attribute more
+    }
+    my class B {
+        subset S of Int where * > 1 #= subset doc
+        #= subset more
+    }
+    my class C {
+        has $.y is rw #=(bracket doc)
+    }
+    my class D {
+        enum E <a b> #= enum doc
+    }
+    (A, B, C, D)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class A {
+    has $.z is rw
+    #= attribute doc
+    #= attribute more
+}
+my class B {
+    subset S of Int where * > 1
+    #= subset doc
+    #= subset more
+}
+my class C {
+    has $.y is rw #= bracket doc
+}
+my class D {
+    enum E <a b> #= enum doc
+}
+(A, B, C, D)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        my @statements := $tree.statements;
+        sub first-statement($package) {
+            $package.body.body.statement-list.statements.head.expression
+        }
+        is-deeply first-statement(@statements[0].expression).WHY.trailing,
+          ('attribute doc', 'attribute more'),
+          "$type: the attribute takes the docs after its trait";
+        is-deeply first-statement(@statements[1].expression).WHY.trailing,
+          ('subset doc', 'subset more'),
+          "$type: the subset takes the docs after its where expression";
+        is-deeply first-statement(@statements[2].expression).WHY.trailing,
+          ('bracket doc',),
+          "$type: the attribute takes the bracketed doc after its trait";
+        is-deeply first-statement(@statements[3].expression).WHY.trailing,
+          ('enum doc',),
+          "$type: the enum takes the doc after its values";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($A, $B, $C, $D) := EVAL($it);
+        is-deeply (5 ~~ $B.WHO<S>, 0 ~~ $B.WHO<S>, $D.WHO<E>.enums.keys.sort.List),
+          (True, False, ('a', 'b')),
+          "$type: the subset and the enum are declared";
     }
 }
 

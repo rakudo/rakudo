@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -158,6 +158,214 @@ subtest 'List contextualizer from pairs' => {
     -> $type, $result {
         is-deeply $result, (a => 1, b => 2),
           "$type: Contextualizer gives expected result";
+    }
+}
+
+subtest 'Item contextualizer of a variable with a twigil' => {
+    # my class TwigilContext {
+    #     has $.c;
+    #     method m {
+    #         $($!c)
+    #     }
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TwigilContext'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('c')
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('m'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Contextualizer::Item.new(
+                        RakuAST::Var::Attribute.new('$!c')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+my class TwigilContext {
+    has $.c;
+    method m {
+        $($!c)
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is-deeply $class.new(c => 42).m, 42, "$type: the attribute is itemized";
+    }
+
+    # &$!c parses to an item contextualizer of the attribute
+    is-deeply 'class TwigilParsed { has $!c; method m { &$!c } }'.AST.DEPARSE, Q:to/CODE/, 'parsed: an ampersand contextualizer of an attribute is written with parentheses';
+class TwigilParsed {
+    has $!c;
+    method m {
+        $($!c)
+    }
+}
+CODE
+
+    # every variable the parser would read as $$ is parenthesized, a
+    # word character after the sigil is not
+    for '$.c', '$*x', '$/', '$<a>' -> $name {
+        is-deeply RakuAST::Contextualizer::Item.new(
+          RakuAST::Var::Lexical.new($name)
+        ).DEPARSE, '$(' ~ $name ~ ')', "$name is parenthesized";
+    }
+    for '$0', '$_', '$x' -> $name {
+        is-deeply RakuAST::Contextualizer::Item.new(
+          RakuAST::Var::Lexical.new($name)
+        ).DEPARSE, '$' ~ $name, "$name is not parenthesized";
+    }
+}
+
+subtest 'Contextualizer of a statement sequence inside a block' => {
+    # my $x = 42;
+    # sub f {
+    #     $($x)
+    # }
+    # f()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('f'),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Contextualizer::Item.new(
+                  RakuAST::StatementSequence.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Lexical.new('$x')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = 42;
+sub f {
+    $($x)
+}
+f()
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $result {
+        is-deeply $result, 42, "$type: the itemized variable is returned";
+    }
+
+    # sub g {
+    #     @(my $n = 1; $n + 1)
+    # }
+    ast RakuAST::Sub.new(
+      name => RakuAST::Name.from-identifier('g'),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Contextualizer::List.new(
+              RakuAST::StatementSequence.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    sigil       => '$',
+                    desigilname => RakuAST::Name.from-identifier('n'),
+                    initializer => RakuAST::Initializer::Assign.new(
+                      RakuAST::IntLiteral.new(1)
+                    )
+                  )
+                ),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::Var::Lexical.new('$n'),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+sub g {
+    @(my $n = 1; $n + 1)
+}
+CODE
+
+    # the value of the sequence is its last statement
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
+        is-deeply $sub(), (2,), "$type: the last statement is listified";
+    }
+
+    # a statement that is no expression ends before the closing parenthesis
+    is-deeply 'sub k { $(if 1 { 2 }) }'.AST.DEPARSE, Q:to/CODE/, 'parsed: a conditional statement ends before the closing parenthesis';
+sub k {
+    $(if 1 {
+        2
+    })
+}
+CODE
+
+    # a statement with a modifier or a label keeps it
+    my @sources =
+      'my $x; my $y; sub h { $($x if $y) }',
+      'sub i { $(FOO: 1) }',
+      'sub j { $(my $z = 1; $z) }';
+    for @sources -> $source {
+        my $parsed := $source.AST;
+        is-deeply $parsed.DEPARSE.lines.first(*.contains('$(')).trim,
+          $source.substr($source.index('$(')).chop(2),
+          "parsed: $source keeps its statement";
+        is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
+          $parsed.DEPARSE,
+          "parsed: $source round trips through the .raku";
     }
 }
 

@@ -1,7 +1,9 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
+use CustomDeclarator;
 
-plan 33;
+plan 34;
 
 my $ast;
 my $deparsed;
@@ -1741,6 +1743,55 @@ subtest 'A trusts statement outside a package' => {
           "$type: no package to trust from";
     }
     dies-ok { EVAL($deparsed) }, 'Str: no package to trust from';
+}
+
+subtest 'A declarator a module added is written as it was' => {
+    # use CustomDeclarator;
+    # my custom-class CustomDeclared { }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope             => 'my',
+          parsed-declarator => 'custom-class',
+          name              => RakuAST::Name.from-identifier('CustomDeclared'),
+          how               => CustomDeclaratorHOW
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use CustomDeclarator;
+my custom-class CustomDeclared { }
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.^name, 'CustomDeclared', "$type: the class is declared";
+        is $class.HOW.^name, 'CustomDeclaratorHOW',
+          "$type: the declarator's HOW builds the class";
+    }
+    is-deeply EVAL($raku).DEPARSE, $deparsed,
+      'Raku: the declarator survives the .raku';
+
+    my $parsed := Q:to/CODE/.AST;
+use CustomDeclarator;
+custom-class CustomParsed { }
+CODE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'parsed: the declarator is written as it was';
+use CustomDeclarator;
+custom-class CustomParsed { }
+CODE
+    is-deeply $parsed.statements[1].expression.parsed-declarator, 'custom-class',
+      'parsed: the node keeps the declarator';
+
+    is-deeply "use CustomDeclarator;\nunit custom-class CustomUnit;\n".AST.DEPARSE,
+      "use CustomDeclarator;\nunit custom-class CustomUnit;\n",
+      'parsed: a unit scoped declaration keeps the declarator';
 }
 
 # vim: expandtab shiftwidth=4

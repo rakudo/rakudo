@@ -244,7 +244,8 @@ CODE
     # helper method for deparsing contextualizers
     proto method context-target(|) {*}
     multi method context-target(RakuAST::StatementSequence $target --> Str:D) {
-        self.parenthesize($target)
+        my $*DELIMITER = '';
+        $.parens-open ~ self.inline-statements($target) ~ $.parens-close
     }
     multi method context-target($target --> Str:D) {
         self.deparse($target)
@@ -1365,7 +1366,15 @@ CODE
     }
 
     multi method deparse(RakuAST::Contextualizer:D $ast --> Str:D) {
-        $ast.sigil ~ self.context-target($ast.target)
+        my str $sigil  = $ast.sigil;
+        my str $target = self.context-target($ast.target);
+        # $$ before anything but a word character is the obsolete $$
+        # variable to the parser
+        $sigil eq '$'
+          && nqp::eqat($target,'$',0)
+          && !nqp::iscclass(nqp::const::CCLASS_WORD,$target,1)
+          ?? $sigil ~ $.parens-open ~ $target ~ $.parens-close
+          !! $sigil ~ $target
     }
 
 #- D ---------------------------------------------------------------------------
@@ -1890,7 +1899,7 @@ CODE
         }
 
         my str $declarator = $ast.declarator;
-        @parts.push(self.syn-package($declarator));
+        @parts.push(self.syn-package($ast.parsed-declarator));
 
         if $ast.name -> $astname {
             my str $name = self.deparse($astname);
@@ -2942,6 +2951,13 @@ CODE
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        self.inline-statements($ast)
+    }
+
+    # a lone expression statement is written as its expression, several
+    # statements set off by semicolons, a statement that is no expression
+    # without the newline that ends its block
+    method inline-statements($ast --> Str:D) {
         my $*INTERPOLATING := False;
         my @statements := $ast.statements;
         my $statement  := @statements.head;
@@ -2950,7 +2966,7 @@ CODE
           && !($statement.condition-modifier || $statement.loop-modifier)
           && !$statement.labels
           ?? self.deparse($statement.expression)
-          !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
+          !! @statements.map({ self.blorst($_) }).join($.list-infix-semi-colon)
     }
 
     multi method deparse(

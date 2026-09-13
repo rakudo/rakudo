@@ -149,6 +149,7 @@ class RakuAST::Deparse {
         if nqp::isnull(nqp::getlexcaller('$*INDENT')) {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
+            my $*STATEMENT-MODIFIER := '';  # modifier of the statement, in its delimiter
             my $*INTERPOLATING := False;  # in a call interpolated in a string
             my $*METHOD-CALL-FOLLOWS := False;  # a method call follows the call
             my $*HEREDOC-INDENT := Str;   # indent of the heredoc text being assembled
@@ -293,8 +294,7 @@ CODE
                 # an onlystar body has no brace for the docs to follow
                 if nqp::istype($ast.body,RakuAST::OnlyStar) {
                     @parts.push(self.deparse($ast.body));
-                    my $*DELIMITER = '';
-                    return self.add-any-docs(@parts.join(' '), $WHY);
+                    return self.end-with-docs(@parts.join(' '), $WHY);
                 }
                 @parts.push('{');
                 return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
@@ -871,18 +871,26 @@ CODE
     }
 
     method postfix-any-trailing-doc(str $body, $WHY) {
+        # the delimiter is written once, with the modifier of the
+        # statement before it, and cleared to tell the statement so
+        my str $end = '';
+        if $*DELIMITER.defined && $*DELIMITER {
+            my $modifier := $*STATEMENT-MODIFIER;
+            $end = ($modifier.defined ?? $modifier !! '') ~ $*DELIMITER;
+            $*DELIMITER = '';
+        }
         if $WHY && $WHY.trailing -> @trailing {
             my str @lines = self.doc-lines(@trailing);
-            ($body ~ $*DELIMITER).chomp
-              ~ (@lines > 1 ?? "\n" !! ' ')
+            ($body ~ $end).chomp
+              ~ (@lines > 1 ?? "\n$*INDENT" !! ' ')
               ~ self.hsyn(
                   'doc-trailing',
-                  @lines.map({ "#= $_" }).join("$*INDENT\n")
+                  @lines.map({ "#= $_" }).join("\n$*INDENT")
                 )
               ~ "\n"
         }
         else {
-            $body ~ $*DELIMITER
+            $body ~ $end
         }
     }
 
@@ -898,6 +906,19 @@ CODE
         self.postfix-any-trailing-doc(
           self.prefix-any-leading-doc($body, $WHY), $WHY
         )
+    }
+
+    # a declaration whose trailing doc ends the statement writes no
+    # delimiter before the doc, unless a statement modifier has to
+    # come first, which needs the delimiter after it
+    method end-with-docs(str $body, $WHY --> Str:D) {
+        return self.add-any-docs($body, $WHY) if $*STATEMENT-MODIFIER;
+        my str $text = do {
+            my $*DELIMITER = '';
+            self.add-any-docs($body, $WHY)
+        }
+        $*DELIMITER = '' if $*DELIMITER.defined;
+        $text
     }
 
     method where-constraint($where --> Str:D) {
@@ -2871,9 +2892,7 @@ CODE
         # at least one parameter with declarator doc
         my $signature := $ast.signature;
         if $signature.parameters.first(*.WHY) {
-            @parts.push("(\n");
-            @parts.push(self.deparse($signature));
-            @parts.push(')');
+            @parts.push("(\n" ~ self.deparse($signature) ~ ')');
         }
 
         # no parameters with declarator doc
@@ -2890,27 +2909,33 @@ CODE
         if nqp::istype($body,RakuAST::OnlyStar) {
             @parts.push(self.deparse($body));
             if $ast.WHY -> $WHY {
-                my $*DELIMITER = '';
-                return self.add-any-docs(@parts.join(' '), $WHY);
+                return self.end-with-docs(@parts.join(' '), $WHY);
             }
             return @parts.join(' ');
         }
 
-        if $ast.WHY -> $WHY {
-            @parts.push('{');
-            # https://github.com/rakudo/rakudo/issues/5978
-            my $*DELIMITER = ' ';  # a ";" here would spoil things
-            @parts = self.add-any-docs(@parts.join(' '), $WHY);
-            @parts.push($*INDENT);
-        }
-        else {
-            @parts.push('{ ');
-            @parts = @parts.join(' ');
-        }
+        my str $regex = '{ ' ~ self.deparse($body) ~ '}';
 
-        @parts.push(self.deparse($body));
-        @parts.push('}');
-        @parts.join
+        if $ast.WHY -> $WHY {
+            my str $header = @parts.join(' ');
+            # a doc after the closing brace ends the statement there, so
+            # inside an expression it follows the opening brace instead;
+            # a leading doc alone leaves the regex on its line, and so
+            # does a deparse without the delimiter bound
+            my $one-line := !$*DELIMITER.defined
+              || $*DELIMITER
+              || !$WHY.trailing;
+            return self.end-with-docs("$header $regex", $WHY) if $one-line;
+            my str $opening = do {
+                my $*DELIMITER = '';
+                self.postfix-any-trailing-doc($header ~ ' {', $WHY)
+            }
+            return self.prefix-any-leading-doc(
+              $opening ~ $*INDENT ~ $regex.substr(2), $WHY
+            );
+        }
+        @parts.push($regex);
+        @parts.join(' ')
     }
 
 #- S ---------------------------------------------------------------------------
@@ -3026,40 +3051,44 @@ CODE
         my $own   := nqp::isnull($outer);
         my @*HEREDOCS := $own ?? [] !! $outer;
         my $expression := $ast.expression;
-        my str $deparsed = self.deparse($expression);
+        my str $delimiter = $*DELIMITER;
 
-        my str @parts;
-        if $ast.condition-modifier -> $condition {
-            @parts.push(self.deparse($condition));
+        # the modifiers are deparsed first, since the expression writes
+        # their text, and their heredocs go after the expression's
+        my @modifier-heredocs;
+        my str @parts = do {
+            my @*HEREDOCS := @modifier-heredocs;
+            my str @modifiers;
+            if $ast.condition-modifier -> $condition {
+                @modifiers.push(self.deparse($condition));
+            }
+            if $ast.loop-modifier -> $loop {
+                @modifiers.push(self.deparse($loop));
+            }
+            @modifiers
         }
+        my str $modifier = @parts ?? ' ' ~ @parts.join(' ') !! '';
 
-        if $ast.loop-modifier -> $loop {
-            @parts.push(self.deparse($loop));
+        # a declarator target writes the modifier and the delimiter
+        # itself and clears the delimiter to say so, one that ends in a
+        # body writes neither, so they follow its closing brace here;
+        # without a delimiter, inside an expression, nothing is written
+        my str $deparsed;
+        my int $written;
+        {
+            my $*STATEMENT-MODIFIER := $modifier;
+            my $*DELIMITER = $delimiter;
+            $deparsed = self.deparse($expression);
+            $written  = ?$delimiter && !$*DELIMITER;
         }
+        @*HEREDOCS.append(@modifier-heredocs);
 
-        # condition or loop modifier
-        my int $chop;
-        if @parts {
-            $chop = $deparsed.ends-with(self.end-statement)
-              ?? self.end-statement.chars
-              !! $deparsed.ends-with(self.last-statement)
-                ?? self.last-statement.chars
-                !! 0;
-            $deparsed = $deparsed.chop($chop)
-              ~ ' '
-              ~ @parts.join(' ')
-              ~ $deparsed.substr(* - $chop)
-        }
-
-        # a declarator target writes its own delimiter, one that ends in a
-        # body, a block or a routine, writes none, so a modifier after it
-        # needs the delimiter here
         my $text := self.labels($ast)
           ~ $deparsed
           ~ (nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
-               && !(@parts && !$chop)
+               && !($modifier && !$written)
               ?? ""
-              !! $*DELIMITER
+              !! $modifier ~ $delimiter
             );
 
         $own && @*HEREDOCS
@@ -3781,7 +3810,7 @@ CODE
         $sigil eq '$' && $ast.scope eq 'state' && !$*DELIMITER
           && !$ast.initializer && !$ast.type && !$ast.traits
           ?? $sigil
-          !! self.var-declaration($ast, $sigil) ~ $*DELIMITER
+          !! self.add-any-docs(self.var-declaration($ast, $sigil), $ast.WHY)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {
@@ -3804,7 +3833,7 @@ CODE
         }
         @parts.push(self.deparse($ast.initializer).trim-leading);
 
-        @parts.join(' ');
+        self.add-any-docs(@parts.join(' '), $ast.WHY)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> Str:D) {
@@ -3879,7 +3908,7 @@ CODE
 
         @parts.push(self.deparse($ast.initializer));
 
-        @parts.join
+        self.add-any-docs(@parts.join, $ast.WHY)
     }
 
 }

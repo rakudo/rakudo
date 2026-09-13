@@ -687,6 +687,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $RESOLVER.enter-scope($COMPUNIT);
 
+        # a trailing doc no declarand claimed by the end of the unit is
+        # reported inside the unit scope, where its pragmas apply
+        for $*DECLARAND-WORRIES {
+            $_.value.typed-worry:
+              'X::Syntax::Doc::Declarator::MissingDeclarand';
+        }
+
         # Put the body in place.
         $COMPUNIT.replace-statement-list($statement-list);
 
@@ -1055,14 +1062,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $from    := $/.from;
             my $worries := $*DECLARAND-WORRIES;
             for $worries {
-                $_.value.typed-worry:
-                  'X::Syntax::Doc::Declarator::MissingDeclarand'
-                  if $_.key < $from;
-                nqp::deletekey($worries, $_.key);
+                if $_.key < $from {
+                    $_.value.typed-worry:
+                      'X::Syntax::Doc::Declarator::MissingDeclarand';
+                    nqp::deletekey($worries, $_.key);
+                }
             }
 
             $*DECLARAND          := $it;
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
+            self.adopt-declarand-docs($/, $it);
 
             if $it.podifiable && @*LEADING-DOC -> @leading {
                 $it.set-leading(@leading);
@@ -1071,6 +1080,77 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
         }
         $it
+    }
+
+    # A trailing doc in the whitespace after the last token of a
+    # declaration is consumed before the action that makes it the
+    # declarand runs, so it is queued; this gives such docs to the new
+    # declarand and leaves any queued earlier in its text, after a token
+    # of something inside it, for the report.
+    method adopt-declarand-docs($/, $it) {
+        my int $from  := $/.from;
+        my int $to    := $/.to;
+        my $worries   := $*DECLARAND-WORRIES;
+        my @inside;
+        for $worries {
+            nqp::push(@inside, $_.value)
+              if $_.key >= $from && $_.key < $to;
+        }
+        return Nil unless @inside;
+
+        my int $n := nqp::elems(@inside);
+        my int $j := 1;
+        while $j < $n {
+            my $doc   := @inside[$j];
+            my int $k := $j;
+            while $k > 0 && @inside[$k - 1].from > $doc.from {
+                @inside[$k] := @inside[$k - 1];
+                --$k;
+            }
+            @inside[$k] := $doc;
+            ++$j;
+        }
+
+        my $orig      := $/.orig;
+        my int $first := $n;
+        my int $next  := $to;
+        my int $i     := $n;
+        while $i-- {
+            my $doc := @inside[$i];
+            # a bracketed doc ends before its closer
+            my int $end := $doc.to;
+            ++$end unless nqp::iscclass(
+              nqp::const::CCLASS_WHITESPACE, $orig, $doc.from - 1
+            );
+            last unless self.only-comments(nqp::substr($orig, $end, $next - $end));
+            $first := $i;
+            $next  := $doc.from;
+        }
+        while $first < $n {
+            my $doc := @inside[$first++];
+            $it.add-trailing(~$doc);
+            ++$*FROM-SEEN{$doc.from};
+            nqp::deletekey($worries, $doc.from);
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($doc.from);
+        }
+    }
+
+    # Whether text holds nothing but whitespace and comments, which is
+    # what can sit between a declaration's last token and its docs.
+    method only-comments(str $text) {
+        my int $n := nqp::chars($text);
+        my int $i := 0;
+        while $i < $n {
+            $i := nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $text, $i, $n - $i
+            );
+            if $i < $n {
+                return 0 unless nqp::eqat($text, '#', $i);
+                my int $eol := nqp::index($text, "\n", $i);
+                $i := $eol < 0 ?? $n !! $eol;
+            }
+        }
+        1
     }
 
     # Helper methof to steal the information of the current declarand
@@ -1082,6 +1162,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $it.set-WHY($from.cut-WHY);
         $*DECLARAND          := $it;
         $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+        self.adopt-declarand-docs($/, $it);
     }
 
     method you_are_here($/) {
@@ -1117,17 +1198,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    # Action method when leaving a scope.
-    method leave-block-scope($/) {
-        $*R.leave-scope();
-
-        # A doc on the line where the body of a block closes belongs to
-        # the block while the block is still the declarand.
-        if nqp::eqaddr($*DECLARAND, $*BLOCK)
-          && nqp::istype($*BLOCK, Nodify('Block')) {
+    # The declaration whose body closes takes a trailing doc on the
+    # closing line, whatever the body declared: the package when the body
+    # is the package's, otherwise the routine or block that owns it. This
+    # runs right after the closing brace, before the end of statement
+    # lookahead and the whitespace that consume such a doc.
+    method leave-block-body($/) {
+        my $block   := $*BLOCK;
+        my $package := $*PACKAGE;
+        my $owner   := nqp::isconcrete($package)
+          && nqp::eqaddr($*R.outer-scope, $package)
+          ?? $package
+          !! $block;
+        if nqp::istype($owner, Nodify('Doc::DeclaratorTarget')) {
+            $*DECLARAND          := $owner;
             $*LAST-TRAILING-LINE :=
               +$*ORIGIN-SOURCE.original-line($/.from - 1);
         }
+    }
+
+    # Action method when leaving a scope.
+    method leave-block-scope($/) {
+        $*R.leave-scope();
     }
 
 #-------------------------------------------------------------------------------
@@ -3178,6 +3270,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # seen within its own initializer; here we just complete it.
             $ast := $*TERM-DECL;
             $ast.set-initializer($<term-init>.ast);
+            self.set-declarand($/, $ast);
         }
         else {
             nqp::die('Unimplemented declarator');
@@ -3460,6 +3553,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $decl := Nodify('VarDeclaration::Constant').new(|%args);
+        self.set-declarand($/, $decl);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         self.attach: $/, $decl;

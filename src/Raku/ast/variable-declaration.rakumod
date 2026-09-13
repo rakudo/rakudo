@@ -444,6 +444,7 @@ class RakuAST::VarDeclaration::Constant
   is RakuAST::CompileTimeValue
   is RakuAST::ImplicitLookups
   is RakuAST::Term
+  is RakuAST::Doc::DeclaratorTarget
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
@@ -490,10 +491,15 @@ class RakuAST::VarDeclaration::Constant
         ]
     }
 
+    # a constant is its value, which has no meta-object of its own to
+    # carry documentation at runtime
+    method podifiable() { False }
+
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!initializer) if $!initializer;
         self.visit-traits($visitor);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method sigil {
@@ -2614,6 +2620,7 @@ class RakuAST::VarDeclaration::AttributeAlias
 class RakuAST::VarDeclaration::Term
   is RakuAST::VarDeclaration
   is RakuAST::Term
+  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
@@ -2695,10 +2702,15 @@ class RakuAST::VarDeclaration::Term
 
     method needs-sink-call() { False }
 
+    # a term declaration has no meta-object to carry documentation at
+    # runtime
+    method podifiable() { False }
+
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!name);
         $visitor($!initializer) if $!initializer;
+        $visitor(self.WHY) if self.WHY;
     }
 }
 

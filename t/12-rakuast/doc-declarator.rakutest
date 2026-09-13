@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 36;
+plan 37;
 
 my $ast;
 my $deparsed;
@@ -1683,6 +1683,100 @@ CODE
           (True, False, ('a', 'b')),
           "$type: the subset and the enum are declared";
     }
+}
+
+subtest 'A term or constant declaration keeps its trailing doc' => {
+    # my \t = 42; #= term doc
+    # my constant C = 7; #= constant doc
+    # t + C
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          scope       => "my",
+          name        => RakuAST::Name.from-identifier("t"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(42)
+          )
+        ).declarator-docs(trailing => ("term doc",))
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Constant.new(
+          scope       => "my",
+          name        => "C",
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(7)
+          )
+        ).declarator-docs(trailing => ("constant doc",))
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Term::Name.new(RakuAST::Name.from-identifier("t")),
+          infix => RakuAST::Infix.new("+"),
+          right => RakuAST::Term::Name.new(RakuAST::Name.from-identifier("C"))
+        )
+      )
+    ), :no-pod;
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my \t = 42; #= term doc
+my constant C = 7; #= constant doc
+t + C
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 49, "$type: the term and the constant have their values";
+    }
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        is-deeply $tree.statements.map(*.expression.WHY.trailing).head(2).List,
+          (('term doc',), ('constant doc',)),
+          "$type: the docs are on the declarations";
+    }
+
+    # my \u = 1;
+    # #= one
+    # #= two
+    # my $w = do {
+    #     my \x = 5 #= no semicolon
+    # };
+    # my class K {
+    #     my constant D = 42 #= last in a body
+    # }
+    # u + $w
+    my $parsed := Q:to/SOURCE/.AST;
+    my \u = 1; #= one
+    #= two
+    my $w = do {
+        my \x = 5 #= no semicolon
+    };
+    my class K {
+        my constant D = 42 #= last in a body
+    }
+    u + $w
+    SOURCE
+    is-deeply $parsed.DEPARSE, Q:to/CODE/, 'parsed: deparse';
+my \u = 1;
+#= one
+#= two
+my $w = do {
+    my \x = 5 #= no semicolon
+};
+my class K {
+    my constant D = 42 #= last in a body
+}
+u + $w
+CODE
+    is-deeply $parsed.DEPARSE.AST.DEPARSE, $parsed.DEPARSE,
+      'parsed: the deparse of the deparse is the same text';
+    my @statements := $parsed.statements;
+    is-deeply @statements[0].expression.WHY.trailing, ('one', 'two'),
+      'parsed: both lines are on the term declaration';
+    is-deeply @statements[1].expression.initializer.expression.blorst
+      .body.statement-list.statements.head.expression.WHY.trailing,
+      ('no semicolon',),
+      'parsed: a term declaration that ends a block takes the doc after its value';
+    is-deeply @statements[2].expression.body.body.statement-list.statements
+      .head.expression.WHY.trailing, ('last in a body',),
+      'parsed: a constant that ends a body takes the doc after its value';
+    is-deeply EVAL($parsed), 6, 'parsed: the code runs';
 }
 
 # vim: expandtab shiftwidth=4

@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 38;
+plan 39;
 
 my $ast;
 my $deparsed;
@@ -1888,6 +1888,73 @@ CODE
     for 'AST', $inside, 'Str', $inside.DEPARSE, 'Raku', EVAL('use experimental :rakuast; ' ~ $inside.raku) -> $type, $it {
         is-deeply EVAL($it), (1, Any, 3),
           "$type: the modifiers that end in a brace run";
+    }
+}
+
+subtest 'A leading doc before a lexical documents the lexical' => {
+    # #| doc for y
+    # my $y = 42;
+    # #| doc for rule
+    # my %rule;
+    # %rule<x> = {
+    #     1
+    # };
+    # #| doc for f
+    # sub f {
+    # }
+    my $ast := Q:to/SOURCE/.AST;
+    #| doc for y
+    my $y = 42;
+    #| doc for rule
+    my %rule; %rule<x> = { 1 };
+    #| doc for f
+    sub f { }
+    SOURCE
+    my @statements := $ast.statements;
+    is-deeply @statements[0].expression.WHY.leading, ('doc for y',),
+      'the doc before my $y documents $y';
+    is-deeply @statements[1].expression.WHY.leading, ('doc for rule',),
+      'the doc before my %rule documents %rule';
+    nok @statements[2].first(RakuAST::Block).WHY.defined,
+      'the block assigned in the next statement is not documented';
+    is-deeply @statements[3].expression.WHY.leading, ('doc for f',),
+      'the doc before sub f documents f';
+
+    is-deeply $ast.DEPARSE, Q:to/CODE/, 'deparse';
+#| doc for y
+my $y = 42;
+#| doc for rule
+my %rule;
+%rule<x> = {
+    1
+};
+#| doc for f
+sub f {
+}
+CODE
+    is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
+      'the deparse parses back to itself';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE, $ast.DEPARSE,
+      'Raku: the docs survive the .raku round trip';
+
+    # #| doc for f
+    # my &f = sub { }
+    my $routine := Q:to/SOURCE/.AST;
+    #| doc for f
+    my &f = sub { }
+    SOURCE
+    is-deeply $routine.statements[0].expression.WHY.leading, ('doc for f',),
+      'the doc before my &f documents &f';
+    nok $routine.first(RakuAST::Sub).WHY.defined,
+      'the sub assigned to &f is not documented';
+
+    for 'state $s', 'our $o', 'my @a', 'my \t = 1', 'my constant C = 1'
+      -> $declaration {
+        my $lexical := "#| doc\n$declaration;\nsub g \{ }".AST;
+        is-deeply $lexical.statements[0].expression.WHY.leading, ('doc',),
+          "the doc before $declaration documents it";
+        nok $lexical.statements[1].expression.WHY.defined,
+          "the sub after $declaration is not documented";
     }
 }
 

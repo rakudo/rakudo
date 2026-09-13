@@ -1744,6 +1744,19 @@ subtest 'A slang variable deparses with its twigil' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         isa-ok EVAL($it), Slang, "$type: is a slang";
     }
+    # the main grammar of the compiler is that of the frontend in use
+    for 'AST', $ast, 'Raku', EVAL($raku) -> $type, $it {
+        ok EVAL($it).grammar.^name ~~ 'Raku::Grammar' | 'Perl6::Grammar',
+          "$type: a slang built without a grammar finds the main grammar";
+    }
+    # a name keeps this compile time EVAL out of the EVAL numbering
+    my $quote := BEGIN EVAL RakuAST::Var::Slang.new(name => 'Quote'),
+      :filename<slang-quote>;
+    ok $quote.grammar.^name.ends-with('QGrammar'),
+      'a slang built while parsing takes its grammar from the parse';
+    throws-like { EVAL RakuAST::Var::Slang.new(name => 'Nope') },
+      Exception, message => /'No grammar is known for slang'/,
+      'a slang nothing knows does not compile';
 
     my $parsed := Q{$~MAIN}.AST;
     is-deeply $parsed.DEPARSE.chomp, '$~MAIN', 'parsed: deparses with its name';

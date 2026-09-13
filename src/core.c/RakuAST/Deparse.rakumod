@@ -1365,7 +1365,15 @@ CODE
     }
 
     multi method deparse(RakuAST::Contextualizer:D $ast --> Str:D) {
-        $ast.sigil ~ self.context-target($ast.target)
+        my str $sigil  = $ast.sigil;
+        my str $target = self.context-target($ast.target);
+        # $$ before anything but a word character is the obsolete $$
+        # variable to the parser
+        $sigil eq '$'
+          && nqp::eqat($target,'$',0)
+          && !nqp::iscclass(nqp::const::CCLASS_WORD,$target,1)
+          ?? $sigil ~ $.parens-open ~ $target ~ $.parens-close
+          !! $sigil ~ $target
     }
 
 #- D ---------------------------------------------------------------------------

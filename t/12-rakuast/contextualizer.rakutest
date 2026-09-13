@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -158,6 +158,86 @@ subtest 'List contextualizer from pairs' => {
     -> $type, $result {
         is-deeply $result, (a => 1, b => 2),
           "$type: Contextualizer gives expected result";
+    }
+}
+
+subtest 'Item contextualizer of a variable with a twigil' => {
+    # my class TwigilContext {
+    #     has $.c;
+    #     method m {
+    #         $($!c)
+    #     }
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TwigilContext'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('c')
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('m'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Contextualizer::Item.new(
+                        RakuAST::Var::Attribute.new('$!c')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+my class TwigilContext {
+    has $.c;
+    method m {
+        $($!c)
+    }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is-deeply $class.new(c => 42).m, 42, "$type: the attribute is itemized";
+    }
+
+    # &$!c parses to an item contextualizer of the attribute
+    is-deeply 'class TwigilParsed { has $!c; method m { &$!c } }'.AST.DEPARSE, Q:to/CODE/, 'parsed: an ampersand contextualizer of an attribute is written with parentheses';
+class TwigilParsed {
+    has $!c;
+    method m {
+        $($!c)
+    }
+}
+CODE
+
+    # every variable the parser would read as $$ is parenthesized, a
+    # word character after the sigil is not
+    for '$.c', '$*x', '$/', '$<a>' -> $name {
+        is-deeply RakuAST::Contextualizer::Item.new(
+          RakuAST::Var::Lexical.new($name)
+        ).DEPARSE, '$(' ~ $name ~ ')', "$name is parenthesized";
+    }
+    for '$0', '$_', '$x' -> $name {
+        is-deeply RakuAST::Contextualizer::Item.new(
+          RakuAST::Var::Lexical.new($name)
+        ).DEPARSE, '$' ~ $name, "$name is not parenthesized";
     }
 }
 

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 29;
+plan 30;
 
 my $ast;
 my $deparsed;
@@ -1199,6 +1199,83 @@ CODE
         my ($S, $b, $f, $c, $g, $d) := EVAL($it);
         is-deeply ($S.^name, $b(1), $f(), $c(1), $g(), $d), ('S', 42, 42, 42, 42, 42),
           "$type: the code runs";
+    }
+}
+
+subtest 'The parameters of a documented pointy block go one per line' => {
+    # my $b = ->
+    #   $a, #= first
+    #   $c, #= second
+    #  --> Int {
+    #     $a + $c
+    # };
+    # my $d = ->
+    #   $a #= only
+    # {
+    #     $a
+    # };
+    # my $e = ->
+    #   $a, #= first
+    #   $c
+    # {
+    #     $a + $c
+    # };
+    # my $f = -> #= block
+    #   $a #= only
+    # {
+    #     $a
+    # };
+    # ($b, $d, $e, $f)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my $b = -> $a, #= first
+      $c, #= second
+      --> Int { $a + $c };
+    my $d = -> $a #= only
+      { $a };
+    my $e = -> $a, #= first
+      $c { $a + $c };
+    my $f = -> #= block
+      $a #= only
+      { $a };
+    ($b, $d, $e, $f)
+    SOURCE
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse";
+my $b = ->
+  $a, #= first
+  $c, #= second
+ --> Int {
+    $a + $c
+};
+my $d = ->
+  $a #= only
+{
+    $a
+};
+my $e = ->
+  $a, #= first
+  $c
+{
+    $a + $c
+};
+my $f = -> #= block
+  $a #= only
+{
+    $a
+};
+($b, $d, $e, $f)
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $deparsed.AST.statements.head.expression.initializer.expression.signature.parameters.map(*.WHY.trailing.head).List,
+      ('first', 'second'), 'the docs stay on the parameters';
+    is-deeply $deparsed.AST.statements[3].expression.initializer.expression.WHY.trailing,
+      ('block',), 'a doc after the arrow stays on the block';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my ($b, $d, $e, $f) := EVAL($it);
+        is-deeply ($b(1, 2), $d(4), $e(1, 2), $f(5)), (3, 4, 3, 5),
+          "$type: the blocks run";
     }
 }
 

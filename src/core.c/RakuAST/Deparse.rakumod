@@ -2147,18 +2147,21 @@ CODE
           !! '';
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
-            @parts.push("\n");
-            @parts = self.add-any-docs(@parts.join(' '), $WHY)
+            # the parameters go one per line after the arrow, the body
+            # follows the last line of the signature
+            my $*DELIMITER = '';
+            my str $header = self.add-any-docs(@parts.join(' ') ~ "\n", $WHY)
               ~ $deparsed-signature;
+            return $header
+              ~ ($header.ends-with("\n") ?? '' !! ' ')
+              ~ self.deparse($ast.body);
         }
 
-        else {
-            @parts.push($deparsed-signature) if $deparsed-signature;
+        @parts.push($deparsed-signature) if $deparsed-signature;
 
-            if $WHY {
-                @parts.push('{');
-                return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
-            }
+        if $WHY {
+            @parts.push('{');
+            return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
         }
 
         @parts.push(self.deparse($ast.body));

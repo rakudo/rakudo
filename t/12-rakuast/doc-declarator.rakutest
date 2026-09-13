@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 37;
+plan 38;
 
 my $ast;
 my $deparsed;
@@ -1777,6 +1777,118 @@ CODE
       .head.expression.WHY.trailing, ('last in a body',),
       'parsed: a constant that ends a body takes the doc after its value';
     is-deeply EVAL($parsed), 6, 'parsed: the code runs';
+}
+
+subtest 'A statement modifier goes before the trailing doc of its statement' => {
+    # my $x = 1;
+    # my $y = 2 if $x; #= assign doc
+    # my \t = 3 if $x; #= term doc
+    # my $z = 4 if $x;
+    # #= first line
+    # #= second line
+    # my token w { \d } if $x; #= token doc
+    # proto sub p (|) {*} if $x; #= proto doc
+    # sub f { #= sub doc
+    #     1
+    # } if $x;
+    # say qq:to/A/ if qq:to/B/;
+    #   body a
+    #   A
+    #   body b
+    #   B
+    # ($y, t, $z, &w, &p, &f)
+    ast Q:to/SOURCE/.AST, :no-pod;
+    my $x = 1;
+    my $y = 2 if $x; #= assign doc
+    my \t = 3 if $x; #= term doc
+    my $z = 4 if $x; #= first line
+    #= second line
+    my token w { \d } if $x; #= token doc
+    proto sub p (|) {*} if $x; #= proto doc
+    sub f { 1 } if $x; #= sub doc
+    say q:to/A/ if q:to/B/;
+      body a
+      A
+      body b
+      B
+    ($y, t, $z, &w, &p, &f)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = 1;
+my $y = 2 if $x; #= assign doc
+my \t = 3 if $x; #= term doc
+my $z = 4 if $x;
+#= first line
+#= second line
+my token w { \d } if $x; #= token doc
+proto sub p (|) {*} if $x; #= proto doc
+sub f { #= sub doc
+    1
+} if $x;
+say qq:to/A/ if qq:to/B/;
+  body a
+  A
+  body b
+  B
+($y, t, $z, &w, &p, &f)
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed.AST, 'Raku', EVAL($raku) -> $type, $tree {
+        is-deeply $tree.statements.map({
+            .expression.WHY ?? .expression.WHY.trailing.join(' ') !! ''
+        }).List,
+          ('', 'assign doc', 'term doc', 'first line second line', 'token doc',
+           'proto doc', 'sub doc', '', ''),
+          "$type: every doc is on its declaration";
+        is-deeply $tree.statements.map({ .condition-modifier ?? 1 !! 0 }).List,
+          (0, 1, 1, 1, 1, 1, 1, 1, 0),
+          "$type: every modifier is on its statement";
+    }
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $out = '';
+        my $*OUT = class { method print(*@a) { $out ~= @a.join; True } }.new;
+        my @values = EVAL($it);
+        is-deeply @values[0..2], (2, 3, 4), "$type: the modified statements ran";
+        is-deeply $out, "body a\n\n", "$type: the heredoc of the expression came first";
+    }
+
+    # my $c = (my $b = 1 if do {
+    #     2
+    # });
+    # my $d = ($ if 1);
+    # my $e = (my $g = 3 if {a => 1});
+    # my $f = $_ for 6; #= loop doc
+    # my $h = 7 if 1 for 8; #= both
+    # ($c, $d, $e)
+    my $inside := Q:to/SOURCE/.AST;
+    my $c = (my $b = 1 if do { 2 });
+    my $d = ($ if 1);
+    my $e = (my $g = 3 if { a => 1 });
+    my $f = $_ for 6; #= loop doc
+    my $h = 7 if 1 for 8; #= both
+    ($c, $d, $e)
+    SOURCE
+    is-deeply $inside.DEPARSE, Q:to/CODE/, 'inside an expression: deparse';
+my $c = (my $b = 1 if do {
+    2
+});
+my $d = ($ if 1);
+my $e = (my $g = 3 if {a => 1});
+my $f = $_ for 6; #= loop doc
+my $h = 7 if 1 for 8; #= both
+($c, $d, $e)
+CODE
+    is-deeply $inside.DEPARSE.AST.DEPARSE, $inside.DEPARSE,
+      'inside an expression: the deparse of the deparse is the same text';
+    is-deeply $inside.statements[3, 4].map(*.expression.WHY.trailing).List,
+      (('loop doc',), ('both',)),
+      'inside an expression: the docs stay on the declarations with loop modifiers';
+    # the frontends differ on what a declaration under a loop modifier
+    # leaves behind, so only the modifiers that end in a brace are run
+    for 'AST', $inside, 'Str', $inside.DEPARSE, 'Raku', EVAL('use experimental :rakuast; ' ~ $inside.raku) -> $type, $it {
+        is-deeply EVAL($it), (1, Any, 3),
+          "$type: the modifiers that end in a brace run";
+    }
 }
 
 # vim: expandtab shiftwidth=4

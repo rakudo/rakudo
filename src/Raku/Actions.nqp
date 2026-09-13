@@ -631,6 +631,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*LITERALS.set-resolver($RESOLVER);
+
+        # The statement takes its place in the statement list once that
+        # has been parsed, see comp-unit.
+        if $<version> {
+            my $statement := Nodify('Statement::LanguageVersion').new(
+              $<version>.ast.value
+            );
+            self.SET-NODE-ORIGIN($<version>, $statement);
+            $statement.to-begin-time($*R, $*CU.context);
+            make $statement;
+        }
     }
 
     method comp-unit($/) {
@@ -649,6 +660,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $statement-list.add-doc-block(nqp::atpos($_, 1));
         }
         $*DOC-BLOCKS-COLLECTED := [];
+
+        # A language version statement goes before the first statement
+        # written after it, so a doc block written before it stays in
+        # front.
+        if $<lang-setup>.ast -> $version {
+            my int $from := $version.origin.from;
+            my int $i;
+            for $statement-list.IMPL-UNWRAP-LIST($statement-list.statements) {
+                my $origin := $_.origin;
+                last unless nqp::isconcrete($origin) && $origin.from < $from;
+                ++$i;
+            }
+            $statement-list.insert-statement($i, $version);
+        }
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             my @wrapped := wrap-in-for-loop($statement-list);
@@ -1078,9 +1103,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           if nqp::istype($block,Nodify('Doc::DeclaratorTarget'));
     }
 
+    # A doc after the opening brace of a routine or pointy block belongs
+    # to it, not to the last parameter of its signature. A role body is a
+    # routine whose parameters are the role's, so it keeps the doc there.
+    method enter-block-body($/) {
+        my $block := $*BLOCK;
+        if nqp::istype($*DECLARAND, Nodify('Parameter'))
+          && (nqp::istype($block, Nodify('PointyBlock'))
+               || nqp::istype($block, Nodify('Routine'))
+                    && !nqp::istype($block, Nodify('RoleBody'))) {
+            $*DECLARAND          := $block;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+        }
+    }
+
     # Action method when leaving a scope.
     method leave-block-scope($/) {
         $*R.leave-scope();
+
+        # A doc on the line where the body of a block closes belongs to
+        # the block while the block is still the declarand.
+        if nqp::eqaddr($*DECLARAND, $*BLOCK)
+          && nqp::istype($*BLOCK, Nodify('Block')) {
+            $*LAST-TRAILING-LINE :=
+              +$*ORIGIN-SOURCE.original-line($/.from - 1);
+        }
     }
 
 #-------------------------------------------------------------------------------
@@ -3453,6 +3500,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $where && nqp::can($where, 'WHY') && $where.WHY
           ?? self.steal-declarand($/, $decl, $where)
           !! self.set-declarand($/, $decl);
+        # the block ends the declaration, so a trailing doc is accepted
+        # on the line where it closes
+        $*LAST-TRAILING-LINE :=
+          +$*ORIGIN-SOURCE.original-line($where.origin.to - 1)
+          if nqp::istype($where, Nodify('Block'));
 
         for $<trait> {
             $decl.add-trait($_.ast);
@@ -4508,11 +4560,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # the doc lands on the wrong target.  Promote back to the
         # Routine when we're past the signature (the grammar clears
         # `$*IN-DECL` before parsing the body), leaving mid-signature
-        # `#=` attached to the Parameter.
+        # `#=` attached to the Parameter.  A routine that is still its
+        # own declarand takes a doc on any line of its body the same way.
         if $*IN-DECL eq ''
             && $*BLOCK
             && nqp::istype($*BLOCK, Nodify('Routine'))
-            && nqp::istype($*DECLARAND, Nodify('Parameter'))
+            && (nqp::istype($*DECLARAND, Nodify('Parameter'))
+                 || nqp::eqaddr($*DECLARAND, $*BLOCK))
         {
             $*DECLARAND          := $*BLOCK;
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
@@ -4597,32 +4651,35 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    # The pairs of the config, in the order they were written
     method extract-config($/) {
-        my $config := nqp::hash;
-        $config<numbered> := Nodify('IntLiteral').new(1)
+        my $Pair := $*R.setting-constant('Pair');
+        my @config;
+        nqp::push(@config, $Pair.new('numbered', Nodify('IntLiteral').new(1)))
           if $<doc-numbered>;
-        $config<uri> := Nodify('StrLiteral').new(~$<uri>)
+        nqp::push(@config, $Pair.new('uri', Nodify('StrLiteral').new(~$<uri>)))
           if $<uri>;
 
         if $<colonpair> {
             for $<colonpair> -> $/ {
                 my $key := ~$<identifier>;
+                my $value;
                 if $<num> {
-                    $config{$key} := Nodify('IntLiteral').new(+$<num>);
+                    $value := Nodify('IntLiteral').new(+$<num>);
                 }
                 elsif $<coloncircumfix> {  # :bar("foo",42)
-                    $config{$key} := $<coloncircumfix>.ast;
+                    $value := $<coloncircumfix>.ast;
                 }
                 elsif $<var> {             # :$bar
-                    $config{$key} := $<var>.ast;
+                    $value := $<var>.ast;
                 }
                 else {                             # :!bar | :bar
-                    $config{$key} :=
-                      Nodify($<neg> ?? 'Term::False' !! 'Term::True').new;
+                    $value := Nodify($<neg> ?? 'Term::False' !! 'Term::True').new;
                 }
+                nqp::push(@config, $Pair.new($key, $value));
             }
         }
-        $config
+        @config
     }
 
     method extract-type($/) {

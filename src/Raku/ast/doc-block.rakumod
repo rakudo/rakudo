@@ -46,6 +46,7 @@ class RakuAST::Doc::Block
     has str  $.type;             # the type (e.g. "doc", "head", "item", etc)
     has int  $.level;            # the level (default "", or numeric 1..N)
     has Hash $!config;           # the config hash (e.g. :numbered, :allow<B>)
+    has List $!config-keys;      # the config keys in deparse order
     has List $!paragraphs;       # the actual content
     has int  $!status;           # 0 =begin, 1 =for, 2 =abbrev, 3 =directive
     has int  $!pod-index;        # index in $=pod
@@ -54,7 +55,7 @@ class RakuAST::Doc::Block
     method new(Str :$margin,
                Str :$type!,
                Int :$level,
-              Hash :$config,
+                   :$config,
               List :$paragraphs,
               Bool :$directive,
               Bool :$for,
@@ -98,15 +99,53 @@ class RakuAST::Doc::Block
     }
     method level() { $!level ?? ~$!level !! "" }
 
+    # A list of pairs keeps the order it was given in. A map has no
+    # order, so its keys are sorted with numbered first, since the deparse
+    # of an abbreviated block writes numbered as a leading #.
     method set-config($config) {
-        nqp::bindattr(self, RakuAST::Doc::Block, '$!config',
-          $config ?? self.IMPL-UNWRAP-MAP($config) !! nqp::hash);
+        my $hash := nqp::hash;
+        my @keys;
+        if $config {
+            if nqp::ishash($config) || nqp::istype($config, Map) {
+                $hash := nqp::clone(self.IMPL-UNWRAP-MAP($config));
+                my sub before(str $a, str $b) {
+                    $a eq 'numbered'
+                      ?? $b ne 'numbered'
+                      !! $b ne 'numbered' && nqp::islt_s($a, $b)
+                }
+                for $hash {
+                    my str $key := $_.key;
+                    my int $i   := nqp::elems(@keys);
+                    while $i > 0 && before($key, @keys[$i - 1]) {
+                        @keys[$i] := @keys[$i - 1];
+                        --$i;
+                    }
+                    @keys[$i] := $key;
+                }
+            }
+            else {
+                for nqp::islist($config)
+                  ?? $config
+                  !! self.IMPL-UNWRAP-LIST($config.List) {
+                    nqp::die("A doc block config must be a map or a list of pairs, got "
+                      ~ $_.HOW.name($_))
+                      unless nqp::can($_, 'key') && nqp::can($_, 'value');
+                    my str $key := nqp::unbox_s(nqp::decont($_.key));
+                    nqp::push(@keys, $key) unless nqp::existskey($hash, $key);
+                    nqp::bindkey($hash, $key, nqp::decont($_.value));
+                }
+            }
+        }
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!config', $hash);
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!config-keys', @keys);
         Nil
     }
     method add-config(Str $key, $value) {
+        nqp::push($!config-keys, $key) unless nqp::existskey($!config, $key);
         nqp::bindkey($!config, $key, $value)
     }
     method config() { self.IMPL-WRAP-MAP($!config) }
+    method config-keys() { self.IMPL-WRAP-LIST($!config-keys) }
 
     method set-paragraphs($paragraphs) {
         nqp::bindattr(self, RakuAST::Doc::Block, '$!paragraphs',

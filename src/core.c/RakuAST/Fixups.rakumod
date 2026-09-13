@@ -1013,8 +1013,6 @@ augment class RakuAST::Doc::Block {
 in line '$line'";
         }
 
-        my %config = self.config;
-
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
         # virtual dividers, or any empty array if none were found so far.
@@ -1305,10 +1303,11 @@ in line '$line'";
 
         # no explicit header specification: use legacy heuristic of
         # second divider being different from the first divider
-        unless %config<header-row> {
+        unless self.config<header-row> {
             my $seen-row;
             my $first-divider;
             my int $other-dividers;
+            my $header-row;
 
             for @paragraphs {
                 # is it a divider?
@@ -1317,7 +1316,7 @@ in line '$line'";
                     # seen a divider after a row before?
                     if $first-divider.defined {
                         if $_ ne $first-divider {
-                            %config<header-row> := RakuAST::IntLiteral.new(0);
+                            $header-row := RakuAST::IntLiteral.new(0);
                             last;  # different, we're done!
                         }
                         ++$other-dividers;
@@ -1336,16 +1335,16 @@ in line '$line'";
             }
 
             # set headers if only one divider was seen after the first row
-            %config<header-row> := RakuAST::IntLiteral.new(0)
-              if %config<header-row>:!exists
+            $header-row := RakuAST::IntLiteral.new(0)
+              if !$header-row.defined
               && $first-divider.defined
               && !$other-dividers;
+            self.add-config('header-row', $_) with $header-row;
         }
 
         # post-process and save
         @paragraphs.prepend(@leading-dividers) if @leading-dividers;
         @paragraphs.push($_) with $last-divider;
-        self.set-config(%config.Map);
         self.set-paragraphs(@paragraphs);
     }
 
@@ -1447,6 +1446,12 @@ in line '$line'";
 
     multi method Str(RakuAST::Doc::Block:D:) {
         self.paragraphs.map(*.Str).join
+    }
+
+    # the config as pairs, in deparse order
+    method config-pairs() {
+        my %config := self.config;
+        self.config-keys.map({ $_ => %config{$_} }).List
     }
 
     # Post-process any unresolved asts in the config

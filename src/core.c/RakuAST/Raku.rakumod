@@ -53,6 +53,12 @@ augment class RakuAST::Node {
                 "(\n$list,\n$*INDENT)"
             }
         }
+        # an itemized empty List writes as $( ), a parameter list as ()
+        elsif nqp::istype($value,List)
+          && $value.defined
+          && nqp::eqaddr($value.WHAT,List) {
+            '()'
+        }
         else {
             nqp::istype($value,Bool)
               ?? ($value.defined ?? $value ?? "True" !! "False" !! 'Bool')
@@ -149,8 +155,7 @@ augment class RakuAST::Node {
               }
           },
           'config', -> {
-              my $config := nqp::decont(self.config);
-              :config($config.Hash) if $config
+              :config(self.config-pairs) if self.config
           },
           'destructive', -> {
               :destructive(self.destructive)
@@ -194,6 +199,9 @@ augment class RakuAST::Node {
           },
           'inverted', -> {
               :inverted if self.inverted
+          },
+          'parameters', -> {
+              :parameters(self.parameters) if self.parameters-initialized
           },
           'labels', -> {
               my $labels := nqp::decont(self.labels);
@@ -1069,6 +1077,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Statement::Import:D: --> Str:D) {
         self!nameds: <labels module-name argument>
+    }
+
+    multi method raku(RakuAST::Statement::LanguageVersion:D: --> Str:D) {
+        self!literal(self.version)
     }
 
     multi method raku(RakuAST::Statement::Loop:D: --> Str:D) {

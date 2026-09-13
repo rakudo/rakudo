@@ -150,6 +150,7 @@ class RakuAST::Deparse {
             my $*INDENT    = "";  # indentation level
             my $*DELIMITER = "";  # delimiter to add, reset if added
             my $*INTERPOLATING := False;  # in a call interpolated in a string
+            my $*METHOD-CALL-FOLLOWS := False;  # a method call follows the call
             my $*HEREDOC-INDENT := Str;   # indent of the heredoc text being assembled
             my $*HEREDOC-LINE-START = 0;  # the next heredoc segment starts a line
             my $*QUOTE-REGEX-WORD := False;  # a regex word that must keep its quotes
@@ -471,6 +472,7 @@ CODE
                 # a method call only interpolates with its parentheses
                 my $*INTERPOLATING := nqp::istype($segment,RakuAST::ApplyPostfix)
                   || nqp::istype($segment,RakuAST::ApplyDottyInfix);
+                my $*METHOD-CALL-FOLLOWS := False;
                 # a closure of one statement stays on the line of the text,
                 # unless it opens a heredoc inside a heredoc and text
                 # follows it on its line, where the parser does not find
@@ -784,17 +786,21 @@ CODE
         my str $dot-syn = self.method-dot($dot);
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
+        # a call in an interpolation keeps its parentheses unless a method
+        # call follows it, any other postfix after a bare call ends the
+        # interpolation
+        my $ends-interpolation := $*INTERPOLATING && !$*METHOD-CALL-FOLLOWS;
 
         $dot-syn
           ~ ($xsyn
               ?? self.hsyn("core-$name", self.xsyn('core', $name))
               !! $name
             )
-          ~ ($macroish && !$*INTERPOLATING
+          ~ ($macroish && !$ends-interpolation
               ?? ''
               !! self.parenthesize(
                    $ast.args,
-                   :only-non-empty($only-non-empty && !$*INTERPOLATING)
+                   :only-non-empty($only-non-empty && !$ends-interpolation)
                  )
             )
     }
@@ -1059,6 +1065,9 @@ CODE
         }
         else {
             my $operand := $ast.operand;
+            # the postfix was deparsed above, before this is bound
+            my $*METHOD-CALL-FOLLOWS :=
+              nqp::istype($postfix, RakuAST::Call::Methodish);
             # a number followed by a dot and a colon reads as a broken decimal
             my str $deparsed-operand = self.postfix-operand-needs-parens($operand, $postfix)
               || (self.is-numeric-literal($operand)
@@ -1201,12 +1210,18 @@ CODE
         my str $dot-syn = self.method-dot($ast.dispatch || '.');
         # the parser wraps the block of `.&{ }` in an item contextualizer,
         # the code of `.&( )` in a statement sequence inside it
+        # a block of one statement stays on the line of the call, as it
+        # does in an argument list
+        my $*IN-ARGLIST := True;
         $dot-syn
           ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
               ?? '&' ~ self.context-target($block.target)
               !! self.deparse($block)
             )
-          ~ self.parenthesize($ast.args, :only-non-empty(!$*INTERPOLATING))
+          ~ self.parenthesize(
+              $ast.args,
+              :only-non-empty(!$*INTERPOLATING || $*METHOD-CALL-FOLLOWS)
+            )
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
@@ -1420,9 +1435,7 @@ CODE
 
         # preprocess any config
         my %config    := $ast.config;
-        my str @config = %config.sort({
-            .key eq 'numbered' ?? '' !! .key  # numbered always first
-        }).map: {
+        my str @config = $ast.config-pairs.map: {
             my str $key = .key;
             if $key eq 'numbered' && $abbreviated {
                 '#'
@@ -2149,18 +2162,21 @@ CODE
           !! '';
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
-            @parts.push("\n");
-            @parts = self.add-any-docs(@parts.join(' '), $WHY)
+            # the parameters go one per line after the arrow, the body
+            # follows the last line of the signature
+            my $*DELIMITER = '';
+            my str $header = self.add-any-docs(@parts.join(' ') ~ "\n", $WHY)
               ~ $deparsed-signature;
+            return $header
+              ~ ($header.ends-with("\n") ?? '' !! ' ')
+              ~ self.deparse($ast.body);
         }
 
-        else {
-            @parts.push($deparsed-signature) if $deparsed-signature;
+        @parts.push($deparsed-signature) if $deparsed-signature;
 
-            if $WHY {
-                @parts.push('{');
-                return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
-            }
+        if $WHY {
+            @parts.push('{');
+            return self.block-with-docs(@parts.join(' '), $WHY, $ast.body)
         }
 
         @parts.push(self.deparse($ast.body));
@@ -3104,6 +3120,13 @@ CODE
         self.labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
     }
 
+    multi method deparse(RakuAST::Statement::LanguageVersion:D $ast --> Str:D) {
+        self.hsyn('pragma-use', self.xsyn('use', 'use'))
+          ~ ' '
+          ~ self.hsyn('version', 'v' ~ $ast.version.Str)
+          ~ $*DELIMITER
+    }
+
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
         my str $condition = " ";
         if $ast.setup || $ast.condition || $ast.increment {
@@ -3823,9 +3846,12 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
         my str @parts = self.syn-scope($ast.scope);
         @parts.push(self.syn-type($_)) with $ast.type;
-        # a declared type is stored as the return type as well
-        @parts.push('('
-          ~ self.deparse($ast.signature, :no-returns($ast.type.defined))
+        # a declared type is stored as the return type as well, and a
+        # documented parameter list opens on a line of its own, its
+        # parameters follow one per line
+        my $signature := $ast.signature;
+        @parts.push(($signature.parameters.first(*.WHY) ?? "(\n" !! '(')
+          ~ self.deparse($signature, :no-returns($ast.type.defined))
           ~ ')'
         );
 

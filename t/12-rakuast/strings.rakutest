@@ -311,9 +311,9 @@ subtest 'Quote nested by its own delimiters' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
-subtest 'Method call in an interpolation keeps its parentheses' => {
+subtest 'The last call of an interpolated chain keeps its parentheses' => {
     # my $x = 42;
-    # "val $x.Str() end $x.Str().chars() $x.DEFINITE()"
+    # "val $x.Str() end $x.Str.chars() $x.DEFINITE()"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
@@ -360,10 +360,25 @@ subtest 'Method call in an interpolation keeps its parentheses' => {
 
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 my $x = 42;
-"val $x.Str() end $x.Str().chars() $x.DEFINITE()"
+"val $x.Str() end $x.Str.chars() $x.DEFINITE()"
 CODE
     is-deeply $_, 'val 42 end 2 True', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    # any postfix but a method call after a bare call ends the interpolation
+    my @a = 3, 1, 2;
+    for Q{"@a.sort()[0]"}, Q{"@a.sort().head()"}, Q{"@a.sort()>>.Str()"},
+        Q{"@a.sort().&{ .head }()"}, Q{my $x = 42; "$x.Str()[0]"} -> $source {
+        my $it := $source.AST.DEPARSE.chomp;
+        is-deeply EVAL($it), EVAL($source), "$source: the deparse has the value";
+        is-deeply $it.AST.DEPARSE.chomp, $it, "$source: the deparse parses back to itself";
+    }
+    is-deeply Q{"@a.sort().head()"}.AST.DEPARSE.chomp, Q{"@a.sort.head()"},
+      'parsed: a call before a method call loses its parentheses';
+    is-deeply Q{"@a.sort()[0]"}.AST.DEPARSE.chomp, Q{"@a.sort()[0]"},
+      'parsed: a call before a postcircumfix keeps its parentheses';
 }
 
 subtest 'Block method call in an interpolation keeps its parentheses' => {

@@ -1347,7 +1347,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*EXPORT;
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
-        <.lang-setup($outer-cu)>  # set the above variables
+        <lang-setup($outer-cu)>  # set the above variables
         :my $*PACKAGE;
 
         # Further needed initializations
@@ -1565,6 +1565,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | '{YOU_ARE_HERE}' <you_are_here>
           | :dba('block')
             '{'                                     # actual block start
+            <.enter-block-body>
             <statementlist=.key-origin('statementlist')>
             [<.cheat-heredoc> || '}']               # actual block end
             <?end-statement>              # mark line-ending } as a terminator
@@ -1603,6 +1604,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token enter-block-scope($*SCOPE-KIND, $*PARAMETERIZATION = Mu) { <?> }
 
     # Helper token to make the actions handle the end of a scope
+    token enter-block-body()  { <?> }
     token leave-block-scope() { <?> }
 
 #-------------------------------------------------------------------------------

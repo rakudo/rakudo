@@ -1155,6 +1155,8 @@ class RakuAST::Var::Package
 class RakuAST::Var::Slang
   is RakuAST::Var
   is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has str $.name;
     has Mu  $!grammar;
@@ -1179,6 +1181,38 @@ class RakuAST::Var::Slang
 
     method sigil()  { '$' }
     method twigil() { '~' }
+
+    # A slang variable built without a grammar takes it from the parse in
+    # progress, or from the compiler for MAIN.
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::isnull($!grammar) {
+            my $lang := nqp::getlexdyn('$*LANG');
+            if !nqp::isnull($lang) && nqp::can($lang, 'slang_grammar') {
+                my $grammar := $lang.slang_grammar($!name);
+                unless nqp::isnull($grammar) {
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                      $grammar);
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                      $lang.slang_actions($!name));
+                }
+            }
+            if nqp::isnull($!grammar) && $!name eq 'MAIN' {
+                my $comp := nqp::getcomp('Raku');
+                nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                  $comp.parsegrammar);
+                nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                  $comp.parseactions);
+            }
+            self.add-sorry(
+              $resolver.build-exception: 'X::AdHoc',
+                payload => "No grammar is known for slang '" ~ $!name ~ "'"
+            ) if nqp::isnull($!grammar);
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 83;
+plan 84;
 
 my $ast;
 my $deparsed;
@@ -2526,6 +2526,49 @@ CODE
       'Str: a term typed inside a typed list declaration is reported';
     throws-like { EVAL EVAL $raku }, X::Syntax::Variable::ConflictingTypes,
       'Raku: a term typed inside a typed list declaration is reported';
+}
+
+subtest 'Signature declaration with a constrained term assigned to' => {
+    # my ($p, \foo where * > 1) = 1, 0
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('foo')
+            ),
+            where  => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(0)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my ($p, \foo where * > 1) = 1, 0', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'AST: the constraint of a term is an anonymous subset';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'Str: the constraint of a term is an anonymous subset';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'Raku: the constraint of a term is an anonymous subset';
 }
 
 # vim: expandtab shiftwidth=4

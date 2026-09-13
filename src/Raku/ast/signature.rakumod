@@ -2517,10 +2517,9 @@ class RakuAST::ParameterTarget::Term
         # a type in conflict stays as written for the report
         if $!where && !$!conflicting-type {
             my $where := $!where;
-            my $type := $!type;
-            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
-            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
-            my $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type), :$where;
+            # An unnamed subset reports as <anon> in a failed type check,
+            # matching the legacy frontend.
+            my $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($!type), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
         }

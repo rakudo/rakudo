@@ -3831,9 +3831,12 @@ CODE
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
         my str @parts = self.syn-scope($ast.scope);
         @parts.push(self.syn-type($_)) with $ast.type;
-        # a declared type is stored as the return type as well
-        @parts.push('('
-          ~ self.deparse($ast.signature, :no-returns($ast.type.defined))
+        # a declared type is stored as the return type as well, and a
+        # documented parameter list opens on a line of its own, its
+        # parameters follow one per line
+        my $signature := $ast.signature;
+        @parts.push(($signature.parameters.first(*.WHY) ?? "(\n" !! '(')
+          ~ self.deparse($signature, :no-returns($ast.type.defined))
           ~ ')'
         );
 

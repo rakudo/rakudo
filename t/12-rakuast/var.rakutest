@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 77;
+plan 78;
 
 my $ast;
 my $deparsed;
@@ -1751,6 +1751,33 @@ subtest 'A slang variable deparses with its twigil' => {
       'parsed: the slang keeps its grammar';
 }
 
+
+subtest 'A documented list declaration opens on its own line' => {
+    # my Int (
+    #   $a, #= first
+    #   $b #= second
+    # ) = 1, 2;
+    # $a + $b
+    ast Q:to/SOURCE/.AST;
+    my Int ($a, #= first
+      $b #= second
+    ) = 1, 2;
+    $a + $b
+    SOURCE
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse";
+my Int (
+  $a, #= first
+  $b #= second
+) = 1, 2;
+$a + $b
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
 
 subtest 'An anonymous variable declaration ends its statement' => {
     # my @ = 1, 2;

@@ -203,6 +203,10 @@ augment class RakuAST::Node {
           'parameters', -> {
               :parameters(self.parameters) if self.parameters-initialized
           },
+          'parsed-declarator', -> {
+              my str $parsed-declarator = self.parsed-declarator;
+              :$parsed-declarator if $parsed-declarator ne self.declarator
+          },
           'labels', -> {
               my $labels := nqp::decont(self.labels);
               :$labels if $labels
@@ -659,7 +663,7 @@ augment class RakuAST::Node {
         }
 
         self!add-WHY: $self!nameds:
-          <scope name how repr traits body>,
+          <scope parsed-declarator name how repr traits body>,
           (parameterization => $signature
             if $signature && $signature.parameters.elems),
           (:is-stub if self.is-stub)

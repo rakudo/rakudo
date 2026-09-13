@@ -1890,7 +1890,7 @@ CODE
         }
 
         my str $declarator = $ast.declarator;
-        @parts.push(self.syn-package($declarator));
+        @parts.push(self.syn-package($ast.parsed-declarator));
 
         if $ast.name -> $astname {
             my str $name = self.deparse($astname);

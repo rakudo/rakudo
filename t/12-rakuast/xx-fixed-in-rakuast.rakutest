@@ -2,7 +2,7 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-plan 153;
+plan 154;
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -1071,6 +1071,24 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     Q| my role RequireStubHolder { my $x = try require NoSuchTestModule } |.AST.EVAL;
     is nqp::getattr_s(nqp::decont(Scalar.WHO), Stash, '$!longname'), 'Scalar',
         'a require stub declared inside a role does not rename Scalar';
+}
+
+# src/Raku/Grammar.nqp
+# A worry raised after the parse had gone on past its cursor, such as the
+# TEMP phaser worry once the whitespace after the phaser is consumed, was
+# reported at the line the parse had reached rather than the line of the
+# cursor. The legacy frontend still reports the line the parse reached.
+{
+    is-run Q:to/CODE/,
+    q:to/SOURCE/.AST;
+    my $a = 1;
+    TEMP { 1 }
+
+    say 3;
+    SOURCE
+    CODE
+      :err(/'The TEMP phaser will never be implemented.' \n .*? 'at ' \N+ ':2' \n/),
+      'a worry is reported on the line of its cursor';
 }
 
 # vim: expandtab shiftwidth=4

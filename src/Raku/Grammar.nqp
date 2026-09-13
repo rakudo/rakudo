@@ -612,12 +612,12 @@ role Raku::Common {
         self.set-pos($original-pos);
     }
     method typed-worry($name, *%opts) {
-        $*R.add-worry: self.build-exception($name, |%opts);
+        $*R.add-worry: self.build-exception($name, :worry, |%opts);
         self
     }
 
     # Build an exception by name through the current resolver
-    method build-exception($name, *%opts) {
+    method build-exception($name, :$worry, *%opts) {
         # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
@@ -650,7 +650,10 @@ role Raku::Common {
         elsif %opts<expected> {
             @expected := %opts<expected>;
         }
-        elsif $high >= $cursor.pos() {
+        # A worry is raised on the cursor where it belongs and is never a
+        # parse failure, so it keeps that position and the expectations
+        # gathered at the highwater mark do not apply to it.
+        elsif $high >= $cursor.pos() && !$worry {
             my @raw_expected := $cursor.'!highexpect'();
             $cursor.'!cursor_pos'($high);
             my %seen;

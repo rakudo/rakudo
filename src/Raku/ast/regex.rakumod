@@ -344,25 +344,52 @@ class RakuAST::Regex::Sequence
 
         my @terms;
         my @literals;
+        my @origins;
 
-        my sub handle-literals($with-whitespace) {
+        # The span covering the given origins, if any of them is set.
+        my sub span-of(@spanned) {
+            my $from;
+            my $to;
+            for @spanned {
+                if nqp::isconcrete($_) {
+                    $from := $_ unless nqp::isconcrete($from) && $from.from <= $_.from;
+                    $to   := $_ unless nqp::isconcrete($to) && $to.to >= $_.to;
+                }
+            }
+            nqp::isconcrete($from)
+              ?? RakuAST::Origin.new(:from($from.from), :to($to.to), :source($from.source))
+              !! Mu
+        }
+
+        # Takes the whitespace wrapper of the last literal, if it had one.
+        my sub handle-literals($whitespace) {
             my $literal := RakuAST::Regex::Literal.new(nqp::join('',@literals));
-            @terms.push($with-whitespace
-              ?? RakuAST::Regex::WithWhitespace.new($literal)
-              !! $literal
-            );
+            my $origin := span-of(@origins);
+            $literal.set-origin($origin) if nqp::isconcrete($origin);
+            if $whitespace {
+                my $wrapper := RakuAST::Regex::WithWhitespace.new($literal);
+                my $wrapper-origin := span-of([$origin, $whitespace.origin]);
+                $wrapper.set-origin($wrapper-origin) if nqp::isconcrete($wrapper-origin);
+                @terms.push($wrapper);
+            }
+            else {
+                @terms.push($literal);
+            }
             nqp::setelems(@literals, 0);
+            nqp::setelems(@origins, 0);
         }
 
         for @atoms {
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 @literals.push($_.text);
+                @origins.push($_.origin);
             }
             elsif nqp::istype($_, RakuAST::Regex::WithWhitespace) {
                 my $regex := $_.regex;
                 if nqp::istype($regex, RakuAST::Regex::Literal) && @literals {
                     @literals.push($regex.text);
-                    handle-literals(True);
+                    @origins.push($regex.origin);
+                    handle-literals($_);
                 }
                 else {
                     handle-literals(False) if @literals;

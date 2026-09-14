@@ -244,11 +244,30 @@ role Raku::CommonActions {
         }
         if nqp::istype($node, Nodify('Node')) {
             unless nqp::isconcrete($node.origin) {
+                my int $from := $/.from;
+                my int $to   := $/.to;
+                if $to > $from && self.TRIMS-ORIGINS {
+                    my str $orig := $/.target;
+                    # Leave out the whitespace parsed last when it ends the match,
+                    # as it may hold comments, doc blocks and heredoc bodies.
+                    my $match  := nqp::decont($/);
+                    my $shared := nqp::istype($match, NQPMatch)
+                      ?? nqp::getattr($match, NQPMatch, '$!shared')
+                      !! nqp::null;
+                    my $ws := nqp::isconcrete($shared)
+                      ?? nqp::atkey(nqp::getattr($shared, nqp::what($shared), '%!marks'), 'ws')
+                      !! nqp::null;
+                    $to := $ws.from
+                      if nqp::isconcrete($ws) && $ws.pos == $to
+                      && $ws.from >= $from && $ws.from < $to;
+                    $to := $to - 1
+                      while $to > $from && nqp::iscclass(
+                        nqp::const::CCLASS_WHITESPACE, $orig, $to - 1);
+                    $from := nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $orig, $from, $to - $from);
+                }
                 $node.set-origin(
-                    Nodify('Origin').new(
-                        :from($/.from),
-                        :to($/.to),
-                        :source($*ORIGIN-SOURCE)));
+                    Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
             }
             if $as-key-origin {
                 my $nestings := @*ORIGIN-NESTINGS;
@@ -260,12 +279,96 @@ role Raku::CommonActions {
         }
     }
 
+    # Gives a node made without source text of its own, like the argument
+    # list of an infix application, the span of its children.
+    method SET-ORIGIN-OVER-CHILDREN($node) {
+        $node.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }) unless nqp::isconcrete($node.origin);
+    }
+
+    # Gives a node without an origin the span of a match, returning the node.
+    method SET-ORIGIN-OF($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        $node
+    }
+
+    # Whether an origin taken from a match leaves out whitespace at its edges.
+    method TRIMS-ORIGINS() { 0 }
+
+    # Widens a node's origin to cover the given range. The origin object
+    # is kept, so key origin nestings survive.
+    method WIDEN-NODE-ORIGIN($node, int $from, int $to) {
+        my $origin := $node.origin;
+        if nqp::isconcrete($origin) && $origin.from == $origin.to {
+            # an empty span only marks where the node sits
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to);
+        }
+        elsif nqp::isconcrete($origin) {
+            if $from < $origin.from {
+                $origin.set-locus($origin.locus);
+                nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            }
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to)
+              if $to > $origin.to;
+        }
+        else {
+            $node.set-origin(
+                Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+        }
+    }
+
+    # A list spans from its first element to its last element or terminator.
+    # An empty list sits before the whitespace in front of it.
+    method SET-LIST-ORIGIN($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        my $origin := $node.origin;
+        my int $first := -1;
+        my int $last  := -1;
+        my int $children;
+        $node.visit-children(-> $child {
+            ++$children;
+            my $child-origin := $child.origin;
+            if nqp::isconcrete($child-origin)
+              && $child-origin.from >= $/.from && $child-origin.to <= $/.to {
+                $first := $child-origin.from
+                  if $first < 0 || $child-origin.from < $first;
+                $last := $child-origin.to if $child-origin.to > $last;
+            }
+        });
+        if $first >= 0 {
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $first);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $last)
+              if $last > $origin.to;
+        }
+        elsif !$children {
+            my str $orig := $/.target;
+            my int $pos  := $/.from;
+            $pos := $pos - 1
+              while $pos > 0
+                && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $pos - 1);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $pos);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $pos);
+        }
+    }
+
     method key-origin($/) {
         self.SET-NODE-ORIGIN($/, $/.ast, :as-key-origin);
     }
 
     method quibble($/) {
-        self.attach: $/, $<nibble>.ast // Nodify('StrLiteral').new('');
+        self.QUOTED($/, $<nibble>.ast // Nodify('StrLiteral').new(''));
+    }
+
+    # A quoted string's origin covers its delimiters and adverbs. The body
+    # of a quoted regex does not, as the quoted regex holds those.
+    method QUOTED($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('QuotedString'));
+        self.attach: $/, $ast;
     }
 
     # Grammars also need to be able to lookup RakuAST nodes.  Historically
@@ -296,6 +399,7 @@ role Raku::CommonActions {
 # The actions associated with the base Raku grammar
 
 class Raku::Actions is HLL::Actions does Raku::CommonActions {
+    method TRIMS-ORIGINS() { 1 }
     method  OperatorProperties() { $OperatorProperties }
 
 #-------------------------------------------------------------------------------
@@ -640,7 +744,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $statement := Nodify('Statement::LanguageVersion').new(
               $<version>.ast.value
             );
-            self.SET-NODE-ORIGIN($<version>, $statement);
+            $statement.set-origin(Nodify('Origin').new(
+              :from($<use>.from), :to($<version>.to), :source($*ORIGIN-SOURCE)));
             $statement.to-begin-time($*R, $*CU.context);
             make $statement;
         }
@@ -676,6 +781,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $statement-list.insert-statement($i, $version);
         }
+        # The statement list covers the doc blocks and version added to it
+        $statement-list.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($statement-list, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        });
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             my @wrapped := wrap-in-for-loop($statement-list);
@@ -719,6 +830,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         self.attach: $/, $COMPUNIT, :as-key-origin;
+        # The statement list holds the doc blocks after its last statement
+        my $statements-origin := $<statementlist>.ast.origin;
+        self.WIDEN-NODE-ORIGIN($COMPUNIT, $statements-origin.from, $statements-origin.to)
+          if nqp::isconcrete($statements-origin);
 
         # Have check time.
         $COMPUNIT.check($RESOLVER);
@@ -892,6 +1007,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $ast.add-to-statements($statements);
         }
+        self.SET-LIST-ORIGIN($/, $statements);
         self.attach: $/, $statements;
         $statements
     }
@@ -915,6 +1031,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $*DOC-BLOCKS-COLLECTED := @keep;
         }
+        self.SET-LIST-ORIGIN($/, $statements);
     }
     method semilist($/) { self.collect-statements($/, 'SemiList')          }
     method sequence($/) { self.collect-statements($/, 'StatementSequence') }
@@ -946,6 +1063,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $target := $ast.expression;
             }
             $target.add-label($<label>.ast);
+            self.WIDEN-ORIGINS-TO($ast, $<label>.ast);
             make $ast;
             drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
             return;       # nothing left to do here
@@ -987,6 +1105,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $statement.attach-doc-blocks unless $*PARSING-DOC-BLOCK;
 
         self.attach: $/, $statement;
+        if $<EXPR> && nqp::isconcrete(my $origin := $<EXPR>.ast.origin) {
+            self.WIDEN-NODE-ORIGIN($statement, $origin.from, $origin.to);
+        }
         drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
     }
 
@@ -1038,7 +1159,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method unit-block($/) {
         my $block := $*BLOCK;
         # Wrap the statements into a (non-existing) blockoid
-        $block.replace-body(Nodify('Blockoid').new($<statementlist>.ast));
+        my $statements := $<statementlist>.ast;
+        my $blockoid   := Nodify('Blockoid').new($statements);
+        $block.replace-body($blockoid);
+        # Doc blocks after the last statement are in the statement list
+        my $origin := $statements.origin;
+        self.WIDEN-NODE-ORIGIN($blockoid, $origin.from, $origin.to);
+        self.WIDEN-NODE-ORIGIN($block, $origin.from, $origin.to);
         self.attach: $/, $block;
     }
 
@@ -1073,7 +1200,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.adopt-declarand-docs($/, $it);
 
             if @*LEADING-DOC -> @leading {
-                $it.set-leading(@leading);
+                my @texts;
+                nqp::push(@texts, ~$_) for @leading;
+                $it.set-leading(@texts);
+                self.WIDEN-DOC-ORIGIN($it, $_) for @leading;
                 @*LEADING-DOC := [];
             }
             $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
@@ -1128,6 +1258,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         while $first < $n {
             my $doc := @inside[$first++];
             $it.add-trailing(~$doc);
+            self.WIDEN-DOC-ORIGIN($it, $doc);
             ++$*FROM-SEEN{$doc.from};
             nqp::deletekey($worries, $doc.from);
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($doc.from);
@@ -1664,12 +1795,56 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $/  # simplies end of EXPR "token"
     }
 
+    # Widens an operator application's origin over its operator and operands.
+    # A reduced operand's match starts at its operator, so prefer node origins.
+    method SET-EXPR-ORIGIN($/, $node, :$at-operator) {
+        my $operator := $/.ast;
+        $operator := nqp::istype($operator, Nodify('Node'))
+          && nqp::isconcrete($operator.origin)
+            ?? $operator.origin
+            !! $/;
+        my int $from := $operator.from;
+        my int $to   := $operator.to;
+        for $/.list -> $operand {
+            my $ast := $operand.ast;
+            if nqp::isconcrete($ast) {
+                my $origin := nqp::istype($ast, Nodify('Node'))
+                  ?? $ast.origin
+                  !! $operand;
+                $origin := $operand unless nqp::isconcrete($origin);
+                $from := $origin.from if $origin.from < $from;
+                $to   := $origin.to   if $origin.to   > $to;
+            }
+        }
+        self.WIDEN-NODE-ORIGIN($node, $from, $to);
+        $node.origin.set-locus($/.from) if $at-operator && $node.origin.locus < $/.from;
+    }
+
+    # Widens the origins of a node and of the nodes down to one of its
+    # descendants to cover that descendant. Returns whether it was found.
+    method WIDEN-ORIGINS-TO($node, $descendant) {
+        return 1 if $node =:= $descendant;
+        my int $found;
+        $node.visit-children(-> $child {
+            $found := 1
+              if !$found && self.WIDEN-ORIGINS-TO($child, $descendant);
+        });
+        if $found {
+            my $origin := $descendant.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }
+        $found
+    }
+
     # A ternary expression
     method TERNARY-EXPR($/) {
-        self.attach: $/, Nodify('Ternary').new:
+        my $ternary := Nodify('Ternary').new:
           condition => $/[0].ast,
           then      => $<infix><EXPR>.ast,  # the way the grammar parses
           else      => $/[1].ast;
+        self.SET-EXPR-ORIGIN($/, $ternary, :at-operator);
+        self.attach: $/, $ternary;
     }
 
     # An assignment, or infix expression
@@ -1687,6 +1862,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                        Nodify('Postcircumfix::LiteralHashIndex')
                      ) {
                     $postfix.set-assignee($/[1].ast);
+                    self.SET-EXPR-ORIGIN($/, $lhs);
+                    self.WIDEN-ORIGINS-TO($lhs, $/[1].ast);
                     self.attach: $/, $lhs;
                     return;
                 }
@@ -1707,11 +1884,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $node.add-colonpair($<infix><colonpair>.ast);
         }
         my $cu := $*CU; # Might be too early to even have a CompUnit
-        $node.set-origin(
-            Nodify('Origin').new(
-                :from($/[0].from),
-                :to($/[1].to),
-                :source($*ORIGIN-SOURCE)));
+        self.SET-EXPR-ORIGIN($/, $node);
+        self.SET-ORIGIN-OVER-CHILDREN($node.args)
+          if nqp::istype($node, Nodify('ApplyInfix'));
         $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         make $node;
     }
@@ -1723,8 +1898,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $_.ast;
             @operands.push($ast) if nqp::isconcrete($ast);
         }
-        self.attach: $/, Nodify('ApplyListInfix').new:
+        my $node := Nodify('ApplyListInfix').new:
           infix => $/.ast, operands => @operands;
+        self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+        self.attach: $/, $node;
     }
 
     # A prefix expression
@@ -1732,12 +1909,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := Nodify('ApplyPrefix').new:
             prefix  => $/.ast // Nodify('Prefix').new($<prefix><sym>),
             operand => $/[0].ast;
-        $ast.set-origin(
-            Nodify('Origin').new:
-                :from($/.from),
-                :to($/[0].to),
-                :source($*ORIGIN-SOURCE)
-        );
+        self.SET-EXPR-ORIGIN($/, $ast);
         self.attach: $/, $ast;
     }
 
@@ -1752,7 +1924,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               && (nqp::istype($operand, Nodify('ColonPair'))
                     || nqp::istype($operand, Nodify('ColonPairs'))
                  ) {
-                self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
+                my $node := Nodify('ColonPairs').new($operand,$cp.ast);
+                self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                self.attach: $/, $node;
             }
             else {
                 if nqp::can($operand, 'add-colonpair') {
@@ -1760,6 +1934,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
                     }
                     $operand.add-colonpair($cp.ast);
+                    self.SET-EXPR-ORIGIN($/, $operand);
+                    self.WIDEN-ORIGINS-TO($operand, $cp.ast);
                 }
                 else {
                     $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
@@ -1772,6 +1948,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # A custom postcircumfix's subscript args are already in place, so
             # the operand must go first to become the sub's invocant argument.
             $ast.args.unshift: $operand;
+            self.SET-EXPR-ORIGIN($/, $ast);
             self.attach: $/, $ast;
         }
 
@@ -1786,18 +1963,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         :left($operand),
                         :right($ast);
                     my $cu := $*CU; # Might be too early to even have a CompUnit
-                    $node.set-origin(
-                        Nodify('Origin').new(
-                            :from($/[0].from),
-                            :to($/.to),
-                            :source($*ORIGIN-SOURCE)));
+                    self.SET-EXPR-ORIGIN($/, $node);
                     $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
                     make $node;
                 }
                 elsif nqp::istype($operand, Nodify('VarDeclaration::Anonymous')) && nqp::istype($ast, Nodify('Call::MetaMethod'))
                 {
                     # A call like $.^foo. Parses completely differently from $.foo
-                    self.attach: $/, Nodify('ApplyPostfix').new(
+                    my $node := Nodify('ApplyPostfix').new(
                         operand => Nodify('ApplyPostfix').new(
                             operand => Nodify('Term::Self').new.to-begin-time($*R, $*CU.context),
                             postfix => $ast
@@ -1808,10 +1981,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                             ).to-begin-time($*R, $*CU.context)
                         ).to-begin-time($*R, $*CU.context)
                     );
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
                 }
                 else {
-                    self.attach: $/, Nodify('ApplyPostfix').new:
+                    my $node := Nodify('ApplyPostfix').new:
                         postfix => $ast, operand => $operand;
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
                 }
             }
             # Report the sorry if there is no more specific sorry already
@@ -1820,9 +1997,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         else {
-            self.attach: $/, Nodify('ApplyPostfix').new:
+            my $node := Nodify('ApplyPostfix').new:
               postfix => Nodify('Postfix').new(:operator(~$<postfix><sym>)),
               operand => $operand;
+            self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+            self.attach: $/, $node;
         }
     }
 
@@ -1853,7 +2032,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method prefixish($/) {
-        my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
+        my $ast := $<OPER>.ast
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Prefix').new(~$<prefix><sym>));
         $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           if $<prefix-postfix-meta-operator>;
         self.attach: $/, $ast;
@@ -1868,7 +2048,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method postfixish($/) {
         my $ast := $<OPER>.ast
-          // Nodify('Postfix').new(:operator(~$<postfix><sym>));
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Postfix').new(:operator(~$<postfix><sym>)));
 
         self.attach: $/, $<postfix-prefix-meta-operator>
           ?? Nodify('MetaPostfix::Hyper').new($ast.to-begin-time($*R, $*CU.context))
@@ -2016,6 +2196,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $<longname> -> $longname {
             $ast     := $longname.ast.without-colonpairs;
+            self.SET-NODE-ORIGIN($longname<name>, $ast);
             my $name := $ast.canonicalize;
 
             if $DOTTY && !$dispatch {
@@ -2028,8 +2209,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                       !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
+                my $method-name := $longname.core2ast.without-colonpairs;
+                self.SET-NODE-ORIGIN($longname<name>, $method-name);
                 $ast := Nodify('Call::Method').new(
-                  :name($longname.core2ast.without-colonpairs), :$args, :$dispatch
+                  :name($method-name), :$args, :$dispatch
                 );
             }
         }
@@ -2048,7 +2231,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             nqp::die('NYI kind of methodop');
         }
 
-        self.attach: $/, $ast
+        self.attach: $/, $ast;
+        # A method call without arguments has an empty list after its name
+        unless $<args> {
+            my int $end := $ast.origin.to;
+            $args.set-origin(Nodify('Origin').new(:from($end), :to($end)));
+        }
     }
 
     sub super-int-to-Int($digits, $sign = "") {
@@ -2269,7 +2457,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         return 0 if $<adverb-as-infix>;
 
         my $ast := $<infix>
-          ?? ($<infix>.ast || Nodify('Infix').new(~$<infix>))
+          ?? ($<infix>.ast || self.SET-ORIGIN-OF($<infix>, Nodify('Infix').new(~$<infix>)))
           !! $<infix-prefix-meta-operator>
             ?? $<infix-prefix-meta-operator>.ast
             !! $<infix-circumfix-meta-operator>
@@ -2280,9 +2468,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   ?? Nodify('FunctionInfix').new($<variable>.ast)
                   !! nqp::die('Unknown kind of infix: ' ~ $/);
 
-        self.attach: $/, $<infix-postfix-meta-operator>
-          ?? $<infix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
-          !! $ast;
+        if $<infix-postfix-meta-operator> -> $meta {
+            # the operator an assignment meta operator wraps ends before the =
+            $ast.set-origin(Nodify('Origin').new(
+              :from($/.from), :to($meta.from), :source($*ORIGIN-SOURCE)
+            )) unless nqp::isconcrete($ast.origin);
+            $ast := $meta.ast.new($ast.to-begin-time($*R, $*CU.context));
+        }
+        self.attach: $/, $ast;
     }
 
     method infix-prefix-meta-operator:sym<!>($/) {
@@ -2480,10 +2673,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }
+    method circumfix:sym<ang>($/) { self.QUOTED($/, $<nibble>.ast) }
 
-    method circumfix:sym«<< >>»($/) { self.attach: $/, $<nibble>.ast }
-    method circumfix:sym<« »>($/)   { self.attach: $/, $<nibble>.ast }
+    method circumfix:sym«<< >>»($/) { self.QUOTED($/, $<nibble>.ast) }
+    method circumfix:sym<« »>($/)   { self.QUOTED($/, $<nibble>.ast) }
 
 #-------------------------------------------------------------------------------
 # Stubs
@@ -2621,6 +2814,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<identifier>($/) {
         my $args := $<args>.ast;
         my $name := $<identifier>.core2ast;
+        self.SET-NODE-ORIGIN($<identifier>, $name);
         if (my $invocant := $args.invocant) {
             # Indirect method call syntax, e.g. key($pair:)
             if $args.arity == 1 {
@@ -2663,13 +2857,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<enum>($/) {
         # The only key in the hash of the match object contains the
         # core's enum name, prefixed by "enum-"
-        self.attach($/, Nodify('Term::Enum').from-identifier(
+        my $enum := Nodify('Term::Enum').from-identifier(
           nqp::substr(nqp::iterkey_s(nqp::shift(nqp::iterator($/.hash))),5)
-        ));
+        );
+        self.SET-NODE-ORIGIN($/, $enum.name);
+        self.attach($/, $enum);
     }
 
     method term:sym<name>($/) {
         my $name := $<longname>.core2ast;
+        self.SET-NODE-ORIGIN($<longname>, $name);
         if $*META-OP {
             my $META := $*META-OP.ast;
             $META.to-begin-time($*R, $*CU.context);
@@ -2739,9 +2936,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $<num>
               ?? Nodify('ColonPair::Number').new(
                    key   => $key,
-                   value => Nodify('IntLiteral').new(
+                   value => self.SET-ORIGIN-OF($<num>, Nodify('IntLiteral').new(
                      $literals.intern-Int(~$<num>)
-                   )
+                   ))
                  )
               !! $<coloncircumfix>
                 ?? Nodify('ColonPair::Value').new(
@@ -3039,13 +3236,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Declarations
 
-    method package-declarator:sym<package>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<module>($/)  { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<class>($/)   { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<grammar>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<role>($/)    { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<knowhow>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<native>($/)  { self.attach: $/, $<package-def>.ast; }
+    # A declaration's origin starts at its declarator keyword.
+    method DECLARATOR($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $ast.origin.to)
+          if nqp::isconcrete($ast.origin);
+        self.attach: $/, $ast;
+    }
+
+    method package-declarator:sym<package>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<module>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<class>($/)   { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<grammar>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<role>($/)    { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<knowhow>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<native>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
 
     sub is-yada($/) {
         if $<blockoid><statementlist> -> $statementlist {
@@ -3111,6 +3315,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         self.attach: $/, $ast;
+        if $<unit-block> {
+            my $origin := $<unit-block>.ast.origin;
+            self.WIDEN-NODE-ORIGIN($ast, $origin.from, $origin.to);
+        }
+        # The body of a role holds the name and signature written before it
+        if $<longname> && nqp::istype($ast.body, Nodify('RoleBody'))
+          && nqp::isconcrete($ast.body.origin) {
+            self.WIDEN-NODE-ORIGIN($ast.body, $<longname>.from, $ast.body.origin.to);
+        }
     }
 
     method stub-package($/) {
@@ -3210,30 +3423,30 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.pop-package();
     }
 
-    method scope-declarator:sym<my>($/)    { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<our>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<has>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<HAS>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<my>($/)    { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<our>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<has>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<HAS>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<anon>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<state>($/) { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<unit>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
 
-    method scope-declarator:sym<augment>($/) { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<augment>($/) { self.DECLARATOR($/, $<scoped>.ast); }
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;
     }
 
     method multi-declarator:sym<multi>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<proto>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<only>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<null>($/) {
@@ -3410,13 +3623,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method routine-declarator:sym<sub>($/) {
-        self.attach: $/, $<routine-def>.ast;
+        self.DECLARATOR($/, $<routine-def>.ast);
     }
     method routine-declarator:sym<method>($/) {
-        self.attach: $/, $<method-def>.ast;
+        self.DECLARATOR($/, $<method-def>.ast);
     }
     method routine-declarator:sym<submethod>($/) {
-        self.attach: $/, $<method-def>.ast;
+        self.DECLARATOR($/, $<method-def>.ast);
     }
 
     # An onlystar body is created directly rather than through an action
@@ -3485,15 +3698,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method regex-declarator:sym<regex>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-declarator:sym<token>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-declarator:sym<rule>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-def($/) {
@@ -4036,18 +4249,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         ) if $*R;
     }
 
-    method quote:sym<apos>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<sapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<lapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<hapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<dblq>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<sdblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<ldblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<hdblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<crnr>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<qq>($/)    { self.attach: $/, $<quibble>.ast; }
-    method quote:sym<q>($/)     { self.attach: $/, $<quibble>.ast; }
-    method quote:sym<Q>($/)     { self.attach: $/, $<quibble>.ast; }
+    method quote:sym<apos>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<lapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<dblq>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<ldblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<crnr>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<qq>($/)    { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<q>($/)     { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<Q>($/)     { self.QUOTED($/, $<quibble>.ast); }
 
     method quote:sym</ />($/) {
         self.attach: $/, Nodify('QuotedRegex').new(body => $<nibble>.ast);
@@ -4188,7 +4401,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method type-for-name($/, $name) {
         my str $smiley := self.type-smiley($/, $name);
-        my $type := Nodify('Type::Simple').new($name.without-colonpairs);
+        my $type-name := $name.without-colonpairs;
+        self.SET-NODE-ORIGIN($<longname> ?? $<longname><name> !! $/, $type-name);
+        my $type := Nodify('Type::Simple').new($type-name);
         # Resolving the name can report it, so the node needs its origin
         # before it is begun.
         self.SET-NODE-ORIGIN($/, $type);
@@ -4245,7 +4460,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my $type := self.type-for-name($/, $base-name);
             if $<typename> { # Foo of Bar
-                $type := Nodify('Type::Parameterized').new(:base-type($type), :args(Nodify('ArgList').new($<typename>.ast)));
+                $type := Nodify('Type::Parameterized').new(:base-type($type),
+                  :args(self.SET-ORIGIN-OF($<typename>, Nodify('ArgList').new($<typename>.ast))));
             }
             self.attach: $/, $type;
         }
@@ -4302,6 +4518,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
         }
         if $*ON-VARDECLARATION {
+            self.SET-NODE-ORIGIN($/, $signature);
             make $signature
         }
         else {
@@ -4427,6 +4644,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $decl := Nodify('ParameterTarget::Var').new(
               :$name, :$forced-dynamic, :var-declaration($*ON-VARDECLARATION),
             );
+            self.SET-NODE-ORIGIN($<declname>, $decl);
+            self.SET-NODE-ORIGIN($<declname>, $decl.declaration)
+              if $decl.declaration;
+            self.SET-NODE-ORIGIN($<declname>, $decl.attribute)
+              if $decl.attribute;
             $/.typed-panic('X::Redeclaration', :symbol($name))
               if $decl.can-be-resolved
               && $*DECLARE-TARGETS
@@ -4547,6 +4769,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             $ast := $ArgList.new;
         }
+        self.SET-LIST-ORIGIN($/, $ast);
         self.attach: $/, $ast;
     }
 
@@ -4591,6 +4814,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<colonpair> {
             $name.add-colonpair($_.ast);
         }
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
         self.attach: $/, $name;
     }
 
@@ -4601,6 +4825,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<colonpair> {
             $name.add-colonpair($_.ast);
         }
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
         $*BLOCK.replace-name($name);
 
         # Register it with the resolver.
@@ -4654,7 +4879,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Declator doc handling
 
     method add-leading-declarator-doc($/) {
-        nqp::push(@*LEADING-DOC,~$/) unless $*FROM-SEEN{$/.from}++;
+        nqp::push(@*LEADING-DOC,$/) unless $*FROM-SEEN{$/.from}++;
+    }
+
+    # Widens the origin of a declarand's doc over a doc comment, given the
+    # match of the comment's text, which follows its #| or #= and openers.
+    method WIDEN-DOC-ORIGIN($it, $doc) {
+        my $WHY := $it.WHY;
+        if nqp::isconcrete($WHY) {
+            my str $orig := $doc.orig;
+            my int $from := $doc.from - 2;
+            --$from
+              while $from > 0
+                && !(nqp::eqat($orig, '#|', $from) || nqp::eqat($orig, '#=', $from));
+            my int $to := $doc.to;
+            # a bracketed doc closes with as many closers as it has openers
+            $to := $to + $doc.from - $from - 2
+              unless nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $from + 2);
+            self.WIDEN-NODE-ORIGIN($WHY, $from, $to);
+        }
     }
 
     method comment:sym<#|(...)>($/) {
@@ -4687,8 +4930,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
         }
 
+        my $actions := self;
         sub accept($/) {
             $*DECLARAND.add-trailing(~$/);
+            $actions.WIDEN-DOC-ORIGIN($*DECLARAND, $/);
             ++$*FROM-SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);
         }
@@ -5063,40 +5308,61 @@ Please use $worry.";
         my str $sofar  := '';
         my $LITERALS   := $*LITERALS;
         my $StrLiteral := Nodify('StrLiteral');
+        my $Origin     := Nodify('Origin');
+        my $source     := $*ORIGIN-SOURCE;
+
+        # The nibbles are contiguous source text from the start of the
+        # nibble, so a plain string ends where its length says.
+        my int $pos        := $/.from;
+        my int $sofar-from := $pos;
+
+        # the string collected so far, spanning its source text
+        sub literal() {
+            my $literal := $StrLiteral.new($LITERALS.intern-Str($sofar));
+            $literal.set-origin($Origin.new(
+              :from($sofar ?? $sofar-from !! $pos), :to($pos), :$source));
+            $sofar := '';
+            $literal
+        }
 
         for @*NIBBLES {
             if nqp::istype($_, NQPMatch) {
                 my $ast := $_.ast;
 
+                # a comment in quote words is not part of the literal text
+                if nqp::isstr($ast) && $ast eq '' && nqp::eqat($_.orig, '#', $_.from) {
+                    @segments.push(literal()) if $sofar;
+                }
+
                 # a string was "made" ?
-                if nqp::isstr($ast) {
+                elsif nqp::isstr($ast) {
+                    $sofar-from := $_.from unless $sofar;
                     $sofar := $sofar ~ $ast;
                 }
 
                 # a real AST, but collected string so far
                 elsif $sofar {
-                    @segments.push:
-                      $StrLiteral.new($LITERALS.intern-Str($sofar));
-                    $sofar := '';
-                    @segments.push($ast);
+                    @segments.push(literal());
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
                 }
 
                 # a real AST without string
                 else {
-                    @segments.push($ast);
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
                 }
+                $pos := $_.to;
             }
 
             # assume string or something stringifiable
             else {
+                $sofar-from := $pos unless $sofar;
                 $sofar := $sofar ~ $_;
+                $pos := $pos + nqp::chars($_);
             }
         }
 
         # make sure we have at least an empty string in segments
-        @segments.push(
-          $StrLiteral.new($LITERALS.intern-Str($sofar))
-        ) if $sofar || !@segments;
+        @segments.push(literal()) if $sofar || !@segments;
 
         self.attach: $/, Nodify(
           nqp::can($/,'herelang') ?? 'Heredoc' !! 'QuotedString'
@@ -5242,6 +5508,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method quantified_atom($/) {
         my $atom       := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
         my $quantifier := $<quantifier>;
+        self.SET-NODE-ORIGIN($<atom>, $atom);
 
         # Set up separator info
         my %separator;
@@ -5256,7 +5523,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             %separator<trailing-separator> := 1 if $type eq '%%';
         }
 
-        self.attach: $/, self.wrap-whitespace($<sigfinal>, $quantifier
+        my $ast := $quantifier
           ?? Nodify('Regex::QuantifiedAtom').new(
                :$atom, :quantifier($quantifier.ast), |%separator
              )
@@ -5264,8 +5531,14 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             ?? Nodify('Regex::BacktrackModifiedAtom').new(
                  :$atom, :backtrack($<backmod>.ast)
                )
-            !! $atom
-        );
+            !! $atom;
+        # A quantified atom ends with its quantifier or backtrack modifier, or
+        # with its separator, whose sigspace wrapper covers what follows it.
+        my $last := $separator || $quantifier || $<backmod>;
+        $ast.set-origin(Nodify('Origin').new(
+          :from($<atom>.from), :to($last.to), :source($*ORIGIN-SOURCE)
+        )) if $last && !nqp::isconcrete($ast.origin);
+        self.attach: $/, self.wrap-whitespace($<sigfinal>, $ast);
     }
 
     method wrap-whitespace($cond, $ast) {
@@ -5394,7 +5667,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method metachar:sym<bs>($/) {
         # If we don't get an AST for backslash it means we're reporting an error.
-        self.attach: $/, $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
+        my $ast := $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
+        # the backslash is part of the escape
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
     }
 
     method metachar:sym<mod>($/) {
@@ -5433,7 +5710,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method metachar:sym<assert>($/) {
-        self.attach: $/, $<assertion>.ast;
+        my $ast := $<assertion>.ast;
+        # the angle brackets are part of the assertion
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
     }
 
     method metachar:sym<:my>($/) {
@@ -5719,7 +6000,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             my @elements;
             for $<charspec> {
                 my $node := $_[0];
-                @elements.push: $_[1]
+                my $element := $_[1]
                   ?? Nodify('Regex::CharClassEnumerationElement::Range').new(
                        from => extract-endpoint($node),
                        to   => extract-endpoint($_[1][0])
@@ -5728,7 +6009,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                     ?? $node<cclass_backslash>.ast
                     !! Nodify('Regex::CharClassEnumerationElement::Character').new(
                          ~$node
-                       )
+                       );
+                # a backslash escape covers its backslash
+                self.WIDEN-NODE-ORIGIN($element,
+                  $node.from, ($_[1] ?? $_[1][0] !! $node).to);
+                @elements.push: $element
             }
             $ast := Nodify('Regex::CharClassElement::Enumeration').new(
               :@elements, :$negated

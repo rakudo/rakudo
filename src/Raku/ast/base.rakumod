@@ -73,7 +73,7 @@ class RakuAST::Node {
             my $match := $!origin.as-match;
             $exception.SET_FILE_LINE($match.file, $match.line);
             if nqp::can($exception, 'SET_PRE_POST') {
-                my @prepost := $!origin.source.prepost-of-pos($!origin.from);
+                my @prepost := $!origin.source.prepost-of-pos($!origin.locus);
                 $exception.SET_PRE_POST(@prepost[0], @prepost[1]);
             }
         }

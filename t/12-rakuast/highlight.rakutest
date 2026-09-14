@@ -84,7 +84,6 @@ CODE
     }
 }
 
-
 <magenta>my</magenta> <green>Frobnicate</green> <cyan>$a</cyan> <yellow>.=</yellow> <yellow>new</yellow>;
 HIGHLIGHTED
 

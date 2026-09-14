@@ -628,6 +628,10 @@ class RakuAST::Heredoc
     has Str $!stop;
     has int $!indent;
 
+    # The origin of the body, from its first line to the end of the
+    # terminator line. The origin of the heredoc covers its introducer.
+    has RakuAST::Origin $.body-origin;
+
     method new(List :$segments!, List :$processors, Str :$stop) {
         my $obj := nqp::create(self).SET-SELF($segments, $processors);
         nqp::bindattr($obj, RakuAST::Heredoc, '$!stop', $stop // '');
@@ -661,6 +665,10 @@ class RakuAST::Heredoc
 
     method set-stop(Str $stop) {
         nqp::bindattr(self, RakuAST::Heredoc, '$!stop', $stop);
+    }
+
+    method set-body-origin(RakuAST::Origin $origin) {
+        nqp::bindattr(self, RakuAST::Heredoc, '$!body-origin', $origin);
     }
     method stop() { $!stop }
 

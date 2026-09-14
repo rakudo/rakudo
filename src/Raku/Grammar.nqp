@@ -396,6 +396,11 @@ role Raku::Common {
                     $heredoc.replace-segments-from($doc.MATCH.ast);
                     $heredoc.steal-processors-from($doc.MATCH.ast);
                     $heredoc.set-stop(~$stop);
+                    my int $body-to := $stop.pos;
+                    --$body-to if $body-to > $doc.from && nqp::iscclass(
+                      nqp::const::CCLASS_NEWLINE, self.orig, $body-to - 1);
+                    $heredoc.set-body-origin(self.Nodify('Origin').new(
+                      :from($doc.from), :to($body-to)));
                     my str $ws := $stop.MATCH<ws>.Str;
                     my int $actualchars := nqp::chars($ws);
                     my int $indent := $actualchars;
@@ -1285,7 +1290,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Set up the language to be used, possibly specified by "use vxxx"
     rule lang-setup($*OUTER-CU) {
-        [ <.ws>? use <version> ';'? ]?
+        [ <.ws>? $<use>=use <version> ';'? ]?
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a

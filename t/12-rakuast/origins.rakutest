@@ -183,6 +183,7 @@ subtest "Spans" => {
     $s ~~ rx/ ab /;
     #| doc for dd
     sub dd(Int $q = 3) { } #= trailing for dd
+    $s ~~ / a+ <[b..d]> <.alpha> \d /;
     $a += 1;
     my ($w = 7);
     $s = << a # c
@@ -193,6 +194,7 @@ subtest "Spans" => {
     #| #hash doc
     sub ee() { }
     sub ff() { } #=((nested doc))
+    $s ~~ / <[\s]> a+ % ','  b /;
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -233,7 +235,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 58;
+    plan 66;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -372,11 +374,57 @@ subtest "Spans" => {
     is text(node(RakuAST::VarDeclaration::Signature, 2).signature.parameters[0].target.declaration),
       '$w = 7',
       'a variable of a list declaration covers the default it takes over';
+    is span(RakuAST::Regex::QuantifiedAtom), 'a+',
+      'a quantified regex atom covers its quantifier';
+    is span(RakuAST::Regex::CharClassEnumerationElement::Range), 'b..d',
+      'a range in a character class covers both of its ends';
+    is span(RakuAST::Regex::Assertion::Named), '<.alpha>',
+      'a named regex assertion covers its angle brackets';
+    is span(RakuAST::Regex::CharClass::Digit), '\d',
+      'a backslash character class covers its backslash';
     is text(node(RakuAST::ApplyInfix, { .infix ~~ RakuAST::MetaInfix::Assign }).infix.infix), '+',
       'the operator an assignment meta operator wraps leaves out the =';
     is text(node(RakuAST::ApplyPostfix, { .postfix ~~ RakuAST::Call::Method && .postfix.name.canonicalize eq 'new' }).postfix.args),
       ':key<a>',
       'an adverb on a method call without arguments starts its argument list';
+
+    # No node lies outside of the nodes it is a child of. A declarator doc
+    # is written apart from its declarand, and the children of a heredoc lie
+    # in its body.
+    my %parents;
+    sub check-containment($node, $from, $to) {
+        my $origin = $node.origin;
+        my ($f, $t) = $origin ?? ($origin.from, $origin.to) !! ($from, $to);
+        my $which = $node.WHICH;
+        if $origin && $from.defined && $node !~~ RakuAST::Doc::Declarator {
+            %parents{$which}.push: $from <= $f && $t <= $to;
+        }
+        return if %parents{$which}:exists && %parents{$which}.elems > 1;
+        my ($cf, $ct) = $node ~~ RakuAST::Heredoc && $node.body-origin
+          ?? ($node.body-origin.from, $node.body-origin.to)
+          !! ($f, $t);
+        $node.visit-children(-> $child { check-containment($child, $cf, $ct) });
+    }
+    check-containment($root, Int, Int);
+    is %parents.values.grep({ !.any }).elems, 0,
+      'every node lies inside of a node it is a child of';
+    is span(RakuAST::Regex::CharClass::Space), '\s',
+      'a backslash character class in a character class covers its backslash';
+    is span(RakuAST::Regex::QuantifiedAtom, *.separator.defined), "a+ % ','  ",
+      'a quantified atom with a separator covers the sigspace wrapper of its separator';
+
+    # Nodes without an origin are made by the compiler with no source text
+    # of their own.
+    my constant @synthesized = <
+      Parameter ParameterTarget::Var VarDeclaration::Simple Type::Simple
+      Type::Setting Name Signature Initializer::Assign Method::Initializer
+      Trait::WillBuild Blockoid StatementList Block
+      VarDeclaration::Implicit::Doc::Pod VarDeclaration::Implicit::Doc::Data
+      VarDeclaration::Implicit::Doc::Finish VarDeclaration::Implicit::Doc::Rakudoc
+    >.map({ "RakuAST::$_" });
+    my @unexpected = %nodes.values.map(|*).grep({ !.origin && .^name ne @synthesized.any }).map(*.^name).unique;
+    is-deeply @unexpected, [],
+      'only nodes the compiler makes without source text have no origin';
 }
 
 if $*DISTRO.is-win {

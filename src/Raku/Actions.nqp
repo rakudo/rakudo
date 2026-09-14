@@ -5508,6 +5508,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method quantified_atom($/) {
         my $atom       := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
         my $quantifier := $<quantifier>;
+        self.SET-NODE-ORIGIN($<atom>, $atom);
 
         # Set up separator info
         my %separator;
@@ -5522,7 +5523,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             %separator<trailing-separator> := 1 if $type eq '%%';
         }
 
-        self.attach: $/, self.wrap-whitespace($<sigfinal>, $quantifier
+        my $ast := $quantifier
           ?? Nodify('Regex::QuantifiedAtom').new(
                :$atom, :quantifier($quantifier.ast), |%separator
              )
@@ -5530,8 +5531,14 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             ?? Nodify('Regex::BacktrackModifiedAtom').new(
                  :$atom, :backtrack($<backmod>.ast)
                )
-            !! $atom
-        );
+            !! $atom;
+        # A quantified atom ends with its quantifier or backtrack modifier, or
+        # with its separator, whose sigspace wrapper covers what follows it.
+        my $last := $separator || $quantifier || $<backmod>;
+        $ast.set-origin(Nodify('Origin').new(
+          :from($<atom>.from), :to($last.to), :source($*ORIGIN-SOURCE)
+        )) if $last && !nqp::isconcrete($ast.origin);
+        self.attach: $/, self.wrap-whitespace($<sigfinal>, $ast);
     }
 
     method wrap-whitespace($cond, $ast) {
@@ -5660,7 +5667,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method metachar:sym<bs>($/) {
         # If we don't get an AST for backslash it means we're reporting an error.
-        self.attach: $/, $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
+        my $ast := $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
+        # the backslash is part of the escape
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
     }
 
     method metachar:sym<mod>($/) {
@@ -5699,7 +5710,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method metachar:sym<assert>($/) {
-        self.attach: $/, $<assertion>.ast;
+        my $ast := $<assertion>.ast;
+        # the angle brackets are part of the assertion
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
     }
 
     method metachar:sym<:my>($/) {
@@ -5985,7 +6000,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             my @elements;
             for $<charspec> {
                 my $node := $_[0];
-                @elements.push: $_[1]
+                my $element := $_[1]
                   ?? Nodify('Regex::CharClassEnumerationElement::Range').new(
                        from => extract-endpoint($node),
                        to   => extract-endpoint($_[1][0])
@@ -5994,7 +6009,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                     ?? $node<cclass_backslash>.ast
                     !! Nodify('Regex::CharClassEnumerationElement::Character').new(
                          ~$node
-                       )
+                       );
+                # a backslash escape covers its backslash
+                self.WIDEN-NODE-ORIGIN($element,
+                  $node.from, ($_[1] ?? $_[1][0] !! $node).to);
+                @elements.push: $element
             }
             $ast := Nodify('Regex::CharClassElement::Enumeration').new(
               :@elements, :$negated

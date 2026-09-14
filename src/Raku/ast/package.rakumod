@@ -33,6 +33,10 @@ class RakuAST::Package
 
     has Mu $!compose-exception;
 
+    # A hand built role makes its type at construction, before it has a
+    # resolver. PERFORM-PARSE sets the colonpairs it could not evaluate then.
+    has Mu $!pending-colonpairs;
+
     # MOP-generated accessor QAST, captured from a transient
     # CompilerServices in PRODUCE-META-OBJECT and spliced into the
     # package body by IMPL-EXPR-QAST. Holding the QAST rather than the
@@ -126,6 +130,8 @@ class RakuAST::Package
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-SET-PENDING-COLONPAIRS($resolver, $context);
+
         if $!augmented {
             if self.name {
                 my $resolved := $resolver.resolve-name(self.name);
@@ -395,9 +401,7 @@ class RakuAST::Package
         }
         else {
             # Create the type object and return it; this stubs the type.
-            # Colonpair values evaluate against $resolver/$context when
-            # present, so callers in the compile pipeline must pass both.
-            # Packages without colonpairs work fine without context.
+            # Colonpair values evaluate against $resolver/$context when present.
             my %options;
             %options<name> := $!name.canonicalize if $!name && $!name.is-installable;
             %options<repr> := $!repr if $!repr;
@@ -409,22 +413,22 @@ class RakuAST::Package
                     my $Failure := $has-context
                       ?? $resolver.type-from-setting('Failure')
                       !! nqp::null;
+                    my @pending;
                     for @colonpairs {
                         my $key := $_.key;
                         my $value;
                         if $has-context {
-                            $value := $_.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW(
-                                $resolver, $context, $Failure);
+                            $value := self.IMPL-EVAL-COLONPAIR(
+                                $_, $resolver, $context, $Failure);
                         }
-                        # the methods of a hand built package ask for its
-                        # type without a resolver, a literal value needs
-                        # none, one that must be evaluated does
-                        elsif nqp::istype($_, RakuAST::ColonPair::Variable)
-                          || nqp::istype($_, RakuAST::ColonPair::Value)
-                             && !$_.IMPL-CAN-INTERPRET {
+                        elsif nqp::istype($_, RakuAST::ColonPair::Variable) {
                             nqp::die("RakuAST::Package.stubbed-meta-object: package with colonpairs `"
                               ~ $!name.canonicalize
                               ~ "' requires resolver and context, but caller did not pass them");
+                        }
+                        elsif !$_.IMPL-CAN-INTERPRET {
+                            nqp::push(@pending, $_);
+                            next;
                         }
                         else {
                             $value := $_.IMPL-EVAL-COLONPAIR-VALUE(
@@ -434,6 +438,8 @@ class RakuAST::Package
                         $value := Version.new($value) if $key eq 'ver' || $key eq 'api';
                         %options{$key} := $value;
                     }
+                    nqp::bindattr(self, RakuAST::Package, '$!pending-colonpairs', @pending)
+                      if nqp::elems(@pending);
                 }
             }
             my $meta-object := $!how.new_type(|%options);
@@ -446,6 +452,36 @@ class RakuAST::Package
             }
             $meta-object
         }
+    }
+
+    # IMPL-BEGIN asks a package for its type before it visits the name, so a
+    # colonpair is brought to BEGIN time here first.
+    method IMPL-EVAL-COLONPAIR(RakuAST::ColonPair $colonpair, RakuAST::Resolver $resolver,
+                               RakuAST::IMPL::QASTContext $context, Mu $Failure) {
+        $colonpair.IMPL-BEGIN($resolver, $context);
+        $colonpair.IMPL-EVAL-COLONPAIR-VALUE-OR-RETHROW($resolver, $context, $Failure)
+    }
+
+    method IMPL-SET-PENDING-COLONPAIRS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $pending := $!pending-colonpairs;
+        return Nil unless $pending;
+
+        my $type := nqp::decont(self.stubbed-meta-object);
+        my $how := $type.HOW;
+        my $Failure := $resolver.type-from-setting('Failure');
+        for $pending {
+            my $key := $_.key;
+            my $value := self.IMPL-EVAL-COLONPAIR($_, $resolver, $context, $Failure);
+            # Another key such as name would call set_name.
+            my str $setter := 'set_' ~ $key;
+            if ($key eq 'ver' || $key eq 'auth' || $key eq 'api')
+              && nqp::can($how, $setter)
+              && !($key eq 'auth' && nqp::eqaddr($value, Nil)) {
+                $how."$setter"($type, $key eq 'auth' ?? $value !! Version.new($value));
+            }
+        }
+        nqp::bindattr(self, RakuAST::Package, '$!pending-colonpairs', Mu);
+        Nil
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -340,27 +340,375 @@ CODE
 
 subtest 'a role with a version that needs evaluation' => {
     # my role TestVersionedVar:ver($v) { }
-    #
-    # a hand built package asks for its type without a resolver when its
-    # body is set, a value that needs evaluation is not silently dropped
     my $v = v1;
-    throws-like {
-        RakuAST::Role.new(
-          scope => 'my',
-          name  => RakuAST::Name.from-identifier('TestVersionedVar',
-            colonpairs => (
-              RakuAST::ColonPair::Value.new(
-                key   => 'ver',
-                value => RakuAST::Var::Lexical.new('$v')
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('TestVersionedVar',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Var::Lexical.new('$v')
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+      )
+    );
+    is-deeply $deparsed, 'my role TestVersionedVar:ver($v) { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).^ver, v1, "$type: the role has the version";
+    }
+}
+
+subtest 'A role whose version, auth and api need evaluation' => {
+    # my role ComputedRole:ver(1 + 1):auth("x" ~ "y"):api(2 + 1) {
+    #     my constant V = $?ROLE.^ver;
+    #     method v {
+    #         V
+    #     }
+    # }
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('ComputedRole',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::IntLiteral.new(1),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'auth',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('x'),)
+                    ),
+                    infix => RakuAST::Infix.new('~'),
+                    right => RakuAST::QuotedString.new(
+                      segments => (RakuAST::StrLiteral.new('y'),)
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'api',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::IntLiteral.new(2),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Constant.new(
+                scope       => 'my',
+                name        => 'V',
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::Compiler::Lookup.new('$?ROLE'),
+                    postfix => RakuAST::Call::MetaMethod.new(name => 'ver')
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('v'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Term::Name.new(
+                        RakuAST::Name.from-identifier('V')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role ComputedRole:ver(1 + 1):auth("x" ~ "y"):api(2 + 1) {
+    my constant V = $?ROLE.^ver;
+    method v {
+        V
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is-deeply $role.^ver, v2, "$type: the role has the computed version";
+        is-deeply $role.^auth, 'xy', "$type: the role has the computed auth";
+        is-deeply $role.^api, '3', "$type: the role has the computed api";
+        is-deeply $role.v, v2, "$type: the body sees the version at BEGIN time";
+    }
+}
+
+subtest 'A parameterized role whose version needs evaluation' => {
+    # my role ComputedParameterized:ver(1 + 1)[::T] {
+    #     method t {
+    #         T
+    #     }
+    # }
+    ast RakuAST::Role.new(
+      scope            => 'my',
+      name             => RakuAST::Name.from-identifier('ComputedParameterized',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::IntLiteral.new(1),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body             => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('t'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Type::Simple.new(
+                        RakuAST::Name.from-identifier('T')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      parameterization => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            type-captures => (
+              RakuAST::Type::Capture.new(
+                RakuAST::Name.from-identifier('T')
               ),
             )
           ),
-          body  => RakuAST::RoleBody.new(
-            body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role ComputedParameterized:ver(1 + 1)[::T] {
+    method t {
+        T
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is-deeply $role.^ver, v2, "$type: the role has the computed version";
+        is-deeply $role.^parameterize(Int).new.t, Int,
+          "$type: the parameterization is kept";
+    }
+}
+
+subtest 'A role with a literal version and an auth from $?DISTRIBUTION' => {
+    # my role DistributionAuth:ver<0.1>:auth($?DISTRIBUTION.meta<auth>) { }
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('DistributionAuth',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::QuotedString.new(
+              processors => <words val>,
+              segments   => (RakuAST::StrLiteral.new('0.1'),)
+            )
+          ),
+          RakuAST::ColonPair::Value.new(
+            key   => 'auth',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Var::Compiler::Distribution.new,
+                      postfix => RakuAST::Call::Method.new(
+                        name => RakuAST::Name.from-identifier('meta')
+                      )
+                    ),
+                    postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                      index => RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('auth'),)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+      )
+    );
+    is-deeply $deparsed,
+      'my role DistributionAuth:ver<0.1>:auth($?DISTRIBUTION.meta<auth>) { }',
+      'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is-deeply $role.^ver, v0.1, "$type: the role has the literal version";
+        is-deeply $role.^auth, '', "$type: outside a distribution the role has no auth";
+    }
+}
+
+subtest 'A role whose version names a constant its body redeclares' => {
+    # my role ScopedVersionRole:ver(V) {
+    #     my constant V = v9;
+    #     method v {
+    #         V
+    #     }
+    # }
+    my constant V = v3;
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('ScopedVersionRole',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Term::Name.new(
+                    RakuAST::Name.from-identifier('V')
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Constant.new(
+                scope       => 'my',
+                name        => 'V',
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::VersionLiteral.new(v9)
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('v'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Term::Name.new(
+                        RakuAST::Name.from-identifier('V')
+                      )
+                    )
+                  )
+                )
+              )
+            )
           )
         )
-    }, Exception, message => /'requires resolver and context'/,
-      'a value that needs evaluation is refused without a resolver';
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role ScopedVersionRole:ver(V) {
+    my constant V = v9;
+    method v {
+        V
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is-deeply $role.^ver, v3,
+          "$type: the version is computed outside the role";
+        is-deeply $role.v, v9, "$type: the body keeps its own constant";
+    }
+}
+
+subtest 'A role whose version dies when it is evaluated' => {
+    # my role BoomRole:ver(die("boom")) { }
+    ast RakuAST::Role.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('BoomRole',
+        colonpairs => (
+          RakuAST::ColonPair::Value.new(
+            key   => 'ver',
+            value => RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('die'),
+                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('boom'))
+                  )
+                )
+              )
+            )
+          ),
+        )
+      ),
+      body  => RakuAST::RoleBody.new(
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new)
+      )
+    );
+    is-deeply $deparsed, 'my role BoomRole:ver(die("boom")) { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, Exception, message => 'boom',
+          "$type: the exception of the version is thrown";
+    }
 }
 
 # vim: expandtab shiftwidth=4

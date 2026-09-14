@@ -162,6 +162,11 @@ subtest "Spans" => {
     my \t = 5;
     grammar Gr { token t { a } }
     my ($s, $u);
+    $s = "a b" ~ q:w{c d} ~ <e f>;
+    $u = q:to/H/;
+      body
+      H
+    $s ~~ rx/ ab /;
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -199,7 +204,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 21;
+    plan 27;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -244,6 +249,19 @@ subtest "Spans" => {
       'a sigilless declaration covers its scope declarator';
     is from(RakuAST::TokenDeclaration), $source.index('token t'),
       'a token starts at its keyword';
+
+    is span(RakuAST::QuotedString, 1), '"a b"',
+      'a double quoted string covers its quotes';
+    is span(RakuAST::QuotedString, 2), 'q:w{c d}',
+      'a q string covers its adverb and delimiters';
+    is span(RakuAST::QuotedString, 3), '<e f>',
+      'a quote words term covers its angle brackets';
+    is span(RakuAST::Heredoc), 'q:to/H/',
+      'a heredoc covers its introducer';
+    is span(RakuAST::QuotedRegex), 'rx/ ab /',
+      'a quoted regex covers its adverb and delimiters';
+    is node(RakuAST::QuotedRegex, 0).body.origin.from, $source.index('ab /'),
+      'the body of a quoted regex leaves out its delimiters';
 }
 
 if $*DISTRO.is-win {

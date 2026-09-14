@@ -283,7 +283,15 @@ role Raku::CommonActions {
     }
 
     method quibble($/) {
-        self.attach: $/, $<nibble>.ast // Nodify('StrLiteral').new('');
+        self.QUOTED($/, $<nibble>.ast // Nodify('StrLiteral').new(''));
+    }
+
+    # A quoted string's origin covers its delimiters and adverbs. The body
+    # of a quoted regex does not, as the quoted regex holds those.
+    method QUOTED($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('QuotedString'));
+        self.attach: $/, $ast;
     }
 
     # Grammars also need to be able to lookup RakuAST nodes.  Historically
@@ -2539,10 +2547,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }
+    method circumfix:sym<ang>($/) { self.QUOTED($/, $<nibble>.ast) }
 
-    method circumfix:sym«<< >>»($/) { self.attach: $/, $<nibble>.ast }
-    method circumfix:sym<« »>($/)   { self.attach: $/, $<nibble>.ast }
+    method circumfix:sym«<< >>»($/) { self.QUOTED($/, $<nibble>.ast) }
+    method circumfix:sym<« »>($/)   { self.QUOTED($/, $<nibble>.ast) }
 
 #-------------------------------------------------------------------------------
 # Stubs
@@ -4102,18 +4110,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         ) if $*R;
     }
 
-    method quote:sym<apos>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<sapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<lapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<hapos>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<dblq>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<sdblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<ldblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<hdblq>($/) { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<crnr>($/)  { self.attach: $/, $<nibble>.ast; }
-    method quote:sym<qq>($/)    { self.attach: $/, $<quibble>.ast; }
-    method quote:sym<q>($/)     { self.attach: $/, $<quibble>.ast; }
-    method quote:sym<Q>($/)     { self.attach: $/, $<quibble>.ast; }
+    method quote:sym<apos>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<lapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<dblq>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<ldblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<crnr>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<qq>($/)    { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<q>($/)     { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<Q>($/)     { self.QUOTED($/, $<quibble>.ast); }
 
     method quote:sym</ />($/) {
         self.attach: $/, Nodify('QuotedRegex').new(body => $<nibble>.ast);

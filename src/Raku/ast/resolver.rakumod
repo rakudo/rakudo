@@ -187,9 +187,10 @@ class RakuAST::Resolver {
     }
 
     # Makes a declarator known in the current lexical scope and the scopes
-    # inside it.
-    method declare-exporthow(str $declarator, Mu $how) {
-        my str $key := nqp::objectid(self.current-scope);
+    # inside it, or with :unit in the whole compilation unit, below what a
+    # use statement makes known.
+    method declare-exporthow(str $declarator, Mu $how, Bool :$unit) {
+        my str $key := $unit ?? '' !! nqp::objectid(self.current-scope);
         my $declarators := nqp::atkey($!exporthow, $key);
         $!exporthow{$key} := $declarators := nqp::hash
           unless nqp::isconcrete($declarators);
@@ -198,17 +199,23 @@ class RakuAST::Resolver {
     }
 
     # The type a use statement in an active scope declared for the name,
-    # nearest scope first, in a one element list. The list keeps
-    # find-scope-property from skipping a type object. Nil when no use
-    # statement declared it.
+    # nearest scope first, else the one the compilation unit declared, in a
+    # one element list. The list keeps find-scope-property from skipping a
+    # type object. Nil when nothing declared it.
     method resolve-exporthow(str $declarator) {
         my $declarators := $!exporthow;
-        self.find-scope-property(-> $scope {
+        my $found := self.find-scope-property(-> $scope {
             my $known := nqp::atkey($declarators, nqp::objectid($scope));
             nqp::isconcrete($known) && nqp::existskey($known, $declarator)
               ?? nqp::list($known{$declarator})
               !! Nil
-        })
+        });
+        unless $found {
+            my $unit := nqp::atkey($declarators, '');
+            $found := nqp::list($unit{$declarator})
+              if nqp::isconcrete($unit) && nqp::existskey($unit, $declarator);
+        }
+        $found
     }
 
     # Set the global package when we're starting a fresh compilation unit.

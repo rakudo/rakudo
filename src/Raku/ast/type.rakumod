@@ -1167,6 +1167,10 @@ class RakuAST::Type::Subset
 
     has Mu $!current-package;
     has Mu $!block;
+    # The HOW the subset is made with. It is SubsetHOW unless a use
+    # statement in scope supersedes `subset`. BEGIN time resolves it, before
+    # anything asks for the meta-object, which is made once.
+    has Mu $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name!,
@@ -1185,6 +1189,7 @@ class RakuAST::Type::Subset
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
         }
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!how', Perl6::Metamodel::SubsetHOW);
         $obj.set-traits($traits) if $traits;
         $obj.set-WHY($WHY);
         $obj.set-resolution($obj);
@@ -1256,6 +1261,8 @@ class RakuAST::Type::Subset
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('subset');
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
 
         self.apply-traits($resolver, $context, self);
@@ -1339,7 +1346,7 @@ class RakuAST::Type::Subset
         %options<refinement> := nqp::null;
         %options<name> := $!name.canonicalize(:colonpairs(0))
           if $!name.is-installable;
-        Perl6::Metamodel::SubsetHOW.new_type(|%options)
+        $!how.new_type(|%options)
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

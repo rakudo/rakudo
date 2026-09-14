@@ -574,10 +574,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*LANGUAGE-REVISION := $language-revision;
 
         # Locate an EXPORTHOW and set those mappings on our current language.
+        # A subset or an enum looks them up in the resolver.
         my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');
         if $EXPORTHOW {
             for stash-hash($EXPORTHOW.compile-time-value) {
                 $LANG.set_how($_.key, $_.value);
+                $RESOLVER.declare-exporthow($_.key, nqp::decont($_.value), :unit);
             }
         }
 

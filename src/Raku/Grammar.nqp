@@ -1290,7 +1290,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Set up the language to be used, possibly specified by "use vxxx"
     rule lang-setup($*OUTER-CU) {
-        [ <.ws>? use <version> ';'? ]?
+        [ <.ws>? $<use>=use <version> ';'? ]?
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a

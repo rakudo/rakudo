@@ -279,6 +279,16 @@ role Raku::CommonActions {
         }
     }
 
+    # Gives a node made without source text of its own, like the argument
+    # list of an infix application, the span of its children.
+    method SET-ORIGIN-OVER-CHILDREN($node) {
+        $node.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }) unless nqp::isconcrete($node.origin);
+    }
+
     # Gives a node without an origin the span of a match, returning the node.
     method SET-ORIGIN-OF($/, $node) {
         self.SET-NODE-ORIGIN($/, $node);
@@ -292,7 +302,12 @@ role Raku::CommonActions {
     # is kept, so key origin nestings survive.
     method WIDEN-NODE-ORIGIN($node, int $from, int $to) {
         my $origin := $node.origin;
-        if nqp::isconcrete($origin) {
+        if nqp::isconcrete($origin) && $origin.from == $origin.to {
+            # an empty span only marks where the node sits
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to);
+        }
+        elsif nqp::isconcrete($origin) {
             if $from < $origin.from {
                 $origin.set-locus($origin.locus);
                 nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
@@ -729,7 +744,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $statement := Nodify('Statement::LanguageVersion').new(
               $<version>.ast.value
             );
-            self.SET-NODE-ORIGIN($<version>, $statement);
+            $statement.set-origin(Nodify('Origin').new(
+              :from($<use>.from), :to($<version>.to), :source($*ORIGIN-SOURCE)));
             $statement.to-begin-time($*R, $*CU.context);
             make $statement;
         }
@@ -765,6 +781,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $statement-list.insert-statement($i, $version);
         }
+        # The statement list covers the doc blocks and version added to it
+        $statement-list.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($statement-list, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        });
         if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
             $statement-list.add-statement(print-topic()) if $add-print-topic;
             my @wrapped := wrap-in-for-loop($statement-list);
@@ -1859,6 +1881,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         my $cu := $*CU; # Might be too early to even have a CompUnit
         self.SET-EXPR-ORIGIN($/, $node);
+        self.SET-ORIGIN-OVER-CHILDREN($node.args)
+          if nqp::istype($node, Nodify('ApplyInfix'));
         $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         make $node;
     }
@@ -2004,7 +2028,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method prefixish($/) {
-        my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
+        my $ast := $<OPER>.ast
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Prefix').new(~$<prefix><sym>));
         $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
           if $<prefix-postfix-meta-operator>;
         self.attach: $/, $ast;
@@ -2019,7 +2044,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method postfixish($/) {
         my $ast := $<OPER>.ast
-          // Nodify('Postfix').new(:operator(~$<postfix><sym>));
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Postfix').new(:operator(~$<postfix><sym>)));
 
         self.attach: $/, $<postfix-prefix-meta-operator>
           ?? Nodify('MetaPostfix::Hyper').new($ast.to-begin-time($*R, $*CU.context))
@@ -2167,6 +2192,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $<longname> -> $longname {
             $ast     := $longname.ast.without-colonpairs;
+            self.SET-NODE-ORIGIN($longname<name>, $ast);
             my $name := $ast.canonicalize;
 
             if $DOTTY && !$dispatch {
@@ -2179,8 +2205,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                       !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
+                my $method-name := $longname.core2ast.without-colonpairs;
+                self.SET-NODE-ORIGIN($longname<name>, $method-name);
                 $ast := Nodify('Call::Method').new(
-                  :name($longname.core2ast.without-colonpairs), :$args, :$dispatch
+                  :name($method-name), :$args, :$dispatch
                 );
             }
         }
@@ -2199,7 +2227,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             nqp::die('NYI kind of methodop');
         }
 
-        self.attach: $/, $ast
+        self.attach: $/, $ast;
+        # A method call without arguments has an empty list after its name
+        unless $<args> {
+            my int $end := $ast.origin.to;
+            $args.set-origin(Nodify('Origin').new(:from($end), :to($end)));
+        }
     }
 
     sub super-int-to-Int($digits, $sign = "") {
@@ -2420,7 +2453,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         return 0 if $<adverb-as-infix>;
 
         my $ast := $<infix>
-          ?? ($<infix>.ast || Nodify('Infix').new(~$<infix>))
+          ?? ($<infix>.ast || self.SET-ORIGIN-OF($<infix>, Nodify('Infix').new(~$<infix>)))
           !! $<infix-prefix-meta-operator>
             ?? $<infix-prefix-meta-operator>.ast
             !! $<infix-circumfix-meta-operator>
@@ -2431,9 +2464,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   ?? Nodify('FunctionInfix').new($<variable>.ast)
                   !! nqp::die('Unknown kind of infix: ' ~ $/);
 
-        self.attach: $/, $<infix-postfix-meta-operator>
-          ?? $<infix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
-          !! $ast;
+        if $<infix-postfix-meta-operator> -> $meta {
+            # the operator an assignment meta operator wraps ends before the =
+            $ast.set-origin(Nodify('Origin').new(
+              :from($/.from), :to($meta.from), :source($*ORIGIN-SOURCE)
+            )) unless nqp::isconcrete($ast.origin);
+            $ast := $meta.ast.new($ast.to-begin-time($*R, $*CU.context));
+        }
+        self.attach: $/, $ast;
     }
 
     method infix-prefix-meta-operator:sym<!>($/) {
@@ -2772,6 +2810,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<identifier>($/) {
         my $args := $<args>.ast;
         my $name := $<identifier>.core2ast;
+        self.SET-NODE-ORIGIN($<identifier>, $name);
         if (my $invocant := $args.invocant) {
             # Indirect method call syntax, e.g. key($pair:)
             if $args.arity == 1 {
@@ -2814,13 +2853,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<enum>($/) {
         # The only key in the hash of the match object contains the
         # core's enum name, prefixed by "enum-"
-        self.attach($/, Nodify('Term::Enum').from-identifier(
+        my $enum := Nodify('Term::Enum').from-identifier(
           nqp::substr(nqp::iterkey_s(nqp::shift(nqp::iterator($/.hash))),5)
-        ));
+        );
+        self.SET-NODE-ORIGIN($/, $enum.name);
+        self.attach($/, $enum);
     }
 
     method term:sym<name>($/) {
         my $name := $<longname>.core2ast;
+        self.SET-NODE-ORIGIN($<longname>, $name);
         if $*META-OP {
             my $META := $*META-OP.ast;
             $META.to-begin-time($*R, $*CU.context);
@@ -2890,9 +2932,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $<num>
               ?? Nodify('ColonPair::Number').new(
                    key   => $key,
-                   value => Nodify('IntLiteral').new(
+                   value => self.SET-ORIGIN-OF($<num>, Nodify('IntLiteral').new(
                      $literals.intern-Int(~$<num>)
-                   )
+                   ))
                  )
               !! $<coloncircumfix>
                 ?? Nodify('ColonPair::Value').new(
@@ -3272,6 +3314,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<unit-block> {
             my $origin := $<unit-block>.ast.origin;
             self.WIDEN-NODE-ORIGIN($ast, $origin.from, $origin.to);
+        }
+        # The body of a role holds the name and signature written before it
+        if $<longname> && nqp::istype($ast.body, Nodify('RoleBody'))
+          && nqp::isconcrete($ast.body.origin) {
+            self.WIDEN-NODE-ORIGIN($ast.body, $<longname>.from, $ast.body.origin.to);
         }
     }
 
@@ -4350,7 +4397,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method type-for-name($/, $name) {
         my str $smiley := self.type-smiley($/, $name);
-        my $type := Nodify('Type::Simple').new($name.without-colonpairs);
+        my $type-name := $name.without-colonpairs;
+        self.SET-NODE-ORIGIN($<longname> ?? $<longname><name> !! $/, $type-name);
+        my $type := Nodify('Type::Simple').new($type-name);
         # Resolving the name can report it, so the node needs its origin
         # before it is begun.
         self.SET-NODE-ORIGIN($/, $type);
@@ -4407,7 +4456,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my $type := self.type-for-name($/, $base-name);
             if $<typename> { # Foo of Bar
-                $type := Nodify('Type::Parameterized').new(:base-type($type), :args(Nodify('ArgList').new($<typename>.ast)));
+                $type := Nodify('Type::Parameterized').new(:base-type($type),
+                  :args(self.SET-ORIGIN-OF($<typename>, Nodify('ArgList').new($<typename>.ast))));
             }
             self.attach: $/, $type;
         }
@@ -4464,6 +4514,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
         }
         if $*ON-VARDECLARATION {
+            self.SET-NODE-ORIGIN($/, $signature);
             make $signature
         }
         else {
@@ -4589,6 +4640,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $decl := Nodify('ParameterTarget::Var').new(
               :$name, :$forced-dynamic, :var-declaration($*ON-VARDECLARATION),
             );
+            self.SET-NODE-ORIGIN($<declname>, $decl);
+            self.SET-NODE-ORIGIN($<declname>, $decl.declaration)
+              if $decl.declaration;
+            self.SET-NODE-ORIGIN($<declname>, $decl.attribute)
+              if $decl.attribute;
             $/.typed-panic('X::Redeclaration', :symbol($name))
               if $decl.can-be-resolved
               && $*DECLARE-TARGETS
@@ -4754,6 +4810,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<colonpair> {
             $name.add-colonpair($_.ast);
         }
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
         self.attach: $/, $name;
     }
 
@@ -4764,6 +4821,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<colonpair> {
             $name.add-colonpair($_.ast);
         }
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
         $*BLOCK.replace-name($name);
 
         # Register it with the resolver.

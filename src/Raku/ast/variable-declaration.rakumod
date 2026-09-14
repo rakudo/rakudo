@@ -2196,6 +2196,23 @@ class RakuAST::VarDeclaration::Signature
         @lookups
     }
 
+    # A declaration taking over the default of its parameter covers the
+    # text of the parameter, default included, and so does its target.
+    method IMPL-WIDEN-TO-PARAMETER(RakuAST::Node $declaration, RakuAST::Node $param) {
+        my $param-origin := $param.origin;
+        if nqp::isconcrete($param-origin) {
+            for [$param.target, $declaration] {
+                my $origin := $_.origin;
+                if nqp::isconcrete($origin) {
+                    nqp::bindattr_i($origin, RakuAST::Origin, '$!from', $param-origin.from)
+                      if $param-origin.from < $origin.from;
+                    nqp::bindattr_i($origin, RakuAST::Origin, '$!to', $param-origin.to)
+                      if $param-origin.to > $origin.to;
+                }
+            }
+        }
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $traits := self.IMPL-UNWRAP-LIST(self.traits);
         my str $scope := self.scope;
@@ -2252,6 +2269,7 @@ class RakuAST::VarDeclaration::Signature
                     if $param.default {
                         $declaration.set-initializer(
                             RakuAST::Initializer::Assign.new($param.default));
+                        self.IMPL-WIDEN-TO-PARAMETER($declaration, $param);
                         $param.set-default(RakuAST::Expression);
                     }
                     $param.IMPL-SET-ATTRIBUTE-DECLARATION;
@@ -2304,6 +2322,7 @@ class RakuAST::VarDeclaration::Signature
                     if $param.default {
                         $declaration.set-initializer(
                             RakuAST::Initializer::Assign.new($param.default));
+                        self.IMPL-WIDEN-TO-PARAMETER($declaration, $param);
                         $param.set-default(RakuAST::Expression);
                     }
                 }

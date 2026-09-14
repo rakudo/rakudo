@@ -89,7 +89,7 @@ ORIG
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('$line = 2'),
-            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::ApplyInfix) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::Var::Lexical) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('++",'),
             %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::StrLiteral) ),
@@ -108,7 +108,7 @@ ORIG
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) )),
         (tp('exit(0)'),
-            %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Call::Name) ),
+            %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Name) ),
             %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Statement::Expression) )),
         ;
 
@@ -145,6 +145,7 @@ subtest "Spans" => {
     # Every node produced from source text has an origin covering exactly
     # the text of its construct, so a tool can find the source of any node.
     my $source = q:to/SOURCE/;
+    use #`(version) v6.d;
     my (@a, $x, $y, $a, %h);
     $x = @a[0].foo(1, 2), 3;
     $y ?? $a + 1 !! 2;
@@ -180,10 +181,13 @@ subtest "Spans" => {
       1, 2 );
     L1: for ^1 { }
     $s ~~ rx/ ab /;
+    $a += 1;
+    my ($w = 7);
     $s = << a # c
       b >>;
     @a = [ # c
     ];
+    my $pp = Pair.new :key<a>;
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -224,7 +228,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 45;
+    plan 55;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -337,6 +341,31 @@ subtest "Spans" => {
       'a block interpolated into a heredoc is inside of its body';
     is text($interpolating), 'qq:to/I/',
       'a heredoc followed by code on its line covers only its introducer';
+
+    is span(RakuAST::Statement::LanguageVersion), 'use #`(version) v6.d',
+      'a language version statement covers its use keyword';
+    is text(node(RakuAST::ApplyPostfix, 0).postfix.name), 'foo',
+      'the name of a method call covers its identifier';
+    my $abs = node(RakuAST::ApplyDottyInfix, 0).right;
+    is $abs.args.origin.from, $source.index('abs;') + 3,
+      'the empty argument list of a method call sits after its name';
+    is text(node(RakuAST::VarDeclaration::Simple, *.name eq '$v').type.name), 'Int',
+      'the name of a type covers its identifier';
+    my $p = node(RakuAST::Sub, 0).signature.parameters[0];
+    is text($p.target), '$p',
+      'a parameter target covers its variable';
+    is text($p.target.declaration), '$p',
+      'the declaration of a parameter target covers its variable';
+    is text(node(RakuAST::ApplyInfix, 1).args), '$a + 1',
+      'the argument list of an infix application spans its operands';
+    is text(node(RakuAST::VarDeclaration::Signature, 2).signature.parameters[0].target.declaration),
+      '$w = 7',
+      'a variable of a list declaration covers the default it takes over';
+    is text(node(RakuAST::ApplyInfix, { .infix ~~ RakuAST::MetaInfix::Assign }).infix.infix), '+',
+      'the operator an assignment meta operator wraps leaves out the =';
+    is text(node(RakuAST::ApplyPostfix, { .postfix ~~ RakuAST::Call::Method && .postfix.name.canonicalize eq 'new' }).postfix.args),
+      ':key<a>',
+      'an adverb on a method call without arguments starts its argument list';
 }
 
 if $*DISTRO.is-win {

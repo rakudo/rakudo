@@ -244,11 +244,30 @@ role Raku::CommonActions {
         }
         if nqp::istype($node, Nodify('Node')) {
             unless nqp::isconcrete($node.origin) {
+                my int $from := $/.from;
+                my int $to   := $/.to;
+                if $to > $from && self.TRIMS-ORIGINS {
+                    my str $orig := $/.target;
+                    # Leave out the whitespace parsed last when it ends the match,
+                    # as it may hold comments, doc blocks and heredoc bodies.
+                    my $match  := nqp::decont($/);
+                    my $shared := nqp::istype($match, NQPMatch)
+                      ?? nqp::getattr($match, NQPMatch, '$!shared')
+                      !! nqp::null;
+                    my $ws := nqp::isconcrete($shared)
+                      ?? nqp::atkey(nqp::getattr($shared, nqp::what($shared), '%!marks'), 'ws')
+                      !! nqp::null;
+                    $to := $ws.from
+                      if nqp::isconcrete($ws) && $ws.pos == $to
+                      && $ws.from >= $from && $ws.from < $to;
+                    $to := $to - 1
+                      while $to > $from && nqp::iscclass(
+                        nqp::const::CCLASS_WHITESPACE, $orig, $to - 1);
+                    $from := nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $orig, $from, $to - $from);
+                }
                 $node.set-origin(
-                    Nodify('Origin').new(
-                        :from($/.from),
-                        :to($/.to),
-                        :source($*ORIGIN-SOURCE)));
+                    Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
             }
             if $as-key-origin {
                 my $nestings := @*ORIGIN-NESTINGS;
@@ -259,6 +278,9 @@ role Raku::CommonActions {
             }
         }
     }
+
+    # Whether an origin taken from a match leaves out whitespace at its edges.
+    method TRIMS-ORIGINS() { 0 }
 
     # Widens a node's origin to cover the given range. The origin object
     # is kept, so key origin nestings survive.
@@ -275,6 +297,40 @@ role Raku::CommonActions {
         else {
             $node.set-origin(
                 Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+        }
+    }
+
+    # A list spans from its first element to its last element or terminator.
+    # An empty list sits before the whitespace in front of it.
+    method SET-LIST-ORIGIN($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        my $origin := $node.origin;
+        my int $first := -1;
+        my int $last  := -1;
+        my int $children;
+        $node.visit-children(-> $child {
+            ++$children;
+            my $child-origin := $child.origin;
+            if nqp::isconcrete($child-origin)
+              && $child-origin.from >= $/.from && $child-origin.to <= $/.to {
+                $first := $child-origin.from
+                  if $first < 0 || $child-origin.from < $first;
+                $last := $child-origin.to if $child-origin.to > $last;
+            }
+        });
+        if $first >= 0 {
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $first);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $last)
+              if $last > $origin.to;
+        }
+        elsif !$children {
+            my str $orig := $/.target;
+            my int $pos  := $/.from;
+            $pos := $pos - 1
+              while $pos > 0
+                && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $pos - 1);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $pos);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $pos);
         }
     }
 
@@ -322,6 +378,7 @@ role Raku::CommonActions {
 # The actions associated with the base Raku grammar
 
 class Raku::Actions is HLL::Actions does Raku::CommonActions {
+    method TRIMS-ORIGINS() { 1 }
     method  OperatorProperties() { $OperatorProperties }
 
 #-------------------------------------------------------------------------------
@@ -745,6 +802,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         self.attach: $/, $COMPUNIT, :as-key-origin;
+        # The statement list holds the doc blocks after its last statement
+        my $statements-origin := $<statementlist>.ast.origin;
+        self.WIDEN-NODE-ORIGIN($COMPUNIT, $statements-origin.from, $statements-origin.to)
+          if nqp::isconcrete($statements-origin);
 
         # Have check time.
         $COMPUNIT.check($RESOLVER);
@@ -918,6 +979,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $ast.add-to-statements($statements);
         }
+        self.SET-LIST-ORIGIN($/, $statements);
         self.attach: $/, $statements;
         $statements
     }
@@ -941,6 +1003,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             $*DOC-BLOCKS-COLLECTED := @keep;
         }
+        self.SET-LIST-ORIGIN($/, $statements);
     }
     method semilist($/) { self.collect-statements($/, 'SemiList')          }
     method sequence($/) { self.collect-statements($/, 'StatementSequence') }
@@ -972,6 +1035,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $target := $ast.expression;
             }
             $target.add-label($<label>.ast);
+            self.WIDEN-ORIGINS-TO($ast, $<label>.ast);
             make $ast;
             drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
             return;       # nothing left to do here
@@ -1013,6 +1077,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $statement.attach-doc-blocks unless $*PARSING-DOC-BLOCK;
 
         self.attach: $/, $statement;
+        if $<EXPR> && nqp::isconcrete(my $origin := $<EXPR>.ast.origin) {
+            self.WIDEN-NODE-ORIGIN($statement, $origin.from, $origin.to);
+        }
         drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
     }
 
@@ -1064,7 +1131,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method unit-block($/) {
         my $block := $*BLOCK;
         # Wrap the statements into a (non-existing) blockoid
-        $block.replace-body(Nodify('Blockoid').new($<statementlist>.ast));
+        my $statements := $<statementlist>.ast;
+        my $blockoid   := Nodify('Blockoid').new($statements);
+        $block.replace-body($blockoid);
+        # Doc blocks after the last statement are in the statement list
+        my $origin := $statements.origin;
+        self.WIDEN-NODE-ORIGIN($blockoid, $origin.from, $origin.to);
+        self.WIDEN-NODE-ORIGIN($block, $origin.from, $origin.to);
         self.attach: $/, $block;
     }
 
@@ -1691,10 +1764,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Widens an operator application's origin over its operator and operands.
-    # A reduced operand's match starts at its operator, so prefer its node's origin.
+    # A reduced operand's match starts at its operator, so prefer node origins.
     method SET-EXPR-ORIGIN($/, $node, :$at-operator) {
-        my int $from := $/.from;
-        my int $to   := $/.to;
+        my $operator := $/.ast;
+        $operator := nqp::istype($operator, Nodify('Node'))
+          && nqp::isconcrete($operator.origin)
+            ?? $operator.origin
+            !! $/;
+        my int $from := $operator.from;
+        my int $to   := $operator.to;
         for $/.list -> $operand {
             my $ast := $operand.ast;
             if nqp::isconcrete($ast) {
@@ -3185,6 +3263,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         self.attach: $/, $ast;
+        if $<unit-block> {
+            my $origin := $<unit-block>.ast.origin;
+            self.WIDEN-NODE-ORIGIN($ast, $origin.from, $origin.to);
+        }
     }
 
     method stub-package($/) {
@@ -4621,6 +4703,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             $ast := $ArgList.new;
         }
+        self.SET-LIST-ORIGIN($/, $ast);
         self.attach: $/, $ast;
     }
 

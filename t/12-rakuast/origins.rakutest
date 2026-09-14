@@ -85,7 +85,7 @@ ORIG
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",') + 1, :WHAT(RakuAST::QuotedString) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(', ($line'),
-            # The comma belongs to arglist which starts with the first space after `say`
+            # The comma belongs to the argument list, which starts at its first argument
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('$line = 2'),
@@ -104,8 +104,9 @@ ORIG
             %( :line(13), :orig-line(7), :file("test.raku"), from => tp('###",'), :WHAT(RakuAST::QuotedString) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(";\n}"),
-            %( :line(2), :orig-line(2), :file("foo.raku"), from => tp(/\n '#line 10'/), :WHAT(RakuAST::StatementList) ),
-            %( :line(2), :orig-line(2), :file("foo.raku"), from => tp(/\n '#line 10'/), :WHAT(RakuAST::StatementList) )),
+            # A statement list starts at its first statement, past the line directive
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) )),
         (tp('exit(0)'),
             %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Call::Name) ),
             %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Statement::Expression) )),
@@ -155,7 +156,7 @@ subtest "Spans" => {
     our sub f(Int $p) { }
     multi sub g() { }
     class K is Any {
-        has Int $.k is rw;
+        has Int $.k is rw = 1;
         method m() { }
         submethod BUILD() { }
     }
@@ -166,7 +167,17 @@ subtest "Spans" => {
     $u = q:to/H/;
       body
       H
+    sub h() {
+        # leading
+        $a;
+        $y; # trailing
+    }  # after
+    say( # first
+      1, 2 );
+    L1: for ^1 { }
     $s ~~ rx/ ab /;
+    @a = [ # c
+    ];
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -204,7 +215,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 27;
+    plan 36;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -239,7 +250,7 @@ subtest "Spans" => {
       'a multi sub covers its multi declarator';
     is from(RakuAST::Class), $source.index('class K'),
       'a class starts at its package declarator';
-    is span(RakuAST::VarDeclaration::Simple, *.name eq '$.k'), 'has Int $.k is rw',
+    is span(RakuAST::VarDeclaration::Simple, *.name eq '$.k'), 'has Int $.k is rw = 1',
       'an attribute covers its scope declarator';
     is span(RakuAST::Method), 'method m() { }',
       'a method covers its keyword';
@@ -262,6 +273,36 @@ subtest "Spans" => {
       'a quoted regex covers its adverb and delimiters';
     is node(RakuAST::QuotedRegex, 0).body.origin.from, $source.index('ab /'),
       'the body of a quoted regex leaves out its delimiters';
+
+    is span(RakuAST::Class), q:to/CLASS/.chomp, 'a class ends at its closing brace';
+      class K is Any {
+          has Int $.k is rw = 1;
+          method m() { }
+          submethod BUILD() { }
+      }
+      CLASS
+    is span(RakuAST::TokenDeclaration), 'token t { a }',
+      'a token ends at its closing brace';
+    is span(RakuAST::Trait::Is, { .name.defined && .name.canonicalize eq 'rw' }), 'is rw',
+      'a trait leaves out the whitespace after it';
+    is span(RakuAST::Statement::Expression, { .origin && .origin.from == $source.index('sub h') }),
+      "sub h() \{\n    # leading\n    \$a;\n    \$y; # trailing\n}",
+      'a statement leaves out a comment after it';
+    is span(RakuAST::StatementList, { .origin && .origin.from == $source.index('$a;') }),
+      "\$a;\n    \$y;",
+      'a statement list starts at its first statement and ends at its last terminator';
+    is span(RakuAST::ArgList, { .origin && .origin.from == $source.index('1, 2 )') }),
+      '1, 2',
+      'an argument list leaves out a comment before its first argument';
+    is span(RakuAST::Statement::For), 'L1: for ^1 { }',
+      'a labeled statement covers its label';
+    is node(RakuAST::SemiList, { .origin && !.statements }).origin.from, $source.index('[ # c') + 1,
+      'an empty list sits before a comment in it';
+    my $pod-source = "say 1;\n=begin pod\nx\n=end pod\n";
+    my $pod-unit := $comp.compile($pod-source, :target<ast>, :source-name<pod.raku>, :compunit_ok);
+    ok $pod-unit.origin.from <= $pod-unit.statement-list.origin.from
+      && $pod-unit.statement-list.origin.to <= $pod-unit.origin.to,
+      'a compilation unit covers the doc blocks after its last statement';
 }
 
 if $*DISTRO.is-win {

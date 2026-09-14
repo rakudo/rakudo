@@ -471,6 +471,8 @@ class RakuAST::StatementModifier::Condition::Thunk
         $obj
     }
 
+    method IMPL-FORMS-BLOCK() { False }
+
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 

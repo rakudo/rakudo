@@ -1036,6 +1036,24 @@ class RakuAST::ExpressionThunk
         $target.push($block);
     }
 
+    # Whether the thunk produces a block of its own. One that does not
+    # emits its code into the block of the thunk wrapping it.
+    method IMPL-FORMS-BLOCK() { True }
+
+    # Whether the expression is evaluated in this thunk's block, which is
+    # then where the code and variables declared in the expression belong.
+    # When a thunk further in forms a block of its own, that block evaluates
+    # it, and declaring them here as well would give a nested block the
+    # wrong static outer.
+    method IMPL-EVALUATES-EXPRESSION() {
+        my $next := $!next;
+        while $next {
+            return False if $next.IMPL-FORMS-BLOCK;
+            $next := $next.next;
+        }
+        True
+    }
+
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
             str :$blocktype, RakuAST::Expression :$expression!) {
         nqp::bindattr(self, RakuAST::ExpressionThunk, '$!formed-expression', $expression);
@@ -1053,6 +1071,7 @@ class RakuAST::ExpressionThunk
                     $stmts),
                 :key);
         $stmts := QAST::Stmts.new();
+        my $evaluates-expression := self.IMPL-EVALUATES-EXPRESSION;
         if nqp::istype(self, RakuAST::ImplicitDeclarations) {
             for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
                 if $decl.is-simple-lexical-declaration {
@@ -1060,7 +1079,7 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
-        if nqp::istype($expression, RakuAST::ImplicitDeclarations) {
+        if $evaluates-expression && nqp::istype($expression, RakuAST::ImplicitDeclarations) {
             for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
                 if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
                     nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
@@ -1075,10 +1094,10 @@ class RakuAST::ExpressionThunk
         my $anon-decl := -> $node {
             nqp::istype($node, RakuAST::VarDeclaration::Anonymous) && $node.scope eq 'my'
         };
-        if $anon-decl($expression) {
+        if $evaluates-expression && $anon-decl($expression) {
             nqp::push($stmts, $expression.IMPL-QAST-DECL($context));
         }
-        my @code-todo := [$expression];
+        my @code-todo := $evaluates-expression ?? [$expression] !! [];
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
@@ -1106,8 +1125,10 @@ class RakuAST::ExpressionThunk
             }
         }
 
-        my $nested-blocks := $expression.IMPL-QAST-NESTED-BLOCK-DECLS($context);
-        $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
+        if $evaluates-expression {
+            my $nested-blocks := $expression.IMPL-QAST-NESTED-BLOCK-DECLS($context);
+            $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
+        }
 
         $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);

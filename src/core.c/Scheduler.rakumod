@@ -39,7 +39,7 @@ my role Scheduler {
 {
     my $CWD := nqp::p6box_s(nqp::cwd());
     # need :CWD to prevent looping
-    PROCESS::<$CWD> := my IO $ = IO::Path.new($CWD, :$CWD);
+    PROCESS::<$CWD> := my IO() $ = IO::Path.new($CWD, :$CWD);
 }
 
 # vim: expandtab shiftwidth=4

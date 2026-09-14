@@ -3,7 +3,7 @@ use lib <t/packages/12-rakuast/lib>;
 use Test;
 use CustomDeclarator;
 
-plan 34;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -1792,6 +1792,52 @@ CODE
     is-deeply "use CustomDeclarator;\nunit custom-class CustomUnit;\n".AST.DEPARSE,
       "use CustomDeclarator;\nunit custom-class CustomUnit;\n",
       'parsed: a unit scoped declaration keeps the declarator';
+}
+
+subtest 'An attribute default read from a typed attribute or lexical' => {
+    # my class AttrDefaultFromAttr { has Int $.a = 1; has Int $.b = $!a }
+    ast Q:to/CODE/.AST;
+my class AttrDefaultFromAttr { has Int $.a = 1; has Int $.b = $!a }
+CODE
+    is EVAL($ast).new.b, 1, 'a default read from an attribute of the same type';
+
+    # my class AttrDefaultDefinite { has Int:D $.a = 1; has Int:D $.b = $!a }
+    ast Q:to/CODE/.AST;
+my class AttrDefaultDefinite { has Int:D $.a = 1; has Int:D $.b = $!a }
+CODE
+    is EVAL($ast).new.b, 1, 'a default read into a definite type';
+
+    # my Numeric $n = 2; my class AttrDefaultFromLexical { has Numeric $.b = $n }
+    ast Q:to/CODE/.AST;
+my Numeric $n = 2; my class AttrDefaultFromLexical { has Numeric $.b = $n }
+CODE
+    is EVAL($ast).new.b, 2, 'a default read from a typed lexical';
+
+    # my class AttrDefaultCoercion { has Int:D $.a = 1; has Int:D(Rat) $.b = $!a }
+    ast Q:to/CODE/.AST;
+my class AttrDefaultCoercion { has Int:D $.a = 1; has Int:D(Rat) $.b = $!a }
+CODE
+    is EVAL($ast).new.b, 1, 'a default read into a coercion of a definite type';
+
+    # my class AttrDefaultCoerced { has Rat $.r = 1.5; has Int(Rat) $.b = $!r }
+    ast Q:to/CODE/.AST;
+my class AttrDefaultCoerced { has Rat $.r = 1.5; has Int(Rat) $.b = $!r }
+CODE
+    is EVAL($ast).new.b, 1, 'a default the coercion type coerces at runtime';
+
+    # my class AttrDefaultCoercionLiteral { has Int:D(Rat) $.x = "42" }
+    throws-like {
+        'my class AttrDefaultCoercionLiteral { has Int:D(Rat) $.x = "42" }'.AST
+    }, X::TypeCheck::Attribute::Default,
+      name => '$!x', got => 'Str', expected => 'Int:D(Rat)',
+      'a literal of another type is reported for a coercion of a definite type';
+
+    # my class AttrDefaultWrongType { has Str $.s = "x"; has Int $.b = $!s }
+    throws-like {
+        'my class AttrDefaultWrongType { has Str $.s = "x"; has Int $.b = $!s }'.AST
+    }, X::TypeCheck::Attribute::Default,
+      name => '$!b', got => 'Str', expected => 'Int',
+      'a default of another type is reported';
 }
 
 # vim: expandtab shiftwidth=4

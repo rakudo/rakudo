@@ -82,7 +82,7 @@ ORIG
             %( :line(2), :orig-line(2), :file("foo.raku"), from => tp('^10 {'), :WHAT(RakuAST::Prefix) ),
             %( :line(2), :orig-line(2), :file("foo.raku"), from => tp('for ^10 {'), :WHAT(RakuAST::Statement::For) )),
         (tp('ine ",'),
-            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",') + 1, :WHAT(RakuAST::QuotedString) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('line ",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(', ($line'),
             # The comma belongs to the argument list, which starts at its first argument
@@ -92,16 +92,16 @@ ORIG
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::ApplyInfix) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('++",'),
-            %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(/',' \n \s+ '"---'/),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('--",'),
-            %( :line(12), :orig-line(6), :file("test.raku"), from => tp('---",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(12), :orig-line(6), :file("test.raku"), from => tp('---",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('##",'),
-            %( :line(13), :orig-line(7), :file("test.raku"), from => tp('###",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(13), :orig-line(7), :file("test.raku"), from => tp('###",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(";\n}"),
             # A statement list starts at its first statement, past the line directive
@@ -164,6 +164,7 @@ subtest "Spans" => {
     grammar Gr { token t { a } }
     my ($s, $u);
     $s = "a b" ~ q:w{c d} ~ <e f>;
+    $s = "x\t$s y";
     $u = q:to/H/;
       body
       H
@@ -176,6 +177,8 @@ subtest "Spans" => {
       1, 2 );
     L1: for ^1 { }
     $s ~~ rx/ ab /;
+    $s = << a # c
+      b >>;
     @a = [ # c
     ];
     SOURCE
@@ -205,17 +208,20 @@ subtest "Spans" => {
           ?? %nodes{$type.^name}[$which]
           !! %nodes{$type.^name}.first($which)
     }
-    sub span(Mu $type, $which = 0) {
-        my $origin = node($type, $which).origin;
+    sub text(Mu $node) {
+        my $origin = $node.origin;
         $origin
           ?? $source.substr($origin.from, $origin.to - $origin.from)
           !! Nil
+    }
+    sub span(Mu $type, $which = 0) {
+        text(node($type, $which))
     }
     sub from(Mu $type, $which = 0) {
         node($type, $which).origin.from
     }
 
-    plan 36;
+    plan 41;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -303,6 +309,18 @@ subtest "Spans" => {
     ok $pod-unit.origin.from <= $pod-unit.statement-list.origin.from
       && $pod-unit.statement-list.origin.to <= $pod-unit.origin.to,
       'a compilation unit covers the doc blocks after its last statement';
+
+    is text(node(RakuAST::QuotedString, 1).segments[0]), 'a b',
+      'a string literal covers the text of a string';
+    is text(node(RakuAST::QuotedString, 4).segments[0]), 'x\t',
+      'a string literal before an interpolation covers its escapes';
+    is text(node(RakuAST::QuotedString, 4).segments[2]), ' y',
+      'a string literal after an interpolation starts after it';
+    is text(node(RakuAST::Heredoc, 0).segments[0]), "  body\n",
+      'a string literal in a heredoc body covers its source text';
+    my $words = node(RakuAST::QuotedString, { .origin && .origin.from == $source.index('<< a') });
+    is-deeply $words.segments.map({ text($_) }).List, (' a ', "\n  b "),
+      'the string literals of quote words leave out a comment between them';
 }
 
 if $*DISTRO.is-win {

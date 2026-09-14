@@ -279,6 +279,12 @@ role Raku::CommonActions {
         }
     }
 
+    # Gives a node without an origin the span of a match, returning the node.
+    method SET-ORIGIN-OF($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        $node
+    }
+
     # Whether an origin taken from a match leaves out whitespace at its edges.
     method TRIMS-ORIGINS() { 0 }
 
@@ -5220,40 +5226,61 @@ Please use $worry.";
         my str $sofar  := '';
         my $LITERALS   := $*LITERALS;
         my $StrLiteral := Nodify('StrLiteral');
+        my $Origin     := Nodify('Origin');
+        my $source     := $*ORIGIN-SOURCE;
+
+        # The nibbles are contiguous source text from the start of the
+        # nibble, so a plain string ends where its length says.
+        my int $pos        := $/.from;
+        my int $sofar-from := $pos;
+
+        # the string collected so far, spanning its source text
+        sub literal() {
+            my $literal := $StrLiteral.new($LITERALS.intern-Str($sofar));
+            $literal.set-origin($Origin.new(
+              :from($sofar ?? $sofar-from !! $pos), :to($pos), :$source));
+            $sofar := '';
+            $literal
+        }
 
         for @*NIBBLES {
             if nqp::istype($_, NQPMatch) {
                 my $ast := $_.ast;
 
+                # a comment in quote words is not part of the literal text
+                if nqp::isstr($ast) && $ast eq '' && nqp::eqat($_.orig, '#', $_.from) {
+                    @segments.push(literal()) if $sofar;
+                }
+
                 # a string was "made" ?
-                if nqp::isstr($ast) {
+                elsif nqp::isstr($ast) {
+                    $sofar-from := $_.from unless $sofar;
                     $sofar := $sofar ~ $ast;
                 }
 
                 # a real AST, but collected string so far
                 elsif $sofar {
-                    @segments.push:
-                      $StrLiteral.new($LITERALS.intern-Str($sofar));
-                    $sofar := '';
-                    @segments.push($ast);
+                    @segments.push(literal());
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
                 }
 
                 # a real AST without string
                 else {
-                    @segments.push($ast);
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
                 }
+                $pos := $_.to;
             }
 
             # assume string or something stringifiable
             else {
+                $sofar-from := $pos unless $sofar;
                 $sofar := $sofar ~ $_;
+                $pos := $pos + nqp::chars($_);
             }
         }
 
         # make sure we have at least an empty string in segments
-        @segments.push(
-          $StrLiteral.new($LITERALS.intern-Str($sofar))
-        ) if $sofar || !@segments;
+        @segments.push(literal()) if $sofar || !@segments;
 
         self.attach: $/, Nodify(
           nqp::can($/,'herelang') ?? 'Heredoc' !! 'QuotedString'

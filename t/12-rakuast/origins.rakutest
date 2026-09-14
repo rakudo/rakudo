@@ -168,6 +168,9 @@ subtest "Spans" => {
     $u = q:to/H/;
       body
       H
+    $u = qq:to/I/; $u = 1;
+      a { $s } b
+      I
     sub h() {
         # leading
         $a;
@@ -221,7 +224,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 41;
+    plan 45;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -321,6 +324,19 @@ subtest "Spans" => {
     my $words = node(RakuAST::QuotedString, { .origin && .origin.from == $source.index('<< a') });
     is-deeply $words.segments.map({ text($_) }).List, (' a ', "\n  b "),
       'the string literals of quote words leave out a comment between them';
+
+    my $body = node(RakuAST::Heredoc, 0).body-origin;
+    is $source.substr($body.from, $body.to - $body.from), "  body\n  H",
+      'a heredoc body spans from its first line to the end of its terminator';
+    my $interpolating = node(RakuAST::Heredoc, 1);
+    my $block = $interpolating.segments.first(RakuAST::Block);
+    is text($block), '{ $s }',
+      'a block interpolated into a heredoc body covers its braces';
+    ok $interpolating.body-origin.from <= $block.origin.from
+      && $block.origin.to <= $interpolating.body-origin.to,
+      'a block interpolated into a heredoc is inside of its body';
+    is text($interpolating), 'qq:to/I/',
+      'a heredoc followed by code on its line covers only its introducer';
 }
 
 if $*DISTRO.is-win {

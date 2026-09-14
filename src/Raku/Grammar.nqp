@@ -396,6 +396,11 @@ role Raku::Common {
                     $heredoc.replace-segments-from($doc.MATCH.ast);
                     $heredoc.steal-processors-from($doc.MATCH.ast);
                     $heredoc.set-stop(~$stop);
+                    my int $body-to := $stop.pos;
+                    --$body-to if $body-to > $doc.from && nqp::iscclass(
+                      nqp::const::CCLASS_NEWLINE, self.orig, $body-to - 1);
+                    $heredoc.set-body-origin(self.Nodify('Origin').new(
+                      :from($doc.from), :to($body-to)));
                     my str $ws := $stop.MATCH<ws>.Str;
                     my int $actualchars := nqp::chars($ws);
                     my int $indent := $actualchars;

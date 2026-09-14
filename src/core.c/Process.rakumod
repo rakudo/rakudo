@@ -340,67 +340,67 @@ augment class Rakudo::Internals {
               !! False
       },
 
-          '$*REPO', anon sub REPO() is raw {
-              my $repo := PROCESS::<$REPO> :=
-                CompUnit::RepositoryRegistry.setup-repositories;
+      '$*REPO', anon sub REPO() is raw {
+          my $repo := PROCESS::<$REPO> :=
+            CompUnit::RepositoryRegistry.setup-repositories;
 
-              my $world := $*W;
-              my $cu    := $*CU;
-              $world.suspend_recording_precompilation_dependencies if $world;
-              $cu.suspend-recording-precompilation-dependencies    if $cu;
-              CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
-              $cu.resume-recording-precompilation-dependencies     if $cu;
-              $world.resume_recording_precompilation_dependencies  if $world;
+          my $world := $*W;
+          my $cu    := $*CU;
+          $world.suspend_recording_precompilation_dependencies if $world;
+          $cu.suspend-recording-precompilation-dependencies    if $cu;
+          CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+          $cu.resume-recording-precompilation-dependencies     if $cu;
+          $world.resume_recording_precompilation_dependencies  if $world;
 
-              # Cannot be $repo, as CU:RepositoryRegistry changes $*REPO
-              PROCESS::<$REPO>
-          },
+          # Cannot be $repo, as CU:RepositoryRegistry changes $*REPO
+          PROCESS::<$REPO>
+      },
 
-          '$*SCHEDULER', anon sub SCHEDULER() is raw {
+      '$*SCHEDULER', anon sub SCHEDULER() is raw {
 #?if !js
-              PROCESS::<$SCHEDULER> := ThreadPoolScheduler.new
+          PROCESS::<$SCHEDULER> := ThreadPoolScheduler.new
 #?endif
 
 #?if js
-              PROCESS::<$SCHEDULER> := JavaScriptScheduler.new
+          PROCESS::<$SCHEDULER> := JavaScriptScheduler.new
 #?endif
-          },
+      },
 
-          '$*THREAD', anon sub THREAD() is raw {
-              my $init_thread := nqp::create(Thread);
-              nqp::bindattr(
-                $init_thread,Thread,'$!vm_thread',Rakudo::Internals.INITTHREAD
-              );
-              nqp::bindattr($init_thread,Thread,'$!app_lifetime',False);
-              nqp::bindattr($init_thread,Thread,'$!name','Initial thread');
-              PROCESS::<$THREAD> := $init_thread
-          },
+      '$*THREAD', anon sub THREAD() is raw {
+          my $init_thread := nqp::create(Thread);
+          nqp::bindattr(
+            $init_thread,Thread,'$!vm_thread',Rakudo::Internals.INITTHREAD
+          );
+          nqp::bindattr($init_thread,Thread,'$!app_lifetime',False);
+          nqp::bindattr($init_thread,Thread,'$!name','Initial thread');
+          PROCESS::<$THREAD> := $init_thread
+      },
 
-          '$*TMPDIR', anon sub TMPDIR() is raw {
-              PROCESS::<$TMPDIR> := my IO() $ = $*SPEC.tmpdir
-          },
+      '$*TMPDIR', anon sub TMPDIR() is raw {
+          PROCESS::<$TMPDIR> := my IO() $ = $*SPEC.tmpdir
+      },
 
-          '$*TOLERANCE', anon sub TOLERANCE() is raw {
-              PROCESS::<$TOLERANCE> := my $ = 1e-15
-          },
+      '$*TOLERANCE', anon sub TOLERANCE() is raw {
+          PROCESS::<$TOLERANCE> := my $ = 1e-15
+      },
 
-          '$*TZ', anon sub TZ is raw {
-              PROCESS::<$TZ> := Proxy.new(
-                FETCH => -> $ {
-                    Rakudo::Internals.GET-LOCAL-TIMEZONE-OFFSET
-                },
-                STORE => -> $, int $offset {
-                    $TZ-was-set-explicitly = 1;
-                    $TZ-offset             = $offset;
-                }
-              )
-          },
+      '$*TZ', anon sub TZ is raw {
+          PROCESS::<$TZ> := Proxy.new(
+            FETCH => -> $ {
+                Rakudo::Internals.GET-LOCAL-TIMEZONE-OFFSET
+            },
+            STORE => -> $, int $offset {
+                $TZ-was-set-explicitly = 1;
+                $TZ-offset             = $offset;
+            }
+          )
+      },
 
-          '$*USER', anon sub USER() is raw {
-              Rakudo::Internals.FETCH-USER-GROUP('$USER')
-          },
+      '$*USER', anon sub USER() is raw {
+          Rakudo::Internals.FETCH-USER-GROUP('$USER')
+      },
 
-          '$*VM', anon sub VM() is raw { PROCESS::<$VM> := VM.new }
+      '$*VM', anon sub VM() is raw { PROCESS::<$VM> := VM.new }
     );
 
     method REGISTER-DYNAMIC(

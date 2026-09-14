@@ -17,6 +17,10 @@ class RakuAST::Origin {
     # Normally nestings would be defined by the <statement> token.
     has Mu $.nestings;
 
+    # The position diagnostics and line numbers refer to, when a span was
+    # widened to start before it. Stored one higher, so 0 means unset.
+    has int $!locus;
+
     method new(int :$from, int :$to, Mu :$nestings, RakuAST::Origin::Source :$source) {
         my $obj := nqp::create(self);
         nqp::bindattr_i($obj, RakuAST::Origin, '$!from', $from);
@@ -35,6 +39,12 @@ class RakuAST::Origin {
     }
 
     method is-key() { nqp::isconcrete($!nestings) ?? True !! False }
+
+    method locus() { $!locus ?? $!locus - 1 !! $!from }
+
+    method set-locus(int $locus) {
+        nqp::bindattr_i(self, RakuAST::Origin, '$!locus', $locus + 1);
+    }
 
     method as-match() { $!source.match-from(self) }
 
@@ -228,7 +238,9 @@ class RakuAST::Origin::Source {
     # $from-to can be either NQPMatch, or Match, or RakuAST::Origin,
     # or anything else with .from/.to methods available
     method match-from($from-to) {
-        my $from := $from-to.from();
+        my $from := nqp::istype($from-to, RakuAST::Origin)
+          ?? $from-to.locus
+          !! $from-to.from();
         my @location := self.location-of-pos($from);
         RakuAST::Origin::Match.new(
             :from($from), :to($from-to.to()), :orig($!orig),

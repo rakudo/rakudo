@@ -9,7 +9,20 @@ use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 2;
+plan 4;
+
+subtest "Text of an operator application" => {
+    plan 1;
+    # A WhateverCode keeps the text of the expression it was made from. The
+    # legacy frontend does not keep it.
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        is EVAL(q[*.foo(1).bar]).gist, '*.foo(1).bar',
+          'a WhateverCode made from a chain of method calls keeps all of its text';
+    }
+    else {
+        skip 'the legacy frontend does not keep the text of a WhateverCode';
+    }
+}
 
 subtest "Locations" => {
     my $origins;
@@ -110,6 +123,71 @@ ORIG
             }
         }
     }
+}
+
+subtest "Spans" => {
+    # Every node produced from source text has an origin covering exactly
+    # the text of its construct, so a tool can find the source of any node.
+    my $source = q:to/SOURCE/;
+    my (@a, $x, $y, $a, %h);
+    $x = @a[0].foo(1, 2), 3;
+    $y ?? $a + 1 !! 2;
+    %h<k>:exists;
+    -$a++;
+    $a.=abs;
+    $a = 1 + 2 * 3;
+    SOURCE
+
+    my $comp := Perl6::Compiler.new();
+    $comp.language('Raku');
+    $comp.parsegrammar(Raku::Grammar);
+    $comp.parseactions(Raku::Actions);
+    $comp.addstage('syntaxcheck', :before<ast>);
+    $comp.addstage('qast', :after<ast>);
+    my $root := $comp.compile($source, :target<ast>, :source-name<spans.raku>, :compunit_ok);
+
+    # Nodes by type in depth first order, each node once.
+    my %seen;
+    my %nodes;
+    sub collect($node) {
+        return if %seen{$node.WHICH}++;
+        %nodes{$node.^name}.push($node);
+        $node.visit-children(&collect);
+    }
+    collect($root);
+
+    sub span(Mu $type, Int $index = 0) {
+        my $node = %nodes{$type.^name}[$index];
+        my $origin = $node.origin;
+        $origin
+          ?? $source.substr($origin.from, $origin.to - $origin.from)
+          !! Nil
+    }
+
+    plan 11;
+
+    is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
+      'a list infix application covers all of its operands';
+    is span(RakuAST::ApplyPostfix, 0), '@a[0].foo(1, 2)',
+      'a method call covers its invocant';
+    is span(RakuAST::ApplyPostfix, 1), '@a[0]',
+      'a postcircumfix covers its operand';
+    is span(RakuAST::Ternary), '$y ?? $a + 1 !! 2',
+      'a ternary covers its condition and both branches';
+    is span(RakuAST::ApplyInfix, 1), '$a + 1',
+      'an infix application covers both operands';
+    is span(RakuAST::ApplyPostfix, 2), '%h<k>:exists',
+      'a postcircumfix covers an adverb applied to it';
+    is span(RakuAST::ApplyPrefix), '-$a++',
+      'a prefix application covers its operand';
+    is span(RakuAST::ApplyPostfix, 3), '$a++',
+      'a postfix application covers its operand';
+    is span(RakuAST::ApplyDottyInfix), '$a.=abs',
+      'a mutating method call covers its invocant';
+    is span(RakuAST::ApplyInfix, 3), '1 + 2 * 3',
+      'an infix application covers a reduced left operand';
+    is span(RakuAST::ApplyInfix, 4), '2 * 3',
+      'an infix application nested on the right covers its operands';
 }
 
 if $*DISTRO.is-win {

@@ -1,4 +1,5 @@
 use Test;
+use nqp;
 
 plan 23;
 
@@ -104,13 +105,15 @@ nok useless-lines(stderr-of 'my @a = 1,2; sub f { @a X= 9; 42 }; f()').elems,
 nok useless-lines(stderr-of 'my $x = 1; my $y = 2; sub f { $x R= $y; 42 }; f()').elems,
     '`R=` produces no useless-use subjects in sink context';
 
-# A meta operator wrapping a pure operator stays a useless use, and only
-# the operator itself is the subject.
+# A meta operator wrapping a pure operator stays a useless use, and its
+# operands are not subjects of their own. Legacy names the operator as
+# the subject, RakuAST names the whole application.
 
 my $zip-err = stderr-of 'my @a = 1,2; my @b = 3,4; sub f { @a Z+ @b; 42 }; f()';
-ok useless-of($zip-err, 'Z+'),
+ok useless-of($zip-err,
+      nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' ?? '@a Z+ @b' !! 'Z+'),
     '`Z+` of a pure operator is still a useless-use subject in sink context';
-nok useless-of($zip-err, '@a'),
+nok useless-of($zip-err, '@a in'),
     'the operands of a sunk `Z+` are not useless-use subjects';
 
 # An assignment carried by a meta operator must still run when sunk,

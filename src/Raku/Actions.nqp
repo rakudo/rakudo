@@ -260,6 +260,24 @@ role Raku::CommonActions {
         }
     }
 
+    # Widens a node's origin to cover the given range. The origin object
+    # is kept, so key origin nestings survive.
+    method WIDEN-NODE-ORIGIN($node, int $from, int $to) {
+        my $origin := $node.origin;
+        if nqp::isconcrete($origin) {
+            if $from < $origin.from {
+                $origin.set-locus($origin.locus);
+                nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            }
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to)
+              if $to > $origin.to;
+        }
+        else {
+            $node.set-origin(
+                Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+        }
+    }
+
     method key-origin($/) {
         self.SET-NODE-ORIGIN($/, $/.ast, :as-key-origin);
     }
@@ -1664,12 +1682,51 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $/  # simplies end of EXPR "token"
     }
 
+    # Widens an operator application's origin over its operator and operands.
+    # A reduced operand's match starts at its operator, so prefer its node's origin.
+    method SET-EXPR-ORIGIN($/, $node, :$at-operator) {
+        my int $from := $/.from;
+        my int $to   := $/.to;
+        for $/.list -> $operand {
+            my $ast := $operand.ast;
+            if nqp::isconcrete($ast) {
+                my $origin := nqp::istype($ast, Nodify('Node'))
+                  ?? $ast.origin
+                  !! $operand;
+                $origin := $operand unless nqp::isconcrete($origin);
+                $from := $origin.from if $origin.from < $from;
+                $to   := $origin.to   if $origin.to   > $to;
+            }
+        }
+        self.WIDEN-NODE-ORIGIN($node, $from, $to);
+        $node.origin.set-locus($/.from) if $at-operator && $node.origin.locus < $/.from;
+    }
+
+    # Widens the origins of a node and of the nodes down to one of its
+    # descendants to cover that descendant. Returns whether it was found.
+    method WIDEN-ORIGINS-TO($node, $descendant) {
+        return 1 if $node =:= $descendant;
+        my int $found;
+        $node.visit-children(-> $child {
+            $found := 1
+              if !$found && self.WIDEN-ORIGINS-TO($child, $descendant);
+        });
+        if $found {
+            my $origin := $descendant.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }
+        $found
+    }
+
     # A ternary expression
     method TERNARY-EXPR($/) {
-        self.attach: $/, Nodify('Ternary').new:
+        my $ternary := Nodify('Ternary').new:
           condition => $/[0].ast,
           then      => $<infix><EXPR>.ast,  # the way the grammar parses
           else      => $/[1].ast;
+        self.SET-EXPR-ORIGIN($/, $ternary, :at-operator);
+        self.attach: $/, $ternary;
     }
 
     # An assignment, or infix expression
@@ -1687,6 +1744,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                        Nodify('Postcircumfix::LiteralHashIndex')
                      ) {
                     $postfix.set-assignee($/[1].ast);
+                    self.SET-EXPR-ORIGIN($/, $lhs);
+                    self.WIDEN-ORIGINS-TO($lhs, $/[1].ast);
                     self.attach: $/, $lhs;
                     return;
                 }
@@ -1707,11 +1766,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $node.add-colonpair($<infix><colonpair>.ast);
         }
         my $cu := $*CU; # Might be too early to even have a CompUnit
-        $node.set-origin(
-            Nodify('Origin').new(
-                :from($/[0].from),
-                :to($/[1].to),
-                :source($*ORIGIN-SOURCE)));
+        self.SET-EXPR-ORIGIN($/, $node);
         $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
         make $node;
     }
@@ -1723,8 +1778,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $_.ast;
             @operands.push($ast) if nqp::isconcrete($ast);
         }
-        self.attach: $/, Nodify('ApplyListInfix').new:
+        my $node := Nodify('ApplyListInfix').new:
           infix => $/.ast, operands => @operands;
+        self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+        self.attach: $/, $node;
     }
 
     # A prefix expression
@@ -1732,12 +1789,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := Nodify('ApplyPrefix').new:
             prefix  => $/.ast // Nodify('Prefix').new($<prefix><sym>),
             operand => $/[0].ast;
-        $ast.set-origin(
-            Nodify('Origin').new:
-                :from($/.from),
-                :to($/[0].to),
-                :source($*ORIGIN-SOURCE)
-        );
+        self.SET-EXPR-ORIGIN($/, $ast);
         self.attach: $/, $ast;
     }
 
@@ -1752,7 +1804,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               && (nqp::istype($operand, Nodify('ColonPair'))
                     || nqp::istype($operand, Nodify('ColonPairs'))
                  ) {
-                self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
+                my $node := Nodify('ColonPairs').new($operand,$cp.ast);
+                self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                self.attach: $/, $node;
             }
             else {
                 if nqp::can($operand, 'add-colonpair') {
@@ -1760,6 +1814,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
                     }
                     $operand.add-colonpair($cp.ast);
+                    self.SET-EXPR-ORIGIN($/, $operand);
+                    self.WIDEN-ORIGINS-TO($operand, $cp.ast);
                 }
                 else {
                     $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
@@ -1772,6 +1828,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # A custom postcircumfix's subscript args are already in place, so
             # the operand must go first to become the sub's invocant argument.
             $ast.args.unshift: $operand;
+            self.SET-EXPR-ORIGIN($/, $ast);
             self.attach: $/, $ast;
         }
 
@@ -1786,18 +1843,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         :left($operand),
                         :right($ast);
                     my $cu := $*CU; # Might be too early to even have a CompUnit
-                    $node.set-origin(
-                        Nodify('Origin').new(
-                            :from($/[0].from),
-                            :to($/.to),
-                            :source($*ORIGIN-SOURCE)));
+                    self.SET-EXPR-ORIGIN($/, $node);
                     $node.to-begin-time($*R, $cu ?? $cu.context !! NQPMu);
                     make $node;
                 }
                 elsif nqp::istype($operand, Nodify('VarDeclaration::Anonymous')) && nqp::istype($ast, Nodify('Call::MetaMethod'))
                 {
                     # A call like $.^foo. Parses completely differently from $.foo
-                    self.attach: $/, Nodify('ApplyPostfix').new(
+                    my $node := Nodify('ApplyPostfix').new(
                         operand => Nodify('ApplyPostfix').new(
                             operand => Nodify('Term::Self').new.to-begin-time($*R, $*CU.context),
                             postfix => $ast
@@ -1808,10 +1861,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                             ).to-begin-time($*R, $*CU.context)
                         ).to-begin-time($*R, $*CU.context)
                     );
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
                 }
                 else {
-                    self.attach: $/, Nodify('ApplyPostfix').new:
+                    my $node := Nodify('ApplyPostfix').new:
                         postfix => $ast, operand => $operand;
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
                 }
             }
             # Report the sorry if there is no more specific sorry already
@@ -1820,9 +1877,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         else {
-            self.attach: $/, Nodify('ApplyPostfix').new:
+            my $node := Nodify('ApplyPostfix').new:
               postfix => Nodify('Postfix').new(:operator(~$<postfix><sym>)),
               operand => $operand;
+            self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+            self.attach: $/, $node;
         }
     }
 

@@ -3933,7 +3933,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>? {}
         <.stub-package($<longname>)>
         [ :dba('generic role')
-          <?{ ($*PKGDECL // '') eq 'role' }>
+          <?{ $*PACKAGE.declarator eq 'role' }>
           '[' ~ ']' <signature(:DECLARE-TARGETS(1))>
           { $*IN-DECL := ''; }
         ]?
@@ -3942,12 +3942,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $scope := $*R.leave-scope() }
         <.enter-package-scope($<signature>, $scope)>
         [
-          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
+          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PACKAGE.declarator eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
           || ';'
              [
                || <?{ $*START-OF-COMPUNIT }>
                   { $*START-OF-COMPUNIT := 0; }
-                  <unit-block($*PKGDECL, $*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
+                  <unit-block($*PKGDECL, $*PACKAGE.declarator eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
 
                || { $/.typed-panic: "X::UnitScope::TooLate", what => $*PKGDECL }
              ]

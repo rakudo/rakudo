@@ -192,7 +192,7 @@ augment class RakuAST::Node {
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
-                unless nqp::eqaddr($how,self.default-how)
+                unless nqp::eqaddr($how,self.declarator-how)
           },
           'implicit-topic', -> {
               :implicit-topic if self.implicit-topic

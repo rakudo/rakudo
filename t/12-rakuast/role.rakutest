@@ -1,7 +1,9 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
+use nqp;
 
-plan 13;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -708,6 +710,209 @@ subtest 'A role whose version dies when it is evaluated' => {
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         throws-like { EVAL($it) }, Exception, message => 'boom',
           "$type: the exception of the version is thrown";
+    }
+}
+
+subtest 'A role declarator a module added declares a role' => {
+    my $parsed := Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+my custom-role CustomParsedRole {
+    method m { 42 }
+}
+CODE
+    isa-ok $parsed.statements[1].expression, RakuAST::Role,
+      'parsed: a declarator whose HOW is a role HOW makes a role';
+
+    my $role := EVAL($parsed);
+    is $role.HOW.^name, 'CustomRoleHOW',
+      "AST: the role is made with the declarator's HOW";
+    is-deeply $role.new.m, 42, 'AST: the role puns';
+
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        my $role := EVAL($parsed.DEPARSE);
+        is $role.HOW.^name, 'CustomRoleHOW',
+          "Str: the role is made with the declarator's HOW";
+        is-deeply $role.new.m, 42, 'Str: the role puns';
+    }
+    else {
+        skip 'a custom role declarator is a RakuAST frontend feature', 2;
+    }
+
+    my $generic := EVAL Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+my custom-role CustomGenericRole[::T] {
+    method t { T }
+}
+CustomGenericRole
+CODE
+    is $generic.^candidates.head.HOW.^name, 'CustomRoleHOW',
+      "AST: a parameterized role is made with the declarator's HOW";
+    is-deeply $generic.^parameterize(Int).new.t, Int,
+      'AST: the parameterized role takes its type argument';
+
+    my $unit := EVAL Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+unit custom-role CustomUnitRole;
+method m { 42 }
+CODE
+    is $unit.HOW.^name, 'CustomRoleHOW',
+      "AST: a unit scoped role is made with the declarator's HOW";
+    is-deeply $unit.new.m, 42, 'AST: the unit scoped role puns';
+}
+
+subtest 'A role declarator a module added resolves in a tree' => {
+    # use CustomRoleDeclarator;
+    # my custom-role CustomRole {
+    #     method m {
+    #         42
+    #     }
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('CustomRoleDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Role.new(
+          scope             => 'my',
+          parsed-declarator => 'custom-role',
+          name              => RakuAST::Name.from-identifier('CustomRole'),
+          body              => RakuAST::RoleBody.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('m'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(42)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use CustomRoleDeclarator;
+my custom-role CustomRole {
+    method m {
+        42
+    }
+}
+CODE
+
+    my @routes = 'AST', $ast, 'Raku', EVAL($raku);
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        @routes.push: 'Str', $deparsed;
+    }
+    else {
+        skip 'a custom role declarator is a RakuAST frontend feature', 2;
+    }
+    for @routes -> $type, $it {
+        my $role := EVAL($it);
+        is $role.HOW.^name, 'CustomRoleHOW',
+          "$type: the role is made with the declarator's HOW";
+        is-deeply $role.new.m, 42, "$type: the role puns";
+    }
+
+    my $parsed := Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+my custom-role CustomParsedRole {
+    method m { 42 }
+}
+CODE
+    nok $parsed.raku.contains(/<< how >> \s* '=>'/),
+      "parsed: the declarator's HOW is not written in the .raku";
+    my $role := EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku);
+    is $role.HOW.^name, 'CustomRoleHOW',
+      "parsed: the .raku makes the role with the declarator's HOW";
+    is-deeply $role.new.m, 42, 'parsed: the role the .raku makes puns';
+}
+
+subtest 'A parameterized role declarator a module added resolves in a tree' => {
+    # use CustomRoleDeclarator;
+    # my custom-role CustomTypedRole[::T] {
+    #     method t {
+    #         T
+    #     }
+    # }
+    # CustomTypedRole
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('CustomRoleDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Role.new(
+          scope             => 'my',
+          parsed-declarator => 'custom-role',
+          name              => RakuAST::Name.from-identifier('CustomTypedRole'),
+          body              => RakuAST::RoleBody.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('t'),
+                    body => RakuAST::Blockoid.new(
+                      RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::Type::Simple.new(
+                            RakuAST::Name.from-identifier('T')
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          parameterization  => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type-captures => (
+                  RakuAST::Type::Capture.new(
+                    RakuAST::Name.from-identifier('T')
+                  ),
+                )
+              ),
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('CustomTypedRole')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use CustomRoleDeclarator;
+my custom-role CustomTypedRole[::T] {
+    method t {
+        T
+    }
+}
+CustomTypedRole
+CODE
+
+    my @routes = 'AST', $ast, 'Raku', EVAL($raku);
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        @routes.push: 'Str', $deparsed;
+    }
+    else {
+        skip 'a custom role declarator is a RakuAST frontend feature', 2;
+    }
+    for @routes -> $type, $it {
+        my $group := EVAL($it);
+        is $group.^candidates.head.HOW.^name, 'CustomRoleHOW',
+          "$type: the parameterized role is made with the declarator's HOW";
+        is-deeply $group.^parameterize(Int).new.t, Int,
+          "$type: the parameterized role takes its type argument";
     }
 }
 

@@ -826,6 +826,10 @@ class RakuAST::Type::Enum
     # Value names that clashed with an existing lexical, collected at BEGIN
     # time so a redeclaration worry can be reported at CHECK time.
     has Mu                  $!redeclared-values;
+    # The HOW the enum is made with. It is EnumHOW unless a use statement
+    # in scope supersedes `enum`. BEGIN time resolves it, before anything
+    # asks for the meta-object, which is made once.
+    has Mu                  $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -841,6 +845,7 @@ class RakuAST::Type::Enum
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!how', Perl6::Metamodel::EnumHOW);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -903,6 +908,8 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('enum');
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
@@ -1143,7 +1150,7 @@ class RakuAST::Type::Enum
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::EnumHOW.new_type(
+        $!how.new_type(
             :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
         )
@@ -1167,6 +1174,10 @@ class RakuAST::Type::Subset
 
     has Mu $!current-package;
     has Mu $!block;
+    # The HOW the subset is made with. It is SubsetHOW unless a use
+    # statement in scope supersedes `subset`. BEGIN time resolves it, before
+    # anything asks for the meta-object, which is made once.
+    has Mu $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name!,
@@ -1185,6 +1196,7 @@ class RakuAST::Type::Subset
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
         }
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!how', Perl6::Metamodel::SubsetHOW);
         $obj.set-traits($traits) if $traits;
         $obj.set-WHY($WHY);
         $obj.set-resolution($obj);
@@ -1256,6 +1268,8 @@ class RakuAST::Type::Subset
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('subset');
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
 
         self.apply-traits($resolver, $context, self);
@@ -1339,7 +1353,7 @@ class RakuAST::Type::Subset
         %options<refinement> := nqp::null;
         %options<name> := $!name.canonicalize(:colonpairs(0))
           if $!name.is-installable;
-        Perl6::Metamodel::SubsetHOW.new_type(|%options)
+        $!how.new_type(|%options)
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

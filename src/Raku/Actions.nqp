@@ -574,10 +574,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*LANGUAGE-REVISION := $language-revision;
 
         # Locate an EXPORTHOW and set those mappings on our current language.
+        # A subset or an enum looks them up in the resolver.
         my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');
         if $EXPORTHOW {
             for stash-hash($EXPORTHOW.compile-time-value) {
                 $LANG.set_how($_.key, $_.value);
+                $RESOLVER.declare-exporthow($_.key, nqp::decont($_.value), :unit);
             }
         }
 
@@ -3157,16 +3159,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ast-class := %special{$declarator};
         }
         else {
-            # A custom declarator registered via EXPORTHOW::DECLARE. Route to
-            # RakuAST::Class when the HOW can take attributes so the body's
-            # `has` declarations have an attach target; otherwise to bare
-            # RakuAST::Package so attribute usage emits the typed
-            # `cannot have attributes` error rather than a method-missing
-            # crash. The HOW handles compose either way.
-            $ast-class := nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
+            # A custom declarator registered via EXPORTHOW::DECLARE. A HOW
+            # that takes a body block makes a RakuAST::Role. That test comes
+            # first, since a role HOW takes attributes too. A HOW that takes
+            # attributes makes a RakuAST::Class, so the `has` declarations of
+            # its body have an attach target. Any other HOW makes a bare
+            # RakuAST::Package, so a `has` in its body reports the typed
+            # `cannot have attributes` error instead of a missing method. The
+            # HOW composes the type in every case.
+            $ast-class := nqp::can($how, 'set_body_block')
+              ?? 'Role'
+              !! nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
         }
         my $package := Nodify($ast-class).new(
-          :$how, :$name, :$scope, :$augmented, :$attribute-type,
+          :declarator-how($how), :$name, :$scope, :$augmented, :$attribute-type,
           :parsed-declarator($declarator)
         );
 

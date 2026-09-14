@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -390,6 +391,82 @@ subtest 'An of trait stays where it was written' => {
     is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
       $parsed.DEPARSE,
       'parsed: the trait keeps its place through the .raku';
+}
+
+subtest 'A subset declarator a module superseded resolves in a tree' => {
+    # use SupersedeSubset;
+    # my subset Superseded of Int;
+    # Superseded
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('SupersedeSubset')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Subset.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Superseded'),
+          of    => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Int')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Superseded')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use SupersedeSubset;
+my subset Superseded of Int;
+Superseded
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is $subset.HOW.^name, 'SupersededSubsetHOW',
+          "$type: the subset is made with the superseding HOW";
+        ok 42 ~~ $subset, "$type: the subset accepts 42";
+        nok "foo" ~~ $subset, "$type: the subset does not accept foo";
+    }
+
+    for Q:to/CODE/, Q:to/CODE/ -> $source {
+use SupersedeSubset;
+my Int $x where * > 1 = 2;
+$x.VAR.of
+CODE
+use SupersedeSubset;
+my class WithWhere {
+    has Int $.x is required where * > 1
+}
+WithWhere.^attributes.head.type
+CODE
+        my $parsed := $source.AST;
+        my $what := $source.lines[1].starts-with('my class')
+          ?? 'an attribute' !! 'a variable';
+        is-deeply $parsed.DEPARSE, $source, "parsed: the where of $what deparses";
+        for
+          'AST', $parsed,
+          'Str', $parsed.DEPARSE,
+          'Raku', EVAL('use experimental :rakuast; ' ~ $parsed.raku)
+        -> $type, $it {
+            is EVAL($it).HOW.^name, 'SupersededSubsetHOW',
+              "$type: the where of $what makes its subset with the superseding HOW";
+        }
+    }
+
+    {
+        my class LexicalSubsetHOW is Metamodel::SubsetHOW { }
+        my package EXPORTHOW {
+            constant subset = LexicalSubsetHOW;
+        }
+        is EVAL('my subset LexicalSubset of Int; LexicalSubset').HOW.^name,
+          'LexicalSubsetHOW',
+          'Str: a subset in an EVAL takes the HOW of the lexical EXPORTHOW';
+    }
 }
 
 # vim: expandtab shiftwidth=4

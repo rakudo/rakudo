@@ -3170,7 +3170,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               !! nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
         }
         my $package := Nodify($ast-class).new(
-          :$how, :$name, :$scope, :$augmented, :$attribute-type,
+          :declarator-how($how), :$name, :$scope, :$augmented, :$attribute-type,
           :parsed-declarator($declarator)
         );
 

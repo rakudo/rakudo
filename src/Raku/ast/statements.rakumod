@@ -2802,6 +2802,14 @@ class RakuAST::Statement::Use
         my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $context, $!module-name);
         self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist, :module($!module-name.canonicalize));
         self.IMPL-IMPORT-EXPORTHOW($resolver, $comp-unit.handle);
+
+        # A package built as a tree resolves its declarator through these,
+        # as the parser resolves it through the language braid.
+        for (self.superseded-declarators, self.added-declarators, self.unchecked-declarators) {
+            for $_ {
+                $resolver.declare-exporthow($_.key, nqp::decont($_.value));
+            }
+        }
     }
 
     method visit-children(Code $visitor) {

@@ -19,8 +19,9 @@ class RakuAST::Package
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $.body;
-    has Mu            $.attribute-type;
-    has Mu            $.how;
+    has Mu            $!attribute-type;
+    has Mu            $!how;
+    has Mu            $!declarator-how;
     has Str           $.repr;
     has Bool          $.augmented;
     has str           $!parsed-declarator;
@@ -55,6 +56,7 @@ class RakuAST::Package
                RakuAST::Code :$body,
                           Mu :$attribute-type,
                           Mu :$how,
+                          Mu :$declarator-how,
                          Str :$repr,
                         Bool :$augmented,
                         Bool :$is-stub,
@@ -65,10 +67,9 @@ class RakuAST::Package
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
-          nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
-        nqp::bindattr($obj, RakuAST::Package, '$!how',
-          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
+        nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!declarator-how', $declarator-how);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
         nqp::bindattr($obj, RakuAST::Package, '$!is-require-stub',$is-require-stub // False);
@@ -89,6 +90,62 @@ class RakuAST::Package
     # what the user typed prefer this over `declarator`, which returns
     # the AST class's static name.
     method parsed-declarator() { $!parsed-declarator || self.declarator }
+
+    # The meta-object the package is made with: the one given as `how`,
+    # else the one its declarator stands for, else the default.
+    method how() {
+        nqp::eqaddr($!how, NQPMu)
+          ?? nqp::eqaddr($!declarator-how, NQPMu)
+            ?? self.default-how
+            !! $!declarator-how
+          !! $!how
+    }
+
+    # The meta-object the declarator stands for, which the .raku does not
+    # write. The parser passes it as `declarator-how`. A package given
+    # neither this nor `how` resolves it from the use statements in scope
+    # and stands for the default until then. Mu for a package given `how`.
+    method declarator-how() {
+        nqp::eqaddr($!how, NQPMu)
+          ?? nqp::eqaddr($!declarator-how, NQPMu)
+            ?? self.default-how
+            !! $!declarator-how
+          !! Mu
+    }
+
+    method attribute-type() {
+        nqp::eqaddr($!attribute-type, NQPMu) ?? Attribute !! $!attribute-type
+    }
+
+    # Resolves the meta-object and the attribute type a package built as a
+    # tree was not given from the use statements in scope, as the parser
+    # resolves them apart. A declarator other than the one the node class
+    # names is a sorry when none declared it. It must run before anything
+    # asks for the meta-object, which is made once.
+    method IMPL-RESOLVE-DECLARATOR(RakuAST::Resolver $resolver) {
+        return Nil unless nqp::eqaddr($!declarator-how, NQPMu);
+
+        my str $declarator := self.parsed-declarator;
+        if nqp::eqaddr($!attribute-type, NQPMu) {
+            my $found := $resolver.resolve-exporthow($declarator ~ '-attr');
+            nqp::bindattr(self, RakuAST::Package, '$!attribute-type', $found[0])
+              if $found;
+        }
+
+        if nqp::eqaddr($!how, NQPMu) {
+            my $found := $resolver.resolve-exporthow($declarator);
+            if $found {
+                nqp::bindattr(self, RakuAST::Package, '$!declarator-how', $found[0]);
+            }
+            else {
+                nqp::bindattr(self, RakuAST::Package, '$!declarator-how', self.default-how);
+                self.add-sorry: $resolver.build-exception: 'X::Comp::AdHoc',
+                  payload => "Cannot resolve meta-object for $declarator"
+                  if $declarator ne self.declarator;
+            }
+        }
+        Nil
+    }
 
     # Informational methods
     method declarator()  { "package"             }
@@ -130,6 +187,7 @@ class RakuAST::Package
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-RESOLVE-DECLARATOR($resolver);
         self.IMPL-SET-PENDING-COLONPAIRS($resolver, $context);
 
         if $!augmented {
@@ -442,7 +500,7 @@ class RakuAST::Package
                       if nqp::elems(@pending);
                 }
             }
-            my $meta-object := $!how.new_type(|%options);
+            my $meta-object := self.how.new_type(|%options);
             if $!is-require-stub {
                 my $cont := nqp::create(Scalar);
                 nqp::bindattr($cont, Scalar, '$!value', $meta-object);
@@ -512,6 +570,10 @@ class RakuAST::Package
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
         unless $!block-semantics-applied {
+            # A tree applies block semantics before its parse time. The
+            # lexicals made here capture the meta-object, so the declarator
+            # is resolved first.
+            self.IMPL-RESOLVE-DECLARATOR($resolver) if nqp::isconcrete($resolver);
             self.meta-object-as-body-lexicals('PACKAGE', :$resolver, :$context);
             self.additional-body-lexicals(:$resolver, :$context);
 
@@ -590,6 +652,7 @@ class RakuAST::Package::Attachable
                RakuAST::Code :$body,
                           Mu :$attribute-type,
                           Mu :$how,
+                          Mu :$declarator-how,
                          Str :$repr,
                         Bool :$augmented,
                         Bool :$is-stub,
@@ -599,10 +662,9 @@ class RakuAST::Package::Attachable
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
-          nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
-        nqp::bindattr($obj, RakuAST::Package, '$!how',
-          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
+        nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!declarator-how', $declarator-how);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
         nqp::bindattr_s($obj, RakuAST::Package, '$!parsed-declarator', $parsed-declarator);
@@ -689,10 +751,7 @@ class RakuAST::Role
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
 
     # Called twice: once from Package.new with no real body, then again
-    # from package-def with the parsed body. Only wrap the body when we
-    # have one, since the wrapping calls stubbed-meta-object and that
-    # memoizes; running it before parser state is bound caches a wrong
-    # meta-object.
+    # from package-def with the parsed body.
     method replace-body(RakuAST::Code $role-body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
         # of the role as the signature.  This allows a role to be selected
@@ -726,9 +785,7 @@ class RakuAST::Role
             $body.statement-list.add-statement(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::Nqp.new('list',
-                  RakuAST::Declaration::ResolvedConstant.new(
-                    compile-time-value => self.stubbed-meta-object
-                  ),
+                  RakuAST::Role::MetaObject.new(self),
                   nqp::elems($!instantiation-lexicals)
                       ?? RakuAST::Role::TypeEnvVar.new($resolve-instantiations.type-env-var)
                       !! RakuAST::Nqp.new('curlexpad')
@@ -941,6 +998,27 @@ class RakuAST::Role::ResolveInstantiations
         else {
             QAST::Op.new(:op<null>)
         }
+    }
+}
+
+# The meta-object of a role, for the list its body returns. It is asked for
+# when the body is compiled. A role in a tree is given its body before its
+# declarator is resolved, and the meta-object is made once.
+class RakuAST::Role::MetaObject
+    is RakuAST::Expression
+{
+    has RakuAST::Role $!role;
+
+    method new(RakuAST::Role $role) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Role::MetaObject, '$!role', $role);
+        $obj
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!role.stubbed-meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new(:$value)
     }
 }
 

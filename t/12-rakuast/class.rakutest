@@ -3,7 +3,7 @@ use lib <t/packages/12-rakuast/lib>;
 use Test;
 use CustomDeclarator;
 
-plan 41;
+plan 47;
 
 my $ast;
 my $deparsed;
@@ -1778,6 +1778,38 @@ CODE
     is-deeply EVAL($raku).DEPARSE, $deparsed,
       'Raku: the declarator survives the .raku';
 
+    # use CustomDeclarator;
+    # my custom-class CustomResolved { }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope             => 'my',
+          parsed-declarator => 'custom-class',
+          name              => RakuAST::Name.from-identifier('CustomResolved')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse: a declarator given no how';
+use CustomDeclarator;
+my custom-class CustomResolved { }
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.^name, 'CustomResolved',
+          "$type: the class given no how is declared";
+        is $class.HOW.^name, 'CustomDeclaratorHOW',
+          "$type: the HOW the module added builds the class given no how";
+    }
+    nok $ast.raku.contains(/<< how >> \s* '=>'/),
+      'Raku: the HOW the declarator resolved to is not written';
+
     my $parsed := Q:to/CODE/.AST;
 use CustomDeclarator;
 custom-class CustomParsed { }
@@ -1792,6 +1824,374 @@ CODE
     is-deeply "use CustomDeclarator;\nunit custom-class CustomUnit;\n".AST.DEPARSE,
       "use CustomDeclarator;\nunit custom-class CustomUnit;\n",
       'parsed: a unit scoped declaration keeps the declarator';
+
+    my $parsed-lexical := Q:to/CODE/.AST;
+use CustomDeclarator;
+my custom-class CustomParsedLexical { }
+CODE
+    nok $parsed-lexical.raku.contains(/<< how >> \s* '=>'/),
+      "parsed: the declarator's HOW is not written in the .raku";
+    is EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed-lexical.raku).HOW.^name,
+      'CustomDeclaratorHOW',
+      "parsed: the .raku builds the class with the declarator's HOW";
+}
+
+subtest 'A declarator a module superseded resolves in a tree' => {
+    # use SupersedeDeclarator;
+    # my class Superseded {
+    #     has $.a
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('SupersedeDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Superseded'),
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('a')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use SupersedeDeclarator;
+my class Superseded {
+    has $.a
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.HOW.^name, 'SupersededClassHOW',
+          "$type: the class is made with the superseding HOW";
+        is $class.^attributes.head.^name, 'SupersededAttribute',
+          "$type: the attribute is made with the superseding attribute type";
+    }
+
+    my $parsed := Q:to/CODE/.AST;
+use SupersedeDeclarator;
+my class SupersededParsed {
+    has $.a
+}
+CODE
+    nok $parsed.raku.contains(/<< how >> \s* '=>'/),
+      'parsed: the superseding HOW is not written in the .raku';
+    my $class := EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku);
+    is $class.HOW.^name, 'SupersededClassHOW',
+      'parsed: the .raku makes the class with the superseding HOW';
+    is $class.^attributes.head.^name, 'SupersededAttribute',
+      'parsed: the .raku makes the attribute with the superseding attribute type';
+}
+
+subtest 'A unit scoped declarator a module added resolves in a tree' => {
+    for 'AST', 'Str', 'Raku' -> $type {
+        my $name := "CustomUnit$type";
+
+        # use CustomDeclarator;
+        # unit custom-class CustomUnit$type;
+        # method m {
+        #     42
+        # }
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Use.new(
+            module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Class.new(
+              scope             => 'unit',
+              parsed-declarator => 'custom-class',
+              name              => RakuAST::Name.from-identifier($name),
+              body              => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Method.new(
+                        name => RakuAST::Name.from-identifier('m'),
+                        body => RakuAST::Blockoid.new(
+                          RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                              expression => RakuAST::IntLiteral.new(42)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, qq:to/CODE/, "$type: deparse";
+use CustomDeclarator;
+unit custom-class $name;
+method m \{
+    42
+}
+CODE
+
+        my $class := EVAL($type eq 'AST'
+          ?? $ast
+          !! $type eq 'Str'
+            ?? $deparsed
+            !! EVAL $raku
+        );
+        is $class.HOW.^name, 'CustomDeclaratorHOW',
+          "$type: the unit scoped class is made with the declarator's HOW";
+        is-deeply $class.m, 42, "$type: the unit scoped class has its method";
+    }
+}
+
+subtest 'A declarator no module added is a sorry' => {
+    # my nonesuch Unresolved { }
+    ast RakuAST::Class.new(
+      scope             => 'my',
+      parsed-declarator => 'nonesuch',
+      name              => RakuAST::Name.from-identifier('Unresolved')
+    );
+    is-deeply $deparsed, 'my nonesuch Unresolved { }', 'deparse';
+
+    throws-like { EVAL($ast) }, X::Comp,
+      message => /'Cannot resolve meta-object for nonesuch'/,
+      'AST: the declarator is not known';
+    dies-ok { EVAL($deparsed) }, 'Str: the declarator does not parse';
+    throws-like { EVAL(EVAL $raku) }, X::Comp,
+      message => /'Cannot resolve meta-object for nonesuch'/,
+      'Raku: the declarator is not known';
+}
+
+subtest 'A how given by hand is kept over a superseding declarator' => {
+    # use SupersedeDeclarator;
+    # my class GivenHow {
+    #     has $.a
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('SupersedeDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('GivenHow'),
+          how   => Metamodel::ClassHOW,
+          body  => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::VarDeclaration::Simple.new(
+                    scope       => 'has',
+                    sigil       => '$',
+                    twigil      => '.',
+                    desigilname => RakuAST::Name.from-identifier('a')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use SupersedeDeclarator;
+my class GivenHow {
+    has $.a
+}
+CODE
+    ok $raku.contains(/<< how >> \s* '=>'/),
+      'Raku: the how given by hand is written';
+
+    for
+      'AST', EVAL($ast),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.HOW.^name, 'Perl6::Metamodel::ClassHOW',
+          "$type: the class is made with the how given by hand";
+        is $class.^attributes.head.^name, 'SupersededAttribute',
+          "$type: the attribute type is resolved apart from the how";
+    }
+
+    my $class := EVAL($deparsed);
+    is $class.HOW.^name, 'SupersededClassHOW',
+      'Str: the deparse carries no how and takes the superseding HOW';
+    is $class.^attributes.head.^name, 'SupersededAttribute',
+      'Str: the deparse takes the superseding attribute type';
+}
+
+subtest 'A declarator a module added resolves in the scope of its use' => {
+    # {
+    #     use CustomDeclarator;
+    #     my custom-class InBlock { }
+    # }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Use.new(
+                module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Class.new(
+                  scope             => 'my',
+                  parsed-declarator => 'custom-class',
+                  name              => RakuAST::Name.from-identifier('InBlock')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse: a use in a block';
+{
+    use CustomDeclarator;
+    my custom-class InBlock { }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.HOW.^name, 'CustomDeclaratorHOW',
+          "$type: a package in the block of the use resolves the declarator";
+    }
+
+    # my class OuterBody {
+    #     use CustomDeclarator;
+    #     custom-class InBody { }
+    # }
+    ast RakuAST::Class.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier('OuterBody'),
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Use.new(
+              module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Class.new(
+                scope             => 'our',
+                parsed-declarator => 'custom-class',
+                name              => RakuAST::Name.from-identifier('InBody')
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse: a use in a package body';
+my class OuterBody {
+    use CustomDeclarator;
+    custom-class InBody { }
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $class {
+        is $class.WHO<InBody>.HOW.^name, 'CustomDeclaratorHOW',
+          "$type: a package in the package body of the use resolves the declarator";
+    }
+
+    # {
+    #     use CustomDeclarator
+    # }
+    # my custom-class AfterBlock { }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Use.new(
+                module-name => RakuAST::Name.from-identifier('CustomDeclarator')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
+          scope             => 'my',
+          parsed-declarator => 'custom-class',
+          name              => RakuAST::Name.from-identifier('AfterBlock')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse: a package after the block of the use';
+{
+    use CustomDeclarator
+}
+my custom-class AfterBlock { }
+CODE
+
+    throws-like { EVAL($ast) }, X::Comp,
+      message => /'Cannot resolve meta-object for custom-class'/,
+      'AST: the declarator is not known after the block of the use';
+    dies-ok { EVAL($deparsed) },
+      'Str: the declarator does not parse after the block of the use';
+    throws-like { EVAL(EVAL $raku) }, X::Comp,
+      message => /'Cannot resolve meta-object for custom-class'/,
+      'Raku: the declarator is not known after the block of the use';
+}
+
+subtest 'A declarator a module supersedes unchecked resolves in a tree' => {
+    # use UncheckedDeclarator;
+    # my grammar Unchecked { }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('UncheckedDeclarator')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Grammar.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Unchecked')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use UncheckedDeclarator;
+my grammar Unchecked { }
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $grammar {
+        is $grammar.HOW.^name, 'UncheckedGrammarHOW',
+          "$type: the grammar is made with the superseding HOW";
+    }
+
+    my $parsed := Q:to/CODE/.AST;
+use UncheckedDeclarator;
+my grammar UncheckedParsed { }
+CODE
+    nok $parsed.raku.contains(/<< how >> \s* '=>'/),
+      'parsed: the superseding HOW is not written in the .raku';
+    is EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku).HOW.^name,
+      'UncheckedGrammarHOW',
+      'parsed: the .raku makes the grammar with the superseding HOW';
 }
 
 subtest 'An attribute default read from a typed attribute or lexical' => {

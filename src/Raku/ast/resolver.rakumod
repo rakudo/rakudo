@@ -50,6 +50,12 @@ class RakuAST::Resolver {
     has Mu $!sorries;
     has Mu $!worries;
 
+    # The declarators use statements took from a module's EXPORTHOW,
+    # keyed by the object id of the lexical scope of the use statement. Each
+    # value maps a declarator, or its `-attr` companion, to the type the
+    # module gave it.
+    has Mu $!exporthow;
+
     method register-compunit-role-group(Mu $group) {
         $!compunit-role-groups{nqp::objectid($group)} := $group;
         Nil
@@ -117,6 +123,8 @@ class RakuAST::Resolver {
           nqp::clone($!our-package-decl-map));
         nqp::bindattr($clone,RakuAST::Resolver,'$!compunit-role-groups',
           nqp::clone($!compunit-role-groups));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!exporthow',
+          nqp::clone($!exporthow));
         $clone
     }
 
@@ -176,6 +184,31 @@ class RakuAST::Resolver {
         nqp::isconcrete(@stack) && nqp::elems(@stack) > +$skip-first
           ?? @stack[nqp::elems(@stack) - (1 + $skip-first)]
           !! Nil
+    }
+
+    # Makes a declarator known in the current lexical scope and the scopes
+    # inside it.
+    method declare-exporthow(str $declarator, Mu $how) {
+        my str $key := nqp::objectid(self.current-scope);
+        my $declarators := nqp::atkey($!exporthow, $key);
+        $!exporthow{$key} := $declarators := nqp::hash
+          unless nqp::isconcrete($declarators);
+        $declarators{$declarator} := $how;
+        Nil
+    }
+
+    # The type a use statement in an active scope declared for the name,
+    # nearest scope first, in a one element list. The list keeps
+    # find-scope-property from skipping a type object. Nil when no use
+    # statement declared it.
+    method resolve-exporthow(str $declarator) {
+        my $declarators := $!exporthow;
+        self.find-scope-property(-> $scope {
+            my $known := nqp::atkey($declarators, nqp::objectid($scope));
+            nqp::isconcrete($known) && nqp::existskey($known, $declarator)
+              ?? nqp::list($known{$declarator})
+              !! Nil
+        })
     }
 
     # Set the global package when we're starting a fresh compilation unit.
@@ -1231,6 +1264,7 @@ class RakuAST::Resolver::EVAL
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
         nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package
@@ -1519,6 +1553,7 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);

@@ -181,6 +181,8 @@ subtest "Spans" => {
       1, 2 );
     L1: for ^1 { }
     $s ~~ rx/ ab /;
+    #| doc for dd
+    sub dd(Int $q = 3) { } #= trailing for dd
     $a += 1;
     my ($w = 7);
     $s = << a # c
@@ -188,6 +190,9 @@ subtest "Spans" => {
     @a = [ # c
     ];
     my $pp = Pair.new :key<a>;
+    #| #hash doc
+    sub ee() { }
+    sub ff() { } #=((nested doc))
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -228,7 +233,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 55;
+    plan 58;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -358,6 +363,12 @@ subtest "Spans" => {
       'the declaration of a parameter target covers its variable';
     is text(node(RakuAST::ApplyInfix, 1).args), '$a + 1',
       'the argument list of an infix application spans its operands';
+    is text(node(RakuAST::Sub, 3).WHY), "#| doc for dd\nsub dd(Int \$q = 3) \{ } #= trailing for dd",
+      'a declarator doc spans its leading and trailing doc comments';
+    is text(node(RakuAST::Sub, *.name.canonicalize eq 'ee').WHY), '#| #hash doc',
+      'a declarator doc whose text starts with a # covers its #|';
+    is text(node(RakuAST::Sub, *.name.canonicalize eq 'ff').WHY), '#=((nested doc))',
+      'a declarator doc with doubled brackets covers all of its closers';
     is text(node(RakuAST::VarDeclaration::Signature, 2).signature.parameters[0].target.declaration),
       '$w = 7',
       'a variable of a list declaration covers the default it takes over';

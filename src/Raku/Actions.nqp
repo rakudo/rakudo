@@ -1200,7 +1200,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.adopt-declarand-docs($/, $it);
 
             if @*LEADING-DOC -> @leading {
-                $it.set-leading(@leading);
+                my @texts;
+                nqp::push(@texts, ~$_) for @leading;
+                $it.set-leading(@texts);
+                self.WIDEN-DOC-ORIGIN($it, $_) for @leading;
                 @*LEADING-DOC := [];
             }
             $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
@@ -1255,6 +1258,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         while $first < $n {
             my $doc := @inside[$first++];
             $it.add-trailing(~$doc);
+            self.WIDEN-DOC-ORIGIN($it, $doc);
             ++$*FROM-SEEN{$doc.from};
             nqp::deletekey($worries, $doc.from);
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($doc.from);
@@ -4875,7 +4879,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Declator doc handling
 
     method add-leading-declarator-doc($/) {
-        nqp::push(@*LEADING-DOC,~$/) unless $*FROM-SEEN{$/.from}++;
+        nqp::push(@*LEADING-DOC,$/) unless $*FROM-SEEN{$/.from}++;
+    }
+
+    # Widens the origin of a declarand's doc over a doc comment, given the
+    # match of the comment's text, which follows its #| or #= and openers.
+    method WIDEN-DOC-ORIGIN($it, $doc) {
+        my $WHY := $it.WHY;
+        if nqp::isconcrete($WHY) {
+            my str $orig := $doc.orig;
+            my int $from := $doc.from - 2;
+            --$from
+              while $from > 0
+                && !(nqp::eqat($orig, '#|', $from) || nqp::eqat($orig, '#=', $from));
+            my int $to := $doc.to;
+            # a bracketed doc closes with as many closers as it has openers
+            $to := $to + $doc.from - $from - 2
+              unless nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $from + 2);
+            self.WIDEN-NODE-ORIGIN($WHY, $from, $to);
+        }
     }
 
     method comment:sym<#|(...)>($/) {
@@ -4908,8 +4930,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
         }
 
+        my $actions := self;
         sub accept($/) {
             $*DECLARAND.add-trailing(~$/);
+            $actions.WIDEN-DOC-ORIGIN($*DECLARAND, $/);
             ++$*FROM-SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);
         }

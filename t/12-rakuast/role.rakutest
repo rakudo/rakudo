@@ -1,7 +1,9 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
+use nqp;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -709,6 +711,53 @@ subtest 'A role whose version dies when it is evaluated' => {
         throws-like { EVAL($it) }, Exception, message => 'boom',
           "$type: the exception of the version is thrown";
     }
+}
+
+subtest 'A role declarator a module added declares a role' => {
+    my $parsed := Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+my custom-role CustomParsedRole {
+    method m { 42 }
+}
+CODE
+    isa-ok $parsed.statements[1].expression, RakuAST::Role,
+      'parsed: a declarator whose HOW is a role HOW makes a role';
+
+    my $role := EVAL($parsed);
+    is $role.HOW.^name, 'CustomRoleHOW',
+      "AST: the role is made with the declarator's HOW";
+    is-deeply $role.new.m, 42, 'AST: the role puns';
+
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        my $role := EVAL($parsed.DEPARSE);
+        is $role.HOW.^name, 'CustomRoleHOW',
+          "Str: the role is made with the declarator's HOW";
+        is-deeply $role.new.m, 42, 'Str: the role puns';
+    }
+    else {
+        skip 'a custom role declarator is a RakuAST frontend feature', 2;
+    }
+
+    my $generic := EVAL Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+my custom-role CustomGenericRole[::T] {
+    method t { T }
+}
+CustomGenericRole
+CODE
+    is $generic.^candidates.head.HOW.^name, 'CustomRoleHOW',
+      "AST: a parameterized role is made with the declarator's HOW";
+    is-deeply $generic.^parameterize(Int).new.t, Int,
+      'AST: the parameterized role takes its type argument';
+
+    my $unit := EVAL Q:to/CODE/.AST;
+use CustomRoleDeclarator;
+unit custom-role CustomUnitRole;
+method m { 42 }
+CODE
+    is $unit.HOW.^name, 'CustomRoleHOW',
+      "AST: a unit scoped role is made with the declarator's HOW";
+    is-deeply $unit.new.m, 42, 'AST: the unit scoped role puns';
 }
 
 # vim: expandtab shiftwidth=4

@@ -377,7 +377,7 @@ augment class Rakudo::Internals {
           },
 
           '$*TMPDIR', anon sub TMPDIR() is raw {
-              PROCESS::<$TMPDIR> := my IO $ = $*SPEC.tmpdir
+              PROCESS::<$TMPDIR> := my IO() $ = $*SPEC.tmpdir
           },
 
           '$*TOLERANCE', anon sub TOLERANCE() is raw {

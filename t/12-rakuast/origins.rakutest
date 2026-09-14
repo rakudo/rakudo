@@ -9,7 +9,22 @@ use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 5;
+
+subtest "Line of a declaration with its keyword on an earlier line" => {
+    plan 3;
+    # The span of a declaration starts at its keyword, while the line of
+    # its code object and of its reported problems stays the line of its name.
+    is EVAL(q[sub
+        foo() { }; &foo]).line, 2,
+      'a sub reports the line of its name';
+    is EVAL(q[class K { method
+        m() { } }; K]).^lookup('m').line, 2,
+      'a method reports the line of its name';
+    throws-like { EVAL q[my
+        $x is foo;] }, X::Comp, line => 2,
+      'a problem with a variable declaration is reported on the line of its name';
+}
 
 subtest "Text of an operator application" => {
     plan 1;
@@ -136,6 +151,17 @@ subtest "Spans" => {
     -$a++;
     $a.=abs;
     $a = 1 + 2 * 3;
+    my Int $v = 1;
+    our sub f(Int $p) { }
+    multi sub g() { }
+    class K is Any {
+        has Int $.k is rw;
+        method m() { }
+        submethod BUILD() { }
+    }
+    my \t = 5;
+    grammar Gr { token t { a } }
+    my ($s, $u);
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -156,15 +182,24 @@ subtest "Spans" => {
     }
     collect($root);
 
-    sub span(Mu $type, Int $index = 0) {
-        my $node = %nodes{$type.^name}[$index];
-        my $origin = $node.origin;
+    # The source text of the node of a type at an index in depth first
+    # order, or of the first node of the type a condition holds for.
+    sub node(Mu $type, $which) {
+        $which ~~ Int
+          ?? %nodes{$type.^name}[$which]
+          !! %nodes{$type.^name}.first($which)
+    }
+    sub span(Mu $type, $which = 0) {
+        my $origin = node($type, $which).origin;
         $origin
           ?? $source.substr($origin.from, $origin.to - $origin.from)
           !! Nil
     }
+    sub from(Mu $type, $which = 0) {
+        node($type, $which).origin.from
+    }
 
-    plan 11;
+    plan 21;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -188,6 +223,27 @@ subtest "Spans" => {
       'an infix application covers a reduced left operand';
     is span(RakuAST::ApplyInfix, 4), '2 * 3',
       'an infix application nested on the right covers its operands';
+
+    is span(RakuAST::VarDeclaration::Signature, 1), 'my ($s, $u)',
+      'a list declaration covers its scope declarator';
+    is span(RakuAST::VarDeclaration::Simple, *.name eq '$v'), 'my Int $v = 1',
+      'a variable declaration covers its scope declarator and type';
+    is span(RakuAST::Sub, 0), 'our sub f(Int $p) { }',
+      'a sub covers its scope declarator and keyword';
+    is span(RakuAST::Sub, 1), 'multi sub g() { }',
+      'a multi sub covers its multi declarator';
+    is from(RakuAST::Class), $source.index('class K'),
+      'a class starts at its package declarator';
+    is span(RakuAST::VarDeclaration::Simple, *.name eq '$.k'), 'has Int $.k is rw',
+      'an attribute covers its scope declarator';
+    is span(RakuAST::Method), 'method m() { }',
+      'a method covers its keyword';
+    is span(RakuAST::Submethod), 'submethod BUILD() { }',
+      'a submethod covers its keyword';
+    is span(RakuAST::VarDeclaration::Term), 'my \t = 5',
+      'a sigilless declaration covers its scope declarator';
+    is from(RakuAST::TokenDeclaration), $source.index('token t'),
+      'a token starts at its keyword';
 }
 
 if $*DISTRO.is-win {

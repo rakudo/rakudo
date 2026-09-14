@@ -3098,13 +3098,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Declarations
 
-    method package-declarator:sym<package>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<module>($/)  { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<class>($/)   { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<grammar>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<role>($/)    { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<knowhow>($/) { self.attach: $/, $<package-def>.ast; }
-    method package-declarator:sym<native>($/)  { self.attach: $/, $<package-def>.ast; }
+    # A declaration's origin starts at its declarator keyword.
+    method DECLARATOR($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $ast.origin.to)
+          if nqp::isconcrete($ast.origin);
+        self.attach: $/, $ast;
+    }
+
+    method package-declarator:sym<package>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<module>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<class>($/)   { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<grammar>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<role>($/)    { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<knowhow>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<native>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
 
     sub is-yada($/) {
         if $<blockoid><statementlist> -> $statementlist {
@@ -3269,30 +3276,30 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.pop-package();
     }
 
-    method scope-declarator:sym<my>($/)    { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<our>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<has>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<HAS>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
-    method scope-declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<my>($/)    { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<our>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<has>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<HAS>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<anon>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<state>($/) { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<unit>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
 
-    method scope-declarator:sym<augment>($/) { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<augment>($/) { self.DECLARATOR($/, $<scoped>.ast); }
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;
     }
 
     method multi-declarator:sym<multi>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<proto>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<only>($/) {
-        self.attach: $/, ($<declarator> || $<routine-def>).ast;
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
     }
 
     method multi-declarator:sym<null>($/) {
@@ -3469,13 +3476,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method routine-declarator:sym<sub>($/) {
-        self.attach: $/, $<routine-def>.ast;
+        self.DECLARATOR($/, $<routine-def>.ast);
     }
     method routine-declarator:sym<method>($/) {
-        self.attach: $/, $<method-def>.ast;
+        self.DECLARATOR($/, $<method-def>.ast);
     }
     method routine-declarator:sym<submethod>($/) {
-        self.attach: $/, $<method-def>.ast;
+        self.DECLARATOR($/, $<method-def>.ast);
     }
 
     # An onlystar body is created directly rather than through an action
@@ -3544,15 +3551,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method regex-declarator:sym<regex>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-declarator:sym<token>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-declarator:sym<rule>($/) {
-        self.attach: $/, $<regex-def>.ast;
+        self.DECLARATOR($/, $<regex-def>.ast);
     }
 
     method regex-def($/) {

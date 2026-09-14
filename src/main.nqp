@@ -12,6 +12,9 @@ my %rakudo-build-config := nqp::hash();
 hll-config(%rakudo-build-config);
 nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
 
+# force 6.e
+nqp::bindkey(nqp::getenvhash,"RAKU_LANGUAGE_LEVEL","v6.e.PREVIEW");
+
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');

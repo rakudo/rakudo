@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -294,6 +295,62 @@ subtest 'Enum with a type for its values and the default scope' => {
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'round trips through .raku';
     my package four { EVAL($ast); is OUR::<bar>.enums<a>, 'x', 'AST: the enum has the value' }
     my package five { EVAL($deparsed); is OUR::<bar>.enums<a>, 'x', 'Str: the enum has the value' }
+}
+
+subtest 'An enum declarator a module superseded resolves in a tree' => {
+    # use SupersedeEnum;
+    # my enum Superseded <a b>;
+    # Superseded
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('SupersedeEnum')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Enum.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Superseded'),
+          term  => RakuAST::QuotedString.new(
+            segments   => (
+              RakuAST::StrLiteral.new("a b"),
+            ),
+            processors => <words val>
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Superseded')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use SupersedeEnum;
+my enum Superseded <a b>;
+Superseded
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $enum {
+        is $enum.HOW.^name, 'SupersededEnumHOW',
+          "$type: the enum is made with the superseding HOW";
+        is-deeply $enum.enums.keys.sort.List, <a b>,
+          "$type: the enum has its values";
+        is $enum.^enum_value_list.head.HOW.^name, 'SupersededEnumHOW',
+          "$type: the values of the enum are of the superseding HOW";
+    }
+
+    {
+        my class LexicalEnumHOW is Metamodel::EnumHOW { }
+        my package EXPORTHOW {
+            constant enum = LexicalEnumHOW;
+        }
+        is EVAL('my enum LexicalEnum <c>; LexicalEnum').HOW.^name,
+          'LexicalEnumHOW',
+          'Str: an enum in an EVAL takes the HOW of the lexical EXPORTHOW';
+    }
 }
 
 # vim: expandtab shiftwidth=4

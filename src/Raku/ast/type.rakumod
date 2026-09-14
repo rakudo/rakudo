@@ -826,6 +826,10 @@ class RakuAST::Type::Enum
     # Value names that clashed with an existing lexical, collected at BEGIN
     # time so a redeclaration worry can be reported at CHECK time.
     has Mu                  $!redeclared-values;
+    # The HOW the enum is made with. It is EnumHOW unless a use statement
+    # in scope supersedes `enum`. BEGIN time resolves it, before anything
+    # asks for the meta-object, which is made once.
+    has Mu                  $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -841,6 +845,7 @@ class RakuAST::Type::Enum
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!how', Perl6::Metamodel::EnumHOW);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -903,6 +908,8 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('enum');
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
@@ -1143,7 +1150,7 @@ class RakuAST::Type::Enum
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::EnumHOW.new_type(
+        $!how.new_type(
             :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
         )

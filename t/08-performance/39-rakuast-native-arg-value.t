@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 117;
+plan 130;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -163,6 +163,63 @@ sub g(int $x) { }
 {
     my Int $a = 4; my int $b = 4;
     is $b !%% ($b = 3), $a !%% ($a = 3), 'a native operand of a negated operator is read at bind time, as a container is';
+}
+{
+    sub f($x, $y) { "$x,$y" }
+    my Int $a = 1; my int $b = 1;
+    is f($b || 5, $b = 7), f($a || 5, $a = 7), 'a native condition yielded by || is read at bind time, as a container is';
+    my Int $c = 0; my int $d = 0;
+    is f($d && 5, $d = 7), f($c && 5, $c = 7), 'a native condition yielded by && is read at bind time, as a container is';
+}
+{
+    sub f($x, $y) { $x }
+    my Int $a = 0; my int $b = 0;
+    sub wa() { $a = 1; 9 }
+    sub wb() { $b = 1; 9 }
+    is f($b || 5, wb()), f($a || 5, wa()), 'a conditional argument takes its branch where it stands, as a container does';
+    my Int $c = 1; my int $d = 1;
+    sub wc() { $c = 0; 9 }
+    sub wd() { $d = 0; 9 }
+    is f($d && 5, wd()), f($c && 5, wc()), 'a conditional argument of && takes its branch where it stands, as a container does';
+}
+{
+    multi sub g(int $x) { 'native' }
+    multi sub g(Int $x) { 'boxed' }
+    my int $i = 1;
+    is g($i || 5), g($i), 'a native condition reaches the candidate the variable itself reaches';
+    my int $j = 0;
+    is g($j && 5), g($j), 'a native condition of && reaches the candidate the variable itself reaches';
+    multi sub h($a, int $x) { 'native' }
+    multi sub h($a, Int $x) { 'boxed' }
+    my $o = 3; my int $k = 1;
+    is h($o, $k || 5), h($o, $k), 'an object argument ahead of a native condition leaves the candidate it reaches';
+}
+{
+    sub f($a, int $x is rw, :$z) { $x = $x + 10 }
+    my int $i = 1; f(:z, Any, $i || 5);
+    is $i, 11, 'a named argument ahead of the positionals leaves the position a native condition binds';
+    sub h($a, $b, int $x is rw) { $x = $x + 10 }
+    my @two = 1, 2; my int $j = 1; h(|@two, $j || 5);
+    is $j, 11, 'a flattened argument ahead of a native condition keeps its reference';
+}
+{
+    sub f(**@a) { @a }
+    my int $i = 1;
+    my $r = f($i || 5); $i = 7;
+    is $r[0], 7, 'a double-star slurpy holds a live view of a native condition';
+    sub g(*@a) { @a }
+    my int $j = 1;
+    my $s = g($j || 5); $j = 7;
+    is $s[0], 1, 'a slurpy parameter holds a snapshot of a native condition';
+}
+{
+    sub f(int $x is rw) { $x = $x + 10 }
+    my int $i = 1; my int $j = 2;
+    f($i || $j);
+    is $i, 11, 'a native condition with a variable branch passes its reference';
+    my int $k = 0; my int $l = 3;
+    f($k || $l);
+    is $l, 13, 'the branch of a native conditional passes its reference when it is taken';
 }
 {
     my Int $a = 1; my int $b = 1;

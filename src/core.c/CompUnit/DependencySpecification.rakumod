@@ -65,11 +65,11 @@ class CompUnit::DependencySpecification {
         );
         nqp::push_s($parts,",:from<$!from>")
           if $!from ne 'Raku' && $!from ne 'Perl6';
-        nqp::push_s($parts,",:version-matcher<$!version-matcher>")
+        nqp::push_s($parts,",:version-matcher({$!version-matcher.raku})")
           if nqp::defined($!version-matcher);
-        nqp::push_s($parts,",:auth-matcher<$!auth-matcher>")
+        nqp::push_s($parts,",:auth-matcher({$!auth-matcher.raku})")
           if nqp::defined($!auth-matcher);
-        nqp::push_s($parts,",:api-matcher<$!api-matcher>")
+        nqp::push_s($parts,",:api-matcher({$!api-matcher.raku})")
           if nqp::defined($!api-matcher);
         nqp::push_s($parts,')');
         nqp::join('',$parts)

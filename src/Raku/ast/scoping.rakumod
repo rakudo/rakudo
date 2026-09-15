@@ -1192,10 +1192,16 @@ class RakuAST::Lookup
         my int $positionals := 0;
         my int $flat := 0;
         my int $scan := $start;
+        my @object-args;
         while $scan < $n {
             my $arg := $call.list[$scan];
             $flat := 1 if $arg.flat;
-            ++$positionals unless $arg.named;
+            unless $arg.named {
+                nqp::push(@object-args, !$flat && (nqp::istype($arg, QAST::WVal)
+                    || nqp::istype($arg, QAST::Var) && !$arg.decl
+                        && !nqp::objprimspec($arg.returns)) ?? 1 !! 0);
+                ++$positionals;
+            }
             ++$scan;
         }
         $positionals := -1 if $flat;
@@ -1209,6 +1215,7 @@ class RakuAST::Lookup
         my @hoist;
         my @named;
         my int $impure := 0;
+        my int $condition-read := 0;
         my int $first-read := -1;
         my int $past-flat := 0;
         my int $pos := 0;
@@ -1239,6 +1246,18 @@ class RakuAST::Lookup
                     nqp::push(@reads, $arg.list[nqp::elems($arg.list) - 1]);
                     $first-read := $child if $first-read < 0;
                 }
+                elsif !$past-flat
+                    && nqp::isconcrete(my $cond := self.IMPL-ARG-CONDITION-READ($arg))
+                    && ($cond.ann('native-value-read')
+                        || self.IMPL-PARAM-NEVER-RW($routine, $pos, $positionals, :value, :@object-args)) {
+                    unless $cond.ann('native-value-read') {
+                        $cond.scope($cond.scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
+                        $cond.annotate('native-value-read', 1);
+                    }
+                    nqp::push(@reads, $cond);
+                    $condition-read := 1;
+                    $first-read := $child if $first-read < 0;
+                }
                 elsif $child > $start && !self.IMPL-ARG-IS-PURE($arg) {
                     # The hoist list notes what may move, while the note
                     # of impurity also serves a chain link whose read
@@ -1267,6 +1286,15 @@ class RakuAST::Lookup
         }
         elsif !$chained && $first-read >= 0 {
             nqp::splice(@hoist, @named, nqp::elems(@hoist), 0);
+            # A conditional takes its branch where it stands and yields the
+            # variable the callee reads as it binds. Only the reference gives
+            # both, so a call moving an argument past one keeps its references.
+            if $condition-read && nqp::elems(@hoist) {
+                for @reads {
+                    self.IMPL-RESTORE-REF($_);
+                }
+                return $call;
+            }
             # A native reference cannot survive a value temporary, so a
             # call with one among the arguments to move keeps all its
             # references instead, and the callee reads them as it binds.
@@ -1333,13 +1361,35 @@ class RakuAST::Lookup
     }
 
 
-    # Whether the given argument code is a temporary slot this pass
-    # built: a statement list ending in a settled value read.
+    # Whether the given argument code is a temporary slot this pass built.
+    # Such a slot ends in a settled value read, or in a two operand
+    # conditional whose condition is one.
     method IMPL-ARG-IS-SLOT(Mu $node) {
         return 0 unless nqp::istype($node, QAST::Stmts)
             && nqp::elems($node.list);
         my $last := $node.list[nqp::elems($node.list) - 1];
+        $last := self.IMPL-ARG-CONDITION-READ($last) unless nqp::istype($last, QAST::Var);
         nqp::istype($last, QAST::Var) && $last.ann('native-value-read') ?? 1 !! 0
+    }
+
+    # The native variable a two operand conditional argument yields when its
+    # branch does not run, behind any wrapper of a single statement, or Mu.
+    # Only a pure branch, as an impure one could write the variable first.
+    method IMPL-ARG-CONDITION-READ(Mu $node) {
+        while (nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt))
+            && nqp::elems($node.list) == 1 {
+            $node := $node.list[0];
+        }
+        if nqp::istype($node, QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless')
+            && nqp::elems($node.list) == 2 && self.IMPL-ARG-IS-PURE($node.list[1]) {
+            my $cond := $node.list[0];
+            if nqp::istype($cond, QAST::Var) && !$cond.decl && nqp::objprimspec($cond.returns) {
+                my str $scope := $cond.scope;
+                return $cond if $scope eq 'lexicalref' || $scope eq 'attributeref'
+                    || $cond.ann('native-value-read');
+            }
+        }
+        Mu
     }
 
     # Whether the given argument code's result may be a native reference,
@@ -1360,9 +1410,11 @@ class RakuAST::Lookup
     }
 
     # Put a native variable read this pass settled back to its reference
-    # form. A value read that never was a reference, the lookup of a
-    # read-only native parameter among them, stays as it is.
+    # form, reaching the condition of a conditional through its code. A
+    # value read that never was a reference, the lookup of a read-only
+    # native parameter among them, stays as it is.
     method IMPL-RESTORE-REF(Mu $node) {
+        $node := self.IMPL-ARG-CONDITION-READ($node) unless nqp::istype($node, QAST::Var);
         if nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
             && $node.ann('native-value-read') {
             my str $scope := $node.scope;
@@ -1382,16 +1434,21 @@ class RakuAST::Lookup
     # that cannot be introspected, or that has no positional parameter
     # at the position, means the reference must be kept. A slurpy positional
     # binds its own position and every one after it.
-    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i, int $positionals) {
+    # With :value the callee must bind a boxed value just as it binds the
+    # reference, so no raw or container keeping parameter, and no candidate
+    # within reach taking a native where @object-args knows of an object.
+    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i, int $positionals, :$value, :@object-args) {
         # The routine and its candidates are read through their attributes:
         # a method lookup on a mixin type, which a candidate with a typed
         # return has, can miss where its method cache is not published.
         # A dispatcher holds a dispatchee list, and the flag bit is the one
         # the onlystar method reads.
         my @candidates;
+        my int $dispatcher := 0;
         if nqp::istype($routine, Routine)
             && nqp::defined(nqp::getattr($routine, Routine, '@!dispatchees')) {
             return 0 unless nqp::getattr_i($routine, Routine, '$!flags') +& 0x04;
+            $dispatcher := 1;
             for nqp::getattr($routine, Routine, '@!dispatchees') {
                 nqp::push(@candidates, $_);
             }
@@ -1415,24 +1472,38 @@ class RakuAST::Lookup
             }
             my $param;
             my int $pos := 0;
+            my int $object-miss := 0;
             for nqp::getattr($sig, Signature, '@!params') {
                 my int $flags := nqp::getattr_i($_, Parameter, '$!flags');
                 unless nqp::getattr($_, Parameter, '@!named_names')
                     || $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED
                         +| nqp::const::SIG_ELEM_IS_CAPTURE) {
-                    if $pos == $i
-                        || $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
-                            +| nqp::const::SIG_ELEM_SLURPY_LOL
-                            +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
-                        $param := $_;
+                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                        +| nqp::const::SIG_ELEM_SLURPY_LOL
+                        +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
+                        $param := $_ unless nqp::isconcrete($param);
                         last;
+                    }
+                    if $pos == $i {
+                        $param := $_;
+                    }
+                    elsif $pos < nqp::elems(@object-args) && @object-args[$pos]
+                        && nqp::objprimspec(nqp::getattr($_, Parameter, '$!type')) {
+                        $object-miss := 1;
                     }
                     ++$pos;
                 }
             }
+            # A candidate with a native parameter where the call passes an
+            # object is out of reach of the dispatch.
+            next if $value && $dispatcher && $object-miss;
             return 0 unless nqp::isconcrete($param);
             my int $pflags := nqp::getattr_i($param, Parameter, '$!flags');
             return 0 if $pflags +& nqp::const::SIG_ELEM_IS_RW;
+            return 0 if $value && $pflags +& (nqp::const::SIG_ELEM_IS_RAW
+                +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG);
+            return 0 if $value && $dispatcher
+                && nqp::objprimspec(nqp::getattr($param, Parameter, '$!type'));
             # A slurpy that keeps its arguments' containers keeps the
             # reference, as a container argument stays a live view of the
             # variable there. A native sub's slurpy takes the value, since

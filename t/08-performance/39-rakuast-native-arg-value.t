@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 107;
+plan 117;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -393,6 +393,26 @@ sub qast-count-calls(Mu $qast, str $op, str $callee --> Int) {
     }
     $count
 }
+# The scope of the condition of a two operand conditional a named call
+# passes, or ''.
+sub qast-condition-scope(Mu $qast, str $callee --> Str) {
+    if nqp::istype($qast, QAST::Op) && $qast.name eq $callee {
+        for $qast.list -> Mu $arg is raw {
+            my Mu $node := $arg;
+            $node := $node.list[0]
+                while nqp::istype($node, QAST::Stmts) && nqp::elems($node.list) == 1;
+            return $node.list[0].scope
+                if nqp::istype($node, QAST::Op) && $node.op eq 'if' | 'unless';
+        }
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            my $found = qast-condition-scope($_, $callee);
+            return $found if $found;
+        }
+    }
+    ''
+}
 # Whether any temporary a native read or an inlined body binds appears.
 sub qast-has-temporary(Mu $qast --> Bool) {
     return True if nqp::istype($qast, QAST::Var)
@@ -594,6 +614,36 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'sub f(int $x, int $y) { }; class NativeAttributeTarget { has int $!a; method m(int $n) { f($n, $!a = 7) } }', :full,
         -> \v { qast-has-temporary(v) },
         'an assignment to a native attribute after a native read binds a temporary';
+    qast-is 'sub f($x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a value parameter passes as a value';
+    qast-is 'sub f(\\x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a raw parameter stays a reference';
+    qast-is 'multi sub f(int $x) { }; multi sub f(Int $x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a dispatch with a native candidate there stays a reference';
+    qast-is 'multi sub f(int $a, int $x) { }; multi sub f(Int $a, Int $x) { }; my $o; my int $i; f($o, $i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument passes as a value when the native candidates are out of reach';
+    qast-is 'sub f(int $x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a native parameter passes as a value';
+    qast-is 'sub f($x is copy) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a copy parameter passes as a value';
+    qast-is 'sub f(*@a) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a slurpy parameter passes as a value';
+    qast-is 'sub f(**@a) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a double-star slurpy stays a reference';
+    qast-is 'class NativeConditionAttribute { has int $!a; method m($x) { f($!a || 5) } }; sub f($x) { }', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'attribute' },
+        'a native attribute condition of a short circuit argument passes as a value';
+    qast-is 'sub f($x, $y) { }; my int $i; sub w() { $i = 7 }; f($i || 5, w())', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a call that moves an argument past a native condition keeps the reference';
     qast-is 'my int $i = 1; sub f() { 2 }; my $r = $i + f()', :full, -> \v {
         qast-reads-last(v, '&infix:<+>', '$i')
     }, 'an impure operand after a native read is evaluated into a temporary ahead of the read';
@@ -612,7 +662,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'the middle operand of a chain whose last operand is impure stays a reference';
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 44;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 54;
 }
 
 # vim: expandtab shiftwidth=4

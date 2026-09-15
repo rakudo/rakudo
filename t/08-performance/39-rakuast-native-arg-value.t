@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 91;
+plan 107;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -217,6 +217,95 @@ sub g(int $x) { }
 {
     my Int $a = 2; my int $b = 2;
     is (0 < 1 < $b < ($b = 7)), (0 < 1 < $a < ($a = 7)), 'the middle operand of a chain of three links is read at the bind of its link, as a container is';
+}
+
+# A native assignment to a lexical yields the reference, so an
+# assignment to an rw native parameter passes that parameter's reference
+# on, also when a native read comes ahead of it.
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, ($p = $p + 1)) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'a parenthesized assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(int $n, int $x is rw) { $x = $x + $n }
+    sub g(int $n, int $p is rw) { f($n, $p += 1) }
+    my int $i = 1; g(100, $i);
+    is $i, 102, 'a compound assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { my int $q; f($t, $p = $q = 5) }
+    my int $i = 1; g('x', $i);
+    is $i, 15, 'a chained assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p max= 3) }
+    my int $i = 1; g('x', $i);
+    is $i, 13, 'a metaop assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, \x) { x = x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to a raw parameter';
+}
+{
+    sub f(str $t, int :$x! is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, :x($p = $p + 1)) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to a named rw parameter';
+}
+{
+    multi sub infix:<rw-add>(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { $t rw-add ($p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to an rw operand';
+}
+{
+    sub f(int $a, int $x is rw) { "$a,$x" }
+    sub g(int $p is rw) { f($p, $p = 7) }
+    my int $i = 1;
+    is g($i), '7,7', 'an rw native parameter read ahead of an assignment to it is read at bind time';
+}
+{
+    sub f(int $a, int $x is rw, :$z) { $x = $x + 10; $a }
+    sub h() { 3 }
+    sub g(int $p is rw) { f(:z(h()), $p, $p = 7) }
+    my int $i = 1;
+    is g($i) ~ ",$i", '7,17', 'an assignment to an rw native parameter after a native read and an impure named argument passes the reference';
+}
+{
+    multi sub infix:<rw-adv>(str $t, int $x is rw, :$z) { $x = $x + 10 + $z }
+    sub g(str $t, int $p is rw) { $t rw-adv ($p = $p + 1) :z(100) }
+    my int $i = 1; g('x', $i);
+    is $i, 112, 'an assignment to an rw native parameter after a native read passes the reference to an adverbed rw operand';
+}
+{
+    sub f(str $t, uint $x is rw) { $x = $x + 10 }
+    sub g(str $t, uint $p is rw) { f($t, $p = $p + 1) }
+    my uint $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw unsigned native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, num $x is rw) { $x = $x + 10e0 }
+    sub g(str $t, num $p is rw) { f($t, $p = $p + 1e0) }
+    my num $i = 1e0; g('x', $i);
+    is $i, 12e0, 'an assignment to an rw num native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(int $n, str $x is rw) { $x = $x ~ '!' }
+    sub g(int $n, str $p is rw) { f($n, $p = $p ~ '?') }
+    my str $i = 'a'; g(1, $i);
+    is $i, 'a?!', 'an assignment to an rw str native parameter after a native read passes the reference to an rw parameter';
 }
 
 {
@@ -497,8 +586,14 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         my int $b = 1;
         is f($b, ($b = 7), $b), '7,7,7', 'both reads around a writing argument read after it';
     }
-    qast-is 'sub f($x, $y) { }; my int $i = 1; f($i, ($i = 7));', :full, -> \v { qast-has-temporary(v) },
+    qast-is 'sub f($x, $y) { }; my int $i = 1; sub w() { $i = 7 }; f($i, w());', :full, -> \v { qast-has-temporary(v) },
         'a writing argument after a native read binds a temporary in sink context';
+    qast-is 'sub f(int $x, int $y is rw) { }; sub g(int $p is rw) { f($p, $p = 7) }', :full, -> \v {
+        qast-first-arg-scope(v, '&f') eq 'lexicalref' and not qast-has-temporary(v)
+    }, 'an assignment to a native reference after a native read keeps the references of the call';
+    qast-is 'sub f(int $x, int $y) { }; class NativeAttributeTarget { has int $!a; method m(int $n) { f($n, $!a = 7) } }', :full,
+        -> \v { qast-has-temporary(v) },
+        'an assignment to a native attribute after a native read binds a temporary';
     qast-is 'my int $i = 1; sub f() { 2 }; my $r = $i + f()', :full, -> \v {
         qast-reads-last(v, '&infix:<+>', '$i')
     }, 'an impure operand after a native read is evaluated into a temporary ahead of the read';
@@ -517,7 +612,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'the middle operand of a chain whose last operand is impure stays a reference';
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 42;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 44;
 }
 
 # vim: expandtab shiftwidth=4

@@ -16,8 +16,11 @@ class RakuAST::Node {
         Nil
     }
 
-    # Recursively applies sinking up until a sink boundary.
-    method apply-sink(Bool $is-sunk) {
+    # Recursively applies sinking up until a sink boundary.  The
+    # "okifnil" named argument is allowed for Expression.apply-sink
+    # so it should be allowed here as well (even if nothing is done
+    # with it).
+    method apply-sink(Bool $is-sunk, :$okifnil) {
         # If we are sunk and this is a sinkable node, apply that.
         if $is-sunk && nqp::istype(self, RakuAST::Sinkable) {
             self.mark-sunk();

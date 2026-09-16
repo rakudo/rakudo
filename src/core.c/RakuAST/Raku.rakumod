@@ -217,7 +217,7 @@ augment class RakuAST::Node {
           },
           'level', -> {
               my $level := self.level;
-              :$level if $level
+              :level($level.Int) if $level
           },
           'margin', -> {
               my $margin := self.margin;
@@ -761,7 +761,10 @@ augment class RakuAST::Node {
         my str @parts = "RakuAST::QuotedString.new(";
         indent;
         if self.processors -> @processors {
-            @parts.push: $*INDENT ~ "processors => <@processors[]>,";
+            @parts.push: $*INDENT ~ "processors => " ~ (@processors == 1
+              ?? "(\"@processors[0]\",),"
+              !! "<@processors[]>,"
+            );
         }
         @parts.push: $*INDENT ~ "segments   => " ~ rakufy(self.segments);
         dedent;
@@ -1166,15 +1169,17 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Post:D: --> Str:D) {
         # skip the auto-generated code
-        self!positional(
-          self.blorst.body
+        self!positional(RakuAST::Statement::Expression.new(
+          expression => self.blorst.body
             .statement-list.statements.head.condition-modifier.expression
-        )
+        ))
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Pre:D: --> Str:D) {
         # skip the auto-generated code
-        self!positional(self.blorst.condition-modifier.expression)
+        self!positional(RakuAST::Statement::Expression.new(
+          expression => self.blorst.condition-modifier.expression
+        ))
     }
 
      multi method raku(RakuAST::StatementPrefix::Phaser::First:D: --> Str:D) {

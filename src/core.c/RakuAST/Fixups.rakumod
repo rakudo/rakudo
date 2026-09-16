@@ -1373,7 +1373,7 @@ in line '$line'";
             self.add-paragraph(
               RakuAST::Doc::Block.new(
                 :margin($current-ws), :type<implicit-code>,
-                :paragraphs(RakuAST::Doc::Paragraph.from-string(@codes.join))
+                :paragraphs((RakuAST::Doc::Paragraph.from-string(@codes.join),))
               )
             );
             @codes = ();

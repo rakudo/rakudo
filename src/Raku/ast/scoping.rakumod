@@ -1342,10 +1342,19 @@ class RakuAST::Lookup
         nqp::istype($last, QAST::Var) && $last.ann('native-value-read') ?? 1 !! 0
     }
 
-    # Whether the given argument code's result is a native reference,
-    # behind any statement wrappers.
+    # Whether the given argument code's result may be a native reference,
+    # behind any statement wrappers. A native assignment to a lexical
+    # reference yields the reference unless the QAST compiler finds the
+    # lexical declared and lowers the assignment to a bind. An assignment
+    # to an attribute reference always lowers.
     method IMPL-ARG-RESULT-REF(Mu $node) {
         $node := self.IMPL-ARG-RESULT-NODE($node);
+        if nqp::istype($node, QAST::Op) && nqp::eqat($node.op, 'assign_', 0) {
+            my $target := $node.list[0];
+            return nqp::istype($target, QAST::Var)
+                ?? $target.scope eq 'lexicalref'
+                !! self.IMPL-ARG-RESULT-REF($target);
+        }
         nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
             && ($node.scope eq 'lexicalref' || $node.scope eq 'attributeref')
     }

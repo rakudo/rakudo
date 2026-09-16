@@ -1568,7 +1568,7 @@ class RakuAST::ScopePhaser {
         $stmts
     }
 
-    method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
+    method add-phasers-handling-code(RakuAST::IMPL::QASTContext $context, Mu $qast) {
         my $block := nqp::istype(self, RakuAST::Code) ?? self.meta-object !! NQPMu;
         my $phasers := nqp::isconcrete($block) ?? nqp::getattr($block, Block, '$!phasers') !! NQPMu;
 
@@ -1731,7 +1731,7 @@ class RakuAST::ScopePhaser {
         $qast[0].push($enter-setup);
     }
 
-    method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {
+    method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!let {
             $!let.IMPL-BEGIN($resolver, $context);
             $!let.IMPL-STUB-CODE($resolver, $context);
@@ -1743,10 +1743,10 @@ class RakuAST::ScopePhaser {
     }
 
     method IMPL-ADD-PHASER-QAST(
-      RakuAST::IMPL::Context $context,
-      RakuAST::Block         $phaser,
-      Str                    $value_stash,
-      QAST::Block            $block
+      RakuAST::IMPL::QASTContext $context,
+      RakuAST::Block             $phaser,
+      Str                        $value_stash,
+      QAST::Block                $block
     ) {
         $block[0].push(QAST::Op.new(
             :op('bind'),
@@ -3483,7 +3483,7 @@ class RakuAST::Sub
             && nqp::istype(@code[0].expression, RakuAST::Stub)
     }
 
-    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
 
         self.check-scope($resolver, 'sub');
@@ -3504,7 +3504,7 @@ class RakuAST::Sub
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))
     }
 
-    method IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES(Resolver $resolver) {
+    method IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES(RakuAST::Resolver $resolver) {
         my $proto := self.meta-object.dispatcher;
         my $signature := (self.placeholder-signature || self.signature).compile-time-value;
         my $meta := self.meta-object;
@@ -3855,7 +3855,7 @@ class RakuAST::Methodish
         self.apply-traits($resolver, $context, self)
     }
 
-    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::findmethod(RakuAST::Routine, 'PERFORM-CHECK')(self, $resolver, $context);
 
         self.check-scope($resolver, self.declarator);

@@ -1119,7 +1119,7 @@ class RakuAST::Feed
 
     method is-pure() { False }
 
-    method PERFORM-BEGIN(Resolver $resolver, Context $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
         if $operator eq "==>>" || $operator eq "<<==" {
             self.add-sorry:
@@ -2661,7 +2661,7 @@ class RakuAST::ApplyInfix
     method operands() { $!args.IMPL-UNWRAP-LIST($!args.args) }
     method operator() { $!infix }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-PRIME($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
@@ -4322,7 +4322,7 @@ class RakuAST::ApplyPostfix
         self.IMPL-MAYBE-PRIME($resolver, $context);
     }
 
-    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         #  ApplyPostfix  ⎡(...)⎤
         #    Block  ⎡{*.{}}⎤
         #      Blockoid 𝄞 -e:1 ⎡{*.{}}⎤

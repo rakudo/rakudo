@@ -581,7 +581,7 @@ class RakuAST::Term::Reduce
         ]
     }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
         if nqp::elems($args) == 1
             && nqp::istype((my $arg := $args[0]), RakuAST::Circumfix::Parentheses)

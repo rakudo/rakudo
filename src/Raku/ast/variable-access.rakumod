@@ -377,7 +377,7 @@ class RakuAST::Var::Attribute
         ]
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::Impl::QASTContext $context) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context) {
         my $class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         if $class.is-resolved
           && nqp::istype($class.resolution, RakuAST::CompileTimeValue) {
@@ -596,7 +596,7 @@ class RakuAST::Var::Attribute::Public
         $visitor($!expression);
     }
 
-    method replace-args(RakuAST::Args $args) {
+    method replace-args(RakuAST::ArgList $args) {
         nqp::bindattr(self, RakuAST::Var::Attribute::Public, '$!has-args', True);
         $!expression.operand.postfix.replace-args($args);
     }

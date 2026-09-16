@@ -1581,7 +1581,7 @@ class RakuAST::Regex::Assertion::Named::Args
 {
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::ArgList :$args!) {
+    method new(RakuAST::Name :$name!, Bool :$capturing, RakuAST::ArgList :$args!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
@@ -1613,7 +1613,7 @@ class RakuAST::Regex::Assertion::Named::RegexArg
     has str $!unique-name;
     has Mu $!body-qast;
 
-    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::Regex :$regex-arg!) {
+    method new(RakuAST::Name :$name!, Bool :$capturing, RakuAST::Regex :$regex-arg!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
@@ -1872,7 +1872,7 @@ class RakuAST::Regex::Assertion::Callable
     has RakuAST::Expression $.callee;
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Expression :$callee!, Raku::ArgList :$args) {
+    method new(RakuAST::Expression :$callee!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!callee', $callee);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!args',
@@ -2355,13 +2355,13 @@ class RakuAST::Regex::QuantifiedAtom
   is RakuAST::Regex::Term
   is RakuAST::CheckTime
 {
-    has RakuAST::Atom $.atom;
-    has RakuAST::Quantifier $.quantifier;
+    has RakuAST::Regex::Atom $.atom;
+    has RakuAST::Regex::Quantifier $.quantifier;
     has RakuAST::Regex::Term $.separator;
     has Bool $.trailing-separator;
 
-    method new(RakuAST::Atom :$atom!, RakuAST::Quantifier :$quantifier!,
-               RakuAST::Separator :$separator, Bool :$trailing-separator) {
+    method new(RakuAST::Regex::Atom :$atom!, RakuAST::Regex::Quantifier :$quantifier!,
+               RakuAST::Regex::Term :$separator, Bool :$trailing-separator) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!quantifier', $quantifier);
@@ -2372,7 +2372,7 @@ class RakuAST::Regex::QuantifiedAtom
         $obj
     }
 
-    method replace-atom(RakuAST::Atom $atom) {
+    method replace-atom(RakuAST::Regex::Atom $atom) {
         nqp::bindattr(self, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
         Nil
     }
@@ -2561,10 +2561,10 @@ class RakuAST::Regex::Quantifier::BlockRange
 class RakuAST::Regex::BacktrackModifiedAtom
   is RakuAST::Regex::Term
 {
-    has RakuAST::Atom $.atom;
+    has RakuAST::Regex::Atom $.atom;
     has RakuAST::Regex::Backtrack $.backtrack;
 
-    method new(RakuAST::Atom :$atom!, RakuAST::Regex::Backtrack :$backtrack!) {
+    method new(RakuAST::Regex::Atom :$atom!, RakuAST::Regex::Backtrack :$backtrack!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!atom', $atom);
         nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!backtrack', $backtrack);

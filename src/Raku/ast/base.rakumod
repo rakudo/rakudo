@@ -214,6 +214,32 @@ class RakuAST::Node {
             $resolver.add-node-unresolved-after-check-time(self);
         }
 
+        self.IMPL-SETTLE-ARGUMENT-PASSING($resolver);
+
+        Nil
+    }
+
+    # Make the marks that decide what a callee binds a native argument as.
+    # They answer to the tree as parsed, not to any rewrite, so the check
+    # walk settles them and the optimize walk settles them again.
+    method IMPL-SETTLE-ARGUMENT-PASSING(RakuAST::Resolver $resolver) {
+        my int $infix := nqp::istype(self, RakuAST::ApplyInfix);
+        if $infix {
+            self.IMPL-WITHDRAW-NEGATE-NOT(self);
+            self.IMPL-WITHDRAW-LONE-LINK(self);
+            self.IMPL-POISON-NATIVE-INDEX-BIND(self);
+        }
+        self.IMPL-WITHDRAW-IDENTITY-MARKS(self)
+            if self.IMPL-IN-SOFT-SCOPE($resolver);
+        self.IMPL-MARK-VALUE-ARGS($resolver, self)
+            if $infix
+            || nqp::istype(self, RakuAST::ApplyPrefix)
+            || nqp::istype(self, RakuAST::ApplyPostfix)
+            || nqp::istype(self, RakuAST::Call::Name);
+        if $infix {
+            self.IMPL-MARK-CHAIN-LINKS($resolver, self);
+            self.IMPL-MARK-NEGATE-NOT($resolver, self);
+        }
         Nil
     }
 

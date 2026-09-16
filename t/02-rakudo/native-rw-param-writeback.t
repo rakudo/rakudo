@@ -6,7 +6,7 @@ use Test;
 # an is copy trait keeps the parameter rw, since the block starter sets
 # the rw flag on every parameter.
 
-plan 16;
+plan 27;
 
 {
     my int @a = 1, 2, 3;
@@ -107,6 +107,67 @@ plan 16;
     my (int $a) = 5;
     is $a, 5,
       'a declarator signature holding one native int takes its initializer';
+}
+
+# A short circuit operator that yields its native operand yields it as the
+# reference, which an rw or raw parameter binds.
+{
+    sub f(int $x is rw) { $x = $x + 10 }
+    my int $i = 1; f($i || 5);
+    is $i, 11, 'a native int passed through || to an rw parameter writes back';
+}
+{
+    sub f(int $x is rw) { $x = $x + 10 }
+    my int $i = 0; f($i && 5);
+    is $i, 10, 'a native int passed through && to an rw parameter writes back';
+}
+{
+    sub f(\x) { x = 9 }
+    my int $i = 1; f($i || 5);
+    is $i, 9, 'a native int passed through || to a raw parameter writes back';
+}
+{
+    sub f(str $x is rw) { $x = $x ~ '!' }
+    my str $s = 'a'; f($s || 'b');
+    is $s, 'a!', 'a native str passed through || to an rw parameter writes back';
+}
+{
+    sub f(num $x is rw) { $x = $x + 1e0 }
+    my num $n = 1e0; f($n || 5e0);
+    is $n, 2e0, 'a native num passed through || to an rw parameter writes back';
+}
+{
+    sub f(int $x is rw) { $x = $x + 10 }
+    sub g(int $p is rw) { f($p || 5) }
+    my int $i = 1; g($i);
+    is $i, 11, 'an rw native parameter passed through || to an rw parameter writes back';
+}
+
+{
+    class C { method m(int $x is rw) { $x = $x + 10 } }
+    my int $i = 1; C.m($i || 5);
+    is $i, 11, 'a native operand of || passed to an rw method parameter writes back';
+}
+{
+    class D { method m(\x) { x = 9 } }
+    my int $i = 1; D.m($i || 5);
+    is $i, 9, 'a native operand of || passed to a raw method parameter writes back';
+}
+{
+    sub f($x is rw) { $x = 9 }
+    my int $i = 1; f($i || 5);
+    is $i, 9, 'a native operand of || passed to a boxed rw parameter writes back';
+}
+{
+    sub inner(int $x is rw) { $x = $x + 10 }
+    sub outer(int $p is rw) { inner($p || 5, ); $p = $p + 1 }
+    my int $i = 1; outer($i);
+    is $i, 12, 'an rw native parameter passed on through || writes back through both calls';
+}
+{
+    my int $i = 1; f-later($i || 5);
+    is $i, 9, 'a native operand of || reaches an rw candidate declared after the call';
+    multi sub f-later(int $x is rw) { $x = 9 }
 }
 
 # The frontends throw different exception types here, so the message

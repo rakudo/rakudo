@@ -642,7 +642,7 @@ class RakuAST::StatementList
         $obj
     }
 
-    method add-doc-block(RakuAST::Statement $doc-block) {
+    method add-doc-block(RakuAST::Doc::Block $doc-block) {
         nqp::push($!statements, $doc-block);
     }
     method insert-doc-block(int $i, RakuAST::Node $block) {
@@ -1873,7 +1873,7 @@ class RakuAST::Statement::Loop
         my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
         my @last := nqp::ishash($phasers) && nqp::existskey($phasers, 'LAST')
           ?? $phasers<LAST> !! [];
-        nqp::elems(@last) && $!condition && !self.repeat
+        nqp::elems(@last) && nqp::isconcrete($!condition) && !self.repeat
     }
 
     # Fold a did-run flag into a pre-test loop condition so LAST can tell
@@ -2387,7 +2387,7 @@ class RakuAST::Statement::Default
     }
 
     method apply-implicit-block-semantics(:$resolver, :$context) {
-        $!body.set-implicit-topic(1);
+        $!body.set-implicit-topic(True);
     }
 
     method propagate-sink(Bool $is-sunk) {
@@ -2433,7 +2433,7 @@ class RakuAST::Statement::ExceptionHandler
     method new(RakuAST::Block :$body!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::ExceptionHandler, '$!body', $body);
-        $obj.set-labels(Mu);
+        $obj.set-labels(List);
         $obj
     }
 
@@ -2657,8 +2657,8 @@ class RakuAST::ModuleLoading {
             my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
             if $categorical {
                 nqp::push($!categoricals, RakuAST::Categorical.new(
-                    :category($categorical[0]),
-                    :opname($categorical[1]),
+                    :category(~$categorical[0]),
+                    :opname(~$categorical[1]),
                     :subname(nqp::substr($key, 1)),
                     :$declarand
                 ));

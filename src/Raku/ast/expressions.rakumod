@@ -1233,7 +1233,7 @@ class RakuAST::FlipFlop
         my $state-id := QAST::Node.unique('FLIPFLOP_STATE__');
         nqp::bindattr_s($obj, RakuAST::FlipFlop, '$!state-id', $state-id);
         my $state-var := RakuAST::VarDeclaration::Implicit::State.new(
-          '!' ~ $state-id, :init-to-zero(1)
+          '!' ~ $state-id, :init-to-zero(True)
         );
         nqp::bindattr($obj, RakuAST::FlipFlop, '$!state-var', $state-var);
         $obj
@@ -3414,7 +3414,8 @@ class RakuAST::Termish
 
 # Everything that is a kind of term does RakuAST::Term.
 class RakuAST::Term
-  is RakuAST::Termish { }
+  is RakuAST::Termish
+  is RakuAST::Contextualizable { }
 
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix

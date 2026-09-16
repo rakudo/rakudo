@@ -42,9 +42,14 @@ class RakuAST::Blockoid
     }
 }
 
+# Marker for what may serve as the body of a regex declaration.
+class RakuAST::RegexBody
+  is RakuAST::Node {}
+
 class RakuAST::OnlyStar
   is RakuAST::Blockoid
   is RakuAST::Term
+  is RakuAST::RegexBody
 {
     method new() {
         my $obj := nqp::create(self);
@@ -873,7 +878,7 @@ class RakuAST::Code
         # resolver to fall back to.
         my $resolver := $context.parse-time-resolver($!cuid);
         my $throwaway_block_ast := RakuAST::Block.new(:!implicit-topic);
-        $throwaway_block_ast.set-implicit-topic(0);
+        $throwaway_block_ast.set-implicit-topic(False);
         $throwaway_block_ast.set-no-implicit-match();
         $throwaway_block_ast.to-begin-time($resolver, $context);
         my $throwaway_block_past := $throwaway_block_ast.IMPL-QAST-BLOCK($context, :blocktype<declaration>);
@@ -2124,7 +2129,7 @@ class RakuAST::Block
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
         nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         nqp::bindattr_i($obj, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
-        $obj.set-implicit-topic($implicit-topic // 1, :required($required-topic), :$exception);
+        $obj.set-implicit-topic($implicit-topic // True, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -2155,9 +2160,9 @@ class RakuAST::Block
         Nil
     }
 
-    method implicit-topic() { $!implicit-topic-mode == 1 ?? Bool !! $!implicit-topic-mode > 1 }
-    method required-topic() { $!implicit-topic-mode > 1 || Bool }
-    method exception()      { $!implicit-topic-mode > 2 || Bool }
+    method implicit-topic() { $!implicit-topic-mode == 1 ?? Bool !! $!implicit-topic-mode > 1 ?? True !! False }
+    method required-topic() { $!implicit-topic-mode > 1 ?? True !! Bool }
+    method exception()      { $!implicit-topic-mode > 2 ?? True !! Bool }
 
     method set-fresh-variables(Bool :$match, Bool :$exception) {
         nqp::bindattr_i(self, RakuAST::Block, '$!fresh-match', $match ?? 1 !! 0);
@@ -4013,7 +4018,7 @@ class RakuAST::Method::AttributeAccessor
         nqp::bindattr_s($obj, RakuAST::Method::AttributeAccessor, '$!attr-name', $attr-name);
         nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!type', $type);
         nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!package-type', $package-type);
-        nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!rw', $rw // 0);
+        nqp::bindattr($obj, RakuAST::Method::AttributeAccessor, '$!rw', $rw // False);
         $obj
     }
 
@@ -4526,15 +4531,15 @@ class RakuAST::Method::ClassAccessor
 class RakuAST::RegexDeclaration
   is RakuAST::Methodish
 {
-    has RakuAST::Regex $.body;
-    has            str $.source;
+    has RakuAST::RegexBody $.body;
+    has                str $.source;
 
     method new(          str :$scope,
                          str :$multiness,
                RakuAST::Name :$name,
           RakuAST::Signature :$signature,
                         List :$traits,
-              RakuAST::Regex :$body,
+          RakuAST::RegexBody :$body,
                          str :$source,
     RakuAST::Doc::Declarator :$WHY
     ) {
@@ -4554,7 +4559,7 @@ class RakuAST::RegexDeclaration
 
     method declarator() { 'regex' }
 
-    method replace-body(RakuAST::Regex $new-body) {
+    method replace-body(RakuAST::RegexBody $new-body) {
         nqp::bindattr(self, RakuAST::RegexDeclaration, '$!body', $new-body);
         Nil
     }

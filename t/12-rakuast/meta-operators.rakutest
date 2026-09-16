@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25;
+plan 26;
 
 my $ast;
 my $deparsed;
@@ -669,6 +669,17 @@ CODE
 
     is-deeply $_, [True, False], @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A meta operator on the method call infix is refused' => {
+    my @cases = '3 X. list' => 'cross with', '3 Z. list' => 'zip with',
+      '3 R. list' => 'reverse the args of', '3 S. list' => 'sequence the args of',
+      '3 !. list' => 'negate', 'my $x = 3; $x .== 3' => 'assign';
+    plan +@cases;
+    for @cases -> (:key($source), :value($meta)) {
+        throws-like { $source.AST }, X::Syntax::CannotMeta, "$source is refused",
+          :$meta;
+    }
 }
 
 # vim: expandtab shiftwidth=4

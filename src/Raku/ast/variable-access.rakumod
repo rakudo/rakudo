@@ -31,7 +31,7 @@ class RakuAST::Var::Lexical
     has str $.twigil;
     has RakuAST::Name $.desigilname;
 
-    method new(str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
+    method new(Str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
         my $obj := nqp::create(self);
         if $name {
             nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', nqp::substr($name, 0, 1));
@@ -196,7 +196,7 @@ class RakuAST::Var::Dynamic
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
         $obj
@@ -287,7 +287,7 @@ class RakuAST::Var::Attribute
     has str $.name;
     has RakuAST::Package $!package;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
         $obj
@@ -852,7 +852,7 @@ class RakuAST::Var::Compiler::Lookup
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj

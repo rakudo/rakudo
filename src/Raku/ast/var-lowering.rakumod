@@ -874,6 +874,7 @@ class RakuAST::IMPL::VarLowering {
     method IMPL-REGISTER-IMPLICIT-LOOKUPS(RakuAST::Node $node) {
         if nqp::istype($node, RakuAST::ImplicitLookups) {
             for $node.IMPL-UNWRAP-LIST($node.get-implicit-lookups()) {
+                next if nqp::isnull($_);
                 self.IMPL-CHECK-NAME-REACHERS($_);
                 self.IMPL-REGISTER-USE($_)
                     if nqp::istype($_, RakuAST::Lookup) && $_.is-resolved;

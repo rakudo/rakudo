@@ -13,9 +13,9 @@ class RakuAST::FatArrow
   is RakuAST::NamedArg
 {
     has Str $.key;
-    has RakuAST::Term $.value;
+    has RakuAST::Expression $.value;
 
-    method new(Str :$key!, RakuAST::Term :$value!) {
+    method new(Str :$key!, RakuAST::Expression :$value!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::FatArrow, '$!key', $key);
         nqp::bindattr($obj, RakuAST::FatArrow, '$!value', $value);
@@ -443,9 +443,9 @@ class RakuAST::ColonPair::Value
 class RakuAST::ColonPair::Variable
   is RakuAST::ColonPair
 {
-    has RakuAST::Var $.value;
+    has RakuAST::Term $.value;
 
-    method new(Str :$key!, RakuAST::Var :$value) {
+    method new(Str :$key!, RakuAST::Term :$value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         nqp::bindattr($obj, RakuAST::ColonPair::Variable, '$!value', $value);

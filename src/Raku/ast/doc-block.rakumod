@@ -162,9 +162,9 @@ class RakuAST::Doc::Block
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
 
     method delimited()   { $!status == 0 }
-    method for()         { $!status == 1 }
-    method abbreviated() { $!status >= 2 }
-    method directive()   { $!status == 3 }
+    method for()         { $!status == 1 ?? True !! False }
+    method abbreviated() { $!status >= 2 ?? True !! False }
+    method directive()   { $!status == 3 ?? True !! False }
 
     method visit-children(Code $visitor) {
         for $!paragraphs {

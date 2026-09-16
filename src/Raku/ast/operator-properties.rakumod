@@ -28,18 +28,21 @@ class OperatorProperties {
     has int $.ternary;
 
     # Basic interface
+    # When called on an instance, a property that is not passed keeps the
+    # instance's value, so the parameters are not native, which would read
+    # as empty when omitted.
     method new(
-      str :$precedence,
-      str :$sub-precedence,
-      str :$associative,
-      str :$thunky,
-      str :$dba,
-      str :$next-term,
-      int :$iffy,
-      int :$diffy,
-      int :$fiddly,
-      int :$adverb,
-      int :$ternary
+      Str :$precedence,
+      Str :$sub-precedence,
+      Str :$associative,
+      Str :$thunky,
+      Str :$dba,
+      Str :$next-term,
+      Int :$iffy,
+      Int :$diffy,
+      Int :$fiddly,
+      Int :$adverb,
+      Int :$ternary
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',

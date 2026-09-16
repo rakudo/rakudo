@@ -28,6 +28,8 @@ augment class RakuAST::Node {
         }
     }
 
+    multi method raku(RakuAST::Node:U: --> Str:D) { self.^name }
+
 #-------------------------------------------------------------------------------
 # Helper subs
 
@@ -845,7 +847,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Assertion::Recurse:D: --> Str:D) {
-        self!positional(self.node)
+        self!none
     }
 
 #- Regex::B --------------------------------------------------------------------

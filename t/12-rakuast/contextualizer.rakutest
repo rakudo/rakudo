@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -367,6 +367,31 @@ CODE
           $parsed.DEPARSE,
           "parsed: $source round trips through the .raku";
     }
+}
+
+subtest 'Every variable form and a contextualizer can be contextualized' => {
+    my @sources = '@$*FOO', '%$*FOO', '@$?FILE', '@$Foo::bar', '@$::("x")',
+      '@$<a>', '@$0', '@$=pod', '@$(1, 2)', '$@(1, 2)', '%@(a => 1)';
+    plan 2 + @sources;
+    for @sources -> $source {
+        lives-ok { $source.AST }, "$source parses";
+    }
+    lives-ok { RakuAST::Contextualizer::List.new(RakuAST::Var::Dynamic.new('$*FOO')) },
+      'a dynamic variable is accepted as target';
+    lives-ok {
+        RakuAST::Contextualizer::List.new(
+          RakuAST::Contextualizer::Item.new(RakuAST::Var::Lexical.new('$_'))
+        )
+    }, 'a contextualizer is accepted as target';
+}
+
+subtest 'Anonymous, placeholder and undeclared variables can be contextualized' => {
+    my @sources = '$@', '$%', '@$', '%$', '$$', 'sub p { $@_ }', 'sub q { @%_ }',
+      '{ @$^a }', '{ %$:n }', 'no strict; @$fresh';
+    plan 1 + @sources;
+    for @sources -> $source { lives-ok { $source.AST }, "$source parses" }
+    is-deeply 'sub r { $@_ }; r(1, 2)'.AST.EVAL, $[1, 2],
+      'an item contextualizer on the slurpy placeholder yields the arguments';
 }
 
 # vim: expandtab shiftwidth=4

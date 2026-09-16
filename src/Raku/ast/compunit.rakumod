@@ -65,7 +65,7 @@ class RakuAST::CompUnit
             $statement-list // RakuAST::StatementList.new);
 
         my $mainline := RakuAST::Block.new();
-        $mainline.set-implicit-topic(0);
+        $mainline.set-implicit-topic(False);
         $mainline.set-no-implicit-match();
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
 
@@ -103,8 +103,7 @@ class RakuAST::CompUnit
         }
 
         # If CompUnit's language revision is not set explicitly then guess it
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
-          $language-revision := $language-revision
+        my $revision := $language-revision
             ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
@@ -112,8 +111,8 @@ class RakuAST::CompUnit
                  )
                ) ?? $setting-rev
                  !! Perl6::Metamodel::Configuration.language_revision_object(
-                      nqp::getcomp("Raku").language_revision)
-                    );
+                      nqp::getcomp("Raku").language_revision);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision', $revision);
 
         my $sc;
         if $outer-cu {
@@ -143,7 +142,7 @@ class RakuAST::CompUnit
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 my $context := RakuAST::IMPL::QASTContext.new(
                   :$sc, :$precompilation-mode,
-                  :$setting, :$language-revision);
+                  :$setting, :language-revision($revision));
                 nqp::bindattr_i($context, RakuAST::IMPL::QASTContext,
                   '$!is-nested', 1);
                 $context.set-world-bridge($nested-world);
@@ -154,7 +153,7 @@ class RakuAST::CompUnit
                 nqp::pushcompsc($sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :language-revision($revision)));
                 # Set the SC description to $?FILES only on the
                 # fresh-SC path. The bridged path shares the outer
                 # World's SC, whose description was already set by
@@ -388,6 +387,11 @@ class RakuAST::CompUnit
 
     method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
         self.add-cu-phaser($!check-phasers, $phaser);
+    }
+
+    # A code object a will trait registers to run with the check phasers.
+    method add-check-code(Code $code) {
+        self.add-cu-phaser($!check-phasers, $code);
     }
 
     method add-end-phaser(Code $phaser) {

@@ -453,28 +453,101 @@ sub emit-package($package) {
     say("    compose($name);");
 }
 
+sub type-is-native($type) {
+    $type eq 'str' || $type eq 'int' || $type eq 'num'
+}
+
+# Whether a declared type needs an object type check. Mu and Any accept
+# anything, including NQP values, and a native parameter is enforced by the
+# unbox when the argument is bound.
+sub type-is-checked($type) {
+    !($type eq 'Any' || $type eq 'Mu' || type-is-native($type))
+}
+
+# The compiler passes VM strings, integers, arrays, hashes and closures
+# where user code passes Str, Int, List, Hash and Code objects, and a bare
+# adverb, which is a VM integer, where user code passes a Bool. NQP cannot
+# know those satisfy the type, so these checks are emitted here. A VM integer
+# for a Bool becomes a Bool on entry, and NQPMu for an optional flag becomes
+# the Bool type object. An omitted optional of the other five stays
+# undefined, which the bodies treat as absent. Every other type goes on the
+# NQP parameter itself, and NQP checks it, deconts the argument and gives an
+# omitted optional the type object. NQP does not check a slurpy, so the
+# elements of a typed slurpy are checked here too.
+sub type-is-vm-shaped($type) {
+    $type eq 'Str' || $type eq 'Int' || $type eq 'Bool' || $type eq 'Code' || $type eq 'List' || $type eq 'Hash'
+}
+
+# The NQP expression that decides whether a value satisfies a declared type,
+# for the checks emitted here. For the types type-is-vm-shaped names, an
+# undefined value passes only as the type object itself, or as the NQPMu
+# that NQP code passes for an absent value. A required flag refuses NQPMu,
+# which is also what a name NQP cannot resolve evaluates to.
+sub type-check-expr($type, $value, $absent-ok = 1) {
+    return "nqp::istype($value, $type)" unless type-is-vm-shaped($type);
+    my $concrete :=
+      $type eq 'Str'  ?? "nqp::isstr($value) || nqp::istype($value, Str)" !!
+      $type eq 'Int'  ?? "nqp::isint($value) || nqp::istype($value, Int)" !!
+      $type eq 'Bool' ?? "nqp::isint($value) || nqp::istype($value, Bool)" !!
+      $type eq 'Code' ?? "nqp::isinvokable($value)" !!
+      $type eq 'List' ?? "nqp::islist($value) || nqp::istype($value, List)" !!
+                         "nqp::ishash($value) || nqp::istype($value, Hash)";
+    my $absent := $absent-ok ?? "nqp::eqaddr($value, NQPMu) || " !! '';
+    "(nqp::isconcrete($value) ?? ($concrete) !! ({$absent}nqp::istype($value, $type)))"
+}
+
+# The call that reports a failed check, through the hook NQP uses for the
+# parameters it checks itself.
+sub type-check-fail($name, $type, $value) {
+    "nqp::gethllsym('nqp', 'parameter-type-check-failure')($value, $type, '$name', nqp::curcode())"
+}
+
 sub emit-method($package, $method) {
     my @parameters := $method.parameters;
     my @params-in;
     my @params-desc := ["$package, '', 0, 0"];
     my @params-decont;
+    my $name := $method.name;
     for @parameters {
         my $param-name := $_.name;
         my $type := $_.type || 'Any';
         my $named := $_.named ?? ':' !! '';
         my $slurpy := $_.slurpy ?? '*' !! '';
         my $opt := $slurpy ?? '' !! ($_.optional ?? '?' !! '!');
-        @params-in.push(", $named$slurpy$param-name$opt");
+        my $checked := type-is-checked($type);
+        my $here := $checked && (type-is-vm-shaped($type) || $slurpy);
+        # The type goes on the NQP parameter unless it is checked here. A
+        # native one makes binding unbox the argument and refuse one that
+        # cannot be unboxed.
+        my $typed := type-is-native($type) || ($checked && !$here) ?? "$type " !! '';
+        if $type eq 'Bool' && ($slurpy || $_.raw) {
+            nqp::die("A Bool parameter cannot be slurpy or raw: $param-name of $package.$name (" ~ $*CU.filename ~ ")");
+        }
+        my $raw := $_.raw && $typed ?? ' is raw' !! '';
+        my $default := $type eq 'Bool' && !$slurpy && $_.optional ?? ' = Bool' !! '';
+        @params-in.push(", $typed$named$slurpy$param-name$opt$raw$default");
         @params-desc.push("$type, '$param-name', " ~ ($_.named ?? '1, ' !! '0, ') ~
             ($_.optional ?? '1' !! '0'));
-        unless $_.raw {
+        unless $_.raw || $typed {
             @params-decont.push("$param-name := nqp::decont($param-name);");
+        }
+        if $here && $slurpy {
+            my $value := $_.named ?? 'nqp::decont(nqp::iterval($_))' !! 'nqp::decont($_)';
+            @params-decont.push("for $param-name \{ " ~ type-check-expr($type, $value)
+                ~ " || " ~ type-check-fail($param-name, $type, $value) ~ " }");
+        }
+        elsif $here {
+            my $value := $_.raw ?? "nqp::decont($param-name)" !! $param-name;
+            @params-decont.push(type-check-expr($type, $value, $type ne 'Bool' || $_.optional)
+                ~ " || " ~ type-check-fail($param-name, $type, $value) ~ ";");
+        }
+        if $type eq 'Bool' {
+            @params-decont.push("$param-name := nqp::isint($param-name) ?? (nqp::unbox_i($param-name) ?? (Bool.WHO)<True> !! (Bool.WHO)<False>) !! nqp::eqaddr($param-name, NQPMu) ?? Bool !! $param-name;");
         }
     }
     my $params-in := nqp::join("", @params-in);
     my $params-desc := nqp::join(", ", @params-desc);
 
-    my $name := $method.name;
     say("    add-method($package, '$name', [$params-desc], anon sub $name (\$SELF_CONT$params-in) \{");
     say("        my \$SELF := nqp::decont(\$SELF_CONT);");
     for @params-decont {

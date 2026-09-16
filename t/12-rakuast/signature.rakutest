@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 33;
+plan 35;
 
 my $ast;
 my $deparsed;
@@ -1058,9 +1058,11 @@ subtest 'Where constraint of a parameter stays as written' => {
             RakuAST::SemiList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::StatementPrefix::Try.new(
-                  RakuAST::Call::Name.new(
-                    name => RakuAST::Name.from-identifier('f'),
-                    args => RakuAST::ArgList.new(RakuAST::RatLiteral.new(1.5))
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('f'),
+                      args => RakuAST::ArgList.new(RakuAST::RatLiteral.new(1.5))
+                    )
                   )
                 )
               )
@@ -1875,6 +1877,31 @@ subtest 'A parameter mutated after its BEGIN time' => {
         is-deeply &fresh.signature.params[0].rw, True,
           "$type: the trait is on the parameter";
     }
+}
+
+subtest 'A parameter array shape is checked against the argument' => {
+    plan 8;
+    lives-ok { 'sub f(@a[3]) { }'.AST.EVAL }, 'a fixed shape compiles';
+    is 'sub g(@a[3]) { "in" }; my @b[3]; g(@b)'.AST.EVAL, 'in',
+      'a fixed shape accepts an array of that shape';
+    throws-like { 'sub h(@a[3]) { }; my @b[2]; h(@b)'.AST.EVAL },
+      X::TypeCheck::Binding::Parameter, 'a fixed shape refuses an array of another size';
+    is 'sub i(@a[*]) { "in" }; my @b[2]; i(@b)'.AST.EVAL, 'in',
+      'a whatever shape accepts a one dimensional array';
+    throws-like { 'sub j(@a[*]) { }; my @b[2;2]; j(@b)'.AST.EVAL },
+      X::TypeCheck::Binding::Parameter, 'a whatever shape refuses a two dimensional array';
+    is 'sub k(@a[*,*]) { "in" }; my @b[2;2]; k(@b)'.AST.EVAL, 'in',
+      'a two dimensional whatever shape accepts a two dimensional array';
+    throws-like { 'my $c = 0; sub l(@a[3 if $c]) { }; my @b[3]; l(@b)'.AST.EVAL },
+      X::TypeCheck::Binding::Parameter, 'a statement modifier in a shape is kept';
+    lives-ok { 'sub m(@a[if 1 { 3 }]) { }'.AST.EVAL }, 'a shape that is a conditional statement compiles';
+}
+
+subtest 'A negative decimal literal parameter matches its value' => {
+    plan 3;
+    is 'sub f(-1.5) { "in" }; f(-1.5)'.AST.EVAL, 'in', 'a negative decimal with an integer part';
+    is 'sub g(-0.5) { "in" }; g(-0.5)'.AST.EVAL, 'in', 'a negative decimal with a zero integer part';
+    is 'sub h(-.5) { "in" }; h(-.5)'.AST.EVAL, 'in', 'a negative decimal without an integer part';
 }
 
 # vim: expandtab shiftwidth=4

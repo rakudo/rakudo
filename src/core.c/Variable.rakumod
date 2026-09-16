@@ -156,7 +156,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :check($)! ) {
         $*W.add_phaser($v.slash, 'CHECK', $block);
     }
     elsif $*CU {
-        $*CU.add-check-phaser($block);
+        $*CU.add-check-code($block);
     }
     else {
         die "Can only add CHECK phaser during compilation";

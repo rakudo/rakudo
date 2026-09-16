@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 36;
+plan 41;
 
 my $ast;
 my $deparsed;
@@ -593,5 +593,20 @@ CODE
 
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 }
+
+throws-like { 'sub infix:<> () { }'.AST }, X::Comp::Group,
+  'an operator declared with a null name is refused',
+  panic => X::Syntax::Extension::Null;
+throws-like { 'infix:(&)'.AST }, X::Syntax::Adverb,
+  'a signature adverb on an operator category is refused', what => ':(&)';
+throws-like { 'sub foo:(Int) { 1 }'.AST }, X::NYI,
+  'a signature in a declared name is refused where it is written',
+  feature => /signature/;
+throws-like { 'sub foo:{ a => 1 } () { }'.AST },
+  X::Syntax::Extension::TooComplex,
+  'a hash in a declared name is refused where it is written',
+  name => /'a => 1'/;
+is-deeply 'sub infix:["foo"] ($a, $b) { }'.AST.statements.head.expression.name.canonicalize,
+  'infix:<foo>', 'a bracketed list is part of a declared name';
 
 # vim: expandtab shiftwidth=4

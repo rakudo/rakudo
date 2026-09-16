@@ -1190,7 +1190,7 @@ class RakuAST::VarDeclaration::Simple
             my $type := $of-type // self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             # An unnamed subset reports as <anon> in a failed type check,
             # matching the legacy frontend.
-            $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || Mu), :$where;
+            $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || RakuAST::Type), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
         }
@@ -1202,7 +1202,7 @@ class RakuAST::VarDeclaration::Simple
             if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
-                        RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
+                        RakuAST::ColonPair::Value.new(:key<shape>, :value(RakuAST::Circumfix::Parentheses.new($!shape)))
                     )
                     !! RakuAST::ArgList.new;
                 my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
@@ -1221,11 +1221,13 @@ class RakuAST::VarDeclaration::Simple
                     $operand := $base-ast;
                 }
                 else {
-                    $operand := RakuAST::Declaration::ResolvedConstant.new(
-                        :compile-time-value(
-                            $!sigil eq '$'
-                                ?? self.meta-object
-                                !! self.IMPL-CONTAINER-TYPE($of)
+                    $operand := RakuAST::Term::Declaration.new(
+                        RakuAST::Declaration::ResolvedConstant.new(
+                            :compile-time-value(
+                                $!sigil eq '$'
+                                    ?? self.meta-object
+                                    !! self.IMPL-CONTAINER-TYPE($of)
+                            )
                         )
                     );
                 }
@@ -3380,11 +3382,11 @@ class RakuAST::VarDeclaration::Implicit::State
     has int $!init-to-zero;
     has Mu $!sentinel-value;
 
-    method new(str $name, int :$init-to-zero, int :$sentinel) {
+    method new(str $name, Bool :$init-to-zero, Bool :$sentinel) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
-        nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', $init-to-zero // 0);
+        nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', ?$init-to-zero);
         # A private initial value no user code can produce, so a first read of
         # the variable is recognizable by value.
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::State, '$!sentinel-value',
@@ -3741,7 +3743,7 @@ class RakuAST::VarDeclaration::Placeholder::Named
         RakuAST::Parameter.new:
           target   => RakuAST::ParameterTarget::Var.new(:$name),
           names    => [nqp::substr($name,1)],
-          optional => 0
+          optional => False
     }
 }
 

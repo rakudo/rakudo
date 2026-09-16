@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 11;
 
 # NOTE: this only works when there are no variable references
 sub ast-ok(
@@ -77,5 +77,13 @@ ast-ok RakuAST::VersionLiteral.new(Version.new('6.66')), v6.66, 'v6.66',
 # v1.2.3-
 ast-ok RakuAST::VersionLiteral.new(v1.2.3-), v1.2.3-, 'v1.2.3-',
   'RakuAST::VersionLiteral with a trailing minus';
+
+subtest 'Vulgar fraction literals parse to their value' => {
+    plan 4;
+    is-deeply '⅔'.AST.EVAL, 2/3, 'a fraction with a denominator is a Rat';
+    is-deeply '-⅔'.AST.EVAL, -2/3, 'a negated fraction keeps its sign';
+    is-deeply '3⅔'.AST.EVAL, 11/3, 'a fraction after an integer adds to it';
+    is-deeply 'Ⅼ'.AST.EVAL, 50, 'a roman numeral is an Int';
+}
 
 # vim: expandtab shiftwidth=4

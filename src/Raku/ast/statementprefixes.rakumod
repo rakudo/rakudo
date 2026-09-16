@@ -1096,7 +1096,9 @@ class RakuAST::StatementPrefix::Phaser::Pre
                      operand => $blorst,
                      postfix => RakuAST::Call::Term.new
                    )
-                !! $blorst
+                !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                  ?? $blorst.expression
+                  !! $blorst
             )
           )
         );

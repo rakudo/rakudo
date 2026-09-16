@@ -764,7 +764,7 @@ subtest 'Sub with declarator pod on parameter (4)' => {
           ).declarator-docs(
             leading  => ("leading param\n",),
             trailing => ("trailing param\n",)
-          )
+          ),
         )
       ),
       body      => RakuAST::Blockoid.new(

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 86;
+plan 87;
 
 my $ast;
 my $deparsed;
@@ -1715,10 +1715,12 @@ subtest 'Signature declaration with a where constraint' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Try.new(
-          RakuAST::ApplyInfix.new(
-            left  => RakuAST::Var::Lexical.new('$a'),
-            infix => RakuAST::Infix.new('='),
-            right => RakuAST::IntLiteral.new(2)
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(2)
+            )
           )
         )
       ),
@@ -3239,6 +3241,16 @@ CODE
       'Str: the declared type reaches a sub-signature when assigning';
     throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
       'Raku: the declared type reaches a sub-signature when assigning';
+}
+
+subtest 'A will trait registers its block as a phaser' => {
+    plan 4;
+    my @seen;
+    lives-ok { 'my $a will check { @seen.push("check") }; @seen.push("run")'.AST.EVAL },
+      'a will check trait compiles';
+    is-deeply @seen, ["check", "run"], 'the will check block ran before the code';
+    lives-ok { 'my $b will end { }'.AST },   'a will end trait compiles';
+    lives-ok { 'my $c will begin { }'.AST }, 'a will begin trait compiles';
 }
 
 # vim: expandtab shiftwidth=4

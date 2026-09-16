@@ -449,10 +449,12 @@ subtest 'LEAVE phaser thunk being run' => {
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Leave.new(
-              RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier("pass"),
-                args => RakuAST::ArgList.new(
-                  RakuAST::StrLiteral.new("leaving")
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("pass"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::StrLiteral.new("leaving")
+                  )
                 )
               )
             )
@@ -556,17 +558,21 @@ subtest 'KEEP / UNDO phaser thunk successful exit' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Keep.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$keep')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
               )
             )
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Undo.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$undo')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
               )
             )
           ),
@@ -690,17 +696,21 @@ subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Keep.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$keep')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
               )
             )
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Undo.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$undo')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
               )
             )
           ),
@@ -818,10 +828,12 @@ CODE
 subtest 'END phaser thunk being run' => {
     # END pass("leaving END thunk")
     ast RakuAST::StatementPrefix::Phaser::End.new(
-      RakuAST::Call::Name.new(
-       name => RakuAST::Name.from-identifier("pass"),
-        args => RakuAST::ArgList.new(
-          RakuAST::StrLiteral.new("leaving END thunk")
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+         name => RakuAST::Name.from-identifier("pass"),
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("leaving END thunk")
+          )
         )
       )
     );
@@ -1391,7 +1403,7 @@ subtest 'Block with QUIT phaser block' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Quit.new(
               RakuAST::Block.new(
-                implicit-topic => 3,
+                implicit-topic => True,
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(

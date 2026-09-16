@@ -1,6 +1,6 @@
 # Base marker for all things that may appear as top-level regex syntax.
 class RakuAST::Regex
-  is RakuAST::Node
+  is RakuAST::RegexBody
 {
     has str $!alt-nfa-prefix;
 
@@ -759,9 +759,9 @@ class RakuAST::Regex::NamedCapture
 {
     has str $.name;
     has Bool $.array;
-    has RakuAST::Term $.regex;
+    has RakuAST::Regex::Term $.regex;
 
-    method new(str :$name!, Bool :$array, RakuAST::Term :$regex!) {
+    method new(str :$name!, Bool :$array, RakuAST::Regex::Term :$regex!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Regex::NamedCapture, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::NamedCapture, '$!array',
@@ -1172,7 +1172,7 @@ class RakuAST::Regex::CharClass::Specified
         nqp::bindattr_s($obj, RakuAST::Regex::CharClass::Specified, '$!characters',
             $characters);
         nqp::bindattr($obj, RakuAST::Regex::CharClass::Specified, '$!codepoint',
-            $codepoint);
+            $codepoint // Int);
         $obj
     }
 
@@ -1719,9 +1719,9 @@ class RakuAST::Regex::Assertion::Alias
   is RakuAST::Regex::Assertion
 {
     has str $.name;
-    has RakuAST::Regex::Assertion $.assertion;
+    has RakuAST::Regex::Atom $.assertion;
 
-    method new(str :$name!, RakuAST::Regex::Assertion :$assertion!) {
+    method new(str :$name!, RakuAST::Regex::Atom :$assertion!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Regex::Assertion::Alias, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Alias, '$!assertion', $assertion);
@@ -1749,9 +1749,9 @@ class RakuAST::Regex::Assertion::Lookahead
   is RakuAST::Regex::Assertion
 {
     has Bool $.negated;
-    has RakuAST::Regex::Assertion $.assertion;
+    has RakuAST::Regex::Atom $.assertion;
 
-    method new(Bool :$negated, RakuAST::Regex::Assertion :$assertion!) {
+    method new(Bool :$negated, RakuAST::Regex::Atom :$assertion!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Lookahead, '$!negated',
             $negated ?? True !! False);
@@ -1999,18 +1999,14 @@ class RakuAST::Regex::Assertion::CharClass
 class RakuAST::Regex::Assertion::Recurse
   is RakuAST::Regex::Assertion
 {
-  has RakuAST::Regex::Term $.node;
-
-  method new(RakuAST::Regex $node) {
-    my $obj := nqp::create(self);
-    nqp::bindattr($obj, RakuAST::Regex::Assertion::Recurse, '$!node', $node);
-    $obj;
+  method new() {
+    nqp::create(self)
   }
 
   method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
      QAST::Regex.new:
         :rxtype<subrule>, :subtype<method>,
-        QAST::NodeList.new( QAST::SVal.new( :value('RECURSE') ), :node($!node));
+        QAST::NodeList.new( QAST::SVal.new( :value('RECURSE') ));
   }
 
 }
@@ -2279,7 +2275,7 @@ class RakuAST::Regex::InternalModifier
     has  str $.modifier;  # for proper deparsing
     has Bool $.negated;
 
-    method new(str :$modifier, Bool :$negated) {
+    method new(Str :$modifier, Bool :$negated) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,RakuAST::Regex::InternalModifier,'$!modifier',
           $modifier // self.key);

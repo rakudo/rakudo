@@ -85,7 +85,7 @@ class RakuAST::Resolver {
         0
     }
 
-    method declare-our-package(Mu $target, str $final, RakuAST::Package $pkg) {
+    method declare-our-package(Mu $target, str $final, RakuAST::Declaration $pkg) {
         # Skip the 6.d `module Foo::Bar { class Foo::Bar { } }`
         # pattern: silent-replace at install time, no tracker entry.
         # Canonical name is only needed when we have an enclosing
@@ -181,8 +181,9 @@ class RakuAST::Resolver {
     # or no targets left for the given name.
     method find-attach-target(str $name, Bool :$skip-first) {
         my @stack := $!attach-targets{$name};
-        nqp::isconcrete(@stack) && nqp::elems(@stack) > +$skip-first
-          ?? @stack[nqp::elems(@stack) - (1 + $skip-first)]
+        my int $skip := ?$skip-first;
+        nqp::isconcrete(@stack) && nqp::elems(@stack) > $skip
+          ?? @stack[nqp::elems(@stack) - (1 + $skip)]
           !! Nil
     }
 
@@ -343,7 +344,7 @@ class RakuAST::Resolver {
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, :$current-scope-only) {
+    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, Bool :$current-scope-only) {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :$current-scope-only)
           // ($current-scope-only ?? Nil !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
     }
@@ -1729,7 +1730,7 @@ class RakuAST::Resolver::Compile
     # Add a lexical declaration. Used when the compiler produces the
     # declaration, so that we can resolve it without requiring it to be
     # linked into the tree.
-    method declare-lexical(RakuAST::Declaration $decl) {
+    method declare-lexical(RakuAST::Node $decl) {
         CATCH {
             if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
                 self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
@@ -1959,7 +1960,7 @@ class RakuAST::Resolver::Compile::Scope
         @declarations
     }
 
-    method declare-lexical(RakuAST::Declaration $decl) {
+    method declare-lexical(RakuAST::Node $decl) {
         nqp::die('Should not be calling declare-lexical in batch mode')
           if $!batch-mode;
         my $name    := $decl.lexical-name;

@@ -357,7 +357,7 @@ class RakuAST::LexicalScope
                     # A routine that follows a stub of its name rebinds the
                     # stub's lexical rather than declaring a second one.
                     if nqp::istype($prev, RakuAST::Routine) && $prev.is-stub {
-                        $_.set-replace-stub(1)
+                        $_.set-replace-stub(True)
                           if nqp::can($_, 'set-replace-stub') && $_.multiness ne 'multi';
                         %lookup{$lexical-name} := $_;
                     }
@@ -388,7 +388,7 @@ class RakuAST::LexicalScope
                             # A routine declaration that shadows an imported stub of
                             # the same name reuses the imported lexical slot rather
                             # than declaring its own.
-                            $shadower.set-replace-stub(1);
+                            $shadower.set-replace-stub(True);
                         }
                         else {
                             self.add-sorry:
@@ -967,9 +967,9 @@ class RakuAST::Declaration::LexicalPackage
 {
     has str $.lexical-name;
     has Mu $.compile-time-value;
-    has RakuAST::Package $.package;
+    has RakuAST::Declaration $.package;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value! is raw, RakuAST::Package :$package!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value! is raw, RakuAST::Declaration :$package!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::LexicalPackage,
             '$!lexical-name', $lexical-name);
@@ -1104,7 +1104,7 @@ class RakuAST::Lookup
         }
     }
 
-    method set-resolution(RakuAST::Declaration $resolution) {
+    method set-resolution(RakuAST::Node $resolution) {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
     }
 
@@ -1760,7 +1760,7 @@ class RakuAST::ImplicitLookups
 # Anything that needs to stub packages into existence -- or to fill in stubbed packages -- does RakuAST::PackageInstaller
 class RakuAST::PackageInstaller {
     ### Consuming classes must define:
-    #    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) { ... }
+    #    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) { ... }
 
     # Worries from installing the symbol. Installation runs at BEGIN time,
     # before the parser has attached the node's origin, so a worry raised
@@ -1792,7 +1792,7 @@ class RakuAST::PackageInstaller {
         RakuAST::Resolver $resolver,
         str $scope,
         RakuAST::Name $name,
-        RakuAST::Package $current-package,
+        Mu $current-package,
         Mu :$meta-object
     ) {
         # Anonymous declarations install no symbol, whether the name itself

@@ -1,0 +1,185 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 13; # Do not change this file to done-testing
+
+# The node methods are generated from declarations that look like Raku
+# signatures. These tests cover what the declared parameter types enforce
+# when the methods are called from Raku code.
+
+subtest 'A node that is not an expression is refused as a statement expression' => {
+    plan 1;
+    throws-like { RakuAST::Statement::Expression.new(expression => RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'constructing with a parameter node throws a parameter type check',
+      symbol   => '$expression',
+      expected => RakuAST::Expression,
+      got      => RakuAST::Parameter,
+      message  => /'expected RakuAST::Expression but got RakuAST::Parameter'/;
+}
+
+subtest 'Mutators check the declared type as well' => {
+    plan 2;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(42));
+    throws-like { $statement.set-expression(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'replacing the expression with a parameter node throws',
+      symbol => '$expression';
+    is-deeply $statement.expression, RakuAST::IntLiteral.new(42),
+      'the statement keeps its expression after the failed call';
+}
+
+subtest 'Other node constructors check their arguments' => {
+    plan 3;
+    throws-like { RakuAST::StatementModifier::If.new(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a statement modifier refuses a parameter node as condition',
+      expected => RakuAST::Expression;
+    throws-like { RakuAST::Circumfix::Parentheses.new(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'parentheses refuse a parameter node as semilist',
+      expected => RakuAST::SemiList;
+    throws-like { RakuAST::Call::Name.new(name => RakuAST::IntLiteral.new(1)) },
+      X::TypeCheck::Binding::Parameter,
+      'a named call refuses a literal as the name',
+      symbol   => '$name',
+      expected => RakuAST::Name;
+}
+
+subtest 'A type object of the declared type is accepted' => {
+    plan 2;
+    my $statement;
+    lives-ok { $statement := RakuAST::Statement::Expression.new(expression => RakuAST::Expression) },
+      'constructing with the expression type object lives';
+    ok $statement.expression === RakuAST::Expression,
+      'the type object is what the node holds';
+}
+
+subtest 'An omitted optional parameter holds its type object' => {
+    plan 3;
+    my $sub := RakuAST::Sub.new(name => RakuAST::Name.from-identifier('s'));
+    ok $sub.signature === RakuAST::Signature,
+      'a sub made without a signature reports the signature type object';
+    my $method := RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'));
+    ok $method.signature === RakuAST::Signature,
+      'a method made without a signature reports the signature type object';
+    my $package := RakuAST::Package.new(name => RakuAST::Name.from-identifier('P'));
+    ok $package.repr === Str,
+      'a package made without a repr reports the Str type object';
+}
+
+subtest 'Bool parameters take a Bool and refuse an integer' => {
+    plan 3;
+    my $method := RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'), :private);
+    ok $method.private === True,
+      'True passed for a Bool parameter is stored as True';
+    throws-like { RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'), :private(1)) },
+      X::TypeCheck::Binding::Parameter,
+      'an integer is refused for a Bool parameter',
+      symbol   => '$private',
+      expected => Bool;
+    ok RakuAST::Parameter.new(:optional).is-optional === True,
+      'a Bool passed for a parameter that also has an unset state is accepted';
+}
+
+subtest 'Code parameters accept any invokable and refuse the rest' => {
+    plan 2;
+    my @seen;
+    lives-ok { RakuAST::Name.from-identifier('a').visit-children({ @seen.push($_) }) },
+      'a block is accepted as visitor';
+    throws-like { RakuAST::Name.from-identifier('a').visit-children(42) },
+      X::TypeCheck::Binding::Parameter,
+      'an integer is refused as visitor',
+      symbol   => '$visitor',
+      expected => Code;
+}
+
+subtest 'List parameters accept a List and refuse a single value' => {
+    plan 2;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1));
+    lives-ok { $statement.set-labels((RakuAST::Label.new('FOO'),)) },
+      'a List of labels is accepted';
+    throws-like { $statement.set-labels(RakuAST::Label.new('FOO')) },
+      X::TypeCheck::Binding::Parameter,
+      'a bare label is refused',
+      symbol   => '$labels',
+      expected => List;
+}
+
+subtest 'Accessors of Bool flags return a Bool' => {
+    plan 5;
+    ok RakuAST::Block.new(:required-topic).required-topic === True,
+      'a required topic reads back as True';
+    ok RakuAST::Block.new(:required-topic, :exception).exception === True,
+      'an exception topic reads back as True';
+    ok RakuAST::Doc::Block.new(type => 'head', :for).for === True,
+      'a for doc block reads back as True';
+    ok RakuAST::Doc::Block.new(type => 'head', :abbreviated).abbreviated === True,
+      'an abbreviated doc block reads back as True';
+    ok RakuAST::Circumfix::HashComposer.new(:object-hash).object-hash === True,
+      'an object hash composer reads back as True';
+}
+
+subtest 'An Int parameter refuses a Str' => {
+    plan 2;
+    is RakuAST::Doc::Block.new(type => 'head', level => 2).level, 2,
+      'an Int is accepted as level';
+    throws-like { RakuAST::Doc::Block.new(type => 'head', level => "2") },
+      X::TypeCheck::Binding::Parameter,
+      'a Str is refused as level',
+      symbol   => '$level',
+      expected => Int;
+}
+
+subtest 'A regex declaration takes a regex or an only star as body' => {
+    plan 5;
+    my $name := RakuAST::Name.from-identifier('r');
+    lives-ok { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::OnlyStar.new) },
+      'an only star body is accepted';
+    throws-like { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::Blockoid.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a plain blockoid is refused as body',
+      symbol   => '$body',
+      expected => RakuAST::RegexBody;
+    throws-like { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a parameter node is refused as body',
+      symbol => '$body';
+    my $regex := RakuAST::RegexDeclaration.new(:$name, body => RakuAST::OnlyStar.new);
+    throws-like { $regex.replace-body(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'replacing the body with a parameter node throws',
+      symbol => '$new-body';
+    ok $regex.body ~~ RakuAST::OnlyStar,
+      'the declaration keeps its body after the failed call';
+}
+
+subtest 'A Str parameter refuses a node' => {
+    plan 1;
+    throws-like { RakuAST::Name.from-identifier(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a parameter node is refused where a string is declared',
+      symbol   => '$identifier',
+      expected => Str;
+}
+
+subtest 'An undefined value passes only as the declared type object' => {
+    plan 4;
+    throws-like { RakuAST::Name.from-identifier(RakuAST::Parameter) },
+      X::TypeCheck::Binding::Parameter,
+      'a node type object is refused where a string is declared',
+      symbol   => '$identifier',
+      expected => Str,
+      got      => RakuAST::Parameter;
+    throws-like { RakuAST::Doc::Block.new(type => 'head', level => Str) },
+      X::TypeCheck::Binding::Parameter,
+      'the Str type object is refused where an Int is declared',
+      symbol   => '$level',
+      expected => Int;
+    lives-ok { RakuAST::Doc::Block.new(type => 'head', level => Int) },
+      'the Int type object is accepted where an Int is declared';
+    lives-ok { RakuAST::Sub.new(name => RakuAST::Name.from-identifier('s'), traits => List) },
+      'the List type object is accepted where a List is declared';
+}
+
+# vim: expandtab shiftwidth=4

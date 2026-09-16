@@ -108,7 +108,7 @@ class RakuAST::ArgList
     # callee at runtime from an open set of candidates, and no compile time
     # analysis commits a choice for it, so its literal arguments stay the
     # boxed values they always were.
-    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call, Bool :$native-pairing) {
+    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Node $call, Bool :$native-pairing) {
         my $native-literal := $native-pairing
             ?? self.IMPL-NATIVE-PAIRED-LITERAL
             !! nqp::null();
@@ -1567,10 +1567,10 @@ class RakuAST::Call::VarMethod
 class RakuAST::Call::BlockMethod
   is RakuAST::Call::Methodish
 {
-    has RakuAST::Block $.block;
+    has RakuAST::Expression $.block;
 
     method new(
-        RakuAST::Block :$block!,
+        RakuAST::Expression :$block!,
       RakuAST::ArgList :$args,
                    str :$dispatch
     ) {

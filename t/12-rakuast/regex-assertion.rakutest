@@ -305,7 +305,15 @@ subtest 'Character property with expression assertion works' => {
         RakuAST::Regex::CharClassElement::Property.new(
           property => 'Block',
           predicate => RakuAST::Circumfix::Parentheses.new(
-            RakuAST::StrLiteral.new("Basic Latin")
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::QuotedString.new(
+                  segments => (
+                    RakuAST::StrLiteral.new("Basic Latin"),
+                  )
+                )
+              )
+            )
           ),
         )
       )
@@ -323,7 +331,15 @@ subtest 'Negated character property with expression assertion works' => {
           negated  => True,
           property => 'Block',
           predicate => RakuAST::Circumfix::Parentheses.new(
-            RakuAST::StrLiteral.new("Basic Latin")
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::QuotedString.new(
+                  segments => (
+                    RakuAST::StrLiteral.new("Basic Latin"),
+                  )
+                )
+              )
+            )
           ),
         )
       )
@@ -495,17 +511,11 @@ CODE
 subtest 'Assertion with recursive ast works' => {
     # /o[ <~~> | a ]/"
 
-    my $dummy = RakuAST::QuotedRegex.new(body =>
-        RakuAST::Regex::Sequence.new(
-          RakuAST::Regex::Literal.new("o")
-          )
-    );
-
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::Group.new(
           RakuAST::Regex::Alternation.new(
-            RakuAST::Regex::Assertion::Recurse.new($dummy),
+            RakuAST::Regex::Assertion::Recurse.new,
             RakuAST::Regex::Literal.new("a")
           ),
       )

@@ -3387,6 +3387,7 @@ CODE
         my $expression := $ast.blorst.condition-modifier.expression;
         self.syn-phaser('PRE') ~ ' ' ~ self.deparse(
           nqp::istype($expression,RakuAST::ApplyPostfix)
+            && nqp::istype($expression.operand,RakuAST::Block)
             ?? $expression.operand
             !! $expression
         ).chomp

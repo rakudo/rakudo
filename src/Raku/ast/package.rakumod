@@ -246,7 +246,7 @@ class RakuAST::Package
 
     method attach-target-names() { ['package', 'also'] }
 
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) {
         $type-object := self.stubbed-meta-object if nqp::eqaddr($type-object, Mu);
         my $package := RakuAST::Declaration::LexicalPackage.new:
             :lexical-name($name),
@@ -690,7 +690,7 @@ class RakuAST::Package::Attachable
     method can-have-methods()    { True }
     method can-have-attributes() { True }
 
-    method ATTACH-METHOD(RakuAST::Method $method) {
+    method ATTACH-METHOD(RakuAST::Methodish $method) {
         nqp::push($!attached-methods, $method);
         Nil
     }
@@ -742,8 +742,8 @@ class RakuAST::Package::Attachable
 class RakuAST::Role
   is RakuAST::Package::Attachable
 {
-    has Array $.instantiation-lexicals;
-    has Array $!pending-ins-lexicals;
+    has List $.instantiation-lexicals;
+    has List $!pending-ins-lexicals;
     has RakuAST::LexicalFixup $!fixup;
 
     method declarator()  { "role"                       }
@@ -1168,7 +1168,7 @@ class RakuAST::CompilerServices
         else {
             my $sig := nqp::getattr($code, Code, '$!signature');
             my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
-                :base_type($package_type), :definite(1));
+                :base_type($package_type), :definite(True));
             $!context.ensure-sc($definite);
             nqp::bindattr(
                 nqp::atpos(nqp::getattr($sig, Signature, '@!params'), 0),
@@ -1304,7 +1304,7 @@ class RakuAST::CompilerServices
         # the signature informs introspection and derivation, not a
         # run time check. Mirrors what the legacy frontend installs.
         my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
-            :base_type($invocant-base), :definite(1));
+            :base_type($invocant-base), :definite(True));
         $!context.ensure-sc($definite);
         nqp::bindattr(
             nqp::atpos(nqp::getattr(

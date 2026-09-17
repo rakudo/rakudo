@@ -1828,23 +1828,23 @@ class RakuAST::VarDeclaration::Simple
                 if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
                     $assign-op := 'assign_i';
                     $var-access.returns(int);
-                    $init := QAST::IVal.new( :value(0) );
                 }
                 elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
                     $assign-op := 'assign_u';
                     $var-access.returns(uint);
-                    $init := QAST::IVal.new( :value(0) );
                 }
                 elsif $prim-spec == 2 {
                     $assign-op := 'assign_n';
                     $var-access.returns(num);
-                    $init := QAST::NVal.new( :value(0e0) );
+                    $init := QAST::NVal.new(:value(nqp::nan))
+                      if self.IMPL-LANGUAGE-REVISION == 1;
                 }
                 else {
                     $assign-op := 'assign_s';
                     $var-access.returns(str);
-                    $init := QAST::SVal.new( :value('') );
                 }
+
+                # There is some kind of value to initialize with
                 if $!initializer {
                     if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                         $init := $!initializer.expression.IMPL-TO-QAST($context);
@@ -1852,8 +1852,15 @@ class RakuAST::VarDeclaration::Simple
                     else {
                         nqp::die('Can only compile an assign initializer on a native');
                     }
-                    $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
+                    $qast := QAST::Op.new(:op($assign-op), $var-access, $init);
                 }
+
+                # No initializer, but we do need to do some initialization
+                elsif $init {
+                    $qast := QAST::Op.new(:op($assign-op), $var-access, $init);
+                }
+
+                # Native var self-initializes
                 else {
                     $qast := $var-access
                 }

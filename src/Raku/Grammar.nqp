@@ -1604,7 +1604,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token unit-block($decl, $kind = 'Block', :$parameterization) {
         :my $*BLOCK;
         {                                           # entry check
-            $/.typed_panic("X::UnitScope::MustHaveUnit",:what($decl))
+            $/.typed-panic("X::UnitScope::MustHaveUnit",:what($decl))
               unless $*SCOPE eq 'unit';
         }
         { $*IN-DECL := ''; }                        # not inside declaration
@@ -4272,7 +4272,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              {
                  # Allow all subs with ; but require "unit" scope from 6.e
                  if $*LANGUAGE-REVISION >= 3 {
-                     $/.typed_panic("X::UnitScope::MustHaveUnit","sub")
+                     $/.typed-panic("X::UnitScope::MustHaveUnit","sub")
                        unless $*SCOPE eq 'unit';
                  }
 

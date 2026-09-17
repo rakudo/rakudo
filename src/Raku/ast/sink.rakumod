@@ -60,7 +60,7 @@ class RakuAST::Sinkable
         nqp::bindattr_i(self, RakuAST::Sinkable, '$!sunk', 1);
     }
 
-    method sunk() { $!sunk ?? True !! False }
+    method sunk(--> Bool) { $!sunk }
 
     # Things that take care of their own sinking do not need us to call
     # the sink method on them
@@ -84,5 +84,5 @@ class RakuAST::BlockStatementSensitive
         nqp::bindattr_i(self, RakuAST::BlockStatementSensitive, '$!block-statement', 1);
     }
 
-    method is-block-statement() { $!block-statement ?? True !! False }
+    method is-block-statement(--> Bool) { $!block-statement }
 }

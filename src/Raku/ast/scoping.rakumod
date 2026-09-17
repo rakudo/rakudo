@@ -634,7 +634,7 @@ class RakuAST::Declaration
         Nil
     }
 
-    method is-hoisted-to-outer() { $!hoisted-to-outer ?? True !! False }
+    method is-hoisted-to-outer(--> Bool) { $!hoisted-to-outer }
 
     # Returns the default scope of this kind of declaration.
     method default-scope() {

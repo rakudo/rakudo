@@ -2160,7 +2160,7 @@ class RakuAST::Block
         Nil
     }
 
-    method implicit-topic() { $!implicit-topic-mode == 1 ?? Bool !! $!implicit-topic-mode > 1 ?? True !! False }
+    method implicit-topic(--> Bool) { $!implicit-topic-mode == 1 ?? Bool !! $!implicit-topic-mode > 1 }
     method required-topic() { $!implicit-topic-mode > 1 ?? True !! Bool }
     method exception()      { $!implicit-topic-mode > 2 ?? True !! Bool }
 

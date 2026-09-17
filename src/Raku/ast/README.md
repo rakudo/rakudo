@@ -48,9 +48,6 @@ quite a few other things to do that will be helpful. Specifically:
 * Get the AST compiler to support roles, and gradually transition the things
   that should be roles to actually be roles. (Difficulty: maybe headachey,
   but you'll live)
-* Make the AST compiler support return types with `-->` and add them to the
-  signature that is generated. Make accessors get these automatically based
-  on the declared type. (Difficulty: not so bad.)
 * Make us indicate slurpiness when signatures are introspected. (Difficulty:
   easy, just need to make sure the AST compiler passes that along when we
   build the Parameter object.
@@ -103,7 +100,11 @@ And in general:
   undefined value only as their own type object or the NQPMu that NQP code
   passes for an absent value. An omitted optional of a node type holds the
   type object. Slurpies are checked per element, `List` contents are not.
-  The rules live in `tools/build/raku-ast-compiler.nqp`.
+  A return type declared with `-->` is checked the same way and shows in
+  the signature, a generated accessor shows its attribute's type unless
+  that is native, and a `--> Bool` method may return a native integer,
+  which becomes a Bool. The rules live in
+  `tools/build/raku-ast-compiler.nqp`.
 
 ## Design notes on specific topics
 

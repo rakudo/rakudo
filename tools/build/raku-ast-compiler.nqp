@@ -55,7 +55,7 @@ grammar RakuASTParser {
     }
 
     rule signature {
-        '(' <parameter>* % [',' ] ')'
+        '(' <parameter>* % [',' ] [ '-->' <returns=.name> ]? ')'
     }
 
     rule parameter {
@@ -162,9 +162,11 @@ class Attribute does Node {
 class Method does Node {
     has $!name;
     has @!parameters;
+    has $!returns;
     has $!body;
     method name() { $!name }
     method parameters() { @!parameters }
+    method returns() { $!returns }
     method body() { $!body }
 }
 
@@ -242,8 +244,9 @@ class RakuASTActions {
     method method-decl($/) {
         my $name := ~$<name>;
         my @parameters := $<signature> ?? $<signature>.ast !! [];
+        my $returns := $<signature> && $<signature><returns> ?? ~$<signature><returns> !! NQPMu;
         my $body := $<method-body>.ast;
-        self.attach($/, Method.new(:$name, :@parameters, :$body));
+        self.attach($/, Method.new(:$name, :@parameters, :$returns, :$body));
     }
 
     method method-body($/) {
@@ -413,6 +416,9 @@ sub check-package-types($package) {
         for $method.parameters {
             check-type-name($_.type || 'Any', "parameter " ~ $_.name ~ " of $name." ~ $method.name);
         }
+        if $method.returns {
+            check-type-name($method.returns, "return type of $name." ~ $method.name);
+        }
     }
 }
 
@@ -445,9 +451,10 @@ sub emit-package($package) {
         my $decl-line := $attr-node.line;
         my $op := $attr-node.getattr-op;
         say("#line ", $decl-line, " ", $*CU.filename);
+        my $attr-type := $attr-node.type;
         say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{",
             " nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')",
-            " });");
+            " }" ~ (type-is-native($attr-type) ?? '' !! ", $attr-type") ~ ");");
     }
 
     say("    compose($name);");
@@ -553,7 +560,34 @@ sub emit-method($package, $method) {
     for @params-decont {
         say("        $_");
     }
-    say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
-    say("        " ~ $method.body);
-    say("    });");
+    my $returns := $method.returns;
+    if $returns && type-is-checked($returns) {
+        # The body runs as a block so its value can be checked, which a
+        # return statement would bypass.
+        if ~$method.body ~~ / <!after <[\w$.-]>> 'return' <!before <[\w-]>> / {
+            nqp::die("Method $package.$name declares a return type, so it cannot use return (" ~ $*CU.filename ~ ")");
+        }
+        say("        my \$RESULT := \{");
+        say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
+        say("        " ~ $method.body);
+        say("        }();");
+        if $returns eq 'Bool' {
+            say("        \$RESULT := nqp::isint(\$RESULT) ?? (nqp::unbox_i(\$RESULT) ?? (Bool.WHO)<True> !! (Bool.WHO)<False>) !! nqp::eqaddr(\$RESULT, NQPMu) ?? Bool !! \$RESULT;");
+        }
+        say("        " ~ type-check-expr($returns, '$RESULT')
+            ~ " || Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',"
+            ~ " \"Type check failed for return value of '$name'; expected $returns but got \""
+            ~ " ~ (nqp::isnull(\$RESULT) ?? 'null' !! \$RESULT.HOW.name(\$RESULT)),"
+            ~ " :got(nqp::isnull(\$RESULT) ?? Mu !! \$RESULT), :expected($returns));");
+        say("        \$RESULT");
+        say("    }, $returns);");
+    }
+    else {
+        if $returns {
+            nqp::die("Method $package.$name declares a return type the generator does not check (" ~ $*CU.filename ~ ")");
+        }
+        say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
+        say("        " ~ $method.body);
+        say("    });");
+    }
 }

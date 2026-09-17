@@ -316,13 +316,13 @@ class RakuAST::CompUnit
         Nil
     }
 
-    method is-boundary-sunk() { $!is-sunk ?? True !! False }
+    method is-boundary-sunk(--> Bool) { $!is-sunk }
 
     method get-boundary-sink-propagator() { $!statement-list }
 
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
-    method is-eval() { $!is-eval ?? True !! False }
+    method is-eval(--> Bool) { $!is-eval }
 
     # Put this unit's SC back on the compiling-SC stack before compiling it
     # again. Creating the unit pushed the SC, but the backend pops it after

@@ -66,7 +66,7 @@ class RakuAST::ArgList
         nqp::unshift($!args, $arg)
     }
 
-    method has-args() { nqp::elems($!args) ?? True !! False }
+    method has-args(--> Bool) { nqp::elems($!args) }
     method arity() { nqp::elems($!args) }
 
     method args() {

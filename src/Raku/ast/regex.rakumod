@@ -1869,10 +1869,10 @@ class RakuAST::Regex::Assertion::InterpolatedVar
 class RakuAST::Regex::Assertion::Callable
   is RakuAST::Regex::Assertion
 {
-    has RakuAST::Expression $.callee;
+    has RakuAST::Term $.callee;
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Expression :$callee!, RakuAST::ArgList :$args) {
+    method new(RakuAST::Term :$callee!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!callee', $callee);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!args',

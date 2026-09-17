@@ -1227,8 +1227,8 @@ CODE
         self.method-call($ast, $ast.dispatch || '.')
     }
 
-    multi method deparse(RakuAST::Call::BlockMethod:D $ast --> Str:D) {
-        my $block := $ast.block;
+    multi method deparse(RakuAST::Call::TermAsMethod:D $ast --> Str:D) {
+        my $callee := $ast.callee;
         my str $dot-syn = self.method-dot($ast.dispatch || '.');
         # the parser wraps the block of `.&{ }` in an item contextualizer,
         # the code of `.&( )` in a statement sequence inside it
@@ -1236,9 +1236,9 @@ CODE
         # does in an argument list
         my $*IN-ARGLIST := True;
         $dot-syn
-          ~ (nqp::istype($block,RakuAST::Contextualizer::Item)
-              ?? '&' ~ self.context-target($block.target)
-              !! self.deparse($block)
+          ~ (nqp::istype($callee,RakuAST::Contextualizer::Item)
+              ?? '&' ~ self.context-target($callee.target)
+              !! self.deparse($callee)
             )
           ~ self.parenthesize(
               $ast.args,
@@ -1246,7 +1246,7 @@ CODE
             )
     }
 
-    multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Call::NameAsMethod:D $ast --> Str:D) {
         my $dispatch := $ast.dispatch;
         self.method-call($ast, ($ast.dispatch || '.') ~ '&')
     }

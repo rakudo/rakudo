@@ -2220,7 +2220,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call::MetaMethod').new(:$name, :$args)
                     !! $DOTTY eq '.&'
-                      ?? Nodify('Call::VarMethod').new(:name($ast), :$args)
+                      ?? Nodify('Call::NameAsMethod').new(:name($ast), :$args)
                       !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
@@ -2238,8 +2238,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
         }
         elsif $<variable> -> $variable {
-            $ast := Nodify('Call::BlockMethod').new(
-              :block($variable.ast), :$args, :$dispatch
+            $ast := Nodify('Call::TermAsMethod').new(
+              :callee($variable.ast), :$args, :$dispatch
             );
         }
         else {

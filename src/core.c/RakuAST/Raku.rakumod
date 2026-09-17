@@ -403,8 +403,8 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
-    multi method raku(RakuAST::Call::BlockMethod:D: --> Str:D) {
-        self!nameds: <block args dispatch>
+    multi method raku(RakuAST::Call::TermAsMethod:D: --> Str:D) {
+        self!nameds: <callee args dispatch>
     }
 
     multi method raku(RakuAST::Call::Methodish:D: --> Str:D) {

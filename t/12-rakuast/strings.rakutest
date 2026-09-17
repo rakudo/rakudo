@@ -399,8 +399,8 @@ subtest 'Block method call in an interpolation keeps its parentheses' => {
           :segments[
             RakuAST::ApplyPostfix.new(
               operand => RakuAST::Var::Lexical.new('$x'),
-              postfix => RakuAST::Call::BlockMethod.new(
-                block => RakuAST::Contextualizer::Item.new(
+              postfix => RakuAST::Call::TermAsMethod.new(
+                callee => RakuAST::Contextualizer::Item.new(
                   RakuAST::Block.new(
                     body => RakuAST::Blockoid.new(
                       RakuAST::StatementList.new(

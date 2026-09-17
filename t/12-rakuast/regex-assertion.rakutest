@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -540,6 +540,19 @@ subtest 'Assertion with callable works' => {
         is $/.list.elems, 0, "$type: No positional captures";
         is $/.hash.elems, 0, "$type: No named captures";
     }
+}
+
+subtest 'A callee that is not a term is refused' => {
+    throws-like {
+        RakuAST::Regex::Assertion::Callable.new(
+          callee => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Var::Lexical.new('$a'),
+            infix => RakuAST::Infix.new('//'),
+            right => RakuAST::Var::Lexical.new('$b')
+          )
+        )
+    }, X::TypeCheck::Binding::Parameter,
+      'an infix expression cannot be written inside the assertion';
 }
 
 subtest 'Character class enumeration with characters that do not print' => {

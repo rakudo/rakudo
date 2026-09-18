@@ -437,11 +437,30 @@ class RakuAST::LexicalScope
                             $shadower.set-replace-stub(1);
                         }
                         else {
-                            self.add-sorry:
-                              $resolver.build-exception: 'X::Redeclaration',
-                                :symbol($_.declaration-name),
-                                :what($_.declaration-kind),
-                                :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '');
+                            # The parser reports a redeclaration it found
+                            # already declared. What is left here is a
+                            # placeholder that follows the declaration.
+                            if nqp::istype($_, RakuAST::VarDeclaration::Placeholder) {
+                                # A method takes no placeholder parameter
+                                # other than the `%_` it always has.
+                                self.add-sorry(
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    # A placeholder is named as it is
+                                    # written, twigil and all.
+                                    :symbol($_.declared-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('as a placeholder parameter')
+                                ) if $shadower.report-redeclaration
+                                  || nqp::istype(self, RakuAST::Method)
+                                     && $_.lexical-name ne '%_';
+                            }
+                            else {
+                                self.add-sorry:
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    :symbol($_.declaration-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('');
+                            }
                         }
                     }
                 }

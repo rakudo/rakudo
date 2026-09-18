@@ -123,7 +123,7 @@ class RakuAST::Type::Simple
             # (role instantiation will replace them) and for package stubs
             # (could be replaced later).
             if $!name.is-multi-part
-              && (RakuAST::IMPL::Archetypes.is-generic($value)
+              && (RakuAST::IMPL::Archetypes.generic($value)
                   || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
                 my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $first-part {
@@ -189,7 +189,7 @@ class RakuAST::Type::Simple
         }
         else {
             my $value := self.resolution.compile-time-value;
-            if RakuAST::IMPL::Archetypes.is-generic($value) {
+            if RakuAST::IMPL::Archetypes.generic($value) {
                 # If the resolved type is a nested package inside a parametric
                 # role, prefer the `!INS_OF_<fullname>` instantiation lexical
                 # that its IMPL-COMPOSE registered with the role. The role's
@@ -329,8 +329,8 @@ class RakuAST::Type::Coercion
         # un-substituted generic. Emit a runtime CoercionHOW.new_type call so
         # role specialization sees the concrete type(s).
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value)
-         || RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value)
+         || RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
         {
             $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
             QAST::Op.new(
@@ -352,8 +352,8 @@ class RakuAST::Type::Coercion
         # branch; interpreting would bake the un-substituted meta-object.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
         && nqp::istype($!constraint, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
-        && !RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -424,7 +424,7 @@ class RakuAST::Type::Definedness
         # a runtime DefiniteHOW.new_type call that consumes the base-type's
         # lexical lookup so role specialization sees the concrete base.
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value) {
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value) {
             $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
             my $base-qast := $base-type.IMPL-EXPR-QAST($context);
             $base-qast.named('base_type');
@@ -453,7 +453,7 @@ class RakuAST::Type::Definedness
         # thing; no such caller is hit on the role specialization paths
         # currently, but the asymmetry is intentional and bounded here.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

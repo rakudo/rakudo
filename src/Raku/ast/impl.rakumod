@@ -352,7 +352,7 @@ class RakuAST::IMPL::InterpContext {
 # through these helpers keeps callers from having to remember the
 # argument form.
 class RakuAST::IMPL::Archetypes {
-    method is-generic(Mu $v) {
+    method generic(Mu $v) {
         nqp::can($v.HOW, 'archetypes')
             && $v.HOW.archetypes($v).generic
     }

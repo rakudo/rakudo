@@ -6419,4 +6419,22 @@ Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 nqp::bindhllsym('Raku', 'QASTRegex', QAST::Regex);
 nqp::bindhllsym('Raku', 'QRegex', QRegex);
 
+# NQP calls this when an argument does not satisfy the object type a
+# parameter of NQP compiled code declares, the RakuAST node methods
+# included. Throw the exception the Raku binder would, or die with the
+# message while the setting is being built and the exception types do not
+# exist yet.
+nqp::bindhllsym('nqp', 'parameter-type-check-failure', sub ($value, $type, $name, $code, $definedness?) {
+    my str $got-name := nqp::isnull($value) ?? 'null' !! $value.HOW.name($value);
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::TypeCheck::Binding::Parameter',
+        "Type check failed in binding to parameter '" ~ $name ~ "' of '"
+          ~ nqp::getcodename($code) ~ "'; expected " ~ $type.HOW.name($type)
+          ~ " but got " ~ $got-name,
+        :got(nqp::isnull($value) ?? Mu !! $value),
+        :expected($type),
+        :symbol($name)
+    );
+});
+
 # vim: expandtab sw=4

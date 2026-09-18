@@ -31,7 +31,7 @@ class RakuAST::Var::Lexical
     has str $.twigil;
     has RakuAST::Name $.desigilname;
 
-    method new(str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
+    method new(Str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
         my $obj := nqp::create(self);
         if $name {
             nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', nqp::substr($name, 0, 1));
@@ -196,7 +196,7 @@ class RakuAST::Var::Dynamic
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
         $obj
@@ -287,7 +287,7 @@ class RakuAST::Var::Attribute
     has str $.name;
     has RakuAST::Package $!package;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
         $obj
@@ -377,7 +377,7 @@ class RakuAST::Var::Attribute
         ]
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::Impl::QASTContext $context) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context) {
         my $class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         if $class.is-resolved
           && nqp::istype($class.resolution, RakuAST::CompileTimeValue) {
@@ -596,7 +596,7 @@ class RakuAST::Var::Attribute::Public
         $visitor($!expression);
     }
 
-    method replace-args(RakuAST::Args $args) {
+    method replace-args(RakuAST::ArgList $args) {
         nqp::bindattr(self, RakuAST::Var::Attribute::Public, '$!has-args', True);
         $!expression.operand.postfix.replace-args($args);
     }
@@ -852,7 +852,7 @@ class RakuAST::Var::Compiler::Lookup
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj

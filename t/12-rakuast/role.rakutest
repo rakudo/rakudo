@@ -27,21 +27,39 @@ subtest 'creating an empty role' => {
         my $role := EVAL($it);
         is $role.^name, 'Frobnicator', "$type: role gets correct name";
         isa-ok $role.new, $role, "$type: does the role auto-pun";
+    }
 
-        my $class := RakuAST::Class.new(
+    # my role Frobnicator { }; my class Zippo does Frobnicator { }
+    my $class := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Role.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Frobnicator'),
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Class.new(
           scope  => 'my',
           name   => RakuAST::Name.from-identifier('Zippo'),
           traits => (
-            RakuAST::Trait::Does.new($ast),
+            RakuAST::Trait::Does.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Frobnicator')
+              )
+            ),
           )
-        ).EVAL;
+        )
+      )
+    ).EVAL;
 
-        is $class.^name, 'Zippo', "$type: class gets correct name";
-        my $object := $class.new;
-        isa-ok $object, $class, "$type: can it be instantiated";
-        todo "needs work on consuming the role" if $type eq 'Str' | 'Raku';
-        does-ok $class, $role, "$type: did the role get consumed";
-    }
+    is $class.^name, 'Zippo', 'class gets correct name';
+    my $object := $class.new;
+    isa-ok $object, $class, 'can it be instantiated';
+    is $class.^roles.map(*.^name).join(' '), 'Frobnicator',
+      'did the role get consumed';
+    throws-like { RakuAST::Trait::Does.new($ast) },
+      X::TypeCheck::Binding::Parameter,
+      'the trait takes a type, not the declaration of one';
 }
 
 subtest 'creating a role with an attribute' => {

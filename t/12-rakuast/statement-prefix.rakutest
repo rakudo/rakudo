@@ -19,7 +19,9 @@ subtest 'The do statement prefix works with a statement' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Do.new(
-          RakuAST::IntLiteral.new(137)
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(137)
+          )
         )
       )
     );
@@ -74,8 +76,10 @@ subtest 'The quietly statement prefix works' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Quietly.new(
-          RakuAST::Call::Name.new(
-            name => RakuAST::Name.from-identifier('do-warning')
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('do-warning')
+            )
           )
         )
       )
@@ -133,8 +137,10 @@ subtest 'The gather statement prefix works on a statement' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Gather.new(
-          RakuAST::Call::Name.new(
-            name => RakuAST::Name.from-identifier('do-takes')
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('do-takes')
+            )
           )
         )
       )
@@ -220,7 +226,9 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::{tclc $context}.new(
-              RakuAST::Var::Lexical.new('$c')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$c')
+              )
             )
           )
         );
@@ -468,7 +476,7 @@ subtest 'supply statement prefix with expression evaluates to Supply' => {
         trigger => RakuAST::IntLiteral.new(42),
         body    => RakuAST::Block.new(
           implicit-topic => True,
-          required-topic => 1,
+          required-topic => True,
           body           => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
@@ -513,7 +521,7 @@ subtest 'supply statement prefix with block evaluates to Supply' => {
               trigger => RakuAST::IntLiteral.new(42),
               body    => RakuAST::Block.new(
                 implicit-topic => True,
-                required-topic => 1,
+                required-topic => True,
                 body           => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
@@ -560,7 +568,7 @@ subtest 'react statement prefix with expression evaluates to Nil' => {
         trigger => RakuAST::IntLiteral.new(42),
         body    => RakuAST::Block.new(
           implicit-topic => True,
-          required-topic => 1,
+          required-topic => True,
           body           => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
@@ -599,7 +607,7 @@ subtest 'react statement block with expression evaluates to Nil' => {
               trigger => RakuAST::IntLiteral.new(42),
               body    => RakuAST::Block.new(
                 implicit-topic => True,
-                required-topic => 1,
+                required-topic => True,
                 body           => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(

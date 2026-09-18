@@ -68,7 +68,7 @@ class RakuAST::Declaration::External::Package
         Attribute
     }
 
-    method ATTACH-METHOD(RakuAST::Method $method) {
+    method ATTACH-METHOD(RakuAST::Methodish $method) {
         my $type := self.compile-time-value;
         my $how := $type.HOW;
         my $name := $method.name.canonicalize;

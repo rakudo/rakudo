@@ -967,7 +967,7 @@ class RakuAST::StatementPrefix::Phaser::First
         self.blorst.apply-sink(False)
     }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
@@ -1096,7 +1096,9 @@ class RakuAST::StatementPrefix::Phaser::Pre
                      operand => $blorst,
                      postfix => RakuAST::Call::Term.new
                    )
-                !! $blorst
+                !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                  ?? $blorst.expression
+                  !! $blorst
             )
           )
         );

@@ -900,7 +900,7 @@ class RakuAST::Type::Enum
         ]
     }
 
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
             :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),
@@ -935,7 +935,7 @@ class RakuAST::Type::Enum
             for $operands {
                 if nqp::istype($_, RakuAST::ColonPair::Value) {
                     nqp::die('Can only declare simple enums in setting ' ~ $_.dump) unless $_.IMPL-CAN-INTERPRET;
-                    my $value := $_.value.IMPL-INTERPRET($context);
+                    my $value := $_.value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context));
                     if $has-base-type {
                         unless nqp::objprimspec($base-type) || nqp::istype($value, $base-type) {
                             nqp::die("Type error in enum. Got '" ~ $value.HOW.name($value) ~ "'"
@@ -1054,7 +1054,7 @@ class RakuAST::Type::Enum
             my $value := $pair[1];
 
             # An enum value's name is a string, so coerce a non-Str key.
-            unless nqp::istype($key, Str) {
+            unless nqp::isstr($key) || nqp::istype($key, Str) {
                 $key := $key.Str;
             }
 
@@ -1260,7 +1260,7 @@ class RakuAST::Type::Subset
         QAST::WVal.new( :$value )
     }
 
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
             :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),

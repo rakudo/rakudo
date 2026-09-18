@@ -824,7 +824,7 @@ subtest 'Quoted words in a regex holding a slash' => {
     # /< a/b c\<d >/
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
-        processors => <words>,
+        processors => ('words',),
         segments   => (RakuAST::StrLiteral.new(' a/b c<d '),)
       )
     );

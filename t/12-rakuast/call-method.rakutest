@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18;
+plan 19;
 
 my $ast;
 my $deparsed;
@@ -242,7 +242,7 @@ subtest 'Can make a method call on a sub' => {
     # "foo".&uc()
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::StrLiteral.new("foo"),
-      postfix => RakuAST::Call::VarMethod.new(
+      postfix => RakuAST::Call::NameAsMethod.new(
         name => RakuAST::Name.from-identifier('uc')
       )
     );
@@ -279,8 +279,8 @@ subtest 'Can call a method held in a variable' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
           operand => RakuAST::IntLiteral.new(41),
-          postfix => RakuAST::Call::BlockMethod.new(
-            block => RakuAST::Var::Lexical.new('$f')
+          postfix => RakuAST::Call::TermAsMethod.new(
+            callee => RakuAST::Var::Lexical.new('$f')
           )
         )
       )
@@ -299,8 +299,8 @@ subtest 'Can call a block as a method' => {
     # 41.&{ $_ + 1 }
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(41),
-      postfix => RakuAST::Call::BlockMethod.new(
-        block => RakuAST::Contextualizer::Item.new(
+      postfix => RakuAST::Call::TermAsMethod.new(
+        callee => RakuAST::Contextualizer::Item.new(
           RakuAST::Block.new(
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
@@ -330,12 +330,25 @@ CODE
 }
 
 
+subtest 'A callee that is not a term is refused' => {
+    throws-like {
+        RakuAST::Call::TermAsMethod.new(
+          callee => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Var::Lexical.new('$a'),
+            infix => RakuAST::Infix.new('//'),
+            right => RakuAST::Var::Lexical.new('$b')
+          )
+        )
+    }, X::TypeCheck::Binding::Parameter,
+      'an infix expression cannot be written after the dot';
+}
+
 subtest 'Can call parenthesized code as a method' => {
     # "a".&(*.tc)
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::StrLiteral.new('a'),
-      postfix => RakuAST::Call::BlockMethod.new(
-        block => RakuAST::Contextualizer::Item.new(
+      postfix => RakuAST::Call::TermAsMethod.new(
+        callee => RakuAST::Contextualizer::Item.new(
           RakuAST::StatementSequence.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::ApplyPostfix.new(

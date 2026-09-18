@@ -81,7 +81,7 @@ class RakuAST::Node {
     }
 
     # Find the narrowest key origin node for an original position
-    method locate-node(int $pos, int $to?, :$key) {
+    method locate-node(int $pos, Int $to?, :$key) {
         return Nil unless nqp::isconcrete($!origin)
                             && $pos >= $!origin.from && $pos < $!origin.to
                             && (!nqp::isconcrete($to) || $to <= $!origin.to);

@@ -12,7 +12,7 @@
         ));
     }
 
-    sub add-method($class, $name, @parameters, $impl) {
+    sub add-method($class, $name, @parameters, $impl, $returns?) {
         # Assemble a signature object for introspection purposes.
         my @params;
         my $first := 1;
@@ -32,7 +32,8 @@
         }
         my $signature := nqp::create(Signature);
         nqp::bindattr($signature, Signature, '@!params', @params);
-        nqp::bindattr($signature, Signature, '$!returns', Mu);
+        nqp::bindattr($signature, Signature, '$!returns',
+            nqp::eqaddr($returns, NQPMu) ?? Mu !! $returns);
 
         # Wrap code up in a Method object.
         my $static-code := nqp::getstaticcode($impl);

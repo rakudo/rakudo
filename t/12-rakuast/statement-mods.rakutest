@@ -19,9 +19,7 @@ subtest 'The postfix "if" statement works with a true expression' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
       condition-modifier => RakuAST::StatementModifier::If.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::IntLiteral.new(666)
-        )
+        RakuAST::IntLiteral.new(666)
       )
     );
 
@@ -35,9 +33,7 @@ subtest 'The postfix "if" statement works with a false expression' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
       condition-modifier => RakuAST::StatementModifier::If.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::StrLiteral.new("")
-        )
+        RakuAST::StrLiteral.new("")
       )
     );
 
@@ -53,9 +49,7 @@ subtest 'The postfix "unless" statement works with a false expression' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
       condition-modifier => RakuAST::StatementModifier::Unless.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::StrLiteral.new("")
-        )
+        RakuAST::StrLiteral.new("")
       )
     );
 
@@ -69,9 +63,7 @@ subtest 'The postfix "unless" statement works with a true expression' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
       condition-modifier => RakuAST::StatementModifier::Unless.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::IntLiteral.new(666)
-        )
+        RakuAST::IntLiteral.new(666)
       )
     );
 
@@ -91,9 +83,7 @@ subtest 'The postfix "with" statement works with defined expression' => {
         right => RakuAST::IntLiteral.new(2)
       ),
       condition-modifier => RakuAST::StatementModifier::With.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::IntLiteral.new(42)
-        )
+        RakuAST::IntLiteral.new(42)
       )
     );
 
@@ -111,10 +101,8 @@ subtest 'The postfix "with" statement works with a type object' => {
         right => RakuAST::IntLiteral.new(2)
       ),
       condition-modifier => RakuAST::StatementModifier::With.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
         )
       )
     );
@@ -135,9 +123,7 @@ subtest 'The postfix "without" statement works with defined expression' => {
         right => RakuAST::IntLiteral.new(2)
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::IntLiteral.new(42)
-        )
+        RakuAST::IntLiteral.new(42)
       )
     );
 
@@ -157,9 +143,7 @@ subtest 'The postfix "given" statement works with defined expression' => {
         right => RakuAST::IntLiteral.new(2)
       ),
       loop-modifier => RakuAST::StatementModifier::Given.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::IntLiteral.new(42)
-        )
+        RakuAST::IntLiteral.new(42)
       )
     );
 
@@ -482,12 +466,10 @@ subtest 'The postfix "until" statement works' => {
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
       loop-modifier => RakuAST::StatementModifier::Until.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::ApplyInfix.new(
-            left => RakuAST::Var::Lexical.new('$foo'),
-            infix => RakuAST::Infix.new('>='),
-            right => RakuAST::IntLiteral.new(5),
-          )
+        RakuAST::ApplyInfix.new(
+          left => RakuAST::Var::Lexical.new('$foo'),
+          infix => RakuAST::Infix.new('>='),
+          right => RakuAST::IntLiteral.new(5),
         )
       )
     );
@@ -511,12 +493,10 @@ subtest 'The postfix "for" statement works' => {
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
       loop-modifier => RakuAST::StatementModifier::For.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::ApplyInfix.new(
-            left => RakuAST::IntLiteral.new(1),
-            infix => RakuAST::Infix.new('..'),
-            right => RakuAST::IntLiteral.new(5),
-          )
+        RakuAST::ApplyInfix.new(
+          left => RakuAST::IntLiteral.new(1),
+          infix => RakuAST::Infix.new('..'),
+          right => RakuAST::IntLiteral.new(5),
         )
       )
     );

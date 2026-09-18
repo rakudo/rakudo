@@ -235,7 +235,7 @@ for <row column> -> $name {
                     RakuAST::StrLiteral.new("left middle"),
                   )
                 ))},
-              )
+              ),
             )
           ),
           RakuAST::Statement::Expression.new(

@@ -38,7 +38,7 @@ class RakuAST::Origin {
         nqp::bindattr(self, RakuAST::Origin, '$!nestings', $nestings);
     }
 
-    method is-key() { nqp::isconcrete($!nestings) ?? True !! False }
+    method is-key(--> Bool) { nqp::isconcrete($!nestings) }
 
     method locus() { $!locus ?? $!locus - 1 !! $!from }
 

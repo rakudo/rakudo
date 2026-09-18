@@ -32,7 +32,7 @@ class RakuAST::Signature
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', $is-array);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', ?$is-array);
         $obj
     }
 
@@ -191,9 +191,9 @@ class RakuAST::Signature
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
-                my $type;
+                my $type := RakuAST::Type;
                 if $!is-on-meta-method {
-                    $type := Mu;
+                    $type := RakuAST::Type;
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
@@ -205,7 +205,7 @@ class RakuAST::Signature
                             # An anon or my method in a role is not a role method
                             # and may be added to an unrelated type, so it takes
                             # an unconstrained invocant.
-                            $type := Mu;
+                            $type := RakuAST::Type;
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);
@@ -599,7 +599,7 @@ class RakuAST::Parameter
     # whether it must be all of them rather than any.
     has Mu $!where-junction-types;
     has int $!where-junction-all;
-    has RakuAST::Expression        $.array-shape;
+    has RakuAST::Statement         $.array-shape;
     has RakuAST::Node              $.owner;
     has RakuAST::Package           $!package;
     has Mu                         $!attr-package;
@@ -620,7 +620,7 @@ class RakuAST::Parameter
                           List :$traits,
            RakuAST::Expression :$default,
            RakuAST::Expression :$where,
-           RakuAST::Expression :$array-shape,
+            RakuAST::Statement :$array-shape,
             RakuAST::Signature :$sub-signature,
                           List :$type-captures,
             RakuAST::Signature :$signature-constraint,
@@ -664,7 +664,7 @@ class RakuAST::Parameter
         nqp::bindattr($obj, RakuAST::Parameter, '$!where',
           $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!array-shape',
-          $array-shape // RakuAST::Expression);
+          $array-shape // RakuAST::Statement);
         nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature',
           $sub-signature // RakuAST::Signature);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures',
@@ -816,7 +816,7 @@ class RakuAST::Parameter
         Nil
     }
 
-    method set-array-shape(RakuAST::Expression $array-shape) {
+    method set-array-shape(RakuAST::Statement $array-shape) {
         nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $array-shape);
         Nil
     }
@@ -1240,13 +1240,16 @@ class RakuAST::Parameter
         self.IMPL-BEGIN-WHERE($resolver, $context);
 
         if $!array-shape {
+            # The shape is wrapped in a do statement, so the method call on
+            # it does not curry a bare * into a WhateverCode.
+            my $shape := RakuAST::StatementPrefix::Do.new($!array-shape);
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
                             expression => RakuAST::ApplyPostfix.new(
                                 operand => RakuAST::ApplyPostfix.new(
-                                    operand => RakuAST::ApplyPostfix.new(operand => $!array-shape, postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('list'))),
+                                    operand => RakuAST::ApplyPostfix.new(operand => $shape, postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('list'))),
                                     postfix => RakuAST::Call::Method.new(
                                         name => RakuAST::Name.from-identifier('ACCEPTS'),
                                         args => RakuAST::ArgList.new(
@@ -2218,7 +2221,7 @@ class RakuAST::ParameterTarget::Var
     method new(str :$name!, Bool :$forced-dynamic, Bool :$var-declaration) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', RakuAST::Type);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!var-declaration',
             $var-declaration ?? True !! False);
@@ -2236,7 +2239,6 @@ class RakuAST::ParameterTarget::Var
                   ?? RakuAST::VarDeclaration::Anonymous.new(
                        :scope($obj.scope),
                        :sigil($name),
-                       :type(Mu),
                        :is-parameter,
                      )
                   !! RakuAST::VarDeclaration::Simple.new(
@@ -2244,7 +2246,6 @@ class RakuAST::ParameterTarget::Var
                       :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
                       :$sigil,
                       :$twigil,
-                      :type(Mu),
                       :$forced-dynamic,
                       :is-parameter,
                     )
@@ -2487,7 +2488,7 @@ class RakuAST::ParameterTarget::Term
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', RakuAST::Type);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
     }

@@ -1261,14 +1261,12 @@ subtest 'A block statement with a modifier keeps the delimiter' => {
           )
         ),
         condition-modifier => RakuAST::StatementModifier::If.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Var::Lexical.new('%h'),
-              postfix => RakuAST::Postcircumfix::HashIndex.new(
-                index => RakuAST::SemiList.new(
-                  RakuAST::Statement::Expression.new(
-                    expression => RakuAST::StrLiteral.new('a')
-                  )
+          RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::HashIndex.new(
+              index => RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::StrLiteral.new('a')
                 )
               )
             )

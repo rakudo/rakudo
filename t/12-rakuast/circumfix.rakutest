@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -146,9 +146,7 @@ subtest 'Parenthesized single statement keeps its modifier' => {
         RakuAST::Statement::Expression.new(
           expression => RakuAST::IntLiteral.new(42),
           condition-modifier => RakuAST::StatementModifier::If.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::IntLiteral.new(1)
-            )
+            RakuAST::IntLiteral.new(1)
           )
         )
       )
@@ -213,6 +211,16 @@ subtest 'Parsed braces are a hash composer or a block' => {
     # {$_ => 42}
     ast '{$_ => 42}'.AST.statements[0].expression;
     isa-ok $ast, RakuAST::Block, 'a fatarrow on the topic';
+}
+
+subtest 'An object hash composer parses with a Bool flag' => {
+    plan 3;
+    ok q[:{ }].AST.statements[0].expression.object-hash === True,
+      'an empty object hash reads back as True';
+    ok q[:{ a => 1 }].AST.statements[0].expression.object-hash === True,
+      'an object hash with a pair reads back as True';
+    ok q[{ a => 1 }].AST.statements[0].expression.object-hash === False,
+      'a plain hash composer reads back as False';
 }
 
 # vim: expandtab shiftwidth=4

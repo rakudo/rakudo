@@ -534,11 +534,13 @@ subtest 'Postfix on a parenthesized statement prefix' => {
     # (do 40, 1).elems
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::StatementPrefix::Do.new(
-        RakuAST::ApplyListInfix.new(
-          infix    => RakuAST::Infix.new(','),
-          operands => (
-            RakuAST::IntLiteral.new(40),
-            RakuAST::IntLiteral.new(1)
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix    => RakuAST::Infix.new(','),
+            operands => (
+              RakuAST::IntLiteral.new(40),
+              RakuAST::IntLiteral.new(1)
+            )
           )
         )
       ),

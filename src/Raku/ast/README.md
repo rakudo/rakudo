@@ -48,15 +48,6 @@ quite a few other things to do that will be helpful. Specifically:
 * Get the AST compiler to support roles, and gradually transition the things
   that should be roles to actually be roles. (Difficulty: maybe headachey,
   but you'll live)
-* Make the AST compiler support return types with `-->` and add them to the
-  signature that is generated. Make accessors get these automatically based
-  on the declared type. (Difficulty: not so bad.)
-* Make us check the types that are passed to methods. (Difficulty: depends
-  how we decide to do it. Actually it may be that we just get NQP to do the
-  type checks and then rely on that. In fact, we could teach it to decont
-  incoming arguments too, and support `is raw` too, and then we get to clean
-  up lots of explicit deconts in the bootstrap, MOP, etc. Then we simplify
-  the RakuAST compiler.)
 * Make us indicate slurpiness when signatures are introspected. (Difficulty:
   easy, just need to make sure the AST compiler passes that along when we
   build the Parameter object.
@@ -99,6 +90,21 @@ And in general:
   threadsafe. Benign races are fine (e.g. both calculate the same thing and
   one wins at installation). Effectively, anything perceived as a read operation
   should be safe in a threaded program.
+* The types declared on node method parameters are checked. NQP checks the
+  object types on its parameters, and the generator adds the checks for the
+  types NQP cannot know the compiler's VM values satisfy. `Mu` and `Any` are
+  unchecked. `str`, `int` and `num` are enforced by the unbox and may appear
+  on any method. Flags are `Bool`, and NQP code may pass a bare adverb or
+  an integer for them, which becomes a Bool on entry. `Str`, `Int`, `List`,
+  `Hash` and `Code` accept the VM value as well as the Raku object, and an
+  undefined value only as their own type object or the NQPMu that NQP code
+  passes for an absent value. An omitted optional of a node type holds the
+  type object. Slurpies are checked per element, `List` contents are not.
+  A return type declared with `-->` is checked the same way and shows in
+  the signature, a generated accessor shows its attribute's type unless
+  that is native, and a `--> Bool` method may return a native integer,
+  which becomes a Bool. The rules live in
+  `tools/build/raku-ast-compiler.nqp`.
 
 ## Design notes on specific topics
 

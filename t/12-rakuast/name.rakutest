@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 9;
+plan 10;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -102,6 +102,26 @@ CODE
     is-deeply EVAL("use experimental :rakuast; " ~ .raku).colonpairs.elems, 1, 'round trips through .raku';
     .add-colonpair(RakuAST::ColonPair::True.new('y'));
     is-deeply .colonpairs.elems, 2, 'a colonpair can still be added';
+}
+
+subtest "a name only takes what can be part of a name" => {
+    my $name := RakuAST::Name.from-identifier('foo');
+    throws-like { $name.add-colonpair(RakuAST::IntLiteral.new(42)) },
+      X::TypeCheck::Binding::Parameter,
+      'a node that cannot be part of a name is refused';
+    throws-like {
+        RakuAST::Name.from-identifier('foo',
+          :colonpairs((RakuAST::IntLiteral.new(42),)))
+    }, X::TypeCheck::Binding::Parameter,
+      'such a node is refused when the name is constructed as well';
+    lives-ok {
+        $name.add-colonpair: RakuAST::QuotedString.new:
+          :segments[RakuAST::StrLiteral.new("+")]
+    }, 'a quoted string is accepted';
+    lives-ok { $name.add-colonpair(RakuAST::ColonPair::True.new("x")) },
+      'a colonpair is accepted';
+    is-deeply $name.canonicalize, 'foo:<+>:x',
+      'both show in the canonical name';
 }
 
 subtest "indirect name lookup" => {

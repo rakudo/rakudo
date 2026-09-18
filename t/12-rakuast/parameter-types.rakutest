@@ -1,0 +1,338 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 23; # Do not change this file to done-testing
+
+# The node methods are generated from declarations that look like Raku
+# signatures. These tests cover what the declared parameter and return
+# types enforce when the methods are called from Raku code.
+
+subtest 'A node that is not an expression is refused as a statement expression' => {
+    plan 1;
+    throws-like { RakuAST::Statement::Expression.new(expression => RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'constructing with a parameter node throws a parameter type check',
+      symbol   => '$expression',
+      expected => RakuAST::Expression,
+      got      => RakuAST::Parameter,
+      message  => /'expected RakuAST::Expression but got RakuAST::Parameter'/;
+}
+
+subtest 'Mutators check the declared type as well' => {
+    plan 2;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(42));
+    throws-like { $statement.set-expression(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'replacing the expression with a parameter node throws',
+      symbol => '$expression';
+    is-deeply $statement.expression, RakuAST::IntLiteral.new(42),
+      'the statement keeps its expression after the failed call';
+}
+
+subtest 'Other node constructors check their arguments' => {
+    plan 3;
+    throws-like { RakuAST::StatementModifier::If.new(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a statement modifier refuses a parameter node as condition',
+      expected => RakuAST::Expression;
+    throws-like { RakuAST::Circumfix::Parentheses.new(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'parentheses refuse a parameter node as semilist',
+      expected => RakuAST::SemiList;
+    throws-like { RakuAST::Call::Name.new(name => RakuAST::IntLiteral.new(1)) },
+      X::TypeCheck::Binding::Parameter,
+      'a named call refuses a literal as the name',
+      symbol   => '$name',
+      expected => RakuAST::Name;
+}
+
+subtest 'A type object of the declared type is accepted' => {
+    plan 2;
+    my $statement;
+    lives-ok { $statement := RakuAST::Statement::Expression.new(expression => RakuAST::Expression) },
+      'constructing with the expression type object lives';
+    ok $statement.expression === RakuAST::Expression,
+      'the type object is what the node holds';
+}
+
+subtest 'An omitted optional parameter holds its type object' => {
+    plan 3;
+    my $sub := RakuAST::Sub.new(name => RakuAST::Name.from-identifier('s'));
+    ok $sub.signature === RakuAST::Signature,
+      'a sub made without a signature reports the signature type object';
+    my $method := RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'));
+    ok $method.signature === RakuAST::Signature,
+      'a method made without a signature reports the signature type object';
+    my $package := RakuAST::Package.new(name => RakuAST::Name.from-identifier('P'));
+    ok $package.repr === Str,
+      'a package made without a repr reports the Str type object';
+}
+
+subtest 'Bool parameters take a Bool and refuse an integer' => {
+    plan 3;
+    my $method := RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'), :private);
+    ok $method.private === True,
+      'True passed for a Bool parameter is stored as True';
+    throws-like { RakuAST::Method.new(name => RakuAST::Name.from-identifier('m'), :private(1)) },
+      X::TypeCheck::Binding::Parameter,
+      'an integer is refused for a Bool parameter',
+      symbol   => '$private',
+      expected => Bool;
+    ok RakuAST::Parameter.new(:optional).is-optional === True,
+      'a Bool passed for a parameter that also has an unset state is accepted';
+}
+
+subtest 'Code parameters accept any invokable and refuse the rest' => {
+    plan 2;
+    my @seen;
+    lives-ok { RakuAST::Name.from-identifier('a').visit-children({ @seen.push($_) }) },
+      'a block is accepted as visitor';
+    throws-like { RakuAST::Name.from-identifier('a').visit-children(42) },
+      X::TypeCheck::Binding::Parameter,
+      'an integer is refused as visitor',
+      symbol   => '$visitor',
+      expected => Code;
+}
+
+subtest 'List parameters accept a List and refuse a single value' => {
+    plan 2;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1));
+    lives-ok { $statement.set-labels((RakuAST::Label.new('FOO'),)) },
+      'a List of labels is accepted';
+    throws-like { $statement.set-labels(RakuAST::Label.new('FOO')) },
+      X::TypeCheck::Binding::Parameter,
+      'a bare label is refused',
+      symbol   => '$labels',
+      expected => List;
+}
+
+subtest 'Accessors of Bool flags return a Bool' => {
+    plan 5;
+    ok RakuAST::Block.new(:required-topic).required-topic === True,
+      'a required topic reads back as True';
+    ok RakuAST::Block.new(:required-topic, :exception).exception === True,
+      'an exception topic reads back as True';
+    ok RakuAST::Doc::Block.new(type => 'head', :for).for === True,
+      'a for doc block reads back as True';
+    ok RakuAST::Doc::Block.new(type => 'head', :abbreviated).abbreviated === True,
+      'an abbreviated doc block reads back as True';
+    ok RakuAST::Circumfix::HashComposer.new(:object-hash).object-hash === True,
+      'an object hash composer reads back as True';
+}
+
+subtest 'An Int parameter refuses a Str' => {
+    plan 2;
+    is RakuAST::Doc::Block.new(type => 'head', level => 2).level, 2,
+      'an Int is accepted as level';
+    throws-like { RakuAST::Doc::Block.new(type => 'head', level => "2") },
+      X::TypeCheck::Binding::Parameter,
+      'a Str is refused as level',
+      symbol   => '$level',
+      expected => Int;
+}
+
+subtest 'A regex declaration takes a regex or an only star as body' => {
+    plan 5;
+    my $name := RakuAST::Name.from-identifier('r');
+    lives-ok { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::OnlyStar.new) },
+      'an only star body is accepted';
+    throws-like { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::Blockoid.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a plain blockoid is refused as body',
+      symbol   => '$body',
+      expected => RakuAST::RegexBody;
+    throws-like { RakuAST::RegexDeclaration.new(:$name, body => RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a parameter node is refused as body',
+      symbol => '$body';
+    my $regex := RakuAST::RegexDeclaration.new(:$name, body => RakuAST::OnlyStar.new);
+    throws-like { $regex.replace-body(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'replacing the body with a parameter node throws',
+      symbol => '$new-body';
+    ok $regex.body ~~ RakuAST::OnlyStar,
+      'the declaration keeps its body after the failed call';
+}
+
+subtest 'A Str parameter refuses a node' => {
+    plan 1;
+    throws-like { RakuAST::Name.from-identifier(RakuAST::Parameter.new) },
+      X::TypeCheck::Binding::Parameter,
+      'a parameter node is refused where a string is declared',
+      symbol   => '$identifier',
+      expected => Str;
+}
+
+subtest 'A declared return type is checked and introspectable' => {
+    plan 5;
+    my $block := RakuAST::Doc::Block.new(type => 'head', :abbreviated);
+    ok $block.abbreviated === True, 'a flag accessor returns True, not an integer';
+    ok RakuAST::Doc::Block.new(type => 'head').abbreviated === False,
+      'a flag accessor returns False, not an integer';
+    ok RakuAST::Doc::Block.^find_method('abbreviated').signature.returns === Bool,
+      'the return type shows in the signature';
+    ok RakuAST::Doc::Block.^find_method('new').signature.returns === Mu,
+      'a method without a return type introspects as returning Mu';
+    ok RakuAST::Method.^find_method('private').signature.returns === Bool,
+      'a generated accessor introspects as returning its attribute type';
+}
+
+subtest 'An undefined value passes only as the declared type object' => {
+    plan 4;
+    throws-like { RakuAST::Name.from-identifier(RakuAST::Parameter) },
+      X::TypeCheck::Binding::Parameter,
+      'a node type object is refused where a string is declared',
+      symbol   => '$identifier',
+      expected => Str,
+      got      => RakuAST::Parameter;
+    throws-like { RakuAST::Doc::Block.new(type => 'head', level => Str) },
+      X::TypeCheck::Binding::Parameter,
+      'the Str type object is refused where an Int is declared',
+      symbol   => '$level',
+      expected => Int;
+    lives-ok { RakuAST::Doc::Block.new(type => 'head', level => Int) },
+      'the Int type object is accepted where an Int is declared';
+    lives-ok { RakuAST::Sub.new(name => RakuAST::Name.from-identifier('s'), traits => List) },
+      'the List type object is accepted where a List is declared';
+}
+
+subtest 'A Bool parameter refuses every kind of integer a Raku caller can pass' => {
+    plan 5;
+    my $name := RakuAST::Name.from-identifier('m');
+    throws-like { RakuAST::Method.new(:$name, :private(0)) },
+      X::TypeCheck::Binding::Parameter,
+      'a zero is refused for a named Bool parameter',
+      symbol => '$private', expected => Bool, got => 0;
+    throws-like { my int $flag = 1; RakuAST::Method.new(:$name, :private($flag)) },
+      X::TypeCheck::Binding::Parameter,
+      'a native integer is refused for a named Bool parameter',
+      symbol => '$private', expected => Bool;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1));
+    throws-like { $statement.set-trace(1) },
+      X::TypeCheck::Binding::Parameter,
+      'an integer is refused for a positional Bool parameter',
+      symbol => '$trace', expected => Bool;
+    ok RakuAST::Method.new(:$name, :!private).private === False,
+      'False passed for a Bool parameter reads back as False';
+    ok RakuAST::Method.new(:$name).private === False,
+      'an omitted Bool parameter reads back as False';
+}
+
+subtest 'An undefined value for a Bool parameter passes only as Bool' => {
+    plan 4;
+    my $name := RakuAST::Name.from-identifier('m');
+    lives-ok { RakuAST::Method.new(:$name, :private(Bool)) },
+      'the Bool type object is accepted';
+    throws-like { RakuAST::Method.new(:$name, :private(Int)) },
+      X::TypeCheck::Binding::Parameter,
+      'the Int type object is refused', expected => Bool, got => Int;
+    throws-like { RakuAST::Method.new(:$name, :private(Any)) },
+      X::TypeCheck::Binding::Parameter,
+      'the Any type object is refused', expected => Bool, got => Any;
+    throws-like { RakuAST::Method.new(:$name, :private(Nil)) },
+      X::TypeCheck::Binding::Parameter,
+      'Nil is refused', expected => Bool, got => Nil;
+}
+
+subtest 'An undefined value for a node parameter passes only as a type object of that node type' => {
+    plan 4;
+    throws-like { RakuAST::Statement::Expression.new(expression => RakuAST::Statement) },
+      X::TypeCheck::Binding::Parameter,
+      'an unrelated node type object is refused',
+      symbol => '$expression', expected => RakuAST::Expression, got => RakuAST::Statement;
+    throws-like { RakuAST::Statement::Expression.new(expression => Nil) },
+      X::TypeCheck::Binding::Parameter,
+      'Nil is refused', symbol => '$expression', got => Nil;
+    throws-like { RakuAST::Statement::Expression.new(expression => Any) },
+      X::TypeCheck::Binding::Parameter,
+      'the Any type object is refused', symbol => '$expression', got => Any;
+    lives-ok { RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral) },
+      'a type object of a subclass is accepted';
+}
+
+subtest 'A List parameter takes a List or an Array and refuses the rest' => {
+    plan 4;
+    my $statement := RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1));
+    lives-ok { $statement.set-labels([RakuAST::Label.new('FOO')]) },
+      'an Array of labels is accepted';
+    throws-like { $statement.set-labels((RakuAST::Label.new('FOO'),).Seq) },
+      X::TypeCheck::Binding::Parameter,
+      'a Seq of labels is refused', symbol => '$labels', expected => List, got => Seq;
+    throws-like { $statement.set-labels((RakuAST::Label.new('FOO'),).map({ $_ })) },
+      X::TypeCheck::Binding::Parameter,
+      'a mapped list of labels is refused until it is made a List', symbol => '$labels';
+    throws-like { RakuAST::QuotedString.new(processors => 'words', segments => (RakuAST::StrLiteral.new('a'),)) },
+      X::TypeCheck::Binding::Parameter,
+      'a single Str is refused as a list of processors', symbol => '$processors', expected => List;
+}
+
+subtest 'A Str or Int parameter takes a native and a value in a container' => {
+    plan 5;
+    my str $native-name = 'abc';
+    is RakuAST::Name.from-identifier($native-name).canonicalize, 'abc',
+      'a native str is accepted where a Str is declared';
+    my $in-scalar = 'abc';
+    is RakuAST::Name.from-identifier($in-scalar).canonicalize, 'abc',
+      'a Str in a Scalar is accepted where a Str is declared';
+    throws-like { RakuAST::Name.from-identifier(42) },
+      X::TypeCheck::Binding::Parameter,
+      'an Int is refused where a Str is declared', symbol => '$identifier', expected => Str, got => 42;
+    my int $native-level = 2;
+    lives-ok { RakuAST::Doc::Block.new(type => 'head', level => $native-level) },
+      'a native int is accepted where an Int is declared';
+    throws-like { RakuAST::Doc::Block.new(type => 'head', level => 2e0) },
+      X::TypeCheck::Binding::Parameter,
+      'a Num is refused where an Int is declared', symbol => '$level', expected => Int;
+}
+
+subtest 'A node argument in a Scalar is accepted and stored without the container' => {
+    plan 2;
+    my $expression = RakuAST::IntLiteral.new(42);
+    my $statement := RakuAST::Statement::Expression.new(:$expression);
+    is-deeply $statement.expression, RakuAST::IntLiteral.new(42),
+      'the statement holds the literal';
+    nok $statement.expression.VAR ~~ Scalar,
+      'the statement does not hold the Scalar';
+}
+
+subtest 'Return types show on every kind of node method' => {
+    plan 6;
+    ok RakuAST::Statement::Expression.^find_method('expression').signature.returns === RakuAST::Expression,
+      'an accessor of a node attribute returns the node type';
+    ok RakuAST::Sub.^find_method('signature').signature.returns === RakuAST::Signature,
+      'an accessor of another node attribute returns that node type';
+    ok RakuAST::Var::Lexical.^find_method('sigil').signature.returns === Mu,
+      'an accessor of a native attribute has no return type';
+    ok RakuAST::ArgList.^find_method('has-args').signature.returns === Bool,
+      'a method declared with a Bool return type returns Bool';
+    ok RakuAST::ArgList.new(RakuAST::IntLiteral.new(1)).has-args === True,
+      'a count of one comes back as True';
+    ok RakuAST::ArgList.new.has-args === False,
+      'a count of zero comes back as False';
+}
+
+subtest 'A statement prefix takes a block or a statement, not a bare expression' => {
+    plan 3;
+    throws-like { RakuAST::StatementPrefix::Do.new(RakuAST::IntLiteral.new(1)) },
+      X::TypeCheck::Binding::Parameter,
+      'a bare literal is refused', symbol => '$blorst', expected => RakuAST::Blorst;
+    lives-ok { RakuAST::StatementPrefix::Do.new(RakuAST::Block.new) },
+      'a block is accepted';
+    throws-like {
+        RakuAST::StatementModifier::If.new(
+          RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1)))
+    }, X::TypeCheck::Binding::Parameter,
+      'a statement modifier refuses a statement where it takes an expression',
+      symbol => '$expression', expected => RakuAST::Expression;
+}
+
+subtest 'The message of a refused type object can be rendered' => {
+    plan 1;
+    throws-like { RakuAST::Name.from-identifier(RakuAST::Parameter) },
+      X::TypeCheck::Binding::Parameter,
+      'a refused node type object still renders its message',
+      message => /'expected Str but got RakuAST::Parameter'/;
+}
+
+
+# vim: expandtab shiftwidth=4

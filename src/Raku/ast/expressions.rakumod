@@ -1119,7 +1119,7 @@ class RakuAST::Feed
 
     method is-pure() { False }
 
-    method PERFORM-BEGIN(Resolver $resolver, Context $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
         if $operator eq "==>>" || $operator eq "<<==" {
             self.add-sorry:
@@ -1233,7 +1233,7 @@ class RakuAST::FlipFlop
         my $state-id := QAST::Node.unique('FLIPFLOP_STATE__');
         nqp::bindattr_s($obj, RakuAST::FlipFlop, '$!state-id', $state-id);
         my $state-var := RakuAST::VarDeclaration::Implicit::State.new(
-          '!' ~ $state-id, :init-to-zero(1)
+          '!' ~ $state-id, :init-to-zero(True)
         );
         nqp::bindattr($obj, RakuAST::FlipFlop, '$!state-var', $state-var);
         $obj
@@ -2661,7 +2661,7 @@ class RakuAST::ApplyInfix
     method operands() { $!args.IMPL-UNWRAP-LIST($!args.args) }
     method operator() { $!infix }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-PRIME($resolver, $context);
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, self.left, self.right);
@@ -3414,7 +3414,8 @@ class RakuAST::Termish
 
 # Everything that is a kind of term does RakuAST::Term.
 class RakuAST::Term
-  is RakuAST::Termish { }
+  is RakuAST::Termish
+  is RakuAST::Contextualizable { }
 
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix
@@ -4322,7 +4323,7 @@ class RakuAST::ApplyPostfix
         self.IMPL-MAYBE-PRIME($resolver, $context);
     }
 
-    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         #  ApplyPostfix  ⎡(...)⎤
         #    Block  ⎡{*.{}}⎤
         #      Blockoid 𝄞 -e:1 ⎡{*.{}}⎤

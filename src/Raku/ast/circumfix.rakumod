@@ -212,12 +212,12 @@ class RakuAST::Circumfix::HashComposer
   is RakuAST::CheckTime
 {
     has RakuAST::Expression $.expression;
-    has int $.object-hash;
+    has Bool $.object-hash;
 
-    method new(RakuAST::Expression $expression?, int :$object-hash) {
+    method new(RakuAST::Expression $expression?, Bool :$object-hash) {
         my $obj := nqp::create(self);
         $obj.set-expression($expression);
-        nqp::bindattr_i($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash // False);
         $obj
     }
 

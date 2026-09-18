@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 33;
 
 my $ast;
 my $deparsed;
@@ -305,7 +305,15 @@ subtest 'Character property with expression assertion works' => {
         RakuAST::Regex::CharClassElement::Property.new(
           property => 'Block',
           predicate => RakuAST::Circumfix::Parentheses.new(
-            RakuAST::StrLiteral.new("Basic Latin")
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::QuotedString.new(
+                  segments => (
+                    RakuAST::StrLiteral.new("Basic Latin"),
+                  )
+                )
+              )
+            )
           ),
         )
       )
@@ -323,7 +331,15 @@ subtest 'Negated character property with expression assertion works' => {
           negated  => True,
           property => 'Block',
           predicate => RakuAST::Circumfix::Parentheses.new(
-            RakuAST::StrLiteral.new("Basic Latin")
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::QuotedString.new(
+                  segments => (
+                    RakuAST::StrLiteral.new("Basic Latin"),
+                  )
+                )
+              )
+            )
           ),
         )
       )
@@ -495,17 +511,11 @@ CODE
 subtest 'Assertion with recursive ast works' => {
     # /o[ <~~> | a ]/"
 
-    my $dummy = RakuAST::QuotedRegex.new(body =>
-        RakuAST::Regex::Sequence.new(
-          RakuAST::Regex::Literal.new("o")
-          )
-    );
-
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::Group.new(
           RakuAST::Regex::Alternation.new(
-            RakuAST::Regex::Assertion::Recurse.new($dummy),
+            RakuAST::Regex::Assertion::Recurse.new,
             RakuAST::Regex::Literal.new("a")
           ),
       )
@@ -530,6 +540,19 @@ subtest 'Assertion with callable works' => {
         is $/.list.elems, 0, "$type: No positional captures";
         is $/.hash.elems, 0, "$type: No named captures";
     }
+}
+
+subtest 'A callee that is not a term is refused' => {
+    throws-like {
+        RakuAST::Regex::Assertion::Callable.new(
+          callee => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Var::Lexical.new('$a'),
+            infix => RakuAST::Infix.new('//'),
+            right => RakuAST::Var::Lexical.new('$b')
+          )
+        )
+    }, X::TypeCheck::Binding::Parameter,
+      'an infix expression cannot be written inside the assertion';
 }
 
 subtest 'Character class enumeration with characters that do not print' => {

@@ -1,0 +1,74 @@
+use v6.e.PREVIEW;
+use MONKEY-SEE-NO-EVAL;
+use Test;
+
+plan 5;
+
+# The node types are declared as classes and roles, and the roles are
+# composed by the Raku metamodel, so a node type introspects the way a
+# type written in Raku does.
+
+subtest 'A node role is a role to the metamodel' => {
+    plan 7;
+    ok RakuAST::MayCreateBlock.HOW ~~ Metamodel::ParametricRoleHOW,
+      'the role has a parametric role metaclass';
+    ok RakuAST::Expression.HOW ~~ Metamodel::ClassHOW,
+      'a class doing it has a class metaclass';
+    is RakuAST::Expression.^roles(:local).grep(* === RakuAST::MayCreateBlock).elems, 1,
+      'the class lists the role it does';
+    is RakuAST::IntLiteral.^roles(:local).grep(* === RakuAST::MayCreateBlock).elems, 0,
+      'a subclass does not list the role its parent does as its own';
+    is RakuAST::IntLiteral.^roles.grep(* === RakuAST::MayCreateBlock).elems, 1,
+      'a subclass lists the role of its parent once';
+    is RakuAST::MayCreateBlock.^language-version, '6.c',
+      'the role has the language version of the bootstrap';
+    is RakuAST::Expression.^language-version, '6.c',
+      'the class has the language version of the bootstrap';
+}
+
+subtest 'A node does the role its class or an ancestor does' => {
+    plan 4;
+    ok RakuAST::IntLiteral.new(42) ~~ RakuAST::MayCreateBlock,
+      'a literal is a block creator through its ancestor';
+    ok RakuAST::Block.new ~~ RakuAST::MayCreateBlock,
+      'a block is a block creator';
+    ok RakuAST::IntLiteral.new(42).does(RakuAST::MayCreateBlock),
+      'does reports the role';
+    nok RakuAST::Name.from-identifier('x') ~~ RakuAST::MayCreateBlock,
+      'a name is not a block creator';
+}
+
+subtest 'A class implements the method its role requires' => {
+    plan 3;
+    ok RakuAST::Block.new.creates-block,
+      'a block reports that it creates a block';
+    nok RakuAST::IntLiteral.new(42).creates-block,
+      'a literal without thunks reports that it does not';
+    ok RakuAST::Expression.^find_method('creates-block').package === RakuAST::Expression,
+      'the method found on the class is the class its own';
+}
+
+subtest 'A role method belongs to the role' => {
+    plan 3;
+    my $method := RakuAST::MayCreateBlock.^methods.first(*.name eq 'creates-block');
+    ok $method.defined, 'the role lists its method';
+    ok $method.signature.params[0].type === RakuAST::MayCreateBlock,
+      'the invocant type is the role';
+    ok $method.package === RakuAST::MayCreateBlock,
+      'the method belongs to the role';
+}
+
+subtest 'A role requires a method of the class doing it' => {
+    plan 4;
+    my $method := RakuAST::MayCreateBlock.^methods.first(*.name eq 'creates-block');
+    ok $method.yada, 'the required method is a stub';
+    ok $method.signature.returns === Bool, 'the stub declares its return type';
+    nok RakuAST::Expression.^find_method('creates-block').yada,
+      'the class provides a real method';
+    throws-like
+      'use experimental :rakuast; class Careless does RakuAST::MayCreateBlock { }',
+      X::Comp, message => /'creates-block' .* 'Careless' .* 'RakuAST::MayCreateBlock'/,
+      'a class that does not implement the method is refused, naming all three';
+}
+
+# vim: expandtab shiftwidth=4

@@ -4,9 +4,9 @@ class RakuAST::CaptureSource
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
-  is RakuAST::MayCreateBlock
   is RakuAST::Sinkable
   is RakuAST::CheckTime
+  does RakuAST::MayCreateBlock
 {
     has int $!okifnil;
 

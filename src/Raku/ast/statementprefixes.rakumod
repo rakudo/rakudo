@@ -148,7 +148,6 @@ class RakuAST::StatementPrefix::Sink
 # object.
 class RakuAST::StatementPrefix::Thunky
   is RakuAST::StatementPrefix
-  is RakuAST::MayCreateBlock
   is RakuAST::Meta
   is RakuAST::Code
   is RakuAST::BeginTime

@@ -295,9 +295,10 @@ class RakuAST::Node {
         for self.IMPL-UNWRAP-LIST(self.HOW.mro(self)) -> $class {
             for self.IMPL-UNWRAP-LIST($class.HOW.attributes($class, :local)) -> $attr {
                 next if nqp::objprimspec($attr.type);
-                my $value := nqp::getattr(self, $class, $attr.name);
+                my $package := $attr.package;
+                my $value := nqp::getattr(self, $package, $attr.name);
                 if nqp::eqaddr($value, $old) {
-                    nqp::bindattr(self, $class, $attr.name, $new);
+                    nqp::bindattr(self, $package, $attr.name, $new);
                 }
                 elsif nqp::islist($value) {
                     my int $i := 0;
@@ -3941,8 +3942,7 @@ class RakuAST::CompileTimeValue
     }
 }
 
-class RakuAST::MayCreateBlock {
-    method creates-block {
-        False
-    }
+# Done by anything that may need a block of its own in the generated code.
+role RakuAST::MayCreateBlock {
+    method creates-block(--> Bool) { ... }
 }

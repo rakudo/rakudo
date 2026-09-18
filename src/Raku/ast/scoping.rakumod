@@ -1,7 +1,7 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope
-  is RakuAST::MayCreateBlock
   is RakuAST::Node
+  does RakuAST::MayCreateBlock
 {
     # Caching of lexical declarations in this scope due to AST nodes.
     has List $!declarations-cache;

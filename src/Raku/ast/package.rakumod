@@ -6,9 +6,7 @@ class RakuAST::Package
   is RakuAST::PackageInstaller
   is RakuAST::StubbyMeta
   is RakuAST::Term
-  is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::Declaration
-  is RakuAST::AttachTarget
   is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::TraitTarget
@@ -16,6 +14,8 @@ class RakuAST::Package
   is RakuAST::LexicalScope
   is RakuAST::Lookup
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::IMPL::ImmediateBlockUser
+  does RakuAST::AttachTarget
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $.body;

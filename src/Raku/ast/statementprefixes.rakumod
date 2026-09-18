@@ -547,7 +547,7 @@ class RakuAST::StatementPrefix::Start
 # # Base class for prefixes that can have whenevers in them
 class RakuAST::StatementPrefix::Wheneverable
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::AttachTarget
+  does RakuAST::AttachTarget
 {
     has List $!whenevers;
 

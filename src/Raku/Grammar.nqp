@@ -4256,7 +4256,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 my $canname := $category
                   ~ ':sym'
-                  ~ self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                  ~ self.Nodify('ColonPair').IMPL-QUOTE-VALUE(~$opname);
 
                 $/.add-categorical(
                   $category, $opname, $canname, $name.ast.canonicalize, $*BLOCK
@@ -4400,7 +4400,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         my $cat := ~$categorical[0][0];
         if $categorical && nqp::can(self, $cat) {
-            my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
+            my $canop := self.Nodify('ColonPair').IMPL-QUOTE-VALUE($categorical[0][1]);
             my $canname := $cat ~ ':sym' ~ $canop;
             self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0], :current-scope);
         }
@@ -5442,7 +5442,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                           ?? $nibble.ast.literal-value(:stringify) // ~$nibble
                           !! $ccf<semilist>;
                     }
-                    my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                    my $canop := self.Nodify('ColonPair').IMPL-QUOTE-VALUE(~$opname);
                     my $canname := $category ~ ':sym' ~ $canop;
                     my $termname := $category ~ ':' ~ $canop;
                     $/.add-categorical($category, $opname, $canname, $termname, :defterm, :current-scope);

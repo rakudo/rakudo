@@ -3105,7 +3105,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::CheckTime
   is RakuAST::Meta
   is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
 

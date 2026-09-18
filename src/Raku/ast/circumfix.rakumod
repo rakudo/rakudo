@@ -1,7 +1,6 @@
 # Marker for all kinds of circumfix.
 class RakuAST::Circumfix
-  is RakuAST::Term
-  is RakuAST::Contextualizable { }
+  is RakuAST::Term { }
 
 # Grouping parentheses circumfix.
 class RakuAST::Circumfix::Parentheses
@@ -129,7 +128,7 @@ class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Lookup
   is RakuAST::ParseTime
   is RakuAST::CheckTime
-  is RakuAST::ColonPairish
+  does RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
 

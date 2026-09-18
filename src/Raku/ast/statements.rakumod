@@ -10,8 +10,7 @@ class RakuAST::Blorst
 
 
 # Something that can be the target of a contextualizer.
-class RakuAST::Contextualizable
-  is RakuAST::Node {}
+role RakuAST::Contextualizable {}
 
 # A label, which can be placed on a statement.
 class RakuAST::Label
@@ -944,7 +943,7 @@ class RakuAST::SemiList
 class RakuAST::StatementSequence
   is RakuAST::StatementList
   is RakuAST::ImplicitLookups
-  is RakuAST::Contextualizable
+  does RakuAST::Contextualizable
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
@@ -1366,9 +1365,7 @@ class RakuAST::Statement::Expression
 
 # Mark out things that immediately consume their body, rather than needing it as
 # a closure.
-class RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::Node
-{
+role RakuAST::IMPL::ImmediateBlockUser {
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
 }
 
@@ -1377,8 +1374,8 @@ class RakuAST::Statement::IfWith
   is RakuAST::Statement
   is RakuAST::ImplicitLookups
   is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
@@ -1585,8 +1582,8 @@ class RakuAST::Statement::Unless
   is RakuAST::Statement
   is RakuAST::ImplicitLookups
   is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1653,8 +1650,8 @@ class RakuAST::Statement::Without
   is RakuAST::Statement
   is RakuAST::ImplicitLookups
   is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1712,8 +1709,8 @@ class RakuAST::Statement::Loop
   is RakuAST::Sinkable
   is RakuAST::SinkPropagator
   is RakuAST::BlockStatementSensitive
-  is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     # Set by the optimize pass, allowing a native-int condition to be
     # tested directly.
@@ -2502,7 +2499,7 @@ class RakuAST::Categorical {
     }
 
     method canname {
-        $!category ~ ':sym' ~ RakuAST::ColonPairish.IMPL-QUOTE-VALUE($!opname);
+        $!category ~ ':sym' ~ RakuAST::ColonPair.IMPL-QUOTE-VALUE($!opname);
     }
 }
 

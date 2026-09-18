@@ -800,7 +800,7 @@ class RakuAST::Declaration::External
     }
 }
 
-class RakuAST::Declaration::Mergeable {
+role RakuAST::Declaration::Mergeable {
     method is-stub() {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.return-type.HOW;
@@ -879,9 +879,7 @@ class RakuAST::Declaration::Mergeable {
         }
     }
 
-    method set-value(Mu $value) {
-        nqp::die('set-value not implemented on ' ~ self.HOW.name(self));
-    }
+    method set-value(Mu $value) { ... }
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed
@@ -889,7 +887,7 @@ class RakuAST::Declaration::Mergeable {
 class RakuAST::Declaration::External::Constant
   is RakuAST::Declaration::External
   is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -921,7 +919,7 @@ class RakuAST::Declaration::External::Constant
 class RakuAST::Declaration::External::Setting
   is RakuAST::Declaration::External
   is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -963,7 +961,7 @@ class RakuAST::Declaration::Import
 class RakuAST::Declaration::LexicalPackage
   is RakuAST::Declaration
   is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::Declaration::Mergeable
 {
     has str $.lexical-name;
     has Mu $.compile-time-value;

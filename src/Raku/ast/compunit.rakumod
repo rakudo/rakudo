@@ -4,10 +4,10 @@ class RakuAST::CompUnit
   is RakuAST::SinkBoundary
   is RakuAST::ImplicitLookups
   is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
   is RakuAST::ScopePhaser
   is RakuAST::BeginTime
   is RakuAST::CheckTime
+  does RakuAST::AttachTarget
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;

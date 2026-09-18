@@ -5,20 +5,15 @@
 # package, while a placeholder parameter like $^a will want to attach to the
 # nearest scope that can carry a signature. Attachment happens at parse time
 # or BEGIN time.
-class RakuAST::AttachTarget
-  is RakuAST::Node
-{
-    # Expected to return a (possibly empty) List of attach target names
-    # for this node.  Must be supplied by the consuming class.
-    method attach-target-names() {
-        nqp::die('attach-target-names not implemented for ' ~ self.HOW.name(self));
-    }
+role RakuAST::AttachTarget {
+    # Returns a (possibly empty) List of attach target names for this node.
+    method attach-target-names() { ... }
 }
 
 # Fake up an attach target for an existing package object
 class RakuAST::Declaration::External::Package
   is RakuAST::Declaration::External::Constant
-  is RakuAST::AttachTarget
+  does RakuAST::AttachTarget
 {
     method attach-target-names() {
         ['package']

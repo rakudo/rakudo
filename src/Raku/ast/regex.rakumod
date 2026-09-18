@@ -1,6 +1,7 @@
 # Base marker for all things that may appear as top-level regex syntax.
 class RakuAST::Regex
-  is RakuAST::RegexBody
+  is RakuAST::Node
+  does RakuAST::RegexBody
 {
     has str $!alt-nfa-prefix;
 
@@ -934,9 +935,7 @@ class RakuAST::Regex::CharClass::Negatable
 
 # Done by everything that can appear inside of a user-defined character class
 # enumeration (that is, `<[this]>`).
-class RakuAST::Regex::CharClassEnumerationElement
-  is RakuAST::Node
-{
+role RakuAST::Regex::CharClassEnumerationElement {
     method codepoint() { Nil }
 
     method IMPL-CCLASS-ENUM-CHARS(%mods) { '' }
@@ -963,7 +962,7 @@ class RakuAST::Regex::CharClassEnumerationElement
 # in a character class enumeration.
 class RakuAST::Regex::CharClass::BackSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -980,7 +979,7 @@ class RakuAST::Regex::CharClass::BackSpace
 # The digit character class (\d, \D).
 class RakuAST::Regex::CharClass::Digit
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<d>, :negate(self.negated) )
@@ -994,7 +993,7 @@ class RakuAST::Regex::CharClass::Digit
 # The escape character class (\e, \E)
 class RakuAST::Regex::CharClass::Escape
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1011,7 +1010,7 @@ class RakuAST::Regex::CharClass::Escape
 # The form feed character class (\f, \F)
 class RakuAST::Regex::CharClass::FormFeed
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1028,7 +1027,7 @@ class RakuAST::Regex::CharClass::FormFeed
 # The horizontal whitespace character class (\h, \H)
 class RakuAST::Regex::CharClass::HorizontalSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-HSPACE-CHARS() {
         "\x[09,20,a0,1680,180e,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,200a,202f,205f,3000]"
@@ -1052,7 +1051,7 @@ class RakuAST::Regex::CharClass::HorizontalSpace
 # The newline character class (\n, \N).
 class RakuAST::Regex::CharClass::Newline
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
@@ -1066,7 +1065,7 @@ class RakuAST::Regex::CharClass::Newline
 # The carriage return character class (\r, \R)
 class RakuAST::Regex::CharClass::CarriageReturn
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1083,7 +1082,7 @@ class RakuAST::Regex::CharClass::CarriageReturn
 # The space character class (\s, \S).
 class RakuAST::Regex::CharClass::Space
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<s>, :negate(self.negated) )
@@ -1097,7 +1096,7 @@ class RakuAST::Regex::CharClass::Space
 # The tab character class (\t, \T)
 class RakuAST::Regex::CharClass::Tab
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1114,7 +1113,7 @@ class RakuAST::Regex::CharClass::Tab
 # The vertical whitespace character class (\v, \V)
 class RakuAST::Regex::CharClass::VerticalSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     # The single vertical-space codepoints. On its own, \v also matches the
     # two-codepoint CR LF grapheme (IMPL-REGEX-QAST appends it); inside a
@@ -1143,7 +1142,7 @@ class RakuAST::Regex::CharClass::VerticalSpace
 # The word character class (\w, \W).
 class RakuAST::Regex::CharClass::Word
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
@@ -1160,7 +1159,7 @@ class RakuAST::Regex::CharClass::Word
 # these sequences).
 class RakuAST::Regex::CharClass::Specified
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has str $.characters;
     has Int $.codepoint;
@@ -1212,7 +1211,7 @@ class RakuAST::Regex::CharClass::Specified
 # The nul character class (\0)
 class RakuAST::Regex::CharClass::Nul
   is RakuAST::Regex::CharClass
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new: :rxtype<literal>, "\0"
@@ -2216,7 +2215,8 @@ class RakuAST::Regex::CharClassElement::Enumeration
 # A single character in a character class enumeration (for example, the "a" in
 # `<[a]>`).
 class RakuAST::Regex::CharClassEnumerationElement::Character
-  is RakuAST::Regex::CharClassEnumerationElement
+  is RakuAST::Node
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has str $.character;
 
@@ -2235,7 +2235,7 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
 # number of problems are not possible at the AST level.
 class RakuAST::Regex::CharClassEnumerationElement::Range
   is RakuAST::CheckTime
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has int $.from;
     has int $.to;

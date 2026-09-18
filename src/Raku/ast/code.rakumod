@@ -43,13 +43,12 @@ class RakuAST::Blockoid
 }
 
 # Marker for what may serve as the body of a regex declaration.
-class RakuAST::RegexBody
-  is RakuAST::Node {}
+role RakuAST::RegexBody {}
 
 class RakuAST::OnlyStar
   is RakuAST::Blockoid
   is RakuAST::Term
-  is RakuAST::RegexBody
+  does RakuAST::RegexBody
 {
     method new() {
         my $obj := nqp::create(self);
@@ -1821,12 +1820,12 @@ class RakuAST::Block
   is RakuAST::Blorst
   is RakuAST::ImplicitDeclarations
   is RakuAST::ImplicitLookups
-  is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::ScopePhaser
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::AttachTarget
 {
     has RakuAST::Blockoid $.body;
 
@@ -2617,9 +2616,7 @@ class RakuAST::Routine
   is RakuAST::Code
   is RakuAST::StubbyMeta
   is RakuAST::Declaration
-  is RakuAST::Declaration::Mergeable
   is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::ImplicitLookups
   is RakuAST::ParseTime
@@ -2627,6 +2624,8 @@ class RakuAST::Routine
   is RakuAST::TraitTarget
   is RakuAST::ScopePhaser
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration::Mergeable
+  does RakuAST::AttachTarget
 {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;

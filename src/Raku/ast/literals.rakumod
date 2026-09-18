@@ -172,9 +172,9 @@ class RakuAST::StrLiteral
 # are "words", "quotewords", "val", and "exec", and are applied in the order
 # that they are specified here).
 class RakuAST::QuotedString
-  is RakuAST::ColonPairish
   is RakuAST::Term
   is RakuAST::ImplicitLookups
+  does RakuAST::ColonPairish
 {
     has Mu $!segments;
     has Mu $!processors;

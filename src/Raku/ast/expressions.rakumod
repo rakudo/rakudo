@@ -3415,7 +3415,7 @@ class RakuAST::Termish
 # Everything that is a kind of term does RakuAST::Term.
 class RakuAST::Term
   is RakuAST::Termish
-  is RakuAST::Contextualizable { }
+  does RakuAST::Contextualizable { }
 
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix

@@ -1819,30 +1819,34 @@ class RakuAST::VarDeclaration::Simple
                 !! QAST::Var.new( :$name, :scope<lexical> );
             my $of := self.IMPL-OF-TYPE;
 
-            if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
-                # Natively typed value. Need to initialize it to a default
-                # in the absence of an initializer.
-                my $init;
-                my $assign-op := 'bind';
+            if $sigil eq '$' && (my int $primspec := nqp::objprimspec($of)) {
+                # Natively typed value. May need to initialize it to a
+                # default in the absence of an initializer.
+
+                # Set up lookup tables
+                my constant ASSIGN-OP := nqp::list_s(
+                  '?',
+                  'assign_i',
+                  'assign_n',
+                  'assign_s',
+                  'assign_i', 'assign_i', 'assign_i',
+                  'assign_u', 'assign_u', 'assign_u', 'assign_u'
+                );
+                my constant RETURNS := nqp::list(
+                  Mu,
+                  int,
+                  num,
+                  str,
+                  int, int, int,
+                  uint, uint, uint, uint
+                );
+
+                # Initial setup
                 $var-access.scope('lexicalref');
-                if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
-                    $assign-op := 'assign_i';
-                    $var-access.returns(int);
-                }
-                elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
-                    $assign-op := 'assign_u';
-                    $var-access.returns(uint);
-                }
-                elsif $prim-spec == 2 {
-                    $assign-op := 'assign_n';
-                    $var-access.returns(num);
-                    $init := QAST::NVal.new(:value(nqp::nan))
-                      if self.IMPL-LANGUAGE-REVISION == 1;
-                }
-                else {
-                    $assign-op := 'assign_s';
-                    $var-access.returns(str);
-                }
+                $var-access.returns(nqp::atpos(RETURNS,$primspec));
+                my $init;
+                $init := QAST::NVal.new(:value(nqp::nan))
+                  if $primspec == 2 && self.IMPL-LANGUAGE-REVISION == 1;
 
                 # There is some kind of value to initialize with
                 if $!initializer {
@@ -1852,18 +1856,16 @@ class RakuAST::VarDeclaration::Simple
                     else {
                         nqp::die('Can only compile an assign initializer on a native');
                     }
-                    $qast := QAST::Op.new(:op($assign-op), $var-access, $init);
                 }
 
-                # No initializer, but we do need to do some initialization
-                elsif $init {
-                    $qast := QAST::Op.new(:op($assign-op), $var-access, $init);
-                }
-
-                # Native var self-initializes
-                else {
-                    $qast := $var-access
-                }
+                # Set up QAST with initializer if needed
+                $qast := $init
+                  ?? QAST::Op.new(
+                       :op(nqp::atpos_s(ASSIGN-OP,$primspec)),
+                       $var-access,
+                       $init
+                     )
+                  !! $var-access;
             }
 
             else {

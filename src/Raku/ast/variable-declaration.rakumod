@@ -390,7 +390,7 @@ class RakuAST::TraitTarget::Variable
   is RakuAST::TraitTarget
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has str $!name;
     has str $!scope;
@@ -440,11 +440,11 @@ class RakuAST::VarDeclaration
 class RakuAST::VarDeclaration::Constant
   is RakuAST::VarDeclaration
   is RakuAST::TraitTarget
-  is RakuAST::BeginTime
   is RakuAST::CompileTimeValue
   is RakuAST::ImplicitLookups
   is RakuAST::Term
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
@@ -694,10 +694,10 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::TraitTarget
   is RakuAST::ContainerCreator
   is RakuAST::Meta
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::Term
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Type        $.type;
     has RakuAST::Name        $.desigilname;
@@ -2101,8 +2101,8 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::ImplicitLookups
   is RakuAST::ImplicitDeclarations
   is RakuAST::TraitTarget
-  is RakuAST::BeginTime
   is RakuAST::Term
+  does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
@@ -3101,10 +3101,10 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
 class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::VarDeclaration::Implicit
   is RakuAST::TraitTarget
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::Meta
   is RakuAST::CompileTimeValue
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
   does RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
@@ -3152,7 +3152,7 @@ class RakuAST::VarDeclaration::Implicit::EnumValue
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
   is RakuAST::VarDeclaration
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $.block;
 
@@ -3434,7 +3434,7 @@ class RakuAST::VarDeclaration::Implicit::State
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $.value;
 
@@ -3445,6 +3445,8 @@ class RakuAST::VarDeclaration::Implicit::Doc
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
         $obj
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
@@ -3572,8 +3574,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
 class RakuAST::VarDeclaration::Placeholder
   is RakuAST::VarDeclaration
   is RakuAST::Term
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
 {
     has Bool $!already-declared;
 

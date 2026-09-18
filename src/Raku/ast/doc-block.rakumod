@@ -40,7 +40,7 @@ class RakuAST::Doc::Paragraph
 # Generic block with paragraphs
 class RakuAST::Doc::Block
   is RakuAST::Doc
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has str  $.margin;           # the left margin to be applied
     has str  $.type;             # the type (e.g. "doc", "head", "item", etc)

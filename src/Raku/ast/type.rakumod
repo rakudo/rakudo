@@ -83,9 +83,8 @@ class RakuAST::Type
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple
   is RakuAST::Type
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
   is RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -295,7 +294,7 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
 
@@ -599,8 +598,7 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
 {
     has RakuAST::ArgList $.args;
 
@@ -665,8 +663,7 @@ class RakuAST::Type::Parameterized
             my @pos;
             my %named;
             my int $usable := 1;
-            my $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-before := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-before := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
                 my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
                 my $value;
@@ -706,8 +703,7 @@ class RakuAST::Type::Parameterized
 
             # IMPL-BEGIN-TIME-EVALUATE on a CheckTime traps errors as
             # add-sorry on self. A sorry delta means the loop failed.
-            $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-after := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-after := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             if $usable && $sorries-after == $sorries-before {
                 my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
                 $ptype.HOW.parameterize($ptype, |@pos, |%named)
@@ -809,12 +805,11 @@ class RakuAST::Type::Parameterized
 class RakuAST::Type::Enum
   is RakuAST::Type
   is RakuAST::Declaration
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::TraitTarget
   is RakuAST::PackageInstaller
   is RakuAST::ImplicitLookups
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Expression $.term;
@@ -1163,10 +1158,9 @@ class RakuAST::Type::Subset
   is RakuAST::Declaration
   is RakuAST::TraitTarget
   is RakuAST::StubbyMeta
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::PackageInstaller
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Type       $.of;

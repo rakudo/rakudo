@@ -7,13 +7,13 @@ class RakuAST::Package
   is RakuAST::StubbyMeta
   is RakuAST::Term
   is RakuAST::Declaration
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
   is RakuAST::Lookup
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
   does RakuAST::IMPL::ImmediateBlockUser
   does RakuAST::AttachTarget
 {
@@ -1063,7 +1063,6 @@ class RakuAST::Class
 
 class RakuAST::Grammar
   is RakuAST::Class
-  is RakuAST::CheckTime
 {
     method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }

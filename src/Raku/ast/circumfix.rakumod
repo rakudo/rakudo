@@ -126,8 +126,7 @@ class RakuAST::Exception::TooComplex {
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
   does RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
@@ -207,8 +206,7 @@ class RakuAST::Circumfix::ArrayComposer
 class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
   is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
 {
     has RakuAST::Expression $.expression;
     has Bool $.object-hash;

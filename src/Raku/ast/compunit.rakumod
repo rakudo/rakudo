@@ -5,8 +5,8 @@ class RakuAST::CompUnit
   is RakuAST::ImplicitLookups
   is RakuAST::ImplicitDeclarations
   is RakuAST::ScopePhaser
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
   does RakuAST::AttachTarget
 {
     has RakuAST::StatementList $.statement-list;
@@ -890,8 +890,8 @@ class RakuAST::CompUnit
 }
 
 class RakuAST::CtxSave
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)

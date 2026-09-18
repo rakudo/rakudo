@@ -150,7 +150,7 @@ class RakuAST::StatementPrefix::Thunky
   is RakuAST::StatementPrefix
   is RakuAST::Meta
   is RakuAST::Code
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method creates-block() {
         nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
@@ -696,7 +696,6 @@ class RakuAST::StatementPrefix::Phaser::Sinky
 class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
 {
     has Mu  $!value;
     has int $!has-value;
@@ -711,7 +710,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
         self.blorst.propagate-sink(False) if nqp::istype(self.blorst, RakuAST::Block);
 
-        nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
+        self.IMPL-MARK-BEGIN-PERFORMED; # avoid infinite loop
         my $producer := self.meta-object;
         # Compile the block now, so an error in compiling it is reported
         # as itself rather than as a failure of running the BEGIN.
@@ -758,7 +757,6 @@ class RakuAST::StatementPrefix::Phaser::Begin
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
 {
     has Mu $!value;
 
@@ -794,7 +792,6 @@ class RakuAST::StatementPrefix::Phaser::Check
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
 {
     has Scalar $.container;
 
@@ -838,7 +835,6 @@ class RakuAST::StatementPrefix::Phaser::Init
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
 {
     has str $!result-name;
 
@@ -888,7 +884,6 @@ class RakuAST::StatementPrefix::Phaser::Enter
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
 {
     method type() { "END" }
 
@@ -903,7 +898,7 @@ class RakuAST::StatementPrefix::Phaser::End
 # The QUIT phaser.
 class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method type() { "QUIT" }
 
@@ -926,7 +921,6 @@ class RakuAST::StatementPrefix::Phaser::Quit
 class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::ParseTime
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         ($resolver.find-attach-target('block')
@@ -942,7 +936,6 @@ class RakuAST::StatementPrefix::Phaser::Block
 # The FIRST phaser.
 class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Phaser::Block
-  is RakuAST::BeginTime
 {
     method type() { "FIRST" }
 

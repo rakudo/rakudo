@@ -3,9 +3,9 @@
 class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::BeginTime
+  does RakuAST::ParseTime
 {
     has List $.parameters;
     has RakuAST::Node $.returns;
@@ -504,10 +504,10 @@ class RakuAST::Signature
 }
 
 class RakuAST::FakeSignature
-  is RakuAST::BeginTime
   is RakuAST::Meta
   is RakuAST::Term
   is RakuAST::LexicalScope
+  does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Block $.block;
@@ -571,10 +571,10 @@ class RakuAST::Parameter
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Type              $.type;
     has RakuAST::Type              $!conflicting-type;
@@ -2205,9 +2205,9 @@ class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
   is RakuAST::TraitTarget
   is RakuAST::Meta
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has str $.name;
     has RakuAST::Type $.type;
@@ -2472,9 +2472,9 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
   is RakuAST::ContainerCreator
   is RakuAST::Declaration
-  is RakuAST::BeginTime
   is RakuAST::Meta
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Type $.type;

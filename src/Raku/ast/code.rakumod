@@ -1,7 +1,7 @@
 # A blockoid represents the block part of some kind of code declaration.
 class RakuAST::Blockoid
   is RakuAST::SinkPropagator
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
 
@@ -100,7 +100,8 @@ class RakuAST::OnlyStar
 
 # Marker for all code-y things.
 class RakuAST::Code
-  is RakuAST::ParseTime
+  is RakuAST::Node
+  does RakuAST::ParseTime
 {
     has Bool $.custom-args;
     has Mu $!qast-block;
@@ -973,7 +974,7 @@ class RakuAST::LexicalFixup
 class RakuAST::ExpressionThunk
   is RakuAST::Code
   is RakuAST::Meta
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
@@ -1821,10 +1822,9 @@ class RakuAST::Block
   is RakuAST::ImplicitDeclarations
   is RakuAST::ImplicitLookups
   is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::ScopePhaser
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
   does RakuAST::AttachTarget
 {
     has RakuAST::Blockoid $.body;
@@ -2619,11 +2619,10 @@ class RakuAST::Routine
   is RakuAST::ImplicitDeclarations
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::ImplicitLookups
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::ScopePhaser
   is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
   does RakuAST::Declaration::Mergeable
   does RakuAST::AttachTarget
 {
@@ -4638,7 +4637,7 @@ class RakuAST::RuleDeclaration
 class RakuAST::RegexThunk
   is RakuAST::Code
   is RakuAST::Meta
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has int $!decls-placed-inline;
 
@@ -4739,7 +4738,6 @@ class RakuAST::RegexThunk
 # adverbs in common.
 class RakuAST::QuotedMatchConstruct
   is RakuAST::Term
-  is RakuAST::BeginTime
 {
     has List $.adverbs;
 
@@ -4823,11 +4821,6 @@ class RakuAST::QuotedMatchConstruct
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-STUB-CODE($resolver, $context);
-        Nil
-    }
-
     method IMPL-IS-CONSTANT() {
         False
     }
@@ -4840,7 +4833,6 @@ class RakuAST::QuotedRegex
   is RakuAST::QuotedMatchConstruct
   is RakuAST::Sinkable
   is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
 {
     has RakuAST::Regex $.body;
     has Bool $.match-immediately;
@@ -4985,7 +4977,6 @@ class RakuAST::Substitution
   is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
   is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
 {
     has Bool $.immutable;
     has Bool $.samespace;
@@ -5258,6 +5249,7 @@ class RakuAST::Substitution
 class RakuAST::Transliteration
   is RakuAST::ImplicitLookups
   is RakuAST::QuotedMatchConstruct
+  does RakuAST::BeginTime
 {
     has Bool $.destructive;
     has RakuAST::Expression $.left;

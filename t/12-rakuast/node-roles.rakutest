@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 5;
+plan 6;
 
 # The node types are declared as classes and roles, and the roles are
 # composed by the Raku metamodel, so a node type introspects the way a
@@ -49,13 +49,27 @@ subtest 'A class implements the method its role requires' => {
 }
 
 subtest 'A role method belongs to the role' => {
-    plan 3;
+    plan 4;
     my $method := RakuAST::MayCreateBlock.^methods.first(*.name eq 'creates-block');
     ok $method.defined, 'the role lists its method';
     ok $method.signature.params[0].type === RakuAST::MayCreateBlock,
       'the invocant type is the role';
     ok $method.package === RakuAST::MayCreateBlock,
       'the method belongs to the role';
+    ok RakuAST::IntLiteral.^find_method('add-worry').package === RakuAST::CheckTime,
+      'the method a class gets from a role still belongs to the role';
+}
+
+subtest 'An attribute a role composes stays keyed on the role' => {
+    plan 3;
+    my $node := RakuAST::IntLiteral.new(42);
+    $node.add-worry(X::AdHoc.new(payload => 'careful'));
+    my $attribute := $node.^attributes.first(*.name eq '$!worries');
+    ok $attribute.defined, 'the class lists the attribute of the role it does';
+    ok $attribute.package === RakuAST::CheckTime,
+      'the attribute belongs to the role';
+    is $attribute.get_value($node).elems, 1,
+      'the attribute reads the state the role method wrote';
 }
 
 subtest 'A role requires a method of the class doing it' => {

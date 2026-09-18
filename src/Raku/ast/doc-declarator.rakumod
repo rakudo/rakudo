@@ -1,7 +1,7 @@
 # Base class for doc declarators
 class RakuAST::Doc::Declarator
   is RakuAST::Doc
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Doc::DeclaratorTarget $.WHEREFORE;
     has List                           $.leading;

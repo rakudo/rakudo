@@ -537,7 +537,7 @@ class RakuAST::Regex::Literal
 # frontend does when forming the candidate name.
 class RakuAST::Regex::Sym
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::ColonPair $.colonpair;
 
@@ -1291,7 +1291,7 @@ class RakuAST::Regex::Statement
 # A block of code embedded in a regex, executed only for its side-effects.
 class RakuAST::Regex::Block
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Block $.block;
 
@@ -1329,8 +1329,8 @@ class RakuAST::Regex::Block
 # thus it can be constructed with any expression.
 class RakuAST::Regex::Interpolation
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;
     has Bool $.sequential;
@@ -1820,8 +1820,8 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedVar
   is RakuAST::Regex::Assertion
-  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;
     has Bool $.sequential;
@@ -2083,7 +2083,7 @@ class RakuAST::Regex::CharClassElement::Property
 # including characters, ranges, and backslash sequences.
 class RakuAST::Regex::CharClassElement::Enumeration
   is RakuAST::Regex::CharClassElement
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $!elements;
 
@@ -2234,7 +2234,8 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
 # in `<[a..f]>`. Constructed with two integer codepoints, which means that a
 # number of problems are not possible at the AST level.
 class RakuAST::Regex::CharClassEnumerationElement::Range
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::CheckTime
   does RakuAST::Regex::CharClassEnumerationElement
 {
     has int $.from;
@@ -2349,7 +2350,7 @@ class RakuAST::Regex::InternalModifier::Dba
 # optional separator.
 class RakuAST::Regex::QuantifiedAtom
   is RakuAST::Regex::Term
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Regex::Atom $.atom;
     has RakuAST::Regex::Quantifier $.quantifier;
@@ -2472,8 +2473,8 @@ class RakuAST::Regex::Quantifier::OneOrMore
 
 # The literal range (** 1..5) quantifier.
 class RakuAST::Regex::Quantifier::Range
-  is RakuAST::CheckTime
   is RakuAST::Regex::Quantifier
+  does RakuAST::CheckTime
 {
     has Int $.min;
     has Int $.max;

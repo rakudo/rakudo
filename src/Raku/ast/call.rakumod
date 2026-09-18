@@ -276,10 +276,9 @@ class RakuAST::Call {
 class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::Lookup
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $!block;
@@ -829,9 +828,9 @@ class RakuAST::Call::Methodish
 # compiled into primitive operations rather than really being method calls.
 class RakuAST::Call::Method
   is RakuAST::Call::Methodish
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -1133,7 +1132,7 @@ class RakuAST::Call::Method
 # A call to a method with a quoted name.
 class RakuAST::Call::QuotedMethod
   is RakuAST::Call::Methodish
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::QuotedString   $.name;
     has Mu $!package;
@@ -1216,8 +1215,8 @@ class RakuAST::Call::PrivateMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
   is RakuAST::ImplicitLookups
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -1426,8 +1425,8 @@ class RakuAST::Call::MetaMethod
 class RakuAST::Call::NameAsMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -1639,7 +1638,6 @@ class RakuAST::Call::TermAsMethod
 class RakuAST::Stub
   is RakuAST::ImplicitLookups
   is RakuAST::Term
-  is RakuAST::CheckTime
 {
     has RakuAST::ArgList $.args;
 
@@ -1692,7 +1690,7 @@ class RakuAST::Stub
 # the ... stub
 class RakuAST::Stub::Fail
   is RakuAST::Stub
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method name() { '...' }
     method IMPL-FUNC-NAME() { 'fail' }

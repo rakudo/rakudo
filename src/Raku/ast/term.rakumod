@@ -4,7 +4,7 @@
 class RakuAST::Term::Name
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -180,7 +180,7 @@ class RakuAST::Term::False {
 class RakuAST::Term::Self
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     has RakuAST::Var::Attribute::Public $!variable;
     has RakuAST::Package $!package;
@@ -308,7 +308,7 @@ class RakuAST::Term::TopicCall
 class RakuAST::Term::Named
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     has str $.name;
     has RakuAST::ArgList $.args;
@@ -348,7 +348,7 @@ class RakuAST::Term::Named
 class RakuAST::Term::EmptySet
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
@@ -371,7 +371,7 @@ class RakuAST::Term::EmptySet
 class RakuAST::Term::Rand
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
@@ -397,7 +397,7 @@ class RakuAST::Term::Rand
 # The whatever (*) term.
 class RakuAST::Term::Whatever
   is RakuAST::Term
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     # The Whatever singleton itself, captured at PERFORM-BEGIN. Storing
     # the singleton rather than the enclosing CompUnit keeps a non
@@ -431,7 +431,7 @@ class RakuAST::Term::Whatever
 class RakuAST::WhateverCode::Argument
   is RakuAST::Term
   is RakuAST::Lookup
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $!name;
     # Set when the argument stands for a ** rather than a *
@@ -479,7 +479,7 @@ class RakuAST::WhateverCode::Argument
 # The hyper whatever (**) term.
 class RakuAST::Term::HyperWhatever
   is RakuAST::Term
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     # See comment on RakuAST::Term::Whatever for why we store the
     # singleton rather than the enclosing CompUnit.
@@ -541,8 +541,8 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
-  is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;
     has RakuAST::ArgList $.args;

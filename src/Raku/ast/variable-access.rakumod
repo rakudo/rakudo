@@ -24,8 +24,8 @@ class RakuAST::Var
 class RakuAST::Var::Lexical
   is RakuAST::Var
   is RakuAST::Lookup
-  is RakuAST::ParseTime
   is RakuAST::Sinkable
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -191,8 +191,7 @@ class RakuAST::Var::Lexical::Setting
 class RakuAST::Var::Dynamic
   is RakuAST::Var
   is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
 {
     has str $.name;
 
@@ -281,8 +280,7 @@ class RakuAST::Var::Dynamic
 class RakuAST::Var::Attribute
   is RakuAST::Var
   is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
 {
     has str $.name;
     has RakuAST::Package $!package;
@@ -717,7 +715,6 @@ class RakuAST::Var::Compiler::Line
 
 class RakuAST::Var::Compiler::Block
   is RakuAST::Var::Compiler
-  is RakuAST::CheckTime
 {
     has int $!lexical;
 
@@ -746,7 +743,6 @@ class RakuAST::Var::Compiler::Block
 class RakuAST::Var::Compiler::Routine
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ParseTime
 {
     method new() {
         my $obj := nqp::create(self);
@@ -847,8 +843,7 @@ class RakuAST::Var::Compiler::Distribution
 class RakuAST::Var::Compiler::Lookup
   is RakuAST::Var::Compiler
   is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
 {
     has str $.name;
 
@@ -1037,8 +1032,7 @@ class RakuAST::Var::NamedCapture
 class RakuAST::Var::Package
   is RakuAST::Var
   is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -1155,8 +1149,7 @@ class RakuAST::Var::Package
 class RakuAST::Var::Slang
   is RakuAST::Var
   is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
 {
     has str $.name;
     has Mu  $!grammar;

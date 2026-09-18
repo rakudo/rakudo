@@ -1,7 +1,6 @@
 # Marker for all compile-time literals
 class RakuAST::Literal
   is RakuAST::Term
-  is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
 {
     has Str $!typename;

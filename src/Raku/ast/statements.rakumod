@@ -605,7 +605,7 @@ class RakuAST::ForLoopImplementation
 class RakuAST::StatementList
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has List $!statements;
     has int $!is-sunk;
@@ -1041,10 +1041,10 @@ class RakuAST::Statement::Empty
 class RakuAST::Statement::Also
   is RakuAST::Statement
   is RakuAST::TraitTarget
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ProducesNil
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::TraitTarget $!target;
 
@@ -1091,10 +1091,10 @@ class RakuAST::Statement::Also
 # body.
 class RakuAST::Statement::Trusts
   is RakuAST::Statement
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ProducesNil
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Trait::Trusts $.trait;
     has RakuAST::Package       $!target;
@@ -1143,8 +1143,8 @@ class RakuAST::Statement::Expression
   is RakuAST::SinkPropagator
   is RakuAST::Sinkable
   is RakuAST::BlockStatementSensitive
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
@@ -1704,12 +1704,12 @@ class RakuAST::Statement::Without
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop
   is RakuAST::Statement
-  is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
   is RakuAST::Sinkable
   is RakuAST::SinkPropagator
   is RakuAST::BlockStatementSensitive
   is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::BeginTime
   does RakuAST::IMPL::ImmediateBlockUser
 {
     # Set by the optimize pass, allowing a native-int condition to be
@@ -2190,7 +2190,7 @@ class RakuAST::Statement::When
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -2317,7 +2317,7 @@ class RakuAST::Statement::Whenever
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ParseTime
+  does RakuAST::ParseTime
 {
     has RakuAST::Expression $.trigger;
     has RakuAST::Block      $.body;
@@ -2371,7 +2371,7 @@ class RakuAST::Statement::Default
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
     has RakuAST::LexicalScope $!succeed-scope;
@@ -2452,7 +2452,7 @@ class RakuAST::Statement::ExceptionHandler
 # A CATCH statement.
 class RakuAST::Statement::Catch
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
@@ -2469,7 +2469,7 @@ class RakuAST::Statement::Catch
 # A CONTROL statement.
 class RakuAST::Statement::Control
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
@@ -2770,9 +2770,9 @@ class RakuAST::ModuleLoading {
 # A use statement.
 class RakuAST::Statement::Use
   is RakuAST::Statement
-  is RakuAST::BeginTime
   is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -2824,9 +2824,9 @@ class RakuAST::Statement::Use
 # like an EVAL cannot.
 class RakuAST::Statement::LanguageVersion
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
   is RakuAST::ProducesNil
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has Mu $.version;
 
@@ -2872,9 +2872,9 @@ class RakuAST::Statement::LanguageVersion
 # A need statement.
 class RakuAST::Statement::Need
   is RakuAST::Statement
-  is RakuAST::BeginTime
   is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
+  does RakuAST::BeginTime
 {
     has List $!module-names;
 
@@ -2906,12 +2906,12 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
   is RakuAST::Lookup
   is RakuAST::ImplicitLookups
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -2961,8 +2961,8 @@ class RakuAST::Statement::Import
 class RakuAST::Statement::Require
   is RakuAST::Statement
   is RakuAST::Sinkable
-  is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.file;

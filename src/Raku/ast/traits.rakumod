@@ -178,7 +178,7 @@ class RakuAST::Trait
 # The is trait.
 class RakuAST::Trait::Is
   is RakuAST::Trait
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Expression $.argument;

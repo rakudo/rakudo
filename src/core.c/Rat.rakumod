@@ -26,7 +26,7 @@ my class Rat is Cool does Rational[Int, Int] {
             if $d == 1 and (my $b := self.base(10,*)).Numeric === self {
                 $b;
             }
-            elsif Raku.legacy {
+            elsif Rakudo::Internals.client-language-revision < 3 {
                 '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
             }
             else {

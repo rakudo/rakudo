@@ -13,12 +13,6 @@ class RakuAST::AttachTarget
     method attach-target-names() {
         nqp::die('attach-target-names not implemented for ' ~ self.HOW.name(self));
     }
-
-    # Expected to clear any existing attachments, so we don't attach
-    # things more than once.  Must be supplied by the consuming class.
-    method clear-attachments() {
-        nqp::die('clear-attachments not implemented for ' ~ self.HOW.name(self));
-    }
 }
 
 # Fake up an attach target for an existing package object
@@ -28,9 +22,6 @@ class RakuAST::Declaration::External::Package
 {
     method attach-target-names() {
         ['package']
-    }
-
-    method clear-attachments() {
     }
 
     method declarator() {

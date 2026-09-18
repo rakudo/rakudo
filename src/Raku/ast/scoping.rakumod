@@ -141,6 +141,7 @@ class RakuAST::LexicalScope
             my @variables;
             my %variables-seen;
             my @not-if-duplicate;
+            my %implicit;
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration
                   && !$node.is-hoisted-to-outer {
@@ -172,6 +173,8 @@ class RakuAST::LexicalScope
                                     nqp::push(@declarations, $decl);
                                     nqp::push(@variables, $decl);
                                     %declarations-seen{nqp::objectid($decl)} := 1;
+                                    %implicit{$decl.lexical-name} := 1
+                                      if nqp::istype($decl, RakuAST::VarDeclaration::Implicit);
                                 }
                             }
                         }
@@ -205,6 +208,13 @@ class RakuAST::LexicalScope
                         nqp::unshift(@declarations, $decl);
                         nqp::unshift(@variables, $decl);
                     }
+                }
+            }
+            # A declaration of a name the scope declares for itself, such as
+            # the topic, names that lexical rather than making one of its own.
+            if %implicit {
+                for @declarations {
+                    $_.claim-implicit if nqp::existskey(%implicit, $_.lexical-name);
                 }
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);
@@ -361,6 +371,42 @@ class RakuAST::LexicalScope
                           if nqp::can($_, 'set-replace-stub') && $_.multiness ne 'multi';
                         %lookup{$lexical-name} := $_;
                     }
+                    # The lexicals a scope declares for itself are not in
+                    # scope as its body is parsed, so the parser cannot
+                    # report a redeclaration of one and this does.
+                    elsif nqp::istype($prev, RakuAST::VarDeclaration::Implicit)
+                      && $_.report-redeclaration {
+                        my $exception := $resolver.build-exception:
+                          'X::Redeclaration', :symbol($lexical-name);
+                        # This scope is popped by the time its own check
+                        # runs, so its pragmas are read from it and the
+                        # resolver is asked only for the outer ones.
+                        my $fatal := nqp::isconcrete($!fatal)
+                          ?? $!fatal
+                          !! $resolver.find-scope-property(-> $scope { $scope.fatal });
+                        # A declaration that cannot name the lexical takes
+                        # it, and the scope gives its own up. A block cannot
+                        # give up a topic it takes as a parameter.
+                        my int $refused := !$_.shares-implicit
+                          && nqp::istype($prev,
+                               RakuAST::VarDeclaration::Implicit::BlockTopic)
+                          && ($prev.parameter || $prev.exception);
+                        $prev.IMPL-SET-UNUSED
+                          if !$_.shares-implicit && !$refused;
+                        if $fatal || $refused {
+                            $_.add-sorry($exception);
+                        }
+                        else {
+                            my $tell-worries := nqp::isconcrete($!tell-worries)
+                              ?? $!tell-worries
+                              !! $resolver.find-scope-property(-> $scope { $scope.tell-worries });
+                            $_.add-worry($exception)
+                              if !nqp::isconcrete($tell-worries) || $tell-worries;
+                        }
+                        $resolver.add-node-with-check-time-problems($_)
+                          if $_.has-check-time-problems;
+                        %lookup{$lexical-name} := $_;
+                    }
                     else {
                         self.add-worry:
                           $resolver.build-exception: 'X::Redeclaration',
@@ -391,11 +437,30 @@ class RakuAST::LexicalScope
                             $shadower.set-replace-stub(True);
                         }
                         else {
-                            self.add-sorry:
-                              $resolver.build-exception: 'X::Redeclaration',
-                                :symbol($_.declaration-name),
-                                :what($_.declaration-kind),
-                                :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '');
+                            # The parser reports a redeclaration it found
+                            # already declared. What is left here is a
+                            # placeholder that follows the declaration.
+                            if nqp::istype($_, RakuAST::VarDeclaration::Placeholder) {
+                                # A method takes no placeholder parameter
+                                # other than the `%_` it always has.
+                                self.add-sorry(
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    # A placeholder is named as it is
+                                    # written, twigil and all.
+                                    :symbol($_.declared-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('as a placeholder parameter')
+                                ) if $shadower.report-redeclaration
+                                  || nqp::istype(self, RakuAST::Method)
+                                     && $_.lexical-name ne '%_';
+                            }
+                            else {
+                                self.add-sorry:
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    :symbol($_.declaration-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('');
+                            }
                         }
                     }
                 }
@@ -410,7 +475,10 @@ class RakuAST::LexicalScope
         while $!variables-cache {
             my $var := nqp::pop($!variables-cache);
             if nqp::istype($var, RakuAST::Declaration) {
-                %declarations{$var.lexical-name} := $var if $var.report-redeclaration;
+                # A lexical the scope makes exists from its entry, so a use
+                # above a declaration that names it is not a use before it.
+                %declarations{$var.lexical-name} := $var
+                  if $var.report-redeclaration && !$var.shares-implicit;
             }
             else {
                 if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
@@ -722,6 +790,14 @@ class RakuAST::Declaration
     method report-redeclaration() {
         True
     }
+
+    # Whether the declaration names a lexical that an implicit declaration of
+    # its scope already makes, rather than declaring one of its own.
+    method shares-implicit() { False }
+
+    # Offer the declaration that lexical. Most kinds of declaration have no
+    # say, and one that needs a container of its own declines.
+    method claim-implicit() { Nil }
 
     method declaration-kind() {
         'symbol'

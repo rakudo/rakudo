@@ -3602,8 +3602,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     # already implicit.
                     my $shadows-implicit := $*COMPILING_CORE_SETTING
                       && nqp::istype($prev, Nodify('VarDeclaration::Implicit::Special'));
-                    $/.typed-worry('X::Redeclaration', :symbol($name))
-                      unless $shadows-implicit;
+                    unless $shadows-implicit {
+                        $*R.find-scope-property(-> $scope { $scope.fatal })
+                          ?? $/.typed-sorry('X::Redeclaration', :symbol($name))
+                          !! $/.typed-worry('X::Redeclaration', :symbol($name));
+                    }
                     $decl.set-already-declared;
                 }
             }

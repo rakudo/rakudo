@@ -24,7 +24,6 @@ class RakuAST::Var
 class RakuAST::Var::Lexical
   is RakuAST::Var
   is RakuAST::Lookup
-  is RakuAST::Sinkable
   does RakuAST::ParseTime
 {
     has str $.sigil;
@@ -279,7 +278,7 @@ class RakuAST::Var::Dynamic
 # A (private) attribute access (e.g. $!foo).
 class RakuAST::Var::Attribute
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has str $.name;
@@ -772,7 +771,7 @@ class RakuAST::Var::Compiler::Routine
 class RakuAST::Var::Compiler::Resources
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -807,7 +806,7 @@ class RakuAST::Var::Compiler::Resources
 class RakuAST::Var::Compiler::Distribution
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -904,7 +903,7 @@ class RakuAST::Var::Doc
 # A regex positional capture variable (e.g. $0).
 class RakuAST::Var::PositionalCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Int $.index;
     has str $.sigil;
@@ -961,7 +960,7 @@ class RakuAST::Var::PositionalCapture
 # A regex named capture variable (e.g. $<foo>).
 class RakuAST::Var::NamedCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::QuotedString $.index;
     has str $.sigil;
@@ -1148,7 +1147,7 @@ class RakuAST::Var::Package
 
 class RakuAST::Var::Slang
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has str $.name;

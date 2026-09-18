@@ -1,6 +1,7 @@
 # A blockoid represents the block part of some kind of code declaration.
 class RakuAST::Blockoid
-  is RakuAST::SinkPropagator
+  is RakuAST::Node
+  does RakuAST::SinkPropagator
   does RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
@@ -973,7 +974,7 @@ class RakuAST::LexicalFixup
 # that wraps the thunk.
 class RakuAST::ExpressionThunk
   is RakuAST::Code
-  is RakuAST::Meta
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has RakuAST::ExpressionThunk $.next;
@@ -1815,15 +1816,15 @@ class RakuAST::Block
   is RakuAST::LexicalScope
   is RakuAST::Term
   is RakuAST::Code
-  is RakuAST::StubbyMeta
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::SinkPropagator
   is RakuAST::Blorst
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::ImplicitLookups
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::ScopePhaser
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::BeginTime
   does RakuAST::AttachTarget
 {
@@ -2443,8 +2444,6 @@ class RakuAST::Block
 # A pointy block (-> $foo { ... }).
 class RakuAST::PointyBlock
   is RakuAST::Block
-  is RakuAST::ImplicitLookups
-  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Signature $.signature;
 
@@ -2614,14 +2613,14 @@ class RakuAST::Routine
   is RakuAST::LexicalScope
   is RakuAST::Term
   is RakuAST::Code
-  is RakuAST::StubbyMeta
   is RakuAST::Declaration
-  is RakuAST::ImplicitDeclarations
   is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
   is RakuAST::ScopePhaser
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::BeginTime
   does RakuAST::Declaration::Mergeable
   does RakuAST::AttachTarget
@@ -2893,8 +2892,8 @@ class RakuAST::Routine
     }
 
     method set-value(Mu $value) {
-        nqp::bindattr(self, RakuAST::StubbyMeta, '$!cached-stubbed-meta-object', $value);
-        nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', $value);
+        self.IMPL-SET-STUBBED-META-OBJECT($value);
+        self.IMPL-SET-META-OBJECT($value);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -3421,7 +3420,7 @@ class RakuAST::Routine
 # A subroutine.
 class RakuAST::Sub
   is RakuAST::Routine
-  is RakuAST::SinkBoundary
+  does RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
 
@@ -3453,8 +3452,7 @@ class RakuAST::Sub
         # routine's scope was entered during parsing, before the body was
         # known. An onlystar body prunes the special variables from them,
         # so drop the cache to have them produced anew.
-        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
-          '$!implicit-declarations-cache', Mu)
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS
           if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
@@ -3872,7 +3870,7 @@ class RakuAST::Methodish
 # A method.
 class RakuAST::Method
   is RakuAST::Methodish
-  is RakuAST::SinkBoundary
+  does RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
     has Bool              $.meta;
@@ -3913,8 +3911,7 @@ class RakuAST::Method
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);
         # See RakuAST::Sub::replace-body for why the cache is dropped.
-        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
-          '$!implicit-declarations-cache', Mu)
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS
           if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
@@ -4636,7 +4633,7 @@ class RakuAST::RuleDeclaration
 # `<?before foo>`, where `foo` is the thunked regex.
 class RakuAST::RegexThunk
   is RakuAST::Code
-  is RakuAST::Meta
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has int $!decls-placed-inline;
@@ -4831,8 +4828,7 @@ class RakuAST::QuotedMatchConstruct
 class RakuAST::QuotedRegex
   is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
-  is RakuAST::Sinkable
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Regex $.body;
     has Bool $.match-immediately;
@@ -4976,7 +4972,7 @@ class RakuAST::QuotedRegex
 class RakuAST::Substitution
   is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Bool $.immutable;
     has Bool $.samespace;
@@ -5247,8 +5243,8 @@ class RakuAST::Substitution
 }
 
 class RakuAST::Transliteration
-  is RakuAST::ImplicitLookups
   is RakuAST::QuotedMatchConstruct
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has Bool $.destructive;
@@ -5356,7 +5352,7 @@ class RakuAST::SubstitutionReplacementThunk
 # Thunk for a primed Whatever expression.
 class RakuAST::PrimeThunk
   is RakuAST::ExpressionThunk
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Mu $!parameters;
     has Str $!original-expression;
@@ -5421,7 +5417,7 @@ class RakuAST::HyperPrimeThunk
 
 class RakuAST::BlockThunk
   is RakuAST::ExpressionThunk
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has RakuAST::Expression $!expression;
 

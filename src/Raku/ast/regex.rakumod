@@ -691,7 +691,7 @@ class RakuAST::Regex::Nested
 class RakuAST::Regex::CapturingGroup
   is RakuAST::Regex::Atom
   is RakuAST::RegexThunk
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has RakuAST::Regex $.regex;
 
@@ -1329,7 +1329,7 @@ class RakuAST::Regex::Block
 # thus it can be constructed with any expression.
 class RakuAST::Regex::Interpolation
   is RakuAST::Regex::Atom
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;
@@ -1467,7 +1467,7 @@ class RakuAST::Regex::Assertion::Fail
 # argument are modeled as subclasses of this.
 class RakuAST::Regex::Assertion::Named
   is RakuAST::Regex::Assertion
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Name $.name;
     has Bool $.capturing;
@@ -1781,7 +1781,7 @@ class RakuAST::Regex::Assertion::Lookahead
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedBlock
   is RakuAST::Regex::Assertion
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Block $.block;
     has Bool $.sequential;
@@ -1820,7 +1820,7 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedVar
   is RakuAST::Regex::Assertion
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;

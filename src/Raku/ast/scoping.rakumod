@@ -738,9 +738,7 @@ class RakuAST::Declaration
 # to the enclosing lexical scope, implicit declarations are considered as being
 # on the inside; this makes a difference in the case the node is also doing
 # RakuAST::LexicalScope and is thus a lexical scope boundary.
-class RakuAST::ImplicitDeclarations
-  is RakuAST::Node
-{
+role RakuAST::ImplicitDeclarations {
     has List $!implicit-declarations-cache;
 
     # A node typically implements this to specify the implicit declarations
@@ -749,6 +747,12 @@ class RakuAST::ImplicitDeclarations
     # get-implicit-declarations and handle the caching themselves.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         []
+    }
+
+    # Drop the implicit declarations so the next request produces them
+    # anew.
+    method IMPL-CLEAR-IMPLICIT-DECLARATIONS() {
+        nqp::bindattr(self, RakuAST::ImplicitDeclarations, '$!implicit-declarations-cache', Mu);
     }
 
     # Get a list of the implicit declarations.
@@ -886,7 +890,7 @@ role RakuAST::Declaration::Mergeable {
 # value available during compilation.
 class RakuAST::Declaration::External::Constant
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
   does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
@@ -918,7 +922,7 @@ class RakuAST::Declaration::External::Constant
 # where the optimize pass folds a bound once constant term to its value.
 class RakuAST::Declaration::External::Setting
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
   does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
@@ -960,7 +964,7 @@ class RakuAST::Declaration::Import
 # RakuAST::LexicalScope.
 class RakuAST::Declaration::LexicalPackage
   is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
   does RakuAST::Declaration::Mergeable
 {
     has str $.lexical-name;
@@ -1016,7 +1020,7 @@ class RakuAST::Declaration::LexicalPackage
 # not preserved.
 class RakuAST::Declaration::ResolvedConstant
   is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     has Mu $.compile-time-value;
 
@@ -1722,9 +1726,7 @@ class RakuAST::UndeclaredSymbolDescription::Type
 # there the condition is not matched). Implicit lookups are not children of
 # the node, but they will receive their parse/begin time prior to the node's
 # parse time.
-class RakuAST::ImplicitLookups
-  is RakuAST::Node
-{
+role RakuAST::ImplicitLookups {
     has List $!implicit-lookups-cache;
 
     # A node typically implements this to specify the implicit lookups
@@ -1742,6 +1744,11 @@ class RakuAST::ImplicitLookups
                 nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
                     self.PRODUCE-IMPLICIT-LOOKUPS())
             !! [])
+    }
+
+    # Take over the implicit lookups of another node.
+    method IMPL-SET-IMPLICIT-LOOKUPS(List $lookups) {
+        nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache', $lookups);
     }
 
     # Drive the implicit lookups to their begin time.

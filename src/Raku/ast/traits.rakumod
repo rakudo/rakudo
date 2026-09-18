@@ -1,8 +1,8 @@
 # Done by everything that can have traits applied to it.
-class RakuAST::TraitTarget {
+role RakuAST::TraitTarget {
     has Mu $!traits;
-    has List $!sorries;
-    has List $!worries;
+    has List $!trait-sorries;
+    has List $!trait-worries;
 
     # Set the list of traits on this declaration.
     method set-traits(List $traits) {
@@ -37,11 +37,11 @@ class RakuAST::TraitTarget {
     }
 
     method add-trait-sorries() {
-        if $!sorries {
-            self.add-sorry($_) for $!sorries;
+        if $!trait-sorries {
+            self.add-sorry($_) for $!trait-sorries;
         }
-        if $!worries {
-            self.add-worry($_) for $!worries;
+        if $!trait-worries {
+            self.add-worry($_) for $!trait-worries;
         }
     }
 
@@ -64,7 +64,7 @@ class RakuAST::TraitTarget {
             for $!traits {
                 $_.apply($resolver, $context, $target, |%named) unless $_.applied;
                 CATCH {
-                    nqp::bindattr(self, RakuAST::TraitTarget, '$!sorries', []) unless nqp::isconcrete($!sorries);
+                    nqp::bindattr(self, RakuAST::TraitTarget, '$!trait-sorries', []) unless nqp::isconcrete($!trait-sorries);
                     my $ex := nqp::getpayload($_);
                     if $ex {
                         my $XUndeclaredSymbols := $resolver.resolve-name-constant-in-setting(
@@ -79,24 +79,24 @@ class RakuAST::TraitTarget {
                         $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
                             unless nqp::isconcrete($ex);
                     }
-                    nqp::push($!sorries, $ex);
+                    nqp::push($!trait-sorries, $ex);
                     $resolver.note-deferred-begin-sorry;
                 }
                 CONTROL {
                     if nqp::getextype($_) == nqp::const::CONTROL_WARN {
-                        nqp::bindattr(self, RakuAST::TraitTarget, '$!worries', []) unless nqp::isconcrete($!worries);
+                        nqp::bindattr(self, RakuAST::TraitTarget, '$!trait-worries', []) unless nqp::isconcrete($!trait-worries);
                         my $ex := nqp::getpayload($_);
                         $ex := $resolver.build-exception: 'X::AdHoc', :payload(nqp::getmessage($_))
                             unless nqp::isconcrete($ex);
-                        nqp::push($!worries, $ex);
+                        nqp::push($!trait-worries, $ex);
                         nqp::resume($_);
                     }
                     nqp::rethrow($_);
                 }
                 my $name := (try $_.name.canonicalize) // '';
                 if is-traits-to-warn-on-duplicate{$name} && %seen{$name}++ {
-                    nqp::bindattr(self, RakuAST::TraitTarget, '$!worries', []) unless nqp::isconcrete($!worries);
-                    nqp::push($!worries, $resolver.build-exception('X::AdHoc', :payload("Duplicate '" ~ $_.IMPL-TRAIT-NAME() ~ " $name' trait")));
+                    nqp::bindattr(self, RakuAST::TraitTarget, '$!trait-worries', []) unless nqp::isconcrete($!trait-worries);
+                    nqp::push($!trait-worries, $resolver.build-exception('X::AdHoc', :payload("Duplicate '" ~ $_.IMPL-TRAIT-NAME() ~ " $name' trait")));
                 }
             }
         }
@@ -115,7 +115,8 @@ class RakuAST::TraitTarget {
 
 # The base of all traits.
 class RakuAST::Trait
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::ImplicitLookups
 {
     has int $!applied;
 

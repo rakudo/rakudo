@@ -1,7 +1,6 @@
 # Some kind of type (done by all kinds of things that result in a type).
 class RakuAST::Type
   is RakuAST::Term
-  is RakuAST::Meta
 {
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
@@ -84,6 +83,7 @@ class RakuAST::Type
 class RakuAST::Type::Simple
   is RakuAST::Type
   is RakuAST::Lookup
+  does RakuAST::Meta
   does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
@@ -294,6 +294,7 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
@@ -380,6 +381,7 @@ class RakuAST::Type::Coercion
 
 class RakuAST::Type::Definedness
   is RakuAST::Type::Derived
+  does RakuAST::Meta
 {
     has Bool $.definite;
     has Bool $.through-pragma;
@@ -476,6 +478,7 @@ class RakuAST::Type::Definedness
 # exists so the smiley is written back.
 class RakuAST::Type::AnyDefinedness
   is RakuAST::Type::Derived
+  does RakuAST::Meta
 {
     method new(RakuAST::Type :$base-type!) {
         my $obj := nqp::create(self);
@@ -524,6 +527,7 @@ class RakuAST::Type::AnyDefinedness
 class RakuAST::Type::Capture
   is RakuAST::Type
   is RakuAST::Declaration
+  does RakuAST::Meta
 {
     has RakuAST::Name $.name;
     has str           $.smiley;
@@ -598,6 +602,7 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has RakuAST::ArgList $.args;
@@ -805,10 +810,11 @@ class RakuAST::Type::Parameterized
 class RakuAST::Type::Enum
   is RakuAST::Type
   is RakuAST::Declaration
-  is RakuAST::TraitTarget
   is RakuAST::PackageInstaller
-  is RakuAST::ImplicitLookups
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Meta
+  does RakuAST::TraitTarget
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
@@ -1156,10 +1162,10 @@ class RakuAST::Type::Subset
   is RakuAST::Type
   is RakuAST::Lookup
   is RakuAST::Declaration
-  is RakuAST::TraitTarget
-  is RakuAST::StubbyMeta
   is RakuAST::PackageInstaller
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::TraitTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;

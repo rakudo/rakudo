@@ -249,7 +249,7 @@ class RakuAST::Term::Self
 # The term for a dotty operation on the current topic (for example in `.lc with $foo`).
 class RakuAST::Term::TopicCall
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Postfixish $.call;
 
@@ -541,7 +541,7 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;

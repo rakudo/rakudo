@@ -7,7 +7,7 @@ role RakuAST::NamedArg {
 # A fat arrow pair, such as `foo => 42`.
 class RakuAST::FatArrow
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::NamedArg
 {
     has Str $.key;
@@ -93,7 +93,7 @@ role RakuAST::ColonPairish {
 # The base of all colonpair constructs.
 class RakuAST::ColonPair
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::ColonPairish
   does RakuAST::NamedArg
 {
@@ -215,7 +215,7 @@ class RakuAST::QuotePair
 # A truthy colonpair (:foo).
 class RakuAST::ColonPair::True
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -261,7 +261,7 @@ class RakuAST::ColonPair::True
 # A falsey colonpair (:!foo).
 class RakuAST::ColonPair::False
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -307,7 +307,7 @@ class RakuAST::ColonPair::False
 # A number colonpair (:2th).
 class RakuAST::ColonPair::Number
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     has RakuAST::IntLiteral $.value;
 

@@ -36,7 +36,7 @@ class RakuAST::StatementPrefix
 # The `do` statement prefix.
 class RakuAST::StatementPrefix::Do
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "do" }
 
@@ -56,7 +56,7 @@ class RakuAST::StatementPrefix::Do
 # The `quietly` statement prefix.
 class RakuAST::StatementPrefix::Quietly
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "quietly" }
 
@@ -148,8 +148,8 @@ class RakuAST::StatementPrefix::Sink
 # object.
 class RakuAST::StatementPrefix::Thunky
   is RakuAST::StatementPrefix
-  is RakuAST::Meta
   is RakuAST::Code
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     method creates-block() {
@@ -291,8 +291,8 @@ class RakuAST::StatementPrefix::Thunky
 # a backtrace shows the call as a frame.
 class RakuAST::StatementPrefix::Try
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
 {
     method new(RakuAST::Blorst $blorst) {
         # A try block throws a Failure produced inside it, then catches it here,
@@ -400,7 +400,7 @@ class RakuAST::StatementPrefix::Try
 # The `gather` statement prefix.
 class RakuAST::StatementPrefix::Gather
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "gather" }
 
@@ -416,8 +416,8 @@ class RakuAST::StatementPrefix::Gather
 # Statement prefix base class for generic blorst handling
 class RakuAST::StatementPrefix::Blorst
   is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
@@ -467,7 +467,7 @@ class RakuAST::StatementPrefix::Blorst
 # The `once` statement prefix.
 class RakuAST::StatementPrefix::Once
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
     has RakuAST::VarDeclaration::Implicit::State $!state-decl;
@@ -517,7 +517,7 @@ class RakuAST::StatementPrefix::Once
 # The `start` statement prefix.
 class RakuAST::StatementPrefix::Start
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     method type() { "start" }
 
@@ -674,8 +674,8 @@ class RakuAST::StatementPrefix::Phaser
 # Done by all phasers that don't produce a result.
 class RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);

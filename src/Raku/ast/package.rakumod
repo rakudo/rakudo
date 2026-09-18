@@ -4,14 +4,14 @@
 
 class RakuAST::Package
   is RakuAST::PackageInstaller
-  is RakuAST::StubbyMeta
   is RakuAST::Term
   is RakuAST::Declaration
-  is RakuAST::TraitTarget
-  is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
   is RakuAST::Lookup
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::TraitTarget
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::IMPL::ImmediateBlockUser

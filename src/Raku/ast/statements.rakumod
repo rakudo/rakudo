@@ -15,8 +15,8 @@ role RakuAST::Contextualizable {}
 # A label, which can be placed on a statement.
 class RakuAST::Label
   is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::Meta
 {
     has str $.name;
 
@@ -184,12 +184,8 @@ class RakuAST::Statement
 
 # Some nodes cause their child nodes to gain an implicit, or even required,
 # topic. They can supply a callback to do that during resolution.
-class RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::Node
-{
-    method apply-implicit-block-semantics(:$resolver, :$context) {
-        nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
-    }
+role RakuAST::ImplicitBlockSemanticsProvider {
+    method apply-implicit-block-semantics(:$resolver, :$context) { ... }
 }
 
 class RakuAST::ForLoopImplementation
@@ -603,8 +599,9 @@ class RakuAST::ForLoopImplementation
 
 # A list of statements, often appearing as the body of a block.
 class RakuAST::StatementList
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
   does RakuAST::CheckTime
 {
     has List $!statements;
@@ -867,7 +864,6 @@ class RakuAST::StatementList
 # purpose of multi-dimensional array and hash indexing.
 class RakuAST::SemiList
   is RakuAST::StatementList
-  is RakuAST::ImplicitLookups
 {
     method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
         # Sink all statements only if the whole list is sunk
@@ -942,7 +938,6 @@ class RakuAST::SemiList
 # final statement. However, if empty it evaluates instead to an empty list.
 class RakuAST::StatementSequence
   is RakuAST::StatementList
-  is RakuAST::ImplicitLookups
   does RakuAST::Contextualizable
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1005,8 +1000,8 @@ class RakuAST::StatementSequence
 }
 
 # Done by all classes that always produce Nil
-class RakuAST::ProducesNil
-  is RakuAST::ImplicitLookups
+role RakuAST::ProducesNil
+  does RakuAST::ImplicitLookups
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
@@ -1023,7 +1018,7 @@ class RakuAST::ProducesNil
 # example, in block vs. hash distinction with a leading `;`).
 class RakuAST::Statement::Empty
   is RakuAST::Statement
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
 {
     method new(List :$labels) {
         my $obj := nqp::create(self);
@@ -1040,8 +1035,8 @@ class RakuAST::Statement::Empty
 # `also is Foo`.
 class RakuAST::Statement::Also
   is RakuAST::Statement
-  is RakuAST::TraitTarget
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::TraitTarget
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::CheckTime
@@ -1091,7 +1086,7 @@ class RakuAST::Statement::Also
 # body.
 class RakuAST::Statement::Trusts
   is RakuAST::Statement
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::CheckTime
@@ -1140,9 +1135,9 @@ class RakuAST::Statement::Trusts
 # single term.
 class RakuAST::Statement::Expression
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::Sinkable
-  is RakuAST::BlockStatementSensitive
+  does RakuAST::SinkPropagator
+  does RakuAST::Sinkable
+  does RakuAST::BlockStatementSensitive
   does RakuAST::BeginTime
   does RakuAST::CheckTime
 {
@@ -1290,9 +1285,8 @@ class RakuAST::Statement::Expression
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }
 
-    method mark-block-statement() {
+    method IMPL-ON-BLOCK-STATEMENT() {
         self.IMPL-UNTHUNK();
-        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
         if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
             $!expression.mark-block-statement();
         }
@@ -1372,9 +1366,9 @@ role RakuAST::IMPL::ImmediateBlockUser {
 # Base class for if / with conditional, with optional elsif/orwith/else parts
 class RakuAST::Statement::IfWith
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
@@ -1580,9 +1574,9 @@ class RakuAST::Statement::Orwith
 # An unless statement control.
 class RakuAST::Statement::Unless
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
@@ -1648,9 +1642,9 @@ class RakuAST::Statement::Unless
 # A without statement control.
 class RakuAST::Statement::Without
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
@@ -1704,11 +1698,11 @@ class RakuAST::Statement::Without
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::Sinkable
-  is RakuAST::SinkPropagator
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::Sinkable
+  does RakuAST::SinkPropagator
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::BeginTime
   does RakuAST::IMPL::ImmediateBlockUser
 {
@@ -1758,9 +1752,8 @@ class RakuAST::Statement::Loop
         $!body.set-immediate-block-user-body();
     }
 
-    method mark-block-statement() {
+    method IMPL-ON-BLOCK-STATEMENT() {
         self.IMPL-UNTHUNK() unless self.IMPL-HAS-UNDO-PHASERS;
-        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2114,8 +2107,8 @@ class RakuAST::Statement::Loop::RepeatUntil
 # A given statement.
 class RakuAST::Statement::Given
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     # The thing to topicalize.
     has RakuAST::Expression $.source;
@@ -2187,9 +2180,9 @@ class RakuAST::Statement::Given
 # with `succeed`/`proceed` handling.
 class RakuAST::Statement::When
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has RakuAST::Expression $.condition;
@@ -2315,8 +2308,8 @@ class RakuAST::Statement::When
 # A whenever statement.
 class RakuAST::Statement::Whenever
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::ParseTime
 {
     has RakuAST::Expression $.trigger;
@@ -2369,8 +2362,8 @@ class RakuAST::Statement::Whenever
 # A default statement.
 class RakuAST::Statement::Default
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
@@ -2421,9 +2414,9 @@ class RakuAST::Statement::Default
 # The commonalities of exception handlers (CATCH and CONTROL).
 class RakuAST::Statement::ExceptionHandler
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     has RakuAST::Block $.body;
 
@@ -2770,8 +2763,8 @@ class RakuAST::ModuleLoading {
 # A use statement.
 class RakuAST::Statement::Use
   is RakuAST::Statement
-  is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
+  does RakuAST::ProducesNil
   does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
@@ -2824,7 +2817,7 @@ class RakuAST::Statement::Use
 # like an EVAL cannot.
 class RakuAST::Statement::LanguageVersion
   is RakuAST::Statement
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
   does RakuAST::BeginTime
   does RakuAST::CheckTime
 {
@@ -2872,8 +2865,8 @@ class RakuAST::Statement::LanguageVersion
 # A need statement.
 class RakuAST::Statement::Need
   is RakuAST::Statement
-  is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
+  does RakuAST::ProducesNil
   does RakuAST::BeginTime
 {
     has List $!module-names;
@@ -2906,10 +2899,9 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
-  is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
   is RakuAST::Lookup
-  is RakuAST::ImplicitLookups
+  does RakuAST::ProducesNil
   does RakuAST::ParseTime
   does RakuAST::BeginTime
 {
@@ -2960,8 +2952,8 @@ class RakuAST::Statement::Import
 # A require statement.
 class RakuAST::Statement::Require
   is RakuAST::Statement
-  is RakuAST::Sinkable
-  is RakuAST::ImplicitLookups
+  does RakuAST::Sinkable
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;

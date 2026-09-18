@@ -4,7 +4,8 @@ class RakuAST::CaptureSource
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
-  is RakuAST::Sinkable
+  is RakuAST::Node
+  does RakuAST::Sinkable
   does RakuAST::CheckTime
   does RakuAST::MayCreateBlock
 {
@@ -202,7 +203,8 @@ class RakuAST::OperatorProperties
 
 # Marker for all kinds of infixish operators.
 class RakuAST::Infixish
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::ImplicitLookups
 {
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
@@ -1209,7 +1211,6 @@ class RakuAST::Feed
 
 class RakuAST::FlipFlop
   is RakuAST::Infix
-  is RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has Bool $.excludes-min;
@@ -2453,7 +2454,7 @@ class RakuAST::MetaInfix::Hyper
 # RakuAST::ParameterTarget::Whatever nodes as targets. These parameter target nodes
 # are added to the *origin* WhateverApplicable's signature and then bound to operands
 # that were previously storing RakuAST::Term::Whatever nodes.
-class RakuAST::WhateverApplicable
+role RakuAST::WhateverApplicable
 {
     has int $!must-not-prime;
     has int $!hyperwhatever;
@@ -2610,8 +2611,8 @@ class RakuAST::WhateverApplicable
 # Application of an infix operator.
 class RakuAST::ApplyInfix
   is RakuAST::Expression
-  is RakuAST::SinkPropagator
-  is RakuAST::WhateverApplicable
+  does RakuAST::SinkPropagator
+  does RakuAST::WhateverApplicable
   does RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;
@@ -2909,8 +2910,8 @@ class RakuAST::ApplyInfix
 # Application of an list-precedence infix operator.
 class RakuAST::ApplyListInfix
   is RakuAST::Expression
-  is RakuAST::SinkPropagator
-  is RakuAST::WhateverApplicable
+  does RakuAST::SinkPropagator
+  does RakuAST::WhateverApplicable
   does RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;
@@ -3363,7 +3364,7 @@ class RakuAST::Prefix::Multislice
 # The prefix hyper meta-operator.
 class RakuAST::MetaPrefix::Hyper
   is RakuAST::Prefixish
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Prefix $.prefix;
 
@@ -3420,8 +3421,8 @@ class RakuAST::Term
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix
   is RakuAST::Termish
-  is RakuAST::SinkPropagator
-  is RakuAST::WhateverApplicable
+  does RakuAST::SinkPropagator
+  does RakuAST::WhateverApplicable
   does RakuAST::BeginTime
 {
     has RakuAST::Prefixish $.prefix;
@@ -4216,7 +4217,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
 # An hyper operator on a postfix operator.
 class RakuAST::MetaPostfix::Hyper
   is RakuAST::Postfixish
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::CheckTime
 {
     has RakuAST::Postfixish $.postfix;
@@ -4270,7 +4271,7 @@ class RakuAST::MetaPostfix::Hyper
 # Application of a postfix operator.
 class RakuAST::ApplyPostfix
   is RakuAST::Termish
-  is RakuAST::WhateverApplicable
+  does RakuAST::WhateverApplicable
   does RakuAST::BeginTime
 {
     has RakuAST::Postfixish $.postfix;
@@ -4410,7 +4411,7 @@ class RakuAST::ApplyPostfix
 # The ternary conditional operator (?? !!).
 class RakuAST::Ternary
   is RakuAST::Expression
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
@@ -4460,10 +4461,10 @@ class RakuAST::Statement::For
   is RakuAST::Statement
   is RakuAST::ForLoopImplementation
   is RakuAST::Term
-  is RakuAST::SinkPropagator
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
 {
     # The thing to iterate over.
     has RakuAST::Expression $.source;

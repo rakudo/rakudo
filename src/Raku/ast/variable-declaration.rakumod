@@ -387,9 +387,10 @@ class RakuAST::ContainerCreator {
 }
 
 class RakuAST::TraitTarget::Variable
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
 {
     has str $!name;
@@ -439,11 +440,11 @@ class RakuAST::VarDeclaration
 # A basic constant declaration of the form `my Type constant $foo = 42`
 class RakuAST::VarDeclaration::Constant
   is RakuAST::VarDeclaration
-  is RakuAST::TraitTarget
-  is RakuAST::CompileTimeValue
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::TraitTarget
+  does RakuAST::CompileTimeValue
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::BeginTime
 {
     has str                      $.name;
@@ -690,12 +691,12 @@ class RakuAST::Expression::QAST
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
   is RakuAST::VarDeclaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
   is RakuAST::ContainerCreator
-  is RakuAST::Meta
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::ParseTime
   does RakuAST::BeginTime
 {
@@ -2098,10 +2099,10 @@ class RakuAST::VarDeclaration::Auto
 
 class RakuAST::VarDeclaration::Signature
   is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::TraitTarget
   is RakuAST::Term
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::TraitTarget
   does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
@@ -2757,7 +2758,7 @@ class RakuAST::VarDeclaration::AttributeAlias
 class RakuAST::VarDeclaration::Term
   is RakuAST::VarDeclaration
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
@@ -2914,7 +2915,7 @@ class RakuAST::VarDeclaration::Implicit
 # routines.
 class RakuAST::VarDeclaration::Implicit::Special
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Reuse the container descriptor for the common cases that we expect
@@ -3100,9 +3101,8 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
 # fixed at compile time. Used for $?PACKAGE and similar.
 class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
-  is RakuAST::CompileTimeValue
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
   does RakuAST::BeginTime
   does RakuAST::CheckTime
   does RakuAST::Declaration::Mergeable
@@ -3258,7 +3258,7 @@ class RakuAST::VarDeclaration::Implicit::Self
 # The implicit `$¢` declaration for the cursor.
 class RakuAST::VarDeclaration::Implicit::Cursor
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method new() {
         my $obj := nqp::create(self);
@@ -3378,8 +3378,8 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
 # Used for constructs that generate state variables
 class RakuAST::VarDeclaration::Implicit::State
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::ImplicitLookups
-  is RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::Meta
 {
     has int $!init-to-zero;
     has Mu $!sentinel-value;

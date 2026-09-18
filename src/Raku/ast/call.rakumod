@@ -1,7 +1,7 @@
 # An argument list.
 class RakuAST::ArgList
   is RakuAST::CaptureSource
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     has List $!args;
     has RakuAST::Expression $.invocant;
@@ -828,7 +828,7 @@ class RakuAST::Call::Methodish
 # compiled into primitive operations rather than really being method calls.
 class RakuAST::Call::Method
   is RakuAST::Call::Methodish
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
   does RakuAST::CheckTime
 {
@@ -1214,7 +1214,7 @@ class RakuAST::Call::QuotedMethod
 class RakuAST::Call::PrivateMethod
   is RakuAST::Call::Methodish
   is RakuAST::Lookup
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -1636,8 +1636,8 @@ class RakuAST::Call::TermAsMethod
 
 # Base role for all stubs
 class RakuAST::Stub
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::ArgList $.args;
 

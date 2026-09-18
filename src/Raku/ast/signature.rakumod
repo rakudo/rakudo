@@ -1,9 +1,9 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
 class RakuAST::Signature
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
   does RakuAST::ParseTime
 {
@@ -504,9 +504,9 @@ class RakuAST::Signature
 }
 
 class RakuAST::FakeSignature
-  is RakuAST::Meta
   is RakuAST::Term
   is RakuAST::LexicalScope
+  does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
@@ -568,10 +568,11 @@ class RakuAST::FakeSignature
 # assignment into a target; this is modeled by a RakuAST::ParameterTarget,
 # which is optional.
 class RakuAST::Parameter
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
-  is RakuAST::Doc::DeclaratorTarget
+  is RakuAST::Node
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Doc::DeclaratorTarget
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::CheckTime
@@ -687,18 +688,6 @@ class RakuAST::Parameter
         nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 0);
         $!target.set-type($type, :$replace) if $!target && nqp::can($!target, 'set-type');
         self.IMPL-CLEAR-META-OBJECT;
-        Nil
-    }
-
-    # A where or type set after the parameter's BEGIN time changes what
-    # its meta-object holds, so drop it and let the traits apply again to
-    # the one made next. The trait calls are what set their flags on the
-    # object.
-    method IMPL-CLEAR-META-OBJECT() {
-        nqp::findmethod(RakuAST::Meta, 'IMPL-CLEAR-META-OBJECT')(self);
-        for self.IMPL-UNWRAP-LIST(self.traits) {
-            $_.IMPL-CLEAR-APPLIED;
-        }
         Nil
     }
 
@@ -2203,8 +2192,8 @@ class RakuAST::ParameterTarget
 # A binding of a parameter into a lexical variable (with sigil).
 class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::CheckTime
@@ -2472,7 +2461,7 @@ class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
   is RakuAST::ContainerCreator
   is RakuAST::Declaration
-  is RakuAST::Meta
+  does RakuAST::Meta
   does RakuAST::BeginTime
   does RakuAST::CheckTime
 {

@@ -75,7 +75,7 @@ class RakuAST::Doc::Declarator
 }
 
 # Role for objects that can have a Doc::Declarator attached
-class RakuAST::Doc::DeclaratorTarget {
+role RakuAST::Doc::DeclaratorTarget {
     has RakuAST::Doc::Declarator $.WHY;
 
     # Whether the documentation on this target is surfaced through the

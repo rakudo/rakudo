@@ -718,6 +718,7 @@ class RakuAST::VarDeclaration::Simple
     has Bool                 $.is-ro;
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
+    has Bool                 $!shares-implicit;
     has RakuAST::Code        $!block;
     has RakuAST::Package     $!unit-package;
 
@@ -778,6 +779,7 @@ class RakuAST::VarDeclaration::Simple
         return '' unless $!lowered-to-local;
         return '' if nqp::isnull($!lowered-away-sentinel);
         return '' if $!already-declared
+            || $!shares-implicit
             || self.scope ne 'my'
             || $!desigilname.is-multi-part
             || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
@@ -929,6 +931,29 @@ class RakuAST::VarDeclaration::Simple
 
     method set-already-declared() {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
+    }
+
+    # Name the lexical the scope already makes, such as a block's topic. The
+    # declaration then declares nothing of its own, and an `our` binds that
+    # lexical to the package container it installs.
+    method claim-implicit() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!shares-implicit', True)
+          if self.IMPL-CAN-SHARE-IMPLICIT;
+        Nil
+    }
+
+    method shares-implicit() { $!shares-implicit ?? True !! False }
+
+    # Whether the declaration can name a lexical the scope already made. One
+    # that asks for a container of its own cannot: that lexical is the
+    # scope's, shaped before the declaration runs.
+    method IMPL-CAN-SHARE-IMPLICIT() {
+        my str $scope := self.scope;
+        return False unless $scope eq 'my' || $scope eq 'our';
+        return False if $!is-parameter || $!type || $!shape || $!where;
+        return False if self.forced-dynamic;
+        return False if nqp::elems(self.IMPL-UNWRAP-LIST(self.traits));
+        True
     }
 
     method set-where(RakuAST::Expression $where) {
@@ -1653,7 +1678,8 @@ class RakuAST::VarDeclaration::Simple
         my str $scope := self.scope;
         my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
 
-        return QAST::Op.new(:op<null>) if $!already-declared;
+        return QAST::Op.new(:op<null>)
+            if $!already-declared || ($!shares-implicit && $scope ne 'our');
 
         # An unused implicit slurpy hash builds and binds no hash, but its
         # lexical slot must still exist: the full binder, as run by
@@ -1771,11 +1797,18 @@ class RakuAST::VarDeclaration::Simple
                 !! $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package,
                     :sigil($!sigil), :twigil(self.twigil), :global-fallback);
             $lookup.name('VIVIFY-KEY');
-            QAST::Op.new(
-              :op('bind'),
-              QAST::Var.new( :scope('lexical'), :decl('contvar'), :name(self.name), :returns($of), :value($container) ),
-              $lookup
-            )
+            my $target;
+            if $!shares-implicit {
+                # The lexical is the scope's already, so the `our` binds it
+                # rather than declaring a container of its own.
+                $target := QAST::Var.new( :scope('lexical'), :name(self.name),
+                  :returns($of) );
+            }
+            else {
+                $target := QAST::Var.new( :scope('lexical'), :decl('contvar'),
+                  :name(self.name), :returns($of), :value($container) );
+            }
+            QAST::Op.new( :op('bind'), $target, $lookup )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # No declaration to install

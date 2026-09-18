@@ -794,6 +794,11 @@ class RakuAST::Resolver {
         unless $!nodes-with-check-time-problems {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
         }
+        # A node's sorries and worries are gathered once per entry, so a node
+        # more than one check reaches is listed once.
+        for $!nodes-with-check-time-problems {
+            return Nil if nqp::eqaddr($_, $node);
+        }
         nqp::push($!nodes-with-check-time-problems, $node);
         Nil
     }

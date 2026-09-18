@@ -29,6 +29,7 @@
                     nqp::list_s(nqp::substr($name, 1)));
             }
             nqp::push(@params, $param);
+            $first := 0;
         }
         my $signature := nqp::create(Signature);
         nqp::bindattr($signature, Signature, '@!params', @params);

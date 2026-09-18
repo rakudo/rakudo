@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23; # Do not change this file to done-testing
+plan 24; # Do not change this file to done-testing
 
 # The node methods are generated from declarations that look like Raku
 # signatures. These tests cover what the declared parameter and return
@@ -332,6 +332,15 @@ subtest 'The message of a refused type object can be rendered' => {
       X::TypeCheck::Binding::Parameter,
       'a refused node type object still renders its message',
       message => /'expected Str but got RakuAST::Parameter'/;
+}
+
+subtest 'Only the first parameter of a node method is the invocant' => {
+    plan 3;
+    my @params = RakuAST::Statement::Expression.^find_method('new').signature.params;
+    ok @params[0].invocant, 'the first parameter is the invocant';
+    nok @params[1].invocant, 'the expression parameter is not the invocant';
+    is @params[1].raku, 'RakuAST::Expression :$expression!',
+      'the expression parameter renders as a plain named parameter';
 }
 
 

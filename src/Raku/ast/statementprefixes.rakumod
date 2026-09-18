@@ -712,7 +712,11 @@ class RakuAST::StatementPrefix::Phaser::Begin
         self.blorst.propagate-sink(False) if nqp::istype(self.blorst, RakuAST::Block);
 
         nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
-        my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
+        my $producer := self.meta-object;
+        # Compile the block now, so an error in compiling it is reported
+        # as itself rather than as a failure of running the BEGIN.
+        my $compstuff := nqp::getattr($producer, Code, '@!compstuff');
+        $compstuff[1]() if $compstuff;
         {
             CATCH {
                 my $ex := $resolver.convert-begin-time-exception($_);
@@ -775,7 +779,7 @@ class RakuAST::StatementPrefix::Phaser::Check
     }
 
     method run(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        my $producer := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer())
     }
 

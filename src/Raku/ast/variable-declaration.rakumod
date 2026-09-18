@@ -10,7 +10,7 @@ class RakuAST::Initializer
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
     {
-        RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
+        RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
     }
 
     method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

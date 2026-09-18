@@ -2173,7 +2173,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $ast := Nodify('Call::Name').new(
                       name => Nodify('Name').from-identifier(
                         'prefix:' ~ Nodify('ColonPair').IMPL-QUOTE-VALUE(
-                          Nodify('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
+                          Nodify('Node').IMPL-BEGIN-TIME-EVALUATE(
                             (
                               $op<nibble> // $op<semilist> // $op<pointy-block>
                             ).ast, $*R, $*CU.context

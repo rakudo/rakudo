@@ -414,7 +414,7 @@ class RakuAST::ColonPair::Value
                 self.IMPL-LOCATE-EXCEPTION($ex);
                 $ex.rethrow;
             }
-            $value := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
+            $value := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(
                 $!value, $resolver, $context);
         }
         self.IMPL-CACHE-VALUE($value)

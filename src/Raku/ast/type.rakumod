@@ -1,7 +1,6 @@
 # Some kind of type (done by all kinds of things that result in a type).
 class RakuAST::Type
   is RakuAST::Term
-  is RakuAST::Meta
 {
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
@@ -83,9 +82,9 @@ class RakuAST::Type
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple
   is RakuAST::Type
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
-  is RakuAST::Lookup
+  does RakuAST::Lookup
+  does RakuAST::Meta
+  does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -123,7 +122,7 @@ class RakuAST::Type::Simple
             # (role instantiation will replace them) and for package stubs
             # (could be replaced later).
             if $!name.is-multi-part
-              && (RakuAST::IMPL::Archetypes.is-generic($value)
+              && (RakuAST::IMPL::Archetypes.generic($value)
                   || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
                 my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $first-part {
@@ -189,7 +188,7 @@ class RakuAST::Type::Simple
         }
         else {
             my $value := self.resolution.compile-time-value;
-            if RakuAST::IMPL::Archetypes.is-generic($value) {
+            if RakuAST::IMPL::Archetypes.generic($value) {
                 # If the resolved type is a nested package inside a parametric
                 # role, prefer the `!INS_OF_<fullname>` instantiation lexical
                 # that its IMPL-COMPOSE registered with the role. The role's
@@ -295,7 +294,8 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
 
@@ -329,8 +329,8 @@ class RakuAST::Type::Coercion
         # un-substituted generic. Emit a runtime CoercionHOW.new_type call so
         # role specialization sees the concrete type(s).
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value)
-         || RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value)
+         || RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
         {
             $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
             QAST::Op.new(
@@ -352,8 +352,8 @@ class RakuAST::Type::Coercion
         # branch; interpreting would bake the un-substituted meta-object.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
         && nqp::istype($!constraint, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
-        && !RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -381,6 +381,7 @@ class RakuAST::Type::Coercion
 
 class RakuAST::Type::Definedness
   is RakuAST::Type::Derived
+  does RakuAST::Meta
 {
     has Bool $.definite;
     has Bool $.through-pragma;
@@ -424,7 +425,7 @@ class RakuAST::Type::Definedness
         # a runtime DefiniteHOW.new_type call that consumes the base-type's
         # lexical lookup so role specialization sees the concrete base.
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value) {
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value) {
             $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
             my $base-qast := $base-type.IMPL-EXPR-QAST($context);
             $base-qast.named('base_type');
@@ -453,7 +454,7 @@ class RakuAST::Type::Definedness
         # thing; no such caller is hit on the role specialization paths
         # currently, but the asymmetry is intentional and bounded here.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -477,6 +478,7 @@ class RakuAST::Type::Definedness
 # exists so the smiley is written back.
 class RakuAST::Type::AnyDefinedness
   is RakuAST::Type::Derived
+  does RakuAST::Meta
 {
     method new(RakuAST::Type :$base-type!) {
         my $obj := nqp::create(self);
@@ -524,7 +526,8 @@ class RakuAST::Type::AnyDefinedness
 
 class RakuAST::Type::Capture
   is RakuAST::Type
-  is RakuAST::Declaration
+  does RakuAST::Declaration
+  does RakuAST::Meta
 {
     has RakuAST::Name $.name;
     has str           $.smiley;
@@ -599,8 +602,8 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::ArgList $.args;
 
@@ -665,8 +668,7 @@ class RakuAST::Type::Parameterized
             my @pos;
             my %named;
             my int $usable := 1;
-            my $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-before := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-before := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
                 my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
                 my $value;
@@ -706,8 +708,7 @@ class RakuAST::Type::Parameterized
 
             # IMPL-BEGIN-TIME-EVALUATE on a CheckTime traps errors as
             # add-sorry on self. A sorry delta means the loop failed.
-            $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-after := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-after := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             if $usable && $sorries-after == $sorries-before {
                 my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
                 $ptype.HOW.parameterize($ptype, |@pos, |%named)
@@ -808,13 +809,13 @@ class RakuAST::Type::Parameterized
 
 class RakuAST::Type::Enum
   is RakuAST::Type
-  is RakuAST::Declaration
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::TraitTarget
-  is RakuAST::PackageInstaller
-  is RakuAST::ImplicitLookups
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::PackageInstaller
+  does RakuAST::Meta
+  does RakuAST::TraitTarget
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Expression $.term;
@@ -839,7 +840,7 @@ class RakuAST::Type::Enum
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!name',
           $name // RakuAST::Name.from-identifier(''));
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
@@ -1159,14 +1160,13 @@ class RakuAST::Type::Enum
 
 class RakuAST::Type::Subset
   is RakuAST::Type
-  is RakuAST::Lookup
-  is RakuAST::Declaration
-  is RakuAST::TraitTarget
-  is RakuAST::StubbyMeta
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::PackageInstaller
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::Lookup
+  does RakuAST::PackageInstaller
+  does RakuAST::TraitTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Type       $.of;
@@ -1187,7 +1187,7 @@ class RakuAST::Type::Subset
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!of', $of) if $of;
         if $where {

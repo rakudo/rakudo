@@ -59,7 +59,10 @@ role Perl6::Metamodel::AttributeContainer {
                   !! nqp::bindkey(%seen_with_accessor, $accessor, 1);
             }
 
-            $attribute.compose($target, :$compiler_services);
+            # An attribute made before the setting has given Attribute its
+            # compose method has no accessor or build to compose.
+            $attribute.compose($target, :$compiler_services)
+              if nqp::can($attribute, 'compose');
 
             ++$i;
         }

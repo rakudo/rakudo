@@ -1,8 +1,6 @@
 # Block or statement, used in statement prefixes which can take either a
 # block or a statement
-class RakuAST::Blorst
-  is RakuAST::Node
-{
+role RakuAST::Blorst {
     method as-block() {
         nqp::die("RakuAST::Blorst classes must define 'as-block'. " ~ self.HOW.name(self) ~ " does not.")
     }
@@ -10,14 +8,14 @@ class RakuAST::Blorst
 
 
 # Something that can be the target of a contextualizer.
-class RakuAST::Contextualizable
-  is RakuAST::Node {}
+role RakuAST::Contextualizable {}
 
 # A label, which can be placed on a statement.
 class RakuAST::Label
-  is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::Meta
+  is RakuAST::Node
+  does RakuAST::Declaration
+  does RakuAST::ImplicitLookups
+  does RakuAST::Meta
 {
     has str $.name;
 
@@ -76,7 +74,8 @@ class RakuAST::Label
 
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement
-  is RakuAST::Blorst
+  is RakuAST::Node
+  does RakuAST::Blorst
 {
     has Mu  $.labels;
     has int $.trace;
@@ -185,17 +184,11 @@ class RakuAST::Statement
 
 # Some nodes cause their child nodes to gain an implicit, or even required,
 # topic. They can supply a callback to do that during resolution.
-class RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::Node
-{
-    method apply-implicit-block-semantics(:$resolver, :$context) {
-        nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
-    }
+role RakuAST::ImplicitBlockSemanticsProvider {
+    method apply-implicit-block-semantics(:$resolver, :$context) { ... }
 }
 
-class RakuAST::ForLoopImplementation
-  is RakuAST::Node
-{
+role RakuAST::ForLoopImplementation {
     method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
             str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
         # TODO various optimized forms are possible here
@@ -604,9 +597,10 @@ class RakuAST::ForLoopImplementation
 
 # A list of statements, often appearing as the body of a block.
 class RakuAST::StatementList
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
+  does RakuAST::CheckTime
 {
     has List $!statements;
     has int $!is-sunk;
@@ -868,7 +862,6 @@ class RakuAST::StatementList
 # purpose of multi-dimensional array and hash indexing.
 class RakuAST::SemiList
   is RakuAST::StatementList
-  is RakuAST::ImplicitLookups
 {
     method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
         # Sink all statements only if the whole list is sunk
@@ -943,8 +936,7 @@ class RakuAST::SemiList
 # final statement. However, if empty it evaluates instead to an empty list.
 class RakuAST::StatementSequence
   is RakuAST::StatementList
-  is RakuAST::ImplicitLookups
-  is RakuAST::Contextualizable
+  does RakuAST::Contextualizable
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
@@ -1006,8 +998,8 @@ class RakuAST::StatementSequence
 }
 
 # Done by all classes that always produce Nil
-class RakuAST::ProducesNil
-  is RakuAST::ImplicitLookups
+role RakuAST::ProducesNil
+  does RakuAST::ImplicitLookups
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
@@ -1024,7 +1016,7 @@ class RakuAST::ProducesNil
 # example, in block vs. hash distinction with a leading `;`).
 class RakuAST::Statement::Empty
   is RakuAST::Statement
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
 {
     method new(List :$labels) {
         my $obj := nqp::create(self);
@@ -1041,11 +1033,11 @@ class RakuAST::Statement::Empty
 # `also is Foo`.
 class RakuAST::Statement::Also
   is RakuAST::Statement
-  is RakuAST::TraitTarget
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::TraitTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::TraitTarget $!target;
 
@@ -1092,10 +1084,10 @@ class RakuAST::Statement::Also
 # body.
 class RakuAST::Statement::Trusts
   is RakuAST::Statement
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Trait::Trusts $.trait;
     has RakuAST::Package       $!target;
@@ -1141,11 +1133,11 @@ class RakuAST::Statement::Trusts
 # single term.
 class RakuAST::Statement::Expression
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::Sinkable
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::SinkPropagator
+  does RakuAST::Sinkable
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
@@ -1291,9 +1283,8 @@ class RakuAST::Statement::Expression
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }
 
-    method mark-block-statement() {
+    method IMPL-ON-BLOCK-STATEMENT() {
         self.IMPL-UNTHUNK();
-        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
         if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
             $!expression.mark-block-statement();
         }
@@ -1366,19 +1357,17 @@ class RakuAST::Statement::Expression
 
 # Mark out things that immediately consume their body, rather than needing it as
 # a closure.
-class RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::Node
-{
+role RakuAST::IMPL::ImmediateBlockUser {
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
 }
 
 # Base class for if / with conditional, with optional elsif/orwith/else parts
 class RakuAST::Statement::IfWith
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
@@ -1583,10 +1572,10 @@ class RakuAST::Statement::Orwith
 # An unless statement control.
 class RakuAST::Statement::Unless
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1651,10 +1640,10 @@ class RakuAST::Statement::Unless
 # A without statement control.
 class RakuAST::Statement::Without
   is RakuAST::Statement
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
-  is RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1707,13 +1696,13 @@ class RakuAST::Statement::Without
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
-  is RakuAST::Sinkable
-  is RakuAST::SinkPropagator
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::Sinkable
+  does RakuAST::SinkPropagator
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::BeginTime
+  does RakuAST::IMPL::ImmediateBlockUser
 {
     # Set by the optimize pass, allowing a native-int condition to be
     # tested directly.
@@ -1761,9 +1750,8 @@ class RakuAST::Statement::Loop
         $!body.set-immediate-block-user-body();
     }
 
-    method mark-block-statement() {
+    method IMPL-ON-BLOCK-STATEMENT() {
         self.IMPL-UNTHUNK() unless self.IMPL-HAS-UNDO-PHASERS;
-        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2117,8 +2105,8 @@ class RakuAST::Statement::Loop::RepeatUntil
 # A given statement.
 class RakuAST::Statement::Given
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     # The thing to topicalize.
     has RakuAST::Expression $.source;
@@ -2190,10 +2178,10 @@ class RakuAST::Statement::Given
 # with `succeed`/`proceed` handling.
 class RakuAST::Statement::When
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -2318,9 +2306,9 @@ class RakuAST::Statement::When
 # A whenever statement.
 class RakuAST::Statement::Whenever
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ParseTime
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::ParseTime
 {
     has RakuAST::Expression $.trigger;
     has RakuAST::Block      $.body;
@@ -2372,9 +2360,9 @@ class RakuAST::Statement::Whenever
 # A default statement.
 class RakuAST::Statement::Default
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::BeginTime
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
     has RakuAST::LexicalScope $!succeed-scope;
@@ -2424,9 +2412,9 @@ class RakuAST::Statement::Default
 # The commonalities of exception handlers (CATCH and CONTROL).
 class RakuAST::Statement::ExceptionHandler
   is RakuAST::Statement
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     has RakuAST::Block $.body;
 
@@ -2455,7 +2443,7 @@ class RakuAST::Statement::ExceptionHandler
 # A CATCH statement.
 class RakuAST::Statement::Catch
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
@@ -2472,7 +2460,7 @@ class RakuAST::Statement::Catch
 # A CONTROL statement.
 class RakuAST::Statement::Control
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
@@ -2502,18 +2490,18 @@ class RakuAST::Categorical {
     }
 
     method canname {
-        $!category ~ ':sym' ~ RakuAST::ColonPairish.IMPL-QUOTE-VALUE($!opname);
+        $!category ~ ':sym' ~ RakuAST::ColonPair.IMPL-QUOTE-VALUE($!opname);
     }
 }
 
-class RakuAST::ModuleLoading {
+role RakuAST::ModuleLoading {
     has List $!categoricals;
     has Hash $!superseded-declarators;
     has Hash $!declarators;
     has Hash $!unchecked-declarators;
 
     method categoricals() {
-        self.IMPL-WRAP-LIST($!categoricals)
+        self.IMPL-WRAP-LIST($!categoricals // [])
     }
 
     method superseded-declarators() {
@@ -2656,7 +2644,9 @@ class RakuAST::ModuleLoading {
 
             my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
             if $categorical {
-                nqp::push($!categoricals, RakuAST::Categorical.new(
+                nqp::push(
+                  $!categoricals // nqp::bindattr(self, RakuAST::ModuleLoading, '$!categoricals', []),
+                  RakuAST::Categorical.new(
                     :category(~$categorical[0]),
                     :opname(~$categorical[1]),
                     :subname(nqp::substr($key, 1)),
@@ -2773,9 +2763,9 @@ class RakuAST::ModuleLoading {
 # A use statement.
 class RakuAST::Statement::Use
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
-  is RakuAST::ModuleLoading
+  does RakuAST::ModuleLoading
+  does RakuAST::ProducesNil
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -2783,7 +2773,6 @@ class RakuAST::Statement::Use
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
             $argument // RakuAST::Expression);
         $obj.set-labels($labels);
@@ -2827,9 +2816,9 @@ class RakuAST::Statement::Use
 # like an EVAL cannot.
 class RakuAST::Statement::LanguageVersion
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has Mu $.version;
 
@@ -2875,9 +2864,9 @@ class RakuAST::Statement::LanguageVersion
 # A need statement.
 class RakuAST::Statement::Need
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
-  is RakuAST::ModuleLoading
+  does RakuAST::ModuleLoading
+  does RakuAST::ProducesNil
+  does RakuAST::BeginTime
 {
     has List $!module-names;
 
@@ -2885,7 +2874,6 @@ class RakuAST::Statement::Need
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names',
           self.IMPL-UNWRAP-LIST($module-names));
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         $obj.set-labels($labels);
         $obj
     }
@@ -2909,12 +2897,11 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
-  is RakuAST::ModuleLoading
-  is RakuAST::Lookup
-  is RakuAST::ImplicitLookups
+  does RakuAST::ModuleLoading
+  does RakuAST::Lookup
+  does RakuAST::ProducesNil
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -2922,7 +2909,6 @@ class RakuAST::Statement::Import
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Import, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Import, '$!argument',
             $argument // RakuAST::Expression);
         $obj.set-labels($labels);
@@ -2963,9 +2949,9 @@ class RakuAST::Statement::Import
 # A require statement.
 class RakuAST::Statement::Require
   is RakuAST::Statement
-  is RakuAST::Sinkable
-  is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  does RakuAST::Sinkable
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.file;

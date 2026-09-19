@@ -1,7 +1,6 @@
 # Done by anything that implies a lexical scope.
-class RakuAST::LexicalScope
-  is RakuAST::MayCreateBlock
-  is RakuAST::Node
+role RakuAST::LexicalScope
+  does RakuAST::MayCreateBlock
 {
     # Caching of lexical declarations in this scope due to AST nodes.
     has List $!declarations-cache;
@@ -348,6 +347,12 @@ class RakuAST::LexicalScope
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
+    }
+
+    # Check the declarations of the scope, which a node with more to
+    # check at CHECK time calls from its own PERFORM-CHECK.
+    method IMPL-CHECK-DECLARATIONS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %lookup;
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
             my $lexical-name := $_.lexical-name;
@@ -438,6 +443,32 @@ class RakuAST::LexicalScope
     # code-gen time, that's fine.
     method IMPL-HAS-CATCH-HANDLER() {
         $!catch-handlers ?? True !! False
+    }
+
+    method IMPL-HAS-CONTROL-HANDLER() {
+        $!control-handlers ?? True !! False
+    }
+
+    # Hand the exception handlers attached to this scope, and the succeed
+    # handler it was asked for, to another scope. Returns whether the
+    # succeed handler moved.
+    method IMPL-MOVE-HANDLERS-TO(RakuAST::LexicalScope $scope) {
+        for $!catch-handlers // [] {
+            $scope.attach-catch-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', nqp::null());
+        for $!control-handlers // [] {
+            $scope.attach-control-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', nqp::null());
+        if $!need-succeed-handler {
+            nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+            $scope.require-succeed-handler();
+            True
+        }
+        else {
+            False
+        }
     }
 
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,
@@ -618,9 +649,7 @@ class RakuAST::LexicalScope
 }
 
 # Done by anything that is a declaration - that is, declares a symbol.
-class RakuAST::Declaration
-  is RakuAST::Node
-{
+role RakuAST::Declaration {
     has str $!scope;
 
     # When set, this declaration's lexpad slot is provided by an outer scope
@@ -738,9 +767,7 @@ class RakuAST::Declaration
 # to the enclosing lexical scope, implicit declarations are considered as being
 # on the inside; this makes a difference in the case the node is also doing
 # RakuAST::LexicalScope and is thus a lexical scope boundary.
-class RakuAST::ImplicitDeclarations
-  is RakuAST::Node
-{
+role RakuAST::ImplicitDeclarations {
     has List $!implicit-declarations-cache;
 
     # A node typically implements this to specify the implicit declarations
@@ -749,6 +776,12 @@ class RakuAST::ImplicitDeclarations
     # get-implicit-declarations and handle the caching themselves.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         []
+    }
+
+    # Drop the implicit declarations so the next request produces them
+    # anew.
+    method IMPL-CLEAR-IMPLICIT-DECLARATIONS() {
+        nqp::bindattr(self, RakuAST::ImplicitDeclarations, '$!implicit-declarations-cache', Mu);
     }
 
     # Get a list of the implicit declarations.
@@ -763,7 +796,8 @@ class RakuAST::ImplicitDeclarations
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL).
 class RakuAST::Declaration::External
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
 {
     has str $.lexical-name;
     has Mu $!native-type;
@@ -800,7 +834,7 @@ class RakuAST::Declaration::External
     }
 }
 
-class RakuAST::Declaration::Mergeable {
+role RakuAST::Declaration::Mergeable {
     method is-stub() {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.return-type.HOW;
@@ -879,17 +913,15 @@ class RakuAST::Declaration::Mergeable {
         }
     }
 
-    method set-value(Mu $value) {
-        nqp::die('set-value not implemented on ' ~ self.HOW.name(self));
-    }
+    method set-value(Mu $value) { ... }
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed
 # value available during compilation.
 class RakuAST::Declaration::External::Constant
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -920,8 +952,8 @@ class RakuAST::Declaration::External::Constant
 # where the optimize pass folds a bound once constant term to its value.
 class RakuAST::Declaration::External::Setting
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -961,9 +993,10 @@ class RakuAST::Declaration::Import
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
 class RakuAST::Declaration::LexicalPackage
-  is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  is RakuAST::Node
+  does RakuAST::Declaration
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has str $.lexical-name;
     has Mu $.compile-time-value;
@@ -1017,8 +1050,9 @@ class RakuAST::Declaration::LexicalPackage
 # resolution always compiles into that. The name it was looked up under is
 # not preserved.
 class RakuAST::Declaration::ResolvedConstant
-  is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
+  is RakuAST::Node
+  does RakuAST::Declaration
+  does RakuAST::CompileTimeValue
 {
     has Mu $.compile-time-value;
 
@@ -1056,9 +1090,7 @@ class RakuAST::Declaration::ResolvedConstant
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution
 # at compile time.
-class RakuAST::Lookup
-  is RakuAST::Node
-{
+role RakuAST::Lookup {
     has RakuAST::Declaration $!resolution;
 
     # Set by the optimize pass when the name still reaches the declaration
@@ -1724,9 +1756,7 @@ class RakuAST::UndeclaredSymbolDescription::Type
 # there the condition is not matched). Implicit lookups are not children of
 # the node, but they will receive their parse/begin time prior to the node's
 # parse time.
-class RakuAST::ImplicitLookups
-  is RakuAST::Node
-{
+role RakuAST::ImplicitLookups {
     has List $!implicit-lookups-cache;
 
     # A node typically implements this to specify the implicit lookups
@@ -1746,6 +1776,11 @@ class RakuAST::ImplicitLookups
             !! [])
     }
 
+    # Take over the implicit lookups of another node.
+    method IMPL-SET-IMPLICIT-LOOKUPS(List $lookups) {
+        nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache', $lookups);
+    }
+
     # Drive the implicit lookups to their begin time.
     method implicit-lookups-to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
@@ -1758,7 +1793,7 @@ class RakuAST::ImplicitLookups
 }
 
 # Anything that needs to stub packages into existence -- or to fill in stubbed packages -- does RakuAST::PackageInstaller
-class RakuAST::PackageInstaller {
+role RakuAST::PackageInstaller {
     ### Consuming classes must define:
     #    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) { ... }
 

@@ -23,9 +23,8 @@ class RakuAST::Var
 # A typical lexical variable lookup (e.g. $foo).
 class RakuAST::Var::Lexical
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::Sinkable
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -190,9 +189,8 @@ class RakuAST::Var::Lexical::Setting
 # A dynamic variable lookup (e.g. $*foo).
 class RakuAST::Var::Dynamic
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.name;
 
@@ -280,9 +278,8 @@ class RakuAST::Var::Dynamic
 # A (private) attribute access (e.g. $!foo).
 class RakuAST::Var::Attribute
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has str $.name;
     has RakuAST::Package $!package;
@@ -636,13 +633,13 @@ class RakuAST::Var::Attribute::Public
     }
 }
 
-# The base for special compiler variables ($?FOO).
-class RakuAST::Var::Compiler
-  is RakuAST::Var { }
+# Done by special compiler variables ($?FOO).
+role RakuAST::Var::Compiler { }
 
 # The $?LANG variable which refers to the cursor at that point of the parse.
 class RakuAST::Var::Compiler::Lang
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Mu $.cursor;
 
@@ -667,7 +664,8 @@ class RakuAST::Var::Compiler::Lang
 
 # The $?FILE variable, which is created pre-resolved to a string value.
 class RakuAST::Var::Compiler::File
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Str $.file;
 
@@ -692,7 +690,8 @@ class RakuAST::Var::Compiler::File
 
 # The $?LINE variable, which is created pre-resolved to an integer value.
 class RakuAST::Var::Compiler::Line
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Int $.line;
 
@@ -716,8 +715,8 @@ class RakuAST::Var::Compiler::Line
 }
 
 class RakuAST::Var::Compiler::Block
-  is RakuAST::Var::Compiler
-  is RakuAST::CheckTime
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has int $!lexical;
 
@@ -744,9 +743,8 @@ class RakuAST::Var::Compiler::Block
 }
 
 class RakuAST::Var::Compiler::Routine
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ParseTime
+  does RakuAST::Var::Compiler
 {
     method new() {
         my $obj := nqp::create(self);
@@ -774,9 +772,9 @@ class RakuAST::Var::Compiler::Routine
 }
 
 class RakuAST::Var::Compiler::Resources
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::Var::Compiler
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -809,9 +807,9 @@ class RakuAST::Var::Compiler::Resources
 }
 
 class RakuAST::Var::Compiler::Distribution
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::Var::Compiler
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -845,10 +843,10 @@ class RakuAST::Var::Compiler::Distribution
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
-  is RakuAST::Var::Compiler
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.name;
 
@@ -909,7 +907,7 @@ class RakuAST::Var::Doc
 # A regex positional capture variable (e.g. $0).
 class RakuAST::Var::PositionalCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Int $.index;
     has str $.sigil;
@@ -966,7 +964,7 @@ class RakuAST::Var::PositionalCapture
 # A regex named capture variable (e.g. $<foo>).
 class RakuAST::Var::NamedCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::QuotedString $.index;
     has str $.sigil;
@@ -1036,9 +1034,8 @@ class RakuAST::Var::NamedCapture
 # A package variable, i.e. $Foo::bar
 class RakuAST::Var::Package
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -1154,9 +1151,8 @@ class RakuAST::Var::Package
 
 class RakuAST::Var::Slang
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has str $.name;
     has Mu  $!grammar;

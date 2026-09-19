@@ -2,19 +2,23 @@
 # that meta-object is used in a very general sense: it's any object that
 # models a program element that still exists until runtime. The meta-object
 # of a class is actually its type object, not its HOW.
-# meta-object accepts optional :$resolver and :$context. Subclasses whose
+# meta-object accepts optional :$resolver and :$context. Nodes whose
 # PRODUCE-META-OBJECT needs them (Package, Class, Role) get full compile
 # time composition when both are passed; the bare call falls back to a
 # degraded compose where accessors are generated at runtime. The cache is
 # shared between both paths, so the first call wins.
-class RakuAST::Meta
-  is RakuAST::CompileTimeValue
+role RakuAST::Meta
+  does RakuAST::CompileTimeValue
 {
     has Mu $!cached-meta-object;
     has Bool $!meta-object-produced;
 
     method meta-object(:$resolver, :$context) {
         unless $!meta-object-produced {
+            # A stubbed meta-object comes first, so the full one can refer
+            # to it.
+            self.stubbed-meta-object(:$resolver, :$context)
+              if nqp::istype(self, RakuAST::StubbyMeta);
             my $obj := nqp::isconcrete($resolver) && nqp::isconcrete($context)
                 ?? self.PRODUCE-META-OBJECT(:$resolver, :$context)
                 !! self.PRODUCE-META-OBJECT();
@@ -35,12 +39,24 @@ class RakuAST::Meta
         $!meta-object-produced || False
     }
 
+    # Replace the meta-object with one made elsewhere.
+    method IMPL-SET-META-OBJECT(Mu $value) {
+        nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', $value);
+    }
+
     # Drop the produced meta-object so the next request makes a new one,
     # for a node mutated after its BEGIN time in a way the meta-object
-    # reflects. Code already compiled against the old one keeps it.
+    # reflects. Code already compiled against the old one keeps it. The
+    # traits apply again to the one made next, since their calls are what
+    # set their flags on the object.
     method IMPL-CLEAR-META-OBJECT() {
         nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', Mu);
         nqp::bindattr(self, RakuAST::Meta, '$!meta-object-produced', False);
+        if nqp::istype(self, RakuAST::TraitTarget) {
+            for self.IMPL-UNWRAP-LIST(self.traits) {
+                $_.IMPL-CLEAR-APPLIED;
+            }
+        }
         Nil
     }
 
@@ -55,8 +71,8 @@ class RakuAST::Meta
 # needs them when it is composed, but furthermore an attribute needs to
 # reference the class; in this case the attribute will just want the stubbed
 # meta-object of the class.
-class RakuAST::StubbyMeta
-  is RakuAST::Meta
+role RakuAST::StubbyMeta
+  does RakuAST::Meta
 {
     has Mu $!cached-stubbed-meta-object;
     has Bool $!stubbed-meta-object-produced;
@@ -76,11 +92,9 @@ class RakuAST::StubbyMeta
         $!cached-stubbed-meta-object || False
     }
 
-    method meta-object(:$resolver, :$context) {
-        # Ensure we have the stubbed meta-object first, then delegate to our
-        # parent to produce the full meta-object.
-        self.stubbed-meta-object(:$resolver, :$context);
-        nqp::findmethod(RakuAST::Meta, 'meta-object')(self, :$resolver, :$context)
+    # Replace the stubbed meta-object with one made elsewhere.
+    method IMPL-SET-STUBBED-META-OBJECT(Mu $value) {
+        nqp::bindattr(self, RakuAST::StubbyMeta, '$!cached-stubbed-meta-object', $value);
     }
 
     method compile-time-value() {

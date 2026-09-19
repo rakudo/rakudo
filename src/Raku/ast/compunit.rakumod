@@ -1,13 +1,14 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit
-  is RakuAST::LexicalScope
-  is RakuAST::SinkBoundary
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
-  is RakuAST::ScopePhaser
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::LexicalScope
+  does RakuAST::ScopePhaser
+  does RakuAST::SinkBoundary
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
+  does RakuAST::AttachTarget
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -455,7 +456,7 @@ class RakuAST::CompUnit
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
 
         while $!check-phasers {
             my $check-phaser := nqp::pop($!check-phasers);
@@ -890,8 +891,8 @@ class RakuAST::CompUnit
 }
 
 class RakuAST::CtxSave
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)

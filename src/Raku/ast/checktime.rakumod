@@ -1,7 +1,5 @@
 # Done by every AST node that can report CHECK-time problems.
-class RakuAST::CheckTime
-  is RakuAST::Node
-{
+role RakuAST::CheckTime {
     # A list of sorries, lazily allocated if there are any.
     has Mu $!sorries;
 
@@ -64,7 +62,5 @@ class RakuAST::CheckTime
 
     # Method to be implemented by nodes that perform CHECK-time checks. Should
     # call add-sorry and add-worry with the constructed exception objects.
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::die('Missing PERFORM-CHECK implementation for ' ~ self.HOW.name(self));
-    }
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }
 }

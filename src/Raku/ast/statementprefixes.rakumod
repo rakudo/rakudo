@@ -36,7 +36,7 @@ class RakuAST::StatementPrefix
 # The `do` statement prefix.
 class RakuAST::StatementPrefix::Do
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "do" }
 
@@ -56,7 +56,7 @@ class RakuAST::StatementPrefix::Do
 # The `quietly` statement prefix.
 class RakuAST::StatementPrefix::Quietly
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "quietly" }
 
@@ -146,12 +146,10 @@ class RakuAST::StatementPrefix::Sink
 
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
-class RakuAST::StatementPrefix::Thunky
-  is RakuAST::StatementPrefix
-  is RakuAST::MayCreateBlock
-  is RakuAST::Meta
-  is RakuAST::Code
-  is RakuAST::BeginTime
+role RakuAST::StatementPrefix::Thunky
+  does RakuAST::Code
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     method creates-block() {
         nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
@@ -247,21 +245,8 @@ class RakuAST::StatementPrefix::Thunky
         }
     }
 
-    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
-            RakuAST::Expression :$expression) {
-        nqp::istype(self.blorst, RakuAST::Block)
-            ?? self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
-            !! nqp::findmethod(RakuAST::Code, 'IMPL-QAST-BLOCK')(self,
-                   $context, :$blocktype, :$expression)
-    }
-
-    # A thunk with a block body hands out that block's code object, so
-    # the block is also the node carrying the dynamic compilation mark
-    # and the QAST block a closure of it binds.
-    method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
-        nqp::istype(self.blorst, RakuAST::Block)
-            ?? self.blorst.IMPL-CLOSURE-QAST($context, :$regex)
-            !! nqp::findmethod(RakuAST::Code, 'IMPL-CLOSURE-QAST')(self, $context, :$regex)
+    method IMPL-CODE-CARRIER() {
+        nqp::istype(self.blorst, RakuAST::Block) ?? self.blorst !! self
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
@@ -291,9 +276,10 @@ class RakuAST::StatementPrefix::Thunky
 # expression in a called code object like the traditional grammar, where
 # a backtrace shows the call as a frame.
 class RakuAST::StatementPrefix::Try
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitLookups
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
 {
     method new(RakuAST::Blorst $blorst) {
         # A try block throws a Failure produced inside it, then catches it here,
@@ -400,8 +386,9 @@ class RakuAST::StatementPrefix::Try
 
 # The `gather` statement prefix.
 class RakuAST::StatementPrefix::Gather
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
 {
     method type() { "gather" }
 
@@ -416,9 +403,10 @@ class RakuAST::StatementPrefix::Gather
 
 # Statement prefix base class for generic blorst handling
 class RakuAST::StatementPrefix::Blorst
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
@@ -468,7 +456,7 @@ class RakuAST::StatementPrefix::Blorst
 # The `once` statement prefix.
 class RakuAST::StatementPrefix::Once
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
     has RakuAST::VarDeclaration::Implicit::State $!state-decl;
@@ -518,7 +506,7 @@ class RakuAST::StatementPrefix::Once
 # The `start` statement prefix.
 class RakuAST::StatementPrefix::Start
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     method type() { "start" }
 
@@ -548,7 +536,7 @@ class RakuAST::StatementPrefix::Start
 # # Base class for prefixes that can have whenevers in them
 class RakuAST::StatementPrefix::Wheneverable
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::AttachTarget
+  does RakuAST::AttachTarget
 {
     has List $!whenevers;
 
@@ -675,8 +663,8 @@ class RakuAST::StatementPrefix::Phaser
 # Done by all phasers that don't produce a result.
 class RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);
@@ -696,8 +684,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
 # The BEGIN phaser.
 class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu  $!value;
     has int $!has-value;
@@ -712,8 +699,12 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
         self.blorst.propagate-sink(False) if nqp::istype(self.blorst, RakuAST::Block);
 
-        nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
-        my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
+        self.IMPL-MARK-BEGIN-PERFORMED; # avoid infinite loop
+        my $producer := self.meta-object;
+        # Compile the block now, so an error in compiling it is reported
+        # as itself rather than as a failure of running the BEGIN.
+        my $compstuff := nqp::getattr($producer, Code, '@!compstuff');
+        $compstuff[1]() if $compstuff;
         {
             CATCH {
                 my $ex := $resolver.convert-begin-time-exception($_);
@@ -754,8 +745,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu $!value;
 
@@ -776,7 +766,7 @@ class RakuAST::StatementPrefix::Phaser::Check
     }
 
     method run(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        my $producer := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer())
     }
 
@@ -790,8 +780,7 @@ class RakuAST::StatementPrefix::Phaser::Check
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Scalar $.container;
 
@@ -834,8 +823,7 @@ class RakuAST::StatementPrefix::Phaser::Init
 # The ENTER phaser.
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has str $!result-name;
 
@@ -884,8 +872,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
 # The END phaser.
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     method type() { "END" }
 
@@ -900,7 +887,7 @@ class RakuAST::StatementPrefix::Phaser::End
 # The QUIT phaser.
 class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method type() { "QUIT" }
 
@@ -922,8 +909,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
 # base class for all other phasers that are connect to the current block
 class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::ParseTime
+  does RakuAST::StatementPrefix::Thunky
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         ($resolver.find-attach-target('block')
@@ -939,7 +925,6 @@ class RakuAST::StatementPrefix::Phaser::Block
 # The FIRST phaser.
 class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Phaser::Block
-  is RakuAST::BeginTime
 {
     method type() { "FIRST" }
 

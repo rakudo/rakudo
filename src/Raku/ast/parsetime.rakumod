@@ -5,75 +5,16 @@
 # * For everything else, at the point they are produced by the action
 # For a synthetic AST it is called top-down for nodes that are a lexical
 # scope and bottom-up for everything else.
-class RakuAST::ParseTime
-  is RakuAST::Node
-{
+role RakuAST::ParseTime {
     has int $!parse-performed;
 
     # Method implemented by a node to perform its parse-time side-effects.
-    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::die('Missing PERFORM-PARSE implementation in ' ~ self.HOW.name(self))
-    }
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }
 
     method ensure-parse-performed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!parse-performed {
             self.PERFORM-PARSE($resolver, $context);
             nqp::bindattr_i(self, RakuAST::ParseTime, '$!parse-performed', 1);
-        }
-    }
-
-    # Called when a BEGIN-time construct needs to evaluate code. Tries to
-    # interpret simple things to avoid the cost of compilation.
-    method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $*BEGIN-TIME-LOOKUP :=
-          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
-        if $code.IMPL-CAN-INTERPRET {
-            $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context))
-        }
-        elsif nqp::istype($code, RakuAST::Code) {
-            my $code-obj := $code.meta-object;
-
-            my $compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
-            if $compstuff {
-                # Force compilation here to get at errors earlier
-                $compstuff[1]();
-            }
-
-            $code-obj
-        }
-        elsif nqp::istype($code, RakuAST::Expression) {
-            my $thunk := RakuAST::ExpressionThunk.new;
-            $code.wrap-with-thunk($thunk);
-            $thunk.IMPL-STUB-CODE($resolver, $context);
-            $thunk.IMPL-QAST-BLOCK($context, :expression($code));
-            $thunk.meta-object()()
-        }
-        else {
-            nqp::die('BEGIN time evaluation only supported for simple constructs so far')
-        }
-    }
-
-    # Called when a BEGIN-time construct wants to evaluate a resolved code
-    # with a set of arguments.
-    method IMPL-BEGIN-TIME-CALL(RakuAST::Node $callee, RakuAST::ArgList $args,
-            RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $*BEGIN-TIME-LOOKUP :=
-          RakuAST::BeginTime.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
-        # A primed argument (a WhateverCode) may be interpreted here, as
-        # its static block compiles against a real QAST context.
-        my $*IMPL-INTERPRET-PRIMED := 1;
-        if $callee.is-resolved && nqp::istype($callee.resolution, RakuAST::CompileTimeValue) &&
-                $args.IMPL-CAN-INTERPRET {
-            my $resolved := $callee.resolution.compile-time-value;
-            my @args := $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context));
-            my @pos := @args[0];
-            my %named := @args[1];
-            return $resolved(|@pos, |%named);
-        }
-        else {
-            # Args we cannot interpret (e.g. a WhateverCode like `*.flip`) need
-            # the call compiled and evaluated, which the BeginTime version does.
-            RakuAST::BeginTime.IMPL-BEGIN-TIME-CALL($callee, $args, $resolver, $context)
         }
     }
 }

@@ -2,9 +2,7 @@
 # we don't walk into them when we are doing an outer sink. The compiler will
 # trigger sinking after it has parsed routines or the top-level compilation unit;
 # check time will make sure that a sink boundary has
-class RakuAST::SinkBoundary
-  is RakuAST::Node
-{
+role RakuAST::SinkBoundary {
     has int $!sink-calculated;
 
     # Calculates the sink for this bounded unit.
@@ -41,9 +39,7 @@ class RakuAST::SinkBoundary
 # Marks things that know how to propagate sink context inside of themselves.
 # They may introduce sinking of their own, propagate-sink will be called even
 # if they are not in sink context.
-class RakuAST::SinkPropagator
-  is RakuAST::Node
-{
+role RakuAST::SinkPropagator {
     method propagate-sink(Bool $is-sunk) {
         nqp::die('Missing propagate-sink');
     }
@@ -51,9 +47,7 @@ class RakuAST::SinkPropagator
 
 # Marks nodes that want to know if they are sunk, because they will produce code
 # or warnings differently if they are.
-class RakuAST::Sinkable
-  is RakuAST::Node
-{
+role RakuAST::Sinkable {
     has int $!sunk;
 
     method mark-sunk() {
@@ -75,14 +69,16 @@ class RakuAST::Sinkable
 # Marks nodes that want to know if they are block-level statements or not.
 # This is used for loops, which at statement level produce Nil even if not
 # sunk.
-class RakuAST::BlockStatementSensitive
-  is RakuAST::Node
-{
+role RakuAST::BlockStatementSensitive {
     has int $!block-statement;
 
     method mark-block-statement() {
         nqp::bindattr_i(self, RakuAST::BlockStatementSensitive, '$!block-statement', 1);
+        self.IMPL-ON-BLOCK-STATEMENT;
     }
+
+    # What a node does on becoming a block statement.
+    method IMPL-ON-BLOCK-STATEMENT() { }
 
     method is-block-statement(--> Bool) { $!block-statement }
 }

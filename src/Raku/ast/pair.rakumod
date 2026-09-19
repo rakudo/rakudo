@@ -1,16 +1,14 @@
 # Base role done by things that serve as named arguments.
-class RakuAST::NamedArg
-  is RakuAST::Node
-{
-    method named-arg-name() { nqp::die('named-arg-name not implemented') }
-    method named-arg-value() { nqp::die('named-arg-value not implemented') }
+role RakuAST::NamedArg {
+    method named-arg-name() { ... }
+    method named-arg-value() { ... }
 }
 
 # A fat arrow pair, such as `foo => 42`.
 class RakuAST::FatArrow
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
-  is RakuAST::NamedArg
+  does RakuAST::ImplicitLookups
+  does RakuAST::NamedArg
 {
     has Str $.key;
     has RakuAST::Expression $.value;
@@ -63,7 +61,7 @@ class RakuAST::FatArrow
 }
 
 # The base of all colonpair like constructs that can be added to a name.
-class RakuAST::ColonPairish {
+role RakuAST::ColonPairish {
     method IMPL-QUOTE-VALUE($v) {
         if nqp::istype($v, List) {
             # In bootstrap List may not be able to stringify yet
@@ -94,10 +92,10 @@ class RakuAST::ColonPairish {
 
 # The base of all colonpair constructs.
 class RakuAST::ColonPair
-  is RakuAST::ColonPairish
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
-  is RakuAST::NamedArg
+  does RakuAST::ImplicitLookups
+  does RakuAST::ColonPairish
+  does RakuAST::NamedArg
 {
     has Str $.key;
 
@@ -217,7 +215,7 @@ class RakuAST::QuotePair
 # A truthy colonpair (:foo).
 class RakuAST::ColonPair::True
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -263,7 +261,7 @@ class RakuAST::ColonPair::True
 # A falsey colonpair (:!foo).
 class RakuAST::ColonPair::False
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     method new(Str $key) {
         my $obj := nqp::create(self);
@@ -309,7 +307,7 @@ class RakuAST::ColonPair::False
 # A number colonpair (:2th).
 class RakuAST::ColonPair::Number
   is RakuAST::QuotePair
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     has RakuAST::IntLiteral $.value;
 
@@ -416,7 +414,7 @@ class RakuAST::ColonPair::Value
                 self.IMPL-LOCATE-EXCEPTION($ex);
                 $ex.rethrow;
             }
-            $value := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
+            $value := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(
                 $!value, $resolver, $context);
         }
         self.IMPL-CACHE-VALUE($value)

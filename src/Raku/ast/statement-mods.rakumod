@@ -24,7 +24,7 @@ class RakuAST::StatementModifier
 # The base of all condition statement modifiers.
 class RakuAST::StatementModifier::Condition
   is RakuAST::StatementModifier
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     # Set by the optimize pass, allowing a native-int condition to be
     # tested directly.
@@ -259,7 +259,7 @@ class RakuAST::StatementModifier::Loop
 
 class RakuAST::StatementModifier::WhileUntil
   is RakuAST::StatementModifier::Loop
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     # Is the condition negated?
     method negate() { False }
@@ -366,8 +366,8 @@ class RakuAST::StatementModifier::Given
 # The for statement modifier.
 class RakuAST::StatementModifier::For
   is RakuAST::StatementModifier::Loop
-  is RakuAST::ForLoopImplementation
-  is RakuAST::ImplicitLookups
+  does RakuAST::ForLoopImplementation
+  does RakuAST::ImplicitLookups
 {
     # Set when the optimize pass has approved lowering a CORE integer-range
     # source to a native counting loop.

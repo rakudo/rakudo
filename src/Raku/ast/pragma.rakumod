@@ -1,7 +1,7 @@
 class RakuAST::Pragma
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::BeginTime
 {
     has Str $.name;
     has RakuAST::Expression $.argument;

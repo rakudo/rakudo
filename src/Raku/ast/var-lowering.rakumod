@@ -721,8 +721,7 @@ class RakuAST::IMPL::VarLowering {
             || $frame.flatten-blocked
             || $frame.implicit-used;
         my $block := $frame.node;
-        return 0 if nqp::getattr($block, RakuAST::LexicalScope, '$!catch-handlers')
-            || nqp::getattr($block, RakuAST::LexicalScope, '$!control-handlers');
+        return 0 if $block.IMPL-HAS-CATCH-HANDLER || $block.IMPL-HAS-CONTROL-HANDLER;
         return 0 if nqp::elems($block.IMPL-UNWRAP-LIST(
             $block.generated-lexical-declarations()));
         for $block.IMPL-UNWRAP-LIST($block.ast-lexical-declarations()) {

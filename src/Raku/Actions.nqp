@@ -100,48 +100,21 @@ sub wrap-in-for-loop($ast) {
 # the compilation unit was the enclosing attach target. Block phasers such
 # as ENTER and LEAVE stay on the mainline.
 sub move-loop-phasers-to-body($compunit, $body) {
-    my $ScopePhaser := Nodify('ScopePhaser');
     for ['FIRST', 'NEXT', 'LAST'] -> $type {
-        my $list := nqp::getattr($compunit, $ScopePhaser, '$!' ~ $type);
-        if $list {
-            for $list {
-                $body.add-phaser($type, $_);
-            }
-            nqp::bindattr($compunit, $ScopePhaser, '$!' ~ $type, nqp::null());
+        for $compunit.IMPL-TAKE-PHASERS($type) {
+            $body.add-phaser($type, $_);
         }
     }
 }
 
 # Move the CATCH/CONTROL handlers onto the per-line loop body the same way,
 # so a handled exception ends only that line's iteration and the loop
-# continues with the next line.
-sub move-exception-handlers-to-body($compunit, $body) {
-    my $LexicalScope := Nodify('LexicalScope');
-    my $handlers := nqp::getattr($compunit, $LexicalScope, '$!catch-handlers');
-    if $handlers {
-        for $handlers {
-            $body.attach-catch-handler($_);
-        }
-        nqp::bindattr($compunit, $LexicalScope, '$!catch-handlers', nqp::null());
-    }
-    $handlers := nqp::getattr($compunit, $LexicalScope, '$!control-handlers');
-    if $handlers {
-        for $handlers {
-            $body.attach-control-handler($_);
-        }
-        nqp::bindattr($compunit, $LexicalScope, '$!control-handlers', nqp::null());
-    }
-}
-
-# Move the succeed handler the program's when/default statements required
-# onto the per-line loop body, so a matched when ends only that line's
-# iteration. Their succeed scope moves too, keeping sink decisions on the
-# scope that takes the payload.
-sub move-succeed-handler-to-body($compunit, $body) {
-    my $LexicalScope := Nodify('LexicalScope');
-    return 0 unless nqp::getattr_i($compunit, $LexicalScope, '$!need-succeed-handler');
-    nqp::bindattr_i($compunit, $LexicalScope, '$!need-succeed-handler', 0);
-    $body.require-succeed-handler();
+# continues with the next line, along with the succeed handler the
+# program's when/default statements required, so a matched when ends only
+# that line's iteration. Their succeed scope moves too, keeping sink
+# decisions on the scope that takes the payload.
+sub move-handlers-to-body($compunit, $body) {
+    return 0 unless $compunit.IMPL-MOVE-HANDLERS-TO($body);
     my $When    := Nodify('Statement::When');
     my $Default := Nodify('Statement::Default');
     $body.visit-dfs: -> $node {
@@ -797,8 +770,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $statement-list := @wrapped[0];
             hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
             move-loop-phasers-to-body($COMPUNIT, @wrapped[1]);
-            move-exception-handlers-to-body($COMPUNIT, @wrapped[1]);
-            move-succeed-handler-to-body($COMPUNIT, @wrapped[1]);
+            move-handlers-to-body($COMPUNIT, @wrapped[1]);
             # Give the wrapper nodes a chance to do BEGIN time effects
             $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
         }
@@ -2172,8 +2144,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if $cf<circumfix> -> $op {
                     $ast := Nodify('Call::Name').new(
                       name => Nodify('Name').from-identifier(
-                        'prefix:' ~ Nodify('ColonPairish').IMPL-QUOTE-VALUE(
-                          Nodify('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
+                        'prefix:' ~ Nodify('ColonPair').IMPL-QUOTE-VALUE(
+                          Nodify('Node').IMPL-BEGIN-TIME-EVALUATE(
                             (
                               $op<nibble> // $op<semilist> // $op<pointy-block>
                             ).ast, $*R, $*CU.context

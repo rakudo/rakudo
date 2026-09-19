@@ -1,7 +1,8 @@
 # A name. Names range from simple (a single identifier) up to rather more
 # complex (including pseudo-packages, interpolated parts, etc.)
 class RakuAST::Name
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::ImplicitLookups
 {
     has List $!parts;
     has List $.colonpairs;

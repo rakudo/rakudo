@@ -2072,6 +2072,12 @@ BEGIN {
 
         nqp::getattr($self, Attribute, '$!type')
     }));
+    Attribute.HOW.add_method(Attribute, 'package',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!package')
+    }));
 
     Attribute.HOW.add_method(Attribute, 'container_descriptor',
       nqp::getstaticcode(sub ($self) {

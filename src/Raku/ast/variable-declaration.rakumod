@@ -10,7 +10,7 @@ class RakuAST::Initializer
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
     {
-        RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
+        RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
     }
 
     method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -118,7 +118,7 @@ class RakuAST::Initializer::CallAssign
 
 # Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
 # for the lookup created by IMPL-SIGIL-LOOKUP.
-class RakuAST::ContainerCreator {
+role RakuAST::ContainerCreator {
     # The RakuAST::Type node for an explicit container base type (e.g. `is T`
     # or `is Array[Str]`). Stored as AST, not just its meta-object, so
     # callers that need the resolved lookup node (not just the type object)
@@ -126,6 +126,10 @@ class RakuAST::ContainerCreator {
     has RakuAST::Type $!explicit-container-base-type-ast;
     has RakuAST::Type $!conflicting-base-type-ast;
     has Bool $.forced-dynamic;
+
+    method IMPL-SET-FORCED-DYNAMIC(Bool $forced-dynamic) {
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!forced-dynamic', $forced-dynamic);
+    }
     has Bool $!initialized;
     has Mu $.container-base-type;
     has Mu $.container-type;
@@ -185,11 +189,16 @@ class RakuAST::ContainerCreator {
           !! nqp::null
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of, Mu :$key-type) {
+    # The key type of the hash a container creator makes, or NQPMu for a
+    # hash keyed by Str.
+    method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
+
+    method IMPL-CALCULATE-TYPES(Mu $of) {
         return Nil if $!initialized;
 
         # Form the container type.
         my str $sigil := self.sigil;
+        my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
         my $container-base-type;
         my $container-type;
         my $default := Any;
@@ -387,10 +396,11 @@ class RakuAST::ContainerCreator {
 }
 
 class RakuAST::TraitTarget::Variable
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
+  is RakuAST::Node
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has str $!name;
     has str $!scope;
@@ -432,19 +442,19 @@ class RakuAST::TraitTarget::Variable
     }
 }
 
-# Base class for variable declarations
-class RakuAST::VarDeclaration
-  is RakuAST::Declaration { }
+# Done by variable declarations
+role RakuAST::VarDeclaration
+  does RakuAST::Declaration { }
 
 # A basic constant declaration of the form `my Type constant $foo = 42`
 class RakuAST::VarDeclaration::Constant
-  is RakuAST::VarDeclaration
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
-  is RakuAST::CompileTimeValue
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::VarDeclaration
+  does RakuAST::TraitTarget
+  does RakuAST::CompileTimeValue
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
@@ -460,7 +470,7 @@ class RakuAST::VarDeclaration::Constant
       List          :$traits
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -689,15 +699,15 @@ class RakuAST::Expression::QAST
 # A basic variable declaration of the form `my SomeType $foo = 42` or
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
-  is RakuAST::VarDeclaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
-  is RakuAST::ContainerCreator
-  is RakuAST::Meta
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::VarDeclaration
+  does RakuAST::ContainerCreator
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Type        $.type;
     has RakuAST::Name        $.desigilname;
@@ -852,7 +862,7 @@ class RakuAST::VarDeclaration::Simple
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
 
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
@@ -866,8 +876,7 @@ class RakuAST::VarDeclaration::Simple
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
           RakuAST::Method);
-        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
-          $forced-dynamic ?? True !! False);
+        $obj.IMPL-SET-FORCED-DYNAMIC($forced-dynamic ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
           $is-parameter ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
@@ -1033,11 +1042,10 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of) {
-        my &calculate-types := nqp::findmethod(RakuAST::ContainerCreator, 'IMPL-CALCULATE-TYPES');
+    method IMPL-CONTAINER-KEY-TYPE() {
         $!shape && self.sigil eq '%'
-            ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-            !! &calculate-types(self, $of);
+            ?? $!shape.code-statements[0].expression.compile-time-value
+            !! NQPMu
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving
@@ -2097,12 +2105,12 @@ class RakuAST::VarDeclaration::Auto
   is RakuAST::VarDeclaration::Simple { }
 
 class RakuAST::VarDeclaration::Signature
-  is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
   is RakuAST::Term
+  does RakuAST::Declaration
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::TraitTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
@@ -2117,7 +2125,7 @@ class RakuAST::VarDeclaration::Signature
                str :$scope, Bool :$sig-literal) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -2608,7 +2616,7 @@ class RakuAST::VarDeclaration::Anonymous
             self.IMPL-GENERATE-NAME());
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
           $shape // RakuAST::SemiList);
@@ -2658,7 +2666,8 @@ class RakuAST::VarDeclaration::Anonymous
 }
 
 class RakuAST::VarDeclaration::AttributeAlias
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has RakuAST::Name $.desigilname;
     has str $.sigil;
@@ -2669,7 +2678,7 @@ class RakuAST::VarDeclaration::AttributeAlias
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::AttributeAlias, '$!sigil', $sigil);
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!attribute', $attribute);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -2755,9 +2764,9 @@ class RakuAST::VarDeclaration::AttributeAlias
 
 # The declaration of a term (sigilless) variable.
 class RakuAST::VarDeclaration::Term
-  is RakuAST::VarDeclaration
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::VarDeclaration
+  does RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
@@ -2766,7 +2775,7 @@ class RakuAST::VarDeclaration::Term
     method new(str :$scope, RakuAST::Type :$type, RakuAST::Name :$name!,
             RakuAST::Initializer :$initializer) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!initializer',
@@ -2853,7 +2862,8 @@ class RakuAST::VarDeclaration::Term
 
 # The commonalities for implicitly declared variables.
 class RakuAST::VarDeclaration::Implicit
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has str $.name;
 
@@ -2883,7 +2893,7 @@ class RakuAST::VarDeclaration::Implicit
     method new(str :$name!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -2914,7 +2924,7 @@ class RakuAST::VarDeclaration::Implicit
 # routines.
 class RakuAST::VarDeclaration::Implicit::Special
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Reuse the container descriptor for the common cases that we expect
@@ -3038,7 +3048,7 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
     method new(Bool :$parameter, Bool :$required, Bool :$exception, Bool :$loop) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!parameter',
             $parameter // True);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!required',
@@ -3100,12 +3110,11 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
 # fixed at compile time. Used for $?PACKAGE and similar.
 class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::Meta
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
 
@@ -3113,7 +3122,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3151,15 +3160,16 @@ class RakuAST::VarDeclaration::Implicit::EnumValue
 
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
-  is RakuAST::VarDeclaration
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
+  does RakuAST::CheckTime
 {
     has Mu $.block;
 
     method new(Mu :$block!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Block, '$!block', $block);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3187,7 +3197,7 @@ class RakuAST::VarDeclaration::Implicit::Self
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3258,12 +3268,12 @@ class RakuAST::VarDeclaration::Implicit::Self
 # The implicit `$¢` declaration for the cursor.
 class RakuAST::VarDeclaration::Implicit::Cursor
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$¢');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3346,7 +3356,7 @@ class RakuAST::VarDeclaration::Implicit::Routine
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?ROUTINE');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3370,7 +3380,7 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?BLOCK');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 }
@@ -3378,8 +3388,8 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
 # Used for constructs that generate state variables
 class RakuAST::VarDeclaration::Implicit::State
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::ImplicitLookups
-  is RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::Meta
 {
     has int $!init-to-zero;
     has Mu $!sentinel-value;
@@ -3387,7 +3397,7 @@ class RakuAST::VarDeclaration::Implicit::State
     method new(str $name, Bool :$init-to-zero, Bool :$sentinel) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
+        $obj.replace-scope('state');
         nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', ?$init-to-zero);
         # A private initial value no user code can produce, so a first read of
         # the variable is recognizable by value.
@@ -3434,7 +3444,7 @@ class RakuAST::VarDeclaration::Implicit::State
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $.value;
 
@@ -3442,9 +3452,11 @@ class RakuAST::VarDeclaration::Implicit::Doc
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name',
           self.name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
@@ -3570,10 +3582,9 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
 
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
-  is RakuAST::VarDeclaration
   is RakuAST::Term
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::VarDeclaration
+  does RakuAST::BeginTime
 {
     has Bool $!already-declared;
 

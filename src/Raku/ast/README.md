@@ -45,9 +45,9 @@ quite a few other things to do that will be helpful. Specifically:
   remove `lib/.precomp/` after such a build. (done)
 * Fix build system issues (doesn't rebuild if the AST compiler changes, etc.)
   (Difficulty: well, it involves a build system...)
-* Get the AST compiler to support roles, and gradually transition the things
-  that should be roles to actually be roles. (Difficulty: maybe headachey,
-  but you'll live)
+* Gradually transition the things that should be roles to actually be
+  roles, now that the AST compiler supports them. (Difficulty: maybe
+  headachey, but you'll live)
 * Make us indicate slurpiness when signatures are introspected. (Difficulty:
   easy, just need to make sure the AST compiler passes that along when we
   build the Parameter object.
@@ -105,6 +105,27 @@ And in general:
   that is native, and a `--> Bool` method may return a native integer,
   which becomes a Bool. The rules live in
   `tools/build/raku-ast-compiler.nqp`.
+* A declaration is a `class` or a `role`, and a class or role may `does`
+  a role. The roles are composed by the metamodel, so `.^roles`, `~~` and
+  `.does` work as they do on any Raku type, and a class written in Raku
+  may do a node role. `is` names classes and `does` names roles, a role
+  cannot inherit, so a role is never itself a node, and a package is
+  declared once. A class may not do a role that an ancestor or another
+  role it names already does, and a role with attributes may reach a
+  node one way only. Roles without state may be reached through more
+  than one parent. An attribute stays keyed on the package that declares
+  it in the layout of every object that has it, so an explicit access
+  such as `nqp::getattr` or `nqp::bindattr` of a role's attribute names
+  the role, in the role's own methods and in a class that does it alike,
+  and the build refuses a handle naming a declared package that does not
+  declare the attribute. `.^attributes` reports such an attribute with
+  the role as its package, and `IMPL-REPLACE-CHILD` keys its scan the
+  same way. A method whose body is `{ ... }` is a stub: in a role it is
+  required of every class doing the role, which the build refuses when
+  the class neither declares nor inherits it, and `.yada` reports it.
+  Calling a method on a role's type object puns the role, so a helper
+  that is called on a type object lives on a class. These rules live in
+  `tools/build/raku-ast-compiler.nqp` too.
 
 ## Design notes on specific topics
 

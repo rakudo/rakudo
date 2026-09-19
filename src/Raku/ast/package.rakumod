@@ -3,19 +3,19 @@
 # itself
 
 class RakuAST::Package
-  is RakuAST::PackageInstaller
-  is RakuAST::StubbyMeta
   is RakuAST::Term
-  is RakuAST::IMPL::ImmediateBlockUser
-  is RakuAST::Declaration
-  is RakuAST::AttachTarget
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::TraitTarget
-  is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::LexicalScope
-  is RakuAST::Lookup
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::LexicalScope
+  does RakuAST::PackageInstaller
+  does RakuAST::Lookup
+  does RakuAST::StubbyMeta
+  does RakuAST::TraitTarget
+  does RakuAST::ImplicitBlockSemanticsProvider
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::IMPL::ImmediateBlockUser
+  does RakuAST::AttachTarget
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $.body;
@@ -65,7 +65,7 @@ class RakuAST::Package
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
@@ -405,7 +405,7 @@ class RakuAST::Package
             self.add-sorry: $resolver.build-exception: 'X::TooLateForREPR', type => self.stubbed-meta-object;
         }
 
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
     }
 
     method install-extra-declarations(RakuAST::Resolver $resolver) {
@@ -660,7 +660,7 @@ class RakuAST::Package::Attachable
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
@@ -1063,7 +1063,6 @@ class RakuAST::Class
 
 class RakuAST::Grammar
   is RakuAST::Class
-  is RakuAST::CheckTime
 {
     method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }

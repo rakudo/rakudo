@@ -1,7 +1,8 @@
 # A blockoid represents the block part of some kind of code declaration.
 class RakuAST::Blockoid
-  is RakuAST::SinkPropagator
-  is RakuAST::BeginTime
+  is RakuAST::Node
+  does RakuAST::SinkPropagator
+  does RakuAST::BeginTime
 {
     has RakuAST::StatementList $.statement-list;
 
@@ -43,13 +44,12 @@ class RakuAST::Blockoid
 }
 
 # Marker for what may serve as the body of a regex declaration.
-class RakuAST::RegexBody
-  is RakuAST::Node {}
+role RakuAST::RegexBody {}
 
 class RakuAST::OnlyStar
   is RakuAST::Blockoid
   is RakuAST::Term
-  is RakuAST::RegexBody
+  does RakuAST::RegexBody
 {
     method new() {
         my $obj := nqp::create(self);
@@ -100,8 +100,8 @@ class RakuAST::OnlyStar
 }
 
 # Marker for all code-y things.
-class RakuAST::Code
-  is RakuAST::ParseTime
+role RakuAST::Code
+  does RakuAST::ParseTime
 {
     has Bool $.custom-args;
     has Mu $!qast-block;
@@ -158,7 +158,16 @@ class RakuAST::Code
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
     }
 
+    # The node whose code object and QAST block stand for this one. A
+    # thunk with a block body hands out that block's, so the block is
+    # also the node carrying the dynamic compilation mark and the QAST
+    # block a closure of it binds.
+    method IMPL-CODE-CARRIER() { self }
+
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
+        my $carrier := self.IMPL-CODE-CARRIER;
+        return $carrier.IMPL-CLOSURE-QAST($context, :$regex)
+          unless nqp::eqaddr($carrier, self);
         my $code-obj := self.meta-object;
         $context.ensure-sc($code-obj);
         self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
@@ -243,12 +252,20 @@ class RakuAST::Code
 
     method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
+        my $carrier := self.IMPL-CODE-CARRIER;
+        return $carrier.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+          unless nqp::eqaddr($carrier, self);
         unless ($!qast-block) {
             self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
         }
         self.IMPL-MAYBE-REBUILD-BEGIN-TIME-CACHED-BLOCK($context);
         $!qast-block
     }
+
+    # Whether the QAST block has been formed.
+    method IMPL-HAS-QAST-BLOCK() { nqp::isconcrete($!qast-block) }
+
+    method IMPL-DYNAMICALLY-COMPILED() { $!dynamically-compiled }
 
     # Which code nodes take the re-formation.
     method IMPL-REBUILD-ELIGIBLE() { 0 }
@@ -316,8 +333,12 @@ class RakuAST::Code
                 $block.annotate(nqp::iterkey_s($_), nqp::iterval($_));
             }
         }
+        self.IMPL-ON-BLOCK-REBUILT($block);
         Nil
     }
+
+    # What a node does to its re-formed block.
+    method IMPL-ON-BLOCK-REBUILT(Mu $block) { }
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $code-obj := self.meta-object;
@@ -926,13 +947,12 @@ class RakuAST::Code
         $qast-stmts
     }
 
-    method needs-sink-call() { False }
-
     method signature() { Nil }
 }
 
 class RakuAST::LexicalFixup
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
 {
     has RakuAST::Block $!block;
     has FixupList $!fixup-list;
@@ -941,7 +961,7 @@ class RakuAST::LexicalFixup
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!block', RakuAST::Block);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!fixup-list', LexicalFixup);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -972,12 +992,15 @@ class RakuAST::LexicalFixup
 # The base of all expression thunks, which produce a code object of some kind
 # that wraps the thunk.
 class RakuAST::ExpressionThunk
-  is RakuAST::Code
-  is RakuAST::Meta
-  is RakuAST::BeginTime
+  is RakuAST::Node
+  does RakuAST::Code
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
+
+    method needs-sink-call() { False }
 
     # A callback producing QAST (or Mu) to run at the start of the thunk body,
     # before the wrapped expression. A callback, not stored QAST, because its
@@ -1216,9 +1239,7 @@ class RakuAST::ExpressionThunk
 }
 
 # A code object that can have placeholder parameters.
-class RakuAST::PlaceholderParameterOwner
-  is RakuAST::Node
-{
+role RakuAST::PlaceholderParameterOwner {
     # Any placeholder parameters that have been attached
     has Mu $!attached-placeholder-parameters;
 
@@ -1338,7 +1359,7 @@ class RakuAST::PlaceholderParameterOwner
     }
 }
 
-class RakuAST::ScopePhaser {
+role RakuAST::ScopePhaser {
     has Bool $!has-exit-handler;
     has Bool $!is-loop-body;
     has List $!ENTER;
@@ -1565,7 +1586,7 @@ class RakuAST::ScopePhaser {
             # A phaser that is not code and holds no code blorst has no
             # do of its own to rebind.
             next unless nqp::isconcrete($code);
-            if nqp::getattr_i($code, RakuAST::Code, '$!dynamically-compiled') {
+            if $code.IMPL-DYNAMICALLY-COMPILED {
                 $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                 $stmts.push($code.IMPL-DYNAMIC-DO-REBIND-QAST($context));
             }
@@ -1808,25 +1829,33 @@ class RakuAST::ScopePhaser {
         # TOOD: Also check '$!phasers' hash on the meta-object
         nqp::elems(nqp::getattr(self, RakuAST::ScopePhaser, '$!' ~ $phaser-name) // []) > 0
     }
+
+    # Take the phasers of the given kind away, leaving none, so another
+    # scope can own them.
+    method IMPL-TAKE-PHASERS(str $phaser-name) {
+        my $attr := '$!' ~ $phaser-name;
+        my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
+        nqp::bindattr(self, RakuAST::ScopePhaser, $attr, nqp::null());
+        $list // []
+    }
 }
 
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block
-  is RakuAST::LexicalScope
   is RakuAST::Term
-  is RakuAST::Code
-  is RakuAST::StubbyMeta
-  is RakuAST::BlockStatementSensitive
-  is RakuAST::SinkPropagator
-  is RakuAST::Blorst
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::ImplicitLookups
-  is RakuAST::AttachTarget
-  is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::ScopePhaser
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Blorst
+  does RakuAST::LexicalScope
+  does RakuAST::Code
+  does RakuAST::PlaceholderParameterOwner
+  does RakuAST::ScopePhaser
+  does RakuAST::StubbyMeta
+  does RakuAST::BlockStatementSensitive
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
+  does RakuAST::AttachTarget
 {
     has RakuAST::Blockoid $.body;
 
@@ -2444,8 +2473,6 @@ class RakuAST::Block
 # A pointy block (-> $foo { ... }).
 class RakuAST::PointyBlock
   is RakuAST::Block
-  is RakuAST::ImplicitLookups
-  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Signature $.signature;
 
@@ -2612,21 +2639,20 @@ class RakuAST::PointyBlock
 
 # Done by all kinds of Routine.
 class RakuAST::Routine
-  is RakuAST::LexicalScope
   is RakuAST::Term
-  is RakuAST::Code
-  is RakuAST::StubbyMeta
-  is RakuAST::Declaration
-  is RakuAST::Declaration::Mergeable
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
-  is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ImplicitLookups
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::TraitTarget
-  is RakuAST::ScopePhaser
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::LexicalScope
+  does RakuAST::Code
+  does RakuAST::PlaceholderParameterOwner
+  does RakuAST::ScopePhaser
+  does RakuAST::StubbyMeta
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
+  does RakuAST::Declaration::Mergeable
+  does RakuAST::AttachTarget
 {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
@@ -2671,8 +2697,6 @@ class RakuAST::Routine
 
     method declaration-kind() { 'routine' }
 
-    # RakuAST::Code answers this too, but the method resolution order
-    # reaches RakuAST::Expression first for routines.
     method needs-sink-call() { False }
 
     method attach-target-names() {
@@ -2895,14 +2919,14 @@ class RakuAST::Routine
     }
 
     method set-value(Mu $value) {
-        nqp::bindattr(self, RakuAST::StubbyMeta, '$!cached-stubbed-meta-object', $value);
-        nqp::bindattr(self, RakuAST::Meta, '$!cached-meta-object', $value);
+        self.IMPL-SET-STUBBED-META-OBJECT($value);
+        self.IMPL-SET-META-OBJECT($value);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
 
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
 
         if $!multiness && !$!name {
             self.add-sorry:
@@ -3314,7 +3338,7 @@ class RakuAST::Routine
         # the enclosing block is where its do gets bound to the running
         # compilation.
         if self.multiness eq 'multi'
-          && nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+          && self.IMPL-DYNAMICALLY-COMPILED
           && !$context.is-precompilation-mode {
             return QAST::Stmts.new($block, self.IMPL-DYNAMIC-DO-REBIND-QAST($context));
         }
@@ -3349,7 +3373,7 @@ class RakuAST::Routine
                     # serialized routine works as the lexical's value as is.
                     $context.ensure-sc(self.meta-object);
                     my $decl := QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) );
-                    nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+                    self.IMPL-DYNAMICALLY-COMPILED
                       && !$context.is-precompilation-mode
                         ?? QAST::Stmts.new($decl, self.IMPL-DYNAMIC-DO-REBIND-QAST($context))
                         !! $decl
@@ -3423,7 +3447,7 @@ class RakuAST::Routine
 # A subroutine.
 class RakuAST::Sub
   is RakuAST::Routine
-  is RakuAST::SinkBoundary
+  does RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
 
@@ -3436,7 +3460,7 @@ class RakuAST::Sub
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
@@ -3455,8 +3479,7 @@ class RakuAST::Sub
         # routine's scope was entered during parsing, before the body was
         # known. An onlystar body prunes the special variables from them,
         # so drop the cache to have them produced anew.
-        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
-          '$!implicit-declarations-cache', Mu)
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS
           if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
@@ -3613,9 +3636,7 @@ class RakuAST::RoleBody
     # A re-formation reproduces the body's statements only, so the fixup
     # nodes go back, and the accessor QAST the package splices in is
     # spliced again once its marker, which the graft kept, is cleared.
-    method IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::Code, 'IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK')(self, $context);
-        my $block := nqp::getattr(self, RakuAST::Code, '$!qast-block');
+    method IMPL-ON-BLOCK-REBUILT(Mu $block) {
         for $!fixup-nodes {
             $block[1].push($_);
         }
@@ -3632,7 +3653,7 @@ class RakuAST::RoleBody
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         $signature := RakuAST::Signature.new unless nqp::isconcrete($signature);
@@ -3674,7 +3695,7 @@ class RakuAST::RoleBody
             # The body compiles here ahead of the unit, so it takes the
             # optimize walk and the lowering a BEGIN-time routine takes
             # in its compiler thunk.
-            unless nqp::isconcrete(nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
+            unless self.IMPL-HAS-QAST-BLOCK {
                 self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
                 RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
             }
@@ -3874,7 +3895,7 @@ class RakuAST::Methodish
 # A method.
 class RakuAST::Method
   is RakuAST::Methodish
-  is RakuAST::SinkBoundary
+  does RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
     has Bool              $.meta;
@@ -3892,7 +3913,7 @@ class RakuAST::Method
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Method, '$!private',
           $private ?? True !! False);
@@ -3915,8 +3936,7 @@ class RakuAST::Method
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);
         # See RakuAST::Sub::replace-body for why the cache is dropped.
-        nqp::bindattr(self, RakuAST::ImplicitDeclarations,
-          '$!implicit-declarations-cache', Mu)
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS
           if nqp::istype($new-body, RakuAST::OnlyStar);
         Nil
     }
@@ -4006,7 +4026,7 @@ class RakuAST::Method::AttributeAccessor
 
     method new(RakuAST::Name :$name, str :$attr-name, Mu :$type, Mu :$package-type, Bool :$rw) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        $obj.replace-scope('has');
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
         nqp::bindattr($obj, RakuAST::Method, '$!private', False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
@@ -4105,7 +4125,7 @@ class RakuAST::Submethod::BuildPlanExecutor
     method new(Mu :$package-type, Mu :$build-plan, Mu :$True,
             Mu :$Failure, Mu :$X-Attribute-Required, Mu :$return-routine) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        $obj.replace-scope('has');
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
         nqp::bindattr($obj, RakuAST::Method, '$!private', False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
@@ -4544,7 +4564,7 @@ class RakuAST::RegexDeclaration
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature',
@@ -4636,12 +4656,14 @@ class RakuAST::RuleDeclaration
 # a separate regex code object but without introducing a new lexical scope. This
 # includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
-class RakuAST::RegexThunk
-  is RakuAST::Code
-  is RakuAST::Meta
-  is RakuAST::BeginTime
+role RakuAST::RegexThunk
+  does RakuAST::Code
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has int $!decls-placed-inline;
+
+    method needs-sink-call() { False }
 
     method IMPL-PLACE-DECLS-INLINE() {
         nqp::bindattr_i(self, RakuAST::RegexThunk, '$!decls-placed-inline', 1);
@@ -4740,7 +4762,6 @@ class RakuAST::RegexThunk
 # adverbs in common.
 class RakuAST::QuotedMatchConstruct
   is RakuAST::Term
-  is RakuAST::BeginTime
 {
     has List $.adverbs;
 
@@ -4824,11 +4845,6 @@ class RakuAST::QuotedMatchConstruct
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-STUB-CODE($resolver, $context);
-        Nil
-    }
-
     method IMPL-IS-CONSTANT() {
         False
     }
@@ -4837,11 +4853,9 @@ class RakuAST::QuotedMatchConstruct
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
 class RakuAST::QuotedRegex
-  is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
-  is RakuAST::Sinkable
-  is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
+  does RakuAST::RegexThunk
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Regex $.body;
     has Bool $.match-immediately;
@@ -4983,10 +4997,9 @@ class RakuAST::QuotedRegex
 
 # A substitution, such as `s/abc/def/`, `S/not_in/place/`, or `s/abc/ = 'def'`.
 class RakuAST::Substitution
-  is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
-  is RakuAST::ImplicitLookups
-  is RakuAST::CheckTime
+  does RakuAST::RegexThunk
+  does RakuAST::ImplicitLookups
 {
     has Bool $.immutable;
     has Bool $.samespace;
@@ -5257,8 +5270,9 @@ class RakuAST::Substitution
 }
 
 class RakuAST::Transliteration
-  is RakuAST::ImplicitLookups
   is RakuAST::QuotedMatchConstruct
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has Bool $.destructive;
     has RakuAST::Expression $.left;
@@ -5365,7 +5379,7 @@ class RakuAST::SubstitutionReplacementThunk
 # Thunk for a primed Whatever expression.
 class RakuAST::PrimeThunk
   is RakuAST::ExpressionThunk
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Mu $!parameters;
     has Str $!original-expression;
@@ -5430,7 +5444,7 @@ class RakuAST::HyperPrimeThunk
 
 class RakuAST::BlockThunk
   is RakuAST::ExpressionThunk
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has RakuAST::Expression $!expression;
 

@@ -1,7 +1,7 @@
 # Base class for doc declarators
 class RakuAST::Doc::Declarator
   is RakuAST::Doc
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Doc::DeclaratorTarget $.WHEREFORE;
     has List                           $.leading;
@@ -75,7 +75,7 @@ class RakuAST::Doc::Declarator
 }
 
 # Role for objects that can have a Doc::Declarator attached
-class RakuAST::Doc::DeclaratorTarget {
+role RakuAST::Doc::DeclaratorTarget {
     has RakuAST::Doc::Declarator $.WHY;
 
     # Whether the documentation on this target is surfaced through the

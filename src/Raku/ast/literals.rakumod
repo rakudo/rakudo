@@ -1,8 +1,7 @@
 # Marker for all compile-time literals
 class RakuAST::Literal
   is RakuAST::Term
-  is RakuAST::CheckTime
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     has Str $!typename;
     has Mu  $.value;
@@ -172,9 +171,9 @@ class RakuAST::StrLiteral
 # are "words", "quotewords", "val", and "exec", and are applied in the order
 # that they are specified here).
 class RakuAST::QuotedString
-  is RakuAST::ColonPairish
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::ColonPairish
 {
     has Mu $!segments;
     has Mu $!processors;
@@ -655,12 +654,8 @@ class RakuAST::Heredoc
         }
         # Also steal the implicit lookups as any processor related lookups will
         # have been done before we got to stealing those processors.
-        nqp::bindattr(
-            self,
-            RakuAST::ImplicitLookups,
-            '$!implicit-lookups-cache',
-            nqp::getattr($source, RakuAST::ImplicitLookups, '$!implicit-lookups-cache')
-        );
+        self.IMPL-SET-IMPLICIT-LOOKUPS(
+          self.IMPL-UNWRAP-LIST($source.get-implicit-lookups));
     }
 
     method set-stop(Str $stop) {

@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 9;
+plan 10;
 
 # The node types are declared as classes and roles, and the roles are
 # composed by the Raku metamodel, so a node type introspects the way a
@@ -87,8 +87,18 @@ subtest 'A role requires a method of the class doing it' => {
       'a class that does not implement the method is refused, naming all three';
 }
 
-subtest 'A class written in Raku can do a node role with state' => {
+subtest 'A role gives no answer that a class inherits a better one for' => {
     plan 3;
+    ok RakuAST::ExpressionThunk.^find_method('needs-sink-call').package === RakuAST::ExpressionThunk,
+      'an expression thunk answers needs-sink-call itself';
+    ok RakuAST::StatementPrefix::Start.^find_method('needs-sink-call').package === RakuAST::Expression,
+      'a start block inherits the answer of an expression';
+    nok RakuAST::Code.^methods.first(*.name eq 'needs-sink-call').defined,
+      'the code role does not answer it';
+}
+
+subtest 'A class written in Raku can do a node role with state' => {
+    plan 4;
     my class Answer is RakuAST::Node does RakuAST::Meta {
         method PRODUCE-META-OBJECT() { 42 }
     }
@@ -96,6 +106,10 @@ subtest 'A class written in Raku can do a node role with state' => {
     nok $node.has-meta-object, 'the state of the role starts out empty';
     is $node.meta-object, 42, 'the role method calls the method of the class';
     ok $node.has-meta-object, 'the role method kept its state in the object';
+
+    my class Blockish is RakuAST::Block does RakuAST::Code { }
+    nok Blockish.new.IMPL-HAS-QAST-BLOCK,
+      'doing a role an ancestor already does shares the state of the ancestor';
 }
 
 subtest 'Augmenting a node class keeps its role attributes readable' => {

@@ -100,8 +100,7 @@ class RakuAST::OnlyStar
 }
 
 # Marker for all code-y things.
-class RakuAST::Code
-  is RakuAST::Node
+role RakuAST::Code
   does RakuAST::ParseTime
 {
     has Bool $.custom-args;
@@ -159,7 +158,16 @@ class RakuAST::Code
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
     }
 
+    # The node whose code object and QAST block stand for this one. A
+    # thunk with a block body hands out that block's, so the block is
+    # also the node carrying the dynamic compilation mark and the QAST
+    # block a closure of it binds.
+    method IMPL-CODE-CARRIER() { self }
+
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
+        my $carrier := self.IMPL-CODE-CARRIER;
+        return $carrier.IMPL-CLOSURE-QAST($context, :$regex)
+          unless nqp::eqaddr($carrier, self);
         my $code-obj := self.meta-object;
         $context.ensure-sc($code-obj);
         self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
@@ -244,12 +252,20 @@ class RakuAST::Code
 
     method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
+        my $carrier := self.IMPL-CODE-CARRIER;
+        return $carrier.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+          unless nqp::eqaddr($carrier, self);
         unless ($!qast-block) {
             self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
         }
         self.IMPL-MAYBE-REBUILD-BEGIN-TIME-CACHED-BLOCK($context);
         $!qast-block
     }
+
+    # Whether the QAST block has been formed.
+    method IMPL-HAS-QAST-BLOCK() { nqp::isconcrete($!qast-block) }
+
+    method IMPL-DYNAMICALLY-COMPILED() { $!dynamically-compiled }
 
     # Which code nodes take the re-formation.
     method IMPL-REBUILD-ELIGIBLE() { 0 }
@@ -317,8 +333,12 @@ class RakuAST::Code
                 $block.annotate(nqp::iterkey_s($_), nqp::iterval($_));
             }
         }
+        self.IMPL-ON-BLOCK-REBUILT($block);
         Nil
     }
+
+    # What a node does to its re-formed block.
+    method IMPL-ON-BLOCK-REBUILT(Mu $block) { }
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $code-obj := self.meta-object;
@@ -927,8 +947,6 @@ class RakuAST::Code
         $qast-stmts
     }
 
-    method needs-sink-call() { False }
-
     method signature() { Nil }
 }
 
@@ -973,12 +991,15 @@ class RakuAST::LexicalFixup
 # The base of all expression thunks, which produce a code object of some kind
 # that wraps the thunk.
 class RakuAST::ExpressionThunk
-  is RakuAST::Code
+  is RakuAST::Node
+  does RakuAST::Code
   does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
+
+    method needs-sink-call() { False }
 
     # A callback producing QAST (or Mu) to run at the start of the thunk body,
     # before the wrapped expression. A callback, not stored QAST, because its
@@ -1564,7 +1585,7 @@ role RakuAST::ScopePhaser {
             # A phaser that is not code and holds no code blorst has no
             # do of its own to rebind.
             next unless nqp::isconcrete($code);
-            if nqp::getattr_i($code, RakuAST::Code, '$!dynamically-compiled') {
+            if $code.IMPL-DYNAMICALLY-COMPILED {
                 $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                 $stmts.push($code.IMPL-DYNAMIC-DO-REBIND-QAST($context));
             }
@@ -1822,8 +1843,8 @@ role RakuAST::ScopePhaser {
 class RakuAST::Block
   is RakuAST::LexicalScope
   is RakuAST::Term
-  is RakuAST::Code
   is RakuAST::Blorst
+  does RakuAST::Code
   does RakuAST::PlaceholderParameterOwner
   does RakuAST::ScopePhaser
   does RakuAST::StubbyMeta
@@ -2619,8 +2640,8 @@ class RakuAST::PointyBlock
 class RakuAST::Routine
   is RakuAST::LexicalScope
   is RakuAST::Term
-  is RakuAST::Code
   is RakuAST::Declaration
+  does RakuAST::Code
   does RakuAST::PlaceholderParameterOwner
   does RakuAST::ScopePhaser
   does RakuAST::StubbyMeta
@@ -2675,8 +2696,6 @@ class RakuAST::Routine
 
     method declaration-kind() { 'routine' }
 
-    # RakuAST::Code answers this too, but the method resolution order
-    # reaches RakuAST::Expression first for routines.
     method needs-sink-call() { False }
 
     method attach-target-names() {
@@ -3318,7 +3337,7 @@ class RakuAST::Routine
         # the enclosing block is where its do gets bound to the running
         # compilation.
         if self.multiness eq 'multi'
-          && nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+          && self.IMPL-DYNAMICALLY-COMPILED
           && !$context.is-precompilation-mode {
             return QAST::Stmts.new($block, self.IMPL-DYNAMIC-DO-REBIND-QAST($context));
         }
@@ -3353,7 +3372,7 @@ class RakuAST::Routine
                     # serialized routine works as the lexical's value as is.
                     $context.ensure-sc(self.meta-object);
                     my $decl := QAST::Var.new( :decl<static>, :scope<lexical>, :$name, :value(self.meta-object) );
-                    nqp::getattr_i(self, RakuAST::Code, '$!dynamically-compiled')
+                    self.IMPL-DYNAMICALLY-COMPILED
                       && !$context.is-precompilation-mode
                         ?? QAST::Stmts.new($decl, self.IMPL-DYNAMIC-DO-REBIND-QAST($context))
                         !! $decl
@@ -3616,9 +3635,7 @@ class RakuAST::RoleBody
     # A re-formation reproduces the body's statements only, so the fixup
     # nodes go back, and the accessor QAST the package splices in is
     # spliced again once its marker, which the graft kept, is cleared.
-    method IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::Code, 'IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK')(self, $context);
-        my $block := nqp::getattr(self, RakuAST::Code, '$!qast-block');
+    method IMPL-ON-BLOCK-REBUILT(Mu $block) {
         for $!fixup-nodes {
             $block[1].push($_);
         }
@@ -3677,7 +3694,7 @@ class RakuAST::RoleBody
             # The body compiles here ahead of the unit, so it takes the
             # optimize walk and the lowering a BEGIN-time routine takes
             # in its compiler thunk.
-            unless nqp::isconcrete(nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
+            unless self.IMPL-HAS-QAST-BLOCK {
                 self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
                 RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
             }
@@ -4639,11 +4656,14 @@ class RakuAST::RuleDeclaration
 # includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
 class RakuAST::RegexThunk
-  is RakuAST::Code
+  is RakuAST::Node
+  does RakuAST::Code
   does RakuAST::Meta
   does RakuAST::BeginTime
 {
     has int $!decls-placed-inline;
+
+    method needs-sink-call() { False }
 
     method IMPL-PLACE-DECLS-INLINE() {
         nqp::bindattr_i(self, RakuAST::RegexThunk, '$!decls-placed-inline', 1);

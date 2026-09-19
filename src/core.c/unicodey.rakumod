@@ -151,7 +151,7 @@ my class Rakudo::Unicodey is implementation-detail {
       'sfc','S','slc','S','space','B','stc','S','suc','S','tc','tc','uc','uc',
       'vo','S',
     );
-    my constant $prop2pref = nqp::list_s("", "", "", "S", "S", "bmg", "S", "S", "nv", "S", "", "", "S", "S", "S", "S", "S", "S", "S", "S", "S", "", "S", "S", "S", "S", "B", "S", "S", "", "S", "S", "S", "B", "", "", "B", "B", "", "", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "", "lc", "B", "B", "", "", "B", "B", "", "S", "", "", "S", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "B", "B");
+    my constant $prop2pref = nqp::list_s("", "", "", "S", "S", "bmg", "S", "S", "nv", "S", "", "", "S", "S", "S", "S", "S", "S", "S", "S", "S", "", "S", "na", "S", "S", "B", "S", "S", "", "S", "S", "S", "B", "", "", "B", "B", "", "", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "", "lc", "B", "B", "", "", "B", "B", "", "S", "", "", "S", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "B", "B");
     ## End generated code
 
     # helper sub to set prop value and representation preference for a

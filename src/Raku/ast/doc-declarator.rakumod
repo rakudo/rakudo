@@ -58,8 +58,8 @@ class RakuAST::Doc::Declarator
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
             if $!WHEREFORE.podifiable {
-                my $meta := $!WHEREFORE.meta-object;
-                if $meta.HOW.name($meta) ne 'Any' {
+                my $meta := $!WHEREFORE.IMPL-DOC-META-OBJECT($resolver, $context);
+                if !nqp::eqaddr($meta, Mu) && $meta.HOW.name($meta) ne 'Any' {
                     $resolver.find-attach-target('compunit').set-pod-content(
                       $!pod-index, self.podify($meta)
                     );
@@ -85,6 +85,13 @@ role RakuAST::Doc::DeclaratorTarget {
     # variable declarations, return False: their documentation lives on
     # the AST node only and is available through $=rakudoc.
     method podifiable() { True }
+
+    # The meta-object that carries the documentation at CHECK time, or Mu
+    # when the target has none to carry it.
+    method IMPL-DOC-META-OBJECT(RakuAST::Resolver $resolver,
+                       RakuAST::IMPL::QASTContext $context) {
+        self.meta-object
+    }
 
     # A special method to create a a Declarator and connect it to the
     # target.  Intended to be used for a .raku representation

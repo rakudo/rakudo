@@ -383,6 +383,7 @@ class RakuAST::Package
             }
         }
 
+        self.IMPL-COMPOSE-AT-CHECK($resolver, $context);
         if $!compose-exception {
             self.add-sorry: $resolver.convert-exception($!compose-exception)
         }
@@ -542,11 +543,16 @@ class RakuAST::Package
         Nil
     }
 
+    # A failed compose still produces the type. A CATCH directly in the
+    # method body would make the method return when it handles the
+    # exception, so the compose sits in its own block.
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
-        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
-        CATCH {
-            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+        {
+            self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
+            CATCH {
+                nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+            }
         }
         $type
     }
@@ -618,6 +624,37 @@ class RakuAST::Package
         # of accessor QAST.
         self.meta-object(:$resolver, :$context);
         self.IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL;
+    }
+
+    # A tree built by hand composes when its meta-object is first made,
+    # which has to happen during CHECK for a failed compose to be reported.
+    # A stub stays uncomposed for the stubbed package check. A pending BEGIN
+    # time error leaves the package uncomposed, as the parser does after an
+    # error in a package body, so that its compose adds no further error.
+    method IMPL-COMPOSE-AT-CHECK(RakuAST::Resolver $resolver,
+                        RakuAST::IMPL::QASTContext $context) {
+        self.meta-object(:$resolver, :$context)
+          unless $!is-stub || $resolver.deferred-begin-sorries;
+        Nil
+    }
+
+    # A package documents the type its compose produced, so a package
+    # whose compose failed or never ran has no type to document. A stub
+    # has no compose of its own. A class stub is documented once its
+    # definition composed the type. A role stub is documented as it is,
+    # since its type stays uncomposed when the role is defined.
+    method IMPL-DOC-META-OBJECT(RakuAST::Resolver $resolver,
+                       RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-COMPOSE-AT-CHECK($resolver, $context);
+        my $type := self.stubbed-meta-object;
+        if $!is-stub {
+            nqp::istype(self, RakuAST::Role) || $type.HOW.is_composed($type)
+              ?? $type
+              !! Mu
+        }
+        else {
+            self.has-meta-object && !$!compose-exception ?? $type !! Mu
+        }
     }
 
     method visit-children(Code $visitor) {
@@ -1049,10 +1086,12 @@ class RakuAST::Class
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $type := self.stubbed-meta-object(:$resolver, :$context);
-        self.PRODUCE-META-ATTACHABLES($type, $type.HOW);
-        self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
-        CATCH {
-            nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+        {
+            self.PRODUCE-META-ATTACHABLES($type, $type.HOW);
+            self.IMPL-COMPOSE-TYPE($type, :$resolver, :$context);
+            CATCH {
+                nqp::bindattr(self, RakuAST::Package, '$!compose-exception', $_)
+            }
         }
         $type
     }

@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 40;
+plan 43;
 
 my $ast;
 my $deparsed;
@@ -1995,6 +1995,119 @@ CODE
         nok $lexical.statements[1].expression.WHY.defined,
           "the sub after $declaration is not documented";
     }
+}
+
+subtest 'A documented type that fails to compose reports its composition error' => {
+    plan 7;
+
+    throws-like { Q:to/SOURCE/.AST },
+    role AmbiguousRole { }
+    role AmbiguousRole { }
+    #| leading doc
+    class AmbiguousClass does AmbiguousRole { }
+    SOURCE
+      X::Role::Parametric::NoSuchCandidate, line => 4,
+      'a class with a leading doc doing an ambiguous role group';
+
+    throws-like { Q:to/SOURCE/.AST },
+    role StubbedRole { method m { ... } }
+    class StubbedClass does StubbedRole { }
+    #= trailing doc
+    SOURCE
+      X::Comp::AdHoc, line => 2,
+      message => *.contains('must be implemented by StubbedClass'),
+      'a class with a trailing doc missing a method its role requires';
+
+    throws-like { Q:to/SOURCE/.AST },
+    role MethodRoleA { method m { 1 } }
+    role MethodRoleB { method m { 2 } }
+    #| leading doc
+    class MethodClass does MethodRoleA does MethodRoleB { }
+    #= trailing doc
+    SOURCE
+      X::Role::Unresolved::Method, line => 4,
+      'a class with both docs getting a method from two roles';
+
+    throws-like { Q:to/SOURCE/.AST },
+    role AttributeRoleA { has $.a }
+    role AttributeRoleB { has $.a }
+    #| leading doc
+    grammar AttributeGrammar does AttributeRoleA does AttributeRoleB { }
+    SOURCE
+      X::Role::Attribute::Conflicts, line => 4,
+      'a grammar with a leading doc getting an attribute from two roles';
+
+    try Q:to/SOURCE/.AST;
+    role DeferredRole { }
+    role DeferredRole { }
+    #| leading doc
+    class DeferredClass does DeferredRole { has $.a is nosuchtrait }
+    SOURCE
+    isa-ok $!, X::Comp::Trait::Unknown,
+      'a class with a leading doc and an error in its body reports only that error';
+    is $!.?line, 4,
+      'the error in the body of a class with a leading doc is reported at its line';
+
+    throws-like { Q:to/SOURCE/.AST },
+    #| leading doc
+    my native DocumentedNative is repr('P6int') is Int is nativesize(13) { }
+    SOURCE
+      X::Comp::AdHoc, line => 2,
+      message => *.contains('Unsupported int size'),
+      'a native type with a leading doc and an unsupported size';
+}
+
+subtest 'A documented stub is documented without being composed' => {
+    plan 2;
+
+    throws-like { Q:to/SOURCE/.AST },
+    #| leading doc
+    class NeverDefinedStub { ... }
+    SOURCE
+      X::Package::Stubbed, line => 2,
+      'a class stub with a leading doc that is never defined';
+
+    my $pod := EVAL Q:to/SOURCE/.AST;
+    #| role stub doc
+    role StubbedDocRole { ... }
+    #| role doc
+    role StubbedDocRole { }
+    #| class stub doc
+    class StubbedDocClass { ... }
+    #| class doc
+    class StubbedDocClass { }
+    $=pod
+    SOURCE
+    is-deeply $pod.map(*.leading).List,
+      ('role stub doc', 'role doc', 'class stub doc', 'class doc'),
+      'the docs of a role stub and a class stub are in $=pod';
+}
+
+subtest 'A documented class built by hand composes with its compiler services' => {
+    plan 2;
+
+    my $type := EVAL RakuAST::Class.new(
+      name => RakuAST::Name.from-identifier('DocumentedAccessorClass'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('a')
+              )
+            )
+          )
+        )
+      )
+    ).declarator-docs(leading => ("leading doc\n",));
+    is $type.^lookup('a').signature.params[0].type.^name,
+      'DocumentedAccessorClass:D',
+      'the accessor is generated for the class';
+    is $type.WHY.leading, 'leading doc',
+      'the class is documented';
 }
 
 # vim: expandtab shiftwidth=4

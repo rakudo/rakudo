@@ -951,7 +951,8 @@ role RakuAST::Code
 }
 
 class RakuAST::LexicalFixup
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
 {
     has RakuAST::Block $!block;
     has FixupList $!fixup-list;
@@ -960,7 +961,7 @@ class RakuAST::LexicalFixup
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!block', RakuAST::Block);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!fixup-list', LexicalFixup);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -2639,7 +2640,7 @@ class RakuAST::PointyBlock
 # Done by all kinds of Routine.
 class RakuAST::Routine
   is RakuAST::Term
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::LexicalScope
   does RakuAST::Code
   does RakuAST::PlaceholderParameterOwner
@@ -3459,7 +3460,7 @@ class RakuAST::Sub
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature);
@@ -3652,7 +3653,7 @@ class RakuAST::RoleBody
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         $signature := RakuAST::Signature.new unless nqp::isconcrete($signature);
@@ -3912,7 +3913,7 @@ class RakuAST::Method
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Method, '$!private',
           $private ?? True !! False);
@@ -4025,7 +4026,7 @@ class RakuAST::Method::AttributeAccessor
 
     method new(RakuAST::Name :$name, str :$attr-name, Mu :$type, Mu :$package-type, Bool :$rw) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        $obj.replace-scope('has');
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
         nqp::bindattr($obj, RakuAST::Method, '$!private', False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
@@ -4124,7 +4125,7 @@ class RakuAST::Submethod::BuildPlanExecutor
     method new(Mu :$package-type, Mu :$build-plan, Mu :$True,
             Mu :$Failure, Mu :$X-Attribute-Required, Mu :$return-routine) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'has');
+        $obj.replace-scope('has');
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', '');
         nqp::bindattr($obj, RakuAST::Method, '$!private', False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', False);
@@ -4563,7 +4564,7 @@ class RakuAST::RegexDeclaration
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature',

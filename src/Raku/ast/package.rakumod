@@ -4,7 +4,7 @@
 
 class RakuAST::Package
   is RakuAST::Term
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::LexicalScope
   does RakuAST::PackageInstaller
   does RakuAST::Lookup
@@ -65,7 +65,7 @@ class RakuAST::Package
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
@@ -660,7 +660,7 @@ class RakuAST::Package::Attachable
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type', $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);

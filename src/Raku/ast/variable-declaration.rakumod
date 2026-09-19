@@ -444,7 +444,8 @@ class RakuAST::TraitTarget::Variable
 
 # Base class for variable declarations
 class RakuAST::VarDeclaration
-  is RakuAST::Declaration { }
+  is RakuAST::Node
+  does RakuAST::Declaration { }
 
 # A basic constant declaration of the form `my Type constant $foo = 42`
 class RakuAST::VarDeclaration::Constant
@@ -470,7 +471,7 @@ class RakuAST::VarDeclaration::Constant
       List          :$traits
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -862,7 +863,7 @@ class RakuAST::VarDeclaration::Simple
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
 
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
@@ -2105,8 +2106,8 @@ class RakuAST::VarDeclaration::Auto
   is RakuAST::VarDeclaration::Simple { }
 
 class RakuAST::VarDeclaration::Signature
-  is RakuAST::Declaration
   is RakuAST::Term
+  does RakuAST::Declaration
   does RakuAST::ImplicitLookups
   does RakuAST::ImplicitDeclarations
   does RakuAST::TraitTarget
@@ -2125,7 +2126,7 @@ class RakuAST::VarDeclaration::Signature
                str :$scope, Bool :$sig-literal) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -2616,7 +2617,7 @@ class RakuAST::VarDeclaration::Anonymous
             self.IMPL-GENERATE-NAME());
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
           $shape // RakuAST::SemiList);
@@ -2677,7 +2678,7 @@ class RakuAST::VarDeclaration::AttributeAlias
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::AttributeAlias, '$!sigil', $sigil);
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!attribute', $attribute);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -2774,7 +2775,7 @@ class RakuAST::VarDeclaration::Term
     method new(str :$scope, RakuAST::Type :$type, RakuAST::Name :$name!,
             RakuAST::Initializer :$initializer) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!initializer',
@@ -2891,7 +2892,7 @@ class RakuAST::VarDeclaration::Implicit
     method new(str :$name!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3046,7 +3047,7 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
     method new(Bool :$parameter, Bool :$required, Bool :$exception, Bool :$loop) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!parameter',
             $parameter // True);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!required',
@@ -3120,7 +3121,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3166,7 +3167,7 @@ class RakuAST::VarDeclaration::Implicit::Block
     method new(Mu :$block!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Block, '$!block', $block);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3194,7 +3195,7 @@ class RakuAST::VarDeclaration::Implicit::Self
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3270,7 +3271,7 @@ class RakuAST::VarDeclaration::Implicit::Cursor
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$¢');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3353,7 +3354,7 @@ class RakuAST::VarDeclaration::Implicit::Routine
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?ROUTINE');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3377,7 +3378,7 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?BLOCK');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 }
@@ -3394,7 +3395,7 @@ class RakuAST::VarDeclaration::Implicit::State
     method new(str $name, Bool :$init-to-zero, Bool :$sentinel) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
+        $obj.replace-scope('state');
         nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', ?$init-to-zero);
         # A private initial value no user code can produce, so a first read of
         # the variable is recognizable by value.
@@ -3449,7 +3450,7 @@ class RakuAST::VarDeclaration::Implicit::Doc
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name',
           self.name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 

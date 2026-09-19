@@ -649,9 +649,7 @@ role RakuAST::LexicalScope
 }
 
 # Done by anything that is a declaration - that is, declares a symbol.
-class RakuAST::Declaration
-  is RakuAST::Node
-{
+role RakuAST::Declaration {
     has str $!scope;
 
     # When set, this declaration's lexpad slot is provided by an outer scope
@@ -798,7 +796,8 @@ role RakuAST::ImplicitDeclarations {
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL).
 class RakuAST::Declaration::External
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
 {
     has str $.lexical-name;
     has Mu $!native-type;
@@ -994,7 +993,8 @@ class RakuAST::Declaration::Import
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
 class RakuAST::Declaration::LexicalPackage
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
   does RakuAST::CompileTimeValue
   does RakuAST::Declaration::Mergeable
 {
@@ -1050,7 +1050,8 @@ class RakuAST::Declaration::LexicalPackage
 # resolution always compiles into that. The name it was looked up under is
 # not preserved.
 class RakuAST::Declaration::ResolvedConstant
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
   does RakuAST::CompileTimeValue
 {
     has Mu $.compile-time-value;

@@ -14,7 +14,8 @@ role RakuAST::Contextualizable {}
 
 # A label, which can be placed on a statement.
 class RakuAST::Label
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
   does RakuAST::ImplicitLookups
   does RakuAST::Meta
 {

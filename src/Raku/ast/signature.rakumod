@@ -2469,7 +2469,7 @@ class RakuAST::ParameterTarget::Var
 # A binding of a parameter into a lexical term.
 class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::ContainerCreator
   does RakuAST::Meta
   does RakuAST::BeginTime

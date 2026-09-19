@@ -526,7 +526,7 @@ class RakuAST::Type::AnyDefinedness
 
 class RakuAST::Type::Capture
   is RakuAST::Type
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::Meta
 {
     has RakuAST::Name $.name;
@@ -809,7 +809,7 @@ class RakuAST::Type::Parameterized
 
 class RakuAST::Type::Enum
   is RakuAST::Type
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::PackageInstaller
   does RakuAST::Meta
   does RakuAST::TraitTarget
@@ -840,7 +840,7 @@ class RakuAST::Type::Enum
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!name',
           $name // RakuAST::Name.from-identifier(''));
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
@@ -1160,7 +1160,7 @@ class RakuAST::Type::Enum
 
 class RakuAST::Type::Subset
   is RakuAST::Type
-  is RakuAST::Declaration
+  does RakuAST::Declaration
   does RakuAST::Lookup
   does RakuAST::PackageInstaller
   does RakuAST::TraitTarget
@@ -1187,7 +1187,7 @@ class RakuAST::Type::Subset
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!of', $of) if $of;
         if $where {

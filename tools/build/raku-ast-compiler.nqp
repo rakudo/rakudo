@@ -742,24 +742,32 @@ sub emit-method($package, $method) {
     my $returns := $method.returns;
     my $is-stub := $method.body.is-stub;
     if $returns && type-is-checked($returns) && !$is-stub {
-        # The body runs as a block so its value can be checked, which a
-        # return statement would bypass.
+        # A return statement would bypass the check.
         if ~$method.body ~~ / <!after <[\w$.-]>> 'return' <!before <[\w-]>> / {
             nqp::die("Method $package-name.$name declares a return type, so it cannot use return (" ~ $*CU.filename ~ ")");
         }
-        say("        my \$RESULT := \{");
-        say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
-        say("        " ~ $method.body);
-        say("        }();");
+        # A body that is one expression is checked in place. Any other body
+        # runs as a block to give it a value, and taking that closure keeps
+        # the method from being inlined. The closing paren goes on its own
+        # line so a trailing comment in the body cannot swallow it.
+        my $expression := !(~$method.body ~~ / <[;{]> /);
+        my $open  := $expression ?? '(' !! '{';
+        my $close := $expression ?? ')' !! '}()';
         if $returns eq 'Bool' {
-            say("        \$RESULT := nqp::isint(\$RESULT) ?? (nqp::unbox_i(\$RESULT) ?? (Bool.WHO)<True> !! (Bool.WHO)<False>) !! nqp::eqaddr(\$RESULT, NQPMu) ?? Bool !! \$RESULT;");
+            say("        ReturnCheck.bool($open");
+            say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
+            say("        " ~ $method.body);
+            say("        $close, '$name')");
         }
-        say("        " ~ type-check-expr($returns, '$RESULT')
-            ~ " || Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',"
-            ~ " \"Type check failed for return value of '$name'; expected $returns but got \""
-            ~ " ~ (nqp::isnull(\$RESULT) ?? 'null' !! \$RESULT.HOW.name(\$RESULT)),"
-            ~ " :got(nqp::isnull(\$RESULT) ?? Mu !! \$RESULT), :expected($returns));");
-        say("        \$RESULT");
+        else {
+            say("        my \$RESULT := $open");
+            say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
+            say("        " ~ $method.body);
+            say("        $close;");
+            say("        " ~ type-check-expr($returns, '$RESULT')
+                ~ " || ReturnCheck.failure(\$RESULT, $returns, '$name');");
+            say("        \$RESULT");
+        }
         say("    }, $returns);");
     }
     else {

@@ -1,6 +1,7 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit
-  is RakuAST::LexicalScope
+  is RakuAST::Node
+  does RakuAST::LexicalScope
   does RakuAST::ScopePhaser
   does RakuAST::SinkBoundary
   does RakuAST::ImplicitLookups
@@ -455,7 +456,7 @@ class RakuAST::CompUnit
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
 
         while $!check-phasers {
             my $check-phaser := nqp::pop($!check-phasers);

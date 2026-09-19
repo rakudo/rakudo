@@ -505,7 +505,7 @@ class RakuAST::Signature
 
 class RakuAST::FakeSignature
   is RakuAST::Term
-  is RakuAST::LexicalScope
+  does RakuAST::LexicalScope
   does RakuAST::Meta
   does RakuAST::BeginTime
 {
@@ -531,6 +531,16 @@ class RakuAST::FakeSignature
 
     method can-be-bound-to() {
         True
+    }
+
+    # The scope is the block the signature is bound to. The signature
+    # literal itself is checked as the expression it is.
+    method creates-block() {
+        nqp::findmethod(RakuAST::Expression, 'creates-block')(self)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Expression, 'PERFORM-CHECK')(self, $resolver, $context)
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

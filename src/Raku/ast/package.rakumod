@@ -5,7 +5,7 @@
 class RakuAST::Package
   is RakuAST::Term
   is RakuAST::Declaration
-  is RakuAST::LexicalScope
+  does RakuAST::LexicalScope
   does RakuAST::PackageInstaller
   does RakuAST::Lookup
   does RakuAST::StubbyMeta
@@ -405,7 +405,7 @@ class RakuAST::Package
             self.add-sorry: $resolver.build-exception: 'X::TooLateForREPR', type => self.stubbed-meta-object;
         }
 
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
     }
 
     method install-extra-declarations(RakuAST::Resolver $resolver) {

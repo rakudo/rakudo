@@ -1,6 +1,5 @@
 # Done by anything that implies a lexical scope.
-class RakuAST::LexicalScope
-  is RakuAST::Node
+role RakuAST::LexicalScope
   does RakuAST::MayCreateBlock
 {
     # Caching of lexical declarations in this scope due to AST nodes.
@@ -348,6 +347,12 @@ class RakuAST::LexicalScope
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
+    }
+
+    # Check the declarations of the scope, which a node with more to
+    # check at CHECK time calls from its own PERFORM-CHECK.
+    method IMPL-CHECK-DECLARATIONS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %lookup;
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
             my $lexical-name := $_.lexical-name;
@@ -438,6 +443,32 @@ class RakuAST::LexicalScope
     # code-gen time, that's fine.
     method IMPL-HAS-CATCH-HANDLER() {
         $!catch-handlers ?? True !! False
+    }
+
+    method IMPL-HAS-CONTROL-HANDLER() {
+        $!control-handlers ?? True !! False
+    }
+
+    # Hand the exception handlers attached to this scope, and the succeed
+    # handler it was asked for, to another scope. Returns whether the
+    # succeed handler moved.
+    method IMPL-MOVE-HANDLERS-TO(RakuAST::LexicalScope $scope) {
+        for $!catch-handlers // [] {
+            $scope.attach-catch-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', nqp::null());
+        for $!control-handlers // [] {
+            $scope.attach-control-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', nqp::null());
+        if $!need-succeed-handler {
+            nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+            $scope.require-succeed-handler();
+            True
+        }
+        else {
+            False
+        }
     }
 
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,

@@ -146,8 +146,7 @@ class RakuAST::StatementPrefix::Sink
 
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
-class RakuAST::StatementPrefix::Thunky
-  is RakuAST::StatementPrefix
+role RakuAST::StatementPrefix::Thunky
   does RakuAST::Code
   does RakuAST::Meta
   does RakuAST::BeginTime
@@ -277,7 +276,8 @@ class RakuAST::StatementPrefix::Thunky
 # expression in a called code object like the traditional grammar, where
 # a backtrace shows the call as a frame.
 class RakuAST::StatementPrefix::Try
-  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
   does RakuAST::SinkPropagator
   does RakuAST::ImplicitLookups
 {
@@ -386,7 +386,8 @@ class RakuAST::StatementPrefix::Try
 
 # The `gather` statement prefix.
 class RakuAST::StatementPrefix::Gather
-  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
   does RakuAST::SinkPropagator
 {
     method type() { "gather" }
@@ -402,7 +403,8 @@ class RakuAST::StatementPrefix::Gather
 
 # Statement prefix base class for generic blorst handling
 class RakuAST::StatementPrefix::Blorst
-  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
   does RakuAST::SinkPropagator
   does RakuAST::ImplicitBlockSemanticsProvider
 {
@@ -682,7 +684,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
 # The BEGIN phaser.
 class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu  $!value;
     has int $!has-value;
@@ -743,7 +745,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu $!value;
 
@@ -778,7 +780,7 @@ class RakuAST::StatementPrefix::Phaser::Check
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     has Scalar $.container;
 
@@ -821,7 +823,7 @@ class RakuAST::StatementPrefix::Phaser::Init
 # The ENTER phaser.
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     has str $!result-name;
 
@@ -870,7 +872,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
 # The END phaser.
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     method type() { "END" }
 
@@ -907,7 +909,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
 # base class for all other phasers that are connect to the current block
 class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
+  does RakuAST::StatementPrefix::Thunky
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         ($resolver.find-attach-target('block')

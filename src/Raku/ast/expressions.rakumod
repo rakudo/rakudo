@@ -1,6 +1,5 @@
 # Marker for anything that can be used as the source for a capture.
-class RakuAST::CaptureSource
-  is RakuAST::Node { }
+role RakuAST::CaptureSource { }
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
@@ -3414,7 +3413,7 @@ class RakuAST::MetaPrefix::Hyper
 
 class RakuAST::Termish
   is RakuAST::Expression
-  is RakuAST::CaptureSource { }
+  does RakuAST::CaptureSource { }
 
 # Everything that is a kind of term does RakuAST::Term.
 class RakuAST::Term

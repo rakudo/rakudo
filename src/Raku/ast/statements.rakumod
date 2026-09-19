@@ -1,8 +1,6 @@
 # Block or statement, used in statement prefixes which can take either a
 # block or a statement
-class RakuAST::Blorst
-  is RakuAST::Node
-{
+role RakuAST::Blorst {
     method as-block() {
         nqp::die("RakuAST::Blorst classes must define 'as-block'. " ~ self.HOW.name(self) ~ " does not.")
     }
@@ -76,7 +74,8 @@ class RakuAST::Label
 
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement
-  is RakuAST::Blorst
+  is RakuAST::Node
+  does RakuAST::Blorst
 {
     has Mu  $.labels;
     has int $.trace;

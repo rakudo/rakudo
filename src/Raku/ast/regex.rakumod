@@ -690,7 +690,7 @@ class RakuAST::Regex::Nested
 # A (positional, at least by default) capturing regex group, from the (...) syntax.
 class RakuAST::Regex::CapturingGroup
   is RakuAST::Regex::Atom
-  is RakuAST::RegexThunk
+  does RakuAST::RegexThunk
   does RakuAST::ImplicitDeclarations
 {
     has RakuAST::Regex $.regex;
@@ -1604,7 +1604,7 @@ class RakuAST::Regex::Assertion::Named::Args
 # A named rule called with a regex argument.
 class RakuAST::Regex::Assertion::Named::RegexArg
   is RakuAST::Regex::Assertion::Named
-  is RakuAST::RegexThunk
+  does RakuAST::RegexThunk
 {
     has RakuAST::Regex $.regex-arg;
 

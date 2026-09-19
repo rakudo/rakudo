@@ -1843,7 +1843,7 @@ role RakuAST::ScopePhaser {
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block
   is RakuAST::Term
-  is RakuAST::Blorst
+  does RakuAST::Blorst
   does RakuAST::LexicalScope
   does RakuAST::Code
   does RakuAST::PlaceholderParameterOwner
@@ -4656,8 +4656,7 @@ class RakuAST::RuleDeclaration
 # a separate regex code object but without introducing a new lexical scope. This
 # includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
-class RakuAST::RegexThunk
-  is RakuAST::Node
+role RakuAST::RegexThunk
   does RakuAST::Code
   does RakuAST::Meta
   does RakuAST::BeginTime
@@ -4854,8 +4853,8 @@ class RakuAST::QuotedMatchConstruct
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
 class RakuAST::QuotedRegex
-  is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
+  does RakuAST::RegexThunk
   does RakuAST::ImplicitLookups
 {
     has RakuAST::Regex $.body;
@@ -4998,8 +4997,8 @@ class RakuAST::QuotedRegex
 
 # A substitution, such as `s/abc/def/`, `S/not_in/place/`, or `s/abc/ = 'def'`.
 class RakuAST::Substitution
-  is RakuAST::RegexThunk
   is RakuAST::QuotedMatchConstruct
+  does RakuAST::RegexThunk
   does RakuAST::ImplicitLookups
 {
     has Bool $.immutable;

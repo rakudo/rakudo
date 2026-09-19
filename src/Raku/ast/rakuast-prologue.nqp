@@ -77,6 +77,49 @@
             make-method($package, $name, @parameters, nqp::getstaticcode($impl), $returns, $yada));
     }
 
+    # The checks the generator emits for a declared return type call these,
+    # which keeps a checked method small enough to inline. They are methods
+    # of a class because a node method runs as static code, which can reach
+    # a type but not a sub of this block. MoarVM inlines a frame only below
+    # a bytecode size limit, so each method here has to stay under it for a
+    # checked method to cost what an unchecked one does. Merging two of them
+    # goes over it. Running with MVM_SPESH_INLINE_LOG=1 says whether bool,
+    # bool-from-int and a checked method such as sunk still inline.
+    my class ReturnCheck {
+        method failure($value, $type, $name) {
+            Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',
+                "Type check failed for return value of '$name'; expected "
+                    ~ $type.HOW.name($type) ~ " but got "
+                    ~ (nqp::isnull($value) ?? 'null' !! $value.HOW.name($value)),
+                :got(nqp::isnull($value) ?? Mu !! $value), :expected($type));
+        }
+
+        # A VM integer becomes a Bool, as it does for a Bool parameter. The
+        # other values are handled apart so that this stays small enough to
+        # inline.
+        method bool($value, $name) {
+            nqp::isint($value)
+              ?? self.bool-from-int(nqp::unbox_i($value))
+              !! self.bool-object($value, $name)
+        }
+
+        # This reads the stash because a frame that uses nqp::hllboolfor
+        # is never inlined into a Raku caller.
+        method bool-from-int(int $value) {
+            $value ?? (Bool.WHO)<True> !! (Bool.WHO)<False>
+        }
+
+        # The NQPMu that NQP code returns for an absent value becomes the
+        # Bool type object.
+        method bool-object($value, $name) {
+            nqp::istype($value, Bool)
+              ?? $value
+              !! nqp::eqaddr($value, NQPMu)
+                ?? Bool
+                !! self.failure($value, Bool, $name)
+        }
+    }
+
     sub compose($type) {
         # A role's methods are static code with the role as their invocant
         # type, shared by every class doing the role, so its body only has

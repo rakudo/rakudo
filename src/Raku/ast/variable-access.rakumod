@@ -633,13 +633,13 @@ class RakuAST::Var::Attribute::Public
     }
 }
 
-# The base for special compiler variables ($?FOO).
-class RakuAST::Var::Compiler
-  is RakuAST::Var { }
+# Done by special compiler variables ($?FOO).
+role RakuAST::Var::Compiler { }
 
 # The $?LANG variable which refers to the cursor at that point of the parse.
 class RakuAST::Var::Compiler::Lang
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Mu $.cursor;
 
@@ -664,7 +664,8 @@ class RakuAST::Var::Compiler::Lang
 
 # The $?FILE variable, which is created pre-resolved to a string value.
 class RakuAST::Var::Compiler::File
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Str $.file;
 
@@ -689,7 +690,8 @@ class RakuAST::Var::Compiler::File
 
 # The $?LINE variable, which is created pre-resolved to an integer value.
 class RakuAST::Var::Compiler::Line
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Int $.line;
 
@@ -713,7 +715,8 @@ class RakuAST::Var::Compiler::Line
 }
 
 class RakuAST::Var::Compiler::Block
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has int $!lexical;
 
@@ -740,8 +743,8 @@ class RakuAST::Var::Compiler::Block
 }
 
 class RakuAST::Var::Compiler::Routine
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
+  does RakuAST::Var::Compiler
 {
     method new() {
         my $obj := nqp::create(self);
@@ -769,8 +772,8 @@ class RakuAST::Var::Compiler::Routine
 }
 
 class RakuAST::Var::Compiler::Resources
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
+  does RakuAST::Var::Compiler
   does RakuAST::ImplicitLookups
 {
     method new() {
@@ -804,8 +807,8 @@ class RakuAST::Var::Compiler::Resources
 }
 
 class RakuAST::Var::Compiler::Distribution
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
+  does RakuAST::Var::Compiler
   does RakuAST::ImplicitLookups
 {
     method new() {
@@ -840,7 +843,8 @@ class RakuAST::Var::Compiler::Distribution
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
   does RakuAST::Lookup
   does RakuAST::ParseTime
 {

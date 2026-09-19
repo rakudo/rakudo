@@ -442,15 +442,14 @@ class RakuAST::TraitTarget::Variable
     }
 }
 
-# Base class for variable declarations
-class RakuAST::VarDeclaration
-  is RakuAST::Node
+# Done by variable declarations
+role RakuAST::VarDeclaration
   does RakuAST::Declaration { }
 
 # A basic constant declaration of the form `my Type constant $foo = 42`
 class RakuAST::VarDeclaration::Constant
-  is RakuAST::VarDeclaration
   is RakuAST::Term
+  does RakuAST::VarDeclaration
   does RakuAST::TraitTarget
   does RakuAST::CompileTimeValue
   does RakuAST::ImplicitLookups
@@ -700,8 +699,8 @@ class RakuAST::Expression::QAST
 # A basic variable declaration of the form `my SomeType $foo = 42` or
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
-  is RakuAST::VarDeclaration
   is RakuAST::Term
+  does RakuAST::VarDeclaration
   does RakuAST::ContainerCreator
   does RakuAST::ImplicitLookups
   does RakuAST::TraitTarget
@@ -2667,7 +2666,8 @@ class RakuAST::VarDeclaration::Anonymous
 }
 
 class RakuAST::VarDeclaration::AttributeAlias
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has RakuAST::Name $.desigilname;
     has str $.sigil;
@@ -2764,8 +2764,8 @@ class RakuAST::VarDeclaration::AttributeAlias
 
 # The declaration of a term (sigilless) variable.
 class RakuAST::VarDeclaration::Term
-  is RakuAST::VarDeclaration
   is RakuAST::Term
+  does RakuAST::VarDeclaration
   does RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type $.type;
@@ -2862,7 +2862,8 @@ class RakuAST::VarDeclaration::Term
 
 # The commonalities for implicitly declared variables.
 class RakuAST::VarDeclaration::Implicit
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has str $.name;
 
@@ -3159,7 +3160,8 @@ class RakuAST::VarDeclaration::Implicit::EnumValue
 
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
   does RakuAST::CheckTime
 {
     has Mu $.block;
@@ -3580,8 +3582,8 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
 
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
-  is RakuAST::VarDeclaration
   is RakuAST::Term
+  does RakuAST::VarDeclaration
   does RakuAST::BeginTime
 {
     has Bool $!already-declared;

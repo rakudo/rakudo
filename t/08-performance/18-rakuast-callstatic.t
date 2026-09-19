@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 96;
+plan 112;
 
 # A call to a named setting routine compiles its callee lookup as a static
 # one, which the VM may resolve a single time. So does a call to a routine
@@ -51,11 +51,50 @@ qast-is 'multi sub mf(Int $x) { return 1 }; multi sub mf(Str $x) { return 2 }; m
     and not qast-op-named(v, 'call', '&mf')
 }, 'a call to a multi declared in the outermost scope compiles to a static callee lookup';
 
-# The recursive call inside the sub is not asserted on: the sub's own name
-# is visible in its own scope, so the mark declines it there.
-qast-is 'sub fact($n) { return 1 if $n < 2; fact($n - 1) * $n }; fact(5)', -> \v {
-    qast-op-named(v, 'callstatic', '&fact')
-}, 'the outer call to a recursive sub compiles to a static callee lookup';
+qast-is 'sub fact($n) { return 1 if $n < 2; fact($n - 1) * $n }; fact(5)', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&fact')
+    and not qast-op-named(v, 'call', '&fact')
+}, 'a recursive call and the outer call to the same sub both compile to a static callee lookup';
+
+qast-is 'sub shadowed($n) { my &shadowed = { 42 }; shadowed($n) }', :full, -> \v {
+        qast-op-named(v, 'call', '&shadowed')
+    and not qast-op-named(v, 'callstatic', '&shadowed')
+}, 'a call inside a sub that redeclares its own name keeps the plain callee lookup';
+
+qast-is 'sub pshadowed(&pshadowed) { pshadowed(1) }', :full, -> \v {
+        qast-op-named(v, 'call', '&pshadowed')
+    and not qast-op-named(v, 'callstatic', '&pshadowed')
+}, 'a call inside a sub whose parameter takes its own name keeps the plain callee lookup';
+
+qast-is 'sub nouter() { my sub nfact($n) { return 1 if $n < 2; nfact($n - 1) * $n }; nfact(3) }', :full, -> \v {
+        qast-op-named(v, 'call', '&nfact')
+    and not qast-op-named(v, 'callstatic', '&nfact')
+}, 'a recursive call to a sub nested in another routine keeps the plain callee lookup';
+
+qast-is 'sub bfact($n) { return 1 if $n < 2; my $c = { bfact($n - 1) }; $c() * $n }', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&bfact')
+    and not qast-op-named(v, 'call', '&bfact')
+}, 'a recursive call from a block nested in the sub compiles to a static callee lookup';
+
+qast-is 'sub hfact($n) { my sub helper($m) { hfact($m) }; $n < 2 ?? 1 !! helper($n - 1) * $n }', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&hfact')
+    and not qast-op-named(v, 'call', '&hfact')
+}, 'a call back to the enclosing outermost-scope sub from a routine nested in it compiles to a static callee lookup';
+
+qast-is 'sub infix:<rr>($a, $b) { $a < 1 ?? $b !! ($a - 1) rr $b }', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&infix:<rr>')
+    and not qast-op-named(v, 'call', '&infix:<rr>')
+}, 'a recursive use of a user infix declared in the outermost scope compiles to a static callee lookup';
+
+qast-is 'my $x = sub efact($n) { return 1 if $n < 2; efact($n - 1) * $n }', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&efact')
+    and not qast-op-named(v, 'call', '&efact')
+}, 'a recursive call in a named sub expression in the outermost scope compiles to a static callee lookup';
+
+qast-is 'for 1..2 -> $k { my $x = sub lfact($n) { $n < 1 ?? $k !! lfact($n - 1) } }', :full, -> \v {
+        qast-op-named(v, 'call', '&lfact')
+    and not qast-op-named(v, 'callstatic', '&lfact')
+}, 'a recursive call in a named sub expression in a loop body keeps the plain callee lookup';
 
 qast-is 'use Test; plan 1', -> \v {
         qast-op-named(v, 'callstatic', '&plan')
@@ -331,6 +370,29 @@ multi sub rt-mf(Str $x) { return 2 }
 sub rt-add($x) { $base + $x }
 
 is rt-fact(5), 120, 'a recursive outermost-scope sub computes through static lookups';
+
+sub rt-wfact($n) { return 1 if $n < 2; rt-wfact($n - 1) * $n }
+my $rt-wfact-wrapped = 0;
+my $rt-wfact-handle = &rt-wfact.wrap(-> $n { $rt-wfact-wrapped++; callsame });
+is rt-wfact(4), 24, 'a wrapped recursive outermost-scope sub still computes its value';
+is $rt-wfact-wrapped, 4, 'a wrapper on a recursive sub runs for each recursive call';
+&rt-wfact.unwrap($rt-wfact-handle);
+$rt-wfact-wrapped = 0;
+rt-wfact(4);
+is $rt-wfact-wrapped, 0, 'an unwrapped recursive sub no longer runs the wrapper on its recursive calls';
+
+sub rt-nest($k) { my sub rt-inner($n) { $n < 1 ?? $k !! rt-inner($n - 1) }; rt-inner(2) }
+is rt-nest(5), 5, 'a nested recursive sub reaches its own clone on the first entry';
+is rt-nest(6), 6, 'a nested recursive sub reaches the fresh clone on the next entry';
+
+sub rt-shadowed($n) { my &rt-shadowed = { 42 }; rt-shadowed($n) }
+is rt-shadowed(1), 42, 'a call inside a sub that redeclares its own name reaches the redeclaration';
+sub rt-pshadowed(&rt-pshadowed) { rt-pshadowed(1) }
+is rt-pshadowed({ $_ + 41 }), 42, 'a call inside a sub whose parameter takes its own name reaches the argument';
+
+my @rt-loop-subs = (1..2).map: -> $k { sub rt-lfact($n) { $n < 1 ?? $k !! rt-lfact($n - 1) } };
+is @rt-loop-subs.map({ $_(2) }).join(','), '1,2',
+    'a recursive named sub expression in a loop body reaches the clone of its own entry';
 is rt-mf(1), 1, 'a multi called with an Int picks the Int candidate';
 is rt-mf("x"), 2, 'a multi called with a Str picks the Str candidate';
 is rt-add(5), 15, 'an outermost-scope sub closing over a mainline lexical reads it';

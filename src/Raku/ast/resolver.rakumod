@@ -1353,14 +1353,17 @@ class RakuAST::Resolver::EVAL
     }
 
     # Whether the nearest active scope declaring the name is the outermost
-    # one and declares it as the given declaration.
+    # one and declares it as the given declaration. A routine's own scope
+    # finding the routine itself is skipped, since that lookup runs in the
+    # enclosing frame.
     method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);
         while $i-- {
             my $found := @scopes[$i].find-lexical($name);
             return nqp::eqaddr(@scopes[$i], @scopes[0]) && nqp::eqaddr($found, $decl) ?? 1 !! 0
-                if nqp::isconcrete($found);
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i], $decl));
         }
         0
     }
@@ -1714,14 +1717,17 @@ class RakuAST::Resolver::Compile
     # parsed answers from its live declaration map, so its AST lexical
     # lookup table is not cached before its declarations are complete.
     # The outermost scope can be on the stack twice, entered by the parse
-    # and pushed again by a batch walk, so scopes compare by node.
+    # and pushed again by a batch walk, so scopes compare by node. A
+    # routine's own scope finding the routine itself is skipped, since
+    # that lookup runs in the enclosing frame.
     method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);
         while $i-- {
             my $found := @scopes[$i].find-lexical($name);
             return nqp::eqaddr(@scopes[$i].scope, @scopes[0].scope) && nqp::eqaddr($found, $decl) ?? 1 !! 0
-                if nqp::isconcrete($found);
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i].scope, $decl));
         }
         0
     }

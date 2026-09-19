@@ -3,7 +3,7 @@
 # kind of RakuAST::Type.
 class RakuAST::Term::Name
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
@@ -179,7 +179,7 @@ class RakuAST::Term::False {
 # The self term for getting the current invocant
 class RakuAST::Term::Self
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has RakuAST::Var::Attribute::Public $!variable;
@@ -307,7 +307,7 @@ class RakuAST::Term::TopicCall
 # A named term that is implemented by a call to term:<foo>.
 class RakuAST::Term::Named
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has str $.name;
@@ -347,7 +347,7 @@ class RakuAST::Term::Named
 # The empty set term.
 class RakuAST::Term::EmptySet
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     method new() {
@@ -370,7 +370,7 @@ class RakuAST::Term::EmptySet
 # The rand term.
 class RakuAST::Term::Rand
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     method new() {
@@ -430,7 +430,7 @@ class RakuAST::Term::Whatever
 # This is what a Term::Whatever often -- but not always -- becomes.
 class RakuAST::WhateverCode::Argument
   is RakuAST::Term
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::BeginTime
 {
     has RakuAST::Name $!name;

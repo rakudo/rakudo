@@ -125,7 +125,7 @@ class RakuAST::Exception::TooComplex {
 # Array composer circumfix.
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::ColonPairish
 {
@@ -205,7 +205,7 @@ class RakuAST::Circumfix::ArrayComposer
 # on it for performing this disambiguation.
 class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has RakuAST::Expression $.expression;

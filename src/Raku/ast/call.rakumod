@@ -276,7 +276,7 @@ class RakuAST::Call {
 class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::BeginTime
 {
@@ -1213,7 +1213,7 @@ class RakuAST::Call::QuotedMethod
 # A call to a private method.
 class RakuAST::Call::PrivateMethod
   is RakuAST::Call::Methodish
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ImplicitLookups
   does RakuAST::ParseTime
   does RakuAST::CheckTime
@@ -1424,7 +1424,7 @@ class RakuAST::Call::MetaMethod
 
 class RakuAST::Call::NameAsMethod
   is RakuAST::Call::Methodish
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::BeginTime
   does RakuAST::CheckTime
 {

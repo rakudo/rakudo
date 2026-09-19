@@ -1,7 +1,7 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit
   is RakuAST::LexicalScope
-  is RakuAST::ScopePhaser
+  does RakuAST::ScopePhaser
   does RakuAST::SinkBoundary
   does RakuAST::ImplicitLookups
   does RakuAST::ImplicitDeclarations

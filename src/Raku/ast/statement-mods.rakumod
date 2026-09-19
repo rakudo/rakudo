@@ -366,7 +366,7 @@ class RakuAST::StatementModifier::Given
 # The for statement modifier.
 class RakuAST::StatementModifier::For
   is RakuAST::StatementModifier::Loop
-  is RakuAST::ForLoopImplementation
+  does RakuAST::ForLoopImplementation
   does RakuAST::ImplicitLookups
 {
     # Set when the optimize pass has approved lowering a CORE integer-range

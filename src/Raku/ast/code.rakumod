@@ -1217,9 +1217,7 @@ class RakuAST::ExpressionThunk
 }
 
 # A code object that can have placeholder parameters.
-class RakuAST::PlaceholderParameterOwner
-  is RakuAST::Node
-{
+role RakuAST::PlaceholderParameterOwner {
     # Any placeholder parameters that have been attached
     has Mu $!attached-placeholder-parameters;
 
@@ -1339,7 +1337,7 @@ class RakuAST::PlaceholderParameterOwner
     }
 }
 
-class RakuAST::ScopePhaser {
+role RakuAST::ScopePhaser {
     has Bool $!has-exit-handler;
     has Bool $!is-loop-body;
     has List $!ENTER;
@@ -1809,6 +1807,15 @@ class RakuAST::ScopePhaser {
         # TOOD: Also check '$!phasers' hash on the meta-object
         nqp::elems(nqp::getattr(self, RakuAST::ScopePhaser, '$!' ~ $phaser-name) // []) > 0
     }
+
+    # Take the phasers of the given kind away, leaving none, so another
+    # scope can own them.
+    method IMPL-TAKE-PHASERS(str $phaser-name) {
+        my $attr := '$!' ~ $phaser-name;
+        my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
+        nqp::bindattr(self, RakuAST::ScopePhaser, $attr, nqp::null());
+        $list // []
+    }
 }
 
 # A block, either without signature or with only a placeholder signature.
@@ -1817,8 +1824,8 @@ class RakuAST::Block
   is RakuAST::Term
   is RakuAST::Code
   is RakuAST::Blorst
-  is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ScopePhaser
+  does RakuAST::PlaceholderParameterOwner
+  does RakuAST::ScopePhaser
   does RakuAST::StubbyMeta
   does RakuAST::BlockStatementSensitive
   does RakuAST::SinkPropagator
@@ -2614,8 +2621,8 @@ class RakuAST::Routine
   is RakuAST::Term
   is RakuAST::Code
   is RakuAST::Declaration
-  is RakuAST::PlaceholderParameterOwner
-  is RakuAST::ScopePhaser
+  does RakuAST::PlaceholderParameterOwner
+  does RakuAST::ScopePhaser
   does RakuAST::StubbyMeta
   does RakuAST::ImplicitDeclarations
   does RakuAST::ImplicitLookups

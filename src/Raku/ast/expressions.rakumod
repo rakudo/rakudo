@@ -171,8 +171,9 @@ class RakuAST::Expression
 #-------------------------------------------------------------------------------
 # Role for handling operator properties
 
-class RakuAST::OperatorProperties
-{
+role RakuAST::OperatorProperties {
+    # The properties of the operator when nothing declares them.
+    method default-operator-properties() { ... }
 
     # Obtain operator properties from config or from actual object
     method properties() {
@@ -313,8 +314,8 @@ class RakuAST::Infixish
 # others need more special attention.
 class RakuAST::Infix
   is RakuAST::Infixish
-  is RakuAST::OperatorProperties
-  is RakuAST::Lookup
+  does RakuAST::OperatorProperties
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -3112,8 +3113,10 @@ class RakuAST::ApplyListInfix
 # The base of all dotty infixes (`$foo .bar` or `$foo .= bar()`).
 class RakuAST::DottyInfixish
   is RakuAST::Node
-  is RakuAST::OperatorProperties
+  does RakuAST::OperatorProperties
 {
+    method default-operator-properties() { ... }
+
     method new() { nqp::create(self) }
 
     method IMPL-PRIMES() { 0 }
@@ -3261,8 +3264,8 @@ class RakuAST::Prefixish
 # A lookup of a simple (non-meta) prefix operator.
 class RakuAST::Prefix
   is RakuAST::Prefixish
-  is RakuAST::OperatorProperties
-  is RakuAST::Lookup
+  does RakuAST::OperatorProperties
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -3554,9 +3557,11 @@ class RakuAST::ApplyPrefix
 # Marker for all kinds of postfixish operators.
 class RakuAST::Postfixish
   is RakuAST::Node
-  is RakuAST::OperatorProperties
+  does RakuAST::OperatorProperties
 {
     has List $.colonpairs;
+
+    method default-operator-properties() { ... }
 
     method set-colonpairs(List $pairs) {
         my @pairs;
@@ -3606,7 +3611,7 @@ class RakuAST::Postfixish
 # A lookup of a simple (non-meta) postfix operator.
 class RakuAST::Postfix
   is RakuAST::Postfixish
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -3683,7 +3688,7 @@ class RakuAST::Postfix
 # Base class for literal postfixes
 class RakuAST::Postfix::Literal
   is RakuAST::Postfixish
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has Mu $!value;
@@ -3820,7 +3825,7 @@ class RakuAST::Postcircumfix::Index
 # A postcircumfix array index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::ArrayIndex
   is RakuAST::Postcircumfix::Index
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::CheckTime
   does RakuAST::ParseTime
 {
@@ -4035,7 +4040,7 @@ class RakuAST::Postcircumfix::ArrayIndex
 # A postcircumfix hash index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::HashIndex
   is RakuAST::Postcircumfix::Index
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -4122,7 +4127,7 @@ class RakuAST::Postcircumfix::HashIndex
 # A postcircumfix literal hash index operator.
 class RakuAST::Postcircumfix::LiteralHashIndex
   is RakuAST::Postcircumfix
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
   does RakuAST::CheckTime
 {
@@ -4459,8 +4464,8 @@ class RakuAST::Ternary
 # A for loop. Is here because it inherits from Term, so it must be defined after that.
 class RakuAST::Statement::For
   is RakuAST::Statement
-  is RakuAST::ForLoopImplementation
   is RakuAST::Term
+  does RakuAST::ForLoopImplementation
   does RakuAST::SinkPropagator
   does RakuAST::BlockStatementSensitive
   does RakuAST::ImplicitBlockSemanticsProvider

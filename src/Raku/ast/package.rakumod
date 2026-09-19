@@ -3,11 +3,11 @@
 # itself
 
 class RakuAST::Package
-  is RakuAST::PackageInstaller
   is RakuAST::Term
   is RakuAST::Declaration
   is RakuAST::LexicalScope
-  is RakuAST::Lookup
+  does RakuAST::PackageInstaller
+  does RakuAST::Lookup
   does RakuAST::StubbyMeta
   does RakuAST::TraitTarget
   does RakuAST::ImplicitBlockSemanticsProvider

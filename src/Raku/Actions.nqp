@@ -100,14 +100,9 @@ sub wrap-in-for-loop($ast) {
 # the compilation unit was the enclosing attach target. Block phasers such
 # as ENTER and LEAVE stay on the mainline.
 sub move-loop-phasers-to-body($compunit, $body) {
-    my $ScopePhaser := Nodify('ScopePhaser');
     for ['FIRST', 'NEXT', 'LAST'] -> $type {
-        my $list := nqp::getattr($compunit, $ScopePhaser, '$!' ~ $type);
-        if $list {
-            for $list {
-                $body.add-phaser($type, $_);
-            }
-            nqp::bindattr($compunit, $ScopePhaser, '$!' ~ $type, nqp::null());
+        for $compunit.IMPL-TAKE-PHASERS($type) {
+            $body.add-phaser($type, $_);
         }
     }
 }

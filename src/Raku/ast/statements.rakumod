@@ -188,9 +188,7 @@ role RakuAST::ImplicitBlockSemanticsProvider {
     method apply-implicit-block-semantics(:$resolver, :$context) { ... }
 }
 
-class RakuAST::ForLoopImplementation
-  is RakuAST::Node
-{
+role RakuAST::ForLoopImplementation {
     method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
             str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
         # TODO various optimized forms are possible here
@@ -2496,14 +2494,14 @@ class RakuAST::Categorical {
     }
 }
 
-class RakuAST::ModuleLoading {
+role RakuAST::ModuleLoading {
     has List $!categoricals;
     has Hash $!superseded-declarators;
     has Hash $!declarators;
     has Hash $!unchecked-declarators;
 
     method categoricals() {
-        self.IMPL-WRAP-LIST($!categoricals)
+        self.IMPL-WRAP-LIST($!categoricals // [])
     }
 
     method superseded-declarators() {
@@ -2646,7 +2644,9 @@ class RakuAST::ModuleLoading {
 
             my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
             if $categorical {
-                nqp::push($!categoricals, RakuAST::Categorical.new(
+                nqp::push(
+                  $!categoricals // nqp::bindattr(self, RakuAST::ModuleLoading, '$!categoricals', []),
+                  RakuAST::Categorical.new(
                     :category(~$categorical[0]),
                     :opname(~$categorical[1]),
                     :subname(nqp::substr($key, 1)),
@@ -2763,7 +2763,7 @@ class RakuAST::ModuleLoading {
 # A use statement.
 class RakuAST::Statement::Use
   is RakuAST::Statement
-  is RakuAST::ModuleLoading
+  does RakuAST::ModuleLoading
   does RakuAST::ProducesNil
   does RakuAST::BeginTime
 {
@@ -2773,7 +2773,6 @@ class RakuAST::Statement::Use
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
             $argument // RakuAST::Expression);
         $obj.set-labels($labels);
@@ -2865,7 +2864,7 @@ class RakuAST::Statement::LanguageVersion
 # A need statement.
 class RakuAST::Statement::Need
   is RakuAST::Statement
-  is RakuAST::ModuleLoading
+  does RakuAST::ModuleLoading
   does RakuAST::ProducesNil
   does RakuAST::BeginTime
 {
@@ -2875,7 +2874,6 @@ class RakuAST::Statement::Need
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names',
           self.IMPL-UNWRAP-LIST($module-names));
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         $obj.set-labels($labels);
         $obj
     }
@@ -2899,8 +2897,8 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
-  is RakuAST::ModuleLoading
-  is RakuAST::Lookup
+  does RakuAST::ModuleLoading
+  does RakuAST::Lookup
   does RakuAST::ProducesNil
   does RakuAST::ParseTime
   does RakuAST::BeginTime
@@ -2911,7 +2909,6 @@ class RakuAST::Statement::Import
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Import, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Import, '$!argument',
             $argument // RakuAST::Expression);
         $obj.set-labels($labels);

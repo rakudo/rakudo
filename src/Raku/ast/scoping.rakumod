@@ -1058,9 +1058,7 @@ class RakuAST::Declaration::ResolvedConstant
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution
 # at compile time.
-class RakuAST::Lookup
-  is RakuAST::Node
-{
+role RakuAST::Lookup {
     has RakuAST::Declaration $!resolution;
 
     # Set by the optimize pass when the name still reaches the declaration
@@ -1763,7 +1761,7 @@ role RakuAST::ImplicitLookups {
 }
 
 # Anything that needs to stub packages into existence -- or to fill in stubbed packages -- does RakuAST::PackageInstaller
-class RakuAST::PackageInstaller {
+role RakuAST::PackageInstaller {
     ### Consuming classes must define:
     #    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) { ... }
 

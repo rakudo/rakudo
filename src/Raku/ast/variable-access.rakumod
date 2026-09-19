@@ -23,7 +23,7 @@ class RakuAST::Var
 # A typical lexical variable lookup (e.g. $foo).
 class RakuAST::Var::Lexical
   is RakuAST::Var
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has str $.sigil;
@@ -189,7 +189,7 @@ class RakuAST::Var::Lexical::Setting
 # A dynamic variable lookup (e.g. $*foo).
 class RakuAST::Var::Dynamic
   is RakuAST::Var
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has str $.name;
@@ -841,7 +841,7 @@ class RakuAST::Var::Compiler::Distribution
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
   is RakuAST::Var::Compiler
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has str $.name;
@@ -1030,7 +1030,7 @@ class RakuAST::Var::NamedCapture
 # A package variable, i.e. $Foo::bar
 class RakuAST::Var::Package
   is RakuAST::Var
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::ParseTime
 {
     has str $.sigil;

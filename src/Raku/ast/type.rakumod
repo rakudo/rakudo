@@ -82,7 +82,7 @@ class RakuAST::Type
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple
   is RakuAST::Type
-  is RakuAST::Lookup
+  does RakuAST::Lookup
   does RakuAST::Meta
   does RakuAST::ParseTime
 {
@@ -810,7 +810,7 @@ class RakuAST::Type::Parameterized
 class RakuAST::Type::Enum
   is RakuAST::Type
   is RakuAST::Declaration
-  is RakuAST::PackageInstaller
+  does RakuAST::PackageInstaller
   does RakuAST::Meta
   does RakuAST::TraitTarget
   does RakuAST::ImplicitLookups
@@ -1160,9 +1160,9 @@ class RakuAST::Type::Enum
 
 class RakuAST::Type::Subset
   is RakuAST::Type
-  is RakuAST::Lookup
   is RakuAST::Declaration
-  is RakuAST::PackageInstaller
+  does RakuAST::Lookup
+  does RakuAST::PackageInstaller
   does RakuAST::TraitTarget
   does RakuAST::StubbyMeta
   does RakuAST::Doc::DeclaratorTarget

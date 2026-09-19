@@ -118,7 +118,7 @@ class RakuAST::Initializer::CallAssign
 
 # Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
 # for the lookup created by IMPL-SIGIL-LOOKUP.
-class RakuAST::ContainerCreator {
+role RakuAST::ContainerCreator {
     # The RakuAST::Type node for an explicit container base type (e.g. `is T`
     # or `is Array[Str]`). Stored as AST, not just its meta-object, so
     # callers that need the resolved lookup node (not just the type object)
@@ -126,6 +126,10 @@ class RakuAST::ContainerCreator {
     has RakuAST::Type $!explicit-container-base-type-ast;
     has RakuAST::Type $!conflicting-base-type-ast;
     has Bool $.forced-dynamic;
+
+    method IMPL-SET-FORCED-DYNAMIC(Bool $forced-dynamic) {
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!forced-dynamic', $forced-dynamic);
+    }
     has Bool $!initialized;
     has Mu $.container-base-type;
     has Mu $.container-type;
@@ -185,11 +189,16 @@ class RakuAST::ContainerCreator {
           !! nqp::null
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of, Mu :$key-type) {
+    # The key type of the hash a container creator makes, or NQPMu for a
+    # hash keyed by Str.
+    method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
+
+    method IMPL-CALCULATE-TYPES(Mu $of) {
         return Nil if $!initialized;
 
         # Form the container type.
         my str $sigil := self.sigil;
+        my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
         my $container-base-type;
         my $container-type;
         my $default := Any;
@@ -691,8 +700,8 @@ class RakuAST::Expression::QAST
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
   is RakuAST::VarDeclaration
-  is RakuAST::ContainerCreator
   is RakuAST::Term
+  does RakuAST::ContainerCreator
   does RakuAST::ImplicitLookups
   does RakuAST::TraitTarget
   does RakuAST::Meta
@@ -867,8 +876,7 @@ class RakuAST::VarDeclaration::Simple
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
           RakuAST::Method);
-        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
-          $forced-dynamic ?? True !! False);
+        $obj.IMPL-SET-FORCED-DYNAMIC($forced-dynamic ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
           $is-parameter ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
@@ -1034,11 +1042,10 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of) {
-        my &calculate-types := nqp::findmethod(RakuAST::ContainerCreator, 'IMPL-CALCULATE-TYPES');
+    method IMPL-CONTAINER-KEY-TYPE() {
         $!shape && self.sigil eq '%'
-            ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-            !! &calculate-types(self, $of);
+            ?? $!shape.code-statements[0].expression.compile-time-value
+            !! NQPMu
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving

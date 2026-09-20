@@ -567,6 +567,8 @@ class RakuAST::IMPL::VarLowering {
             # into the frame, so its lexicals must stay addressable.
             nqp::atpos($!frames, nqp::elems($!frames) - 1).poison()
                 if nqp::istype($node, RakuAST::Code) && $node.custom-args;
+            self.IMPL-REGISTER-PRIME-PARAMS($node)
+                if nqp::istype($node, RakuAST::Expression);
         }
 
         if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved {
@@ -690,6 +692,9 @@ class RakuAST::IMPL::VarLowering {
                 }
             }
             self.IMPL-DECIDE-IMPLICITS($frame) unless $flattened;
+        }
+        else {
+            self.IMPL-DECIDE($frame);
         }
         Nil
     }
@@ -895,6 +900,19 @@ class RakuAST::IMPL::VarLowering {
             $declined := 'thunked';
         }
         $scope-frame.register($decl, $declined);
+        Nil
+    }
+
+    # A WhateverCode's parameters hang off its thunk, which the walk does
+    # not visit. They can only lower when that thunk's block is the one
+    # evaluating the expression, so that their uses share it.
+    method IMPL-REGISTER-PRIME-PARAMS(RakuAST::Expression $node) {
+        my $thunk := $node.IMPL-PRIMED;
+        return Nil unless $thunk && $thunk.IMPL-EVALUATES-EXPRESSION;
+        my $frame := nqp::atpos($!frames, nqp::elems($!frames) - 1);
+        for $thunk.IMPL-PARAMETERS {
+            $frame.register($_.target, '');
+        }
         Nil
     }
 

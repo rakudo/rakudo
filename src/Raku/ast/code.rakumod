@@ -1098,6 +1098,12 @@ class RakuAST::ExpressionThunk
                     :blocktype('declaration_static'),
                     $stmts),
                 :key);
+        for self.IMPL-UNWRAP-LIST($signature.parameters) {
+            my $target := $_.target;
+            $block.add_local_debug_mapping($target.IMPL-LOWERED-LOCAL-NAME, $target.lexical-name)
+                if nqp::istype($target, RakuAST::ParameterTarget::Term)
+                && $target.IMPL-LOWERED-LOCAL-NAME;
+        }
         $stmts := QAST::Stmts.new();
         my $evaluates-expression := self.IMPL-EVALUATES-EXPRESSION;
         if nqp::istype(self, RakuAST::ImplicitDeclarations) {
@@ -5423,6 +5429,10 @@ class RakuAST::PrimeThunk
 
     method IMPL-NUM-PARAMS() {
         nqp::elems($!parameters)
+    }
+
+    method IMPL-PARAMETERS() {
+        $!parameters
     }
 
     method IMPL-THUNK-SIGNATURE() {

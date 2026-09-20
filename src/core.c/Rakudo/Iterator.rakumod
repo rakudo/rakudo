@@ -5605,7 +5605,11 @@ my class Rakudo::IterateOneWithPhasers
               nqp::if(       # check for Slip
                 nqp::istype($value,Slip)
                   && nqp::eqaddr(
-                       ($value := self.start-slip($value)),
+                       ($value := nqp::if(
+                         nqp::eqaddr(nqp::decont($value),Empty),
+                         IterationEnd,  # as start-slip answers
+                         self.start-slip($value)
+                       )),
                        IterationEnd
                      ),
                 ($value := nqp::null)  # nothing in the slip
@@ -5827,7 +5831,13 @@ my class Rakudo::IterateOneWithoutPhasers
             ($pulled := nqp::if(
               nqp::istype(($value := &!block($pulled)),Slip)
                 && nqp::eqaddr(
-                     ($value := self.start-slip($value)),
+                     # what start-slip answers for Empty, which a
+                     # grep block gives for each value it rejects
+                     ($value := nqp::if(
+                       nqp::eqaddr(nqp::decont($value),Empty),
+                       IterationEnd,
+                       self.start-slip($value)
+                     )),
                      IterationEnd
                    ),
                 $!source.pull-one,
@@ -5972,7 +5982,11 @@ my class Rakudo::IterateTwoWithoutPhasers
                 ($value := &!block($a, $b)),
                 nqp::if(
                   nqp::istype($value,Slip) && nqp::eqaddr(
-                    ($value := self.start-slip($value)),
+                    ($value := nqp::if(
+                      nqp::eqaddr(nqp::decont($value),Empty),
+                      IterationEnd,  # as start-slip answers
+                      self.start-slip($value)
+                    )),
                     IterationEnd
                   ),
                   nqp::stmts(             # set up next iteration
@@ -6156,7 +6170,11 @@ my class Rakudo::IterateMoreWithoutPhasers
               ($value := nqp::p6invokeflat(&!block,$params)),
               nqp::if(
                 nqp::istype($value,Slip) && nqp::eqaddr(
-                  ($value := self.start-slip($value)),
+                  ($value := nqp::if(
+                    nqp::eqaddr(nqp::decont($value),Empty),
+                    IterationEnd,  # as start-slip answers
+                    self.start-slip($value)
+                  )),
                   IterationEnd
                 ),
                 nqp::stmts(                # set up next iteration

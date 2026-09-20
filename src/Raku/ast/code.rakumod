@@ -2098,7 +2098,8 @@ class RakuAST::Block
         my $arg-decl := self.IMPL-FLATTEN-ARG-DECLARATION;
         my $stmts := QAST::Stmts.new();
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            if nqp::istype($_, RakuAST::VarDeclaration::Simple)
+            if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
                 if !nqp::isnull($arg-decl) && nqp::eqaddr($_, $arg-decl) {
                     my str $local-name := $_.IMPL-LOWERED-LOCAL-NAME;
@@ -2131,7 +2132,8 @@ class RakuAST::Block
     method IMPL-QAST-FLATTENED(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            if nqp::istype($_, RakuAST::VarDeclaration::Simple)
+            if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
                 $stmts.push($_.IMPL-QAST-DECL-FLATTENED($context));
             }

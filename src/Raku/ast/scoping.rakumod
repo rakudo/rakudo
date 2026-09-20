@@ -60,6 +60,7 @@ role RakuAST::LexicalScope
     method IMPL-ADD-LOWERED-DEBUG-MAPPINGS(Mu $block) {
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
             if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term)
                 || nqp::istype($_, RakuAST::ParameterTarget::Term)
                 || nqp::istype($_, RakuAST::VarDeclaration::Implicit::Self))
                 && $_.IMPL-LOWERED-LOCAL-NAME {

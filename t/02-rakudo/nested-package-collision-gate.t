@@ -14,7 +14,7 @@ use Test::Helpers;
 #          the module. No warning.
 #
 # Both frontends must agree on the behavior selected by the language
-# version. We drive the matrix via is-run, toggling RAKUDO_RAKUAST to
+# version. We drive the matrix via is-run, removing RAKUDO_LEGACY to
 # exercise the RakuAST frontend.
 
 plan 12;
@@ -80,7 +80,7 @@ my $deprecation-package-rx = rx/
 
 {
     temp %*ENV;
-    %*ENV<RAKUDO_RAKUAST>:delete;
+    %*ENV<RAKUDO_LEGACY> = 1;
     is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d traditional: silent-replace + deprecation worry';
     is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),
@@ -98,7 +98,7 @@ my $deprecation-package-rx = rx/
 
 {
     temp %*ENV;
-    %*ENV<RAKUDO_RAKUAST> = '1';
+    %*ENV<RAKUDO_LEGACY>:delete;
     is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d RakuAST: silent-replace + deprecation worry';
     is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),

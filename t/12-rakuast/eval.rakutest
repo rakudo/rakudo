@@ -13,7 +13,7 @@ plan 7;
 # stub state into the enclosing precompilation, which then died with
 # "missing static code ref for closure".
 {
-    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    (temp %*ENV)<RAKUDO_LEGACY>:delete;
     is-run 'use lib <t/packages/12-rakuast/lib>; use ParsedSubAtBegin; say ParsedSubAtBegin::bump(41);',
       :out("42\n"),
       :err(""),
@@ -47,7 +47,7 @@ plan 7;
 # The same lost state broke precompilation when the EVAL happened at BEGIN
 # time, since the multi's compiled unit is part of the module's output.
 {
-    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
+    (temp %*ENV)<RAKUDO_LEGACY>:delete;
     is-run 'use lib <t/packages/12-rakuast/lib>; use ParsedMultiAtBegin; say ParsedMultiAtBegin::bump(41);',
       :out("42\n"),
       :err(""),

@@ -2,8 +2,6 @@ use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 
-my \LEGACY = %*ENV<RAKUDO_LEGACY>;
-
 plan 154;
 
 # t/spec/S03-sequence/misc.t
@@ -210,7 +208,7 @@ plan 154;
 # t/spec/S19-command-line/arguments.t
 # https://github.com/rakudo/rakudo/issues/1915
 {
-    (temp %*ENV)<RAKUDO_LEGACY>:delete;
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
 
     is-run :in("one\ntwo\nthree"), :compiler-args(['-n']),
             'state @a; @a.push: $_; @a.elems.say; note @a.join("|")', :out("1\n2\n3\n"), :err("one\none|two\none|two|three\n"),
@@ -233,7 +231,7 @@ plan 154;
 # t/02-rakudo/repl.t
 # https://github.com/rakudo/rakudo/issues/1690
 {
-    (temp %*ENV)<RAKUDO_LEGACY>:delete;
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
 
     my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
     my $*REPL-SCRUBBER = -> $_ is copy {
@@ -280,7 +278,7 @@ plan 154;
 
 # https://github.com/rakudo/rakudo/issues/5649
 {
-    todo "compilation error in legacy grammar" if LEGACY;
+    todo "compilation error in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
     is (try 'our Str $a = "foo"'.EVAL), "foo", 'can have constraint on "our" variable';
 }
 
@@ -291,7 +289,7 @@ plan 154;
         my $div = @r[0];
         @r X/= $div;
     }
-    todo "handling of X/= when sunk" if LEGACY;
+    todo "handling of X/= when sunk" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply @m, [[1.0, 2.0, 3.0], [1.0, 3.0, 5.0], [1.0, 4.0, 7.0]],
       'handled X/= correctly';
 }
@@ -308,23 +306,23 @@ plan 154;
 {
     my $a;
     try Q/42 R[||]= $a/.EVAL;
-    todo "R[||]= doesn't compile" if LEGACY;
+    todo "R[||]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is $a, 42, 'did R[||]= work';
 
     my $b;
     try Q/666 R[&&]= $b/.EVAL;
-    todo "R[&&]= doesn't compile" if LEGACY;
+    todo "R[&&]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is $b, 666, 'did R[&&]= work';
 
     my $c;
     try Q|137 R[//]= $c|.EVAL;
-    todo "R[//]= doesn't compile" if LEGACY;
+    todo "R[//]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is $c, 137, 'did R[//]= work';
 }
 
 # https://github.com/rakudo/rakudo/issues/2034
 {
-    todo "signature smartmatch doesn't compile" if LEGACY;
+    todo "signature smartmatch doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (try ":(<a>) ~~ :()".EVAL), False, 'signature smartmatch ok';
 }
 
@@ -338,7 +336,7 @@ my class B is A {
 B.new
 CODE
 
-    todo "doesn't compile" if LEGACY;
+    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     my $B = try $code.EVAL;
     is-deeply ($B && $B.h<b>), 1, 'did the object get built';
 }
@@ -346,7 +344,7 @@ CODE
 # https://github.com/rakudo/rakudo/issues/2360
 {
     try my %*FOO is Set = <a b c>;
-    todo "dies" if LEGACY;
+    todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply %*FOO, <a b c>.Set, 'is Set on dynvar works';
 }
 
@@ -404,11 +402,11 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int8  $a = 127;
     my int16 $b = 32767;
 
-    todo "incorrect value for int8" if LEGACY;
+    todo "incorrect value for int8" unless %*ENV<RAKUDO_RAKUAST>;
     is $a++, 127, 'did post increment int8 return correct value';
     is $a,  -128, 'did int8 get correct value';
 
-    todo "incorrect value for int16" if LEGACY;
+    todo "incorrect value for int16" unless %*ENV<RAKUDO_RAKUAST>;
     is $b++, 32767, 'did post increment int16 return correct value';
     is $b,  -32768, 'did int16 get correct value';
 }
@@ -422,7 +420,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         }
     }
     my $b = B.new;
-    todo "dies", 2 if LEGACY;
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
     is (try $b.b(42)), 42, 'is the value being bound returned';
     is $b.a, 42, 'did the value get bound';
 }
@@ -434,7 +432,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         $ran = True;
     }
     try Q|role :: { has $.a is bla{;} }|.EVAL;
-    todo "dies", 2 if LEGACY;
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $ran, True, 'did the trait get run';
 }
 
@@ -443,8 +441,8 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $i = 0;
     my $last;
     my sub runner { loop { last if $i == 7; $i++; LAST $last = True } }
-    runner unless LEGACY;  # uncatchable crash
-    todo "dies", 2 if LEGACY;
+    runner if  %*ENV<RAKUDO_RAKUAST>;  # uncatchable crash
+    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
     is $i, 7, 'loop completed successfully';
     is-deeply $last, True, 'did LAST run';
 }
@@ -453,7 +451,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     my $fired;
     try '$fired = True if !! 42'.EVAL;
-    todo "dies" if LEGACY;
+    todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $fired, True, 'was the syntax valid and did it fire';
 }
 
@@ -462,7 +460,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub foo {
         %( foobar => { &?ROUTINE.name => "bar" } )
     }
-    todo "name is missing" if LEGACY;
+    todo "name is missing" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply foo(), { foobar => {foo => "bar"} },
       'Routine name properly codegenned';
 }
@@ -470,12 +468,12 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # https://github.com/rakudo/rakudo/issues/3574
 {
     my @a = (state $ = rand) xx 5;
-    todo "returned value is Any" if LEGACY;
+    todo "returned value is Any" unless %*ENV<RAKUDO_RAKUAST>;
     ok @a[0], 'got a random value with state';
     is-deeply ([==] @a), True, 'all values the same with state';
 
     @a = (once rand) xx 5;
-    todo "returned value is VMNull", 2 if LEGACY;
+    todo "returned value is VMNull", 2 unless %*ENV<RAKUDO_RAKUAST>;
     ok @a[0], 'got a random value with once';
     is-deeply (try [==] @a), True, 'all values the same with once';
 }
@@ -492,13 +490,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         }
     }
     foo;
-    todo "state variable appears undefined" if LEGACY;
+    todo "state variable appears undefined" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $defined, True, 'LAST can see the state variable';
 }
 
 # https://github.com/rakudo/rakudo/issues/3786
 {
-    todo "dispatch error" if LEGACY;
+    todo "dispatch error" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply
       (try 'my class C { has $.sig = :(); }; C.new.sig'.EVAL),
       :(), 'can have a signature as a default for an attribute';
@@ -513,7 +511,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub b(\b --> uint64) is raw {
         my uint64 $ = nqp::bitand_I(b, 0xffffffffffffffff, Int)
     }
-    todo "becomes signed", 2; # if LEGACY;
+    todo "becomes signed", 2; # unless %*ENV<RAKUDO_RAKUAST>;
     is a(18446744073709551615), 18446744073709551615, 'uint ok';
     is b(18446744073709551615), 18446744073709551615, 'uint64 ok';
 }
@@ -529,7 +527,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
            }
         }
     }';
-    todo "doesn't compile" if LEGACY;
+    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
     is $handled, 1, 'did the code run and handle the exception';
 }
 
@@ -538,7 +536,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $seen = 0;
     role Foo[|c] { $seen++ }
     Foo[42].new;
-    todo "runs 0 times or 2 times" if LEGACY;
+    todo "runs 0 times or 2 times" unless %*ENV<RAKUDO_RAKUAST>;
     is $seen, 1, 'role body only ran once';
 }
 
@@ -547,17 +545,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $proc = run $*EXECUTABLE, '-e',
       'for 1, 2, 3, 4, 5 -> $n { (print $n for ^5) xx 2 }', :out, :err;
 
-    todo "optimizer stales variable" if LEGACY;
+    todo "optimizer stales variable" unless %*ENV<RAKUDO_RAKUAST>;
     is $proc.out.slurp, '11111111112222222222333333333344444444445555555555',
       'was the variable not stale';
-    todo "worries about RHS of xx" unless LEGACY;
+    todo "worries about RHS of xx" if %*ENV<RAKUDO_RAKUAST>;
     is $proc.err.slurp, '', 'no worries';
 }
 
 # https://github.com/rakudo/rakudo/issues/4198
 {
     my $rx = /\w+/;
-    todo "doesn't interpolate correctly" if LEGACY;
+    todo "doesn't interpolate correctly" unless %*ENV<RAKUDO_RAKUAST>;
     is ('"foo".match: / $rx /'.EVAL).gist, '｢foo｣', 'regex interpolated ok';
 }
 
@@ -565,7 +563,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     my $a = 42;
     for 1 .. 3 {
-        todo "doesn't return correctly" if LEGACY;
+        todo "doesn't return correctly" unless %*ENV<RAKUDO_RAKUAST>;
         is-deeply (FIRST $a++), 42, 'Do we always get the first value';
     }
 }
@@ -574,7 +572,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     multi b(Int:D $x) { $x + 1 }
     multi b(int $x)   { $x     }
-    todo "selects the wrong candidate" if LEGACY;
+    todo "selects the wrong candidate" unless %*ENV<RAKUDO_RAKUAST>;
     is b(0), 1, 'Int:D candidate selected';
 
     multi d(Int:D $x) { $x     }
@@ -608,7 +606,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/4847
 {
-    todo "does not compile" if LEGACY;
+    todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { 'if 42 { } elsif "/knorkator".IO andthen .f && .r { }'.EVAL },
       'can have andthen as part of an elseif';
 }
@@ -621,9 +619,9 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     }
     my $c = C.new;
     is-deeply $c.x, 0, 'can access attribute';
-    todo "throws error" if LEGACY;
+    todo "throws error" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { $c.add(1) }, 'can add to the attribute';
-    todo "did not get updated" if LEGACY;
+    todo "did not get updated" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply $c.x, 1, 'attribute got incremented';
 }
 
@@ -634,7 +632,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     multi foo(Hash:D) { "yes" };
     multi foo(Value(Any:D)) { "no" };
 
-    todo "dispatch error"; # if LEGACY;
+    todo "dispatch error"; # unless %*ENV<RAKUDO_RAKUAST>;
     is (try foo { :foo }), "yes", "dispatch worked ok";
 }
 
@@ -643,13 +641,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $proc := run $*EXECUTABLE, '-e', 'sub MAIN( $a, $b = $a, #= boom
 ) {}', :out, :err;
     is $proc.out.slurp, "", 'no output';
-    todo "execution error" if LEGACY;
+    todo "execution error" unless %*ENV<RAKUDO_RAKUAST>;
     ok $proc.err.slurp.starts-with("Usage"), 'error message is about usage';
 }
 
 # https://github.com/rakudo/rakudo/issues/5147
 {
-    todo "no val processing" if LEGACY;
+    todo "no val processing" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply qq:v:to/FOO/, IntStr.new(42, "42\n"), "val processing kept";
     42
     FOO
@@ -660,49 +658,49 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my %m = "a" => 1, "b" => 2, "c" => 3;
     my subset X2 of Str() where * (elem) %m;
     sub t2 (X2 $x) { }
-    if LEGACY {
-        todo "crashes";
-        flunk "should not crash with typecheck error";
-    }
-    else {
+    if %*ENV<RAKUDO_RAKUAST> {
         lives-ok { ("a" .. "c").hyper(:batch(1), :degree(2)).map(&t2) },
           "should not crash with typecheck error";
+    }
+    else {
+        todo "crashes";
+        flunk "should not crash with typecheck error";
     }
 }
 
 # https://github.com/rakudo/rakudo/issues/5391
 {
-    todo "compilation error" if LEGACY;
+    todo "compilation error" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { 'use variables :D; my int $a'.EVAL },
       'native integers do not require an initializer with variables:D';
-    todo "typecheck error" if LEGACY;
+    todo "typecheck error" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { 'use variables :D; my int $a = 42'.EVAL },
       'native integers can be initialized  with variables:D';
 }
 
 # https://github.com/rakudo/rakudo/issues/1616
 {
-    todo "does not compile" if LEGACY;
+    todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
     isa-ok (try Q|&[RRRRRRRRZZZZZZZZZZZZZZZZZZRRRRRRRRRSSSSSSSS+]|.EVAL), Block,
       'auto generated Callable ok';
 }
 
 # https://github.com/rakudo/rakudo/issues/1691
 {
-    todo "throws execution error" if LEGACY;
+    todo "throws execution error" unless %*ENV<RAKUDO_RAKUAST>;
     lives-ok { eager do loop { last } }, 'exits loop as expected';
 }
 
 # https://github.com/rakudo/rakudo/issues/1768
 {
     my sub z { is &?ROUTINE.name, "z", 'name is ok' for ^1 }
-    todo "name empty" if LEGACY;
+    todo "name empty" unless %*ENV<RAKUDO_RAKUAST>;
     z;
 }
 
 # https://github.com/rakudo/rakudo/issues/1871
 {
-    todo "throws wrong error" if LEGACY;
+    todo "throws wrong error" unless %*ENV<RAKUDO_RAKUAST>;
     throws-like { Q|1.::(1)|.EVAL }, X::Syntax::Number::IllegalDecimal,
       "throws an illegal decimal error";
 }
@@ -712,7 +710,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # subtest, producing the wrong number of tests and generally not working.
 # Also, the second test is broken in RakuAST.
 #{
-#    todo "throws wrong error", 2 if LEGACY;
+#    todo "throws wrong error", 2 unless %*ENV<RAKUDO_RAKUAST>;
 #    try throws-like { Q|role R { }; &R|.EVAL }, X::Undeclared::Symbols,
 #      unk_routines => { '&R' => (1,) },
 #      "throws undeclared error";
@@ -723,7 +721,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/5249
 {
-    todo "throws compilation error" if LEGACY;
+    todo "throws compilation error" unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (try Q|"@.x"|.EVAL), '@.x', 'interpolation of non-existing @!x';
 }
 
@@ -737,7 +735,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # without running any tests in this file
 {
     todo "Having a submethod that accesses an attribute dies, even if never called"
-      if LEGACY;
+        unless %*ENV<RAKUDO_RAKUAST>;
     eval-lives-ok(q[{
         role A {
             has $.a = 1;
@@ -752,7 +750,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # https://irclogs.raku.org/raku-dev/2025-05-22.html#09:32
 {
     todo "improper QASTing of infix:<,>(42) to just 42"
-      if LEGACY;
+        unless %*ENV<RAKUDO_RAKUAST>;
     is-deeply (run $*EXECUTABLE, '-e', 'dd infix:<,>(42)', :err).err.slurp,
       "(42,)\n",
       'no special quasting for infix:<,>(1)';
@@ -760,7 +758,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 {
     todo q|ensure that hyper operators prime as expected|
-      if LEGACY;
+        unless %*ENV<RAKUDO_RAKUAST>;
     ok *>>.fmt("%02x")(42) eq "2a", "postfix hyper primes properly";
 }
 
@@ -785,7 +783,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 }
 
 {
-    (temp %*ENV)<RAKUDO_LEGACY>:delete;
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
     is-run q:to/PROG/, :out("foo\n"),
         my &foo = BEGIN {
             RakuAST::Sub.new(
@@ -814,7 +812,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # https://github.com/rakudo/rakudo/issues/6137
 # Precompiling a module whose BEGIN block returns a synthetic RakuAST Sub
 {
-    (temp %*ENV)<RAKUDO_LEGACY>:delete;
+    (temp %*ENV)<RAKUDO_RAKUAST> = 1;
     is-run 'use lib <t/packages/12-rakuast/lib>; use SyntheticSubAtBegin; foo();',
       :out("from-precomped-6137\n"),
       :err(""),
@@ -884,8 +882,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int $c = 5;
     keep($c);
     $c = 8;
-    todo "undecided multi leaks the native reference in legacy grammar"
-      if LEGACY;
+    todo "undecided multi leaks the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
     is $s, 5, 'a native argument to a multi where no candidate is rw is a snapshot';
 }
 
@@ -895,8 +892,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int $c = 5;
     hold(k => 1, $c);
     $c = 8;
-    todo "mixed named and positional args leak the native reference in legacy grammar"
-      if LEGACY;
+    todo "mixed named and positional args leak the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
     is $s, 5, 'a native argument following a named argument is a snapshot';
 }
 
@@ -929,12 +925,10 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
             require Require::Fixture:ver<1.0+> <&fixture-sub>;
             ok &fixture-sub ~~ Sub, 'a require with an adverb still imports the requested symbol';
         }
-        todo "the legacy grammar ignores an unsatisfiable :ver on require"
-          if LEGACY;
+        todo "the legacy grammar ignores an unsatisfiable :ver on require" unless %*ENV<RAKUDO_RAKUAST>;
         dies-ok { require Require::Fixture:ver<999999.1> },
             'require fails on an unsatisfiable :ver constraint';
-        todo "the legacy grammar ignores an unsatisfiable :auth on require"
-          if LEGACY;
+        todo "the legacy grammar ignores an unsatisfiable :auth on require" unless %*ENV<RAKUDO_RAKUAST>;
         dies-ok { require Require::Fixture:auth<nobody> },
             'require fails on an unsatisfiable :auth constraint';
     }

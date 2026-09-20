@@ -13,7 +13,7 @@ plan 7;
 # --target=ast (before the optimize stage) still holds the operator. These
 # dumps are RakuAST frontend output, so the block is pinned to that frontend.
 {
-    (temp %*ENV)<RAKUDO_LEGACY>:delete;
+    temp %*ENV<RAKUDO_RAKUAST> = '1';
     is-run 'my $x = 2 + 3', 'the optimize stage tree holds no operator application',
         :compiler-args['--target=optimize'], :out({ not .contains('ApplyInfix') });
     is-run 'my $x = 2 + 3', '--optimize=off leaves the operator in the tree',

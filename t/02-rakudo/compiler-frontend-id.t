@@ -11,9 +11,9 @@ plan 3;
 my $code = 'print $*RAKU.compiler.id';
 
 my %with-rakuast = %*ENV;
-%with-rakuast<RAKUDO_LEGACY>:delete;
+%with-rakuast<RAKUDO_RAKUAST> = 1;
 my %without-rakuast = %*ENV;
-%without-rakuast<RAKUDO_LEGACY> = 1;
+%without-rakuast<RAKUDO_RAKUAST>:delete;
 
 my $rakuast-id = run($*EXECUTABLE.absolute, '-e', $code, :env(%with-rakuast), :out)
     .out.slurp(:close);

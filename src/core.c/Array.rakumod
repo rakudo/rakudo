@@ -636,19 +636,13 @@ my class Array { # declared in BOOTSTRAP
         nqp::bitand_i(
           nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
           nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))),
-        ) ?? nqp::p6assign(
-               nqp::ifnull(
-                 nqp::atpos($reified, $pos),
-                 nqp::bindpos(
-                   $reified,
-                   $pos,
-                   nqp::p6bindattrinvres(
-                     nqp::create(Scalar),Scalar,'$!descriptor',$!descriptor
-                   )
-                 )
-               ),
-               nqp::decont(assignee)
-             )
+        ) ?? nqp::isnull(my \existing := nqp::atpos($reified, $pos))
+               ?? nqp::bindpos(
+                    $reified,
+                    $pos,
+                    nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+                  )
+               !! nqp::p6assign(existing, nqp::decont(assignee))
           !! self!ASSIGN_POS_SLOW_PATH($pos, assignee)
     }
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
@@ -657,65 +651,45 @@ my class Array { # declared in BOOTSTRAP
                nqp::isconcrete(my \reified := nqp::getattr(self,List,'$!reified')),
                nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))),
              )
-            ?? nqp::p6assign(
-                 nqp::ifnull(
-                   nqp::atpos(reified, $pos),
-                   nqp::bindpos(
-                     reified,
-                     $pos,
-                     nqp::p6bindattrinvres(
-                       nqp::create(Scalar),Scalar,'$!descriptor',$!descriptor
-                     )
-                   )
-                 ),
-                 nqp::decont(assignee)
-               )
+            ?? nqp::isnull(my \existing := nqp::atpos(reified, $pos))
+              ?? nqp::bindpos(
+                   reified,
+                   $pos,
+                   nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+                 )
+              !! nqp::p6assign(existing, nqp::decont(assignee))
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee)
           !! self!INDEX_OOR($pos)
     }
 
     method !ASSIGN_POS_SLOW_PATH(Array:D: int $pos, Mu \assignee) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
-        nqp::p6assign(
-          nqp::if(
-            nqp::isconcrete(reified),
-            nqp::ifnull(
-              nqp::atpos(reified,$pos),
-              nqp::if(
-                nqp::islt_i($pos,nqp::elems(reified)), # it's a hole
-                nqp::bindpos(
-                  reified,
-                  $pos,
-                  nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                ),
-                nqp::if(
-                  nqp::isconcrete(my \todo := nqp::getattr(self,List,'$!todo')),
-                  nqp::stmts(                    # can reify
-                    todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::ifnull(
-                      nqp::atpos(reified,$pos),  # reified
-                      nqp::bindpos(              # outlander
-                        reified,
-                        $pos,
-                        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                      )
-                    )
-                  ),
-                  nqp::bindpos(                  # outlander without todo
-                    reified,
-                    $pos,
-                    nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                  )
-                )
-              )
+        nqp::if(
+          nqp::isconcrete(reified),
+          nqp::stmts(
+            nqp::if(
+              nqp::isge_i($pos,nqp::elems(reified))
+                && nqp::isconcrete(my \todo := nqp::getattr(self,List,'$!todo')),
+              todo.reify-at-least(nqp::add_i($pos,1))
             ),
-            nqp::bindpos(                        # new outlander without reified
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              $pos,
-              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
+            nqp::if(
+              nqp::isnull(my \existing := nqp::atpos(reified,$pos)),
+              nqp::bindpos(                      # hole or outlander
+                reified,
+                $pos,
+                nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+              ),
+              nqp::p6assign(existing, nqp::decont(assignee))
             )
           ),
-          nqp::decont(assignee)
+          nqp::stmts(                            # new outlander without reified
+            (my \scalar := nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))),
+            nqp::bindpos(
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              $pos,
+              scalar
+            )
+          )
         )
     }
 

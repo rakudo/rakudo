@@ -724,6 +724,9 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Expression  $.where;
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
+    # Set on a variable of a declaration list, which no signature binding
+    # stores into on entry to the frame, so it needs its container.
+    has int                  $!list-declared;
     has Bool                 $!is-rw;
     has Bool                 $.is-ro;
     has Bool                 $!is-bindable;
@@ -769,6 +772,11 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method IMPL-UNUSED-SLURPY() { $!unused-slurpy }
+
+    method IMPL-SET-LIST-DECLARED() {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!list-declared', 1);
+        Nil
+    }
 
     method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-to-local', 1);
@@ -1742,6 +1750,17 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     QAST::Var.new( :scope('lexical'), :decl('var'), :name(self.name) )
                 }
+            }
+            elsif $!is-parameter && !$!list-declared
+              && (my str $param-local := self.IMPL-LOWERED-LOCAL-NAME) {
+                # Signature binding stores into the local before anything
+                # reads it, so it needs no container.
+                $context.ensure-sc($!lowered-away-sentinel);
+                QAST::Stmts.new(
+                    QAST::Var.new( :scope('lexical'), :decl('static'), :name(self.name),
+                        :value($!lowered-away-sentinel) ),
+                    QAST::Var.new( :scope('local'), :decl('var'), :name($param-local) )
+                )
             }
             else {
                 # Need to vivify the object.

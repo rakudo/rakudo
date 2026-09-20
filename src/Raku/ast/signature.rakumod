@@ -2249,6 +2249,7 @@ class RakuAST::ParameterTarget::Var
                       :is-parameter,
                     )
             );
+            $obj.set-var-declaration if $var-declaration;
         }
         $obj
     }
@@ -2328,6 +2329,7 @@ class RakuAST::ParameterTarget::Var
 
     method set-var-declaration() {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!var-declaration', True);
+        $!declaration.IMPL-SET-LIST-DECLARED if $!declaration;
     }
 
     method set-rw() {

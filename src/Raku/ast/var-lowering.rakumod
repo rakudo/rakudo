@@ -493,6 +493,9 @@ class RakuAST::IMPL::VarLowering {
             self.IMPL-REGISTER-DECL($node)
                 unless nqp::getattr($node, RakuAST::VarDeclaration::Simple, '$!is-parameter');
         }
+        elsif nqp::istype($node, RakuAST::VarDeclaration::Term) {
+            self.IMPL-REGISTER-TERM-DECL($node);
+        }
 
         # A list declaration bound with := goes through the runtime
         # signature binder, which writes into the frame's lexicals by
@@ -801,7 +804,8 @@ class RakuAST::IMPL::VarLowering {
             # analysis mark alone is not enough, since emission declines
             # some marked declarations, natives among them, and such a
             # declaration still needs the frame.
-            if nqp::istype($_, RakuAST::VarDeclaration::Simple)
+            if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
             }
             else {
@@ -862,6 +866,35 @@ class RakuAST::IMPL::VarLowering {
             $declined := 'thunked';
         }
         $scope-frame.register($target, $declined);
+        Nil
+    }
+
+    # Register a sigilless term declaration with its scope's frame. One
+    # emitted in another frame, hoisted or under a thunk, stays a lexical.
+    method IMPL-REGISTER-TERM-DECL(RakuAST::VarDeclaration::Term $decl) {
+        return Nil unless $decl.scope eq 'my';
+
+        my int $i := nqp::elems($!frames);
+        my $scope-frame;
+        my int $scope-index := -1;
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                $scope-frame := $frame;
+                $scope-index := $i;
+                last;
+            }
+        }
+        return Nil if $scope-index < 0;
+
+        my str $declined := '';
+        if $decl.is-hoisted-to-outer {
+            $declined := 'hoisted';
+        }
+        elsif $scope-index != nqp::elems($!frames) - 1 || $decl.creates-block {
+            $declined := 'thunked';
+        }
+        $scope-frame.register($decl, $declined);
         Nil
     }
 

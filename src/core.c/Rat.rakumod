@@ -113,7 +113,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(Int:D $nu, Int:D $de, Any, Any) is raw {
            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$nu),
            Rat,'$!denominator',$de
          )
-      !! $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
+      !! Rakudo::Internals.UPGRADE-OVERFLOWING-RAT($nu, $de)
 }
 
 # already a FatRat, so keep that

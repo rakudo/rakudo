@@ -852,6 +852,15 @@ my class Rakudo::Internals is implementation-detail {
           !! Nil
     }
 
+    # Kept out of its caller, since a frame that looks up a dynamic
+    # variable is never inlined.
+    method UPGRADE-OVERFLOWING-RAT(
+      Int:D $nu,
+      Int:D $de
+    ) is raw is implementation-detail {
+        $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
+    }
+
     method error-rcgye() {  # red clear green yellow eject
         !$*COMPILING_CORE_SETTING && $*ERR.t && (self.NUMERIC-ENV-KEY("RAKUDO_ERROR_COLOR") // !self.IS-WIN)
           ?? ("\e[31m", "\e[0m", "\e[32m", "\e[33m", "\x[23CF]")

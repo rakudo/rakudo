@@ -91,7 +91,10 @@ is-run q:to/CODE/,
 
 # The doc of a lexical stays on its RakuAST declaration node, where the
 # $=rakudoc collection picks it up.
-if %*ENV<RAKUDO_RAKUAST> {
+if %*ENV<RAKUDO_LEGACY> {
+    skip 'the $=rakudoc variable requires the RakuAST frontend';
+}
+else {
     is-run q:to/CODE/,
             my $lock;  #= the lock
             sub helper { }
@@ -101,9 +104,6 @@ if %*ENV<RAKUDO_RAKUAST> {
             CODE
         :out("1|the lock"), :err(""),
         'the declarator doc of a lexical is available through $=rakudoc';
-}
-else {
-    skip 'the $=rakudoc variable requires the RakuAST frontend';
 }
 
 # vim: expandtab shiftwidth=4

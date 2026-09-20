@@ -92,12 +92,12 @@ subtest 'for {}' => {
         }, $_ ~ ' case gets optimized entirely';
     }
 
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
+    todo "optimizer NYI" unless %*ENV<RAKUDO_LEGACY>;
     qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
         qast-contains-op v, 'p6forstmt'
     }, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
 
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
+    todo "optimizer NYI" unless %*ENV<RAKUDO_LEGACY>;
     qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
                 qast-contains-op   v, 'p6forstmt'
         and not qast-contains-op   v, 'p6for'

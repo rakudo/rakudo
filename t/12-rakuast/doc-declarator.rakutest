@@ -249,7 +249,7 @@ CODE
 
         my $attribute := $class.^attributes.head;
         test-declarator($attribute, $pod, $type,
-          :trailing-dropped(!%*ENV<RAKUDO_RAKUAST> && $type eq 'Str')
+          :trailing-dropped(%*ENV<RAKUDO_LEGACY> && $type eq 'Str')
         );
     }
 }

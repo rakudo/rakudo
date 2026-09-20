@@ -432,7 +432,7 @@ if $*DISTRO.is-win {
 }
 subtest "Backtrace with line directive" => {
     plan 1;
-    temp %*ENV<RAKUDO_RAKUAST> = 1;
+    (temp %*ENV)<RAKUDO_LEGACY>:delete;
     is-run q:to/SCRIPT/,
                 say "ok yet";
                 sub bad { die "and here we die..." }

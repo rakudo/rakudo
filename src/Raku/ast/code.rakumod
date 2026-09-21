@@ -4795,7 +4795,6 @@ class RakuAST::QuotedMatchConstruct
             'global',       'g',
             'overlap',      'ov',
             'exhaustive',   'ex',
-            'Perl5',        'P5',
             'samecase',     'ii',
             'samespace',    'ss',
             'samemark',     'mm',
@@ -4807,7 +4806,7 @@ class RakuAST::QuotedMatchConstruct
     }
 
     method IMPL-IS-COMPILATION-ADVERB(str $norm-adverb) {
-        my constant COMPS := nqp::hash('i', 1, 'm', 1, 'r', 1, 's', 1, 'P5', 1);
+        my constant COMPS := nqp::hash('i', 1, 'm', 1, 'r', 1, 's', 1);
         nqp::existskey(COMPS, $norm-adverb)
     }
 

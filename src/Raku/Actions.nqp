@@ -4333,10 +4333,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # construct; validation of what is valid takes place in the AST.
     # However, a limited number of them are required for parsing the
     # regex and constructing its AST correctly. Of note, these are
-    # s (sigspace, as it controls how whitespce is parsed), m (so we
-    # can construct character class ranges correctly), and P5 (Perl5,
-    # so we know which regex language to parse). These get special
-    # handling.
+    # s (sigspace, as it controls how whitespce is parsed) and m (so
+    # we can construct character class ranges correctly). These get
+    # special handling.
     my constant SPECIAL-RX-ADVERBS := nqp::hash(
         'ignoremark', 'm',
         'm',          'm',
@@ -4345,9 +4344,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         's',          's',
         'samespace',  's',
         'sigspace',   's',
-        'ss',         's',
-        'P5',         'P5',
-        'Perl5',      'P5'
+        'ss',         's'
     );
     method rx-adverbs($/) {
         my @pairs;

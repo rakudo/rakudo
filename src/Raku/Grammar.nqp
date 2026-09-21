@@ -1,4 +1,3 @@
-use NQPP5QRegex;
 use Raku::Actions;
 
 sub p6ize_recursive($x) {
@@ -157,7 +156,7 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Quote parsing
 
-    method Regex($P5?) { self.slang_grammar($P5 ?? 'P5Regex' !! 'Regex') }
+    method Regex() { self.slang_grammar('Regex') }
 
     method Quote() { self.slang_grammar('Quote') }
 
@@ -1194,7 +1193,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         nqp::hash(
           'Quote',   [Raku::QGrammar,       Raku::QActions],
           'Regex',   [Raku::RegexGrammar,   Raku::RegexActions],
-          'P5Regex', [Raku::P5RegexGrammar, Raku::P5RegexActions],
         )
     }
 
@@ -4387,7 +4385,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <trait($*BLOCK)>*
           '{'<.regex-whitespace>[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
+            | <nibble(self.quote-lang(self.Regex, '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>
           <.leave-block-scope>
@@ -4815,7 +4813,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4826,7 +4824,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4837,7 +4835,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4848,7 +4846,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4859,7 +4857,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4870,7 +4868,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4881,7 +4879,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -6808,29 +6806,5 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*IN_REGEX_ASSERTION := 1;
         <!RESTRICTED>
         <arglist=.LANG('MAIN','arglist')>
-    }
-}
-
-#-------------------------------------------------------------------------------
-# Grammar to parse PCRE like regexes
-
-grammar Raku::P5RegexGrammar is QRegex::P5Regex::Grammar does Raku::Common {
-    token rxstopper { <stopper> }
-
-    token p5metachar:sym<(?{ })> {
-        '(?' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<(??{ })> {
-        '(??' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<var> {
-        <?[$]> <var=.LANG('MAIN', 'variable')>
-    }
-
-    token codeblock {
-        :my $*ESCAPEBLOCK := 1;
-        <block=.LANG('MAIN','block')>
     }
 }

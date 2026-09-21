@@ -1,5 +1,4 @@
 use NQPP6QRegex;
-use NQPP5QRegex;
 
 #-------------------------------------------------------------------------------
 # The classes of the AST nodes come from the Raku setting bootstrap, so
@@ -6121,11 +6120,5 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method arglist($/) {
         make $<arglist>.ast;
-    }
-}
-
-class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
-    method nibbler($/) {
-        self.attach: $/, Nodify('Regex::Assertion::Fail').new;
     }
 }

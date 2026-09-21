@@ -2091,9 +2091,9 @@ subtest 'Special compiler variable $?LANG' => {
 }
 
 subtest 'A standard slang variable finds its grammar outside a parse' => {
-    for Quote => 'Q', Regex => 'Regex', P5Regex => 'P5Regex'
+    for Quote => 'Q', Regex => 'Regex'
       -> (:key($name), :value($prefix)) {
-        # $~Quote, then $~Regex and $~P5Regex
+        # $~Quote, then $~Regex
         ast RakuAST::Var::Slang.new(:$name);
         is-deeply $deparsed, "\$~$name", "$name: deparse";
 

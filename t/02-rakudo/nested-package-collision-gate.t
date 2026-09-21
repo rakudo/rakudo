@@ -80,7 +80,7 @@ my $deprecation-package-rx = rx/
 
 {
     temp %*ENV;
-    %*ENV<RAKUDO_RAKUAST>:delete;
+    %*ENV<RAKUDO_RAKUAST> = '0';
     is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d traditional: silent-replace + deprecation worry';
     is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),

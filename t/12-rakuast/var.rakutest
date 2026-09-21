@@ -1,7 +1,10 @@
 use v6.e.PREVIEW;
 use Test;
+use nqp;
 
 plan 87;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $ast;
 my $deparsed;
@@ -15,7 +18,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 # MUST be the first test to handle EVAL_n counter
-todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
+todo("Depends on Raku grammar/actions") unless $rakuast;
 subtest 'Special compiler variable $?FILE' => {
     my $file := 'EVAL_1';
     # $?FILE

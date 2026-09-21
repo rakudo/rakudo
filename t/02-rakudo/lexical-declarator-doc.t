@@ -91,7 +91,7 @@ is-run q:to/CODE/,
 
 # The doc of a lexical stays on its RakuAST declaration node, where the
 # $=rakudoc collection picks it up.
-if %*ENV<RAKUDO_RAKUAST> {
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
     is-run q:to/CODE/,
             my $lock;  #= the lock
             sub helper { }

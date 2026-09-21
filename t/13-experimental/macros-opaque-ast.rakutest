@@ -1,5 +1,6 @@
 use Test;
 use experimental :macros;
+use nqp;
 
 =begin pod
 =head1 DESCRIPTION
@@ -10,7 +11,8 @@ See L<S06/"Macros">.
 
 =end pod
 
-BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
+BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test')
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 plan 3;
 
 # L<S06/Macros>

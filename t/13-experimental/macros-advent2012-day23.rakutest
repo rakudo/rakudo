@@ -1,8 +1,10 @@
 # http://perl6advent.wordpress.com/2012/12/23/day-23-macros/
 use Test;
 use experimental :macros;
+use nqp;
 
-BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
+BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test')
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 plan 2;
 
 sub capture-said($code) {

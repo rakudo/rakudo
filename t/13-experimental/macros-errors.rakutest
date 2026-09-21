@@ -1,9 +1,11 @@
 use Test;
 use experimental :macros;
+use nqp;
 
 #L<S06/"Macros">
 
-BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test') if %*ENV<RAKUDO_RAKUAST>;
+BEGIN plan :skip-all('RakuAST macros will supersede the macros described in this test')
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 plan 2;
 
 # https://github.com/Raku/old-issue-tracker/issues/2952

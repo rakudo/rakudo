@@ -2,8 +2,11 @@ use v6.e.PREVIEW;
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
 plan 43;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $ast;
 my $deparsed;
@@ -249,7 +252,7 @@ CODE
 
         my $attribute := $class.^attributes.head;
         test-declarator($attribute, $pod, $type,
-          :trailing-dropped(!%*ENV<RAKUDO_RAKUAST> && $type eq 'Str')
+          :trailing-dropped(!$rakuast && $type eq 'Str')
         );
     }
 }

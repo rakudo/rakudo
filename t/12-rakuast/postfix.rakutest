@@ -38,7 +38,7 @@ subtest 'Application of a negative power postfix operator' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
-# XXX enable test when RAKUDO_RAKUAST=1 is default
+# XXX enable test when RAKUDO_RAKUAST=1 and 6.e are default
 #subtest 'Application of a vulgar postfix operator' => {
 #    # 3²/₃
 #    ast RakuAST::ApplyPostfix.new(

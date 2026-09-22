@@ -1915,8 +1915,11 @@ class RakuAST::VarDeclaration::Simple
                     if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                         $init := $!initializer.expression.IMPL-TO-QAST($context);
                     }
+                    elsif nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
+                        nqp::die('Cannot instantiate a native type'); # XXX should check whether the method is actually "new"
+                    }
                     else {
-                        nqp::die('Can only compile an assign initializer on a native');
+                        nqp::die('Can only compile an assign initializer on a native, got a ' ~ $!initializer.HOW.name($!initializer));
                     }
                 }
 

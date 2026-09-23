@@ -3024,7 +3024,10 @@ class RakuAST::Statement::Require
         if $!module-name.is-indirect-lookup {
             if $!module-name.is-multi-part {
                 my $qast := QAST::Op.new(:op<call>, :name('&infix:<,>'));
-                for $!module-name.IMPL-UNWRAP-LIST($!module-name.parts) {
+                my @parts := nqp::clone($!module-name.IMPL-UNWRAP-LIST($!module-name.parts));
+                # The leading `::` of `::('Foo')::('Bar')` is an empty part.
+                nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+                for @parts {
                     $qast.push: $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
                 }
                 QAST::Op.new(:op<callmethod>, :name<join>,

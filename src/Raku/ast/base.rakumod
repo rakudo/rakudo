@@ -3020,11 +3020,14 @@ class RakuAST::Node {
             if $truth {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($expr.then);
                 for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
-                    return $expr unless self.IMPL-DROPPABLE($_.condition);
+                    return $expr unless self.IMPL-DROPPABLE($_.condition)
+                        && self.IMPL-NO-FORMED-CODE($_.then);
                 }
+                return $expr unless self.IMPL-NO-FORMED-CODE($expr.else);
                 return self.IMPL-BRANCH-STATEMENT($expr.then);
             }
-            return $expr if nqp::elems($expr.IMPL-UNWRAP-LIST($expr.elsifs));
+            return $expr if nqp::elems($expr.IMPL-UNWRAP-LIST($expr.elsifs))
+                || !self.IMPL-NO-FORMED-CODE($expr.then);
             my $else := $expr.else;
             if nqp::isconcrete($else) {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($else);
@@ -3041,6 +3044,7 @@ class RakuAST::Node {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($expr.body);
                 return self.IMPL-BRANCH-STATEMENT($expr.body);
             }
+            return $expr unless self.IMPL-NO-FORMED-CODE($expr.body);
             return self.IMPL-EMPTY-STATEMENT($resolver, $expr);
         }
         elsif nqp::istype($expr, RakuAST::Statement::Expression) {
@@ -3692,16 +3696,33 @@ class RakuAST::Node {
     # comes first because a node can be both a declaration and a scope, the way
     # a named sub installs itself in the surrounding scope while its body is a
     # scope of its own. A node that is only a lexical scope confines anything
-    # declared inside it, so there is no need to look further down.
+    # declared inside it, so there is no need to look further down for a
+    # declaration.
+    # Code compiled ahead of the unit, such as a role method or a BEGIN block,
+    # has registered a code object for each block in it, and the unit must
+    # still emit every one of them, so a branch holding such code is kept.
     method IMPL-DROPPABLE(Mu $node) {
         return 1 unless nqp::isconcrete($node);
         return 0 if nqp::istype($node, RakuAST::Declaration);
-        return 1 if nqp::istype($node, RakuAST::LexicalScope);
+        return 0 if nqp::istype($node, RakuAST::Code) && $node.IMPL-HAS-QAST-BLOCK;
+        return self.IMPL-NO-FORMED-CODE($node)
+            if nqp::istype($node, RakuAST::LexicalScope);
         my int $droppable := 1;
         $node.visit-children(-> $child {
             $droppable := 0 unless self.IMPL-DROPPABLE($child);
         });
         $droppable
+    }
+
+    # Whether no code in the node has formed its block yet.
+    method IMPL-NO-FORMED-CODE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Code) && $node.IMPL-HAS-QAST-BLOCK;
+        my int $none := 1;
+        $node.visit-children(-> $child {
+            $none := 0 if $none && !self.IMPL-NO-FORMED-CODE($child);
+        });
+        $none
     }
 
     # Constant folding. Given a child expression, if it is a pure operator

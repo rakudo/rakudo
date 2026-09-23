@@ -826,14 +826,10 @@ role RakuAST::Code
                 }
             }
         } else {
-            $wrapper[0].push(QAST::Var.new(
-                :name('$_'), :scope('lexical'),
-                :decl('contvar'), :value(Mu)
-            ));
-            $wrapper[0].push(QAST::Var.new(
-                :name('$/'), :scope('lexical'),
-                :decl('contvar'), :value(Nil)
-            ));
+            $wrapper[0].push(RakuAST::VarDeclaration::Implicit::Special.new(
+                :name('$_')).IMPL-QAST-DECL($context));
+            $wrapper[0].push(RakuAST::VarDeclaration::Implicit::Special.new(
+                :name('$/')).IMPL-QAST-DECL($context));
             $wrapper[0].push(QAST::Var.new(
                 :name('$?PACKAGE'), :scope('lexical'),
                 :decl('static'), :value($package)

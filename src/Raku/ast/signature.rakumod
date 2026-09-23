@@ -1369,18 +1369,22 @@ class RakuAST::Parameter
     # typecheck can handle. Generic classes such as Array[T], which are
     # generic and nominal, and parametric generics such as Positional[T]
     # need the full binder to instantiate them from the type environment.
+    # A generic coercion such as T() needs it too, unless the parameter
+    # is slurpy or the invocant.
     # Also called at CHECK time for types whose archetypes are not final
     # at the parameter's begin time, such as a class stub completed later.
     method IMPL-SET-CUSTOM-ARGS-FOR-GENERIC() {
         my $param-type := nqp::getattr(self.meta-object, Parameter, '$!type');
         my $archetypes := $param-type.HOW.archetypes($param-type);
-        $!owner.set-custom-args
-            if nqp::isconcrete($!owner)
-            && $archetypes.generic
-            && !$archetypes.coercive
-            && ($archetypes.nominal
-                 || nqp::can($archetypes, "parametric")
-                      && $archetypes.parametric);
+        return Nil unless nqp::isconcrete($!owner) && $archetypes.generic;
+        if $archetypes.coercive {
+            $!owner.set-custom-args
+                if $!slurpy =:= RakuAST::Parameter::Slurpy && !$!invocant;
+        }
+        elsif $archetypes.nominal
+            || nqp::can($archetypes, "parametric") && $archetypes.parametric {
+            $!owner.set-custom-args;
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1463,12 +1467,6 @@ class RakuAST::Parameter
                 $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.lexical-name;
         }
 
-        my $param-obj := self.meta-object;
-        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
-        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
-        my int $is-generic  := $ptype-archetypes.generic;
-        my int $is-coercive := $ptype-archetypes.coercive;
-
         self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         if $!type {
@@ -1497,10 +1495,6 @@ class RakuAST::Parameter
         }
 
         my int $was-slurpy := !($!slurpy =:= RakuAST::Parameter::Slurpy);
-
-        if $is-generic && $is-coercive && !$was-slurpy && !($param-type =:= Mu) && !self.invocant {
-            $!owner.set-custom-args;
-        }
 
         my $sigil := $!target.sigil;
         if $was-slurpy && nqp::isconcrete($!type) {

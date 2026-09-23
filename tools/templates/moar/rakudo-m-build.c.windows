@@ -13,7 +13,7 @@ int argvQuote(wchar_t *in, wchar_t *out) {
     ipos = 0;
     opos = 0;
 
-    if (!wcschr(in, L' ') && !wcschr(in, L'"') && !wcschr(in, L'\\t') && !wcschr(in, L'\\n') && !wcschr(in, L'\\v')) {
+    if (wcslen(in) != 0 && !wcschr(in, L' ') && !wcschr(in, L'"') && !wcschr(in, L'\\t') && !wcschr(in, L'\\n') && !wcschr(in, L'\\v')) {
         if (out) wcscpy(out, in);
         return wcslen(in) + 1;
     }

@@ -1514,13 +1514,22 @@ class RakuAST::Call::NameAsMethod
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }
 
+    # A role body is compiled when the role is composed, which can precede
+    # resolving a routine declared later in the file. Look such a callee up
+    # by name at run time.
+    method IMPL-CALLEE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.is-resolved
+            ?? self.resolution.IMPL-LOOKUP-QAST($context)
+            !! QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('&' ~ $!name.canonicalize) ) )
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         unless $!name.is-identifier {
             nqp::die('compiling complex call names NYI')
         }
         my $name-qast  := $!name.is-indirect-lookup
             ?? $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :sigil('&'))
-            !! self.resolution.IMPL-LOOKUP-QAST($context);
+            !! self.IMPL-CALLEE-QAST($context);
         my $dispatcher := self.dispatcher;
 
         my $call := $dispatcher
@@ -1558,8 +1567,8 @@ class RakuAST::Call::NameAsMethod
             $name-again := QAST::Var.new( :name($tmp), :scope('local') );
         }
         else {
-            $name-qast  := self.resolution.IMPL-LOOKUP-QAST($context);
-            $name-again := self.resolution.IMPL-LOOKUP-QAST($context);
+            $name-qast  := self.IMPL-CALLEE-QAST($context);
+            $name-again := self.IMPL-CALLEE-QAST($context);
         }
 
         my $call := $dispatcher

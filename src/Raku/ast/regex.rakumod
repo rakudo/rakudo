@@ -159,10 +159,11 @@ class RakuAST::Regex
     # list reduces directly, since its negated zerowidth op holds at the
     # end of the string. The class and range ops demand a character even
     # when negated, so their negated forms pair with an anchor to the end
-    # of the string in a sequential alternation instead. The negated
-    # literal op fails wherever fewer characters remain than the length,
-    # all positions where the negated assertion must hold, so no anchor
-    # pairing preserves it and it stays a thunk.
+    # of the string in a sequential alternation instead. The class op
+    # ignores negation for `.`, so that negated assertion reduces to the
+    # anchor alone. The negated literal op fails wherever fewer characters
+    # remain than the length, all positions where the negated assertion
+    # must hold, so no anchor pairing preserves it and it stays a thunk.
     method IMPL-BEFORE-SIMPLE-ATOM(Mu $qast) {
         return nqp::null()
             unless $qast.rxtype eq 'subrule'
@@ -192,9 +193,12 @@ class RakuAST::Regex
                 :node($atom.node), :$negate, $atom[0] )
         }
         elsif $rxtype eq 'cclass' {
-            self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
-                :rxtype<cclass>, :subtype<zerowidth>,
-                :node($atom.node), :$negate, :name($atom.name) ))
+            $negate && $atom.name eq '.'
+                ?? QAST::Regex.new( :rxtype<anchor>, :subtype<eos>,
+                    :node($atom.node) )
+                !! self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
+                    :rxtype<cclass>, :subtype<zerowidth>,
+                    :node($atom.node), :$negate, :name($atom.name) ))
         }
         elsif $rxtype eq 'charrange' {
             self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(

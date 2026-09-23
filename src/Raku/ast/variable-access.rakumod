@@ -555,6 +555,7 @@ class RakuAST::Var::Attribute
 # Wrapper for $.foo "attribute" accesses
 class RakuAST::Var::Attribute::Public
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     has str                   $.name;
     has RakuAST::ApplyPostfix $!expression;
@@ -591,6 +592,13 @@ class RakuAST::Var::Attribute::Public
 
     method visit-children(Code $visitor) {
         $visitor($!expression);
+    }
+
+    # The parser drives parse time on this node and not on the self term it
+    # builds. A method compiled at BEGIN time would otherwise hold an
+    # unresolved self, which lexical lowering does not count as a use.
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!expression.operand.operand.to-begin-time($resolver, $context);
     }
 
     method replace-args(RakuAST::ArgList $args) {

@@ -2632,6 +2632,17 @@ role RakuAST::ModuleLoading {
             if $existing {
                 $existing.merge($declarand, :$resolver) unless $existing.compile-time-value =:= $declarand.compile-time-value;
             }
+            elsif $globalish && (my $stub := self.IMPL-ENCLOSING-STUB($resolver, $key, $declarand)) {
+                # An enclosing scope declares the name as a stub package, as
+                # `class Foo::Bar { use Foo }` does. The lexical gets the incoming
+                # package and GLOBAL keeps the stub, as in the legacy frontend.
+                # Units importing this one then declare their packages in that
+                # stub rather than in another unit's class, whose stash each
+                # precompiled unit of a chain would record and restore.
+                nqp::gethllsym('Raku', 'ModuleLoader').merge_globals(
+                  $declarand.compile-time-value.WHO, $stub.compile-time-value.WHO);
+                $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+            }
             else {
                 # A unit's mainline can write through a GLOBAL-rooted name
                 # as it loads, vivifying a stub package in the merged GLOBAL
@@ -2690,6 +2701,17 @@ role RakuAST::ModuleLoading {
         else {
             $declarand
         }
+    }
+
+    # The declaration of a stub package named $key in a scope enclosing the
+    # import, when the imported value is a package that is not a stub.
+    method IMPL-ENCLOSING-STUB(RakuAST::Resolver $resolver, str $key, Mu $declarand) {
+        my $value := nqp::decont($declarand.compile-time-value);
+        return Nil if !nqp::isconcrete(nqp::who($value)) || self.IMPL-IS-STUB-PACKAGE($value);
+        my $outer := $resolver.resolve-lexical-constant($key);
+        $outer && self.IMPL-IS-STUB-PACKAGE(nqp::decont($outer.compile-time-value))
+            ?? $outer
+            !! Nil
     }
 
     method IMPL-IS-STUB-PACKAGE(Mu $value) {

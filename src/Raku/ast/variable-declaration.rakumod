@@ -3262,6 +3262,23 @@ class RakuAST::VarDeclaration::Implicit::Constant
     }
 }
 
+# The %?REQUIRE-SYMBOLS stash of a scope containing a require. Each entry
+# into the scope gets a copy of it as BEGIN time left it, so packages merged
+# by an earlier call do not shadow what a later indirect lookup finds.
+class RakuAST::VarDeclaration::Implicit::RequireSymbols
+  is RakuAST::VarDeclaration::Implicit::Constant
+{
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.value;
+        $context.ensure-sc($value);
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :$value ),
+            QAST::Op.new( :op('callmethod'), :name('clone'), QAST::WVal.new( :$value ) )
+        )
+    }
+}
+
 # An enum value, e.g. "a" and "b" from enum Foo <a b>
 # Is just a constant but we're using the subclass to identify them and
 # apply special handling on conflicts.

@@ -2991,7 +2991,7 @@ class RakuAST::Statement::Require
         $context.ensure-sc($stash);
         $target-scope.merge-generated-lexical-declaration:
             :$resolver,
-            RakuAST::VarDeclaration::Implicit::Constant.new:
+            RakuAST::VarDeclaration::Implicit::RequireSymbols.new:
                 :name<%?REQUIRE-SYMBOLS>,
                 :value($stash);
 

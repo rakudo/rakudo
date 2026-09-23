@@ -2401,7 +2401,7 @@ class RakuAST::Block
         # exception rethrow logic.
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
-            $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
+            $block.push(self.IMPL-SET-NODE($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args))));
             $block.custom_args(1) if self.custom-args;
             $block.arity($signature.arity);
             $block.annotate('count', $signature.count);
@@ -3027,7 +3027,7 @@ class RakuAST::Routine
                 ), :key);
         self.IMPL-ADD-LOWERED-DEBUG-MAPPINGS($block);
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi'), :invocant-decl(self.IMPL-SELF-DECLARATION)));
+        $block.push(self.IMPL-SET-NODE($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args), :multi(self.multiness eq 'multi'), :invocant-decl(self.IMPL-SELF-DECLARATION))));
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);

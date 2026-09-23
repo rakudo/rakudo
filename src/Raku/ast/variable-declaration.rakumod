@@ -1937,7 +1937,8 @@ class RakuAST::VarDeclaration::Simple
 
             else {
                 my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
-                if $bind-constraint.HOW.archetypes($bind-constraint).generic {
+                if $bind-constraint.HOW.archetypes($bind-constraint).generic
+                    || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic {
                     $var-access := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $var-access ),

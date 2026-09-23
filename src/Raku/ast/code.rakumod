@@ -372,7 +372,16 @@ role RakuAST::Code
                 $compiler-thunk();
             }
             unless nqp::isnull($code-obj) {
-                return $code-obj(|@pos, |%named);
+                my $result := $code-obj(|@pos, |%named);
+                # This stub is NQP code, so a native return arrives boxed
+                # into NQP's bootstrap types, not the Raku ones.
+                my $signature := nqp::getattr($code-obj, Code, '$!signature');
+                my $returns := nqp::isconcrete($signature)
+                    ?? nqp::ifnull(nqp::getattr($signature, Signature, '$!returns'), Mu)
+                    !! Mu;
+                return nqp::objprimspec($returns)
+                    ?? nqp::hllizefor($result, 'Raku')
+                    !! $result;
             }
         });
 

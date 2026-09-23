@@ -220,13 +220,31 @@ class RakuAST::ArgList
         [@pos, %named]
     }
 
+    # The node giving an argument its compile-time value: a named argument's
+    # value, or the argument itself. One without such a value may be a lexical
+    # in grouping parentheses, as in `:coerce(&foo)`, so look through those.
+    method IMPL-ARG-COMPILE-TIME-SOURCE(Mu $arg) {
+        my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
+        return $expr if $expr.has-compile-time-value;
+        while nqp::istype($expr, RakuAST::Circumfix::Parentheses)
+          && nqp::istype($expr.semilist, RakuAST::SemiList)
+          && $expr.semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $statement := self.IMPL-UNWRAP-LIST($expr.semilist.statements)[0];
+            last if nqp::isconcrete($statement.condition-modifier)
+                 || nqp::isconcrete($statement.loop-modifier);
+            $expr := $statement.expression;
+        }
+        $expr
+    }
+
     method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic, :$allow-variable) {
         for $!args -> $arg {
-            if $arg.has-compile-time-value {
-                return False if !$allow-generic && $arg.maybe-compile-time-value.HOW.archetypes.generic;
+            my $value := self.IMPL-ARG-COMPILE-TIME-SOURCE($arg);
+            if $value.has-compile-time-value {
+                return False if !$allow-generic && $value.maybe-compile-time-value.HOW.archetypes.generic;
             }
             else {
-                unless $allow-variable && nqp::istype($arg, RakuAST::Var::Lexical) && $arg.is-resolved && $arg.resolution.has-compile-time-value {
+                unless $allow-variable && nqp::istype($value, RakuAST::Var::Lexical) && $value.is-resolved && $value.resolution.has-compile-time-value {
                     return False;
                 }
             }
@@ -238,11 +256,12 @@ class RakuAST::ArgList
         my @pos;
         my %named;
         for $!args -> $arg {
+            my $value := self.IMPL-ARG-COMPILE-TIME-SOURCE($arg).maybe-compile-time-value;
             if nqp::istype($arg, RakuAST::NamedArg) {
-                %named{$arg.named-arg-name} := $arg.named-arg-value.maybe-compile-time-value;
+                %named{$arg.named-arg-name} := $value;
             }
             else {
-                nqp::push(@pos, $arg.maybe-compile-time-value);
+                nqp::push(@pos, $value);
             }
         }
         [@pos, %named]

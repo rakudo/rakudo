@@ -1510,7 +1510,7 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
-        if $type && self.is-attribute {
+        if $type && self.is-attribute && self.sigil eq '$' {
             my $of := self.IMPL-OF-TYPE;
             # Subset type checking can have side effects, so don't do that at compile time.
             unless nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
@@ -1521,17 +1521,22 @@ class RakuAST::VarDeclaration::Simple
                     my $expression := $initializer.expression;
                     my $expression-type := $expression.return-type;
                     unless $expression-type =:= Mu || $expression-type =:= Nil
-                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic {
+                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic
+                        || nqp::objprimspec($expression-type)
+                        || $expression-type.HOW.archetypes.generic {
                         # a return type says nothing about definedness, and
                         # a coercion type decides at runtime what it takes
                         my $base := $of.HOW.archetypes.definite
                           && nqp::eqaddr($of.HOW.wrappee($of, :definite), $of)
                           ?? $of.HOW.base_type($of)
                           !! $of;
+                        # a return type only bounds the value, so the value
+                        # may still be of a narrower type
                         unless $expression.has-compile-time-value
                             ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
                             !! $of.HOW.archetypes.coercive
                                  || nqp::istype($expression-type, $base)
+                                 || nqp::istype($base, $expression-type)
                         {
                             self.add-sorry:
                                 $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
@@ -1935,7 +1940,8 @@ class RakuAST::VarDeclaration::Simple
 
             else {
                 my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
-                if $bind-constraint.HOW.archetypes($bind-constraint).generic {
+                if $bind-constraint.HOW.archetypes($bind-constraint).generic
+                    || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic {
                     $var-access := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $var-access ),

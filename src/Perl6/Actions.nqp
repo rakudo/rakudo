@@ -4269,6 +4269,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $varvar.implicit-lexical-usage {
                     $world.mark_lexical_used_implicitly($BLOCK, $name);
                 }
+                # an is default trait can give the container a generic
+                # default, which needs the same reification as a generic type
+                if nqp::istype($past, QAST::Var) && $descriptor.is_default_generic {
+                    $past := QAST::Op.new(
+                        :op('callmethod'), :name('instantiate_generic'),
+                        QAST::Op.new( :op('p6var'), $past ),
+                        QAST::Op.new( :op('curlexpad') ));
+                }
             }
         }
         elsif $scope eq '' {

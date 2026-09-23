@@ -81,11 +81,17 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
       :got(nqp::eqaddr($default,Nil) ?? 'Nil' !! $default)
     ) unless nqp::istype($default, $of)
         or nqp::eqaddr($default,Nil)
-        or nqp::eqaddr($of,Mu);
+        or nqp::eqaddr($of,Mu)
+        or $default.^archetypes.generic;
     $descriptor.set_default(nqp::decont($default));
 
     # make sure we start with the default if a scalar
-    $var = $default if nqp::istype($what, Scalar);
+    if nqp::istype($what, Scalar) {
+        # a generic default only gets its type when the role is composed
+        $default.^archetypes.generic
+          ?? nqp::bindattr($var,Scalar,'$!value',nqp::decont($default))
+          !! ($var = $default);
+    }
 }
 multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;

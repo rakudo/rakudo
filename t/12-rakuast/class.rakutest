@@ -3,7 +3,7 @@ use lib <t/packages/12-rakuast/lib>;
 use Test;
 use CustomDeclarator;
 
-plan 47;
+plan 48;
 
 my $ast;
 my $deparsed;
@@ -2573,6 +2573,83 @@ subtest 'A class declared twice in a tree is a redeclaration' => {
               "$type: redeclaring $name is reported";
         }
     }
+}
+
+subtest 'An attribute default checked against a list, code or generic type' => {
+    ast Q:to/SOURCE/.AST;
+    my @d = 1, 2; my class AttrDefaultArray { has Int @.x = @d }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).new.x, Array[Int].new(1, 2),
+          "$type: an @ attribute default from an array variable";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my @d = Int, Int; my class AttrDefaultUndefinedArray { has Int:U @.x = @d }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).new.x, Array[Int:U].new(Int, Int),
+          "$type: an @ attribute of undefined elements from an array of type objects";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my %d = a => 1; my class AttrDefaultHash { has Int %.x = %d }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it).new.x, (my Int % = a => 1),
+          "$type: a % attribute default from a hash variable";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my &d = sub (--> Int) { 42 }; my class AttrDefaultCode { has Int &.x = &d }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).new.x.(), 42,
+          "$type: a & attribute default from a code variable";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my Any $d = 42; my class AttrDefaultWider { has Int $.x = $d }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).new.x, 42,
+          "$type: a \$ attribute default from a variable of a wider type";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my class AttrDefaultNative { has Int $.x = my int $ = 42 }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).new.x, 42,
+          "$type: a \$ attribute default from a native variable";
+    }
+
+    ast Q:to/SOURCE/.AST;
+    my role AttrDefaultTypeParam[::T] { has Mu:U $.x = T }
+    my class AttrDefaultTypeParamClass does AttrDefaultTypeParam[Int] { }
+    SOURCE
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is EVAL($it).new.x, Int,
+          "$type: a \$ attribute default from a role type parameter";
+    }
+
+    throws-like {
+        'my class AttrDefaultWrongValue { has Int:U $.x = 42 }'.AST
+    }, X::TypeCheck::Attribute::Default,
+      name => '$!x', got => 'Int', expected => 'Int:U',
+      'a $ attribute default value of the wrong definedness is reported';
+
+    throws-like {
+        'my Str $d = "a"; my class AttrDefaultWrongType { has Int $.x = $d }'.AST
+    }, X::TypeCheck::Attribute::Default,
+      name => '$!x', got => 'Str', expected => 'Int',
+      'a $ attribute default from a variable of an unrelated type is reported';
+
+    throws-like {
+        'my @d = 1; my class AttrDefaultWrongList { has Int $.x = @d }'.AST
+    }, X::TypeCheck::Attribute::Default,
+      name => '$!x', got => 'Positional', expected => 'Int',
+      'a $ attribute default from an array variable is reported';
 }
 
 # vim: expandtab shiftwidth=4

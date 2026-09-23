@@ -6147,7 +6147,7 @@ Rakudo significantly on *every* run."
         <.doc-newline>
 
         # and any following lines as well
-        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' <!before \w> ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<abbreviated> {
@@ -6172,7 +6172,7 @@ Rakudo significantly on *every* run."
         [ [ \h+ $<header>=[\N+ \n?]? ] | <.doc-newline> ]
 
         # and any following lines as well
-        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' <!before \w> ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<lines> {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 22;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -821,6 +821,25 @@ a | b
 =end table
 
 CODE
+}
+
+subtest 'A continuation line of a block may start with = and no word character' => {
+    my $ast := Q:to/SOURCE/.AST;
+    =item C<< a
+      => b >>
+    =for para
+    x
+      => y
+    =item next
+    SOURCE
+    my @blocks = $ast.statements;
+    is-deeply @blocks.elems, 3, 'the lines starting with = stay in their blocks';
+    is-deeply @blocks[0].paragraphs.head.atoms.head.atoms, (" a\n=> b ",),
+      'abbreviated: the markup spans the line starting with =>';
+    is-deeply @blocks[1].paragraphs, ("x\n  => y\n",),
+      'paragraph: the line starting with => is content';
+    is-deeply @blocks[2].type, 'item',
+      'a directive after the continuation lines starts a new block';
 }
 
 # vim: expandtab shiftwidth=4

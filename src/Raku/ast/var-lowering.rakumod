@@ -874,23 +874,32 @@ class RakuAST::IMPL::VarLowering {
         Nil
     }
 
+    # The frame of the scope providing a declaration's slot, which for a
+    # hoisted declaration is the scope it was hoisted to. A redeclaration
+    # of its name in that scope must not lower either.
+    method IMPL-DECLARING-SCOPE-INDEX(Mu $decl) {
+        my $owner := $decl.hoisted-to;
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                return $i unless nqp::isconcrete($owner);
+                return $i if nqp::eqaddr($frame.node, $owner);
+            }
+        }
+        nqp::die('The scope holding ' ~ $decl.lexical-name ~ ' is outside the lowering walk')
+          if nqp::isconcrete($owner);
+        -1
+    }
+
     # Register a sigilless term declaration with its scope's frame. One
     # emitted in another frame, hoisted or under a thunk, stays a lexical.
     method IMPL-REGISTER-TERM-DECL(RakuAST::VarDeclaration::Term $decl) {
         return Nil unless $decl.scope eq 'my';
 
-        my int $i := nqp::elems($!frames);
-        my $scope-frame;
-        my int $scope-index := -1;
-        while --$i >= 0 {
-            my $frame := nqp::atpos($!frames, $i);
-            if $frame.is-scope {
-                $scope-frame := $frame;
-                $scope-index := $i;
-                last;
-            }
-        }
+        my int $scope-index := self.IMPL-DECLARING-SCOPE-INDEX($decl);
         return Nil if $scope-index < 0;
+        my $scope-frame := nqp::atpos($!frames, $scope-index);
 
         my str $declined := '';
         if $decl.is-hoisted-to-outer {
@@ -922,18 +931,9 @@ class RakuAST::IMPL::VarLowering {
     method IMPL-REGISTER-DECL(RakuAST::VarDeclaration::Simple $decl, str $alias-id?) {
         return Nil unless $decl.scope eq 'my';
 
-        my int $i := nqp::elems($!frames);
-        my $scope-frame;
-        my int $scope-index := -1;
-        while --$i >= 0 {
-            my $frame := nqp::atpos($!frames, $i);
-            if $frame.is-scope {
-                $scope-frame := $frame;
-                $scope-index := $i;
-                last;
-            }
-        }
+        my int $scope-index := self.IMPL-DECLARING-SCOPE-INDEX($decl);
         return Nil if $scope-index < 0;
+        my $scope-frame := nqp::atpos($!frames, $scope-index);
 
         my str $declined := '';
         my str $sigil := $decl.sigil;

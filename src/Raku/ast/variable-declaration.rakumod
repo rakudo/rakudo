@@ -116,6 +116,46 @@ class RakuAST::Initializer::CallAssign
     }
 }
 
+# A state initializer runs on its first reach in each clone of the frame
+# declaring the variable, as once does. A sentinel state variable guards
+# it, produced as an implicit declaration for the declaring scope to hold.
+role RakuAST::StateInitGuard {
+    has RakuAST::VarDeclaration::Implicit::State $!state-init-guard;
+
+    # Whether the declaration has a state initializer to guard. A binding
+    # one keeps nqp::p6stateinit, as the binder writes into its own frame.
+    method IMPL-GUARDS-STATE-INIT() {
+        self.scope eq 'state' && nqp::isconcrete(self.initializer)
+          && !self.initializer.is-binding
+    }
+
+    method IMPL-STATE-INIT-GUARD() {
+        $!state-init-guard // nqp::bindattr(self, RakuAST::StateInitGuard,
+            '$!state-init-guard', RakuAST::VarDeclaration::Implicit::State.new(
+                QAST::Node.unique('!state_init_guard'), :sentinel))
+    }
+
+    # Whether the initializer is to run, marking the guard on the first reach.
+    # A sub in a role body forms its code before its scope gathers the
+    # implicit declarations, so the guard is produced here as well.
+    method IMPL-STATE-INIT-CONDITION-QAST(RakuAST::IMPL::QASTContext $context) {
+        return QAST::Op.new( :op('p6stateinit') ) unless self.IMPL-GUARDS-STATE-INIT;
+        self.get-implicit-declarations;
+        my $guard := self.IMPL-STATE-INIT-GUARD;
+        QAST::Op.new(:op<if>,
+          $guard.IMPL-SENTINEL-TEST-QAST($context),
+          QAST::Stmts.new(
+            QAST::Op.new(:op<p6store>,
+              QAST::Var.new( :name($guard.name), :scope<lexical> ),
+              QAST::WVal.new( :value(True) )
+            ),
+            QAST::IVal.new( :value(1) )
+          ),
+          QAST::IVal.new( :value(0) )
+        )
+    }
+}
+
 # Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
 # for the lookup created by IMPL-SIGIL-LOOKUP.
 role RakuAST::ContainerCreator {
@@ -708,6 +748,8 @@ class RakuAST::VarDeclaration::Simple
   does RakuAST::Doc::DeclaratorTarget
   does RakuAST::ParseTime
   does RakuAST::BeginTime
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::StateInitGuard
 {
     has RakuAST::Type        $.type;
     has RakuAST::Name        $.desigilname;
@@ -909,6 +951,11 @@ class RakuAST::VarDeclaration::Simple
     method set-initializer(RakuAST::Initializer $initializer) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS;
+    }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-GUARDS-STATE-INIT ?? [self.IMPL-STATE-INIT-GUARD] !! []
     }
 
     method name() {
@@ -1720,7 +1767,9 @@ class RakuAST::VarDeclaration::Simple
                     :scope($!is-rw ?? 'lexicalref' !! 'lexical'), :decl('var'), :name(self.name),
                     :returns($of)
                 );
-                if $!is-parameter || $!initializer {
+                # A hoisted declaration's initializer runs in another frame,
+                # so the slot takes its default here.
+                if $!is-parameter || $!initializer && !self.is-hoisted-to-outer {
                     $qast
                 }
                 else {
@@ -2022,7 +2071,7 @@ class RakuAST::VarDeclaration::Simple
                     if $scope eq 'state' {
                         $qast := QAST::Op.new(
                           :op('if'),
-                          QAST::Op.new( :op('p6stateinit') ),
+                          self.IMPL-STATE-INIT-CONDITION-QAST($context),
                           $perform-init-qast,
                           $var-access
                         )
@@ -2172,6 +2221,7 @@ class RakuAST::VarDeclaration::Signature
   does RakuAST::ImplicitDeclarations
   does RakuAST::TraitTarget
   does RakuAST::BeginTime
+  does RakuAST::StateInitGuard
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
@@ -2255,6 +2305,7 @@ class RakuAST::VarDeclaration::Signature
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @declarations;
         self.signature.IMPL-COLLECT-TYPE-CAPTURES(@declarations);
+        nqp::push(@declarations, self.IMPL-STATE-INIT-GUARD) if self.IMPL-GUARDS-STATE-INIT;
         @declarations
     }
 
@@ -2649,7 +2700,7 @@ class RakuAST::VarDeclaration::Signature
             my @later-var-inits;
             $perform-init-qast := QAST::Op.new(
               :op('if'),
-              QAST::Op.new( :op('p6stateinit') ),
+              self.IMPL-STATE-INIT-CONDITION-QAST($context),
               $perform-init-qast,
               self.IMPL-STORE-LIST-QAST($context, @params,
                   @later-terms, @later-groups, @later-var-inits, $attribute, 0)
@@ -3541,7 +3592,17 @@ class RakuAST::VarDeclaration::Implicit::State
         $obj
     }
 
-    method sentinel-value() { $!sentinel-value }
+    # Whether the variable still holds its sentinel.
+    method IMPL-SENTINEL-TEST-QAST(RakuAST::IMPL::QASTContext $context) {
+        nqp::die('A state variable made without :sentinel has none to test')
+          unless nqp::isconcrete($!sentinel-value);
+        $context.ensure-sc($!sentinel-value);
+        QAST::Op.new(:op<eqaddr>,
+          QAST::Op.new(:op<decont>,
+            QAST::Var.new( :name(self.name), :scope<lexical> )),
+          QAST::WVal.new( :value($!sentinel-value) )
+        )
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         $!init-to-zero ?? [

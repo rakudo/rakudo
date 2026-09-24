@@ -137,28 +137,17 @@ sub move-handlers-to-body($compunit, $body) {
 # without forcing the body's declaration cache, so the implicit declarations
 # are not disturbed.
 sub hoist-loop-body-declarations($body, $compunit) {
-    $body.visit-dfs: -> $node {
-        if nqp::istype($node, Nodify('Declaration'))
-          && !nqp::istype($node, Nodify('VarDeclaration::Implicit'))
-          && $node.is-simple-lexical-declaration
-          && $node.lexical-name ne '$_' {
-            $node.set-hoisted-to-outer;
-            $compunit.add-generated-lexical-declaration($node);
-        }
-        # A list declaration bound with := goes through the runtime
-        # signature binder, which writes into the declaring frame's
-        # lexicals by name, so its targets must keep their slots in the
-        # loop body. The bind re-runs each line, so nothing persists to
-        # hoist anyway.
-        if nqp::istype($node, Nodify('VarDeclaration::Signature'))
-          && nqp::isconcrete($node.initializer)
-          && $node.initializer.is-binding {
-            0
-        }
-        # Descend through everything except inner lexical scopes, which own
-        # their own declarations; always descend into the loop body itself.
-        else {
-            $node =:= $body || !nqp::istype($node, Nodify('LexicalScope'))
+    for $body.IMPL-HOISTABLE-DECLARATIONS -> $decl {
+        $decl.set-hoisted-to($compunit);
+        $compunit.add-generated-lexical-declaration($decl)
+          if $decl.is-simple-lexical-declaration;
+        # A state initializer's guard goes along with its variable.
+        if nqp::istype($decl, Nodify('ImplicitDeclarations'))
+          && !nqp::istype($decl, Nodify('LexicalScope')) {
+            for $decl.IMPL-UNWRAP-LIST($decl.get-implicit-declarations) {
+                $compunit.add-generated-lexical-declaration($_)
+                  if $_.is-simple-lexical-declaration;
+            }
         }
     }
 }

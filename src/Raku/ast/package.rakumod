@@ -626,6 +626,26 @@ class RakuAST::Package
         self.IMPL-MAYBE-REGISTER-INSTANTIATION-LEXICAL;
     }
 
+    # A body that failed leaves the type uncomposed with the members it
+    # attached. Dropping it from its stash makes a later declaration of the
+    # name create a new type, while this compunit still finds it lexically.
+    method IMPL-WITHDRAW-FAILED(RakuAST::Resolver $resolver) {
+        return Nil if $!augmented;
+        my $type  := self.stubbed-meta-object;
+        my @parts := nqp::split('::', $type.HOW.name($type));
+        my $final := nqp::pop(@parts);
+        my $pkg   := $resolver.get-global;
+        for @parts {
+            my %stash := $resolver.IMPL-STASH-HASH($pkg);
+            return Nil unless nqp::existskey(%stash, $_);
+            $pkg := nqp::atkey(%stash, $_);
+        }
+        my %stash := $resolver.IMPL-STASH-HASH($pkg);
+        nqp::deletekey(%stash, $final)
+          if nqp::eqaddr(nqp::atkey(%stash, $final), $type);
+        Nil
+    }
+
     # A tree built by hand composes when its meta-object is first made,
     # which has to happen during CHECK for a failed compose to be reported.
     # A stub stays uncomposed for the stubbed package check. A pending BEGIN
@@ -677,7 +697,6 @@ class RakuAST::Package::Attachable
     # Methods and attributes are not directly added, but rather thorugh the
     # attach target mechanism. Attribute usages are also attached for checking
     # after compose time.
-    has Mu $!attached-methods;
     has Mu $.attached-attributes;
     has Mu $!attached-attribute-usages;
     has Mu $!role-group;
@@ -713,8 +732,6 @@ class RakuAST::Package::Attachable
 
         # Set up internal defaults
         nqp::bindattr($obj, RakuAST::Package::Attachable,
-          '$!attached-methods', []);
-        nqp::bindattr($obj, RakuAST::Package::Attachable,
           '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package::Attachable,
           '$!attached-attribute-usages', {});
@@ -727,8 +744,26 @@ class RakuAST::Package::Attachable
     method can-have-methods()    { True }
     method can-have-attributes() { True }
 
+    # Added right away so that BEGIN time code later in the package body
+    # can call the method on the type before it is composed.
     method ATTACH-METHOD(RakuAST::Methodish $method) {
-        nqp::push($!attached-methods, $method);
+        my $type        := self.stubbed-meta-object;
+        my $how         := $type.HOW;
+        my $name        := $method.name.canonicalize;
+        my $meta-object := $method.meta-object;
+
+        if nqp::istype($method, RakuAST::Method) && $method.private {
+            $how.add_private_method($type, $name, $meta-object);
+        }
+        elsif nqp::istype($method, RakuAST::Method) && $method.meta {
+            $how.add_meta_method($type, $name, $meta-object);
+        }
+        elsif $method.multiness eq 'multi' {
+            $how.add_multi_method($type, $name, $meta-object);
+        }
+        else {
+            $how.add_method($type, $name, $meta-object);
+        }
         Nil
     }
 
@@ -744,25 +779,8 @@ class RakuAST::Package::Attachable
         Nil
     }
 
-    # Add methods and attributes to meta object
+    # Stop checking the usages of attributes that were declared
     method PRODUCE-META-ATTACHABLES($type, $how) {
-        for $!attached-methods {
-            my $name        := $_.name.canonicalize;
-            my $meta-object := $_.meta-object;
-
-            if nqp::istype($_, RakuAST::Method) && $_.private {
-                $how.add_private_method($type, $name, $meta-object);
-            }
-            elsif nqp::istype($_, RakuAST::Method) && $_.meta {
-                $how.add_meta_method($type, $name, $meta-object);
-            }
-            elsif $_.multiness eq 'multi' {
-                $how.add_multi_method($type, $name, $meta-object);
-            }
-            else {
-                $how.add_method($type, $name, $meta-object);
-            }
-        }
         for $!attached-attributes {
 
             # attribute defined means we don't need to check it anymore

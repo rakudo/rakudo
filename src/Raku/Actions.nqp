@@ -3313,8 +3313,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # leave the package uncomposed when that happened, as the legacy
             # frontend does by unwinding before package composition.
             # $*PACKAGE-BEGIN-SORRY-BASE is the count at package open.
-            $ast.IMPL-COMPOSE($R, $context)
-              if nqp::iseq_i($R.deferred-begin-sorries, $*PACKAGE-BEGIN-SORRY-BASE);
+            nqp::iseq_i($R.deferred-begin-sorries, $*PACKAGE-BEGIN-SORRY-BASE)
+              ?? $ast.IMPL-COMPOSE($R, $context)
+              !! $ast.IMPL-WITHDRAW-FAILED($R);
         }
 
         self.attach: $/, $ast;

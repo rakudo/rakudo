@@ -3788,6 +3788,10 @@ class RakuAST::Methodish
         self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
     }
 
+    # A method the metamodel generates while composing is added by the
+    # metamodel, so it must not also attach to its package.
+    method IMPL-ATTACHES-TO-PACKAGE() { True }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         if self.scope eq 'has' || self.scope eq 'our' {
@@ -3849,24 +3853,6 @@ class RakuAST::Methodish
 
         my str $name := self.name ?? self.name.canonicalize !! '';
 
-        if $package && nqp::can($package, 'can-have-methods') {
-            if $package.can-have-methods {
-                $package.ATTACH-METHOD(self) if self.scope eq 'has';
-            }
-            elsif self.scope eq 'has' {
-                self.add-worry:
-                  $resolver.build-exception: 'X::Useless::Declaration',
-                    name  => $name,
-                    where => "a " ~ $package.parsed-declarator
-            }
-        }
-        elsif self.scope eq 'has' {
-            self.add-worry:
-              $resolver.build-exception: 'X::Useless::Declaration',
-                name  => $name,
-                where => 'the mainline';
-        }
-
         if self.multiness eq 'proto' {
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
             $resolver.outer-scope.add-generated-lexical-declaration(self) if self.scope ne 'has';
@@ -3914,7 +3900,31 @@ class RakuAST::Methodish
         self.meta-object.set_yada if self.is-stub;
 
         # Apply any traits.
-        self.apply-traits($resolver, $context, self)
+        self.apply-traits($resolver, $context, self);
+
+        if $package && nqp::can($package, 'can-have-methods') {
+            if $package.can-have-methods {
+                if self.scope eq 'has' && self.IMPL-ATTACHES-TO-PACKAGE {
+                    CATCH {
+                        self.add-sorry: $resolver.convert-exception($_);
+                        $resolver.note-deferred-begin-sorry;
+                    }
+                    $package.ATTACH-METHOD(self);
+                }
+            }
+            elsif self.scope eq 'has' {
+                self.add-worry:
+                  $resolver.build-exception: 'X::Useless::Declaration',
+                    name  => $name,
+                    where => "a " ~ $package.parsed-declarator
+            }
+        }
+        elsif self.scope eq 'has' {
+            self.add-worry:
+              $resolver.build-exception: 'X::Useless::Declaration',
+                name  => $name,
+                where => 'the mainline';
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -4080,6 +4090,8 @@ class RakuAST::Method::AttributeAccessor
 
     method declarator() { 'submethod' }
 
+    method IMPL-ATTACHES-TO-PACKAGE() { False }
+
     # The body is fully synthetic: nothing in it can reach the special
     # variables, so only self is declared.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -4178,6 +4190,8 @@ class RakuAST::Submethod::BuildPlanExecutor
         nqp::bindattr($obj, RakuAST::Submethod::BuildPlanExecutor, '$!return-routine', $return-routine);
         $obj
     }
+
+    method IMPL-ATTACHES-TO-PACKAGE() { False }
 
     # The body is fully synthetic: nothing in it can reach the special
     # variables, so only self is declared.

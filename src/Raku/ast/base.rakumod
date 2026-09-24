@@ -4020,6 +4020,7 @@ class RakuAST::Node {
         elsif nqp::istype($code, RakuAST::Expression) {
             my $thunk := RakuAST::ExpressionThunk.new;
             $code.wrap-with-thunk($thunk);
+            $thunk.IMPL-SET-COMPILED-ALONE;
             $thunk.IMPL-STUB-CODE($resolver, $context);
             $code.apply-sink(False);
             $thunk.IMPL-QAST-BLOCK($context, :expression($code));

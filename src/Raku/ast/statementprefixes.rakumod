@@ -484,15 +484,9 @@ class RakuAST::StatementPrefix::Once
         # its value rather than nqp::p6stateinit makes the once fire exactly
         # once per clone of the frame that owns the variable, even when the
         # once runs inside a phaser or other thunk with a frame of its own.
-        my $sentinel := $!state-decl.sentinel-value;
-        $context.ensure-sc($sentinel);
         QAST::Op.new(:op<decont>,
           QAST::Op.new(:op<if>,
-            QAST::Op.new(:op<eqaddr>,
-              QAST::Op.new(:op<decont>,
-                QAST::Var.new(:name($!state-name), :scope<lexical>)),
-              QAST::WVal.new(:value($sentinel))
-            ),
+            $!state-decl.IMPL-SENTINEL-TEST-QAST($context),
             QAST::Op.new(:op<p6store>,
               QAST::Var.new(:name($!state-name), :scope<lexical>),
               QAST::Op.new(:op<call>, self.IMPL-CLOSURE-QAST($context))

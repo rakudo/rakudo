@@ -1011,6 +1011,23 @@ class RakuAST::ExpressionThunk
     # the thunk on its own.
     has RakuAST::Expression $!formed-expression;
 
+    # Set on a thunk compiled on its own, as a constant's value is, with no
+    # scope around it to declare the guards of its state initializers.
+    has int $!compiled-alone;
+
+    method IMPL-SET-COMPILED-ALONE() {
+        nqp::bindattr_i(self, RakuAST::ExpressionThunk, '$!compiled-alone', 1);
+        Nil
+    }
+
+    # Whether the thunk declares the implicit state of a node of its
+    # expression. A state initializer's guard belongs to the frame declaring
+    # the variable, unless the thunk is compiled on its own.
+    method IMPL-DECLARES-IMPLICIT-STATE(RakuAST::Node $node) {
+        nqp::istype($node, RakuAST::ImplicitDeclarations)
+          && ($!compiled-alone || !nqp::istype($node, RakuAST::StateInitGuard))
+    }
+
     method new() {
         nqp::create(self)
     }
@@ -1113,7 +1130,7 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
-        if $evaluates-expression && nqp::istype($expression, RakuAST::ImplicitDeclarations) {
+        if $evaluates-expression && self.IMPL-DECLARES-IMPLICIT-STATE($expression) {
             for self.IMPL-UNWRAP-LIST($expression.get-implicit-declarations()) -> $decl {
                 if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
                     nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
@@ -1135,7 +1152,7 @@ class RakuAST::ExpressionThunk
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
-                if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                if self.IMPL-DECLARES-IMPLICIT-STATE($node) {
                     for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                         if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State) && $decl.is-simple-lexical-declaration {
                             nqp::push($stmts, $decl.IMPL-QAST-DECL($context));

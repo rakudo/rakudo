@@ -3363,19 +3363,8 @@ CODE
         self.syn-phaser($ast.type) ~ ' ' ~ self.blorst($ast.original-blorst)
     }
 
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Post:D $ast
-    --> Str:D) {
-        # POST phasers get extra code inserted at RakuAST level, which
-        # wraps the original blorst into a statement in which the blorst
-        # becomes the condition modifier
-        my $expression := $ast.blorst.body.statement-list.statements.head
-          .condition-modifier.expression;
-        self.syn-phaser('POST') ~ ' ' ~ self.deparse(
-          nqp::istype($expression,RakuAST::ApplyPostfix)
-            ?? $expression.operand
-            !! $expression
-        ).chomp
+    multi method deparse(RakuAST::StatementPrefix::Phaser::Post:D $ast --> Str:D) {
+        self.syn-phaser('POST') ~ ' ' ~ self.blorst($ast.original-blorst)
     }
 
     multi method deparse(

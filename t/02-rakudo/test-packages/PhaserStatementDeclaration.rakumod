@@ -23,3 +23,10 @@ our sub first-state() {
     for 1..3 { FIRST state $s = 5; $s++; @seen.push: $s }
     @seen
 }
+
+our sub post-closure() {
+    my $seen;
+    sub f() { POST my $a = $_; $seen = { $a }; 7 }
+    f();
+    $seen()
+}

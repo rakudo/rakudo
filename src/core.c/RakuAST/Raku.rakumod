@@ -1171,10 +1171,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Post:D: --> Str:D) {
         # skip the auto-generated code
-        self!positional(RakuAST::Statement::Expression.new(
-          expression => self.blorst.body
-            .statement-list.statements.head.condition-modifier.expression
-        ))
+        self!positional(self.original-blorst)
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Pre:D: --> Str:D) {

@@ -4,7 +4,7 @@ use Test::Helpers;
 use experimental :rakuast;
 use nqp;
 
-plan 54;
+plan 57;
 
 my @end-r;
 my $check-end;
@@ -58,6 +58,15 @@ is-deeply (try EVAL q:to/CODE/),
     CODE
     [10],
     'a FIRST statement initializes a state variable';
+
+is-deeply (try EVAL q:to/CODE/),
+    my @r;
+    sub f() { POST @r.push: (state $n = 10)++; 1 }
+    f() for 1..3;
+    @r
+    CODE
+    [10, 11, 12],
+    'a POST statement initializes a state variable once';
 
 is-deeply (try EVAL q:to/CODE/),
     my @r;
@@ -289,6 +298,15 @@ is-deeply (try EVAL q:to/CODE/),
 
 is-deeply (try EVAL q:to/CODE/),
     my @r;
+    my $i = 0;
+    while $i++ < 3 { POST @r.push: (state $n = 10)++ }
+    @r
+    CODE
+    [10, 11, 12],
+    'a POST statement in a while body initializes a state variable once';
+
+is-deeply (try EVAL q:to/CODE/),
+    my @r;
     for 1..3 { next if $_ == 1; @r.push: (state $n = 10)++ }
     @r
     CODE
@@ -389,6 +407,15 @@ lives-ok { EVAL q[my $v = BEGIN (state ($a, $b) := (10, 20))[0]] },
 
 lives-ok { EVAL q[INIT (state ($a, $b) := (1, 2))] },
     'an INIT statement binding a state list declaration runs';
+
+is-deeply (try EVAL q:to/CODE/),
+    my @r;
+    sub f() { POST (@r.push: (state ($a, $b) = 10, 20)[0]++) > 0; 1 }
+    f(); f();
+    @r
+    CODE
+    [10, 11],
+    'a POST statement initializes a state list declaration once';
 
 is-deeply (try do {
     my $list = RakuAST::StatementList.new(

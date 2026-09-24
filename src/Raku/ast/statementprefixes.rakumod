@@ -1162,12 +1162,15 @@ class RakuAST::StatementPrefix::Phaser::Pre
 # The POST phaser.
 class RakuAST::StatementPrefix::Phaser::Post
   is RakuAST::StatementPrefix::Phaser::Block
+  does RakuAST::StatementPrefix::Phaser::HoistsStatement
 {
     method type() { "POST" }
     method exit-handler() { True }
 
     method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj  := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::HoistsStatement,
+          '$!original-blorst', $blorst);
 
         # The POST phaser needs extra code to get the required
         # functionality, so this converts a given
@@ -1222,8 +1225,11 @@ class RakuAST::StatementPrefix::Phaser::Post
                            postfix => RakuAST::Call::Term.new
                          )
                       !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                           && !nqp::isconcrete($blorst.condition-modifier)
+                           && !nqp::isconcrete($blorst.loop-modifier)
                         ?? $blorst.expression
-                        !! $blorst
+                        # a modifier stays in force as part of a do
+                        !! RakuAST::StatementPrefix::Do.new($blorst)
                   )
                 )
               )

@@ -3,8 +3,10 @@ use nqp;
 
 # A method is added to its class as soon as it is declared, so BEGIN time
 # code later in the class body can call it before the class is composed.
+# Methods the class only gets at compose time give a message saying so.
+# Messages are word wrapped, so they are compared with whitespace collapsed.
 
-plan 17;
+plan 22;
 
 is EVAL(q[
     class Golf {
@@ -146,5 +148,43 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
 else {
     skip 'the legacy frontend reuses the type of a failed declaration', 2;
 }
+
+throws-like q[class MultiCall { multi method a { 42 }; BEGIN MultiCall.a }],
+  X::Comp::BeginTime,
+  exception => {
+      .message.words.join(' ') ~~ /
+          ^ "No such method 'a' for invocant of type 'MultiCall'."
+          .* "'MultiCall' is not composed yet"
+      /
+  },
+  'calling a multi method before compose says the class is not composed yet';
+
+throws-like q[class Inherits { BEGIN Inherits.new }],
+  X::Comp::BeginTime,
+  exception => {
+      .message.words.join(' ').contains("'Inherits' is not composed yet")
+  },
+  'calling a method of the default parent before compose says the class is not composed yet';
+
+throws-like q[
+    class Parent { method parent-meth { } }
+    class Kid is Parent { BEGIN Kid.parent-mehh }
+], X::Comp::BeginTime,
+  exception => {
+      .message.words.join(' ') ~~ /
+          "'Kid' is not composed yet" .* "Did you mean 'parent-meth'?"
+      /
+  },
+  'a class with a parent keeps its suggestions before compose';
+
+throws-like { Metamodel::ClassHOW.new_type(:name<MopMade>).nope },
+  X::Method::NotFound,
+  message => { .words.join(' ').contains("'MopMade' is not composed yet") },
+  'a missing method on an uncomposed MOP class says it is not composed yet';
+
+throws-like q[class Composed { }; Composed.nope],
+  X::Method::NotFound,
+  message => { .contains("No such method 'nope'") && !.contains('composed') },
+  'a missing method on a composed class does not mention composing';
 
 # vim: expandtab shiftwidth=4

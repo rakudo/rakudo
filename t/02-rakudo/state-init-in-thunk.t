@@ -4,7 +4,7 @@ use Test::Helpers;
 use experimental :rakuast;
 use nqp;
 
-plan 52;
+plan 54;
 
 my @end-r;
 my $check-end;
@@ -114,6 +114,14 @@ is-deeply (try EVAL q:to/CODE/),
     CODE
     [10, 11, 12],
     'a state variable initialized by a phaser persists across calls';
+
+is-deeply (try EVAL q:to/CODE/),
+    my @r;
+    for 1..3 { FIRST state $s = 5; $s++; @r.push: $s }
+    @r
+    CODE
+    [6, 7, 8],
+    'a state variable declared by FIRST is initialized once';
 
 is-deeply (try EVAL q:to/CODE/),
     my @r;
@@ -269,6 +277,15 @@ is-deeply (try EVAL q:to/CODE/),
     CODE
     [10, 10, 10],
     'a FIRST statement in an if body initializes the state variable of each clone';
+
+is-deeply (try EVAL q:to/CODE/),
+    my @r;
+    my $i = 0;
+    while $i++ < 3 { FIRST state $s = 5; @r.push: $s++ }
+    @r
+    CODE
+    [5, 6, 7],
+    'a state variable declared by FIRST in a while body is initialized once';
 
 is-deeply (try EVAL q:to/CODE/),
     my @r;

@@ -3962,6 +3962,41 @@ class RakuAST::Node {
           !! nqp::null()
     }
 
+    # The declarations under this node a scope outside its frame can own,
+    # along with the list declarations whose implicit declarations it can,
+    # leaving out the topic, a nested scope's own, and a bound list.
+    method IMPL-HOISTABLE-DECLARATIONS() {
+        my @hoistable;
+        self.visit-dfs: -> $node {
+            if nqp::istype($node, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+              && nqp::isconcrete($node.IMPL-HOISTED-STATEMENT) {
+                for $node.IMPL-HOISTED-STATEMENT.IMPL-HOISTABLE-DECLARATIONS {
+                    nqp::push(@hoistable, $_);
+                }
+                0
+            }
+            elsif nqp::istype($node, RakuAST::VarDeclaration::Signature)
+              && nqp::isconcrete($node.initializer)
+              && $node.initializer.is-binding {
+                0
+            }
+            else {
+                if nqp::istype($node, RakuAST::Declaration)
+                  && !nqp::istype($node, RakuAST::VarDeclaration::Implicit) {
+                    if $node.is-simple-lexical-declaration {
+                        nqp::push(@hoistable, $node) if $node.lexical-name ne '$_';
+                    }
+                    elsif nqp::istype($node, RakuAST::ImplicitDeclarations)
+                      && !nqp::istype($node, RakuAST::LexicalScope) {
+                        nqp::push(@hoistable, $node);
+                    }
+                }
+                nqp::eqaddr($node, self) || !nqp::istype($node, RakuAST::LexicalScope)
+            }
+        }
+        @hoistable
+    }
+
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(

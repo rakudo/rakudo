@@ -142,14 +142,48 @@ role RakuAST::LexicalScope
             my %variables-seen;
             my @not-if-duplicate;
             my %implicit;
+            my $declare := -> $decl {
+                unless %declarations-seen{nqp::objectid($decl)} {
+                    nqp::push(@declarations, $decl);
+                    nqp::push(@variables, $decl) unless nqp::istype($decl, RakuAST::Routine);
+                    %declarations-seen{nqp::objectid($decl)} := 1;
+                }
+            };
+            # A phaser's statement runs in a block of its own, and this scope
+            # holds the declarations the phaser hoisted to it, along with
+            # their implicit declarations.
+            my $gather-hoisted;
+            $gather-hoisted := -> $statement {
+                $statement.visit-dfs: -> $inner {
+                    if nqp::istype($inner, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+                      && nqp::isconcrete($inner.IMPL-HOISTED-STATEMENT) {
+                        $gather-hoisted($inner.IMPL-HOISTED-STATEMENT);
+                        0
+                    }
+                    else {
+                        if nqp::istype($inner, RakuAST::Declaration)
+                          && nqp::eqaddr($inner.hoisted-to, self) {
+                            $declare($inner) if $inner.is-simple-lexical-declaration;
+                            if nqp::istype($inner, RakuAST::ImplicitDeclarations)
+                              && !nqp::istype($inner, RakuAST::LexicalScope) {
+                                for self.IMPL-UNWRAP-LIST($inner.get-implicit-declarations()) {
+                                    $declare($_) if $_.is-simple-lexical-declaration;
+                                }
+                            }
+                        }
+                        elsif nqp::istype($inner, RakuAST::Var::Lexical)
+                            || nqp::istype($inner, RakuAST::Var::Dynamic)
+                        {
+                            nqp::push(@variables, $inner);
+                        }
+                        !nqp::istype($inner, RakuAST::LexicalScope)
+                    }
+                }
+            };
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration
                   && !$node.is-hoisted-to-outer {
-                    unless %declarations-seen{nqp::objectid($node)} {
-                        nqp::push(@declarations, $node);
-                        nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
-                        %declarations-seen{nqp::objectid($node)} := 1;
-                    }
+                    $declare($node);
                 }
                 elsif nqp::istype($node, RakuAST::Var::Lexical)
                     || nqp::istype($node, RakuAST::Var::Dynamic)
@@ -160,8 +194,14 @@ role RakuAST::LexicalScope
                     nqp::push(@variables, $node) unless nqp::existskey(%variables-seen, $node.declared-name);
                     %variables-seen{$node.declared-name} := 1;
                 }
-                if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
-                    if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                if nqp::istype($node, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+                  && nqp::isconcrete($node.IMPL-HOISTED-STATEMENT) {
+                    $gather-hoisted($node.IMPL-HOISTED-STATEMENT);
+                    0
+                }
+                elsif $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
+                    if nqp::istype($node, RakuAST::ImplicitDeclarations)
+                      && !(nqp::istype($node, RakuAST::Declaration) && $node.is-hoisted-to-outer) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-simple-lexical-declaration {
                                 if (nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic)
@@ -221,6 +261,15 @@ role RakuAST::LexicalScope
             nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', @variables);
         }
         $!declarations-cache
+    }
+
+    # Drops the gathered declarations, so a declaration given to this scope
+    # after it gathered is found on the next request.
+    method IMPL-DROP-DECLARATION-CACHES() {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', Mu);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', Mu);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', Mu);
+        Nil
     }
 
     # Get a list of generated lexical declarations. These are symbols that are
@@ -721,18 +770,19 @@ role RakuAST::LexicalScope
 role RakuAST::Declaration {
     has str $!scope;
 
-    # When set, this declaration's lexpad slot is provided by an outer scope
-    # (as a generated lexical) rather than the scope that textually contains
-    # it. Used by -n/-p so a program's declarations live in the compunit
-    # mainline and persist across the per-line loop, like the legacy frontend.
-    has int $!hoisted-to-outer;
+    # The scope providing this declaration's lexpad slot when that is not
+    # the scope holding it in the tree. -n and -p hoist to the compunit
+    # mainline, FIRST and POST to the scope the phaser is attached to.
+    has RakuAST::LexicalScope $!hoisted-to;
 
-    method set-hoisted-to-outer() {
-        nqp::bindattr_i(self, RakuAST::Declaration, '$!hoisted-to-outer', 1);
+    method set-hoisted-to(RakuAST::LexicalScope $scope) {
+        nqp::bindattr(self, RakuAST::Declaration, '$!hoisted-to', $scope);
         Nil
     }
 
-    method is-hoisted-to-outer(--> Bool) { $!hoisted-to-outer }
+    method hoisted-to() { $!hoisted-to }
+
+    method is-hoisted-to-outer(--> Bool) { nqp::isconcrete($!hoisted-to) ?? True !! False }
 
     # Returns the default scope of this kind of declaration.
     method default-scope() {

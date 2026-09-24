@@ -1767,7 +1767,9 @@ class RakuAST::VarDeclaration::Simple
                     :scope($!is-rw ?? 'lexicalref' !! 'lexical'), :decl('var'), :name(self.name),
                     :returns($of)
                 );
-                if $!is-parameter || $!initializer {
+                # A hoisted declaration's initializer runs in another frame,
+                # so the slot takes its default here.
+                if $!is-parameter || $!initializer && !self.is-hoisted-to-outer {
                     $qast
                 }
                 else {

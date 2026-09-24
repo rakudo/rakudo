@@ -372,7 +372,16 @@ role RakuAST::Code
                 $compiler-thunk();
             }
             unless nqp::isnull($code-obj) {
-                return $code-obj(|@pos, |%named);
+                my $result := $code-obj(|@pos, |%named);
+                # This stub is NQP code, so a native return arrives boxed
+                # into NQP's bootstrap types, not the Raku ones.
+                my $signature := nqp::getattr($code-obj, Code, '$!signature');
+                my $returns := nqp::isconcrete($signature)
+                    ?? nqp::ifnull(nqp::getattr($signature, Signature, '$!returns'), Mu)
+                    !! Mu;
+                return nqp::objprimspec($returns)
+                    ?? nqp::hllizefor($result, 'Raku')
+                    !! $result;
             }
         });
 
@@ -684,13 +693,32 @@ role RakuAST::Code
         # rather than a block of its own, and a run may skip it.
         my int $flattened := 0;
 
+        # A native return Want holds a call and a clone of it that repeats
+        # across its alternatives, and both share the argument subtrees. A
+        # shared node is fixed up once and its result reused. Walking each
+        # occurrence would take time exponential in the call nesting depth.
+        # An entry holds its original node, since the walk drops originals
+        # it replaces and a dead node's object id can go to a new node.
+        my %fixed;
+
         $visit-children := sub ($node) {
-            my int $i := 0;
+            my int $i := -1;
             my int $n := nqp::elems($node);
-            while $i < $n {
+            while ($i := $i + 1) < $n {
                 my $visit := $node[$i];
-                $visit := $visit.shallow_clone if nqp::istype($visit, QAST::Node);
-                $node[$i] := $visit;
+                my $key := '';
+                my $entry;
+                if nqp::istype($visit, QAST::Node) {
+                    $key := ~nqp::objectid($visit);
+                    $entry := nqp::atkey(%fixed, $key);
+                    if !nqp::isnull($entry) && nqp::eqaddr($entry[0], $visit) {
+                        $node[$i] := $entry[1];
+                        next;
+                    }
+                    $entry := nqp::list($visit);
+                    $visit := $visit.shallow_clone;
+                    $node[$i] := $visit;
+                }
                 if nqp::istype($visit, QAST::Op) {
                     my $op := $visit.op;
                     if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain' || $op eq 'chainstatic') && $visit.name {
@@ -727,9 +755,13 @@ role RakuAST::Code
                 elsif nqp::istype($visit, QAST::Var) {
                     $node[$i] := $visit-var($visit);
                 }
-                else {
+                elsif nqp::istype($visit, QAST::Want) || nqp::istype($visit, QAST::Regex) || nqp::istype($visit, QAST::NodeList) {
+                    $visit-children($visit);
                 }
-                $i := $i + 1;
+                if $key {
+                    nqp::push($entry, $node[$i]);
+                    %fixed{$key} := $entry;
+                }
             }
         }
 
@@ -794,14 +826,10 @@ role RakuAST::Code
                 }
             }
         } else {
-            $wrapper[0].push(QAST::Var.new(
-                :name('$_'), :scope('lexical'),
-                :decl('contvar'), :value(Mu)
-            ));
-            $wrapper[0].push(QAST::Var.new(
-                :name('$/'), :scope('lexical'),
-                :decl('contvar'), :value(Nil)
-            ));
+            $wrapper[0].push(RakuAST::VarDeclaration::Implicit::Special.new(
+                :name('$_')).IMPL-QAST-DECL($context));
+            $wrapper[0].push(RakuAST::VarDeclaration::Implicit::Special.new(
+                :name('$/')).IMPL-QAST-DECL($context));
             $wrapper[0].push(QAST::Var.new(
                 :name('$?PACKAGE'), :scope('lexical'),
                 :decl('static'), :value($package)

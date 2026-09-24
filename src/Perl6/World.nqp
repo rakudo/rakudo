@@ -2722,6 +2722,7 @@ class Perl6::World is HLL::World {
         # Locate various interesting symbols.
         my $code_type    := self.find_single_symbol_in_setting('Code');
         my $routine_type := self.find_single_symbol_in_setting('Routine');
+        my $sig_type     := self.find_single_symbol_in_setting('Signature');
 
         # Attach code object to QAST node.
         $code_past.annotate('code_object', $code);
@@ -2758,7 +2759,16 @@ class Perl6::World is HLL::World {
 #?if !js
             # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
-                return $code_obj(|@pos, |%named);
+                my $result := $code_obj(|@pos, |%named);
+                # This stub is NQP code, so a native return arrives boxed
+                # into NQP's bootstrap types, not the Raku ones.
+                my $signature := nqp::getattr($code_obj, $code_type, '$!signature');
+                my $returns := nqp::isconcrete($signature)
+                    ?? nqp::ifnull(nqp::getattr($signature, $sig_type, '$!returns'), Mu)
+                    !! Mu;
+                return nqp::objprimspec($returns)
+                    ?? nqp::hllizefor($result, 'Raku')
+                    !! $result;
             }
 #?endif
 

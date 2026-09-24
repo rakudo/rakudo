@@ -1605,10 +1605,7 @@ role RakuAST::ScopePhaser {
         for @nodes {
             my $code := nqp::can($_, 'blorst') && nqp::istype($_.blorst, RakuAST::Block)
                 ?? $_.blorst
-                !! nqp::istype($_, RakuAST::Code) ?? $_ !! Mu;
-            # A phaser that is not code and holds no code blorst has no
-            # do of its own to rebind.
-            next unless nqp::isconcrete($code);
+                !! $_;
             if $code.IMPL-DYNAMICALLY-COMPILED {
                 $code.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                 $stmts.push($code.IMPL-DYNAMIC-DO-REBIND-QAST($context));

@@ -885,14 +885,19 @@ class RakuAST::StatementPrefix::Phaser::Quit
 {
     method type() { "QUIT" }
 
+    # Like CATCH, QUIT takes the exception as its topic, so it needs a block.
+    method new(RakuAST::Block $blorst) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
+        $obj
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
 
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.set-needs-result(True);
-            self.blorst.set-nil-on-succeed();
-            self.blorst.set-topic-on-fallthrough();
-        }
+        self.blorst.set-needs-result(True);
+        self.blorst.set-nil-on-succeed();
+        self.blorst.set-topic-on-fallthrough();
     }
 
     method meta-object() {

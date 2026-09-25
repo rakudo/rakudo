@@ -2498,7 +2498,8 @@ role RakuAST::WhateverApplicable
 
     method IMPL-PRIMED-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         my $prime := self.IMPL-PRIMED;
-        $prime.IMPL-QAST-BLOCK($ctx.context, :blocktype<declaration_static>, :expression(self));
+        $prime.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($ctx.resolver, $ctx.context,
+            :blocktype<declaration_static>, :expression(self));
         $prime.meta-object
     }
 

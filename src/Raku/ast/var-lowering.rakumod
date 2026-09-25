@@ -164,6 +164,7 @@ class RakuAST::IMPL::VarLowering {
     has int $!debug;
     has int $!begin-context;
     has int $!topic-not-dynamic;
+    has int $!scoped;
 
     method IMPL-MAKE-ANALYZER(RakuAST::Resolver $resolver) {
         my $analyzer := nqp::create(self);
@@ -190,13 +191,13 @@ class RakuAST::IMPL::VarLowering {
         $analyzer
     }
 
-    # Scoped analysis for one code object compiled ahead of the unit's
-    # optimize phase, a BEGIN-time routine or a role body: its QAST is
-    # emitted and cached right away, so the unit-wide analysis comes too
-    # late to affect it.
-    method analyze-routine(RakuAST::Code $routine, RakuAST::Resolver $resolver) {
+    # Scoped analysis for a code object compiled ahead of the unit's
+    # optimize phase, or for the node walked in its place, since its QAST
+    # is emitted and cached before the unit wide analysis runs.
+    method analyze-routine(RakuAST::Node $routine, RakuAST::Resolver $resolver) {
         return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
         my $analyzer := self.IMPL-MAKE-ANALYZER($resolver);
+        nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering, '$!scoped', 1);
         $analyzer.IMPL-WALK($routine);
         Nil
     }
@@ -887,8 +888,10 @@ class RakuAST::IMPL::VarLowering {
                 return $i if nqp::eqaddr($frame.node, $owner);
             }
         }
+        # A scoped walk stops at its root, so a declaration hoisted past
+        # the root stays a lexical for the unit's walk to decide.
         nqp::die('The scope holding ' ~ $decl.lexical-name ~ ' is outside the lowering walk')
-          if nqp::isconcrete($owner);
+          if nqp::isconcrete($owner) && !$!scoped;
         -1
     }
 

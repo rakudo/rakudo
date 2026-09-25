@@ -680,7 +680,7 @@ class RakuAST::Type::Parameterized
                     # block so it is one code object with an outer frame the
                     # compunit can serialize, rather than one built by running a
                     # throwaway BEGIN-time thunk. Mirrors the subset `where` path.
-                    $expr.IMPL-PRIMED.IMPL-QAST-BLOCK(
+                    $expr.IMPL-PRIMED.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($resolver,
                       $context, :blocktype<declaration_static>, :expression($expr));
                     $value := $expr.IMPL-PRIMED.meta-object;
                 }
@@ -1336,7 +1336,8 @@ class RakuAST::Type::Subset
             $block.IMPL-CHECK($resolver, $context);
             $resolver.panic(Any) if $resolver.all-sorries.elems;
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
-            $block.IMPL-PRIMED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
+            $block.IMPL-PRIMED.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($resolver, $context,
+                :blocktype<declaration_static>, :expression($block));
         }
     }
 

@@ -1112,8 +1112,9 @@ class RakuAST::Node {
         return Nil unless $spec == 1 || $spec == 2;
         # The right operand must be a native value: a native variable of the
         # same flavour, or a float literal. An integer literal is an `Int`,
-        # so `$i += 1` is left to the operator call, which pairs the literal
-        # with the native target. A float literal never overflows that way.
+        # so `$i += 1` is left to the base operator, whose dispatch pairs the
+        # literal with the native target. A float literal never overflows
+        # that way.
         my $right := $expr.right;
         my int $rhs-ok := 0;
         if nqp::istype($right, RakuAST::Var::Attribute)
@@ -1936,6 +1937,12 @@ class RakuAST::Node {
         }
         elsif nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
+            # A native compound assignment compiles its base operator
+            # itself, so the base is what takes the mark.
+            if nqp::istype($infix, RakuAST::MetaInfix::Assign)
+                && $infix.IMPL-COMPILES-BASE-OPERATOR($expr.left) {
+                $infix := $infix.infix;
+            }
             return Nil unless nqp::istype($infix, RakuAST::Infix) && $infix.is-resolved;
             return Nil if nqp::elems($expr.colonpairs);
             my $left := $expr.left;

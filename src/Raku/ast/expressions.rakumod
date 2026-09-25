@@ -1736,27 +1736,31 @@ class RakuAST::MetaInfix::Assign
         )
     }
 
-    # The base assigns operands to QAST then calls IMPL-INFIX-QAST. When the
-    # optimize pass marked a native compound assignment, emit the raw op
-    # instead; that path needs the operand ASTs, not their QAST, to take the
-    # left as a lexicalref. A native lexical or attribute target under a
-    # plain infix, with no adverb and no test or list meta, takes the
-    # operator's result by assignment, which needs the ASTs the same way.
+    # Whether the compound assignment compiles its base operator itself
+    # and stores the result into a native target, rather than dispatching
+    # the metaop with the target by reference.
     # `^^` and `xor` compile to the `xor` QAST op, which yields a VMNull
     # when neither operand is the result, where the metaop's routine call
     # yields a Nil, so they are left to the metaop.
+    method IMPL-COMPILES-BASE-OPERATOR(RakuAST::Expression $left) {
+        return 0 unless nqp::istype($!infix, RakuAST::Infix) && !self.IMPL-IS-TEST
+            && !self.IMPL-WRAPS-LIST-META
+            && ((nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
+                || nqp::istype($left, RakuAST::Var::Attribute));
+        my str $op := $!infix.operator;
+        return 0 if $op eq '^^' || $op eq 'xor';
+        nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left)) ?? 1 !! 0
+    }
+
+    # The base assigns operands to QAST then calls IMPL-INFIX-QAST. A raw
+    # op step the optimize pass marked, and a native target taking the base
+    # operator's result with no adverb, need the operand ASTs for the left.
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
         return self.IMPL-NATIVE-STEP-QAST($context, $left, $right) if $!native-step;
-        if !$adverb && nqp::istype($!infix, RakuAST::Infix) && !self.IMPL-IS-TEST
-            && !self.IMPL-WRAPS-LIST-META
-            && ((nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
-                || nqp::istype($left, RakuAST::Var::Attribute)) {
-            my str $op := $!infix.operator;
-            if $op ne '^^' && $op ne 'xor' {
-                my int $spec := nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left));
-                return self.IMPL-NATIVE-ASSIGN-QAST($context, $left, $right, $spec) if $spec;
-            }
+        if !$adverb && self.IMPL-COMPILES-BASE-OPERATOR($left) {
+            return self.IMPL-NATIVE-ASSIGN-QAST($context, $left, $right,
+                nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left)));
         }
 
         my $qast := self.IMPL-INFIX-QAST($context, $left.IMPL-TO-QAST($context),

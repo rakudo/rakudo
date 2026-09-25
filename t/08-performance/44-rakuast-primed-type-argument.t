@@ -3,15 +3,15 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 17;
+plan 31;
 
-# A WhateverCode whose block forms at BEGIN time for a type argument, a
-# subset where clause or a trait argument still gets static calls and a
-# lowered parameter. The QAST shapes checked are those of the RakuAST frontend.
+# A WhateverCode that forms at BEGIN time as a type argument, a subset
+# where clause or a trait argument, and a block written there, get
+# static calls and lowered lexicals. The shapes are the RakuAST frontend's.
 
 sub qast-has-local(Mu $qast, str $prefix --> Bool:D) {
     if nqp::istype($qast, QAST::Var) {
-        return True if $qast.scope eq 'local' && $qast.decl eq 'var'
+        return True if $qast.scope eq 'local' && $qast.decl
             && $qast.name.starts-with($prefix);
     }
     if qast-descendable($qast) {
@@ -63,9 +63,37 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my $y is default(* + 1); $y.(1)', :full, -> \v {
         qast-has-local(v, '__lowered__whatever_arg')
     }, 'the parameter of a WhateverCode argument of a trait lowers to a frame local';
+
+    qast-is 'my role R4[&f] { method m($x) { f($x) } }; my class C4 does R4[-> $a { $a + 1 }] { }; C4.m(1)', :full, -> \v {
+        qast-has-local(v, '$__lowered_a')
+    }, 'the parameter of a pointy block argument of a role a class does lowers to a frame local';
+
+    qast-is 'my $z is default(-> $a { $a + 1 }); $z.(1)', :full, -> \v {
+        qast-has-local(v, '$__lowered_a')
+    }, 'the parameter of a pointy block argument of a trait lowers to a frame local';
+
+    qast-is 'my role R5[&f] { method m($x) { f($x) } }; my class C5 does R5[sub ($a) { $a + 1 }] { }; C5.m(1)', :full, -> \v {
+        qast-has-local(v, '$__lowered_a')
+    }, 'the parameter of a sub argument of a role a class does lowers to a frame local';
+
+    qast-is 'my role R6[&f] { method m($x) { f($x) } }; my class C6 does R6[-> $a { my $b = $a; $b + 1 }] { }; C6.m(1)', :full, -> \v {
+        qast-has-local(v, '$__lowered_b')
+    }, 'a lexical declared in a pointy block argument of a role a class does lowers to a frame local';
+
+    qast-is 'my constant &k = -> $a { $a + 1 }; k(1)', :full, -> \v {
+        qast-has-local(v, '$__lowered_a')
+    }, 'the parameter of a pointy block in a constant initializer lowers to a frame local';
+
+    qast-is 'multi trait_mod:<is>(Variable $v, :$grab!) { }; my $x is grab(-> $a { $a + 1 })', :full, -> \v {
+        qast-has-local(v, '$__lowered_a')
+    }, 'the parameter of a pointy block argument of a user trait lowers to a frame local';
+
+    qast-is 'my role R7[&f] { method m($x) { f($x) } }; my class C7 does R7[-> $a { -> { $a } }] { }; C7.m(1)', :full, -> \v {
+        !qast-has-local(v, '$__lowered_a')
+    }, 'a parameter captured by a block nested in a pointy block argument stays a lexical';
 }
 else {
-    skip 'QAST shapes are those of the RakuAST frontend', 7;
+    skip 'QAST shapes are those of the RakuAST frontend', 14;
 }
 
 {
@@ -87,6 +115,41 @@ else {
 {
     my $x is default(* + 1);
     is $x.(1), 2, 'a variable whose default is a WhateverCode calls it';
+}
+{
+    my role R[&f] { method m($x) { f($x) } }
+    my $outer = 10;
+    my class C does R[-> $a { $a + $outer }] { }
+    $outer = 20;
+    is C.m(1), 21, 'a pointy block argument of a role a class does reads an outer lexical when called';
+}
+{
+    my $z is default(-> $a { $a + 1 });
+    is $z.(1), 2, 'a variable whose default is a pointy block calls it';
+}
+{
+    my role R[&f] { method m($x) { f($x) } }
+    my class C does R[-> $a { -> { $a } }] { }
+    is C.m(7)(), 7, 'a block nested in a pointy block argument of a role a class does reads the parameter when called later';
+}
+{
+    my role R[&f] { method m($x) { f($x) } }
+    my class C does R[-> $a { my $b = $a; -> { $b } }] { }
+    is C.m(5)(), 5, 'a block nested in a pointy block argument reads a lexical the block declared';
+}
+my $taken-by-call;
+{
+    my role R[&f] { method m($x) { f($x) } }
+    sub grab(&f) { $taken-by-call = f(5); &f }
+    my class C does R[grab(-> $a { -> { $a } })] { }
+    is $taken-by-call(), 5, 'a closure taken at BEGIN time from a block in a type argument expression reads its parameter';
+    is C.m(9)(), 9, 'the block a BEGIN-time call formed still reads its parameter when called at run time';
+}
+my $taken-by-trait;
+{
+    multi trait_mod:<is>(Variable $v, :$grab!) { $taken-by-trait = $grab(6) }
+    my $x is grab(-> $a { -> { $a } });
+    is $taken-by-trait(), 6, 'a closure taken at BEGIN time by a trait that calls its block argument reads its parameter';
 }
 {
     my role R[&f] { method m($x) { f($x) } }

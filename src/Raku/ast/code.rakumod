@@ -262,13 +262,25 @@ role RakuAST::Code
         $!qast-block
     }
 
+    # Whether the unit's optimize phase will run, read from the compile
+    # options the way the compiler's optimize stage reads them, so code
+    # compiled ahead of the unit is optimized only when the unit is.
+    method IMPL-UNIT-OPTIMIZES() {
+        my $compiling := nqp::getlexdyn('%*COMPILING');
+        return 1 if nqp::isnull($compiling);
+        my $options := nqp::atkey($compiling, '%?OPTIONS');
+        return 1 unless nqp::ishash($options);
+        my $optimize := nqp::atkey($options, 'optimize');
+        nqp::defined($optimize) && ($optimize eq 'off' || $optimize eq '0') ?? 0 !! 1
+    }
+
     # Form the block of a code object the unit's optimize phase has not
     # reached, with the optimize walk and the lowering run over it first,
     # since the unit's emission reuses the cached block as it is.
     method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
             RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        unless $!qast-block {
+        unless $!qast-block || !self.IMPL-UNIT-OPTIMIZES {
             # A thunk holds no children, so the walk over one starts
             # from the expression it wraps.
             my $walked := nqp::isconcrete($expression) ?? $expression !! self;
@@ -3765,7 +3777,7 @@ class RakuAST::RoleBody
             # The body compiles here ahead of the unit, so it takes the
             # optimize walk and the lowering a BEGIN-time routine takes
             # in its compiler thunk.
-            unless self.IMPL-HAS-QAST-BLOCK {
+            unless self.IMPL-HAS-QAST-BLOCK || !self.IMPL-UNIT-OPTIMIZES {
                 self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
                 RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
             }

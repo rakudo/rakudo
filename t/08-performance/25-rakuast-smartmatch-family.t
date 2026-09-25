@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 39;
+plan 45;
 
 # The helper's walk does not descend a ParamTypeCheck, and a local name
 # identifies the unfolded junction more precisely than any op, so these
@@ -55,9 +55,33 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'sub f($x where Int|Str) { 1 }; f(1)', :full, -> \v {
         qast-deep-contains-op(v, 'istype')
     }, 'a junction-of-types where constraint checks the types inline';
+
+    qast-is 'my $x = 2; if $x == 1|2 -> $v { say $v }', :full, -> \v {
+        not qast-contains-unfold-local(v)
+    }, 'a junction comparison whose block takes the condition keeps the junction';
+
+    qast-is 'my $x = 2; if $x == 1|2.5 { say 1 }', :full, -> \v {
+        qast-contains-unfold-local(v)
+    }, 'a junction comparison mixing Int and Rat eigenstates unfolds';
+
+    qast-is 'my $x = 2; if $x == 1|"x" { say 1 }', :full, -> \v {
+        not qast-contains-unfold-local(v)
+    }, 'a junction comparison with a Str eigenstate keeps the junction';
+
+    qast-is 'my $x = 2; if $x != 1|2 { say 1 }', :full, -> \v {
+        qast-contains-unfold-local(v)
+    }, 'a negated junction comparison unfolds';
+
+    qast-is 'my $x = "a"; if $x ne "a"|"b" { say 1 }', :full, -> \v {
+        qast-contains-unfold-local(v)
+    }, 'a negated string junction comparison unfolds';
+
+    qast-is 'my $x = 2; my $y = 3; if $x == 1|$y { say 1 }', :full, -> \v {
+        qast-contains-unfold-local(v) && qast-deep-contains-op(v, 'dispatch')
+    }, 'a junction comparison with a computed eigenstate unfolds behind a value check';
 }
 else {
-    skip 'the reduced shapes are specific to the RakuAST frontend', 6;
+    skip 'the reduced shapes are specific to the RakuAST frontend', 12;
 }
 
 # Behavior stays identical.

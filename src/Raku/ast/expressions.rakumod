@@ -641,14 +641,24 @@ class RakuAST::Infix
     }
 
     # Set by the optimize pass when a junction operand of this comparison
-    # in boolean position unfolds to a short-circuit chain: which side
-    # holds the junction, and the Junction type for the shape checks.
+    # in boolean position unfolds to a short-circuit chain. Holds its side,
+    # the Junction type, the checks on the values, and whether it negates.
     has int $!junction-fold;
     has Mu $!junction-fold-junction;
+    has int $!junction-fold-guard;
+    has Mu $!junction-fold-type;
+    has int $!junction-fold-mask;
+    has Mu $!junction-fold-kinds;
+    has int $!junction-fold-negated;
 
-    method IMPL-SET-JUNCTION-FOLD(int $side, Mu $junction) {
+    method IMPL-SET-JUNCTION-FOLD(int $side, Mu $junction, int $guard, Mu $type, int $mask, Mu $kinds, int $negated) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold', $side);
         nqp::bindattr(self, RakuAST::Infix, '$!junction-fold-junction', $junction);
+        nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold-guard', $guard);
+        nqp::bindattr(self, RakuAST::Infix, '$!junction-fold-type', $type);
+        nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold-mask', $mask);
+        nqp::bindattr(self, RakuAST::Infix, '$!junction-fold-kinds', $kinds);
+        nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold-negated', $negated);
     }
 
     # An enclosing chain withdraws a link's reduced-smartmatch decisions:
@@ -794,7 +804,9 @@ class RakuAST::Infix
         if $!junction-fold {
             my $folded := self.IMPL-JUNCTION-FOLD-QAST($context, $call-op,
                 $name, $left-qast, $right-qast,
-                $!junction-fold, $!junction-fold-junction);
+                $!junction-fold, $!junction-fold-junction, $!junction-fold-guard,
+                $!junction-fold-type, $!junction-fold-mask, $!junction-fold-kinds,
+                $!junction-fold-negated);
             return $folded unless nqp::isnull($folded);
         }
 

@@ -474,4 +474,6 @@ multi sub infix:«<=>»(Int:D $a, Rational:D $b) {
     )
 }
 
+nqp::bindhllsym('Raku', 'Rat', Rat);
+
 # vim: expandtab shiftwidth=4

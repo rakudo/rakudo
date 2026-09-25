@@ -895,8 +895,10 @@ class RakuAST::Node {
                     if $routine-lookup;
                 self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
                     if $term-name;
-                self.IMPL-MARK-NATIVE-INDEX($resolver, $expr)
-                    if $apply-postfix;
+                if $apply-postfix {
+                    self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
+                    self.IMPL-MARK-DIRECT-POS($resolver, $expr);
+                }
                 self.IMPL-MARK-RETURN-DECONT($resolver, $expr)
                     if $routine;
                 self.IMPL-MARK-ARRAY-INIT($resolver, $expr)
@@ -1009,8 +1011,10 @@ class RakuAST::Node {
             $expr.IMPL-SET-NATIVE-INCDEC(0);
             my $postfix := $expr.postfix;
             $postfix.IMPL-SET-CALLSTATIC(0) if nqp::istype($postfix, RakuAST::Postfix);
-            $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null)
-                if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex);
+            if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex) {
+                $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null);
+                $postfix.IMPL-SET-DIRECT-POS(0);
+            }
         }
         elsif nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
@@ -1391,6 +1395,42 @@ class RakuAST::Node {
             }
         }
         $postfix.IMPL-SET-NATIVE-INDEX($spec, $expr.operand.resolution);
+        Nil
+    }
+
+    # Mark an array variable subscripted by a native int lexical or a
+    # fitting non-negative int literal, with the setting's subscript in
+    # force and no adverb, for calling AT-POS or ASSIGN-POS itself.
+    method IMPL-MARK-DIRECT-POS(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
+        my $postfix := $expr.postfix;
+        return Nil unless nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex)
+            && !$postfix.is-multislice
+            && nqp::elems(self.IMPL-UNWRAP-LIST($postfix.colonpairs)) == 0
+            && $postfix.is-resolved
+            && nqp::istype($postfix.resolution, RakuAST::Declaration::External::Setting);
+        # A scalar may hold a Failure, which the setting's subscript
+        # answers with itself while Failure's own AT-POS does the same,
+        # but a scalar may hold anything else too, so only an array qualifies.
+        my $operand := $expr.operand;
+        return Nil unless (nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved
+                || nqp::istype($operand, RakuAST::Var::Attribute))
+            && $operand.sigil eq '@';
+        my $statements := $postfix.index.code-statements;
+        return Nil unless nqp::elems($statements) == 1
+            && nqp::istype($statements[0], RakuAST::Statement::Expression);
+        my $index := $statements[0].expression;
+        if nqp::istype($index, RakuAST::IntLiteral) {
+            return Nil unless $index.IMPL-FITS-NATIVE-INT
+                && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int));
+        }
+        else {
+            my int $spec := self.IMPL-NATIVE-LEXICAL-PRIMSPEC($index);
+            return Nil unless $spec == 1 || $spec == 10;
+        }
+        $postfix.IMPL-SET-DIRECT-POS(
+            self.IMPL-DECLARATION-CURRENT($resolver, '&postcircumfix:<[ ]>', $postfix.resolution)
+                ?? 1 !! 0);
         Nil
     }
 

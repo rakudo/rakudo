@@ -897,6 +897,16 @@ class RakuAST::Infix
             $past := $lhs_ast;
             $past.nosink(1);
         }
+        # A subscript compiled as its own AT-POS call takes the value the
+        # way the subscript's assignment candidate would, as ASSIGN-POS.
+        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
+                nqp::istype($lhs_ast[0], QAST::Op) && $lhs_ast[0].ann('direct-pos') &&
+                +@($lhs_ast[0]) == 2 {
+            $lhs_ast[0].name('ASSIGN-POS');
+            $lhs_ast[0].push($rhs_ast);
+            $past := $lhs_ast;
+            $past.nosink(1);
+        }
         else {
             $past := QAST::Op.new(:op('p6store'), $lhs_ast, $rhs_ast);
         }
@@ -3849,6 +3859,15 @@ class RakuAST::Postcircumfix::ArrayIndex
         nqp::bindattr(self, RakuAST::Postcircumfix::ArrayIndex, '$!native-decl', $decl);
     }
 
+    # Set by the optimize pass when the setting's subscript would only
+    # forward an int index to AT-POS or ASSIGN-POS, so the access calls
+    # that method itself with the very arguments the subscript passes on.
+    has int $!direct-pos;
+
+    method IMPL-SET-DIRECT-POS(int $on) {
+        nqp::bindattr_i(self, RakuAST::Postcircumfix::ArrayIndex, '$!direct-pos', $on);
+    }
+
     method new(
         RakuAST::SemiList :$index!,
       RakuAST::Expression :$assignee,
@@ -4009,6 +4028,22 @@ class RakuAST::Postcircumfix::ArrayIndex
                 $slow,
                 $fast
             );
+        }
+
+        if $!direct-pos {
+            # An attribute may hold a raw VM array a metamodel role or a
+            # bindattr put there, which the routine's binder mapped to a
+            # List and the method call must map the same way.
+            my $self-qast := nqp::istype($operand-qast, QAST::Var)
+                && $operand-qast.scope eq 'attribute'
+                ?? QAST::Op.new( :op('hllize'), $operand-qast )
+                !! $operand-qast;
+            my $direct := QAST::Op.new( :op('callmethod'),
+                :name($!assignee ?? 'ASSIGN-POS' !! 'AT-POS'),
+                $self-qast, self.IMPL-INDEX-QAST($context) );
+            $direct.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
+            $direct.annotate('direct-pos', 1);
+            return QAST::Op.new( :op('hllize'), $direct );
         }
 
         my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand-qast );

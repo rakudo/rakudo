@@ -1804,11 +1804,14 @@ role RakuAST::Lookup {
             }
             nqp::push(@args, $arg);
         }
+        # A native variable is read where the inlined op runs, whether
+        # by value or through a reference under a statement wrapper.
         my int $reorder := 0;
         my int $read := 0;
         for @args {
-            if nqp::istype($_, QAST::Var) && nqp::objprimspec($_.returns)
-                && ($_.scope eq 'lexical' || $_.scope eq 'attribute') {
+            my $result := self.IMPL-ARG-RESULT-NODE($_);
+            if nqp::istype($result, QAST::Var) && nqp::objprimspec($result.returns)
+                && !$result.decl {
                 $read := 1;
             }
             elsif $read && !self.IMPL-ARG-IS-PURE($_) {

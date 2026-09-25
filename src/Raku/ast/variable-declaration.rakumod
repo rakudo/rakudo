@@ -1629,7 +1629,8 @@ class RakuAST::VarDeclaration::Simple
 
         if $type && !$!is-parameter { # Parameter checks this already
             my $archetypes := $type.compile-time-value.HOW.archetypes;
-            unless $archetypes.nominalish
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive

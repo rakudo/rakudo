@@ -1472,7 +1472,8 @@ class RakuAST::Parameter
         if $!type {
             my $param-type := $!type.compile-time-value;
             my $archetypes := $param-type.HOW.archetypes;
-            unless $archetypes.nominalish
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive

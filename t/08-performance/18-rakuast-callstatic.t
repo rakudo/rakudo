@@ -157,7 +157,7 @@ qast-is 'my &prefix:<-> = sub ($a) { 99 }; my $x = 5; my $y = -$x', -> \v {
 # names a routine, a list operator, the subscript a capture variable
 # reads the match with, and the operator beneath an assignment or reverse
 # meta-op.
-qast-is 'my @a = 1, 2; my $x = @a[0]', -> \v {
+qast-is 'my @a = 1, 2; my $i = 0; my $x = @a[$i]', -> \v {
         qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
     and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
 }, 'an array subscript compiles to a static callee lookup';
@@ -172,7 +172,7 @@ qast-is 'my %h = a => 1; my $x = %h<a>', -> \v {
     and not qast-op-named(v, 'call', '&postcircumfix:<{ }>')
 }, 'a literal hash subscript compiles to a static callee lookup';
 
-qast-is 'my @a = 1, 2; my $x = @a.[0]', -> \v {
+qast-is 'my @a = 1, 2; my $i = 0; my $x = @a.[$i]', -> \v {
         qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
     and not qast-op-named(v, 'call', '&postcircumfix:<[ ]>')
 }, 'a subscript applied with a dot compiles to a static callee lookup';

@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 23;
+plan 36;
 
 # Compile-time validation of `==>` / `<==` stages, matching the
 # legacy frontend's `make_feed` in src/Perl6/Actions.nqp.
@@ -128,5 +128,36 @@ is-run q|sub f($a) { $a }; sub g($x) { $x }; f() ==> g(); say "ok"|,
     'wrong-arity call as the feed source still SORRYs',
     :err(/'will never work with declared signature'/),
     :exitcode(1);
+
+# An invoked term is a call as well, so the fed value becomes its last
+# argument, as it does for a named call.
+is (try EVAL q|"hello" ==> { .uc }()|), 'HELLO',
+    'feed into an invoked bare block';
+is (try EVAL q|"hello" ==> -> $x { $x.uc }()|), 'HELLO',
+    'feed into an invoked pointy block';
+is (try EVAL q|"hello" ==> sub ($x) { $x.uc }()|), 'HELLO',
+    'feed into an invoked anonymous sub';
+is (try EVAL q|my $code = { .uc }; "hello" ==> $code()|), 'HELLO',
+    'feed into an invoked $-variable';
+is (try EVAL q|my &code = { .uc }; "hello" ==> &code()|), 'HELLO',
+    'feed into an invoked &-variable';
+is (try EVAL q|my $code = { .uc }; "hello" ==> $code.()|), 'HELLO',
+    'feed into a .() invocation';
+is (try EVAL q|sub f { -> $x { $x.uc } }; "hello" ==> f()()|), 'HELLO',
+    'feed into an invoked call result';
+is (try EVAL q|my %h = a => { .uc }; "hello" ==> %h<a>()|), 'HELLO',
+    'feed into an invoked hash element';
+is (try EVAL q|"hello" ==> -> $a, $b { "$a-$b" }("x")|), 'x-hello',
+    'feed into an invocation appends the fed value after its arguments';
+is (try EVAL q|my @c = -> $x { $x.uc }, -> $x { $x.flip }; ("hello" ==> @c>>.()).join(",")|),
+    'HELLO,olleh',
+    'feed into a hyper invocation';
+is (try EVAL q|{ .uc }() <== "hello"|), 'HELLO',
+    'backward feed into an invoked block';
+is (try EVAL q|"hello" ==> { .uc }() ==> { .flip }()|), 'OLLEH',
+    'chained feed through two invoked blocks';
+throws-like { EVAL q|sub g($a, $b) { $b }; my $x = 1; "hello" ==> $x.&g()| },
+    X::AdHoc, message => /'Only routine calls or variables'/,
+    'feed into a .& call still SORRYs';
 
 # vim: expandtab shiftwidth=4

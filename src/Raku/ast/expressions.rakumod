@@ -3083,6 +3083,14 @@ class RakuAST::ApplyListInfix
     method IMPL-IS-VALID-FEED-STAGE($stage) {
         return 1 if nqp::istype($stage, RakuAST::Call);
         return 1 if nqp::istype($stage, RakuAST::Var);
+        # An invoked term, hyper or not, compiles to a call that takes the
+        # fed value as its last argument, as a named call does.
+        if nqp::istype($stage, RakuAST::ApplyPostfix) {
+            my $postfix := $stage.postfix;
+            $postfix := $postfix.postfix
+              if nqp::istype($postfix, RakuAST::MetaPostfix::Hyper);
+            return 1 if nqp::istype($postfix, RakuAST::Call::Term);
+        }
         # `my @a <== source`: a bare declaration acts as the Var.
         # An initializer (`my @a = grep(...)`) or a shape
         # (`my @a[5]`) makes it a complex expression that legacy

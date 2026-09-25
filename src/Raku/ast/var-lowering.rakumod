@@ -163,6 +163,8 @@ class RakuAST::IMPL::VarLowering {
     has Mu $!sentinel;
     has int $!debug;
     has int $!begin-context;
+    has int $!suspended-begin-context;
+    has int $!early-formed-depth;
     has int $!topic-not-dynamic;
     has int $!scoped;
 
@@ -234,8 +236,9 @@ class RakuAST::IMPL::VarLowering {
         # Trait arguments, type parameterizations, and constant
         # initializers are evaluated at BEGIN time by dynamically
         # compiled code that reaches lexicals by name, which neither the
-        # frame nesting nor the resolutions here can show. Every use in
-        # such a subtree escapes.
+        # frame nesting nor the resolutions here can show. A use in such
+        # a subtree escapes unless a code node the unit alone forms
+        # declares what it names.
         my int $begin-entered;
         if nqp::istype($node, RakuAST::Trait)
             || nqp::istype($node, RakuAST::Type::Parameterized)
@@ -561,6 +564,9 @@ class RakuAST::IMPL::VarLowering {
         }
 
         my int $pushed;
+        my int $suspended-begin-context;
+        my int $early-formed;
+        my int $resumed-begin-context;
         if nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
             self.IMPL-ENTER($node, nqp::istype($node, RakuAST::LexicalScope) ?? 1 !! 0);
             $pushed := 1;
@@ -570,6 +576,34 @@ class RakuAST::IMPL::VarLowering {
                 if nqp::istype($node, RakuAST::Code) && $node.custom-args;
             self.IMPL-REGISTER-PRIME-PARAMS($node)
                 if nqp::istype($node, RakuAST::Expression);
+            if nqp::istype($node, RakuAST::Code) {
+                my int $formed-early := $node.IMPL-BEGIN-TIME-CACHED
+                    || $node.IMPL-DYNAMICALLY-COMPILED;
+                # A code node an early compilation formed keeps every use
+                # under it escaping, and so does every block inside it,
+                # whether or not a code node above it lifted the rule.
+                if $formed-early && ($!begin-context || $!suspended-begin-context) {
+                    $early-formed := 1;
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                        '$!early-formed-depth', $!early-formed-depth + 1);
+                    unless $!begin-context {
+                        $resumed-begin-context := $!suspended-begin-context;
+                        nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                            '$!begin-context', $resumed-begin-context);
+                        nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                            '$!suspended-begin-context', 0);
+                    }
+                }
+                # A code node in a BEGIN-time subtree that no early
+                # compilation formed has only the frame the unit emits,
+                # so its own declarations lower as usual.
+                elsif $!begin-context && !$formed-early && !$!early-formed-depth {
+                    $suspended-begin-context := $!begin-context;
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context', 0);
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                        '$!suspended-begin-context', $suspended-begin-context);
+                }
+            }
         }
 
         if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved {
@@ -596,6 +630,20 @@ class RakuAST::IMPL::VarLowering {
 
         $node.visit-children(-> $child { self.IMPL-WALK($child) });
 
+        if $suspended-begin-context {
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context',
+                $suspended-begin-context);
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!suspended-begin-context', 0);
+        }
+        if $early-formed {
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                '$!early-formed-depth', $!early-formed-depth - 1);
+            if $resumed-begin-context {
+                nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context', 0);
+                nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                    '$!suspended-begin-context', $resumed-begin-context);
+            }
+        }
         self.IMPL-LEAVE() if $pushed;
         Nil
     }

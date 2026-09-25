@@ -3,15 +3,16 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 63;
+plan 64;
 
 # An increment, decrement, or compound assignment on a native int or
 # num attribute lowers to the raw step op on the attribute's ref, the
-# same lowering a native lexical gets. The routine call stays for
-# anything the lexical form also declines: an Int literal step, a
-# postfix on a narrower width, a boxed attribute, or a redefined
-# operator. A role body declines every step, since the optimize pass
-# does not reach it. The shapes are this frontend's.
+# same lowering a native lexical gets, and an Int literal step inlines
+# the operator the operand types choose. The routine call stays for
+# anything the lexical form also declines: a postfix on a narrower
+# width, a boxed attribute, or a redefined operator. A role body
+# declines every step, since the optimize pass does not reach it. The
+# shapes are this frontend's.
 
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is 'my class C { has int $!x; method b() { $!x++; Nil } }', :full, -> \v {
@@ -63,10 +64,15 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     }, 'an int attribute serves as the step value for a native lexical';
 
     qast-is 'my class C { has int $!s; method b() { $!s += 1 } }', :full, -> \v {
-        not qast-contains-op(v, 'add_i')
+        qast-contains-op(v, 'add_i')
         and qast-contains-op(v, 'assign_i')
         and not qast-contains-call(v, '&METAOP_ASSIGN')
-    }, 'a compound add of an Int literal assigns the operator result to the attribute';
+    }, 'a compound add of an Int literal inlines the operator into the assignment to the attribute';
+    qast-is 'my class C { has int $!s; method b() { $!s -= 1 } }', :full, -> \v {
+        qast-contains-op(v, 'sub_i')
+        and qast-contains-op(v, 'assign_i')
+        and not qast-contains-call(v, '&infix:<->')
+    }, 'a compound subtract of an Int literal inlines the operator into the assignment to the attribute';
 
     qast-is 'my class C { has int8 $!t; method b() { my $v = $!t++; $v } }', :full, -> \v {
         qast-contains-call(v, '&postfix:<++>')
@@ -112,7 +118,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     }, 'a step in a role body keeps the routine, as the optimize pass does not reach it';
 }
 else {
-    skip 'the step shapes are specific to the RakuAST frontend', 19;
+    skip 'the step shapes are specific to the RakuAST frontend', 20;
 }
 
 # The lowered forms yield the values the operator calls yield.

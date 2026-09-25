@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
 use nqp;
-plan 37;
+plan 51;
 
 # A native int or num `+=`/`-=`/`*=` with a native operand lowers to a raw op
 # instead of calling the metaop.
@@ -112,22 +112,75 @@ dies-ok { sub bump(int $x) { $x += 1 }; bump(1) },
 throws-like { my int $i = 1; $i ^^= 1 }, Exception, message => /Nil/,
     'a native exclusive-or compound assignment reports the Nil it cannot store';
 
-# An integer literal operand takes the operator call, which pairs the
-# literal with the native target, so `$i += 1` wraps as `$i + 1` does.
+# An integer literal operand takes the base operator, whose dispatch
+# pairs the literal with the native target, so `$i += 1` wraps as
+# `$i + 1` does.
 {
     my int $i = 9223372036854775807;
     $i += 1;
     is $i, -9223372036854775808, 'native int += an integer literal wraps like its expanded form';
+}
+{
+    my int $i = -9223372036854775808; $i -= 1;
+    is $i, 9223372036854775807, 'native int -= an integer literal wraps like its expanded form';
+}
+{
+    my int $i = 4611686018427387904; $i *= 2;
+    is $i, -9223372036854775808, 'native int *= an integer literal wraps like its expanded form';
+}
+{
+    my int8 $t = 127; $t += 1;
+    is $t, -128, 'a narrow native target compound-assigned an integer literal wraps in storage';
+}
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    my int $i = 1; $i += ($i = 7);
+    is $i, 14, 'an assignment to the target as the operand reads the target at bind time';
+}
+else {
+    skip 'the legacy frontend reads a native operand before the other operands run', 1;
+}
+{
+    my &infix:<+> = -> $a, $b { 999 };
+    my int $i = 1; $i += 1;
+    is $i, 999, 'an operator variable declared before the use is what an integer literal compound assignment calls';
+}
+{
+    sub infix:<+>(\a, \b) { 999 }
+    my int $i = 1; $i += 1;
+    is $i, 999, 'a user operator declared before the use is what an integer literal compound assignment calls';
+}
+{
+    sub f(int $j is rw) { my int $t = 1; $t += $j; $t }
+    my int $v = 5;
+    is f($v), 6, 'an rw native parameter on the right reads the native it refers to';
+}
+{
+    my int $g = 5; $g min= 3;
+    is $g, 3, 'a native int min= an integer literal stores the smaller operand';
+}
+{
+    my int $g = 2; $g min= 3;
+    is $g, 2, 'a native int min= an integer literal keeps the smaller target';
 }
 
 # The remaining cases are RakuAST-frontend specific: the frontend emits
 # the native raw ops directly, where the legacy optimizer reaches the
 # native ops a different way, so these are pinned to RakuAST.
 if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
-    qast-is 'my int $i; $i += 5', -> \v { not qast-contains-op(v, 'add_i') and qast-contains-call(v, '&infix:<+>') },
-        'an integer literal keeps the operator call';
+    qast-is 'my int $i; $i += 5', -> \v { qast-contains-op(v, 'add_i') and not qast-contains-call(v, '&infix:<+>') },
+        'an integer literal operand inlines the operator the operand types choose';
     qast-is 'my int $i; $i += 5', -> \v { qast-contains-op(v, 'assign_i') and not qast-contains-call(v, '&METAOP_ASSIGN') },
         'an integer literal operand assigns the operator result to the native target';
+    qast-is 'my int $i; $i -= 5', -> \v { qast-contains-op(v, 'sub_i') and not qast-contains-call(v, '&infix:<->') },
+        'an integer literal operand of a compound subtract inlines the operator the operand types choose';
+    qast-is 'my int $i; $i *= 5', -> \v { qast-contains-op(v, 'mul_i') and not qast-contains-call(v, '&infix:<*>') },
+        'an integer literal operand of a compound multiply inlines the operator the operand types choose';
+    qast-is 'my int8 $t; $t += 5', -> \v { qast-contains-op(v, 'add_i') and qast-contains-op(v, 'assign_i') },
+        'a narrow native target with an integer literal inlines the operator into the assignment';
+    qast-is 'my &infix:<+> = -> $a, $b { 999 }; my int $i; $i += 5', -> \v { not qast-contains-op(v, 'add_i') and qast-contains-op(v, 'assign_i') },
+        'an operator variable declared before the use keeps the call';
+    qast-is 'my int $i = 1; $i += ($i = 7)', -> \v { not qast-contains-op(v, 'add_i') and qast-contains-call(v, '&infix:<+>') },
+        'an operand without a static type keeps the operator call';
     qast-is 'my int $i; my $x; $i += $x', -> \v { qast-contains-op(v, 'assign_i') and not qast-contains-call(v, '&METAOP_ASSIGN') },
         'a boxed operand assigns the operator result to the native target';
     qast-is 'my uint $u; $u += 5', -> \v { qast-contains-op(v, 'assign_u') and not qast-contains-call(v, '&METAOP_ASSIGN') },
@@ -148,13 +201,13 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         'a num copy parameter with a float literal lowers to a raw op';
     qast-is 'sub f(int $j) { my int $t; $t += $j }', :full, -> \v { qast-contains-op v, 'add_i' },
         'a native parameter read on the right lowers to a raw op';
-    qast-is 'sub f(int $j is rw) { my int $t; $t += $j }', :full, -> \v { not qast-contains-op v, 'add_i' },
-        'an rw parameter on the right keeps the metaop call';
+    qast-is 'sub f(int $j is rw) { my int $t; $t += $j }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'an rw parameter on the right inlines the operator the operand types choose';
     qast-is 'class C { has int $!a; method m { my int $t; $t += $!a } }', :full, -> \v { qast-contains-op v, 'add_i' },
         'a native attribute read on the right lowers to a raw op';
 }
 else {
-    skip 'integer-literal and native lowering shape is RakuAST-specific', 14;
+    skip 'integer-literal and native lowering shape is RakuAST-specific', 19;
 }
 
 # vim: expandtab shiftwidth=4

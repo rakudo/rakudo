@@ -1749,7 +1749,7 @@ class RakuAST::MetaInfix::Assign
                 || nqp::istype($left, RakuAST::Var::Attribute));
         my str $op := $!infix.operator;
         return 0 if $op eq '^^' || $op eq 'xor';
-        nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left)) ?? 1 !! 0
+        nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left))
     }
 
     # The base assigns operands to QAST then calls IMPL-INFIX-QAST. A raw

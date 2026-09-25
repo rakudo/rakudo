@@ -3,11 +3,11 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 75;
+plan 115;
 
-# An array variable subscripted by a native int lexical or a fitting
-# int literal calls AT-POS or ASSIGN-POS itself while the setting's
-# subscript is in force. Other shapes keep the general call.
+# An array variable subscripted by a native int lexical, a native int
+# operator result, or a fitting int literal calls AT-POS or ASSIGN-POS
+# itself while the setting's subscript is in force.
 
 sub direct(Mu $qast --> Bool:D) {
     (qast-contains-callmethod($qast, 'AT-POS') || qast-contains-callmethod($qast, 'ASSIGN-POS'))
@@ -84,9 +84,50 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'the soft pragma keeps the call';
     qast-is 'my @a; my int $i = 1; @a[$i] := 5', -> \v { general(v) },
         'a binding to the subscript keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i + 1]', -> \v {
+        direct(v) and qast-contains-op(v, 'decont') and not qast-contains-op(v, 'box_i')
+    }, 'an array subscripted by a native int sum calls AT-POS itself with the result as an object';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[++$i]', -> \v { direct(v) },
+        'an array subscripted by a native int prefix increment calls AT-POS itself';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i++]', -> \v { general(v) },
+        'an array subscripted by a native int postfix increment keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 0; @a[$i + 1]++', -> \v { direct(v) },
+        'a postfix increment on a subscript by a native int sum calls AT-POS itself';
+    qast-is 'my @a = 1,2,3; my int $i = 0; @a[++$i] += 2', -> \v { direct(v) },
+        'a metaop assignment to a subscript by a native int prefix increment calls AT-POS itself';
+    qast-is 'my int @n = 1,2,3; my int $i = 0; my $v = @n[$i + 1]', -> \v {
+        direct(v) and not qast-contains-op(v, 'atposref_i')
+    }, 'a native int array subscripted by a native int sum calls AT-POS itself';
+    qast-is 'sub g(int $i is rw) { my @a = 1,2,3; @a[$i + 1] }', :full, -> \v { direct(v) },
+        'a sum of a native rw parameter is a value and calls AT-POS itself';
+    qast-is 'my @a = 1,2,3; my int $i = 1; @a[$i - 1] = 7', -> \v {
+        qast-contains-callmethod(v, 'ASSIGN-POS') and not qast-contains-call(v, '&postcircumfix:<[ ]>')
+    }, 'an assignment through a native int difference calls ASSIGN-POS itself';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i * 2]', -> \v { direct(v) },
+        'an array subscripted by a native int product calls AT-POS itself';
+    qast-is 'class PA2 { has @!a; method m(int $i) { @!a[$i + 1] } }', :full, -> \v { direct(v) },
+        'an array attribute subscripted by a native int sum calls AT-POS itself';
+    qast-is 'my @a = 1,2,3; my $b = 0; my $v = @a[$b + 1]', -> \v { general(v) },
+        'an array subscripted by a boxed sum keeps the general call';
+    qast-is 'my @a = 1,2,3; my num $n = 1e0; my $v = @a[$n + 1e0]', -> \v { general(v) },
+        'an array subscripted by a native num sum keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i + 1]:exists', -> \v { general(v) },
+        'an array subscripted by a native int sum with an adverb keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[($i)]', -> \v { general(v) },
+        'an array subscripted by a parenthesized native int lexical keeps the general call';
+    qast-is 'my @a = 1,2,3; my $v = @a[int]', -> \v { general(v) },
+        'an array subscripted by a native type object keeps the general call';
+    qast-is 'sub infix:<idx>(int $a, int $b --> int) { $a + $b }; my @a = 1,2,3; my int $i = 1; my $v = @a[$i idx 1]', -> \v { general(v) },
+        'a user operator with a native int return keeps the general call';
+    qast-is 'sub prefix:<idx>(int $a --> int) { $a }; my @a = 1,2,3; my int $i = 1; my $v = @a[idx $i]', -> \v { general(v) },
+        'a user prefix operator with a native int return keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 1; my $f = 0; my $v = @a[$i if $f]', -> \v { general(v) },
+        'an index under a condition modifier keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 1; my $v = @a[$i for ^2]', -> \v { general(v) },
+        'an index under a loop modifier keeps the general call';
 }
 else {
-    skip 'the subscript shapes are specific to the RakuAST frontend', 30;
+    skip 'the subscript shapes are specific to the RakuAST frontend', 49;
 }
 
 {
@@ -229,4 +270,63 @@ else {
     my @a = 1,2,3; my int $i = 0;
     my $v = @a[$i = 2];
     is $v, 3, 'an assignment as the index reads the element it names';
+}
+{
+    my @a = 1,2,3; my int $i = 1;
+    is @a[$i + 1], 3, 'a native int sum as index reads the element';
+    is @a[++$i], 3, 'a native int increment as index reads the element after stepping';
+    is $i, 2, 'the increment in the index updates the variable';
+    @a[$i - 1] = 7;
+    is-deeply @a, [1, 7, 3], 'an assignment through a native int difference stores the element';
+    @a[$i + 3] = 'far';
+    is @a.elems, 6, 'an assignment through a native int sum past the end extends the array';
+    throws-like { @a[$i - 5] }, X::OutOfRange, 'a negative native int difference reports the range error';
+}
+{
+    class RW1 does Positional {
+        method AT-POS(int $p is rw) { $p = 42; 'v' }
+    }
+    my @c := RW1.new; my int $i = 1;
+    throws-like { @c[$i + 1] }, X::Parameter::RW,
+        'a native int sum as index to an rw native AT-POS reports the missing container';
+}
+{
+    my int @n = 1,2,3; my int $i = 0;
+    is @n[++$i], 2, 'a native int array subscripted by a prefix increment reads the element';
+    is $i, 1, 'the increment in a native array index runs once';
+    my @b = 1,2,3; my int $o = 0;
+    @b[++$o] = $o;
+    is-deeply @b, [1, 1, 3], 'the index is evaluated before the assigned value';
+    my @a = 1,2,3; my int $j = 0;
+    @a[$j + 1]++;
+    is @a[1], 3, 'a postfix increment on a subscript by a sum updates the element';
+    @a[++$j] += 2;
+    is-deeply @a, [1, 5, 3], 'a metaop assignment through a prefix increment updates the element once';
+    is $j, 1, 'the increment in a metaop assignment index runs once';
+    class T1 does Positional {
+        method AT-POS($p) { $p.^name }
+    }
+    my @t := T1.new;
+    is @t[$j + 1], 'Int', 'a native int sum reaches a user AT-POS as an Int object';
+}
+{
+    my @a = 10,20,30; my int $i = 1; my $f = 0;
+    is-deeply @a[$i if $f], (), 'an index under a false condition modifier selects nothing';
+    is-deeply @a[1 if $f], (), 'a literal index under a false condition modifier selects nothing';
+    is-deeply @a[$i for ^2], (20, 20), 'an index under a loop modifier selects per iteration';
+}
+{
+    class RW2 does Positional {
+        method AT-POS(int $p is rw) { $p = 42; 'v' }
+    }
+    my @c := RW2.new; my int $i = 1;
+    is @c[($i)], 'v', 'a parenthesized native int lexical reaches an rw native AT-POS';
+    is $i, 42, 'the rw native AT-POS wrote through the parenthesized lexical';
+    sub infix:<idx>(int $a, int $b --> int) { fail "custom failure" }
+    my @a = 10,20,30;
+    throws-like { @a[$i idx 1] }, X::AdHoc, message => 'custom failure',
+        'a native int operator that fails reports its own failure from the subscript';
+    sub infix:<nil>(int $a, int $b --> int) { Nil }
+    throws-like { @a[$i nil 1] }, Exception, message => /'Indexing requires a defined object'/,
+        'a native int operator returning Nil reports the subscript error for a type object';
 }

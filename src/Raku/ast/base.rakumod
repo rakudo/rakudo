@@ -1398,9 +1398,9 @@ class RakuAST::Node {
         Nil
     }
 
-    # Mark an array variable subscripted by a native int lexical or a
-    # fitting non-negative int literal, with the setting's subscript in
-    # force and no adverb, for calling AT-POS or ASSIGN-POS itself.
+    # Mark an array variable subscripted by a native int lexical, a
+    # setting operator's native int result, or a fitting non-negative int
+    # literal, with no adverb, for calling AT-POS or ASSIGN-POS itself.
     method IMPL-MARK-DIRECT-POS(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
         my $postfix := $expr.postfix;
@@ -1418,15 +1418,35 @@ class RakuAST::Node {
             && $operand.sigil eq '@';
         my $statements := $postfix.index.code-statements;
         return Nil unless nqp::elems($statements) == 1
-            && nqp::istype($statements[0], RakuAST::Statement::Expression);
+            && nqp::istype($statements[0], RakuAST::Statement::Expression)
+            && !nqp::isconcrete($statements[0].condition-modifier)
+            && !nqp::isconcrete($statements[0].loop-modifier);
         my $index := $statements[0].expression;
         if nqp::istype($index, RakuAST::IntLiteral) {
             return Nil unless $index.IMPL-FITS-NATIVE-INT
                 && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int));
         }
         else {
-            my int $spec := self.IMPL-NATIVE-LEXICAL-PRIMSPEC($index);
-            return Nil unless $spec == 1 || $spec == 10;
+            # A variable qualifies by its slot, an operator application by
+            # the native int static type its settled candidate gave it. A
+            # user operator may hand back anything through a native return.
+            if nqp::istype($index, RakuAST::Var) {
+                my int $spec := self.IMPL-NATIVE-LEXICAL-PRIMSPEC($index);
+                return Nil unless $spec == 1 || $spec == 10;
+            }
+            elsif nqp::istype($index, RakuAST::ApplyInfix) {
+                return Nil unless nqp::objprimspec($index.IMPL-STATIC-ARG-TYPE) == 1
+                    && nqp::istype($index.infix, RakuAST::Infix)
+                    && self.IMPL-OPERATOR-IS-CORE($resolver, $index.infix);
+            }
+            elsif nqp::istype($index, RakuAST::ApplyPrefix) {
+                return Nil unless nqp::objprimspec($index.IMPL-STATIC-ARG-TYPE) == 1
+                    && nqp::istype($index.prefix, RakuAST::Prefix)
+                    && self.IMPL-OPERATOR-IS-CORE($resolver, $index.prefix);
+            }
+            else {
+                return Nil;
+            }
         }
         $postfix.IMPL-SET-DIRECT-POS(
             self.IMPL-DECLARATION-CURRENT($resolver, '&postcircumfix:<[ ]>', $postfix.resolution)

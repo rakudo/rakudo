@@ -3783,6 +3783,8 @@ class RakuAST::VarDeclaration::Placeholder
   does RakuAST::BeginTime
 {
     has Bool $!already-declared;
+    has RakuAST::Node $!owner;
+    has RakuAST::VarDeclaration::Simple $!lowering-declaration;
 
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
@@ -3810,6 +3812,7 @@ class RakuAST::VarDeclaration::Placeholder
         my $owner := $resolver.find-attach-target('block');
         my $method := $resolver.find-attach-target('method');
         if $owner {
+            nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!owner', $owner);
             $owner.add-placeholder-parameter(self);
             $owner.add-generated-lexical-declaration(self)
                 unless $!already-declared || self.lexical-name eq '%_' && $method;
@@ -3873,6 +3876,28 @@ class RakuAST::VarDeclaration::Placeholder
         nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!already-declared', $declared ?? True !! False);
     }
 
+    # The declaration of the parameter the owner generated for this name.
+    # Analysis and emission follow it in the placeholder's stead.
+    method IMPL-LOWERING-DECLARATION() {
+        return $!lowering-declaration if nqp::isconcrete($!lowering-declaration);
+        return nqp::null() unless nqp::isconcrete($!owner);
+        my $signature := nqp::getattr($!owner, RakuAST::PlaceholderParameterOwner,
+            '$!placeholder-signature');
+        return nqp::null() unless nqp::isconcrete($signature);
+        my str $name := self.lexical-name;
+        for self.IMPL-UNWRAP-LIST($signature.parameters) {
+            my $target := $_.target;
+            if nqp::istype($target, RakuAST::ParameterTarget::Var)
+                && $target.name eq $name
+                && nqp::isconcrete($target.declaration) {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder,
+                    '$!lowering-declaration', $target.declaration);
+                return $target.declaration;
+            }
+        }
+        nqp::null()
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)
     }
@@ -3882,11 +3907,20 @@ class RakuAST::VarDeclaration::Placeholder
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
-        QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
+        my $declaration := self.IMPL-LOWERING-DECLARATION;
+        my str $local-name := nqp::isconcrete($declaration)
+            ?? $declaration.IMPL-LOWERED-LOCAL-NAME
+            !! '';
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.lexical-name) )
+        my $declaration := self.IMPL-LOWERING-DECLARATION;
+        nqp::isconcrete($declaration) && $declaration.IMPL-LOWERED-LOCAL-NAME
+            ?? $declaration.IMPL-QAST-DECL($context)
+            !! QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.lexical-name) )
     }
 }
 

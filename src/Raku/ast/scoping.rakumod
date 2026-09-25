@@ -68,6 +68,14 @@ role RakuAST::LexicalScope
                     $_.IMPL-LOWERED-LOCAL-NAME, $_.lexical-name);
             }
         }
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
+            if nqp::istype($_, RakuAST::VarDeclaration::Placeholder) {
+                my $declaration := $_.IMPL-LOWERING-DECLARATION;
+                $block.add_local_debug_mapping(
+                    $declaration.IMPL-LOWERED-LOCAL-NAME, $_.lexical-name)
+                    if nqp::isconcrete($declaration) && $declaration.IMPL-LOWERED-LOCAL-NAME;
+            }
+        }
         Nil
     }
 

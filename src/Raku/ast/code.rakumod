@@ -262,6 +262,43 @@ role RakuAST::Code
         $!qast-block
     }
 
+    # Whether the unit's optimize phase will run, read from the compile
+    # options the way the compiler's optimize stage reads them, so code
+    # compiled ahead of the unit is optimized only when the unit is.
+    method IMPL-UNIT-OPTIMIZES() {
+        my $compiling := nqp::getlexdyn('%*COMPILING');
+        return 1 if nqp::isnull($compiling);
+        my $options := nqp::atkey($compiling, '%?OPTIONS');
+        return 1 unless nqp::ishash($options);
+        my $optimize := nqp::atkey($options, 'optimize');
+        nqp::defined($optimize) && ($optimize eq 'off' || $optimize eq '0') ?? 0 !! 1
+    }
+
+    # Form the block of a code object the unit's optimize phase has not
+    # reached, with the optimize walk and the lowering run over it first,
+    # since the unit's emission reuses the cached block as it is.
+    method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
+            RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        unless $!qast-block || !self.IMPL-UNIT-OPTIMIZES {
+            # A thunk holds no children, so the walk over one starts
+            # from the expression it wraps.
+            my $walked := nqp::isconcrete($expression) ?? $expression !! self;
+            self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context, :node($walked));
+            RakuAST::IMPL::VarLowering.analyze-routine($walked, $resolver);
+            self.IMPL-QAST-BLOCK($context, :$blocktype, :$expression);
+            # The unit's walk settles the marks again with every
+            # declaration of the scope in view, and its emission re-forms
+            # a cached block that takes the re-formation.
+            if self.IMPL-REBUILD-ELIGIBLE && !$!begin-time-cached {
+                nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 1);
+                nqp::bindattr_s(self, RakuAST::Code, '$!begin-cache-blocktype', $blocktype);
+                nqp::bindattr(self, RakuAST::Code, '$!begin-cache-expression', $expression);
+            }
+        }
+        self.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+    }
+
     # Whether the QAST block has been formed.
     method IMPL-HAS-QAST-BLOCK() { nqp::isconcrete($!qast-block) }
 
@@ -353,17 +390,8 @@ role RakuAST::Code
         my $precomp;
         my $compiler-thunk := {
             my $*IMPL-COMPILE-DYNAMICALLY := 1;
-            # This emission caches the QAST block before the unit's
-            # optimize phase has rewritten the tree and decided which
-            # lexicals become locals, and the unit's own emission reuses
-            # the cache. Optimize and decide for this code object here so
-            # both compilations agree. A block cached by an earlier
-            # formation is emitted as it is.
-            unless $!qast-block {
-                self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
-                RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
-            }
-            my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+            my $block := self.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($resolver, $context,
+                :blocktype<declaration_static>);
             $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
         };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
@@ -768,15 +796,15 @@ role RakuAST::Code
         $visit-block($block);
     }
 
-    # The optimize walk over one code object compiled ahead of the
-    # unit's optimize phase, with the parse-time resolver, when one was
-    # recorded, so names resolve in the scope the code object was
-    # declared in.
-    method IMPL-OPTIMIZE-AHEAD-OF-UNIT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    # The optimize walk over a code object compiled ahead of the unit's
+    # optimize phase, or over the node given in its place, with the code
+    # object's parse-time resolver so names resolve in its declaring scope.
+    method IMPL-OPTIMIZE-AHEAD-OF-UNIT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::Node :$node) {
+        my $walked := nqp::isconcrete($node) ?? $node !! self;
         my $walk-resolver := $context.parse-time-resolver($!cuid) || $resolver;
         # The check phase settles sink states only after this compilation,
         # and the walk and the lowering read them.
-        self.IMPL-CALCULATE-SINK();
+        $walked.IMPL-CALCULATE-SINK();
         my $*NO-CT-DISPATCH := nqp::existskey(nqp::getenvhash(), 'RAKUDO_NO_CT_DISPATCH');
         my int $enclosing-ahead      := $walk-resolver.IMPL-AHEAD-OF-UNIT-WALK;
         my int $enclosing-structural := $walk-resolver.IMPL-STRUCTURAL-WALK;
@@ -793,7 +821,11 @@ role RakuAST::Code
                 $walk-resolver.IMPL-SET-AHEAD-OF-UNIT-WALK($enclosing-ahead, $enclosing-structural);
                 nqp::rethrow($_);
             }
-            self.IMPL-OPTIMIZE($walk-resolver);
+            $walked.IMPL-OPTIMIZE($walk-resolver);
+            # The walk offers each child to the marks, so an expression
+            # walked as the top node takes its own marks here.
+            $walked.IMPL-OPTIMIZE-EXPRESSION($walk-resolver, $walked)
+                if nqp::isconcrete($node);
         }
         $walk-resolver.IMPL-SET-AHEAD-OF-UNIT-WALK($enclosing-ahead, $enclosing-structural);
         Nil
@@ -3745,7 +3777,7 @@ class RakuAST::RoleBody
             # The body compiles here ahead of the unit, so it takes the
             # optimize walk and the lowering a BEGIN-time routine takes
             # in its compiler thunk.
-            unless self.IMPL-HAS-QAST-BLOCK {
+            unless self.IMPL-HAS-QAST-BLOCK || !self.IMPL-UNIT-OPTIMIZES {
                 self.IMPL-OPTIMIZE-AHEAD-OF-UNIT($resolver, $context);
                 RakuAST::IMPL::VarLowering.analyze-routine(self, $resolver);
             }
@@ -5467,6 +5499,8 @@ class RakuAST::PrimeThunk
     method thunk-kind() {
         'WhateverCode'
     }
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
 
     method thunk-details() {
         '⋐' ~ nqp::x('🔆', self.IMPL-NUM-PARAMS)  ~ '⋑'

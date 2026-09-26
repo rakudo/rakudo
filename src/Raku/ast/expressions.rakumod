@@ -3868,6 +3868,17 @@ class RakuAST::Postcircumfix::ArrayIndex
         nqp::bindattr_i(self, RakuAST::Postcircumfix::ArrayIndex, '$!direct-pos', $on);
     }
 
+    # The index of the direct call. An operator result is taken as the
+    # object the subscript routine would have received, an Int or the
+    # Failure the operator returned, while a variable or literal stands.
+    method IMPL-DIRECT-INDEX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-INDEX-QAST($context);
+        my $index := $!index.code-statements[0].expression;
+        return $qast if nqp::istype($index, RakuAST::Var)
+            || nqp::istype($index, RakuAST::IntLiteral);
+        QAST::Op.new( :op('decont'), $qast )
+    }
+
     method new(
         RakuAST::SemiList :$index!,
       RakuAST::Expression :$assignee,
@@ -4040,7 +4051,7 @@ class RakuAST::Postcircumfix::ArrayIndex
                 !! $operand-qast;
             my $direct := QAST::Op.new( :op('callmethod'),
                 :name($!assignee ?? 'ASSIGN-POS' !! 'AT-POS'),
-                $self-qast, self.IMPL-INDEX-QAST($context) );
+                $self-qast, self.IMPL-DIRECT-INDEX-QAST($context) );
             $direct.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
             $direct.annotate('direct-pos', 1);
             return QAST::Op.new( :op('hllize'), $direct );

@@ -4,7 +4,7 @@ use Test;
 # They work as parameter, variable, attribute and subset types, and a
 # role can do a metamodel role.
 
-plan 22;
+plan 23;
 
 is EVAL(q[sub f(Metamodel::ClassHOW $h) { $h.name(Int) }; f(Int.HOW)]), 'Int',
     'a parameter typed with a metamodel class binds a matching argument';
@@ -73,6 +73,13 @@ is EVAL(q[
     f(42) ~ ' ' ~ f(Mu)
 ]), 'any mu',
     'a multi still prefers an Any candidate over a Mu candidate';
+
+is EVAL(q[
+    multi f(Metamodel::Naming) { 'naming' }
+    multi f(Mu) { 'fallback' }
+    f(Int.HOW) ~ ' ' ~ f(42)
+]), 'naming fallback',
+    'a multi with a metamodel role candidate compiles and dispatches on it';
 
 is EVAL(q[my Metamodel::ClassHOW $h = Int.HOW; $h.name(Int)]), 'Int',
     'a scalar variable typed with a metamodel class accepts a matching value';

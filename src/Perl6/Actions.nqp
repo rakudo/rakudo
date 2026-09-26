@@ -4351,11 +4351,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $block[1] := wrap_return_handler($block[1]);
             }
             else {
-                $block[1] := QAST::Op.new(
-                    :op(decontrv_op()),
-                    QAST::WVal.new( :value($*DECLARAND) ),
-                    $block[1]);
-                $block[1] := wrap_return_type_check($block[1], $*DECLARAND);
+                $block[1] := wrap_return_type_check(wrap_return_value($block[1]), $*DECLARAND);
             }
         }
         $block.blocktype('declaration_static');
@@ -4811,11 +4807,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past[1] := wrap_return_handler($past[1]);
             }
             else {
-                $past[1] := QAST::Op.new(
-                    :op(decontrv_op()),
-                    QAST::WVal.new( :value($*DECLARAND) ),
-                    $past[1]);
-                $past[1] := wrap_return_type_check($past[1], $*DECLARAND);
+                $past[1] := wrap_return_type_check(wrap_return_value($past[1]), $*DECLARAND);
             }
         }
         $past.blocktype('declaration_static');
@@ -11278,15 +11270,138 @@ Did you mean a call like '"
              )
     }
 
+    # The value a body ends with, past the statement wrappers around it
+    # and past the return check an inlined routine brought along.
+    sub return_value_node($past) {
+        my $node := $past;
+        while 1 {
+            if nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt) {
+                my int $n := nqp::elems($node.list);
+                return nqp::null() unless $n;
+                my $rc := $node.resultchild;
+                $node := $node[nqp::defined($rc) ?? $rc !! $n - 1];
+            }
+            elsif nqp::istype($node, QAST::Op) && $node.op eq 'p6typecheckrv' {
+                $node := $node[0];
+            }
+            else {
+                return $node;
+            }
+        }
+    }
+
+    # The op that reads the native value out of a body ending in a native
+    # assignment, which yields the container it stored into, or the empty
+    # string for any other body.
+    sub return_native_deref($past) {
+        my $node := return_value_node($past);
+        if nqp::istype($node, QAST::Op) {
+            my str $op := $node.op;
+            return 'decont_i' if $op eq 'assign_i';
+            return 'decont_n' if $op eq 'assign_n';
+            return 'decont_s' if $op eq 'assign_s';
+            return 'decont_u' if $op eq 'assign_u';
+        }
+        ''
+    }
+
+    # Whether the value a body ends with is already in the native form of
+    # the return, so a native return has nothing to coerce.
+    sub return_is_native($past, int $prim) {
+        my $node := return_value_node($past);
+        return 0 if nqp::isnull($node);
+        my str $want := $prim == 2 ?? 'Nn' !! $prim == 3 ?? 'Ss' !! 'Ii';
+        if nqp::istype($node, QAST::Want) {
+            my int $i := 1;
+            my int $n := nqp::elems($node.list);
+            while $i < $n {
+                return 1 if $node[$i] eq $want;
+                $i := $i + 2;
+            }
+            return 0;
+        }
+        if nqp::istype($node, QAST::Op) {
+            my str $op := $node.op;
+            return $prim == 2 ?? nqp::eqat($op, '_n', -2)
+                !! $prim == 3 ?? nqp::eqat($op, '_s', -2)
+                !! nqp::eqat($op, '_i', -2) || nqp::eqat($op, '_u', -2);
+        }
+        if nqp::istype($node, QAST::Var) {
+            my int $have := nqp::objprimspec($node.returns);
+            return 0 unless $prim == 2 || $prim == 3 ?? $have == $prim !! $have == 1 || $have == 10;
+            # A reference to the variable would hand out the variable
+            # itself, so the return reads its value.
+            my str $scope := $node.scope;
+            $node.scope('lexical') if $scope eq 'lexicalref';
+            $node.scope('attribute') if $scope eq 'attributeref';
+            return 1;
+        }
+        $prim == 2 ?? nqp::istype($node, QAST::NVal)
+            !! $prim == 3 ?? nqp::istype($node, QAST::SVal)
+            !! nqp::istype($node, QAST::IVal)
+    }
+
+    # The value a routine falls off the end with, deconted, or for a native
+    # return coerced unless it is already native.
+    sub wrap_return_value($past) {
+        my $ret := %*SIG_INFO<returns>;
+        my int $prim := nqp::isconcrete($ret) ?? 0 !! nqp::objprimspec($ret);
+        if $prim && !$*DECLARAND.rw {
+            my str $deref := return_native_deref($past);
+            $deref
+                ?? QAST::Op.new( :op($deref), $past )
+                !! return_is_native($past, $prim) ?? $past !! native_return_qast($past, $prim)
+        }
+        else {
+            QAST::Op.new( :op(decontrv_op()), QAST::WVal.new( :value($*DECLARAND) ), $past )
+        }
+    }
+
+    # The value coerced to the routine's native return, with a Nil or a
+    # Failure handed back as it is. An unsigned value is boxed as the
+    # signed kind, as a native return reaching a caller is.
+    sub native_return_qast($value, int $prim) {
+        my str $rv := QAST::Node.unique('native_rv');
+        my $coerced := QAST::Op.new(
+            :op($prim == 2 ?? 'unbox_n' !! $prim == 3 ?? 'unbox_s' !! $prim == 10 ?? 'unbox_u' !! 'unbox_i'),
+            QAST::Var.new( :name($rv), :scope<local> ) );
+        $coerced := QAST::Op.new( :op<box_i>, $coerced,
+            QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Int')) ) )
+            if $prim == 10;
+        my $exempt := QAST::Op.new( :op<istype>,
+            QAST::Var.new( :name($rv), :scope<local> ),
+            QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Nil')) ) );
+        my $Failure := try $*W.find_single_symbol_in_setting('Failure');
+        unless nqp::isnull($Failure) || !nqp::isconcrete($Failure.HOW) {
+            $exempt := QAST::Op.new( :op<if>, $exempt,
+                QAST::IVal.new( :value(1) ),
+                QAST::Op.new( :op<istype>,
+                    QAST::Var.new( :name($rv), :scope<local> ),
+                    QAST::WVal.new( :value($Failure) ) ) );
+        }
+        QAST::Stmts.new(
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($rv), :scope<local>, :decl<var> ),
+                QAST::Op.new( :op<decont>, $value ) ),
+            QAST::Op.new( :op<if>, $exempt,
+                QAST::Var.new( :name($rv), :scope<local> ),
+                $coerced ) )
+    }
+
     sub wrap_return_handler($past) {
+        my $ret := %*SIG_INFO<returns>;
+        my $payload := QAST::Op.new( :op<lastexpayload> );
+        # A native return coerces the value the routine ends with, unless
+        # that value is already native, or is a Nil or a Failure, which
+        # every return type lets through.
+        my int $prim := nqp::isconcrete($ret) ?? 0 !! nqp::objprimspec($ret);
+        $payload := native_return_qast($payload, $prim) if $prim && !$*DECLARAND.rw;
         wrap_return_type_check(
             QAST::Op.new(
                 :op<handlepayload>,
-                # If we fall off the bottom, decontainerize if
-                # rw not set.
-                QAST::Op.new( :op(decontrv_op()), QAST::WVal.new( :value($*DECLARAND) ), $past ),
+                wrap_return_value($past),
                 'RETURN',
-                QAST::Op.new( :op<lastexpayload> )
+                $payload
             ),
             $*DECLARAND
         )

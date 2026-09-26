@@ -604,6 +604,23 @@ class RakuAST::IMPL::VarLowering {
                         '$!suspended-begin-context', $suspended-begin-context);
                 }
             }
+            # A block's or routine's placeholder parameters live in a
+            # signature only a pointy block visits as a child, so the walk
+            # takes that signature first, ahead of the body.
+            if nqp::istype($node, RakuAST::Block) && !nqp::istype($node, RakuAST::PointyBlock)
+                || nqp::istype($node, RakuAST::Routine) {
+                my $placeholder-signature := $node.placeholder-signature;
+                self.IMPL-WALK($placeholder-signature) if $placeholder-signature;
+            }
+        }
+
+        # Every occurrence of a placeholder name stands in the tree as
+        # a declaration node, and each reads the parameter the block
+        # generated for the name, so it counts as a use of that parameter.
+        if nqp::istype($node, RakuAST::VarDeclaration::Placeholder) {
+            my $declaration := $node.IMPL-LOWERING-DECLARATION;
+            self.IMPL-REGISTER-USE-ID(~nqp::objectid($declaration))
+                if nqp::isconcrete($declaration);
         }
 
         if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved {
@@ -1217,7 +1234,14 @@ class RakuAST::IMPL::VarLowering {
     # only by pending flatten-candidate bodies is deferred instead, since
     # an approved body dissolves into its parent's frame.
     method IMPL-REGISTER-USE(RakuAST::Node $node) {
-        self.IMPL-REGISTER-USE-ID(~nqp::objectid($node.resolution));
+        my $resolution := $node.resolution;
+        # A lookup of a placeholder's name reads the parameter generated
+        # for it, as the placeholder itself does.
+        if nqp::istype($resolution, RakuAST::VarDeclaration::Placeholder) {
+            my $declaration := $resolution.IMPL-LOWERING-DECLARATION;
+            $resolution := $declaration if nqp::isconcrete($declaration);
+        }
+        self.IMPL-REGISTER-USE-ID(~nqp::objectid($resolution));
     }
 
     method IMPL-REGISTER-USE-ID(str $id) {

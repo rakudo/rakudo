@@ -815,6 +815,9 @@ class RakuAST::Call::Methodish
 {
     has str $!dispatcher;
 
+    # Whether the result may come from foreign code and so needs hllize
+    method IMPL-HLLIZE-RESULT() { 1 }
+
     # Set when the optimize pass has marked a `.=` call on the topic for inlining
     # the method-call-and-assign dispatcher away.
     has int $!inline;
@@ -880,6 +883,10 @@ class RakuAST::Call::Method
           && (my $name := $!name.canonicalize)
           && nqp::istrue(self.IMPL-SPECIAL-OP($name))
     }
+
+    # A special op like .WHAT is a primitive op on the value itself, so
+    # its result is never foreign and .WHAT of a VM array stays BOOTArray.
+    method IMPL-HLLIZE-RESULT() { !self.macroish }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups := [];

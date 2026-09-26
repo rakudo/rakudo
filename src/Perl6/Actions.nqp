@@ -6631,10 +6631,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make make_yada('&die', $/);
     }
 
+    my %mop_ops := nqp::hash(
+        'what', 1, 'how', 1, 'who', 1, 'where', 1,
+        'p6var', 1, 'p6reprname', 1, 'p6definite', 1);
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
         $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
-        make QAST::Op.new( :op('hllize'), $past);
+        # The MOP ops act on the value itself, so their result is never foreign
+        make nqp::istype($past, QAST::Op) && nqp::existskey(%mop_ops, $past.op)
+            ?? $past
+            !! QAST::Op.new( :op('hllize'), $past);
     }
 
     sub find_macro_routine(@symbol) {

@@ -58,8 +58,8 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'an int literal above the native int limit keeps the general call';
     qast-is 'my @a = 1,2,3; my $i = 1; my $v = @a[$i]', -> \v { general(v) },
         'a boxed index keeps the general call';
-    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i = 2]', -> \v { general(v) },
-        'an assignment as the index keeps the general call';
+    qast-is 'my @a = 1,2,3; my int $i = 0; my $v = @a[$i = 2]', -> \v { direct(v) },
+        'a native int assignment as the index calls AT-POS itself';
     qast-is 'sub f(int $i is rw) { my @a; @a[$i] }', :full, -> \v { general(v) },
         'an rw native parameter as the index keeps the general call';
     qast-is 'my @a = 1,2,3; my int $i = 1; my $v = @a[$i]:exists', -> \v { general(v) },

@@ -3357,7 +3357,20 @@ class RakuAST::Routine
         my str $decont-rv-op := $context.lang-version lt 'd' && $context.is-moar
             ?? 'p6decontrv_6c'
             !! 'p6decontrv';
-        unless $routine.rw {
+        # A native return coerces the value the routine ends with, unless
+        # that value is already native, or is a Nil or a Failure, which
+        # every return type lets through.
+        my int $native-return := nqp::objprimspec(nqp::ifnull($signature.returns, Mu));
+        if $native-return && !$routine.rw {
+            my str $deref := self.IMPL-RETURN-NATIVE-DEREF($body);
+            if $deref {
+                $result := QAST::Op.new( :op($deref), $result );
+            }
+            elsif !self.IMPL-RETURN-IS-NATIVE($body, $native-return) {
+                $result := self.IMPL-NATIVE-RETURN-QAST($context, $routine, $native-return, $body);
+            }
+        }
+        elsif !$routine.rw {
             my str $decont-op := $!elide-return-decont
                 ?? self.IMPL-RETURN-DECONT-OP($body, $decont-rv-op)
                 !! $decont-rv-op;
@@ -3370,11 +3383,14 @@ class RakuAST::Routine
             }
         }
         if $!may-use-return {
+            my $payload := QAST::Op.new( :op<lastexpayload> );
+            $payload := self.IMPL-NATIVE-RETURN-QAST($context, $routine, $native-return, $payload)
+                if $native-return && !$routine.rw;
             $result := QAST::Op.new(
                 :op<handlepayload>,
                 $result,
                 'RETURN',
-                QAST::Op.new( :op<lastexpayload> )
+                $payload
             );
         }
 
@@ -3391,6 +3407,112 @@ class RakuAST::Routine
         }
 
         $result
+    }
+
+    # The value a body ends with, past the statement wrappers around it
+    # and past the return check an inlined routine brought along.
+    method IMPL-RETURN-VALUE-NODE(Mu $body) {
+        my $node := $body;
+        while 1 {
+            if nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt) {
+                my int $n := nqp::elems($node.list);
+                return nqp::null() unless $n;
+                my $rc := $node.resultchild;
+                $node := $node[nqp::defined($rc) ?? $rc !! $n - 1];
+            }
+            elsif nqp::istype($node, QAST::Op) && $node.op eq 'p6typecheckrv' {
+                $node := $node[0];
+            }
+            else {
+                return $node;
+            }
+        }
+    }
+
+    # The op that reads the native value out of a body ending in a native
+    # assignment, which yields the container it stored into, or the empty
+    # string for any other body.
+    method IMPL-RETURN-NATIVE-DEREF(Mu $body) {
+        my $node := self.IMPL-RETURN-VALUE-NODE($body);
+        if nqp::istype($node, QAST::Op) {
+            my str $op := $node.op;
+            return 'decont_i' if $op eq 'assign_i';
+            return 'decont_n' if $op eq 'assign_n';
+            return 'decont_s' if $op eq 'assign_s';
+            return 'decont_u' if $op eq 'assign_u';
+        }
+        ''
+    }
+
+    # Whether the value a body ends with is already in the native form of
+    # the return, so a native return has nothing to coerce.
+    method IMPL-RETURN-IS-NATIVE(Mu $body, int $prim) {
+        my $node := self.IMPL-RETURN-VALUE-NODE($body);
+        return 0 if nqp::isnull($node);
+        my str $want := $prim == 2 ?? 'Nn' !! $prim == 3 ?? 'Ss' !! 'Ii';
+        if nqp::istype($node, QAST::Want) {
+            my int $i := 1;
+            my int $n := nqp::elems($node.list);
+            while $i < $n {
+                return 1 if $node[$i] eq $want;
+                $i := $i + 2;
+            }
+            return 0;
+        }
+        if nqp::istype($node, QAST::Op) {
+            my str $op := $node.op;
+            return $prim == 2 ?? nqp::eqat($op, '_n', -2)
+                !! $prim == 3 ?? nqp::eqat($op, '_s', -2)
+                !! nqp::eqat($op, '_i', -2) || nqp::eqat($op, '_u', -2);
+        }
+        if nqp::istype($node, QAST::Var) {
+            my int $have := nqp::objprimspec($node.returns);
+            return 0 unless $prim == 2 || $prim == 3 ?? $have == $prim !! $have == 1 || $have == 10;
+            # A reference to the variable would hand out the variable
+            # itself, so the return reads its value.
+            my str $scope := $node.scope;
+            $node.scope('lexical') if $scope eq 'lexicalref';
+            $node.scope('attribute') if $scope eq 'attributeref';
+            return 1;
+        }
+        $prim == 2 ?? nqp::istype($node, QAST::NVal)
+            !! $prim == 3 ?? nqp::istype($node, QAST::SVal)
+            !! nqp::istype($node, QAST::IVal)
+    }
+
+    # The value coerced to the routine's native return, with a Nil or a
+    # Failure handed back as it is. An unsigned value is boxed as the
+    # signed kind, as a native return reaching a caller is.
+    method IMPL-NATIVE-RETURN-QAST(RakuAST::IMPL::QASTContext $context, Mu $routine,
+            int $prim, Mu $value) {
+        my str $rv := QAST::Node.unique('native_rv');
+        my $coerced := QAST::Op.new(
+            :op($prim == 2 ?? 'unbox_n' !! $prim == 3 ?? 'unbox_s' !! $prim == 10 ?? 'unbox_u' !! 'unbox_i'),
+            QAST::Var.new( :name($rv), :scope<local> ) );
+        $coerced := QAST::Op.new( :op<box_i>, $coerced, QAST::WVal.new( :value(Int) ) )
+            if $prim == 10;
+        my $exempt := QAST::Op.new( :op<istype>,
+            QAST::Var.new( :name($rv), :scope<local> ),
+            QAST::WVal.new( :value(Nil) ) );
+        my $resolver := $context.parse-time-resolver(nqp::getattr_s(self, RakuAST::Code, '$!cuid'));
+        my $Failure := nqp::isconcrete($resolver)
+            ?? self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Failure')
+            !! nqp::null();
+        unless nqp::isnull($Failure) {
+            $context.ensure-sc($Failure);
+            $exempt := QAST::Op.new( :op<if>, $exempt,
+                QAST::IVal.new( :value(1) ),
+                QAST::Op.new( :op<istype>,
+                    QAST::Var.new( :name($rv), :scope<local> ),
+                    QAST::WVal.new( :value($Failure) ) ) );
+        }
+        QAST::Stmts.new(
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($rv), :scope<local>, :decl<var> ),
+                QAST::Op.new( :op<decont>, $value ) ),
+            QAST::Op.new( :op<if>, $exempt,
+                QAST::Var.new( :name($rv), :scope<local> ),
+                $coerced ) )
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {

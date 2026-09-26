@@ -3,6 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
 plan 56;
 
 # Constant folding rewrites a pure operator on constant operands into the

@@ -111,11 +111,26 @@ sub MAIN(*@ARGS) {
             }
         }
 
+        # An option the command line gives itself wins over the same one
+        # from RAKUDO_OPT. The option parser tells options from program
+        # arguments. Only -I and -M accumulate.
+        my %given;
+        my @given := nqp::clone(@ARGS);
+        nqp::shift(@given);
+        my $parser := HLL::CommandLine::Parser.new(@clo);
+        $parser.add-stopper('-e');
+        $parser.stop-after-first-arg;
+        try %given := $parser.parse(@given).options;
+
         # Check all of the specified options
         my @ok;
         while @opts {
             my $flag := nqp::shift(@opts);
             my int $ok;
+            my int $eq   := nqp::index($flag,'=');
+            my str $name := $eq < 0 ?? $flag !! nqp::substr($flag,0,$eq);
+            my int $given := nqp::eqat($name,'--',0)
+              && nqp::existskey(%given,nqp::substr($name,2));
 
             # Test the allowed ones that may take an argument
             for <
@@ -123,8 +138,11 @@ sub MAIN(*@ARGS) {
               --profile --profile-compile --profile-kind --profile-stage
             > {
                 if nqp::eqat($flag,$_,0) {
-                    nqp::push(@ok,$flag);
-                    nqp::push(@ok,nqp::shift(@opts)) if $flag eq $_ && @opts;
+                    nqp::push(@ok,$flag) unless $given;
+                    if $flag eq $_ && @opts {
+                        my $value := nqp::shift(@opts);
+                        nqp::push(@ok,$value) unless $given;
+                    }
                     $ok := 1;
                     last;
                 }
@@ -133,7 +151,7 @@ sub MAIN(*@ARGS) {
             # Test the allowed ones that do not take an argument
             for <--stagestats --ll-exception --full-cleanup --debug-suspend> {
                 if $_ eq $flag {
-                    nqp::push(@ok,$flag);
+                    nqp::push(@ok,$flag) unless $given;
                     $ok := 1;
                     last;
                 }

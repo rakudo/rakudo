@@ -214,7 +214,8 @@ role RakuAST::LexicalScope
                             if $decl.is-simple-lexical-declaration {
                                 if (nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic)
                                       && $decl.IMPL-NOT-IF-DUPLICATE)
-                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch) {
+                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch)
+                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Outer) {
                                     nqp::push(@not-if-duplicate, $decl);
                                 }
                                 elsif !%declarations-seen{nqp::objectid($decl)} {

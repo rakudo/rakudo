@@ -85,7 +85,7 @@ parameters:
   default:
     MVM:
       Win: ['']
-      Lin: ['', 'legacy']
+      Lin: ['', 'legacy', 'optimizeoff']
       Mac: ['']
 
 
@@ -376,6 +376,15 @@ stages:
           - ${{ if eq(variant, 'legacy') }}:
             - name: RAKUDO_RAKUAST
               value: '0'
+          - ${{ if eq(variant, 'optimizeoff') }}:
+            - name: RAKUDO_OPT
+              value: '--optimize=off'
+          # The optimizeoff variant tests the normal build.
+          - name: BUILD_VARIANT
+            ${{ if eq(variant, 'optimizeoff') }}:
+              value: normal
+            ${{ if ne(variant, 'optimizeoff') }}:
+              value: ${{ coalesce(variant, 'normal') }}
           - ${{ if eq(os, 'Win') }}:
             - name: IMAGE_NAME
               value: 'windows-2022'
@@ -422,7 +431,7 @@ stages:
             inputs:
               buildType: 'current'
               targetPath: '$(Pipeline.Workspace)/rakudo'
-              artifact: ${{ backend }}_sourcecode_built_${{ coalesce(variant, 'normal') }}_${{ os }}
+              artifact: ${{ backend }}_sourcecode_built_$(BUILD_VARIANT)_${{ os }}
             displayName: Download artifact
           - task: DownloadPipelineArtifact@2
             inputs:
@@ -431,7 +440,7 @@ stages:
                 targetPath: '$(Pipeline.Workspace)/install'
               ${{ if eq(variant, 'relocatable') }}:
                 targetPath: '$(Pipeline.Workspace)/install-moved'
-              artifact: ${{ backend }}_${{ coalesce(variant, 'normal') }}_${{ os }}
+              artifact: ${{ backend }}_$(BUILD_VARIANT)_${{ os }}
             displayName: Download artifact
 
           - bash: |
@@ -501,7 +510,7 @@ stages:
                 ls -l .
                 env PERL_TEST_HARNESS_DUMP_TAP=test_results prove --merge --timer --formatter TAP::Formatter::JUnit  -j3 -e ../install/bin/raku --ext .t --ext .rakutest -vlr t
               workingDirectory: '$(Pipeline.Workspace)/rakudo'
-              enabled: ${{ or( eq( variant, '' ), eq( variant, 'legacy' ) ) }}
+              enabled: ${{ or( eq( variant, '' ), eq( variant, 'legacy' ), eq( variant, 'optimizeoff' ) ) }}
               displayName: Test Rakudo
             - script: |
                 pwd
@@ -763,6 +772,108 @@ stages:
       inputs:
         targetPath: $(Pipeline.Workspace)/rakudo/test_results
         artifact: "MVM_extra_moar_spesh_relocatable_test_results_Lin_$(System.JobAttempt)"
+        publishLocation: 'pipeline'
+
+  - job: Lin_OptimizeOff_Spectest
+
+    pool:
+      vmImage: 'ubuntu-24.04'
+    workspace:
+      clean: all
+    timeoutInMinutes: 180
+
+    variables:
+    - name: RAKUDO_OPT
+      value: '--optimize=off'
+
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)/install'
+        artifactName: MVM_normal_Lin
+      displayName: Download artifact
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)/rakudo'
+        artifactName: MVM_sourcecode_built_normal_Lin
+      displayName: Download artifact
+    - bash: |
+        export IS_AZURE_PIPELINES_BUILD=1
+        echo "##[task.setvariable variable=IS_AZURE_PIPELINES_BUILD]1"
+      displayName: "set IS_AZURE_PIPELINES_BUILD to 1"
+    - bash: |
+        export TIME_STYLE=full-iso
+        chmod +x install/bin/*
+        chmod +x install/lib/*
+        true
+      displayName: "Fix up permissions so we can execute"
+      workingDirectory: '$(Pipeline.Workspace)'
+
+    - bash: |
+        curl -L https://cpanmin.us | sudo perl - App::cpanminus
+        sudo cpanm --notest TAP::Formatter::JUnit
+      displayName: install cpanm, TAP::Formatter::JUnit
+
+    # turn this line:
+    # spectest_update: $(SPECTEST_DATA) all
+    # into this line:
+    # spectest_update: $(SPECTEST_DATA)
+    - script: |
+        echo "removing 'all' dependency from spectest_update target"
+        sed --in-place=.bak -E 's/^(spectest_update.*) all$/\1/' Makefile
+
+        echo "chmod +x the rakudo-m that t/harness5 uses to run tests"
+        chmod +x rakudo-m
+
+        echo "creating test_results folder"
+        mkdir test_results
+
+        echo "making spectest checkout"
+        make --trace m-testable
+
+        export PERL_TEST_HARNESS_DUMP_TAP=test_results
+        make --trace  TEST_JOBS=3 m-spectest
+      workingDirectory: '$(Pipeline.Workspace)/rakudo'
+      displayName: spectest under RAKUDO_OPT=--optimize=off
+
+    - script: |
+        echo "listing test results subfolders"
+        ls -lisah *
+        echo "listing all inputs"
+        ls -lisah $(find . -type f -iname '*.t' -o -type f -iname '*.rakudo.moar')
+        echo "running tap2junit"
+        echo "converting..."
+        tap2junit --verbose $(find . -type f -iname '*.t' -o -type f -iname '*.rakudo.moar') || echo "oh no, failed to convert!"
+        echo "making up classnames from filenames"
+        cat > do_classname_rename.sh <<"EOF"
+        #!/bin/bash
+        path=$1
+        classname=$(echo $path | sed -e 's,^./,,' | tr '/-' '._' | sed -E 's/.rakudo.moar.junit.xml|t.junit.xml|.t.xml|.rakudo.moar.xml//')
+        sed -i -e 's/testcase /testcase classname="'$classname'" /' $path
+        EOF
+        chmod +x do_classname_rename.sh
+        echo "running the script a bunch"
+        find . -type f -iname '*.xml' -exec ./do_classname_rename.sh "{}" ";"
+      workingDirectory: '$(Pipeline.Workspace)/rakudo/test_results/t/'
+      displayName: convert tap to junit
+      condition: succeededOrFailed()
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: '**/*.xml'
+        searchFolder: '$(Pipeline.Workspace)/rakudo/test_results'
+        testRunTitle: "lin mvm optimize off full spectest"
+      condition: succeededOrFailed()
+
+    - task: PublishPipelineArtifact@1
+      displayName: publish test results files
+      condition: always()
+      inputs:
+        targetPath: $(Pipeline.Workspace)/rakudo/test_results
+        artifact: "MVM_extra_moar_optimizeoff_test_results_Lin_$(System.JobAttempt)"
         publishLocation: 'pipeline'
 
 

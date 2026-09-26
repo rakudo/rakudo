@@ -996,6 +996,7 @@ class RakuAST::VarDeclaration::Simple
     method set-already-declared() {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
     }
+    method already-declared() { $!already-declared ?? True !! False }
 
     # Name the lexical the scope already makes, such as a block's topic. The
     # declaration then declares nothing of its own, and an `our` binds that

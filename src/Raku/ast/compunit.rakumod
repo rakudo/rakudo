@@ -519,6 +519,10 @@ class RakuAST::CompUnit
         # it as the current package.
         if $!is-eval {
             add(RakuAST::VarDeclaration::Implicit::BlockTopic.new(:!parameter));
+            # The frame carries the caller's $/ so a closure built here
+            # still reaches one by name after precompilation has left this
+            # frame at the end of its outer chain.
+            add(RakuAST::VarDeclaration::Implicit::Outer.new(:name('$/')));
             # A setting context declares no $?PACKAGE, and the unit then
             # declares its own for the package the resolver stands in.
             if nqp::isconcrete($!resolver)

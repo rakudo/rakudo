@@ -3152,6 +3152,37 @@ class RakuAST::VarDeclaration::Implicit::Special
     }
 }
 
+# A special variable bound at scope entry to the enclosing frame's one of
+# the same name, or left as its own container when no frame has one. An
+# EVAL unit declares $/ this way so a closure it builds still finds one.
+class RakuAST::VarDeclaration::Implicit::Outer
+  is RakuAST::VarDeclaration::Implicit::Special
+{
+    # The scope gives this up to a my declaration of the name.
+    method report-redeclaration() {
+        False
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('lexical'), :decl('var'), :name(self.name) ),
+            QAST::Op.new(
+                :op('ifnull'),
+                QAST::Op.new(
+                    :op('getlexrel'),
+                    QAST::Op.new( :op('ctxouter'), QAST::Op.new( :op('ctx') ) ),
+                    QAST::SVal.new( :value(self.name) )
+                ),
+                QAST::Op.new( :op('clone'), QAST::WVal.new( :value($container) ) )
+            )
+        )
+    }
+}
+
 # The implicit match variable of a 6.e block: a fresh container per
 # invocation, initialized at entry from the topic when the topic is a
 # Match, and otherwise from the value of the enclosing $/. A regex

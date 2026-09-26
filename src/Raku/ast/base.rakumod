@@ -2464,27 +2464,36 @@ class RakuAST::Node {
             return Nil;
         }
         if nqp::istype($expr, RakuAST::Statement::Loop) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                self.IMPL-BLOCK-TAKES-CONDITION($expr.body))
                 if nqp::isconcrete($expr.condition);
         }
         elsif nqp::istype($expr, RakuAST::Statement::IfWith) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
+            my int $value-used := self.IMPL-BLOCK-TAKES-CONDITION($expr.then)
+                || self.IMPL-BLOCK-TAKES-CONDITION($expr.else);
+            for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
+                $value-used := 1 if self.IMPL-BLOCK-TAKES-CONDITION($_.then);
+            }
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                $value-used)
                 if $expr.IMPL-QAST-TYPE eq 'if';
             for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
-                self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $_.condition)
+                self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $_.condition,
+                    $value-used)
                     if $_.IMPL-QAST-TYPE eq 'if';
             }
         }
         elsif nqp::istype($expr, RakuAST::Statement::Unless) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition);
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                self.IMPL-BLOCK-TAKES-CONDITION($expr.body));
         }
         elsif nqp::istype($expr, RakuAST::Statement::Expression) {
             my $loop := $expr.loop-modifier;
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $loop.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $loop.expression, 0)
                 if nqp::isconcrete($loop)
                 && nqp::istype($loop, RakuAST::StatementModifier::WhileUntil);
             my $cond := $expr.condition-modifier;
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $cond.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $cond.expression, 0)
                 if nqp::isconcrete($cond)
                 && (nqp::istype($cond, RakuAST::StatementModifier::If)
                     && !nqp::istype($cond, RakuAST::StatementModifier::When)
@@ -2496,20 +2505,30 @@ class RakuAST::Node {
                 my str $op := $prefix.operator;
                 if ($op eq '?' || $op eq '!' || $op eq 'so' || $op eq 'not')
                     && self.IMPL-OPERATOR-IS-CORE($resolver, $prefix) {
-                    self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.operand);
+                    self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.operand, 0);
                 }
             }
         }
         Nil
     }
 
-    # A condition in a truth-only position may take either boolean-form
-    # reduction: a junction comparison unfolds, and a smartmatch against
-    # a junction of types becomes a chain of type checks.
-    method IMPL-TRY-BOOLEAN-CONDITION(RakuAST::Resolver $resolver, Mu $cond) {
-        self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond);
+    # A condition in boolean position may unfold a junction comparison,
+    # unless a block takes its value and so expects the Junction, and may
+    # reduce a smartmatch against a junction of types to type checks.
+    method IMPL-TRY-BOOLEAN-CONDITION(RakuAST::Resolver $resolver, Mu $cond, int $value-used) {
+        self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond) unless $value-used;
         self.IMPL-TRY-JUNCTION-TYPEMATCH($resolver, $cond);
         Nil
+    }
+
+    # Whether a block takes the value of the condition that guards it,
+    # which for a junction comparison is the Junction it produces.
+    method IMPL-BLOCK-TAKES-CONDITION(Mu $block) {
+        return 0 unless nqp::isconcrete($block) && nqp::istype($block, RakuAST::Block);
+        my $signature := $block.signature || $block.placeholder-signature;
+        nqp::isconcrete($signature)
+            && nqp::elems($block.IMPL-UNWRAP-LIST($signature.parameters))
+            ?? 1 !! 0
     }
 
     # A smartmatch against a junction of type objects, in a position that
@@ -2601,8 +2620,17 @@ class RakuAST::Node {
             && $right.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
+        my str $op := $infix.operator;
+        my int $negated := $op eq '!=' || $op eq '≠' || $op eq 'ne';
+        my int $numeric := $op eq '==' || $op eq '<' || $op eq '<='
+            || $op eq '>' || $op eq '>=' || $op eq '≤' || $op eq '≥'
+            || $op eq '!=' || $op eq '≠';
+        return Nil unless $numeric || $op eq 'eq' || $op eq 'lt'
+            || $op eq 'le' || $op eq 'gt' || $op eq 'ge' || $op eq 'ne';
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         return Nil if nqp::isnull($Junction);
+        my @kinds := self.IMPL-JUNCTION-FOLD-KINDS($resolver);
+        return Nil unless nqp::elems(@kinds) == 4;
         my int $side := 0;
         $side := 1 if self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $left, $Junction);
         $side := 2 if !$side && self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $right, $Junction);
@@ -2624,10 +2652,131 @@ class RakuAST::Node {
         else {
             return Nil;
         }
-        return Nil unless nqp::isconcrete($routine)
-            && self.IMPL-JUNCTION-CHAIN-HANDLES-ANY($resolver, $routine);
-        $infix.IMPL-SET-JUNCTION-FOLD($side, $Junction);
+        return Nil unless nqp::isconcrete($routine);
+        # A negated comparison binds a junction to its Mu candidate and
+        # negates the collapsed comparison, so its chain joins the other
+        # way round rather than standing in for autothreading.
+        return Nil unless $negated
+            || self.IMPL-JUNCTION-CHAIN-HANDLES-ANY($resolver, $routine);
+        my @constants := self.IMPL-JUNCTION-FOLD-CONSTANTS(
+            $side == 1 ?? $left !! $right, $Junction);
+        my $type := self.IMPL-JUNCTION-FOLD-TYPE($resolver, @constants, $numeric);
+        my int $mask := self.IMPL-JUNCTION-FOLD-MASK(@kinds, @constants, $numeric);
+        return Nil if nqp::isnull($type) && !$mask;
+        my int $guard := self.IMPL-JUNCTION-FOLD-GUARD(@kinds, $other, $type, $mask);
+        return Nil if $guard < 0;
+        if $guard == 2 {
+            $type := nqp::null();
+            $guard := 0;
+        }
+        elsif $guard == 3 {
+            $mask := 0;
+            $guard := 0;
+        }
+        $infix.IMPL-SET-JUNCTION-FOLD($side, $Junction, $guard, $type, $mask,
+            @kinds, $negated);
         Nil
+    }
+
+    # The compile-time values among the eigenstates of a junction operand,
+    # out of a constant Junction or the constant arguments of the call
+    # that builds one.
+    method IMPL-JUNCTION-FOLD-CONSTANTS(Mu $operand, Mu $Junction) {
+        my @constants;
+        if $operand.has-compile-time-value {
+            my $value := nqp::decont($operand.maybe-compile-time-value);
+            for nqp::getattr($value, $Junction, '$!eigenstates') {
+                nqp::push(@constants, $_);
+            }
+        }
+        else {
+            for nqp::istype($operand, RakuAST::ApplyListInfix)
+                ?? $operand.IMPL-UNWRAP-LIST($operand.operands)
+                !! [$operand.left, $operand.right] {
+                nqp::push(@constants, nqp::decont($_.maybe-compile-time-value))
+                    if $_.has-compile-time-value;
+            }
+        }
+        @constants
+    }
+
+    # The type every value an unfolded comparison compares must be for
+    # the chain to stand in for autothreading, or null. Such values reach
+    # a core candidate that compares natively, so skipping one goes unseen.
+    method IMPL-JUNCTION-FOLD-TYPE(RakuAST::Resolver $resolver, @constants, int $numeric) {
+        my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver,
+            $numeric ?? 'Int' !! 'Str');
+        if $numeric && nqp::elems(@constants) {
+            my $Num := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Num');
+            $type := $Num if nqp::istype(@constants[0], $Num);
+        }
+        return nqp::null() if nqp::isnull($type);
+        for @constants {
+            return nqp::null() unless nqp::isconcrete($_)
+                && nqp::istype($_, $type);
+        }
+        $type
+    }
+
+    # The setting types Int, Num, Rat and Str, in the order of the bits
+    # that name them as exact kinds, or fewer when one is not available.
+    method IMPL-JUNCTION-FOLD-KINDS(RakuAST::Resolver $resolver) {
+        my @kinds;
+        for ['Int', 'Num', 'Rat', 'Str'] {
+            my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $_);
+            return @kinds if nqp::isnull($type);
+            nqp::push(@kinds, $type);
+        }
+        @kinds
+    }
+
+    # The bit for a value's exact type, 1 for Int, 2 for Num, 4 for Rat
+    # and 8 for Str, or 0 for a type object or any other type.
+    method IMPL-JUNCTION-FOLD-KIND(@kinds, Mu $value) {
+        return 0 unless nqp::isconcrete($value);
+        my $what := nqp::what($value);
+        my int $i := -1;
+        while ++$i < 4 {
+            return nqp::bitshiftl_i(1, $i) if nqp::eqaddr($what, nqp::atpos(@kinds, $i));
+        }
+        0
+    }
+
+    # The exact kinds, as bits, that the values of an unfolded comparison
+    # may mix while the chain still runs only core code, 7 for a numeric
+    # comparison and 15 for a string one, or 0 when a constant is not one.
+    method IMPL-JUNCTION-FOLD-MASK(@kinds, @constants, int $numeric) {
+        my int $mask := $numeric ?? 7 !! 15;
+        for @constants {
+            return 0 unless self.IMPL-JUNCTION-FOLD-KIND(@kinds, $_) +& $mask;
+        }
+        $mask
+    }
+
+    # How the plain operand of an unfolded comparison gets checked. 1 is a
+    # runtime check, 0 is known to pass the type and the kinds, 2 only the
+    # kinds, 3 only the type, and -1 neither, which rules the chain out.
+    method IMPL-JUNCTION-FOLD-GUARD(@kinds, Mu $operand, Mu $type, int $mask) {
+        my int $typed;
+        my int $kinded;
+        if $operand.has-compile-time-value {
+            my $value := nqp::decont($operand.maybe-compile-time-value);
+            return -1 unless nqp::isconcrete($value);
+            $typed := !nqp::isnull($type) && nqp::istype($value, $type);
+            $kinded := ($mask +& self.IMPL-JUNCTION-FOLD-KIND(@kinds, $value)) != 0;
+        }
+        elsif nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved {
+            my int $spec := nqp::objprimspec($operand.return-type);
+            return 1 unless $spec;
+            my int $index := $spec == 2 ?? 1 !! $spec == 3 ?? 3 !! 0;
+            $typed := !nqp::isnull($type)
+                && nqp::istype(nqp::atpos(@kinds, $index), $type);
+            $kinded := ($mask +& nqp::bitshiftl_i(1, $index)) != 0;
+        }
+        else {
+            return 1;
+        }
+        $typed ?? ($kinded ?? 0 !! 3) !! ($kinded ?? 2 !! -1)
     }
 
     # Whether a comparison operand is a junction the unfolding handles: a
@@ -2693,29 +2842,47 @@ class RakuAST::Node {
         1
     }
 
-    # An unfolded junction comparison: the plain operand, bound to a
-    # local so it evaluates once, compared against each eigenstate in a
-    # short-circuit chain, disjunctive for an any junction, conjunctive
-    # for an all one. Or null when the operand's code is not one of the
-    # junction shapes after all, and the plain comparison stands.
-    method IMPL-JUNCTION-FOLD-QAST(RakuAST::IMPL::QASTContext $context, str $chain-op, str $chain-name, Mu $left-qast, Mu $right-qast, int $side, Mu $Junction) {
+    # An unfolded junction comparison, or null when the junction operand
+    # is not one of the shapes after all. Operands are bound in source
+    # order, and any value outside the checks takes the plain comparison.
+    method IMPL-JUNCTION-FOLD-QAST(RakuAST::IMPL::QASTContext $context, str $chain-op, str $chain-name, Mu $left-qast, Mu $right-qast, int $side, Mu $Junction, int $guard, Mu $type, int $mask, @kinds, int $negated) {
         my $junction-qast := $side == 1 ?? $left-qast !! $right-qast;
         my $other-qast    := $side == 1 ?? $right-qast !! $left-qast;
+        my int $typed := !nqp::isnull($type);
         my @eigen;
+        my @eigen-binds;
+        my @containers;
+        my @values;
+        my @checks;
         my int $conjunctive := 0;
+
+        # A constant eigenstate rules out the type it is not of and the
+        # kinds it is not one of, and the chain needs one of the two left.
+        my $constant := -> $value {
+            if nqp::isconcrete($value) {
+                $typed := 0 unless $typed && nqp::istype($value, $type);
+                $mask := 0 unless $mask
+                    && (self.IMPL-JUNCTION-FOLD-KIND(@kinds, $value) +& $mask);
+                $typed || $mask
+            }
+            else {
+                0
+            }
+        };
         if nqp::istype($junction-qast, QAST::WVal) {
             my $value := $junction-qast.value;
             return nqp::null() unless nqp::isconcrete($value)
                 && nqp::eqaddr($value.WHAT, $Junction);
-            my str $type := nqp::getattr($value, $Junction, '$!type');
-            return nqp::null() unless $type eq 'any' || $type eq 'all';
-            $conjunctive := $type eq 'all';
+            my str $junction-type := nqp::getattr($value, $Junction, '$!type');
+            return nqp::null() unless $junction-type eq 'any' || $junction-type eq 'all';
+            $conjunctive := $junction-type eq 'all';
             my $states := nqp::getattr($value, $Junction, '$!eigenstates');
             my int $n := nqp::elems($states);
             return nqp::null() if $n < 2;
             my int $i := -1;
             while ++$i < $n {
                 my $state := nqp::atpos($states, $i);
+                return nqp::null() unless $constant($state);
                 $context.ensure-sc($state);
                 nqp::push(@eigen, QAST::WVal.new( :value($state) ));
             }
@@ -2730,32 +2897,213 @@ class RakuAST::Node {
             while ++$i < $n {
                 my $child := nqp::atpos($junction-qast.list, $i);
                 return nqp::null() if $child.named || $child.flat;
-                nqp::push(@eigen, $child);
+                # Each eigenstate expression evaluates in source order into
+                # a local, and its value is read once they all have, as
+                # building the junction does. A constant stays inline.
+                my $const := nqp::istype($child, QAST::Want)
+                    ?? $child[0] !! $child;
+                if nqp::istype($const, QAST::WVal) {
+                    return nqp::null() unless $constant($const.value);
+                    nqp::push(@eigen, $child);
+                    nqp::push(@containers, QAST::WVal.new( :value($const.value) ));
+                    nqp::push(@values, QAST::WVal.new( :value($const.value) ));
+                }
+                else {
+                    my str $container := QAST::Node.unique('junction_eigenstate');
+                    my str $value := QAST::Node.unique('junction_eigenvalue');
+                    nqp::push(@eigen-binds, QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($container), :scope<local>, :decl<var> ),
+                        $child));
+                    nqp::push(@eigen, QAST::Var.new( :name($value), :scope<local> ));
+                    nqp::push(@containers, QAST::Var.new( :name($container), :scope<local> ));
+                    nqp::push(@values, QAST::Var.new( :name($value), :scope<local> ));
+                    nqp::push(@checks, [$container, $value]);
+                }
             }
         }
         else {
             return nqp::null();
         }
+
+        # A comparison of an eigenstate, or the junction, against the other
+        # operand's local, with the two in their source order.
+        my $compare := -> $junction-side, str $local {
+            my $operand := QAST::Var.new( :name($local), :scope<local> );
+            $side == 1
+                ?? QAST::Op.new( :op($chain-op), :name($chain-name),
+                    $junction-side, $operand )
+                !! QAST::Op.new( :op($chain-op), :name($chain-name),
+                    $operand, $junction-side )
+        };
+
         my str $tmp := QAST::Node.unique('junction_unfold');
-        my str $joiner := $conjunctive ?? 'if' !! 'unless';
+        my str $chained := $guard ?? QAST::Node.unique('junction_unfold_value') !! $tmp;
+        # A negated comparison negates the collapsed junction, so its chain
+        # joins the other way round.
+        my str $joiner := ($negated ?? !$conjunctive !! $conjunctive) ?? 'if' !! 'unless';
         my $result := nqp::null();
         my int $i := nqp::elems(@eigen);
         while --$i >= 0 {
-            my $other := QAST::Var.new( :name($tmp), :scope<local> );
-            my $cmp := $side == 1
-                ?? QAST::Op.new( :op($chain-op), :name($chain-name),
-                    nqp::atpos(@eigen, $i), $other )
-                !! QAST::Op.new( :op($chain-op), :name($chain-name),
-                    $other, nqp::atpos(@eigen, $i) );
+            my $cmp := $compare(nqp::atpos(@eigen, $i), $chained);
             $result := nqp::isnull($result)
                 ?? $cmp
                 !! QAST::Op.new( :op($joiner), $cmp, $result );
         }
-        QAST::Stmts.new(
-            QAST::Op.new( :op<bind>,
-                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
-                $other-qast),
-            $result)
+
+        my $stmts := QAST::Stmts.new();
+        my $bind-other := QAST::Op.new( :op<bind>,
+            QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+            $other-qast);
+        $stmts.push($bind-other) if $side == 2;
+        for @eigen-binds {
+            $stmts.push($_);
+        }
+
+        # The chain runs when every value it compares is a concrete one of
+        # the type, or failing that when every one is an exact kind of the
+        # mix. Anything else takes the plain comparison against the junction.
+        if $guard || nqp::elems(@checks) {
+            $context.ensure-sc($type) if $typed;
+            my int $first := $typed ?? 1 !! 2;
+            my int $second := $typed && $mask ?? 2 !! 0;
+            my $junction := -> @args {
+                if nqp::istype($junction-qast, QAST::WVal) {
+                    QAST::WVal.new( :value($junction-qast.value) )
+                }
+                else {
+                    my $call := QAST::Op.new( :op($junction-qast.op),
+                        :name($junction-qast.name) );
+                    for @args {
+                        $call.push($_);
+                    }
+                    $call
+                }
+            };
+            my $plain := -> @args { $compare($junction(@args), $tmp) };
+            my $read := -> str $local, int $level {
+                $level == 1
+                    ?? QAST::Op.new( :op<dispatch>,
+                        QAST::SVal.new( :value<raku-concrete-value-of> ),
+                        QAST::Var.new( :name($local), :scope<local> ),
+                        QAST::WVal.new( :value($type) ) )
+                    !! QAST::Op.new( :op<dispatch>,
+                        QAST::SVal.new( :value<raku-core-value-of> ),
+                        QAST::Var.new( :name($local), :scope<local> ),
+                        QAST::IVal.new( :value($mask) ) )
+            };
+            # Whether the value read from a local at a level is missing,
+            # binding what was read. The first level declares the value local.
+            my $missing := -> str $from, str $to, int $level {
+                my $target := QAST::Var.new( :name($to), :scope<local> );
+                $target.decl('var') if $level == $first;
+                QAST::Op.new( :op<isnull>,
+                    QAST::Op.new( :op<bind>, $target, $read($from, $level) ))
+            };
+            my $either := -> $a, $b {
+                nqp::isnull($a) ?? $b
+                    !! nqp::isnull($b) ?? $a
+                    !! QAST::Op.new( :op<unless>, $a, $b )
+            };
+            my $eigen-missing := -> int $level, int $from-values {
+                my $cond := nqp::null();
+                for @checks {
+                    $cond := $either($cond,
+                        $missing($from-values ?? $_[1] !! $_[0], $_[1], $level));
+                }
+                $cond
+            };
+            my $other-missing := -> int $level, int $from-value {
+                $guard
+                    ?? $missing($from-value ?? $chained !! $tmp, $chained, $level)
+                    !! nqp::null()
+            };
+            my $local := -> str $name { QAST::Var.new( :name($name), :scope<local> ) };
+            my $int-local := -> str $name {
+                QAST::Var.new( :name($name), :scope<local>, :decl<var>, :returns(int) )
+            };
+
+            if !$second {
+                my $eigen := $eigen-missing($first, 0);
+                my $other := $other-missing($first, 0);
+                if $side == 1 && !nqp::isnull($eigen) {
+                    # A junction on the left is built before the right operand
+                    # evaluates. When an eigenstate rules out the chain, the
+                    # junction is built there and compared after that operand.
+                    my str $built := QAST::Node.unique('junction_built');
+                    $stmts.push(QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($built), :scope<local>, :decl<var> ),
+                        QAST::Op.new( :op<if>, $eigen,
+                            $junction(@containers),
+                            QAST::Op.new( :op<null> ) )));
+                    $result := QAST::Op.new( :op<if>, $other, $plain(@values), $result)
+                        unless nqp::isnull($other);
+                    $result := QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<isnull>, $local($built) ),
+                        $result,
+                        $compare($local($built), $tmp));
+                }
+                else {
+                    $result := QAST::Op.new( :op<if>, $either($eigen, $other),
+                        $plain(@containers), $result);
+                }
+            }
+            elsif $side == 2 || !nqp::elems(@checks) {
+                # Every operand has evaluated, so a value the type rules out
+                # is read again for the kinds.
+                my $first-missing := $either($eigen-missing(1, 0), $other-missing(1, 0));
+                my $second-missing := $either($eigen-missing(2, 0), $other-missing(2, 0));
+                my $chain-ok := QAST::Op.new( :op<if>, $first-missing,
+                    QAST::Op.new( :op<not_i>, $second-missing ),
+                    QAST::IVal.new( :value(1) ));
+                $result := QAST::Op.new( :op<if>, $chain-ok, $result, $plain(@containers));
+            }
+            else {
+                # A junction on the left is built before the right operand
+                # evaluates, so its eigenstates are checked at both levels
+                # there, and a junction they rule out is built there too.
+                my str $first-missed := QAST::Node.unique('junction_missing');
+                my str $second-missed := QAST::Node.unique('junction_missing');
+                my str $built := QAST::Node.unique('junction_built');
+                $stmts.push(QAST::Op.new( :op<bind>, $int-local($first-missed),
+                    $eigen-missing(1, 0)));
+                $stmts.push(QAST::Op.new( :op<bind>, $int-local($second-missed),
+                    QAST::Op.new( :op<if>, $local($first-missed),
+                        $eigen-missing(2, 0),
+                        QAST::IVal.new( :value(0) ))));
+                $stmts.push(QAST::Op.new( :op<bind>,
+                    QAST::Var.new( :name($built), :scope<local>, :decl<var> ),
+                    QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<bitand_i>, $local($first-missed), $local($second-missed) ),
+                        $junction(@containers),
+                        QAST::Op.new( :op<null> ) )));
+                my $first-missing := $local($first-missed);
+                my $eigen-second := QAST::Op.new( :op<if>, $local($first-missed),
+                    $local($second-missed),
+                    $eigen-missing(2, 1));
+                my $other-second := nqp::null();
+                if $guard {
+                    my str $other-missed := QAST::Node.unique('junction_missing');
+                    $first-missing := QAST::Op.new( :op<bitor_i>, $first-missing,
+                        QAST::Op.new( :op<bind>, $int-local($other-missed),
+                            $other-missing(1, 0) ));
+                    $other-second := QAST::Op.new( :op<if>, $local($other-missed),
+                        $other-missing(2, 0),
+                        $other-missing(2, 1));
+                }
+                my $chain-ok := QAST::Op.new( :op<if>, $first-missing,
+                    QAST::Op.new( :op<not_i>, $either($eigen-second, $other-second) ),
+                    QAST::IVal.new( :value(1) ));
+                $result := QAST::Op.new( :op<if>, $chain-ok, $result,
+                    QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<isnull>, $local($built) ),
+                        $plain(@values),
+                        $compare($local($built), $tmp)));
+            }
+        }
+
+        $stmts.push($bind-other) if $side == 1;
+        $stmts.push($result);
+        $stmts
     }
 
     # A junction of type objects a node reduces to, or null: either a

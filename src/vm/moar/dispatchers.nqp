@@ -4143,6 +4143,140 @@ nqp::register('raku-isinvokable', -> $capture {
     );
 });
 
+#- raku-concrete-value-of ------------------------------------------------------
+# Evaluates to the first argument, taken out of a Scalar or a native
+# reference when it is in one, when that is a concrete instance of the type
+# given as the second, else to null. A Proxy is never fetched.
+
+# The boxed value a native reference holds, or null for another container
+sub native-ref-value($ref) {
+    nqp::iscont_u($ref) ?? nqp::box_u(nqp::decont_u($ref), Int)
+      !! nqp::iscont_i($ref) ?? nqp::box_i(nqp::decont_i($ref), Int)
+      !! nqp::iscont_n($ref) ?? nqp::box_n(nqp::decont_n($ref), Num)
+      !! nqp::iscont_s($ref) ?? nqp::box_s(nqp::decont_s($ref), Str)
+      !! nqp::null()
+}
+
+# A value taken out of a Scalar or a native reference, else as given
+sub concrete-value($value) {
+    nqp::isconcrete_nd($value) && nqp::iscont($value)
+      ?? (nqp::eqaddr(nqp::what_nd($value), Scalar)
+           ?? nqp::getattr($value, Scalar, '$!value')
+           !! native-ref-value($value))
+      !! $value
+}
+
+# Read of a native reference at a site whose guards fix its kind
+my $native-ref-value := -> $ref, $type { native-ref-value($ref) };
+
+# The first argument taken out of a Scalar or a native reference, under
+# guards that fix what was read, as the value, its tracker and whether
+# it came out of a native reference
+sub track-concrete-arg($capture) {
+    my $value  := nqp::captureposarg($capture, 0);
+    my $Tvalue := nqp::track('arg', $capture, 0);
+    guard-type-concreteness($Tvalue);
+    my int $native := 0;
+    if nqp::isconcrete_nd($value) && nqp::iscont($value) {
+        if nqp::eqaddr(nqp::what_nd($value), Scalar) {
+            $value  := nqp::getattr($value, Scalar, '$!value');
+            $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value');
+            guard-type-concreteness($Tvalue);
+        }
+        else {
+            $value  := native-ref-value($value);
+            $native := 1;
+        }
+    }
+    [$value, $Tvalue, $native]
+}
+
+# Delegates to the value track-concrete-arg read when it passed, else to null
+sub delegate-concrete-arg($capture, @read, int $passed) {
+    if !$passed {
+        delegate-constant($capture, nqp::null());
+    }
+    elsif @read[2] {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $native-ref-value
+          )
+        );
+    }
+    else {
+        delegate-value($capture, @read[1]);
+    }
+}
+
+# Late-bound check for a megamorphic site
+my $concrete-value-of := -> $value, $type {
+    $value := concrete-value($value);
+    !nqp::isnull($value) && nqp::isconcrete($value) && nqp::istype($value, $type)
+      ?? $value
+      !! nqp::null()
+};
+
+nqp::register('raku-concrete-value-of', -> $capture {
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-TYPE-CALLSITE-SIZE {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $concrete-value-of
+          )
+        );
+    }
+    else {
+        my $type := nqp::captureposarg($capture, 1);
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
+        my @read  := track-concrete-arg($capture);
+        my $value := @read[0];
+        delegate-concrete-arg($capture, @read,
+          !nqp::isnull($value) && nqp::isconcrete($value) && nqp::istype($value, $type));
+    }
+});
+
+#- raku-core-value-of ----------------------------------------------------------
+# Evaluates to the first argument, taken out of a Scalar or a native
+# reference when it is in one, when its type is exactly one of the kinds
+# the second names as bits, 1 Int, 2 Num, 4 Rat and 8 Str, else to null.
+
+# The bit for a value's exact core type, or 0
+my $Rat := nqp::null();
+sub core-kind-of($value) {
+    my $what := nqp::what($value);
+    nqp::eqaddr($what, Int) ?? 1
+      !! nqp::eqaddr($what, Num) ?? 2
+      !! nqp::eqaddr($what, Str) ?? 8
+      !! nqp::eqaddr($what, nqp::ifnull($Rat, ($Rat := nqp::gethllsym('Raku', 'Rat')))) ?? 4
+      !! 0
+}
+
+# Late-bound check for a megamorphic site
+my $core-value-of := -> $value, int $mask {
+    $value := concrete-value($value);
+    !nqp::isnull($value) && nqp::isconcrete($value) && (core-kind-of($value) +& $mask)
+      ?? $value
+      !! nqp::null()
+};
+
+nqp::register('raku-core-value-of', -> $capture {
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-TYPE-CALLSITE-SIZE {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $core-value-of
+          )
+        );
+    }
+    else {
+        my int $mask := nqp::captureposarg_i($capture, 1);
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
+        my @read  := track-concrete-arg($capture);
+        my $value := @read[0];
+        delegate-concrete-arg($capture, @read,
+          !nqp::isnull($value) && nqp::isconcrete($value)
+            && (core-kind-of($value) +& $mask));
+    }
+});
+
 #- raku-boolify -------------------------------------------------------------
 # Dispatcher for boolification of a value.
 

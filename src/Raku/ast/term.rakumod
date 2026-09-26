@@ -278,7 +278,7 @@ class RakuAST::Term::TopicCall
           $context,
           self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.IMPL-LOOKUP-QAST($context)
         );
-        nqp::istype($!call, RakuAST::Call::Methodish)
+        nqp::istype($!call, RakuAST::Call::Methodish) && $!call.IMPL-HLLIZE-RESULT
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
             !! $postfix-ast
     }

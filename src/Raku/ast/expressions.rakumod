@@ -4401,7 +4401,7 @@ class RakuAST::ApplyPostfix
         my $postfix-ast := $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
         # Method calls may be to a foreign language, and thus return
         # values may need type mapping into Raku land.
-        nqp::istype($!postfix, RakuAST::Call::Methodish)
+        nqp::istype($!postfix, RakuAST::Call::Methodish) && $!postfix.IMPL-HLLIZE-RESULT
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
             !! $postfix-ast
     }

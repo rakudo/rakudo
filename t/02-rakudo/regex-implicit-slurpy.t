@@ -1,5 +1,7 @@
+use lib <t/packages/Test-Helpers>;
 use nqp;
 use Test;
+use Test::Helpers;
 
 plan 26;
 
@@ -128,12 +130,15 @@ grammar Unnaming {
 }
 
 ok Unnaming.parse('ab'), 'a regex whose body names no slurpy hash parses';
-if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
-    is $unnamed.^name, 'Mu',
-      'and its frame holds no hash for the named argument to have landed in';
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') ne 'rakuast' {
+    skip 'the legacy frontend sets up every regex slurpy hash', 1;
+}
+elsif !optimizer-enabled() {
+    skip 'dropping the unnamed slurpy hash is an optimize phase rewrite', 1;
 }
 else {
-    skip 'the legacy frontend sets up every regex slurpy hash', 1;
+    is $unnamed.^name, 'Mu',
+      'and its frame holds no hash for the named argument to have landed in';
 }
 
 is-deeply $named, {:passed}.Hash,

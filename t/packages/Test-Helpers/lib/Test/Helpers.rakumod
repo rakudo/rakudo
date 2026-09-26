@@ -1,5 +1,6 @@
 unit module Test::Helpers;
 use Test;
+use nqp;
 
 sub group-of (
     Pair (
@@ -301,3 +302,10 @@ C<rmdir>s it with C<END> phaser. It's your responsibility to ensure the
 directory is empty at that time.
 
 =end pod
+
+# Whether this process runs the optimize phase. A test that observes a
+# rewrite made by that phase skips when the phase is off.
+sub optimizer-enabled(--> Bool:D) is export {
+    my $level := nqp::atkey(nqp::getcomp('Raku').cli-options, 'optimize');
+    so nqp::isnull($level) || !($level eq 'off' || $level eq '0')
+}

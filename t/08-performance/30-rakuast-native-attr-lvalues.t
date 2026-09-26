@@ -1,8 +1,10 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
+use Test::Helpers;
 use Test;
 use QAST:from<NQP>;
 use nqp;
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
 plan 64;
 
 # An increment, decrement, or compound assignment on a native int or

@@ -400,9 +400,18 @@ my class Binder {
                       !! nqp::not_i(nqp::iscont_s($oval))
                         ?? "str"
                         !! 0 -> $expected {
-                    nqp::bindpos($error, 0,
-                      "Expected a modifiable native $expected argument for '$varname'"
-                    ) if nqp::defined($error);
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::Parameter::RW',
+                          "Expected a modifiable native $expected argument for '$varname'",
+                          :got($got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
+                                 ?? nqp::box_n($nval, Num)
+                                 !! $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                                   ?? nqp::box_s($sval, Str)
+                                   !! nqp::box_i($ival, Int)),
+                          :symbol($varname)
+                        )
+                    }) if nqp::defined($error);
 
                     return nqp::const::BIND_RESULT_FAIL;
                 }

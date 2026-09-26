@@ -6,7 +6,7 @@ use Test;
 # an is copy trait keeps the parameter rw, since the block starter sets
 # the rw flag on every parameter.
 
-plan 27;
+plan 31;
 
 {
     my int @a = 1, 2, 3;
@@ -170,11 +170,28 @@ plan 27;
     multi sub f-later(int $x is rw) { $x = 9 }
 }
 
-# The frontends throw different exception types here, so the message
-# carries the assertion.
+# A native value without a container is rejected the same way a boxed
+# one is, whichever shape the call passed it in.
 throws-like { for 1..3 <-> int $i { } },
-  Exception,
-  message => /'modifiable native int'/,
+  X::Parameter::RW,
+  message => /'writable container'/,
+  got => 1,
   'a for loop over a range of values rejects a <-> int parameter';
+{
+    sub takes-int(int $x is rw) { }
+    sub takes-num(num $x is rw) { }
+    sub takes-str(str $x is rw) { }
+    my int $i = 1;
+    my num $n = 1e0;
+    my str $s = "a";
+    throws-like { takes-int($i + 1) }, X::Parameter::RW, got => 2,
+      'a native int expression is rejected by an rw int parameter';
+    throws-like { takes-num($n + 1e0) }, X::Parameter::RW, got => 2e0,
+      'a native num expression is rejected by an rw num parameter';
+    throws-like { takes-str($s ~ "b") }, X::Parameter::RW, got => "ab",
+      'a native str expression is rejected by an rw str parameter';
+    throws-like { takes-int(42) }, X::Parameter::RW, got => 42,
+      'a boxed value without a container is rejected by an rw int parameter';
+}
 
 # vim: expandtab shiftwidth=4

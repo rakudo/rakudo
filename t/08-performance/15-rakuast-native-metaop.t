@@ -179,8 +179,8 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         'a narrow native target with an integer literal inlines the operator into the assignment';
     qast-is 'my &infix:<+> = -> $a, $b { 999 }; my int $i; $i += 5', -> \v { not qast-contains-op(v, 'add_i') and qast-contains-op(v, 'assign_i') },
         'an operator variable declared before the use keeps the call';
-    qast-is 'my int $i = 1; $i += ($i = 7)', -> \v { not qast-contains-op(v, 'add_i') and qast-contains-call(v, '&infix:<+>') },
-        'an operand without a static type keeps the operator call';
+    qast-is 'my int $i = 1; $i += ($i = 7)', -> \v { qast-contains-op(v, 'add_i') and not qast-contains-call(v, '&infix:<+>') },
+        'an assignment to the target as the operand inlines the operator the operand types choose';
     qast-is 'my int $i; my $x; $i += $x', -> \v { qast-contains-op(v, 'assign_i') and not qast-contains-call(v, '&METAOP_ASSIGN') },
         'a boxed operand assigns the operator result to the native target';
     qast-is 'my uint $u; $u += 5', -> \v { qast-contains-op(v, 'assign_u') and not qast-contains-call(v, '&METAOP_ASSIGN') },

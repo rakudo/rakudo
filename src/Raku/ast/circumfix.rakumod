@@ -85,16 +85,31 @@ class RakuAST::Circumfix::Parentheses
     # build parentheses around a bare expression rather than a semilist, so
     # the payload shape is checked rather than assumed.
     method return-type() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.return-type !! Mu
+    }
+
+    method IMPL-STATIC-ARG-TYPE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-TYPE !! Mu
+    }
+
+    method IMPL-STATIC-ARG-IS-VALUE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-IS-VALUE !! True
+    }
+
+    method IMPL-FORWARDED-EXPRESSION() {
         if nqp::istype($!semilist, RakuAST::SemiList)
           && $!semilist.IMPL-IS-SINGLE-EXPRESSION {
             my $statement := self.IMPL-UNWRAP-LIST($!semilist.statements)[0];
             nqp::isconcrete($statement.condition-modifier)
               || nqp::isconcrete($statement.loop-modifier)
-                ?? Mu
-                !! $statement.expression.return-type
+                ?? Nil
+                !! $statement.expression
         }
         else {
-            Mu
+            Nil
         }
     }
 

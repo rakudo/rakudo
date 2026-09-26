@@ -2879,6 +2879,21 @@ class RakuAST::ApplyInfix
         !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
     }
 
+    # An assignment to a native variable yields the value it stored, so as
+    # an argument it carries the variable's native type.
+    method IMPL-STATIC-ARG-TYPE() {
+        my $type := self.return-type;
+        return $type unless $type =:= Mu;
+        if nqp::istype($!infix, RakuAST::Infix) && $!infix.operator eq '='
+            && self.IMPL-NATIVE-LEXICAL-PRIMSPEC(self.left) {
+            my $declaration := self.left.resolution;
+            $declaration := $declaration.declaration
+                if nqp::istype($declaration, RakuAST::ParameterTarget::Var);
+            return $declaration.return-type;
+        }
+        Mu
+    }
+
     method IMPL-IS-XX() {
         (my $operator := self.operator)
         && nqp::istype($operator, RakuAST::Infix)

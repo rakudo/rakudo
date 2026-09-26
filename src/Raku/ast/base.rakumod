@@ -2115,6 +2115,11 @@ class RakuAST::Node {
         $type
     }
 
+    # Whether this node in argument position yields a value rather than
+    # a variable a callee could write through. Only a variable read,
+    # possibly parenthesized, offers its variable.
+    method IMPL-STATIC-ARG-IS-VALUE() { !nqp::istype(self, RakuAST::Var) }
+
     # The native kind this node's constant value compiles a native
     # alternative for, or Nil. A node that answers a kind emits a QAST::Want
     # whose native alternative IMPL-TO-QAST-ARG can select.
@@ -2200,8 +2205,10 @@ class RakuAST::Node {
             # A literal with a native form is a value, never a container.
             # This mirrors what the legacy frontend knows of a literal
             # through its allomorphic Want, so the frontends rule out an
-            # `is rw` candidate for the same arguments.
+            # `is rw` candidate for the same arguments. A native result
+            # of an operator or an assignment is a value the same way.
             nqp::push(@flags, nqp::defined($_.IMPL-NATIVE-LITERAL-KIND)
+                    || $ps && $_.IMPL-STATIC-ARG-IS-VALUE
                 ?? $ps +| $ARG_IS_LITERAL
                 !! $ps);
         }

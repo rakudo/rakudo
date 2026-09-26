@@ -3683,6 +3683,9 @@ class RakuAST::Sub
                 # A coercion type erases to its target under the smartmatch,
                 # so distinct coercions would compare as equivalent.
                 return False if $type.HOW.archetypes.coercive;
+                # A metamodel role has no method lookup at all, so neither
+                # the ACCEPTS probe nor the smartmatch can run on it.
+                return False unless nqp::can($type.HOW, 'find_method');
                 my $accepts := nqp::tryfindmethod($type, 'ACCEPTS');
                 return False
                   if nqp::defined($accepts)

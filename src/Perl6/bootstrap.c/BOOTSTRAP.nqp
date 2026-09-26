@@ -3837,12 +3837,16 @@ BEGIN {
                         # Wider; skip over here so we don't go counting this
                         # as tied in the next branch.
                     }
-                    elsif nqp::istype($type_obj_a, $type_obj_b) {
+                    # Mu accepts any value, so every other type is narrower
+                    # than it, even a type without Mu in its MRO.
+                    elsif nqp::eqaddr($type_obj_b, Mu)
+                      || nqp::istype($type_obj_a, $type_obj_b) {
                         # Narrower - note it and we're done.
                         ++$narrower;
                     }
 
-                    elsif nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
+                    elsif nqp::not_i(nqp::eqaddr($type_obj_a, Mu))
+                      && nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
                         # Make sure it's tied, rather than the other way around.
                         ++$tied;
                     }

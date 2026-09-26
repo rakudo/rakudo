@@ -193,7 +193,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             while $i < $m {
                 my $role := nqp::atpos(@roles, $i);
                 my $HOW  := $role.HOW;
-                if $HOW.archetypes.composablish {
+                if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
                     nqp::push(@role_typecheck_list, $role);
                     nqp::splice(
                       @role_typecheck_list,

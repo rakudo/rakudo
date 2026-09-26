@@ -2893,6 +2893,11 @@ class Perl6::Optimizer {
             my $value := $op[1];
             return $value if $op[0].value.rw;
 
+            # A native return coerces the value as well as deconting it, so
+            # the op stays when the return type is native, where it costs
+            # nothing for a value already native.
+            return $op if nqp::objprimspec(nqp::ifnull($op[0].value.signature.returns, NQPMu));
+
             # Boolifications don't need it, nor do _I/_i/_n/_s/_u ops, with
             # the exception of native assignment, which can decont_[insu]
             # as appropriate, which may avoid a boxing. Same for QAST::WVal

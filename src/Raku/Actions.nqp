@@ -3563,12 +3563,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     # already implicit.
                     my $shadows-implicit := $*COMPILING_CORE_SETTING
                       && nqp::istype($prev, Nodify('VarDeclaration::Implicit::Special'));
-                    unless $shadows-implicit {
+                    # An implicit the scope gives up to a declaration of its
+                    # name is no prior declaration of it.
+                    my $gives-way := nqp::istype($prev, Nodify('VarDeclaration::Implicit'))
+                      && !$prev.report-redeclaration;
+                    unless $shadows-implicit || $gives-way {
                         $*R.find-scope-property(-> $scope { $scope.fatal })
                           ?? $/.typed-sorry('X::Redeclaration', :symbol($name))
                           !! $/.typed-worry('X::Redeclaration', :symbol($name));
                     }
-                    $decl.set-already-declared;
+                    $decl.set-already-declared unless $gives-way;
                 }
             }
 
@@ -4639,10 +4643,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               if $decl.declaration;
             self.SET-NODE-ORIGIN($<declname>, $decl.attribute)
               if $decl.attribute;
-            $/.typed-panic('X::Redeclaration', :symbol($name))
-              if $decl.can-be-resolved
-              && $*DECLARE-TARGETS
-              && $*R.declare-lexical($decl);
+            if $decl.can-be-resolved && $*DECLARE-TARGETS {
+                my $prev := $*R.declare-lexical($decl);
+                # An implicit the scope gives up to a declaration of its
+                # name is no prior declaration of it.
+                $/.typed-panic('X::Redeclaration', :symbol($name))
+                  if $prev
+                  && !(nqp::istype($prev, Nodify('VarDeclaration::Implicit'))
+                       && !$prev.report-redeclaration);
+            }
             %args<target> := $decl;
         }
         elsif $<signature> {

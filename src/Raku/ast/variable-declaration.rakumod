@@ -3229,8 +3229,14 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
         $obj
     }
 
+    # A topic bound from the enclosing scope is given up to a declaration
+    # of the name. Only a topic the block takes as a parameter is kept.
     method IMPL-NOT-IF-DUPLICATE() {
-        $!loop
+        !$!parameter
+    }
+
+    method report-redeclaration() {
+        $!parameter ?? True !! False
     }
 
     method set-parameter(Bool $parameter) {

@@ -8,6 +8,8 @@ class RakuAST::Doc::Declarator
     has List                           $.trailing;
     has int                            $!pod-index;
     has List                           $!paragraphs;
+    has Mu                             $!pod;
+    has Mu                             $!documented;
 
     method new(:$WHEREFORE, :$leading, :$trailing) {
         my $obj := nqp::create(self);
@@ -54,14 +56,44 @@ class RakuAST::Doc::Declarator
     method add-trailing($doc) { nqp::push($!trailing, $doc) }
     method trailing() { self.IMPL-WRAP-LIST($!trailing) }
 
+    method IMPL-DOCUMENTABLE(Mu $meta) {
+        !nqp::eqaddr($meta, Mu) && $meta.HOW.name($meta) ne 'Any'
+    }
+
+    # Sets the documentation as the .WHY of the given meta-object. Doing
+    # so again for the same meta-object refills the Pod::Block::Declarator
+    # made the first time, so code holding it sees documentation added since.
+    method IMPL-DOCUMENT(Mu $meta) {
+        my $pod := nqp::eqaddr($meta, $!documented)
+          ?? self.podify($meta, $!pod)
+          !! self.podify($meta);
+        nqp::bindattr(self, RakuAST::Doc::Declarator, '$!pod', $pod);
+        nqp::bindattr(self, RakuAST::Doc::Declarator, '$!documented', $meta);
+        $pod
+    }
+
+    # Takes the documentation back off the meta-object it was set on, as
+    # when a subset takes the doc of its where routine.
+    method IMPL-UNDOCUMENT() {
+        if nqp::isconcrete($!pod) {
+            my $meta := $!documented;
+            nqp::isconcrete($meta)
+              ?? nqp::bindattr($meta, Block, '$!why', nqp::null)
+              !! $meta.HOW.set_why(NQPMu);
+            nqp::bindattr(self, RakuAST::Doc::Declarator, '$!pod', Mu);
+            nqp::bindattr(self, RakuAST::Doc::Declarator, '$!documented', Mu);
+        }
+        Nil
+    }
+
     method PERFORM-CHECK(RakuAST::Resolver $resolver,
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
             if $!WHEREFORE.podifiable {
                 my $meta := $!WHEREFORE.IMPL-DOC-META-OBJECT($resolver, $context);
-                if !nqp::eqaddr($meta, Mu) && $meta.HOW.name($meta) ne 'Any' {
+                if self.IMPL-DOCUMENTABLE($meta) {
                     $resolver.find-attach-target('compunit').set-pod-content(
-                      $!pod-index, self.podify($meta)
+                      $!pod-index, self.IMPL-DOCUMENT($meta)
                     );
                 }
             }
@@ -77,6 +109,7 @@ class RakuAST::Doc::Declarator
 # Role for objects that can have a Doc::Declarator attached
 role RakuAST::Doc::DeclaratorTarget {
     has RakuAST::Doc::Declarator $.WHY;
+    has int $!documented-at-begin;
 
     # Whether the documentation on this target is surfaced through the
     # legacy pod system: turned into a Pod::Block::Declarator in $=pod
@@ -91,6 +124,26 @@ role RakuAST::Doc::DeclaratorTarget {
     method IMPL-DOC-META-OBJECT(RakuAST::Resolver $resolver,
                        RakuAST::IMPL::QASTContext $context) {
         self.meta-object
+    }
+
+    # Sets the documentation as the .WHY of the meta-object that traits
+    # are applied to. Called at BEGIN time before the traits, so that they
+    # and later BEGIN time code see it.
+    method IMPL-DOCUMENT-AT-BEGIN() {
+        nqp::bindattr_i(self, RakuAST::Doc::DeclaratorTarget,
+          '$!documented-at-begin', 1);
+        self.IMPL-UPDATE-WHY;
+    }
+
+    # Brings the .WHY set at BEGIN time up to date with documentation the
+    # parser attached after it. Code adding docs after BEGIN must call this.
+    method IMPL-UPDATE-WHY() {
+        my $WHY := self.WHY;
+        if $!documented-at-begin && $WHY && self.podifiable {
+            my $meta := self.compile-time-value;
+            $WHY.IMPL-DOCUMENT($meta) if $WHY.IMPL-DOCUMENTABLE($meta);
+        }
+        Nil
     }
 
     # A special method to create a a Declarator and connect it to the
@@ -114,6 +167,7 @@ role RakuAST::Doc::DeclaratorTarget {
         my $WHY := nqp::getattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY');
         nqp::bindattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY',
           RakuAST::Doc::Declarator);
+        $WHY.IMPL-UNDOCUMENT if $WHY;
         $WHY
     }
 

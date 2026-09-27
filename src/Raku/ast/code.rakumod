@@ -2993,6 +2993,8 @@ class RakuAST::Routine
 
         self.meta-object.set_yada if self.is-stub;
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
+
         # Apply any traits, with the routine's own scope visible: a trait
         # argument can declare into it, as in `is memoized(my %h)`.
         $resolver.push-scope(self);
@@ -4069,6 +4071,8 @@ class RakuAST::Methodish
         nqp::setcodename($stub, $name) if $name;
 
         self.meta-object.set_yada if self.is-stub;
+
+        self.IMPL-DOCUMENT-AT-BEGIN;
 
         # Apply any traits.
         self.apply-traits($resolver, $context, self);

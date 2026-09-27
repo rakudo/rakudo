@@ -4950,6 +4950,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $actions := self;
         sub accept($/) {
             $*DECLARAND.add-trailing(~$/);
+            $*DECLARAND.IMPL-UPDATE-WHY;
             $actions.WIDEN-DOC-ORIGIN($*DECLARAND, $/);
             ++$*FROM-SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);

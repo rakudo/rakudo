@@ -2263,7 +2263,7 @@ my class SmartmatchOptimizer {
         $result := $op unless nqp::defined($result);
         $result.annotate('smartmatch_optimized', 1);
 
-        $!optimizer.visit_op($result);
+        $!optimizer.visit_op($result) if nqp::istype($result, QAST::Op);
 
         note("FINAL topicalized:\n", $result.dump(4)) if $!debug;
 

@@ -28,7 +28,6 @@ my class Symbols {
 
     # Some interesting symbols.
     has $!Mu;
-    has $!Mu'U;
     has $!Junction;
     has $!Any;
     has $!Block;
@@ -67,7 +66,6 @@ my class Symbols {
         }
         nqp::push(@!block_stack, $!UNIT);
         $!Mu          := self.find_in_setting('Mu');
-        $!Mu'U        := nqp::gethllsym('Raku', 'Mu:U');
         $!Junction    := self.find_in_setting('Junction');
         $!Any         := self.find_in_setting('Any');
         $!Block       := self.find_in_setting('Block');
@@ -121,7 +119,6 @@ my class Symbols {
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
-    method Mu'U()        { $!Mu'U }
     method Junction()    { $!Junction }
     method Any()         { $!Any }
     method Block()       { $!Block }
@@ -1586,8 +1583,6 @@ my class SmartmatchOptimizer {
         self.respect_junctions( $optimized_ast, $fallback_ast, $lhs )
     }
 
-    my $Mu'U := nqp::null;
-
     method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
         my $sm_type;
         # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
@@ -1607,13 +1602,6 @@ my class SmartmatchOptimizer {
         return nqp::null()
             if !nqp::can($sm_type_how, 'archetypes')
                 || $sm_type_how.archetypes($sm_type).generic;
-
-        # This edge case muddies up the visual waters quite a bit in hopes of keeping the optimizer speedy
-        return QAST::Op.new( :op<callmethod>, :name<Bool>,
-                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast )
-        )   if $lhs.value-kind == $OPERAND_VALUE_VAR
-            && nqp::eqaddr($sm_type, nqp::ifnull($Mu'U, $Mu'U := $!symbols.Mu'U))
-            && ! ($sm_type_how.archetypes($sm_type).definite && $sm_type_how.definite($sm_type));
 
         my $sm_is_subset :=
             $sm_type_how.archetypes($sm_type).nominalizable
@@ -1641,7 +1629,10 @@ my class SmartmatchOptimizer {
             # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
             # means nothing because their eventual value could still match at runtime. Yet true means that any of their
             # value will always match. Also, if routine returns a constant then we can always use it too.
-            if $matches
+            # But a true match against a definite or coercion type means nothing, as the check then sees an undefined
+            # type object rather than a value.
+            my $sm_archetypes := $sm_type_how.archetypes($sm_type);
+            if ($matches && !$sm_archetypes.definite && !$sm_archetypes.coercive)
                 || $lhs.value-kind == $OPERAND_VALUE_CONST
                 || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value))
             {

@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 use nqp;
 
-plan 166;
+plan 171;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -1127,6 +1127,23 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         '`[=]` rejects a literal of the wrong numeric type for its left side';
     throws-like { Q| 1 R[&&] 2 :foo |.AST.EVAL }, X::Syntax::Adverb,
         'a reversed bracketed `&&` rejects an adverb';
+}
+
+# src/Raku/Grammar.nqp
+# A bracketed list infix chains with itself and after its bare spelling.
+# The legacy frontend compares the earlier infix without its brackets
+# against the later one with them and rejects the chain.
+{
+    is-deeply (try Q| 1 [,] 2 [,] 3 |.AST.EVAL), (1, 2, 3),
+        'a bracketed list infix chains with itself';
+    is-deeply (try Q| 1, 2 [,] 3 |.AST.EVAL), (1, 2, 3),
+        'a bracketed list infix chains after its bare spelling';
+    is (try Q| 1 [andthen] $_ + 1 [andthen] $_ * 10 |.AST.EVAL), 20,
+        'a bracketed `andthen` chains with itself and topicalizes each link';
+    is-deeply (try Q| my @a = 1, 2, 3; my @b; @a [==>] map(* * 2) [==>] @b; @b |.AST.EVAL), [2, 4, 6],
+        'a bracketed feed chains with itself';
+    ok (try Q/ so 3 == 1 [|] 2 [|] 3 /.AST.EVAL),
+        'a bracketed junctive infix chains with itself';
 }
 
 # vim: expandtab shiftwidth=4

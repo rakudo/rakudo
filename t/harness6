@@ -38,6 +38,11 @@ sub MAIN(
     Str  :$perl5path = 'perl',
     *@files,
 ) {
+    my $rakuast = %*ENV<RAKUDO_RAKUAST>:!exists || ?%*ENV<RAKUDO_RAKUAST>;
+
+    # Silence the legacy frontend deprecation notice.
+    %*ENV<RAKUDO_NO_DEPRECATIONS> //= 1 unless $rakuast;
+
     my @slow;
     with $tests-from-file {
         $tests-from-file .= &convert-to-versioned-file;
@@ -57,7 +62,7 @@ sub MAIN(
                     :long(!$quick), :$stress, :slow,
                     :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
                     :conc(?($vm eq any("jvm","moar"))),
-                    :rakuast(%*ENV<RAKUDO_RAKUAST>:!exists || ?%*ENV<RAKUDO_RAKUAST>);
+                    :$rakuast;
         my $recode-path = $*SPEC !~~ IO::Spec::Unix;
         for $tests-from-file.IO.lines {
             next if / ^ \s* '#' / or not m/ \S /;

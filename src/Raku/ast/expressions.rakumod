@@ -2816,6 +2816,7 @@ role RakuAST::WhateverApplicable
         self.set-operands(@operands);
 
         my $self-is-xx := self.IMPL-IS-XX;
+        my int $primes-whatevercode := nqp::bitand_i(self.operator.IMPL-PRIMES, 2);
 
         # Re-number WhateverCode arguments
         my $args := 0;
@@ -2832,7 +2833,11 @@ role RakuAST::WhateverApplicable
                 || nqp::istype($n, RakuAST::Postcircumfix::ArrayIndex)
                 || nqp::istype($n, RakuAST::Call)
                 || nqp::istype($n, RakuAST::VarDeclaration::Simple)
-                || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i(self.operator.IMPL-PRIMES, 2))
+                # An applicable node bounds the search when this operator primes
+                # no WhateverCode, or when it primed on its own and so keeps its
+                # own parameters.
+                || (nqp::istype($n, RakuAST::WhateverApplicable)
+                      && (!$primes-whatevercode || $n.IMPL-PRIMED))
                 || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-PRIME-DIRECTLY))
         };
         self.visit-dfs($visitor, :strict);

@@ -2220,7 +2220,7 @@ my class SmartmatchOptimizer {
             # We don't try literals optimization because they never make it into topicalized form of SM.
             my $sm_op;
             if nqp::defined($sm_op := self.maybe_typematch($lhs, $rhs, :$negated)) {
-                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op);
+                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op, :$negated);
             }
 
             note("Post-typematch attempt result is ", $result.HOW.name($result)) if $!debug;

@@ -3121,7 +3121,10 @@ class RakuAST::Node {
         my int $all := 0;
         my $junction;
         if $node.has-compile-time-value {
-            $junction := nqp::decont($node.maybe-compile-time-value);
+            # The checks replace evaluating the node.
+            $junction := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($node);
+            return nqp::null() if nqp::isnull($junction);
+            $junction := nqp::decont($junction);
             return nqp::null() unless nqp::isconcrete($junction)
                 && nqp::eqaddr($junction.WHAT, $Junction);
             my str $jtype := nqp::getattr($junction, $Junction, '$!type');
@@ -3226,8 +3229,9 @@ class RakuAST::Node {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $pair := $matcher.maybe-compile-time-value;
+        # The reduction replaces evaluating the matcher.
+        my $pair := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($pair);
         my $Pair := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Pair');
         my $Assoc := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Associative');
         return nqp::null() if nqp::isnull($Pair) || nqp::isnull($Assoc);
@@ -3563,14 +3567,14 @@ class RakuAST::Node {
     # The compile-time type object a matcher node reduces to a type check
     # against, or null when it is anything else: the matcher must carry a
     # compile-time type-object value, non-generic, whose ACCEPTS no user
-    # candidate can intercept.
+    # candidate can intercept. The check replaces evaluating the matcher,
+    # so the value comes from IMPL-TRUSTED-COMPILE-TIME-VALUE.
     method IMPL-TYPEMATCH-MATCHER-TYPE(Mu $matcher) {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $type := $matcher.maybe-compile-time-value;
-        return nqp::null() if nqp::isconcrete($type);
+        my $type := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($type) || nqp::isconcrete($type);
         my $how := $type.HOW;
         return nqp::null() unless nqp::can($how, 'archetypes');
         return nqp::null() if $how.archetypes($type).generic;
@@ -3734,7 +3738,7 @@ class RakuAST::Node {
             && self.IMPL-FOLDABLE-OPERAND($left)
             && nqp::can($left-value.HOW, 'archetypes')
             && !$left-value.HOW.archetypes($left-value).generic
-            && self.IMPL-DROPPABLE($left) && self.IMPL-DROPPABLE($right) {
+            && self.IMPL-DROPPABLE($left) {
             my int $matches := nqp::istype($left-value, $type);
             $matches := nqp::not_i($matches) if $negated;
             return self.IMPL-SMARTMATCH-FOLD-RESULT($expr,
@@ -4145,6 +4149,15 @@ class RakuAST::Node {
             $none := 0 if $none && !self.IMPL-NO-FORMED-CODE($child);
         });
         $none
+    }
+
+    # The compile-time value a node claims, or null when an optimization
+    # may not use it in place of evaluating the node, since removing the
+    # node would lose a declaration or code it formed.
+    method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
+        return nqp::null() unless $node.has-compile-time-value;
+        my $value := $node.maybe-compile-time-value;
+        self.IMPL-DROPPABLE($node) ?? $value !! nqp::null()
     }
 
     # Constant folding. Given a child expression, if it is a pure operator

@@ -3238,6 +3238,16 @@ class RakuAST::Node {
         return nqp::null() unless nqp::isconcrete($pair)
             && nqp::istype($pair, $Pair)
             && nqp::eqaddr($pair.WHAT, $Pair);
+        # A thunk claims its code object rather than its result, and a
+        # mutable key or value can change before the match runs. A core
+        # type object and a block written as the value have a fixed truth.
+        my $value := nqp::getattr($pair, $Pair, '$!value');
+        return nqp::null()
+            unless self.IMPL-IMMUTABLE-VALUE($resolver, nqp::getattr($pair, $Pair, '$!key'))
+            && (self.IMPL-IMMUTABLE-VALUE($resolver, $value)
+                || !nqp::iscont($value) && !nqp::isconcrete($value)
+                    && self.IMPL-CORE-VALUE-TYPE($resolver, $value.WHAT)
+                || self.IMPL-BLOCK-VALUED-COLONPAIR($matcher));
         my $accepts := nqp::tryfindmethod($Pair, 'ACCEPTS');
         return nqp::null() unless nqp::isconcrete($accepts)
             && nqp::can($accepts, 'IS-SETTING-ONLY')
@@ -4158,6 +4168,66 @@ class RakuAST::Node {
         return nqp::null() unless $node.has-compile-time-value;
         my $value := $node.maybe-compile-time-value;
         self.IMPL-DROPPABLE($node) ?? $value !! nqp::null()
+    }
+
+    # Whether a value is of a core value type, a core enum value, or a
+    # reified List of such values, whose content never changes and whose
+    # truth and string form no user code decides.
+    method IMPL-IMMUTABLE-VALUE(RakuAST::Resolver $resolver, Mu $value is raw) {
+        return 0 if nqp::iscont($value) || !nqp::isconcrete($value);
+        my $what := $value.WHAT;
+        return 1 if self.IMPL-CORE-VALUE-TYPE($resolver, $what);
+        my $how := $what.HOW;
+        if nqp::istype($how, Perl6::Metamodel::EnumHOW) {
+            my $core := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $how.name($what));
+            return !nqp::isnull($core) && nqp::eqaddr($core, $what) ?? 1 !! 0;
+        }
+        my $List := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'List');
+        return 0 if nqp::isnull($List) || !nqp::eqaddr($what, $List)
+            || nqp::isconcrete(nqp::getattr($value, $List, '$!todo'));
+        my $reified := nqp::getattr($value, $List, '$!reified');
+        if nqp::isconcrete($reified) {
+            my int $i := -1;
+            my int $n := nqp::elems($reified);
+            while ++$i < $n {
+                return 0 unless self.IMPL-IMMUTABLE-VALUE($resolver,
+                    nqp::atpos($reified, $i));
+            }
+        }
+        1
+    }
+
+    # Whether a type is exactly one of the core value types.
+    method IMPL-CORE-VALUE-TYPE(RakuAST::Resolver $resolver, Mu $what) {
+        for <Bool Int Str Num Rat Complex IntStr NumStr RatStr ComplexStr> {
+            my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $_);
+            return 1 if !nqp::isnull($type) && nqp::eqaddr($what, $type);
+        }
+        0
+    }
+
+    # Whether a matcher is a colonpair written with a block as its value.
+    # The value evaluates to a code object, which is always true.
+    method IMPL-BLOCK-VALUED-COLONPAIR(Mu $matcher) {
+        my $pair := self.IMPL-UNWRAP-PARENS($matcher);
+        nqp::istype($pair, RakuAST::ColonPair::Value)
+            && nqp::istype(self.IMPL-UNWRAP-PARENS($pair.value), RakuAST::Block)
+            ?? 1 !! 0
+    }
+
+    # The expression inside any grouping parentheses around a single
+    # statement without a modifier, or the node itself.
+    method IMPL-UNWRAP-PARENS(Mu $node) {
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $node.semilist;
+            return $node unless nqp::istype($semilist, RakuAST::SemiList)
+                && $semilist.IMPL-IS-SINGLE-EXPRESSION;
+            my $statement := self.IMPL-UNWRAP-LIST($semilist.statements)[0];
+            return $node if nqp::isconcrete($statement.condition-modifier)
+                || nqp::isconcrete($statement.loop-modifier);
+            $node := $statement.expression;
+        }
+        $node
     }
 
     # Constant folding. Given a child expression, if it is a pure operator

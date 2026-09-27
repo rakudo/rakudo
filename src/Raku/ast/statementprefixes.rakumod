@@ -504,6 +504,12 @@ class RakuAST::StatementPrefix::Start
 {
     method type() { "start" }
 
+    # Nothing can observe the result of a discarded Promise. So a sunk start
+    # sinks its code, which runs a loop eagerly and throws a Failure.
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink($is-sunk);
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),

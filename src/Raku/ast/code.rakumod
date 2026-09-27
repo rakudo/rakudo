@@ -2444,15 +2444,97 @@ class RakuAST::Block
         $block
     }
 
-    method IMPL-CHECK-DOUBLE-CLOSURE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    # A block of one expression is a double closure when a WhateverCode is or
+    # decides its value. When the block's value is only tested, a WhateverCode
+    # it can return makes it one too.
+    method IMPL-CHECK-DOUBLE-CLOSURE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+                           Bool :$tested
+    ) {
         my $stmts := self.body.statement-list;
-        if $stmts.IMPL-IS-SINGLE-EXPRESSION
-            && $stmts.code-statements[0].expression.IMPL-PRIMED
-        {
-            return $resolver.build-exception: 'X::Syntax::Malformed',
-                :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *');
+        return Nil unless $stmts.IMPL-IS-SINGLE-EXPRESSION;
+        self.IMPL-WHATEVERCODE-IN($stmts.code-statements[0].expression, $tested ?? 1 !! 0)
+          ?? $resolver.build-exception('X::Syntax::Malformed',
+               :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *'))
+          !! Nil
+    }
+
+    # Whether a WhateverCode is or decides the value of the expression, or,
+    # with $returned set, is any value the expression can take. A later operand
+    # is returned or tested, or for the andthen family called as
+    # IMPL-CALLS-OPERAND says.
+    method IMPL-WHATEVERCODE-IN(RakuAST::Expression $expression, int $returned) {
+        my constant LATER-OPERANDS := nqp::hash(
+          'and',        'returned',
+          'or',         'returned',
+          'defined-or', 'returned',
+          'xor',        'tested',
+          'then',       'called',
+        );
+        my constant TESTED := nqp::hash('?|', 1, '?&', 1, '?^', 1);
+        my constant BOOLIFIERS := nqp::hash(
+          '?',    1,
+          '!',    1,
+          '?^',   1,
+          'so',   1,
+          'not',  1,
+          'Bool', 1,
+        );
+        my $expr := self.IMPL-UNWRAP-PARENS($expression);
+        return True if $expr.IMPL-PRIMED;
+        # A boolifying prefix or method tests the value it is applied to.
+        if nqp::istype($expr, RakuAST::ApplyPrefix)
+          && nqp::istype($expr.prefix, RakuAST::Prefix)
+          && nqp::existskey(BOOLIFIERS, $expr.prefix.operator)
+          || nqp::istype($expr, RakuAST::ApplyPostfix)
+            && nqp::istype($expr.postfix, RakuAST::Call::Method)
+            && $expr.postfix.name.is-identifier
+            && nqp::existskey(BOOLIFIERS, $expr.postfix.name.canonicalize)
+            && !$expr.postfix.args.has-args {
+            return self.IMPL-WHATEVERCODE-IN($expr.operand, 1);
         }
-        Nil
+        if nqp::istype($expr, RakuAST::Ternary) {
+            return self.IMPL-WHATEVERCODE-IN($expr.condition, 1)
+              || $returned && (self.IMPL-WHATEVERCODE-IN($expr.then, 1)
+                                || self.IMPL-WHATEVERCODE-IN($expr.else, 1));
+        }
+        my @operands;
+        if nqp::istype($expr, RakuAST::ApplyInfix) {
+            @operands := [$expr.left, $expr.right];
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix) {
+            @operands := self.IMPL-UNWRAP-LIST($expr.operands);
+        }
+        else {
+            return False;
+        }
+        my $infix := $expr.infix.IMPL-UNBRACKETED;
+        while nqp::istype($infix, RakuAST::MetaInfix::Reverse)
+          || nqp::istype($infix, RakuAST::MetaInfix::Sequence) {
+            if nqp::istype($infix, RakuAST::MetaInfix::Reverse) {
+                my @reversed;
+                nqp::unshift(@reversed, $_) for @operands;
+                @operands := @reversed;
+            }
+            $infix := $infix.infix.IMPL-UNBRACKETED;
+        }
+        return False unless nqp::istype($infix, RakuAST::Infix);
+        my str $later := nqp::existskey(TESTED, $infix.operator)
+          ?? 'tested'
+          !! LATER-OPERANDS{$infix.IMPL-SHORT-CIRCUIT-KIND} // '';
+        return False unless $later;
+        my int $last := nqp::elems(@operands) - 1;
+        my int $i := 0;
+        for @operands {
+            my int $decides := $later eq 'tested'
+              || $i < $last && !($i && $later eq 'called' && $infix.IMPL-CALLS-OPERAND($_));
+            my int $can-return := $returned
+              && ($later eq 'returned' || $later eq 'called' && !$infix.IMPL-CALLS-OPERAND($_));
+            return True if ($decides || $can-return) && self.IMPL-WHATEVERCODE-IN($_, 1);
+            ++$i;
+        }
+        False
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
@@ -5655,6 +5737,12 @@ class RakuAST::PrimeThunk
 
     method IMPL-THUNK-SIGNATURE() {
         RakuAST::Signature.new(parameters => self.IMPL-WRAP-LIST($!parameters))
+    }
+
+    # A WhateverCode is a value in its own right, so its closure is not
+    # marked as a thunk that an assign meta-op calls for the value.
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CLOSURE-QAST($context)
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {

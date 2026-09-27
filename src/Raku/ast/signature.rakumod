@@ -1334,7 +1334,7 @@ class RakuAST::Parameter
         # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
         # block, so it is left alone and its wrapper is not mistaken for one.
         if $!where && nqp::istype($!where, RakuAST::Block) {
-            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
+            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context, :tested);
             self.add-sorry: $sorry if $sorry;
         }
 

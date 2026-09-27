@@ -4,7 +4,7 @@ use Test::Helpers;
 use nqp;
 use MONKEY-SEE-NO-EVAL;
 
-plan 61;
+plan 63;
 
 # A code object that a short-circuit operator, a ternary, or a meta form of an
 # operator gives a trait or role argument must survive precompilation, as a
@@ -19,6 +19,10 @@ for (
       'a WhateverCode right of ||',
     'And',           '1 && *.succ',
       'a WhateverCode right of &&',
+    'LooseAnd',      '1 and *.succ',
+      'a WhateverCode right of and',
+    'LooseOr',       '0 or *.succ',
+      'a WhateverCode right of or',
     'Xor',           '0 ^^ *.succ',
       'a WhateverCode right of ^^',
     'XorOfThree',    '0 ^^ 0 ^^ *.succ',

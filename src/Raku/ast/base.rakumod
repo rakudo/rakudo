@@ -3747,8 +3747,11 @@ class RakuAST::Node {
         # autothreading, while a matcher wide enough to admit a Junction
         # does not autothread over one either. A failed guarantee proves
         # nothing about the runtime value, so only success folds, and a
-        # subset's refinement must still run.
-        if !$is-subset && nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved {
+        # subset's refinement must still run. A declared type is itself an
+        # undefined type object, so a match against a definite or coercion
+        # type proves nothing either.
+        if !$is-subset && !$archetypes.definite && !$archetypes.coercive
+            && nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved {
             my $topic-type := $left.return-type;
             my $resolution := $left.resolution;
             if $topic-type =:= Mu

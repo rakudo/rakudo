@@ -1744,8 +1744,9 @@ my class SmartmatchOptimizer {
 
         my $op_name := "&infix:<$op_type>";
 
-        # Coercion method to call on the given value
-        my $method_call :=
+        # Coercion method to call on the given value, which only === needs since the setting routines coerce the
+        # topic themselves for == and eq
+        my $method_call := $op_type ne '===' ?? nqp::null() !!
             QAST::Op.new(
                 :op<p6fatalize>,
                 :name($method),
@@ -1756,40 +1757,9 @@ my class SmartmatchOptimizer {
                     QAST::Var.new( :name($topic_name), :scope($topic_scope), :wanted(1) ) ),
                 QAST::WVal.new( :value($!symbols.Failure) ));
 
-        # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
-        # and it doesn't succeed, that creates an expensive Backtrace that we just
-        # end up throwing away
-        if $method eq 'Numeric' {
-            my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
-            $fail-or-nil.named('fail-or-nil');
-            $method_call[0].push($fail-or-nil);
-
-            # Rewrite the `$LHS.Numeric` into `my $tmp := $LHS.Numeric(:fail-or-nil); $LHS := nqp::istype($tmp, Nil) ?? NaN !! $tmp;`
-            # Since we already explicitly handle the RHS being NaN above, this is safe because NaN isn't == to anything, so
-            # when we do `$LHS == $RHS` it will always be False
-            my $tmp := QAST::Node.unique('nilee');
-            $method_call[0] :=
-                QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
-                        $method_call[0]
-                    ),
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('istype'),
-                            QAST::Var.new( :name($tmp), :scope('local') ),
-                            QAST::WVal.new( :value($!symbols.Nil) ),
-                        ),
-                        QAST::NVal.new( :value(nqp::nan) ),
-                        QAST::Var.new( :name($tmp), :scope('local') )
-                    ))
-        }
-
         # Make sure we're not comparing against a type object, since those could
         # coerce to the value, so gen the equivalent of
-        # `isconcrete($_) && <literal> ==|eq $_."$method"`
+        # `isconcrete($_) && <comparison>`
         my $topic_var;
         # With 'when' statement we always have $_. But with smartmatch we don't need it, thus use LHS directly.
         if $in-when {
@@ -1813,7 +1783,13 @@ my class SmartmatchOptimizer {
             $is_eq_op := QAST::Op.new( :op<hllbool>, $is_eq_op );
         }
         else {
-            $is_eq_op := QAST::Op.new( :op<call>, :name($op_name), $rhs_val, $method_call );
+            # The setting routine decides the match as the literal's ACCEPTS does
+            my $accepts := $op_type eq '==' ?? '&NUMERIC-LITERAL-ACCEPTS' !! '&STR-LITERAL-ACCEPTS';
+            $is_eq_op := QAST::Op.new(
+                            :op<call>,
+                            QAST::WVal.new( :value($!symbols.find_in_setting($accepts)) ),
+                            QAST::Var.new( :name($topic_name), :scope($topic_scope) ),
+                            $rhs_val );
             $is_eq_op := QAST::Op.new( :op<call>, :name('&prefix:<!>'), $is_eq_op ) if $negated;
         }
 
@@ -1828,17 +1804,10 @@ my class SmartmatchOptimizer {
                     QAST::WVal.new( :value($!symbols.Failure) )));
 
         # For a ~~ we expect a Bool, not a native 0
-        $is_eq_op.push(QAST::WVal.new( :value($!symbols.False) )) unless $in-when;
+        $is_eq_op.push(QAST::WVal.new( :value($negated ?? $!symbols.True !! $!symbols.False) ))
+            unless $in-when;
 
-        # This is the equivalent of sticking a `try` before the genned `iseq_*`, which is
-        # needed because otherwise it'll die with an error when the `$_` is a different type.
-        QAST::Op.new(
-            :op('handle'),
-            # Success path evaluates to the block.
-            $is_eq_op,
-            # On failure, just evaluate to False
-            'CATCH',
-            QAST::WVal.new( :value($!symbols.False) ))
+        $is_eq_op
     }
 
     # If we do have a 'pair ~~ pair' case then we better always return some AST as this would signal the upstream code

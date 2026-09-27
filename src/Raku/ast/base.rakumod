@@ -3124,7 +3124,6 @@ class RakuAST::Node {
             # The checks replace evaluating the node.
             $junction := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($node);
             return nqp::null() if nqp::isnull($junction);
-            $junction := nqp::decont($junction);
             return nqp::null() unless nqp::isconcrete($junction)
                 && nqp::eqaddr($junction.WHAT, $Junction);
             my str $jtype := nqp::getattr($junction, $Junction, '$!type');
@@ -4060,20 +4059,15 @@ class RakuAST::Node {
     # Raku truth value of a node, or -1 when it cannot be determined safely.
     # Folding only ever evaluates pure operators on foldable operands, while
     # truthiness has to consider any constant, so this is deliberately narrow:
-    # the value must be a concrete Cool or Bool, whose .Bool is pure and
-    # well-defined. Type objects (not concrete) are declined, since a type used
-    # here is not the instance the running program would test. Resolving the
-    # guard types also declines during early bootstrap, before they are
-    # available.
+    # the value must be one IMPL-IMMUTABLE-VALUE accepts, whose .Bool is pure
+    # and whose content never changes. Type objects (not concrete) are
+    # declined, since a type used here is not the instance the running
+    # program would test. Resolving the value types also declines during
+    # early bootstrap, before they are available.
     method IMPL-CONSTANT-TRUTH(RakuAST::Resolver $resolver, Mu $expr) {
-        return -1 unless $expr.has-compile-time-value;
-        my $value := $expr.maybe-compile-time-value;
-        return -1 unless nqp::isconcrete($value);
-
-        my $Cool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Cool');
-        my $Bool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
-        return -1 if nqp::isnull($Cool) || nqp::isnull($Bool);
-        return -1 unless nqp::istype($value, $Cool) || nqp::istype($value, $Bool);
+        my $value := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($expr);
+        return -1 if nqp::isnull($value)
+            || !self.IMPL-IMMUTABLE-VALUE($resolver, $value);
 
         # A constant whose .Bool itself throws keeps that throw at runtime,
         # where the program put it, so the collapse declines.
@@ -4162,12 +4156,13 @@ class RakuAST::Node {
     }
 
     # The compile-time value a node claims, or null when an optimization
-    # may not use it in place of evaluating the node, since removing the
-    # node would lose a declaration or code it formed.
+    # may not use it in place of evaluating the node. Removing the node must
+    # be safe, and a container's content can change before the node runs.
     method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
         return nqp::null() unless $node.has-compile-time-value;
         my $value := $node.maybe-compile-time-value;
-        self.IMPL-DROPPABLE($node) ?? $value !! nqp::null()
+        nqp::iscont($value) || !self.IMPL-DROPPABLE($node)
+            ?? nqp::null() !! $value
     }
 
     # Whether a value is of a core value type, a core enum value, or a

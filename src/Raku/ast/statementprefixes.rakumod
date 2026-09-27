@@ -504,6 +504,11 @@ class RakuAST::StatementPrefix::Start
 {
     method type() { "start" }
 
+    # Sink only a loop, so it runs eagerly; sinking other blorsts sinks their result.
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink($is-sunk && nqp::istype(self.blorst, RakuAST::Statement::Loop) ?? True !! False);
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),

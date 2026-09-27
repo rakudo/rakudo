@@ -3,7 +3,7 @@ use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 use nqp;
 
-plan 154;
+plan 158;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -1092,6 +1092,22 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     CODE
       :err(/'The TEMP phaser will never be implemented.' \n .*? 'at ' \N+ ':2' \n/),
       'a worry is reported on the line of its cursor';
+}
+
+# A sunk start runs the while, until or repeat loop it prefixes; used for its value it stays lazy.
+{
+    for Q| start while $n < 3 { $v.keep(True) if ++$n == 3 }; Nil |,
+        Q| start until $n >= 3 { $v.keep(True) if ++$n == 3 }; Nil |,
+        Q| start repeat { $v.keep(True) if ++$n == 3 } until $n >= 3; Nil | -> $code {
+        my $n = 0;
+        my $v = (my $p = Promise.new).vow;
+        $code.AST.EVAL;
+        await Promise.anyof($p, Promise.in(10));
+        is $p.status, Kept, "a sunk start runs its {$code.words[1]} loop";
+    }
+    my $n = 0;
+    my $s = await Q| my $p = start until $n >= 3 { $n++ }; $p |.AST.EVAL;
+    is-deeply ($s.WHAT, $n), (Seq, 0), 'a start used for its value gives a lazy Seq that has not run';
 }
 
 # vim: expandtab shiftwidth=4

@@ -1626,15 +1626,16 @@ my class SmartmatchOptimizer {
             # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
             # Consider this case a failed typematch and proceed further.
             my $matches := try nqp::istype($lhs.value, $rhs.value);
-            # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
-            # means nothing because their eventual value could still match at runtime. Yet true means that any of their
-            # value will always match. Also, if routine returns a constant then we can always use it too.
-            # But a true match against a definite or coercion type means nothing, as the check then sees an undefined
-            # type object rather than a value.
+            # Only a boxed variable's declared type can decide the match, and only when it matches a matcher that is
+            # neither definite nor a coercion, as those check an undefined type object rather than a value. A native
+            # value is boxed before the match, and a routine can return Nil or a Failure whatever its return type.
             my $sm_archetypes := $sm_type_how.archetypes($sm_type);
-            if ($matches && !$sm_archetypes.definite && !$sm_archetypes.coercive)
+            if ($matches
+                    && $lhs.value-kind == $OPERAND_VALUE_VAR
+                    && !nqp::objprimspec($lhs.value)
+                    && !$sm_archetypes.definite
+                    && !$sm_archetypes.coercive)
                 || $lhs.value-kind == $OPERAND_VALUE_CONST
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value))
             {
                 $matches := !$matches if $negated;
                 return QAST::WVal.new( :value($matches ?? $!symbols.True !! $!symbols.False) )
@@ -1664,8 +1665,7 @@ my class SmartmatchOptimizer {
         # Doesn't work for 'when' statement.
         if !$in-when
             && $rhs.is-ACCEPTS-default
-            && ($lhs.is-literal
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value)))
+            && $lhs.is-literal
         {
             my $try-it := 1;
             my $rhs-type := nqp::what($rhs.value);

@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 53;
+plan 55;
 
 # A routine declares fresh $_ and $¢ containers it usually never uses,
 # and a block binds its topic from the enclosing one. When nothing in
@@ -40,12 +40,20 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         qast-var-decl(v, '$_', 'contvar')
     }, 'a smartmatch reaches the topic by name, so the fresh $_ stays';
 
+    qast-is 'sub f($a) { $a [~~] Int }; say f(1)', :full, -> \v {
+        qast-var-decl(v, '$_', 'contvar')
+    }, 'a bracketed smartmatch reaches the topic by name, so the fresh $_ stays';
+
+    qast-is 'sub f($a) { $a [andthen] 1 }; say f(1)', :full, -> \v {
+        qast-var-decl(v, '$_', 'contvar')
+    }, 'a bracketed andthen reaches the topic by name, so the fresh $_ stays';
+
     qast-is 'sub f($a) { $a + $a }; say f(1)', :full, -> \v {
         not qast-var-decl(v, '$¢', 'contvar')
     }, 'a sub with no regex declares no fresh $¢';
 }
 else {
-    skip 'shapes specific to the RakuAST frontend', 3;
+    skip 'shapes specific to the RakuAST frontend', 5;
 }
 
 # Behavior stays identical.

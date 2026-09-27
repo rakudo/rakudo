@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 23;
+plan 32;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -134,5 +134,38 @@ nok useless-of($zip-err, '@a in'),
     $x R= $y;
     is $y, 0, 'sunk `R=` assigned to its right operand';
 }
+
+# A bracketed infix behaves as the infix it brackets, so it is useless in
+# sink context exactly when that infix is, and its operands are sunk the
+# way that infix sinks them.
+
+nok useless-lines(stderr-of 'my @a; sub f { @a[1] [=] 9; 42 }; f()').elems,
+    'a sunk `[=]` produces no useless-use subjects';
+
+nok useless-lines(stderr-of 'my $x = 1; sub f { $x [+=] 2; 42 }; f()').elems,
+    'a sunk `[+=]` produces no useless-use subjects';
+
+nok useless-lines(stderr-of 'my $x = 0; sub f { $x [&&] ($x = 1); 42 }; f()').elems,
+    'a sunk `[&&]` produces no useless-use subjects';
+
+nok useless-lines(stderr-of 'my $s = "abc"; sub f { $s [~~] s/b/X/; 42 }; f()').elems,
+    'a sunk `[~~]` produces no useless-use subjects';
+
+nok useless-lines(
+        stderr-of 'sub infix:<sidef>($a, $b) { $a }; my $y = 1; sub f { $y [sidef] $y; 42 }; f()'
+    ).elems,
+    'a bracketed user-defined infix without `is pure` is not a useless-use subject';
+
+is useless-lines(stderr-of 'my $y = 1; sub f { $y [+] $y; 42 }; f()').elems, 1,
+    'a bracketed pure infix is the one useless-use subject of its application';
+
+my $bracketed-comma-err = stderr-of 'sub f { 1 [,] 2; 42 }; f()';
+nok useless-of($bracketed-comma-err, '1 [,] 2'),
+    '`1 [,] 2` is not a useless-use subject of its own';
+ok  useless-of($bracketed-comma-err, 'constant integer 2'),
+    'the constant integer operand of `1 [,] 2;` is still a useless-use subject';
+
+nok useless-lines(stderr-of 'my @a = 1,2; my @b = 3,4; sub f { @a X[+=] @b; 42 }; f()').elems,
+    'a sunk `X[+=]` produces no useless-use subjects';
 
 # vim: expandtab shiftwidth=4

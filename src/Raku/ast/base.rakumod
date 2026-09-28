@@ -3121,7 +3121,9 @@ class RakuAST::Node {
         my int $all := 0;
         my $junction;
         if $node.has-compile-time-value {
-            $junction := nqp::decont($node.maybe-compile-time-value);
+            # The checks replace evaluating the node.
+            $junction := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($node);
+            return nqp::null() if nqp::isnull($junction);
             return nqp::null() unless nqp::isconcrete($junction)
                 && nqp::eqaddr($junction.WHAT, $Junction);
             my str $jtype := nqp::getattr($junction, $Junction, '$!type');
@@ -3226,14 +3228,25 @@ class RakuAST::Node {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $pair := $matcher.maybe-compile-time-value;
+        # The reduction replaces evaluating the matcher.
+        my $pair := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($pair);
         my $Pair := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Pair');
         my $Assoc := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Associative');
         return nqp::null() if nqp::isnull($Pair) || nqp::isnull($Assoc);
         return nqp::null() unless nqp::isconcrete($pair)
             && nqp::istype($pair, $Pair)
             && nqp::eqaddr($pair.WHAT, $Pair);
+        # A thunk claims its code object rather than its result, and a
+        # mutable key or value can change before the match runs. A core
+        # type object and a block written as the value have a fixed truth.
+        my $value := nqp::getattr($pair, $Pair, '$!value');
+        return nqp::null()
+            unless self.IMPL-IMMUTABLE-VALUE($resolver, nqp::getattr($pair, $Pair, '$!key'))
+            && (self.IMPL-IMMUTABLE-VALUE($resolver, $value)
+                || !nqp::iscont($value) && !nqp::isconcrete($value)
+                    && self.IMPL-CORE-VALUE-TYPE($resolver, $value.WHAT)
+                || self.IMPL-BLOCK-VALUED-COLONPAIR($matcher));
         my $accepts := nqp::tryfindmethod($Pair, 'ACCEPTS');
         return nqp::null() unless nqp::isconcrete($accepts)
             && nqp::can($accepts, 'IS-SETTING-ONLY')
@@ -3563,14 +3576,14 @@ class RakuAST::Node {
     # The compile-time type object a matcher node reduces to a type check
     # against, or null when it is anything else: the matcher must carry a
     # compile-time type-object value, non-generic, whose ACCEPTS no user
-    # candidate can intercept.
+    # candidate can intercept. The check replaces evaluating the matcher,
+    # so the value comes from IMPL-TRUSTED-COMPILE-TIME-VALUE.
     method IMPL-TYPEMATCH-MATCHER-TYPE(Mu $matcher) {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $type := $matcher.maybe-compile-time-value;
-        return nqp::null() if nqp::isconcrete($type);
+        my $type := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($type) || nqp::isconcrete($type);
         my $how := $type.HOW;
         return nqp::null() unless nqp::can($how, 'archetypes');
         return nqp::null() if $how.archetypes($type).generic;
@@ -3734,7 +3747,7 @@ class RakuAST::Node {
             && self.IMPL-FOLDABLE-OPERAND($left)
             && nqp::can($left-value.HOW, 'archetypes')
             && !$left-value.HOW.archetypes($left-value).generic
-            && self.IMPL-DROPPABLE($left) && self.IMPL-DROPPABLE($right) {
+            && self.IMPL-DROPPABLE($left) {
             my int $matches := nqp::istype($left-value, $type);
             $matches := nqp::not_i($matches) if $negated;
             return self.IMPL-SMARTMATCH-FOLD-RESULT($expr,
@@ -4049,20 +4062,15 @@ class RakuAST::Node {
     # Raku truth value of a node, or -1 when it cannot be determined safely.
     # Folding only ever evaluates pure operators on foldable operands, while
     # truthiness has to consider any constant, so this is deliberately narrow:
-    # the value must be a concrete Cool or Bool, whose .Bool is pure and
-    # well-defined. Type objects (not concrete) are declined, since a type used
-    # here is not the instance the running program would test. Resolving the
-    # guard types also declines during early bootstrap, before they are
-    # available.
+    # the value must be one IMPL-IMMUTABLE-VALUE accepts, whose .Bool is pure
+    # and whose content never changes. Type objects (not concrete) are
+    # declined, since a type used here is not the instance the running
+    # program would test. Resolving the value types also declines during
+    # early bootstrap, before they are available.
     method IMPL-CONSTANT-TRUTH(RakuAST::Resolver $resolver, Mu $expr) {
-        return -1 unless $expr.has-compile-time-value;
-        my $value := $expr.maybe-compile-time-value;
-        return -1 unless nqp::isconcrete($value);
-
-        my $Cool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Cool');
-        my $Bool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
-        return -1 if nqp::isnull($Cool) || nqp::isnull($Bool);
-        return -1 unless nqp::istype($value, $Cool) || nqp::istype($value, $Bool);
+        my $value := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($expr);
+        return -1 if nqp::isnull($value)
+            || !self.IMPL-IMMUTABLE-VALUE($resolver, $value);
 
         # A constant whose .Bool itself throws keeps that throw at runtime,
         # where the program put it, so the collapse declines.
@@ -4148,6 +4156,76 @@ class RakuAST::Node {
             $none := 0 if $none && !self.IMPL-NO-FORMED-CODE($child);
         });
         $none
+    }
+
+    # The compile-time value a node claims, or null when an optimization
+    # may not use it in place of evaluating the node. Removing the node must
+    # be safe, and a container's content can change before the node runs.
+    method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
+        return nqp::null() unless $node.has-compile-time-value;
+        my $value := $node.maybe-compile-time-value;
+        nqp::iscont($value) || !self.IMPL-DROPPABLE($node)
+            ?? nqp::null() !! $value
+    }
+
+    # Whether a value is of a core value type, a core enum value, or a
+    # reified List of such values, whose content never changes and whose
+    # truth and string form no user code decides.
+    method IMPL-IMMUTABLE-VALUE(RakuAST::Resolver $resolver, Mu $value is raw) {
+        return 0 if nqp::iscont($value) || !nqp::isconcrete($value);
+        my $what := $value.WHAT;
+        return 1 if self.IMPL-CORE-VALUE-TYPE($resolver, $what);
+        my $how := $what.HOW;
+        if nqp::istype($how, Perl6::Metamodel::EnumHOW) {
+            my $core := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $how.name($what));
+            return !nqp::isnull($core) && nqp::eqaddr($core, $what) ?? 1 !! 0;
+        }
+        my $List := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'List');
+        return 0 if nqp::isnull($List) || !nqp::eqaddr($what, $List)
+            || nqp::isconcrete(nqp::getattr($value, $List, '$!todo'));
+        my $reified := nqp::getattr($value, $List, '$!reified');
+        if nqp::isconcrete($reified) {
+            my int $i := -1;
+            my int $n := nqp::elems($reified);
+            while ++$i < $n {
+                return 0 unless self.IMPL-IMMUTABLE-VALUE($resolver,
+                    nqp::atpos($reified, $i));
+            }
+        }
+        1
+    }
+
+    # Whether a type is exactly one of the core value types.
+    method IMPL-CORE-VALUE-TYPE(RakuAST::Resolver $resolver, Mu $what) {
+        for <Bool Int Str Num Rat Complex IntStr NumStr RatStr ComplexStr> {
+            my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $_);
+            return 1 if !nqp::isnull($type) && nqp::eqaddr($what, $type);
+        }
+        0
+    }
+
+    # Whether a matcher is a colonpair written with a block as its value.
+    # The value evaluates to a code object, which is always true.
+    method IMPL-BLOCK-VALUED-COLONPAIR(Mu $matcher) {
+        my $pair := self.IMPL-UNWRAP-PARENS($matcher);
+        nqp::istype($pair, RakuAST::ColonPair::Value)
+            && nqp::istype(self.IMPL-UNWRAP-PARENS($pair.value), RakuAST::Block)
+            ?? 1 !! 0
+    }
+
+    # The expression inside any grouping parentheses around a single
+    # statement without a modifier, or the node itself.
+    method IMPL-UNWRAP-PARENS(Mu $node) {
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $node.semilist;
+            return $node unless nqp::istype($semilist, RakuAST::SemiList)
+                && $semilist.IMPL-IS-SINGLE-EXPRESSION;
+            my $statement := self.IMPL-UNWRAP-LIST($semilist.statements)[0];
+            return $node if nqp::isconcrete($statement.condition-modifier)
+                || nqp::isconcrete($statement.loop-modifier);
+            $node := $statement.expression;
+        }
+        $node
     }
 
     # Constant folding. Given a child expression, if it is a pure operator

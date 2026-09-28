@@ -526,7 +526,7 @@ class RakuAST::Infix
             self.IMPL-ASSIGN-OP($left-qast, $right-qast);
         }
         elsif nqp::existskey(OP-SMARTMATCH, $op)
-            && !$!juncmatch
+            && !self.IMPL-REDUCED-SMARTMATCH
             && !nqp::istype($right, RakuAST::Var)
             && !$right.IMPL-IS-CONSTANT
             && (!nqp::istype($left, RakuAST::ApplyInfix) || !nqp::istype($left.infix, RakuAST::OperatorProperties) || !$left.infix.properties.chain)
@@ -535,16 +535,18 @@ class RakuAST::Infix
         }
         else {
             my $native-literal := self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
-            my $qast := self.IMPL-INFIX-QAST:
-                $context,
-                $op eq '='
-                    ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
-                    !! nqp::eqaddr($left, $native-literal)
-                        ?? $left.IMPL-TO-QAST-ARG($context)
-                        !! $left.IMPL-TO-QAST($context),
-                nqp::eqaddr($right, $native-literal)
+            my $left-qast := $op eq '='
+                ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
+                !! nqp::eqaddr($left, $native-literal)
+                    ?? $left.IMPL-TO-QAST-ARG($context)
+                    !! $left.IMPL-TO-QAST($context);
+            # A reduced smartmatch never evaluates its matcher.
+            my $right-qast := self.IMPL-REDUCED-SMARTMATCH
+                ?? nqp::null()
+                !! nqp::eqaddr($right, $native-literal)
                     ?? $right.IMPL-TO-QAST-ARG($context)
                     !! $right.IMPL-TO-QAST($context);
+            my $qast := self.IMPL-INFIX-QAST($context, $left-qast, $right-qast);
             if $adverb {
                 my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
                 $val-ast.named($adverb.named-arg-name);
@@ -702,6 +704,13 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!typematch', 1);
         nqp::bindattr(self, RakuAST::Infix, '$!typematch-type', $type);
         nqp::bindattr(self, RakuAST::Infix, '$!typematch-junction', $junction);
+    }
+
+    # Whether the optimize pass reduced this smartmatch to a form that
+    # never evaluates the matcher.
+    method IMPL-REDUCED-SMARTMATCH() {
+        $!smartmatch-folded || $!typematch || $!litmatch || $!pairmatch
+            || $!juncmatch
     }
 
     # A smartmatch the optimize pass reduced to a type check. The topic is

@@ -73,6 +73,7 @@ New in 2026.09:
     + Throw for a hash used as a regex assertion [b61226d8]
 
 + RakuAST:
+    + Sink the code of a sunk start [50fffd09]
     + Name stub packages without their container [ec663ef2]
     + Generate the POPULATE method from the build plan [7070da83]
     + Re-form BEGIN-compiled code with the optimize walk's marks [c9828b2a]

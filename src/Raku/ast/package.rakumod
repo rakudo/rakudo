@@ -313,6 +313,8 @@ class RakuAST::Package
 
         self.ensure-installed($resolver, $context);
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
+
         # Apply any traits
         self.apply-traits($resolver, $context, self);
 
@@ -658,11 +660,9 @@ class RakuAST::Package
         Nil
     }
 
-    # A package documents the type its compose produced, so a package
-    # whose compose failed or never ran has no type to document. A stub
-    # has no compose of its own. A class stub is documented once its
-    # definition composed the type. A role stub is documented as it is,
-    # since its type stays uncomposed when the role is defined.
+    # Only a type that compose produced gets a $=pod entry. A class stub
+    # gets one once its definition composed the type. A role stub gets one
+    # as it is, since the role's type stays uncomposed.
     method IMPL-DOC-META-OBJECT(RakuAST::Resolver $resolver,
                        RakuAST::IMPL::QASTContext $context) {
         self.IMPL-COMPOSE-AT-CHECK($resolver, $context);

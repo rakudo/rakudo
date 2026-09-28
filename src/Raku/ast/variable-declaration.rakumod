@@ -1397,6 +1397,8 @@ class RakuAST::VarDeclaration::Simple
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', RakuAST::Method);
             }
 
+            self.IMPL-DOCUMENT-AT-BEGIN;
+
             # For attributes our meta-object is an appropriate Attribute instance
             self.apply-traits($resolver, $context, self);
 

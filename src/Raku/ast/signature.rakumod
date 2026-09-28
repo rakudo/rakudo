@@ -1286,6 +1286,7 @@ class RakuAST::Parameter
             $resolver.convert-begin-time-exception($_).throw
         }
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
 
         # Apply possible is required trait
@@ -1315,6 +1316,7 @@ class RakuAST::Parameter
     method IMPL-BEGIN-AFTER-MUTATION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.has-meta-object {
             self.IMPL-BEGIN-WHERE($resolver, $context);
+            self.IMPL-DOCUMENT-AT-BEGIN;
             self.apply-traits($resolver, $context, self);
         }
         Nil

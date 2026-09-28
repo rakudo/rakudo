@@ -353,8 +353,11 @@ augment class RakuAST::Doc {
     multi method podify() {
         RakuAST::LegacyPodify.podify(self)
     }
-    multi method podify($WHEREFORE) {
+    multi method podify(Mu $WHEREFORE) {
         RakuAST::LegacyPodify.podify(self, $WHEREFORE)
+    }
+    multi method podify(Mu $WHEREFORE, $pod) {
+        RakuAST::LegacyPodify.podify(self, $WHEREFORE, $pod)
     }
 }
 

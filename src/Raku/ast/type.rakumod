@@ -1035,6 +1035,7 @@ class RakuAST::Type::Enum
                 ).to-begin-time($resolver, $context)
             ).to-begin-time($resolver, $context));
         }
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
         $meta.HOW.compose($meta);
 
@@ -1272,6 +1273,7 @@ class RakuAST::Type::Subset
         nqp::bindattr(self, RakuAST::Type::Subset, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;

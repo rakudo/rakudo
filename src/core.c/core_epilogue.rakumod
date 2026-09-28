@@ -95,9 +95,6 @@ BEGIN {
 #?endif
 }
 
-# Required for use in the optimizer
-nqp::bindhllsym('Raku', 'Mu:U', Mu:U);
-
 #?if moar
 # Cannot be added in the Uni class, as we don't have native arrays
 # then yet, so it must be done here as an augment.

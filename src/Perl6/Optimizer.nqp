@@ -28,7 +28,6 @@ my class Symbols {
 
     # Some interesting symbols.
     has $!Mu;
-    has $!Mu'U;
     has $!Junction;
     has $!Any;
     has $!Block;
@@ -67,7 +66,6 @@ my class Symbols {
         }
         nqp::push(@!block_stack, $!UNIT);
         $!Mu          := self.find_in_setting('Mu');
-        $!Mu'U        := nqp::gethllsym('Raku', 'Mu:U');
         $!Junction    := self.find_in_setting('Junction');
         $!Any         := self.find_in_setting('Any');
         $!Block       := self.find_in_setting('Block');
@@ -121,7 +119,6 @@ my class Symbols {
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
-    method Mu'U()        { $!Mu'U }
     method Junction()    { $!Junction }
     method Any()         { $!Any }
     method Block()       { $!Block }
@@ -1586,8 +1583,6 @@ my class SmartmatchOptimizer {
         self.respect_junctions( $optimized_ast, $fallback_ast, $lhs )
     }
 
-    my $Mu'U := nqp::null;
-
     method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
         my $sm_type;
         # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
@@ -1607,13 +1602,6 @@ my class SmartmatchOptimizer {
         return nqp::null()
             if !nqp::can($sm_type_how, 'archetypes')
                 || $sm_type_how.archetypes($sm_type).generic;
-
-        # This edge case muddies up the visual waters quite a bit in hopes of keeping the optimizer speedy
-        return QAST::Op.new( :op<callmethod>, :name<Bool>,
-                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast )
-        )   if $lhs.value-kind == $OPERAND_VALUE_VAR
-            && nqp::eqaddr($sm_type, nqp::ifnull($Mu'U, $Mu'U := $!symbols.Mu'U))
-            && ! ($sm_type_how.archetypes($sm_type).definite && $sm_type_how.definite($sm_type));
 
         my $sm_is_subset :=
             $sm_type_how.archetypes($sm_type).nominalizable
@@ -1638,12 +1626,16 @@ my class SmartmatchOptimizer {
             # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
             # Consider this case a failed typematch and proceed further.
             my $matches := try nqp::istype($lhs.value, $rhs.value);
-            # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
-            # means nothing because their eventual value could still match at runtime. Yet true means that any of their
-            # value will always match. Also, if routine returns a constant then we can always use it too.
-            if $matches
+            # Only a boxed variable's declared type can decide the match, and only when it matches a matcher that is
+            # neither definite nor a coercion, as those check an undefined type object rather than a value. A native
+            # value is boxed before the match, and a routine can return Nil or a Failure whatever its return type.
+            my $sm_archetypes := $sm_type_how.archetypes($sm_type);
+            if ($matches
+                    && $lhs.value-kind == $OPERAND_VALUE_VAR
+                    && !nqp::objprimspec($lhs.value)
+                    && !$sm_archetypes.definite
+                    && !$sm_archetypes.coercive)
                 || $lhs.value-kind == $OPERAND_VALUE_CONST
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value))
             {
                 $matches := !$matches if $negated;
                 return QAST::WVal.new( :value($matches ?? $!symbols.True !! $!symbols.False) )
@@ -1673,8 +1665,7 @@ my class SmartmatchOptimizer {
         # Doesn't work for 'when' statement.
         if !$in-when
             && $rhs.is-ACCEPTS-default
-            && ($lhs.is-literal
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value)))
+            && $lhs.is-literal
         {
             my $try-it := 1;
             my $rhs-type := nqp::what($rhs.value);
@@ -2229,7 +2220,7 @@ my class SmartmatchOptimizer {
             # We don't try literals optimization because they never make it into topicalized form of SM.
             my $sm_op;
             if nqp::defined($sm_op := self.maybe_typematch($lhs, $rhs, :$negated)) {
-                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op);
+                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op, :$negated);
             }
 
             note("Post-typematch attempt result is ", $result.HOW.name($result)) if $!debug;
@@ -2272,7 +2263,7 @@ my class SmartmatchOptimizer {
         $result := $op unless nqp::defined($result);
         $result.annotate('smartmatch_optimized', 1);
 
-        $!optimizer.visit_op($result);
+        $!optimizer.visit_op($result) if nqp::istype($result, QAST::Op);
 
         note("FINAL topicalized:\n", $result.dump(4)) if $!debug;
 

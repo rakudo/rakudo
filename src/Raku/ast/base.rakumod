@@ -4365,6 +4365,7 @@ class RakuAST::Node {
     # is not flagged. A meta operator or one not yet resolved keeps the
     # operator node's own classification.
     method IMPL-SUNK-OPERATOR-PURE(Mu $operator) {
+        $operator := $operator.IMPL-UNBRACKETED if nqp::istype($operator, RakuAST::Infixish);
         (nqp::istype($operator, RakuAST::Infix)
           || nqp::istype($operator, RakuAST::Prefix))
           && $operator.is-resolved

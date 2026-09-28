@@ -255,6 +255,25 @@ class RakuAST::Infixish
                                 RakuAST::Expression *@operands, Bool :$meta) {
     }
 
+    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                               RakuAST::Expression $expression, str $type) {
+        if $expression.IMPL-IS-CONSTANT && !nqp::istype($expression, RakuAST::Code) {
+            return; # No need to thunk constants.
+        }
+        if $type eq 'b' && !nqp::istype($expression, RakuAST::Block) {
+            my $thunk := RakuAST::BlockThunk.new;
+            $thunk.to-begin-time($resolver, $context);
+            $expression.wrap-with-thunk($thunk);
+        }
+        elsif $type eq 't' {
+            my $thunk := RakuAST::ExpressionThunk.new;
+            $thunk.to-begin-time($resolver, $context);
+            $expression.wrap-with-thunk($thunk);
+        }
+        # 'b', 't' and the no-thunk '.' the caller skips are the entire
+        # thunky vocabulary of OperatorProperties.
+    }
+
     # %primed == 0 means do not prime
     # %primed == 1 means prime Whatever only
     # %primed == 2 means prime WhateverCode only
@@ -268,6 +287,10 @@ class RakuAST::Infixish
     method IMPL-HOP-INFIX() {
         self.IMPL-OPERATOR
     }
+
+    # The infix with any brackets around it removed, for the checks that
+    # identify an operator by its node type and name.
+    method IMPL-UNBRACKETED() { self }
 
     # The given operator, or the meta-op a caller forms over it, as a
     # compile-time constant, or null when it cannot be one. A setting
@@ -401,25 +424,6 @@ class RakuAST::Infix
 
     method IMPL-OPERATOR() {
         self.resolution.compile-time-value
-    }
-
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
-        if $expression.IMPL-IS-CONSTANT && !nqp::istype($expression, RakuAST::Code) {
-            return; # No need to thunk constants.
-        }
-        if $type eq 'b' && !nqp::istype($expression, RakuAST::Block) {
-            my $thunk := RakuAST::BlockThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
-        elsif $type eq 't' {
-            my $thunk := RakuAST::ExpressionThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
-        # 'b', 't' and the no-thunk '.' the caller skips are the entire
-        # thunky vocabulary of OperatorProperties.
     }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
@@ -1491,6 +1495,34 @@ class RakuAST::BracketedInfix
 
     method reducer-name() { $!infix.reducer-name }
 
+    method IMPL-UNBRACKETED() { $!infix.IMPL-UNBRACKETED }
+
+    method is-pure() { $!infix.is-pure }
+
+    method short-circuit() { $!infix.short-circuit }
+
+    method IMPL-RESULT-NEEDS-ITERATION() { $!infix.IMPL-RESULT-NEEDS-ITERATION }
+
+    method IMPL-PRIMES() { $!infix.IMPL-PRIMES }
+
+    method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
+        $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk)
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands, Bool :$meta) {
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :$meta)
+    }
+
+    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                               RakuAST::Expression $expression, str $type) {
+        $!infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type)
+    }
+
+    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+        $!infix.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb)
+    }
+
     method IMPL-OPERATOR() {
         $!infix.IMPL-HOP-INFIX
     }
@@ -1502,6 +1534,10 @@ class RakuAST::BracketedInfix
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+    }
+
+    method IMPL-INFIX-FOR-META-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -1669,8 +1705,9 @@ class RakuAST::MetaInfix::Assign
     }
 
     method IMPL-IS-TEST() {
-        return False unless nqp::istype(self.infix, RakuAST::Infix);
-        my $basesym := self.infix.operator;
+        my $base := self.infix.IMPL-UNBRACKETED;
+        return False unless nqp::istype($base, RakuAST::Infix);
+        my $basesym := $base.operator;
         $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
         || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
         || $basesym eq 'andthen' || $basesym eq 'notandthen'
@@ -1680,8 +1717,9 @@ class RakuAST::MetaInfix::Assign
     # than a routine call. The andthen family is excluded: it compiles to
     # a routine call that takes a thunked right operand.
     method IMPL-IS-STRUCTURAL-TEST() {
-        return False unless nqp::istype(self.infix, RakuAST::Infix);
-        my $basesym := self.infix.operator;
+        my $base := self.infix.IMPL-UNBRACKETED;
+        return False unless nqp::istype($base, RakuAST::Infix);
+        my $basesym := $base.operator;
         $basesym eq '||' || $basesym eq '&&' || $basesym eq '//'
         || $basesym eq 'or' || $basesym eq 'and'
     }
@@ -1691,14 +1729,17 @@ class RakuAST::MetaInfix::Assign
     # for, which a caller-walking lookup in the operand would see.
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
+        # The target is assigned to rather than thunked, so a constant holds
+        # its place while the operator thunks the value.
+        self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context,
+            RakuAST::IntLiteral.new(0), @operands[1], :meta)
             unless self.IMPL-IS-STRUCTURAL-TEST;
     }
 
     method IMPL-OPERATOR-NAME($thunked) {
         self.IMPL-IS-TEST
             ?? ($thunked ?? '&METAOP_TEST_ASSIGN:' !! '&METAOP_TEST_ASSIGN_VALUE:')
-                ~ '<' ~ self.infix.operator ~ '>'
+                ~ '<' ~ self.infix.IMPL-UNBRACKETED.operator ~ '>'
             !! '&METAOP_ASSIGN'
     }
 
@@ -2708,14 +2749,14 @@ class RakuAST::ApplyInfix
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $infix := $!infix;
+        my $infix := $!infix.IMPL-UNBRACKETED;
         my $left  := self.left;
         my $right := self.right;
 
         # A meta-op that keeps the operator's properties declines the
         # adverb as the plain application does.
         my $base := $infix;
-        $base := $base.infix while nqp::istype($base, RakuAST::MetaInfix);
+        $base := $base.infix.IMPL-UNBRACKETED while nqp::istype($base, RakuAST::MetaInfix);
         if nqp::elems(self.colonpairs)
           && nqp::istype($base, RakuAST::Infix)
           && (nqp::chars($infix.properties.thunky) || $infix.properties.chain) {
@@ -2916,7 +2957,7 @@ class RakuAST::ApplyInfix
     }
 
     method IMPL-IS-XX() {
-        (my $operator := self.operator)
+        (my $operator := self.operator.IMPL-UNBRACKETED)
         && nqp::istype($operator, RakuAST::Infix)
         && $operator.operator eq 'xx'
         ?? True !! False
@@ -3024,7 +3065,8 @@ class RakuAST::ApplyListInfix
     }
 
     method IMPL-IS-LIST-LITERAL() {
-        nqp::istype($!infix, RakuAST::Infix) && $!infix.operator eq ',';
+        my $infix := $!infix.IMPL-UNBRACKETED;
+        nqp::istype($infix, RakuAST::Infix) && $infix.operator eq ',';
     }
 
     method IMPL-IS-CONSTANT() {
@@ -3045,7 +3087,7 @@ class RakuAST::ApplyListInfix
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-PRIME($resolver, $context);
 
-        if nqp::istype($!infix, RakuAST::Feed) {
+        if nqp::istype($!infix.IMPL-UNBRACKETED, RakuAST::Feed) {
             for self.IMPL-FEED-STAGES {
                 $_.set-feed-stage if nqp::istype($_, RakuAST::Call);
             }
@@ -3055,17 +3097,18 @@ class RakuAST::ApplyListInfix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $infix := $!infix.IMPL-UNBRACKETED;
         if nqp::elems($!adverbs)
-          && nqp::istype($!infix, RakuAST::Infix)
-          && ($!infix.short-circuit
-                || nqp::chars($!infix.properties.thunky)
-                || $!infix.properties.chain) {
+          && nqp::istype($infix, RakuAST::Infix)
+          && ($infix.short-circuit
+                || nqp::chars($infix.properties.thunky)
+                || $infix.properties.chain) {
             self.add-sorry:
               $resolver.build-exception: 'X::Syntax::Adverb',
-                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!infix.operator);
+                what => '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($infix.operator);
         }
 
-        if nqp::istype($!infix, RakuAST::Feed) {
+        if nqp::istype($infix, RakuAST::Feed) {
             for self.IMPL-FEED-STAGES {
                 my $stage := $_;
                 if nqp::istype($stage, RakuAST::Var) && $stage.sigil eq '&' {
@@ -3104,7 +3147,7 @@ class RakuAST::ApplyListInfix
     # takes its source from the front; a leftward feed (`<==`, `<<==`)
     # from the back, so its operands are reversed into flow order first.
     method IMPL-FEED-STAGES() {
-        my $op := $!infix.operator;
+        my $op := $!infix.IMPL-UNBRACKETED.operator;
         my @stages;
         if $op eq '==>' || $op eq '==>>' {
             for $!operands { @stages.push($_) }

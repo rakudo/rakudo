@@ -517,7 +517,7 @@ class RakuAST::IMPL::VarLowering {
         # Feed stages are emitted inside blocks the tree does not show,
         # so anything a stage references stays a by-name lexical.
         if nqp::istype($node, RakuAST::ApplyListInfix)
-            && nqp::istype($node.infix, RakuAST::Feed) {
+            && nqp::istype($node.infix.IMPL-UNBRACKETED, RakuAST::Feed) {
             $node.visit-children(-> $child {
                 self.IMPL-ENTER($child, 0);
                 self.IMPL-WALK($child);
@@ -1172,7 +1172,7 @@ class RakuAST::IMPL::VarLowering {
         }
         elsif nqp::istype($node, RakuAST::ApplyInfix)
             || nqp::istype($node, RakuAST::ApplyListInfix) {
-            my $infix := $node.infix;
+            my $infix := $node.infix.IMPL-UNBRACKETED;
             if nqp::istype($infix, RakuAST::Infix) {
                 my str $op := $infix.operator;
                 self.IMPL-MARK-MAGICAL-USED('$_')

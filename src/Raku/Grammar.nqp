@@ -2208,7 +2208,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 elsif $inassoc eq 'list' {
                     my $op1 := @opstack[nqp::elems(@opstack)-1]<OPER>.Str;
-                    my $op2 := $infix.Str;
+                    my $op2 := $infix<OPER>.Str;
                     self.EXPR-nonlistassoc($infix, $op1, $op2)
                       if $op1 ne $op2 && $op1 ne ':';
                 }

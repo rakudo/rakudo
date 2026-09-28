@@ -3465,11 +3465,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                '('
                <.ws>
                [
-                 || <accept=.maybe-typename>
+                 # A :: before a name looks the type up, as a term would,
+                 # rather than declaring a type capture in the enclosing scope.
+                 || [ '::' <?before <.ident>> ]? <accept=.maybe-typename(:allow-capture(0))>
                     <?{
-                        my $it := $<accept>.ast;
-                        nqp::istype($it,self.Nodify('Type::Coercion'))
-                          || $*R.is-name-type($it.name)
+                        my $it := $<accept>.ast.IMPL-BASE-TYPE;
+                        nqp::istype($it, self.Nodify('Type::Simple'))
+                          && $*R.is-name-type($it.name)
                     }>
                  || $<accept_any>=<?>
                ]
@@ -5059,7 +5061,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
         <.unspace>?
         [ <?{ $coercion }> <?[(]>
-          '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>]
+          '(' ~ ')' [<.ws> [
+            [ <!{ $allow-capture }> '::' <?before <.ident>> ]?
+            <accept=.typename(:$allow-capture)>
+            || $<accept_any>=<?>
+          ] <.ws>]
         ]?
         [<.ws> <.traitmod-of> <.ws> <typename> ]?
     }
@@ -5077,9 +5083,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    method maybe-typename() {
+    method maybe-typename(*%options) {
         CATCH { return self.new-cursor }
-        self.typename;
+        self.typename(|%options);
     }
 
 #-------------------------------------------------------------------------------

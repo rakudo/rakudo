@@ -256,11 +256,14 @@ class RakuAST::Infixish
     }
 
     # Whether an operator with a `b` thunk calls the operand with the left
-    # side, as it does a block or WhateverCode, parenthesized or not. Any
-    # other operand runs in a topic block that gives its value.
+    # side, as it does a block, routine, or WhateverCode, parenthesized or not.
+    # Any other operand, a regex among them, runs in a topic block.
     method IMPL-CALLS-OPERAND(RakuAST::Expression $operand) {
         my $expr := self.IMPL-UNWRAP-PARENS($operand);
-        nqp::istype($expr, RakuAST::Block) || $expr.IMPL-PRIMED ?? True !! False
+        nqp::istype($expr, RakuAST::Block)
+          || nqp::istype($expr, RakuAST::Routine)
+            && !nqp::istype($expr, RakuAST::RegexDeclaration)
+          || $expr.IMPL-PRIMED ?? True !! False
     }
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,

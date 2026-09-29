@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 6;
 
 # A WhateverCode trait argument must survive precompilation. The closure
 # used to be built by running a throwaway BEGIN-time thunk, so the
@@ -84,5 +84,18 @@ class C is export { has $.x is combined(* + *) }
 EOF
 precomp-and-run 'TwoStar', $two-args, q|combined-for('$!x')(40, 2)|, '42',
     'a two argument WhateverCode trait argument';
+
+my $hyper-arg = q:to/EOF/;
+unit module HyperArg;
+class C is export { has &.f is default(** + 1) }
+EOF
+precomp-and-run 'HyperArg', $hyper-arg, q|C.new.f.((1, 2))|, '2 3',
+    'a HyperWhatever trait argument maps over its argument';
+
+{
+    my class H { has &.f is default(** + 1) }
+    is-deeply H.new.f.((1, 2)).List, (2, 3),
+        'a HyperWhatever attribute default maps over its argument';
+}
 
 # vim: expandtab shiftwidth=4

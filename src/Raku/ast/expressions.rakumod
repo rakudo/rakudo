@@ -2576,7 +2576,11 @@ role RakuAST::WhateverApplicable
         my $prime := self.IMPL-PRIMED;
         $prime.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($ctx.resolver, $ctx.context,
             :blocktype<declaration_static>, :expression(self));
-        $prime.meta-object
+        # A HyperWhatever maps its WhateverCode over the arguments, as the
+        # compiled prime does through HYPERWHATEVER.
+        return $prime.meta-object unless nqp::istype($prime, RakuAST::HyperPrimeThunk);
+        my $hyper := $ctx.resolver.resolve-lexical-constant('&HYPERWHATEVER');
+        $hyper.compile-time-value()($prime.meta-object)
     }
 
     method IMPL-IS-XX() {

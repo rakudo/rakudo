@@ -526,6 +526,12 @@ class RakuAST::Infix
         KIND{$!operator} // ''
     }
 
+    # A WhateverCode right of `!~~` is the matcher, as it is for `~~`, while
+    # the left side primes as any operand does.
+    method IMPL-OPERAND-PRIMES(int $index, int $elems) {
+        $!operator eq '!~~' && $index ?? 1 !! self.IMPL-PRIMES
+    }
+
     # Set by the optimize pass when this smartmatch against a junction of
     # types, in a position that only tests truth, reduces to a chain of
     # type checks.
@@ -1589,6 +1595,8 @@ class RakuAST::BracketedInfix
 
     method IMPL-PRIMES() { $!infix.IMPL-PRIMES }
 
+    method IMPL-OPERAND-PRIMES(int $index, int $elems) { $!infix.IMPL-OPERAND-PRIMES($index, $elems) }
+
     method IMPL-ELEMENT-PRIMES(int $index, int $elems) { $!infix.IMPL-ELEMENT-PRIMES($index, $elems) }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
@@ -2266,6 +2274,10 @@ class RakuAST::MetaInfix::Reverse
 
     # The operator gets the operands in reverse order, so an operand primes as
     # the operator's operand in the mirrored place does.
+    method IMPL-OPERAND-PRIMES(int $index, int $elems) {
+        self.infix.IMPL-OPERAND-PRIMES($elems - 1 - $index, $elems)
+    }
+
     method IMPL-ELEMENT-PRIMES(int $index, int $elems) {
         self.infix.IMPL-ELEMENT-PRIMES($elems - 1 - $index, $elems)
     }
@@ -2363,6 +2375,8 @@ class RakuAST::MetaInfix::Sequence
     }
 
     method IMPL-CALLS-OPERATOR() { True }
+
+    method IMPL-OPERAND-PRIMES(int $index, int $elems) { self.infix.IMPL-OPERAND-PRIMES($index, $elems) }
 
     method IMPL-ELEMENT-PRIMES(int $index, int $elems) { self.infix.IMPL-ELEMENT-PRIMES($index, $elems) }
 

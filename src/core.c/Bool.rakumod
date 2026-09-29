@@ -179,15 +179,28 @@ multi sub infix:<^^>(Mu \a, WhateverCode \b) { a ^^ b }
 multi sub infix:<^^>(Mu \a, &b)    { a ^^ b() }
 multi sub infix:<^^>(Mu \a, Mu \b) { a ^^ b   }
 multi sub infix:<^^>(+@a) {
-    my Mu $a = shift @a;
-    while @a {
-        my Mu $b := shift @a;
-        $b := $b() if $b ~~ Callable && nqp::not_i(nqp::istype($b,WhateverCode));
-        next unless $b;
-        return Nil if $a;
-        $a := $b;
-    }
-    $a;
+    my int $elems = @a.elems;  # reifies
+    my $reified := nqp::getattr(@a,List,'$!reified');
+    my int $i = -1;
+    my $true := nqp::null;
+    my Mu $value := False;
+    nqp::while(
+      nqp::islt_i(++$i,$elems),
+      nqp::if(
+        ($value := nqp::if(
+          nqp::istype((my $item := nqp::atpos($reified,$i)),Callable)
+            && nqp::not_i(nqp::istype($item,WhateverCode)),
+          $item(),
+          $item
+        )),
+        nqp::if(
+          nqp::isnull($true),
+          ($true := $value),
+          (return Nil)
+        )
+      )
+    );
+    nqp::ifnull($true,$value)
 }
 
 proto sub infix:<//>(|) {*}

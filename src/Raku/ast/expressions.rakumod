@@ -4691,11 +4691,8 @@ class RakuAST::ApplyPostfix
         #            ... [primed]
         #    Call::Term  ⎡(...)⎤
         #      ArgList  ⎡...⎤
-        my $block := self.IMPL-UNWRAP-PARENS($!operand);
-        if nqp::istype($block, RakuAST::Block) && nqp::istype($!postfix, RakuAST::Call::Term) {
-            my $sorry := $block.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
-            self.add-sorry: $sorry if $sorry;
-        }
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!operand, $resolver, $context)
+          if nqp::istype($!postfix, RakuAST::Call::Term);
     }
 
     method IMPL-SET-NATIVE-INCDEC(int $primspec) {

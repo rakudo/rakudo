@@ -60,6 +60,21 @@ role RakuAST::CheckTime {
         nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
     }
 
+    # Adds a sorry when the code, parenthesized or not, is a block that is a
+    # double closure. With $tested, the block's value is only tested.
+    method IMPL-CHECK-FOR-DOUBLE-CLOSURE(
+                              Mu $code,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+                           Bool :$tested
+    ) {
+        my $block := self.IMPL-UNWRAP-PARENS($code);
+        if nqp::istype($block, RakuAST::Block) {
+            my $sorry := $block.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context, :$tested);
+            self.add-sorry: $sorry if $sorry;
+        }
+    }
+
     # Method to be implemented by nodes that perform CHECK-time checks. Should
     # call add-sorry and add-worry with the constructed exception objects.
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }

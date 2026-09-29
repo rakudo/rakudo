@@ -1348,6 +1348,11 @@ class RakuAST::Type::Subset
         self.add-install-worries;
 
         self.check-scope($resolver, 'subset');
+
+        # A declared subset's where is only tested. A variable or parameter
+        # checks its own where, as its unnamed subset has no place to report.
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where && !$!name.is-empty;
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {

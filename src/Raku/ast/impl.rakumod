@@ -343,6 +343,35 @@ class RakuAST::IMPL::InterpContext {
     }
 }
 
+# Takes the place of an operand's thunks while BEGIN time evaluation compiles
+# the application around it, so the operand compiles to the value it has.
+class RakuAST::IMPL::BeginTimeValue {
+    has Mu $!value;
+
+    method new(Mu $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::IMPL::BeginTimeValue, '$!value', $value);
+        $obj
+    }
+
+    method next() { Mu }
+
+    method thunk-kind() { 'BEGIN time value' }
+
+    method thunk-details() { '' }
+
+    method visit-children(Code $visitor) { Nil }
+
+    method IMPL-QAST-BLOCK(*@pos, *%named) { Nil }
+
+    method IMPL-THUNK-CODE-QAST(*@pos) { Nil }
+
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!value);
+        QAST::WVal.new(:value($!value))
+    }
+}
+
 # Shared metamodel-archetype helpers, called from RakuAST nodes anywhere
 # that needs to inspect a type object's archetypes. archetypes() must be
 # called with the type as argument: DefiniteHOW and CoercionHOW stash the

@@ -280,6 +280,20 @@ class RakuAST::Infixish
     # %primed == 3 means prime both Whatever and WhateverCode (default)
     method IMPL-PRIMES() { 0 }
 
+    method IMPL-CAN-INTERPRET-OPERANDS(@operands) {
+        return False unless self.IMPL-CAN-INTERPRET;
+        my int $compile := self.IMPL-COMPILES-OPERANDS;
+        for @operands {
+            return False unless self.IMPL-CAN-INTERPRET-OPERAND($_, :$compile);
+        }
+        True
+    }
+
+    # Whether a BEGIN time evaluation of the operator may compile an operand
+    # the interpreter cannot run. A short-circuit operator can return another
+    # operand beside it, such as a WhateverCode, as is.
+    method IMPL-COMPILES-OPERANDS() { False }
+
     method IMPL-OPERATOR() {
         nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
     }
@@ -359,7 +373,7 @@ class RakuAST::Infix
         ];
         nqp::push(@lookups,
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')))
-            if $!operator eq '^^' || $!operator eq 'xor';
+            if self.IMPL-SHORT-CIRCUIT-KIND eq 'xor';
         @lookups
     }
 
@@ -386,17 +400,8 @@ class RakuAST::Infix
 
     # Returns True if this is a built-in short-circuit operator, and False if not.
     method short-circuit() {
-        my constant SC := nqp::hash(
-            '||', True,
-            'or', True,
-            '&&', True,
-            'and', True,
-            '//', True,
-            'andthen', True,
-            'notandthen', True,
-            'orelse', True
-        );
-        SC{$!operator} // False
+        my str $kind := self.IMPL-SHORT-CIRCUIT-KIND;
+        $kind && $kind ne 'xor' ?? True !! False
     }
 
     # A pure operator's sink call rides on this classification, so an impure
@@ -485,6 +490,25 @@ class RakuAST::Infix
             'xx'         , 2,
         );
         PRIMED{$!operator} // 3
+    }
+
+    # The short-circuit operators, by what they do with an operand. `then` is
+    # the andthen family, which compiles to a call of its routine. The others
+    # compile to QAST ops, whatever routine the name resolves to.
+    method IMPL-SHORT-CIRCUIT-KIND() {
+        my constant KIND := nqp::hash(
+          '&&',         'and',
+          'and',        'and',
+          '||',         'or',
+          'or',         'or',
+          '//',         'defined-or',
+          '^^',         'xor',
+          'xor',        'xor',
+          'andthen',    'then',
+          'orelse',     'then',
+          'notandthen', 'then',
+        );
+        KIND{$!operator} // ''
     }
 
     # Set by the optimize pass when this smartmatch against a junction of
@@ -774,15 +798,12 @@ class RakuAST::Infix
             $!juncmatch-data, $!juncmatch-junction,
             $!operator eq '!~~' ?? 1 !! 0) if $!juncmatch;
 
-        # Operators that map directly into a QAST op
+        # Operators that map directly into a QAST op, by short-circuit kind
         my constant QAST-OP := nqp::hash(
-          '||',  'unless',
-          'or',  'unless',
-          '&&',  'if',
-          'and', 'if',
-          '^^',  'xor',
-          'xor', 'xor',
-          '//',  'defor'
+          'or',         'unless',
+          'and',        'if',
+          'xor',        'xor',
+          'defined-or', 'defor'
         );
 
         my $name;
@@ -794,7 +815,7 @@ class RakuAST::Infix
         }
 
         # Directly mapping
-        my str $op := QAST-OP{$!operator};
+        my str $op := QAST-OP{self.IMPL-SHORT-CIRCUIT-KIND};
         if $op {
             return QAST::Op.new(:$op, $left-qast, $right-qast);
         }
@@ -1007,7 +1028,7 @@ class RakuAST::Infix
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        if $!operator eq '^^' || $!operator eq 'xor' {
+        if self.IMPL-SHORT-CIRCUIT-KIND eq 'xor' {
             my $op := QAST::Op.new(:op<xor>);
             for $operands {
                 $op.push($_);
@@ -1073,12 +1094,60 @@ class RakuAST::Infix
 
     method IMPL-CAN-INTERPRET() {
         self.is-resolved && nqp::istype(self.resolution,RakuAST::CompileTimeValue)
-          && !self.properties.short-circuit
+          && (!self.properties.short-circuit || self.IMPL-SHORT-CIRCUIT-KIND)
           && !self.properties.chain
         || $!operator eq ',' && $*COMPILING_CORE_SETTING
     }
 
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
+    method IMPL-COMPILES-OPERANDS() { self.IMPL-SHORT-CIRCUIT-KIND ?? True !! False }
+
+    # The QAST op a short-circuit operator compiles to, run on the operands in
+    # turn. An xor stops at a second true operand with the Nil it returns.
+    method IMPL-INTERPRET-SHORT-CIRCUIT(
+      RakuAST::IMPL::InterpContext $ctx,
+                               str $kind,
+                                   @operands
+    ) {
+        my int $elems := nqp::elems(@operands);
+        my int $i := 1;
+        my $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[0]));
+        if $kind eq 'xor' {
+            my $true := nqp::istrue($value) ?? $value !! nqp::null();
+            while $i < $elems {
+                $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++]));
+                if nqp::istrue($value) {
+                    return self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value
+                      unless nqp::isnull($true);
+                    $true := $value;
+                }
+            }
+            nqp::isnull($true) ?? $value !! $true
+        }
+        else {
+            my int $defined-or := $kind eq 'defined-or';
+            my int $and := $kind eq 'and';
+            while $i < $elems
+              && ($defined-or
+                    ?? !$value.defined
+                    !! $and ?? nqp::istrue($value) !! !nqp::istrue($value)) {
+                $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++]));
+            }
+            $value
+        }
+    }
+
+    # A short-circuit operator that compiles to a QAST op is run here, and
+    # the andthen family is called with the operands compiled code passes it.
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+        my str $kind := self.IMPL-SHORT-CIRCUIT-KIND;
+        return self.IMPL-INTERPRET-SHORT-CIRCUIT($ctx, $kind, self.IMPL-UNWRAP-LIST($operands))
+          if $kind && $kind ne 'then';
+        return self.IMPL-INTERPRET-CALL(
+          $ctx,
+          self.resolution.compile-time-value,
+          self.IMPL-UNWRAP-LIST($operands),
+          :box
+        ) if $kind;
         my @operands;
         for self.IMPL-UNWRAP-LIST($operands) {
             nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
@@ -1546,6 +1615,14 @@ class RakuAST::BracketedInfix
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+
+    method IMPL-CAN-INTERPRET() { $!infix.IMPL-CAN-INTERPRET }
+
+    method IMPL-COMPILES-OPERANDS() { $!infix.IMPL-COMPILES-OPERANDS }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+        $!infix.IMPL-INTERPRET($ctx, $operands, :$list-infix)
     }
 }
 
@@ -2169,6 +2246,27 @@ class RakuAST::MetaInfix::Reverse
         }
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@args, :meta)
     }
+
+    method IMPL-CAN-INTERPRET() {
+        nqp::istype(self.infix.IMPL-UNBRACKETED, RakuAST::Infix) && self.infix.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-COMPILES-OPERANDS() { self.infix.IMPL-COMPILES-OPERANDS }
+
+    # A binary application evaluates the right operand first and calls the
+    # operator with the operands swapped. A list application evaluates them
+    # in order and calls the reversing wrapper around the operator.
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+        my @operands := self.IMPL-UNWRAP-LIST($operands);
+        $list-infix
+          ?? self.IMPL-INTERPRET-CALL($ctx, self.IMPL-HOP-INFIX, @operands, :box)
+          !! self.IMPL-INTERPRET-CALL(
+               $ctx,
+               self.infix.IMPL-HOP-INFIX,
+               [@operands[1], @operands[0]],
+               :box
+             )
+    }
 }
 
 # A sequence meta-operator.
@@ -2213,6 +2311,21 @@ class RakuAST::MetaInfix::Sequence
     }
 
     method IMPL-CALLS-OPERATOR() { True }
+
+    method IMPL-CAN-INTERPRET() {
+        nqp::istype(self.infix.IMPL-UNBRACKETED, RakuAST::Infix) && self.infix.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-COMPILES-OPERANDS() { self.infix.IMPL-COMPILES-OPERANDS }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+        self.IMPL-INTERPRET-CALL(
+          $ctx,
+          self.infix.IMPL-HOP-INFIX,
+          self.IMPL-UNWRAP-LIST($operands),
+          :box
+        )
+    }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
@@ -2569,7 +2682,7 @@ role RakuAST::WhateverApplicable
     # no QAST context to compile the block with, so this is gated by the
     # dynamic flag the BEGIN-time call paths set.
     method IMPL-PRIMED-CAN-INTERPRET() {
-        ($*IMPL-INTERPRET-PRIMED // 0) && self.IMPL-PRIMED ?? True !! False
+        self.IMPL-PRIMED && self.IMPL-IN-BEGIN-TIME-CALL('$*IMPL-INTERPRET-PRIMED') ?? True !! False
     }
 
     method IMPL-PRIMED-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -2991,15 +3104,24 @@ class RakuAST::ApplyInfix
 
     method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
+    # The interpreter passes no adverbs, so an application with one is
+    # compiled.
     method IMPL-CAN-INTERPRET() {
         self.IMPL-PRIMED-CAN-INTERPRET
-          || $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
+          || !nqp::elems(self.colonpairs)
+            && $!infix.IMPL-CAN-INTERPRET-OPERANDS([self.left, self.right])
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.IMPL-PRIMED-CAN-INTERPRET
           ?? self.IMPL-PRIMED-INTERPRET($ctx)
-          !! $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args) );
+          !! self.IMPL-INTERPRET-OR-COMPILE($ctx, -> {
+               $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args))
+             })
+    }
+
+    method IMPL-FRAME-OPERANDS() {
+        $!infix.IMPL-COMPILES-OPERANDS ?? [self.left, self.right] !! []
     }
 }
 
@@ -3192,23 +3314,24 @@ class RakuAST::ApplyListInfix
         nqp::can($stage, 'name') ?? ~$stage.name !! ''
     }
 
+    # The interpreter passes no adverbs, so an application with one is
+    # compiled.
     method IMPL-CAN-INTERPRET() {
-        return True if self.IMPL-PRIMED-CAN-INTERPRET;
-        if $!infix.IMPL-CAN-INTERPRET {
-            for self.IMPL-UNWRAP-LIST($!operands) {
-                return False unless $_.IMPL-CAN-INTERPRET;
-            }
-            True
-        }
-        else {
-            False
-        }
+        self.IMPL-PRIMED-CAN-INTERPRET
+          || !nqp::elems($!adverbs)
+            && $!infix.IMPL-CAN-INTERPRET-OPERANDS(self.IMPL-UNWRAP-LIST($!operands))
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.IMPL-PRIMED-CAN-INTERPRET
           ?? self.IMPL-PRIMED-INTERPRET($ctx)
-          !! $!infix.IMPL-INTERPRET($ctx, $!operands)
+          !! self.IMPL-INTERPRET-OR-COMPILE($ctx, -> {
+               $!infix.IMPL-INTERPRET($ctx, $!operands, :list-infix)
+             })
+    }
+
+    method IMPL-FRAME-OPERANDS() {
+        $!infix.IMPL-COMPILES-OPERANDS ?? self.IMPL-UNWRAP-LIST($!operands) !! []
     }
 }
 
@@ -4600,6 +4723,25 @@ class RakuAST::Ternary
         $!then.apply-sink($is-sunk);
         $!else.apply-sink($is-sunk);
     }
+
+    # An evaluation at BEGIN time runs only the branch the condition picks,
+    # as the compiled conditional does. A branch such as a WhateverCode comes
+    # out as the value it is, beside a condition that needs compiling.
+    method IMPL-CAN-INTERPRET() {
+        self.IMPL-CAN-INTERPRET-OPERAND($!condition, :compile)
+          && self.IMPL-CAN-INTERPRET-OPERAND($!then, :compile)
+          && self.IMPL-CAN-INTERPRET-OPERAND($!else, :compile)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.IMPL-INTERPRET-OR-COMPILE($ctx, -> {
+            nqp::istrue(self.IMPL-INTERPRET-OPERAND($ctx, $!condition))
+              ?? self.IMPL-INTERPRET-OPERAND($ctx, $!then)
+              !! self.IMPL-INTERPRET-OPERAND($ctx, $!else)
+        })
+    }
+
+    method IMPL-FRAME-OPERANDS() { [$!condition, $!then, $!else] }
 }
 
 # A for loop. Is here because it inherits from Term, so it must be defined after that.

@@ -12,29 +12,6 @@ plan 6;
 # Interpreting the curried argument as a static block keeps the closure
 # serializable.
 
-sub precomp-and-run($name, $source, $call, $expected, $desc) {
-    my $tmp       = make-temp-dir;
-    my $mod-store = $tmp.add('module-store');
-    $mod-store.mkdir;
-    $mod-store.add("$name.rakumod").spurt: $source;
-
-    my $proc = run :out, :err,
-        $*EXECUTABLE.absolute,
-        '-I', $mod-store.absolute,
-        '-e', "use $name; print $call";
-
-    my $out = $proc.out.slurp(:close);
-    my $err = $proc.err.slurp(:close);
-
-    subtest $desc => {
-        plan 3;
-        is  $proc.exitcode, 0, 'exits cleanly';
-        nok $err.contains('does not match expected static frame'),
-            'no outer frame mismatch';
-        is  $out, $expected, 'produces the expected result';
-    }
-}
-
 my $attribute-trait = q:to/EOF/;
 unit module AttrTrait;
 my %STORE;
@@ -44,7 +21,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, :&kept!) is export {
 sub kept-for($name) is export { %STORE{$name} }
 class C is export { has $.x is kept(*.succ) }
 EOF
-precomp-and-run 'AttrTrait', $attribute-trait, q|kept-for('$!x')(41)|, '42',
+is-run-precompiled 'AttrTrait', $attribute-trait, q|kept-for('$!x')(41)|, '42',
     'a WhateverCode argument to an attribute trait';
 
 my $routine-trait = q:to/EOF/;
@@ -56,7 +33,7 @@ multi sub trait_mod:<is>(Routine:D $r, :&check!) is export {
 sub check-for($name) is export { %CHECKS{$name} }
 sub f() is check(* > 0) is export { }
 EOF
-precomp-and-run 'SubTrait', $routine-trait, q|check-for('f')(5)|, 'True',
+is-run-precompiled 'SubTrait', $routine-trait, q|check-for('f')(5)|, 'True',
     'a WhateverCode argument to a routine trait';
 
 my $mixed-args = q:to/EOF/;
@@ -68,7 +45,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$linked!) is export {
 sub linked-for($name) is export { %STORE{$name} }
 class C is export { has $.x is linked(*.succ, :name<foo>) }
 EOF
-precomp-and-run 'MixedTrait', $mixed-args,
+is-run-precompiled 'MixedTrait', $mixed-args,
     Q[do { my ($code, $pair) = |linked-for('$!x'); "{$code(41)} {$pair.key}" }],
     '42 name',
     'a WhateverCode alongside other trait arguments';
@@ -82,14 +59,14 @@ multi sub trait_mod:<is>(Attribute:D $attr, :&combined!) is export {
 sub combined-for($name) is export { %STORE{$name} }
 class C is export { has $.x is combined(* + *) }
 EOF
-precomp-and-run 'TwoStar', $two-args, q|combined-for('$!x')(40, 2)|, '42',
+is-run-precompiled 'TwoStar', $two-args, q|combined-for('$!x')(40, 2)|, '42',
     'a two argument WhateverCode trait argument';
 
 my $hyper-arg = q:to/EOF/;
 unit module HyperArg;
 class C is export { has &.f is default(** + 1) }
 EOF
-precomp-and-run 'HyperArg', $hyper-arg, q|C.new.f.((1, 2))|, '2 3',
+is-run-precompiled 'HyperArg', $hyper-arg, q|C.new.f.((1, 2))|, '2 3',
     'a HyperWhatever trait argument maps over its argument';
 
 {

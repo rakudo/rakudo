@@ -4479,11 +4479,13 @@ class RakuAST::Node {
     }
 
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
-    # interpret simple things to avoid the cost of compilation.
+    # interpret simple things to avoid the cost of compilation, unless told
+    # to compile.
     method IMPL-BEGIN-TIME-EVALUATE(
                    RakuAST::Node $code,
                RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
+      RakuAST::IMPL::QASTContext $context,
+                           Bool :$compile
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
         my $*BEGIN-TIME-LOOKUP :=
@@ -4491,24 +4493,12 @@ class RakuAST::Node {
 
         # Handle any execution error appropriately
         CATCH {
-            my $ex := $resolver.convert-exception($_);
-
-            # Can handle it properly
-            if nqp::istype(self,RakuAST::CheckTime) {
-                self.add-sorry: $ex;
-                $resolver.note-deferred-begin-sorry;
-            }
-
-            # Alas, need to rethrow wil line info if possible
-            else {
-                self.IMPL-LOCATE-EXCEPTION($ex);
-                $ex.rethrow;
-            }
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
         }
 
         # Can interprete, so do that
         my $result;
-        if $code.IMPL-CAN-INTERPRET {
+        if !$compile && $code.IMPL-CAN-INTERPRET {
             $result := $code.IMPL-INTERPRET(
               RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
             )
@@ -4547,6 +4537,187 @@ class RakuAST::Node {
         }
 
         self.IMPL-BOX-VM-VALUE($result)
+    }
+
+    method IMPL-BEGIN-TIME-FAILURE(Mu $exception, RakuAST::Resolver $resolver) {
+        my $ex := $resolver.convert-exception($exception);
+
+        # Can handle it properly
+        if nqp::istype(self,RakuAST::CheckTime) {
+            self.add-sorry: $ex;
+            $resolver.note-deferred-begin-sorry;
+        }
+
+        # Alas, need to rethrow wil line info if possible
+        else {
+            self.IMPL-LOCATE-EXCEPTION($ex);
+            $ex.rethrow;
+        }
+    }
+
+    # Whether BEGIN time evaluation is inside a call that can compile what it
+    # evaluates, which needs the QAST context of that call. The flag holds the
+    # call's resolver, so a nested compilation, such as an EVAL, does not.
+    method IMPL-IN-BEGIN-TIME-CALL(str $flag) {
+        my $resolver := nqp::getlexdyn($flag);
+        !nqp::isnull($resolver)
+          && nqp::isconcrete($resolver)
+          && nqp::eqaddr($resolver, nqp::getlexdyn('$*R')) ?? True !! False
+    }
+
+    method IMPL-CAN-COMPILE-OPERANDS() {
+        self.IMPL-IN-BEGIN-TIME-CALL('$*IMPL-INTERPRET-COMPILES')
+    }
+
+    # Whether an operand has a thunk other than a prime, which compiled code
+    # passes in its place.
+    method IMPL-THUNKED-OPERAND(Mu $operand) {
+        my $thunk := nqp::istype($operand, RakuAST::Expression)
+          ?? $operand.outer-most-thunk
+          !! Mu;
+        $thunk && !nqp::istype($thunk, RakuAST::PrimeThunk) ?? 1 !! 0
+    }
+
+    # The block or routine literal an operand is, parenthesized or not, whose
+    # BEGIN time value is its own code object.
+    method IMPL-CODE-LITERAL(Mu $operand) {
+        my $code := self.IMPL-UNWRAP-PARENS($operand);
+        nqp::istype($code, RakuAST::Block) || nqp::istype($code, RakuAST::Routine)
+          ?? $code
+          !! Nil
+    }
+
+    # Whether IMPL-INTERPRET-OPERAND can give an operand the value compiled
+    # code gives it. With $compile, an application whose operands the
+    # interpreter cannot all run compiles whole instead.
+    method IMPL-CAN-INTERPRET-OPERAND(Mu $operand, Bool :$compile) {
+        $compile && self.IMPL-CAN-COMPILE-OPERANDS
+          || !self.IMPL-THUNKED-OPERAND($operand)
+            && ($operand.IMPL-CAN-INTERPRET || $compile && self.IMPL-CODE-LITERAL($operand))
+    }
+
+    method IMPL-INTERPRET-OPERAND(RakuAST::IMPL::InterpContext $ctx, Mu $operand) {
+        my $code := self.IMPL-CODE-LITERAL($operand);
+        $code ?? $code.meta-object !! $operand.IMPL-INTERPRET($ctx)
+    }
+
+    # Runs an application at BEGIN time as compiled code runs it. Unless the
+    # interpreter runs every operand, the application compiles whole, so its
+    # operands share a frame as they do in compiled code.
+    method IMPL-INTERPRET-OR-COMPILE(RakuAST::IMPL::InterpContext $ctx, Mu $interpret) {
+        return $interpret() unless self.IMPL-CAN-COMPILE-OPERANDS;
+        self.IMPL-INTERPRETS-EACH-OPERAND
+          ?? self.IMPL-INTERPRET-WITHOUT-COMPILING($interpret)
+          !! self.IMPL-COMPILE-APPLICATION($ctx)
+    }
+
+    method IMPL-INTERPRETS-EACH-OPERAND() {
+        my $*IMPL-INTERPRET-COMPILES := nqp::null();
+        self.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET-WITHOUT-COMPILING(Mu $interpret) {
+        my $*IMPL-INTERPRET-COMPILES := nqp::null();
+        $interpret()
+    }
+
+    # The operands a compiled application needs no frame for, as they are a
+    # WhateverCode or code literal, found through the applications it runs in
+    # the same frame. None when a declared variable could reach one.
+    method IMPL-STATIC-OPERANDS() {
+        my @static;
+        return @static if self.IMPL-DECLARES-VARIABLE(self);
+        my @applications := [self];
+        while @applications {
+            for nqp::shift(@applications).IMPL-FRAME-OPERANDS {
+                next if self.IMPL-THUNKED-OPERAND($_);
+                my $operand := self.IMPL-UNWRAP-PARENS($_);
+                if self.IMPL-CODE-LITERAL($operand)
+                  || nqp::istype($operand, RakuAST::WhateverApplicable)
+                    && $operand.IMPL-PRIMED-CAN-INTERPRET {
+                    nqp::push(@static, $operand);
+                }
+                elsif nqp::elems($operand.IMPL-FRAME-OPERANDS) {
+                    nqp::push(@applications, $operand);
+                }
+            }
+        }
+        @static
+    }
+
+    # The operands an application evaluates in its own frame at BEGIN time.
+    method IMPL-FRAME-OPERANDS() { [] }
+
+    # Compiles an application on its own at BEGIN time, each static operand
+    # standing for the code object the interpreter gives it, so the object
+    # outlives the frame compiled here.
+    method IMPL-COMPILE-APPLICATION(RakuAST::IMPL::InterpContext $ctx) {
+        my @static := self.IMPL-STATIC-OPERANDS;
+        my @thunks;
+        CATCH {
+            my int $i := -1;
+            nqp::bindattr(@static[$i], RakuAST::Expression, '$!thunks', @thunks[$i])
+              while ++$i < nqp::elems(@thunks);
+            nqp::rethrow($_);
+        }
+        for @static -> $operand {
+            my $code := self.IMPL-CODE-LITERAL($operand);
+            my $value := $code ?? $code.meta-object !! $operand.IMPL-PRIMED-INTERPRET($ctx);
+            nqp::push(@thunks, nqp::getattr($operand, RakuAST::Expression, '$!thunks'));
+            nqp::bindattr($operand, RakuAST::Expression, '$!thunks',
+              RakuAST::IMPL::BeginTimeValue.new($value));
+        }
+        my $value := self.IMPL-COMPILE-OPERAND($ctx, self);
+        my int $i := -1;
+        nqp::bindattr(@static[$i], RakuAST::Expression, '$!thunks', @thunks[$i])
+          while ++$i < nqp::elems(@thunks);
+        $value
+    }
+
+    # IMPL-BEGIN-TIME-EVALUATE wraps the operand in a thunk of its own, so the
+    # operand's own thunks are put back afterwards.
+    method IMPL-COMPILE-OPERAND(RakuAST::IMPL::InterpContext $ctx, Mu $operand) {
+        my $thunks := nqp::getattr($operand, RakuAST::Expression, '$!thunks');
+        CATCH {
+            nqp::bindattr($operand, RakuAST::Expression, '$!thunks', $thunks);
+            nqp::rethrow($_);
+        }
+        nqp::bindattr($operand, RakuAST::Expression, '$!thunks', nqp::null());
+        my $value := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(
+          $operand,
+          $ctx.resolver,
+          $ctx.context,
+          :compile
+        );
+        nqp::bindattr($operand, RakuAST::Expression, '$!thunks', $thunks);
+        $value
+    }
+
+    # Calls what compiled code calls, with the operands it passes, evaluated
+    # in the order it evaluates them. With $box, a VM value is passed as the
+    # Raku value compiled code would see.
+    method IMPL-INTERPRET-CALL(
+      RakuAST::IMPL::InterpContext $ctx,
+                                Mu $callee,
+                                   @operands,
+                             Bool :$box
+    ) {
+        my @values;
+        for @operands {
+            my $value := self.IMPL-INTERPRET-OPERAND($ctx, $_);
+            nqp::push(@values, $box ?? self.IMPL-BOX-VM-VALUE($value) !! $value);
+        }
+        $callee(|@values)
+    }
+
+    # Whether code declares a variable outside any scope of its own.
+    method IMPL-DECLARES-VARIABLE(Mu $code) {
+        my int $declares;
+        $code.visit-dfs(-> $node {
+            $declares := 1 if nqp::istype($node, RakuAST::VarDeclaration);
+            !$declares && !nqp::istype($node, RakuAST::LexicalScope)
+        });
+        $declares
     }
 
     # A native-typed expression evaluates to a bare VM-level box (for
@@ -4615,22 +4786,23 @@ class RakuAST::Node {
           self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 
         # A primed argument (a WhateverCode) may be interpreted here, as
-        # its static block compiles against a real QAST context.
-        my $*IMPL-INTERPRET-PRIMED := 1;
+        # its static block compiles against a real QAST context, and so may
+        # an application whose operands the interpreter cannot all run.
+        my $*IMPL-INTERPRET-PRIMED := $resolver;
+        my $*IMPL-INTERPRET-COMPILES := $resolver;
 
         # Ready to call
         if $callee.is-resolved
           && nqp::istype($callee.resolution, RakuAST::CompileTimeValue)
           && $args.IMPL-CAN-INTERPRET {
             my $resolved := $callee.resolution.compile-time-value;
-            my @args := $args.IMPL-INTERPRET(
-              RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
-            );
+            my $interpreted := self.IMPL-BEGIN-TIME-INTERPRET-ARGS($args, $resolver, $context);
+            return Nil if nqp::isnull($interpreted);
 
             # Separate out positional and named args first before flattening
             # them, as NQP is not as smart as is sometimes expected
-            my @pos   := @args[0];
-            my %named := @args[1];
+            my @pos   := $interpreted[0];
+            my %named := $interpreted[1];
             $resolved(|@pos, |%named)
         }
 
@@ -4643,6 +4815,22 @@ class RakuAST::Node {
             $call.to-begin-time($resolver, $context);
             self.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context)
         }
+    }
+
+    # Interprets the arguments of a BEGIN time call, reporting an error as
+    # IMPL-BEGIN-TIME-EVALUATE does. Null when an error was reported. An error
+    # for code with no source position yet, such as a package, is rethrown.
+    method IMPL-BEGIN-TIME-INTERPRET-ARGS(
+                RakuAST::ArgList $args,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        CATCH {
+            nqp::rethrow($_) unless nqp::isconcrete(self.origin);
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
+            return nqp::null();
+        }
+        $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context))
     }
 }
 

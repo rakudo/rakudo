@@ -30,6 +30,11 @@ class RakuAST::Expression
         Nil
     }
 
+    method IMPL-TAKE-THUNKS(RakuAST::Expression $replaced) {
+        nqp::bindattr(self, RakuAST::Expression, '$!thunks', $replaced.outer-most-thunk);
+        Nil
+    }
+
     method apply-sink(Bool $is-sunk, Bool :$okifnil) {
         nqp::bindattr_i(self, RakuAST::Expression, '$!okifnil', 1) if $okifnil;
         nqp::findmethod(RakuAST::Node, 'apply-sink')(self, $is-sunk);

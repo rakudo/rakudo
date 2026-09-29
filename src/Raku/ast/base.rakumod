@@ -279,6 +279,28 @@ class RakuAST::Node {
         Nil
     }
 
+    # A thunk around an expression evaluates it when and where the code around
+    # it needs, so a rewrite takes the thunk over. A compile time value stands
+    # without one, unless it is callable, which the thunk's user may call.
+    method IMPL-REPLACE-THUNKED(RakuAST::Resolver $resolver, Mu $expr, Mu $result) {
+        return $result
+          unless nqp::istype($expr, RakuAST::Expression) && $expr.outer-most-thunk;
+        if $result.has-compile-time-value {
+            my $Callable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Callable');
+            nqp::isnull($Callable)
+              || nqp::istype($result.maybe-compile-time-value, $Callable)
+              ?? $expr
+              !! $result
+        }
+        elsif nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk {
+            $result.IMPL-TAKE-THUNKS($expr);
+            $result
+        }
+        else {
+            $expr
+        }
+    }
+
     # Replace a directly held child node with another node, locating the slot
     # that holds it by identity: any object attribute bound to the child, and
     # any element of any list attribute. All occurrences are replaced. A child
@@ -824,6 +846,9 @@ class RakuAST::Node {
             if $apply-postfix && $result =:= $expr {
                 $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
             }
+
+            $result := self.IMPL-REPLACE-THUNKED($resolver, $expr, $result)
+              unless $result =:= $expr;
         }
 
         if $apply-infix {

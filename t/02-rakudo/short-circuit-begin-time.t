@@ -57,8 +57,10 @@ for (
     todo 'the legacy frontend cannot run S^^ on a WhateverCode', 1
         if $name eq 'SequencedXor'
         && nqp::gethllsym('Raku', 'COMPILER-FRONTEND') ne 'rakuast';
+    # A WhateverCode that a short-circuit tests first draws a worry.
+    my $pragma = $name eq 'DefinedOrLeft' | 'ReverseOr' | 'Orelse' ?? "no worries;\n" !! '';
     is-run-precompiled $name,
-        "class Foo is export \{ has \&.f is default($expression) \}\n",
+        "{$pragma}class Foo is export \{ has \&.f is default($expression) \}\n",
         'Foo.new.f.(1)', '2',
         "$what in an attribute default";
 }
@@ -80,8 +82,9 @@ for (
     'RoleTernary',      'True ?? *.succ !! 0',
       'a WhateverCode in the branch a ternary picks in a role argument',
 ) -> $name, $expression, $desc {
+    my $pragma = $name eq 'RoleDefinedOr' ?? "no worries;\n" !! '';
     is-run-precompiled $name,
-        "role R[\&c] is export \{ method go(\$x) \{ c(\$x) \} \}\n"
+        "{$pragma}role R[\&c] is export \{ method go(\$x) \{ c(\$x) \} \}\n"
           ~ "class B does R[$expression] is export \{ \}\n",
         'B.new.go(1)', '2',
         $desc;

@@ -72,8 +72,11 @@ is-deeply (1 xor *.succ), Nil,
     'xor of a true left side and a WhateverCode right side is Nil';
 is-deeply (1 ^^ *.succ), Nil,
     '^^ of a true left side and a WhateverCode right side is Nil';
-is (* > 1 and * < 9)(20), False,
-    'and between two WhateverCodes returns the right one rather than priming both';
+{
+    no worries;
+    is (* > 1 and * < 9)(20), False,
+        'and between two WhateverCodes returns the right one rather than priming both';
+}
 
 # The meta-op forms of andthen, orelse, and notandthen call a WhateverCode
 # operand with the other operand as the plain operator does.

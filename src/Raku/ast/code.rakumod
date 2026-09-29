@@ -2454,10 +2454,18 @@ class RakuAST::Block
     ) {
         my $stmts := self.body.statement-list;
         return Nil unless $stmts.IMPL-IS-SINGLE-EXPRESSION;
-        self.IMPL-WHATEVERCODE-IN($stmts.code-statements[0].expression, $tested ?? 1 !! 0)
-          ?? $resolver.build-exception('X::Syntax::Malformed',
-               :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *'))
-          !! Nil
+        my $expression := $stmts.code-statements[0].expression;
+        return Nil unless self.IMPL-WHATEVERCODE-IN($expression, $tested ?? 1 !! 0);
+
+        # This sorry takes the place of the worry about a WhateverCode that a
+        # short-circuit operator in the block tests first.
+        $expression.visit-dfs(-> $node {
+            $node.IMPL-SUPERSEDE-FIRST-TESTED-WORRY
+              if nqp::istype($node, RakuAST::WhateverApplicable);
+            !nqp::istype($node, RakuAST::Code)
+        });
+        $resolver.build-exception('X::Syntax::Malformed',
+          :what('double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *'))
     }
 
     # Whether a WhateverCode is or decides the value of the expression, or,

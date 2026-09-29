@@ -60,6 +60,21 @@ role RakuAST::CheckTime {
         nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
     }
 
+    # Drops a worry that a sorry about the same code makes moot, including
+    # once fatal has promoted it to a sorry.
+    method IMPL-DROP-WORRY(Mu $worry) {
+        for '$!worries', '$!sorries' -> $name {
+            my $problems := nqp::getattr(self, RakuAST::CheckTime, $name);
+            if nqp::isconcrete($problems) {
+                my @kept;
+                for $problems {
+                    nqp::push(@kept, $_) unless nqp::eqaddr($_, $worry);
+                }
+                nqp::bindattr(self, RakuAST::CheckTime, $name, @kept);
+            }
+        }
+    }
+
     # Adds a sorry when the code, parenthesized or not, is a block that is a
     # double closure. With $tested, the block's value is only tested.
     method IMPL-CHECK-FOR-DOUBLE-CLOSURE(

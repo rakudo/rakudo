@@ -62,18 +62,20 @@ class RakuAST::Node {
         nqp::bindattr(self, RakuAST::Node, '$!origin', $origin);
     }
 
-    # Attaches this node's file, line and source excerpt to an exception
-    # that can carry them. A node without a sourced origin, or a type
-    # object standing in for one, leaves the exception as it is.
-    method IMPL-LOCATE-EXCEPTION(Mu $exception) {
+    # Attaches this node's file, line and source excerpt, at its locus or with
+    # $at-start at its start, to an exception that can carry them. A node
+    # without a sourced origin, or a type object, leaves the exception as is.
+    method IMPL-LOCATE-EXCEPTION(Mu $exception, Bool :$at-start) {
         if nqp::isconcrete(self)
           && nqp::isconcrete($!origin)
           && nqp::isconcrete($!origin.source)
           && nqp::can($exception, 'SET_FILE_LINE') {
-            my $match := $!origin.as-match;
-            $exception.SET_FILE_LINE($match.file, $match.line);
+            my $source := $!origin.source;
+            my int $pos := $at-start ?? $!origin.from !! $!origin.locus;
+            my @location := $source.location-of-pos($pos);
+            $exception.SET_FILE_LINE(@location[2], @location[0]);
             if nqp::can($exception, 'SET_PRE_POST') {
-                my @prepost := $!origin.source.prepost-of-pos($!origin.locus);
+                my @prepost := $source.prepost-of-pos($pos);
                 $exception.SET_PRE_POST(@prepost[0], @prepost[1]);
             }
         }

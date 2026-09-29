@@ -1,6 +1,6 @@
 use Test;
 
-plan 12;
+plan 16;
 
 is ((42 andthen *.succ) + *)(1), 44,
     'a WhateverCode called by andthen keeps its parameter under an outer +';
@@ -37,4 +37,23 @@ is ((* + 1) * 2 + *)(1, 2), 6,
 {
     my &f = (* + 1; * + 2) + *;
     is &f.arity, 1, 'WhateverCodes in a list of statements keep their parameters under an outer +';
+}
+
+# A statement with a modifier in parentheses is not an operand the outer
+# prime can absorb.
+{
+    my &f = (* + 1 if 1) + *;
+    is &f.arity, 1, 'a WhateverCode under an if modifier keeps its parameter under an outer +';
+}
+{
+    my &f = (* + 1 unless 0) + *;
+    is &f.arity, 1, 'a WhateverCode under an unless modifier keeps its parameter under an outer +';
+}
+{
+    my &f = (* + 1 with 1) + *;
+    is &f.arity, 1, 'a WhateverCode under a with modifier keeps its parameter under an outer +';
+}
+{
+    my &f = (* + 1 for 1) + *;
+    is &f.arity, 1, 'a WhateverCode under a for modifier keeps its parameter under an outer +';
 }

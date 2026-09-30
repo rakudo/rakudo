@@ -3540,6 +3540,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $type := Nodify('Type') unless $type;
 
         my $decl;
+        $/.panic('Multiple shapes not yet understood')
+          if $<semilist> && nqp::elems($<semilist>) > 1;
         my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
         if $<variable><desigilname> -> $desigilname {
             my $ast := $desigilname<longname>

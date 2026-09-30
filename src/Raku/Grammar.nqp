@@ -448,12 +448,19 @@ role Raku::Common {
         }
     }
 
-    token cheat-heredoc {
+    # Takes the queued heredoc bodies after the given closer when it ends the
+    # line, or after either closer given none. A statement passes a semicolon
+    # so a closing brace stays with its block, which a semicolon may follow.
+    token cheat-heredoc($closer?) {
         :my $scope;
         :my $package;
         <?{ nqp::elems($*CU.herestub-queue) }>
         \h*
-        $<closer>=<[ ; } ]>
+        $<closer>=[
+          | <?{ nqp::isconcrete($closer) }> $closer
+          | <!{ nqp::isconcrete($closer) }> <[ ; } ]>
+        ]
+        [ <?{ $<closer> eq '}' }> \h* ';' ]?
         \h*
         <?before \n | '#'>
 
@@ -1629,7 +1636,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '{'                                     # actual block start
             <.enter-block-body>
             <statementlist=.key-origin('statementlist')>
-            [<.cheat-heredoc> || '}' <.leave-block-body>]  # actual block end
+            [<.cheat-heredoc('}')> || '}' <.leave-block-body>]  # actual block end
             <?end-statement>              # mark line-ending } as a terminator
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
@@ -1906,7 +1913,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $/.typed-panic: 'X::Language::TooLate', version => ~$<version> }
 
           | <module-name=.longname>
-            [ <.spacey> <arglist> <.cheat-heredoc>? ]?
+            [ <.spacey> <arglist> <.cheat-heredoc(';')>? ]?
         ]
         <.ws>
     }
@@ -2033,7 +2040,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <![;]>
             <block=.statement>
-            <.cheat-heredoc>?
+            <.cheat-heredoc(';')>?
               || <.missing: 'block or statement'>
         ]
     }
@@ -4484,7 +4491,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || <.typed-panic: "X::Syntax::Missing", :what('initializer on constant declaration')>
         ]
 
-        <.cheat-heredoc>?
+        <.cheat-heredoc(';')>?
     }
 
     token type-declarator:sym<enum> {

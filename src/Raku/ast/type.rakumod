@@ -754,7 +754,10 @@ class RakuAST::Type::Parameterized
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
         }
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        # A generic parameterization is not folded, so where it is reached it
+        # gets the instantiated type arguments.
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
+          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) {
             my $value := self.meta-object;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )

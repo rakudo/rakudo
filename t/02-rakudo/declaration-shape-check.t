@@ -1,9 +1,10 @@
 use Test;
 
 # A hash shape names the key type and must be one type object known at
-# compile time. A declaration takes at most one shape.
+# compile time. A declaration takes at most one shape. Only an array
+# takes [] and only a hash takes {}.
 
-plan 44;
+plan 46;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -122,5 +123,13 @@ throws-like { EVAL 'my %h{Str}{Int}' }, X::Comp::AdHoc,
 throws-like { EVAL 'my @a[2][3]' }, X::Comp::AdHoc,
     message => 'Multiple shapes not yet understood',
     'an array declaration with two shapes is refused';
+
+throws-like { EVAL 'my @a{Str}' }, X::Syntax::Reserved,
+    reserved => '{} shape syntax with the @ sigil',
+    'a {} shape on an array is reserved';
+
+throws-like { EVAL 'my %h[Str]' }, X::Syntax::Reserved,
+    reserved => '[] shape syntax with the % sigil',
+    'a [] shape on a hash is reserved';
 
 # vim: expandtab shiftwidth=4

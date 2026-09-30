@@ -4146,7 +4146,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                        '{' ~ '}' <semilist>
                        {
                            self.typed-sorry('X::Syntax::Reserved',
-                             reserved => "{} shape syntax with the $sigil sigil"
+                             reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil'
                            ) if $sigil ne '%';
                        }
 

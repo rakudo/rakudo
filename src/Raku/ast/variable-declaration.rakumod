@@ -233,6 +233,11 @@ role RakuAST::ContainerCreator {
     # hash keyed by Str.
     method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
 
+    # The value type of a hash declared with a key type but no value type.
+    method IMPL-UNTYPED-HASH-VALUE-TYPE() {
+        self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any
+    }
+
     method IMPL-CALCULATE-TYPES(Mu $of) {
         return Nil if $!initialized;
 
@@ -285,7 +290,7 @@ role RakuAST::ContainerCreator {
                             $bind-constraint, $of, $key-type);
                     }
                     else {
-                        my $value-default := self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any;
+                        my $value-default := self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                         $container-type := Hash.HOW.parameterize(
                             Hash, $value-default, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
@@ -318,7 +323,7 @@ role RakuAST::ContainerCreator {
             else {
                 my $value-type := self.type
                     ?? $of
-                    !! (self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any);
+                    !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                 $container-type := $explicit-base.HOW.parameterize(
                     $explicit-base, $value-type, $key-type);
             }
@@ -425,10 +430,13 @@ role RakuAST::ContainerCreator {
     # QAST that produces a fresh instance of an explicit container base type.
     # Set/Bag/Mix keep pristine empty sentinels, so bare-create them rather
     # than run their .new (see issue #6246).
-    method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
-        my $class := self.IMPL-CONTAINER-TYPE($of);
-        $context.ensure-sc($class);
-        my $wval := QAST::WVal.new(:value($class));
+    method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of, Mu :$class-qast) {
+        my $wval := $class-qast;
+        unless nqp::isconcrete($wval) {
+            my $class := self.IMPL-CONTAINER-TYPE($of);
+            $context.ensure-sc($class);
+            $wval := QAST::WVal.new(:value($class));
+        }
         $!explicit-base-bare-create
             ?? QAST::Op.new(:op<create>, $wval)
             !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
@@ -789,6 +797,10 @@ class RakuAST::VarDeclaration::Simple
     # a comma list, for lowering to a direct build of the list internals.
     has int $!lowered-array-init;
 
+    # The name of the hidden state variable that holds the instantiated
+    # container of a generic state array or hash.
+    has str $!generic-state-holder-name;
+
     # Set by the lexical-to-local lowering analysis when every access to
     # this declaration is confined to the declaring frame, so it can be
     # emitted as a frame-local rather than a by-name lexical. The
@@ -882,7 +894,7 @@ class RakuAST::VarDeclaration::Simple
         else {
             my $container := self.meta-object;
             $context.ensure-sc($container);
-            QAST::Stmts.new(
+            my $qast := QAST::Stmts.new(
                 $decl,
                 QAST::Op.new(
                     :op('bind'),
@@ -892,7 +904,10 @@ class RakuAST::VarDeclaration::Simple
                     # the container.
                     QAST::Op.new( :op('clone_nd'), QAST::WVal.new( :value($container) ) )
                 )
-            )
+            );
+            $qast.push(self.IMPL-GENERIC-REBIND-QAST($context))
+                if self.IMPL-REBINDS-GENERIC-CONTAINER;
+            $qast
         }
     }
 
@@ -1805,7 +1820,298 @@ class RakuAST::VarDeclaration::Simple
           || nqp::isconcrete($!unit-package) && nqp::eqaddr($!block, $!unit-package.body)
     }
 
+    # Whether an array or hash declaration has a generic container type,
+    # default or trait mixin, which the frame reaching the declaration must
+    # instantiate.
+    method IMPL-HAS-GENERIC-CONTAINER() {
+        my str $sigil := self.sigil;
+        return 0 unless $sigil eq '@' || $sigil eq '%';
+        my $of := self.IMPL-OF-TYPE;
+        my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
+        return 1 if $bind-constraint.HOW.archetypes($bind-constraint).generic
+          || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic;
+        for self.IMPL-TRAIT-MIXINS($of) -> $mixin {
+            return 1 if self.IMPL-MIXIN-IS-GENERIC($mixin);
+        }
+        0
+    }
+
+    # Whether the declaration binds its variable to an instantiated container
+    # where the frame is entered. A shaped array is made where the
+    # declaration is reached instead, since its shape may use earlier code.
+    method IMPL-REBINDS-GENERIC-CONTAINER() {
+        my str $scope := self.scope;
+        ($scope eq 'my' || $scope eq 'state')
+          && !$!is-parameter && !$!already-declared && !$!shares-implicit
+          && !($!shape && self.sigil eq '@')
+          && !($!initializer && $!initializer.is-binding)
+          && self.IMPL-HAS-GENERIC-CONTAINER ?? 1 !! 0
+    }
+
+    method IMPL-GENERIC-STATE-HOLDER-NAME() {
+        $!generic-state-holder-name
+            || nqp::bindattr_s(self, RakuAST::VarDeclaration::Simple,
+                 '$!generic-state-holder-name', QAST::Node.unique('!generic_state_holder'))
+    }
+
+    # QAST that binds the variable to its instantiated container. A bind to a
+    # state variable only lasts for the current invocation, so a state one
+    # keeps the container in a hidden state variable.
+    method IMPL-GENERIC-REBIND-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $of := self.IMPL-OF-TYPE;
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        my $var := $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name(self.name), :scope('lexical') );
+        return QAST::Op.new( :op('bind'), $var,
+            self.IMPL-INSTANTIATED-CONTAINER-QAST($context, $of, $var) )
+          unless self.scope eq 'state';
+
+        my $holder := nqp::create(Scalar);
+        nqp::bindattr($holder, Scalar, '$!value', Mu);
+        $context.ensure-sc($holder);
+        my str $name := self.IMPL-GENERIC-STATE-HOLDER-NAME;
+        my $held := QAST::Op.new( :op('getattr'),
+            QAST::Var.new( :$name, :scope('lexical') ),
+            QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!value') ) );
+        QAST::Stmts.new(
+            QAST::Var.new( :$name, :scope('lexical'), :decl('statevar'), :value($holder) ),
+            QAST::Op.new( :op('bind'), $var,
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('isconcrete'), $held ),
+                    $held.shallow_clone,
+                    QAST::Op.new( :op('bindattr'),
+                        QAST::Var.new( :$name, :scope('lexical') ),
+                        QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!value') ),
+                        self.IMPL-INSTANTIATED-CONTAINER-QAST($context, $of, $var.shallow_clone) ) ) ) )
+    }
+
+    # The mixin types that traits put on the declared container, in the
+    # order they were mixed in, or none when its type is not the container
+    # type with mixins.
+    method IMPL-TRAIT-MIXINS(Mu $of) {
+        my $container := self.meta-object;
+        return [] unless nqp::isconcrete($container);
+        my $type := self.IMPL-CONTAINER-TYPE($of);
+        my @mixins;
+        my $mixin := nqp::what($container);
+        while !nqp::eqaddr($mixin, $type) && nqp::can($mixin.HOW, 'is_mixin')
+          && $mixin.HOW.is_mixin($mixin) {
+            nqp::unshift(@mixins, $mixin);
+            $mixin := $mixin.HOW.mro($mixin)[1];
+        }
+        nqp::eqaddr($mixin, $type) ?? @mixins !! []
+    }
+
+    method IMPL-MIXIN-IS-GENERIC(Mu $mixin) {
+        for $mixin.HOW.roles($mixin, :local) -> $role {
+            return 1 if $role.HOW.archetypes($role).generic;
+        }
+        0
+    }
+
+    # QAST that produces a type, instantiating a generic one for the type
+    # environment of the frame that reaches the declaration.
+    method IMPL-INSTANTIATE-TYPE-QAST(RakuAST::IMPL::QASTContext $context, Mu $type) {
+        $context.ensure-sc($type);
+        $type.HOW.archetypes($type).generic
+            ?? QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                 QAST::Op.new( :op('how'), QAST::WVal.new( :value($type) ) ),
+                 QAST::WVal.new( :value($type) ),
+                 QAST::Op.new( :op('ctx') ))
+            !! QAST::WVal.new( :value($type) )
+    }
+
+    # QAST that produces the base type of an array or hash container. A
+    # generic explicit base type written as a parameterization is evaluated
+    # again, so its type arguments are the instantiated ones.
+    method IMPL-CONTAINER-BASE-TYPE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $base := self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+            ?? self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
+            !! self.container-base-type;
+        $context.ensure-sc($base);
+        return QAST::WVal.new( :value($base) )
+            unless $base.HOW.archetypes($base).generic;
+        my $ast := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE-AST;
+        $ast := $ast.base-type if nqp::istype($ast, RakuAST::Type::Definedness);
+        nqp::istype($ast, RakuAST::Type::Parameterized)
+            ?? $ast.IMPL-EXPR-QAST($context)
+            !! self.IMPL-INSTANTIATE-TYPE-QAST($context, $base)
+    }
+
+    # QAST that produces the container type of an array or hash. A generic
+    # one is parameterized again with the instantiated types, which is much
+    # cheaper than instantiating it through its HOW.
+    method IMPL-CONTAINER-TYPE-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
+        my $type := self.IMPL-CONTAINER-TYPE($of);
+        $context.ensure-sc($type);
+        return QAST::WVal.new( :value($type) )
+            unless $type.HOW.archetypes($type).generic;
+        my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
+        return self.IMPL-CONTAINER-BASE-TYPE-QAST($context)
+            unless self.type || !($key-type =:= NQPMu);
+        my $qast := QAST::Op.new( :op('callmethod'), :name('parameterize'),
+            QAST::Op.new( :op('how'), self.IMPL-CONTAINER-BASE-TYPE-QAST($context) ),
+            self.IMPL-CONTAINER-BASE-TYPE-QAST($context),
+            self.IMPL-INSTANTIATE-TYPE-QAST($context,
+                self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE) );
+        $qast.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $key-type))
+            unless $key-type =:= NQPMu;
+        $qast
+    }
+
+    # QAST that produces a fresh shaped array or a fresh container of an
+    # explicit container type, instantiating a generic container type.
+    method IMPL-FRESH-CONTAINER-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
+        my $type-qast := self.IMPL-CONTAINER-TYPE-QAST($context, $of);
+        if $!shape && self.sigil eq '@' {
+            my $shape := $!shape.IMPL-TO-QAST($context);
+            $shape.named('shape');
+            QAST::Op.new( :op('callmethod'), :name('new'), $type-qast, $shape )
+        }
+        else {
+            self.IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST($context, $of, :class-qast($type-qast))
+        }
+    }
+
+    # QAST that produces the instantiated container of a generic array or
+    # hash. It takes the mixins of the declared one, and its contents and
+    # descriptor too unless it is of an explicit container type.
+    method IMPL-INSTANTIATED-CONTAINER-QAST(RakuAST::IMPL::QASTContext $context, Mu $of, Mu $access-qast) {
+        my str $source := QAST::Node.unique('generic_source');
+        my str $target := QAST::Node.unique('generic_container');
+        my $qast := QAST::Stmts.new( QAST::Op.new( :op('bind'),
+            QAST::Var.new( :name($source), :scope('local'), :decl('var') ),
+            $access-qast.shallow_clone ) );
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+            $qast.push(QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name($target), :scope('local'), :decl('var') ),
+                self.IMPL-FRESH-CONTAINER-QAST($context, $of) ));
+        }
+        else {
+            # Built the way IMPL-CONTAINER builds a container, then given
+            # the attributes of the declared one as they are, so it shares
+            # their contents the way each frame's copy of a container does.
+            my $base := self.container-base-type;
+            $qast.push(QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name($target), :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('create'), self.IMPL-CONTAINER-TYPE-QAST($context, $of) ) ));
+            for $base.HOW.mro($base) -> $class {
+                for $class.HOW.attributes($class, :local) -> $attribute {
+                    my str $name := $attribute.name;
+                    $qast.push(QAST::Op.new( :op('bindattr'),
+                        QAST::Var.new( :name($target), :scope('local') ),
+                        QAST::WVal.new( :value($class) ), QAST::SVal.new( :value($name) ),
+                        $name eq '$!descriptor'
+                            ?? self.IMPL-INSTANTIATE-DESCRIPTOR-QAST($class,
+                                 QAST::Var.new( :name($source), :scope('local') ))
+                            !! QAST::Op.new( :op('getattr'),
+                                 QAST::Var.new( :name($source), :scope('local') ),
+                                 QAST::WVal.new( :value($class) ), QAST::SVal.new( :value($name) ) ) ));
+                }
+            }
+        }
+
+        # Each mixin is done again on the new container, which then takes the
+        # attribute values of the declared one.
+        for self.IMPL-TRAIT-MIXINS($of) -> $mixin {
+            my $mix := QAST::Op.new( :op('callmethod'), :name('mixin'),
+                QAST::Op.new( :op('how'), QAST::Var.new( :name($target), :scope('local') ) ),
+                QAST::Var.new( :name($target), :scope('local') ) );
+            for $mixin.HOW.roles($mixin, :local) -> $role {
+                $mix.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $role));
+            }
+            $qast.push($mix);
+            $context.ensure-sc($mixin);
+            my int $generic := self.IMPL-MIXIN-IS-GENERIC($mixin);
+            for $mixin.HOW.attributes($mixin, :local) -> $attribute {
+                my $type := $attribute.type;
+                my $value := QAST::Var.new( :scope('attribute'), :name($attribute.name),
+                    :returns($type),
+                    QAST::Var.new( :name($source), :scope('local') ),
+                    QAST::WVal.new( :value($mixin) ) );
+                $value := self.IMPL-INSTANTIATE-SCALAR-QAST($value)
+                    if $generic && !nqp::objprimspec($type);
+                $qast.push(QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :scope('attribute'), :name($attribute.name), :returns($type),
+                        QAST::Var.new( :name($target), :scope('local') ),
+                        QAST::Op.new( :op('what'), QAST::Var.new( :name($target), :scope('local') ) ) ),
+                    $value ));
+            }
+        }
+        $qast.push(QAST::Var.new( :name($target), :scope('local') ));
+        $qast
+    }
+
+    # QAST that produces the descriptor of a container, instantiated when the
+    # descriptor is generic.
+    method IMPL-INSTANTIATE-DESCRIPTOR-QAST(Mu $class, Mu $container-qast) {
+        my str $name := QAST::Node.unique('generic_descriptor');
+        QAST::Stmts.new(
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :$name, :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('getattr'), $container-qast,
+                    QAST::WVal.new( :value($class) ), QAST::SVal.new( :value('$!descriptor') ) ) ),
+            QAST::Op.new( :op('if'),
+                QAST::Op.new( :op('callmethod'), :name('is_generic'),
+                    QAST::Var.new( :$name, :scope('local') ) ),
+                QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                    QAST::Var.new( :$name, :scope('local') ), QAST::Op.new( :op('ctx') ) ),
+                QAST::Var.new( :$name, :scope('local') ) ) )
+    }
+
+    # QAST that produces an attribute value of a generic role, as a new
+    # Scalar of the instantiated type when it is a Scalar of a generic one.
+    # One still holding the generic default gets the instantiated default.
+    method IMPL-INSTANTIATE-SCALAR-QAST(Mu $value-qast) {
+        my str $name := QAST::Node.unique('generic_attribute');
+        my str $old := QAST::Node.unique('generic_attribute_descriptor');
+        my str $new := QAST::Node.unique('generic_attribute_descriptor');
+        my $value := QAST::Var.new( :$name, :scope('local') );
+        QAST::Stmts.new(
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :$name, :scope('local'), :decl('var') ), $value-qast ),
+            QAST::Op.new( :op('if'),
+                QAST::Op.new( :op('iscont'), $value.shallow_clone ),
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('istype_nd'), $value.shallow_clone, QAST::WVal.new( :value(Scalar) ) ),
+                    QAST::Stmts.new(
+                        QAST::Op.new( :op('bind'),
+                            QAST::Var.new( :name($old), :scope('local'), :decl('var') ),
+                            QAST::Op.new( :op('getattr'), $value.shallow_clone,
+                                QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!descriptor') ) ) ),
+                        QAST::Op.new( :op('if'),
+                            QAST::Op.new( :op('callmethod'), :name('is_generic'),
+                                QAST::Var.new( :name($old), :scope('local') ) ),
+                            QAST::Stmts.new(
+                                QAST::Op.new( :op('bind'),
+                                    QAST::Var.new( :name($new), :scope('local'), :decl('var') ),
+                                    QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                                        QAST::Var.new( :name($old), :scope('local') ),
+                                        QAST::Op.new( :op('ctx') ) ) ),
+                                QAST::Op.new( :op('if'),
+                                    QAST::Op.new( :op('eqaddr'),
+                                        QAST::Op.new( :op('decont'), $value.shallow_clone ),
+                                        QAST::Op.new( :op('callmethod'), :name('default'),
+                                            QAST::Var.new( :name($old), :scope('local') ) ) ),
+                                    QAST::Op.new( :op('p6scalarfromdesc'),
+                                        QAST::Var.new( :name($new), :scope('local') ) ),
+                                    QAST::Op.new( :op('p6scalarwithvalue'),
+                                        QAST::Var.new( :name($new), :scope('local') ),
+                                        QAST::Op.new( :op('decont'), $value.shallow_clone ) ) ) ),
+                            $value.shallow_clone ) ),
+                    $value.shallow_clone ),
+                $value.shallow_clone ) )
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-QAST-DECL-CONTAINER($context);
+        self.IMPL-REBINDS-GENERIC-CONTAINER
+            ?? QAST::Stmts.new( $qast, self.IMPL-GENERIC-REBIND-QAST($context) )
+            !! $qast
+    }
+
+    method IMPL-QAST-DECL-CONTAINER(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
 
@@ -2050,8 +2356,12 @@ class RakuAST::VarDeclaration::Simple
 
             else {
                 my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
-                if $bind-constraint.HOW.archetypes($bind-constraint).generic
-                    || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic {
+                # Only a generic Scalar is instantiated here. An array or hash
+                # is instantiated where the frame is entered, a shaped array
+                # just below.
+                if ($bind-constraint.HOW.archetypes($bind-constraint).generic
+                    || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic)
+                  && !(($scope eq 'my' || $scope eq 'state') && self.IMPL-HAS-GENERIC-CONTAINER) {
                     $var-access := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $var-access ),
@@ -2059,15 +2369,8 @@ class RakuAST::VarDeclaration::Simple
                 }
 
                 if $sigil eq '@' && $!shape {
-                    my $value := self.IMPL-CONTAINER-TYPE($of);
-                    $context.ensure-sc($value);
-                    $var-access := QAST::Op.new( :op('bind'), $var-access, QAST::Op.new(
-                        :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :$value )
-                    ) );
-                    my $shape_ast := $!shape.IMPL-TO-QAST($context);
-                    $shape_ast.named('shape');
-                    $var-access[1].push($shape_ast);
+                    $var-access := QAST::Op.new( :op('bind'), $var-access,
+                        self.IMPL-FRESH-CONTAINER-QAST($context, $of) );
                 }
 
                 # Reference type value with an initializer
@@ -2146,6 +2449,7 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     $qast := $var-access
                 }
+
             }
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {

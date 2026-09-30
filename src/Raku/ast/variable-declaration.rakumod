@@ -1123,10 +1123,54 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
+    # Yields NQPMu for check time to report unless the shape is one
+    # expression statement without modifiers whose value is a type object
+    # known at compile time.
     method IMPL-CONTAINER-KEY-TYPE() {
-        $!shape && self.sigil eq '%'
-            ?? $!shape.code-statements[0].expression.compile-time-value
-            !! NQPMu
+        return NQPMu unless $!shape && self.sigil eq '%';
+        my @statements := $!shape.code-statements;
+        return NQPMu unless nqp::elems(@statements) == 1;
+        my $statement := @statements[0];
+        return NQPMu unless nqp::istype($statement, RakuAST::Statement::Expression)
+          && !$statement.condition-modifier && !$statement.loop-modifier
+          && !nqp::elems(self.IMPL-UNWRAP-LIST($statement.labels));
+        # A hash shape is never compiled, so it may not declare a package or
+        # variable outside a block, constant or subset of its own. An enum
+        # declaration evaluates to a Map rather than its type.
+        return NQPMu if nqp::elems(self.IMPL-UNWRAP-LIST($statement.find-nodes(
+          RakuAST::Declaration,
+          :condition(-> $node {
+              nqp::istype($node, RakuAST::Package)
+                || nqp::istype($node, RakuAST::Type::Enum)
+                || nqp::istype($node, RakuAST::VarDeclaration::Simple)
+          }),
+          :stopper(-> $node {
+              nqp::istype($node, RakuAST::Code)
+                || nqp::istype($node, RakuAST::VarDeclaration::Constant)
+                || nqp::istype($node, RakuAST::Type::Subset)
+          })
+        )));
+
+        my $expression := $statement.expression;
+        # Inside an EVAL, C:D naming a type from outside is a plain name, and
+        # its lookup drops the :D.
+        return NQPMu if nqp::istype($expression, RakuAST::Term::Name)
+          && $expression.name.has-colonpairs;
+        my $key-type := NQPMu;
+        if $expression.has-compile-time-value {
+            $key-type := $expression.maybe-compile-time-value;
+        }
+        # A ::? name, or a name from outside an EVAL, has no compile time
+        # value of its own. What it resolves to is checked like any other.
+        elsif nqp::istype($expression, RakuAST::Lookup) && $expression.is-resolved
+          && (nqp::istype($expression, RakuAST::Var::Lexical::Constant)
+               || nqp::istype($expression, RakuAST::Term::Name)
+                    && !$expression.name.is-package-lookup
+                    && nqp::istype($expression.resolution, RakuAST::Declaration::External)) {
+            $key-type := $expression.resolution.maybe-compile-time-value;
+        }
+        # A container holding a type object is not a type object.
+        nqp::isnull($key-type) || nqp::isconcrete_nd($key-type) ?? NQPMu !! $key-type
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving
@@ -1510,6 +1554,15 @@ class RakuAST::VarDeclaration::Simple
           $resolver.build-exception: 'X::Bind'
         ) if $!shape && self.sigil eq '@'
           && $!initializer && $!initializer.is-binding;
+
+        if $!shape && self.sigil eq '%'
+          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPE, NQPMu) {
+            self.add-sorry: nqp::elems($!shape.code-statements) > 1
+              ?? $resolver.build-exception('X::Comp::NYI',
+                   :feature('multidimensional shaped hashes'))
+              !! $resolver.build-exception('X::Comp::AdHoc',
+                   :payload('Invalid hash shape; type expected'));
+        }
 
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(

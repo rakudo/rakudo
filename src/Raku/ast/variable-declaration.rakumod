@@ -1463,6 +1463,10 @@ class RakuAST::VarDeclaration::Simple
 
         self.check-scope($resolver, 'variable');
 
+        # A variable a signature declares is checked by its parameter.
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where && !$!is-parameter;
+
         self.add-sorry(
           $resolver.build-exception: 'X::Adhoc',
             :message('Cannot declare an anonymous variable with a twigil')

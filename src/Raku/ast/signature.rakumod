@@ -1333,10 +1333,8 @@ class RakuAST::Parameter
         # Catch a double closure in the user's own where block, before it is
         # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
         # block, so it is left alone and its wrapper is not mistaken for one.
-        if $!where && nqp::istype($!where, RakuAST::Block) {
-            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
-            self.add-sorry: $sorry if $sorry;
-        }
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where;
 
         if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
             my $block := RakuAST::Block.new(

@@ -38,11 +38,8 @@ class RakuAST::Circumfix::Parentheses
     }
 
     method IMPL-SINGULAR-PRIMED-EXPRESSION() {
-        nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
-            && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
-            && nqp::istype($statement-expression, RakuAST::Statement::Expression)
-            && (my $expression := $statement-expression.expression)
-            && nqp::istype($expression, RakuAST::WhateverApplicable)
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::istype($expression, RakuAST::WhateverApplicable)
             && $expression.IMPL-PRIMED
                 ?? $expression
                 !! Nil

@@ -309,3 +309,42 @@ sub optimizer-enabled(--> Bool:D) is export {
     my $level := nqp::atkey(nqp::getcomp('Raku').cli-options, 'optimize');
     so nqp::isnull($level) || !($level eq 'off' || $level eq '0')
 }
+
+# Precompiles a module from the given source and checks what a program that
+# uses it prints for a call. A code object the module built at BEGIN time
+# must keep an outer frame the precompiled unit can load.
+sub is-run-precompiled(
+    Str:D $name,
+    Str:D $source,
+    Str:D $call,
+    Str:D $expected,
+    Str:D $desc,
+) is export is test-assertion {
+    my $store = make-temp-dir;
+    $store.add("$name.rakumod").spurt: $source;
+
+    my $proc = run :out, :err,
+        $*EXECUTABLE.absolute,
+        '-I', $store.absolute,
+        '-e', "use $name; print $call";
+
+    my $out = $proc.out.slurp(:close);
+    my $err = $proc.err.slurp(:close);
+
+    # make-temp-dir only removes the directory once it is empty.
+    my sub empty-dir(IO::Path:D $dir) {
+        for $dir.dir {
+            if .d { empty-dir $_; .rmdir }
+            else  { .unlink }
+        }
+    }
+    empty-dir $store;
+
+    subtest $desc => {
+        plan 4;
+        is $proc.exitcode, 0, 'exits cleanly';
+        is $proc.signal, 0, 'is not killed by a signal';
+        is $err, '', 'writes nothing to STDERR';
+        is $out, $expected, 'prints the expected result';
+    }
+}

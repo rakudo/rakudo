@@ -3781,6 +3781,16 @@ my class X::WhateverCode::SmartMatch::LHS {
     }
 }
 
+my class X::Whatever::ShortCircuit {
+    has $.what;
+    has $.operator;
+    method message() {
+        "$!what tested first by $!operator does not curry the $!operator expression,\n"
+            ~ "and is always true and defined.\n"
+            ~ "Try a block using \$_ instead if results are not as expected."
+    }
+}
+
 my class X::EXPORTHOW::InvalidDirective does X::Comp {
     has $.directive;
     method message() {

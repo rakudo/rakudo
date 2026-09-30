@@ -428,19 +428,19 @@ role Raku::Common {
     }
 
     token cheat-heredoc {
+        :my $scope;
         <?{ nqp::elems($*CU.herestub-queue) }>
         \h*
-        <[ ; } ]>
+        $<closer>=<[ ; } ]>
         \h*
         <?before \n | '#'>
 
-        # <.ws> is where the heredoc body splices in. Leave this scope for
-        # it, then restore the same one. Re-entering a fresh scope would
-        # drop the declarations already registered into it, so begin-time
-        # code later could not resolve any enclosing lexical.
-        :my $scope := $*R.leave-scope;
+        # <.ws> splices in the heredoc body. After a closing brace the body is
+        # outside the block, so leave that scope and re-enter the same object.
+        # A fresh scope would lack the declarations registered into it.
+        { $scope := $*R.leave-scope if $<closer> eq '}' }
         <.ws>
-        { $*R.re-enter-scope($scope) }
+        { $*R.re-enter-scope($scope) if nqp::isconcrete($scope) }
         <?MARKER('end-statement')>
     }
 

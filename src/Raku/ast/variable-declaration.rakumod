@@ -4187,6 +4187,7 @@ class RakuAST::VarDeclaration::Placeholder
     has Bool $!already-declared;
     has RakuAST::Node $!owner;
     has RakuAST::VarDeclaration::Simple $!lowering-declaration;
+    has int $!refused;
 
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
@@ -4213,6 +4214,16 @@ class RakuAST::VarDeclaration::Placeholder
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $owner := $resolver.find-attach-target('block');
         my $method := $resolver.find-attach-target('method');
+        # A heredoc body written after the closing brace of a block cannot add
+        # a parameter to it. A %_ in a method is the method's own slurpy, so it
+        # adds nothing.
+        if $resolver.IMPL-HEREDOC-SCOPE-CLOSED($owner)
+          && !(self.lexical-name eq '%_' && ($method || $owner.IMPL-IS-IN-METHOD)) {
+            nqp::bindattr_i(self, RakuAST::VarDeclaration::Placeholder, '$!refused', 1);
+            self.add-sorry: $resolver.build-exception: 'X::Placeholder::Mainline',
+              placeholder => self.declared-name;
+            return Nil;
+        }
         if $owner {
             nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!owner', $owner);
             $owner.add-placeholder-parameter(self);
@@ -4225,6 +4236,7 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        return True if $!refused;
         my $block := $resolver.find-attach-target('block');
         my $name := self.declared-name;
         my $lexical-name := self.lexical-name;

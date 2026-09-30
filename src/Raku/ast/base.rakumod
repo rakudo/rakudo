@@ -209,7 +209,9 @@ class RakuAST::Node {
                 $resolver.add-node-with-check-time-problems(self) if self.has-check-time-problems;
             }
         }
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+        # A name a heredoc body may not use is reported as such instead.
+        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved
+          && !self.IMPL-HEREDOC-REPORT($resolver) && self.needs-resolution {
             $resolver.add-node-unresolved-after-check-time(self);
         }
 

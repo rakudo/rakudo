@@ -1251,6 +1251,49 @@ role RakuAST::Lookup {
 
     method IMPL-CALL-OP() { $!static-lookup ?? 'callstatic' !! 'call' }
 
+    # Set when a heredoc body may not use a name the lookup resolves, to 1
+    # when it is hidden where the body is written, 2 when it is ambiguous, 3
+    # when it is not declared where the heredoc starts and 4 once reported.
+    has int $!heredoc-refused;
+    has str $!heredoc-refused-name;
+
+    # Notes why the heredoc body being parsed may not use the name. The
+    # lookup then takes no resolution, also not at check time.
+    method IMPL-HEREDOC-REFUSE(str $refusal, str $name) {
+        unless $!heredoc-refused {
+            nqp::bindattr_i(self, RakuAST::Lookup, '$!heredoc-refused',
+              $refusal eq 'hidden' ?? 1 !! $refusal eq 'ambiguous' ?? 2 !! 3);
+            nqp::bindattr_s(self, RakuAST::Lookup, '$!heredoc-refused-name', $name);
+        }
+        Nil
+    }
+
+    # Notes why the heredoc body being parsed may not use a name the lookup
+    # does not resolve itself, if so.
+    method IMPL-NOTE-HEREDOC-REFUSAL(RakuAST::Resolver $resolver, str $name) {
+        my str $refusal := $resolver.IMPL-HEREDOC-REFUSED($name);
+        self.IMPL-HEREDOC-REFUSE($refusal, $name) if $refusal;
+        Nil
+    }
+
+    method IMPL-HEREDOC-SYMBOL(str $name) { $name }
+
+    # Reports a name a heredoc body may not use. One that is not declared
+    # where the heredoc starts is left to be reported as undeclared.
+    method IMPL-HEREDOC-REPORT(RakuAST::Resolver $resolver) {
+        my int $refused := $!heredoc-refused;
+        if $refused == 1 || $refused == 2 {
+            my $ex := $resolver.build-exception($refused == 1
+                ?? 'X::Syntax::Heredoc::HiddenName'
+                !! 'X::Syntax::Heredoc::AmbiguousName',
+              :symbol(self.IMPL-HEREDOC-SYMBOL($!heredoc-refused-name)));
+            self.IMPL-LOCATE-EXCEPTION($ex);
+            $resolver.add-sorry($ex);
+            nqp::bindattr_i(self, RakuAST::Lookup, '$!heredoc-refused', 4);
+        }
+        $refused == 1 || $refused == 2 || $refused == 4
+    }
+
     method needs-resolution() { True }
 
     method is-resolved() {
@@ -1274,6 +1317,7 @@ role RakuAST::Lookup {
 
     method set-resolution(RakuAST::Node $resolution) {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
+          unless $!heredoc-refused;
     }
 
     # Given a resolved routine and the compile-time argument types and native

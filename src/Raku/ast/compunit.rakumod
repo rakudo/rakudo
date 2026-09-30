@@ -205,6 +205,7 @@ class RakuAST::CompUnit
 
         $!mainline.IMPL-CHECK($resolver, $!context);
         self.IMPL-CHECK($resolver, $!context);
+        $resolver.IMPL-CHECK-HEREDOC-WATCHES;
 
         # Not all RakuAST::Doc objects actually have their PERFORM-CHECK
         # method called on them, causing holes to occur in $=pod (albeit

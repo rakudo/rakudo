@@ -1885,6 +1885,19 @@ my class X::Syntax::Variable::Initializer does X::Syntax {
     method message() { "Cannot use variable $!name in declaration to initialize itself" }
 }
 
+my class X::Syntax::Heredoc::AmbiguousName does X::Syntax {
+    has $.symbol;
+    method message() {
+        "Name '$!symbol' in a heredoc body is ambiguous: it means one declaration where the heredoc starts and another where its body is written".naive-word-wrapper
+    }
+}
+
+my class X::Syntax::Heredoc::HiddenName is X::Undeclared {
+    method message() {
+        "Name '$.symbol' in a heredoc body is declared only inside a block that closes on the heredoc's line, before the body. Move the closing brace of the block after the body to use it".naive-word-wrapper
+    }
+}
+
 my class X::Syntax::Variable::SignatureAssignment does X::Syntax {
     method message() {
         "Cannot use assignment when declaring a variable via signature binding.\n"

@@ -353,9 +353,15 @@ role Raku::Common {
         has $!delim;
         has $!orignode;
         has $!grammar;
+        has $!resolver-state;
+        has $!lang;
+        has $!package;
         method delim() { $!delim }
         method orignode() { $!orignode }
         method grammar() { $!grammar }
+        method resolver-state() { $!resolver-state }
+        method lang() { $!lang }
+        method package() { $!package }
     }
 
     role herestop {
@@ -380,7 +386,21 @@ role Raku::Common {
                         last;
                     }
                 }
-                my $doc := $here.nibble($lang);
+                # The body is parsed after its line ends but runs where the
+                # heredoc starts, so it takes the scopes, pragmas and package
+                # from there.
+                my $*LANG := $herestub.lang;
+                my $*PACKAGE := $herestub.package;
+                $*R.IMPL-ENTER-HEREDOC-BODY($herestub.resolver-state);
+                my $doc;
+                {
+                    CATCH {
+                        $*R.IMPL-LEAVE-HEREDOC-BODY;
+                        nqp::rethrow($_);
+                    }
+                    $doc := $here.nibble($lang);
+                }
+                $*R.IMPL-LEAVE-HEREDOC-BODY;
                 if $doc {
                     # Match stopper.
                     my $stop := self.lang-cursor-at($lang, $doc.pos).stopper;
@@ -429,6 +449,7 @@ role Raku::Common {
 
     token cheat-heredoc {
         :my $scope;
+        :my $package;
         <?{ nqp::elems($*CU.herestub-queue) }>
         \h*
         $<closer>=<[ ; } ]>
@@ -436,11 +457,20 @@ role Raku::Common {
         <?before \n | '#'>
 
         # <.ws> splices in the heredoc body. After a closing brace the body is
-        # outside the block, so leave that scope and re-enter the same object.
-        # A fresh scope would lack the declarations registered into it.
-        { $scope := $*R.leave-scope if $<closer> eq '}' }
+        # parsed outside the block, and outside a package the block is the
+        # body of, so leave those scopes and re-enter the same objects.
+        {
+            if $<closer> eq '}' {
+                $scope := $*R.leave-scope;
+                $package := $*R.leave-scope
+                  if nqp::istype($*R.current-scope, self.Nodify('Package'));
+            }
+        }
         <.ws>
-        { $*R.re-enter-scope($scope) if nqp::isconcrete($scope) }
+        {
+            $*R.re-enter-scope($package) if nqp::isconcrete($package);
+            $*R.re-enter-scope($scope) if nqp::isconcrete($scope);
+        }
         <?MARKER('end-statement')>
     }
 
@@ -474,7 +504,9 @@ role Raku::Common {
                   "Stopper '" ~ $<nibble> ~ "' too complex for heredoc"
                 );
                 $*CU.queue-heredoc(Herestub.new(
-                  :$delim, :grammar($lang.herelang), :orignode(self)
+                  :$delim, :grammar($lang.herelang), :orignode(self),
+                  :resolver-state($*R.IMPL-HEREDOC-STATE), :lang($*LANG),
+                  :package($*PACKAGE)
                 ));
             }
         }
@@ -904,6 +936,13 @@ role Raku::Common {
 
         elsif ($*VARIABLE-NAME && $*VARIABLE-NAME eq $name) {
             self.typed-panic: 'X::Syntax::Variable::Initializer', :$name;
+        }
+
+        elsif (my str $refusal := $*R.IMPL-HEREDOC-REFUSED($name)) eq 'ambiguous' {
+            self.typed-panic: 'X::Syntax::Heredoc::AmbiguousName', symbol => $name;
+        }
+        elsif $refusal eq 'hidden' {
+            self.typed-panic: 'X::Syntax::Heredoc::HiddenName', symbol => $name;
         }
 
         # Not resolved and not a Callable
@@ -5075,11 +5114,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             my $longname := $<longname>.ast.canonicalize;
             my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
-            $/."$method"('X::Undeclared',
-              what   => "Type",
-              symbol => $longname,
-              suggestions => $*R.suggest-typename($longname)
-            );
+            my str $refusal := $*R.IMPL-HEREDOC-REFUSED($longname);
+            $refusal eq 'ambiguous'
+              ?? $/."$method"('X::Syntax::Heredoc::AmbiguousName', symbol => $longname)
+              !! $refusal eq 'hidden'
+                ?? $/."$method"('X::Syntax::Heredoc::HiddenName', symbol => $longname)
+                !! $/."$method"('X::Undeclared',
+                     what   => "Type",
+                     symbol => $longname,
+                     suggestions => $*R.suggest-typename($longname)
+                   );
         }
     }
 

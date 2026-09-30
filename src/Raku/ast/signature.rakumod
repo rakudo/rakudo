@@ -326,7 +326,13 @@ class RakuAST::Signature
         elsif $!returns.has-compile-time-value {
             $!returns.maybe-compile-time-value
         }
+        elsif nqp::istype($!returns, RakuAST::Heredoc) && $!returns.IMPL-AWAITS-BODY {
+            $!returns.IMPL-PREMATURE
+        }
         else {
+            # Only a heredoc gets here, as its body may turn out to interpolate.
+            $!returns.IMPL-THROW-IF-COMPILING('X::Comp::AdHoc',
+              :payload('Return value after --> may only be a type or a constant'));
             nqp::die('--> return constraint must be a type or a constant value');
         }
     }
@@ -337,9 +343,20 @@ class RakuAST::Signature
         QAST::WVal.new(:value($signature))
     }
 
+    # A sub-signature is bound only by the full binder, which reads the
+    # meta-objects, so its parameters get their literal defaults too.
+    method IMPL-BIND-LITERAL-DEFAULTS() {
+        for $!parameters // [] {
+            $_.IMPL-BIND-DEFAULT-AS-LITERAL;
+            $_.sub-signature.IMPL-BIND-LITERAL-DEFAULTS if $_.sub-signature;
+        }
+        Nil
+    }
+
     method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi, Mu :$invocant-decl) {
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
+        self.IMPL-BIND-LITERAL-DEFAULTS;
         if $needs-full-binder {
             $bindings.push(QAST::Op.new(
                 :op('if'),
@@ -896,6 +913,21 @@ class RakuAST::Parameter
         $!optional // ($!default || $!names ?? True !! False)
     }
 
+    # The meta-object binds a default with a compile time value as a literal,
+    # even when BEGIN time saw no value and gave it the thunk instead.
+    method IMPL-BIND-DEFAULT-AS-LITERAL() {
+        return Nil unless $!default && $!default.has-compile-time-value;
+        my $parameter := self.meta-object;
+        my int $flags := nqp::getattr_i($parameter, Parameter, '$!flags');
+        unless $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
+            nqp::bindattr($parameter, Parameter, '$!default_value',
+              $!default.maybe-compile-time-value);
+            nqp::bindattr_i($parameter, Parameter, '$!flags',
+              $flags +| nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL);
+        }
+        Nil
+    }
+
     method IMPL-NAMES(Mu $names) {
         my @names;
         if $names {
@@ -1283,7 +1315,10 @@ class RakuAST::Parameter
         }
 
         CATCH {
-            $resolver.convert-begin-time-exception($_).throw
+            my $ex := $resolver.convert-exception($_);
+            # An error already located is reported as it is.
+            $ex.rethrow if nqp::can($ex, 'line') && nqp::isconcrete($ex.line);
+            $resolver.convert-begin-time-exception($ex).throw
         }
 
         self.IMPL-DOCUMENT-AT-BEGIN;
@@ -1833,8 +1868,17 @@ class RakuAST::Parameter
         # If it's optional, do any default handling.
         if self.is-optional {
             if $!default.has-compile-time-value {
-                # Literal default value, so just insert it.
-                $param-qast.default($!default.IMPL-TO-QAST($context));
+                # Literal default value, so just insert it. A default thunked
+                # at BEGIN time may have one by now, from a heredoc body or the
+                # optimizer, so its thunk goes unused.
+                if $!default.outer-most-thunk {
+                    my $value := $!default.maybe-compile-time-value;
+                    $context.ensure-sc($value);
+                    $param-qast.default(QAST::WVal.new(:$value));
+                }
+                else {
+                    $param-qast.default($!default.IMPL-TO-QAST($context));
+                }
             }
             elsif $!default {
                 # Default has been thunked, so call the produced thunk.

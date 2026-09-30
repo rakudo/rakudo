@@ -438,6 +438,7 @@ role Raku::Common {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
             }
+            $*R.IMPL-HEREDOC-BODIES-ATTACHED;
             $here.pass-at-current;
             $here.set_actions($actions);
             $here
@@ -500,7 +501,7 @@ role Raku::Common {
 
         {
             if nqp::can($lang,'herelang') {
-                my $delim := $<nibble>.ast.literal-value // $/.panic(
+                my $delim := $<nibble>.ast.IMPL-AWAIT-BODY // $/.panic(
                   "Stopper '" ~ $<nibble> ~ "' too complex for heredoc"
                 );
                 $*CU.queue-heredoc(Herestub.new(
@@ -1425,6 +1426,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              {self.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'}
           || {self.typed-panic: 'X::Syntax::Confused'}  # huh??
         ]
+        # A heredoc on a last line that has no newline gets no body.
+        [
+          <?{ nqp::elems($*CU.herestub-queue) }>
+          <.panic("Ending delimiter " ~ $*CU.herestub-queue[0].delim ~ " not found")>
+        ]?
         { $*R.leave-scope }
     }
 

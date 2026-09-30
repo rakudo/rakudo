@@ -326,6 +326,7 @@ class RakuAST::Resolver {
     # that parses source has heredoc bodies.
     method IMPL-HEREDOC-REFUSED(Str $name) { '' }
     method IMPL-CHECK-HEREDOC-WATCHES() { Nil }
+    method IMPL-HEREDOCS-AWAITING-BODY() { 0 }
     method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) { False }
 
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
@@ -1577,6 +1578,10 @@ class RakuAST::Resolver::Compile
     # the heredoc's line that must not declare it after the body.
     has Mu $!heredoc-watches;
 
+    # How many heredocs await their body, and what runs once they have it.
+    has int $!heredocs-awaiting-body;
+    has Mu $!after-heredoc-bodies;
+
     # Create a resolver from given arguments
     method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
         my $obj := nqp::create(self);
@@ -1760,6 +1765,8 @@ class RakuAST::Resolver::Compile
     # compiles in, as they stand now. A heredoc records them where it starts,
     # so its body binds names, attaches and declares as code there would.
     method IMPL-HEREDOC-STATE() {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body + 1);
         my @scopes;
         nqp::push(@scopes, $_.IMPL-SNAPSHOT) for $!scopes;
         nqp::hash(
@@ -1772,6 +1779,8 @@ class RakuAST::Resolver::Compile
     # its body. The body notes the scopes where it is parsed, how many scopes
     # it runs in, and what IMPL-LEAVE-HEREDOC-BODY restores.
     method IMPL-ENTER-HEREDOC-BODY(Mu $state) {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body - 1);
         nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-watches', nqp::hash())
           unless nqp::isconcrete($!heredoc-watches);
         my @scopes := $state<scopes>;
@@ -1802,6 +1811,8 @@ class RakuAST::Resolver::Compile
         Nil
     }
 
+    method IMPL-HEREDOCS-AWAITING-BODY() { $!heredocs-awaiting-body }
+
     # Whether the heredoc body being parsed starts in the scope but is written
     # after its closing brace.
     method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) {
@@ -1817,6 +1828,24 @@ class RakuAST::Resolver::Compile
             return False if nqp::eqaddr($_.scope, $scope);
         }
         True
+    }
+
+    # Runs the code once the queued heredocs have their bodies.
+    method IMPL-AFTER-HEREDOC-BODIES(Mu $code) {
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', [])
+          unless nqp::isconcrete($!after-heredoc-bodies);
+        nqp::push($!after-heredoc-bodies, $code);
+        Nil
+    }
+
+    # Called by the parser once it attached the queued heredoc bodies.
+    method IMPL-HEREDOC-BODIES-ATTACHED() {
+        my $after := $!after-heredoc-bodies;
+        if nqp::isconcrete($after) && !$!heredocs-awaiting-body {
+            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', Mu);
+            $_() for $after;
+        }
+        Nil
     }
 
     # How code where the heredoc starts finds the name. Returns why the body

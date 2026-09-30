@@ -209,10 +209,25 @@ class RakuAST::Name
                 CATCH {
                     if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
                         my $content := '';
-                        $cp.visit-children(-> $child {
-                            $content := $content ~ $child.DEPARSE;
-                        });
+                        my $origin  := nqp::istype($cp, RakuAST::ColonPair::Value)
+                          ?? $cp.value.origin
+                          !! $cp.origin;
+                        if nqp::isconcrete($origin) && nqp::isconcrete($origin.source) {
+                            $content := $origin.Str;
+                            my int $last := nqp::chars($content) - 1;
+                            $content := nqp::substr($content, 1, $last - 1)
+                              if nqp::eqat($content, '[', 0) && nqp::eqat($content, ']', $last)
+                              || nqp::eqat($content, '(', 0) && nqp::eqat($content, ')', $last);
+                        }
+                        else {
+                            $cp.visit-children(-> $child {
+                                $content := $content ~ $child.DEPARSE;
+                            });
+                        }
                         nqp::getpayload($_).set-name($content);
+                        nqp::setmessage($_, nqp::getpayload($_).message);
+                        $cp.IMPL-THROW-IF-COMPILING(
+                          'X::Syntax::Extension::TooComplex', :name($content));
                     }
                     nqp::rethrow($_);
                 }

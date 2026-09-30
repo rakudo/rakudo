@@ -77,6 +77,9 @@ class RakuAST::Pragma
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        CATCH {
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
+        }
         my $name    := $!name;
         my $LANG    := $*LANG;
         my int $on  := nqp::not_i($!off);

@@ -1409,12 +1409,7 @@ class RakuAST::VarDeclaration::Simple
                   # and the attribute's value to compute the default, so a
                   # default whose value is a code object takes the method
                   # path below to be stored as a value.
-                  && !nqp::isinvokable($expression.maybe-compile-time-value)
-                  # A heredoc's body is spliced in at the end of the line, after
-                  # this attribute has begun. Reading its value now would capture
-                  # the placeholder, so leave it to the method path, which compiles
-                  # the expression once the body is present.
-                  && !nqp::istype($expression, RakuAST::Heredoc) {
+                  && !nqp::isinvokable($expression.maybe-compile-time-value) {
                     # Only a concrete default known at compile time becomes the
                     # build value directly. A default that is a type object would
                     # leave the build not concrete. Then the attribute is not
@@ -3041,6 +3036,7 @@ class RakuAST::VarDeclaration::Signature
             }
         }
         elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
+            $!signature.IMPL-BIND-LITERAL-DEFAULTS;
             my $signature := $!signature.meta-object;
             $context.ensure-sc($signature);
             my $init-qast := $!initializer.IMPL-TO-QAST($context);

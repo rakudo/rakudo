@@ -1,9 +1,9 @@
 use Test;
 
 # A hash shape names the key type and must be one type object known at
-# compile time.
+# compile time. A declaration takes at most one shape.
 
-plan 42;
+plan 44;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -114,5 +114,13 @@ is (try EVAL 'my %h{HashShapeOuter}; %h.keyof.^name'), 'HashShapeOuter',
     'a hash shape of a type declared outside the EVAL keys by that type';
 nok (try EVAL 'my %h{HashShapeOurOuter:D}; %h.keyof') =:= HashShapeOurOuter,
     'a definite type from outside the EVAL never keys by its plain type';
+
+throws-like { EVAL 'my %h{Str}{Int}' }, X::Comp::AdHoc,
+    message => 'Multiple shapes not yet understood',
+    'a hash declaration with two shapes is refused';
+
+throws-like { EVAL 'my @a[2][3]' }, X::Comp::AdHoc,
+    message => 'Multiple shapes not yet understood',
+    'an array declaration with two shapes is refused';
 
 # vim: expandtab shiftwidth=4

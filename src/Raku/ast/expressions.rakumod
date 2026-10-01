@@ -297,18 +297,7 @@ class RakuAST::Infixish
     method IMPL-PRIMES() { 0 }
 
     # What the operand at the index primes, within what IMPL-PRIMES allows.
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { self.IMPL-PRIMES }
-
-    # What an operand primes when a zip, cross, or hyper applies this
-    # short-circuit operator to each element. A WhateverCode on a side with
-    # a `b` thunk stays a value for the operator to call.
-    method IMPL-ELEMENT-PRIMES(int $index, int $elems) {
-        my str $thunky := self.properties.thunky;
-        my int $last := nqp::chars($thunky) - 1;
-        $last < 0
-          ?? 0
-          !! nqp::eqat($thunky, 'b', $index < $last ?? $index !! $last) ?? 1 !! 3
-    }
+    method IMPL-OPERAND-PRIMES(int $index) { self.IMPL-PRIMES }
 
     # The index of the operand a short-circuit operator tests before any
     # other, or -1 for an operator that does not take its operands in turn.
@@ -541,7 +530,7 @@ class RakuAST::Infix
 
     # A WhateverCode right of `!~~` is the matcher, as it is for `~~`, while
     # the left side primes as any operand does.
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) {
+    method IMPL-OPERAND-PRIMES(int $index) {
         $!operator eq '!~~' && $index ?? 1 !! self.IMPL-PRIMES
     }
 
@@ -1618,9 +1607,7 @@ class RakuAST::BracketedInfix
 
     method IMPL-PRIMES() { $!infix.IMPL-PRIMES }
 
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { $!infix.IMPL-OPERAND-PRIMES($index, $elems) }
-
-    method IMPL-ELEMENT-PRIMES(int $index, int $elems) { $!infix.IMPL-ELEMENT-PRIMES($index, $elems) }
+    method IMPL-OPERAND-PRIMES(int $index) { $!infix.IMPL-OPERAND-PRIMES($index) }
 
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) {
         $!infix.IMPL-FIRST-TESTED-OPERAND($elems, :$called)
@@ -1756,7 +1743,9 @@ class RakuAST::MetaInfix
           !! True
     }
 
-    method IMPL-PRIMES { self.infix.IMPL-PRIMES }
+    # A meta-operator primes a Whatever or WhateverCode operand, even one the
+    # operator it wraps takes as a value, as in `1 Rxx *`.
+    method IMPL-PRIMES() { 3 }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
@@ -1775,21 +1764,6 @@ class RakuAST::MetaInfix
         for $operands {
             $_.apply-sink(False);
         }
-    }
-}
-
-# A meta-operator that applies its operator to each element. A short-circuit
-# operator primes under it like any other operator, except for a WhateverCode
-# it calls.
-role RakuAST::MetaInfix::Elementwise {
-    method IMPL-PRIMES() {
-        self.infix.IMPL-PRIMES || (nqp::chars(self.infix.properties.thunky) ?? 3 !! 0)
-    }
-
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) {
-        self.infix.IMPL-PRIMES
-          ?? self.infix.IMPL-OPERAND-PRIMES($index, $elems)
-          !! self.infix.IMPL-ELEMENT-PRIMES($index, $elems)
     }
 }
 
@@ -1848,14 +1822,11 @@ class RakuAST::MetaInfix::Assign
           || nqp::istype($!infix, RakuAST::MetaInfix::Cross)
     }
 
-    # An assignment takes a Whatever or WhateverCode as the value to assign, so
-    # the assign form of a short-circuit primes neither, elementwise or not.
+    # The assign form of a plain short-circuit operator takes a Whatever or
+    # WhateverCode as the value to assign, as `$x = *` does.
     method IMPL-PRIMES() {
         my $base := self.infix.IMPL-UNBRACKETED;
-        $base := $base.infix.IMPL-UNBRACKETED while nqp::istype($base, RakuAST::MetaInfix);
-        nqp::istype($base, RakuAST::Infix) && $base.IMPL-SHORT-CIRCUIT-KIND
-          ?? 0
-          !! self.infix.IMPL-PRIMES
+        nqp::istype($base, RakuAST::Infix) && $base.IMPL-SHORT-CIRCUIT-KIND ?? 0 !! 3
     }
 
     method IMPL-IS-TEST() {
@@ -2198,10 +2169,6 @@ class RakuAST::MetaInfix::Negate
 
     method properties() { $!infix.properties }
 
-    # A negated short-circuit yields a Bool, so a Whatever or WhateverCode
-    # operand taken as a value could only give a constant. It primes both.
-    method IMPL-PRIMES() { $!infix.IMPL-PRIMES || 3 }
-
     method reducer-name() { $!infix.reducer-name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2298,16 +2265,6 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-CALLS-OPERATOR() { True }
-
-    # The operator gets the operands in reverse order, so an operand primes as
-    # the operator's operand in the mirrored place does.
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) {
-        self.infix.IMPL-OPERAND-PRIMES($elems - 1 - $index, $elems)
-    }
-
-    method IMPL-ELEMENT-PRIMES(int $index, int $elems) {
-        self.infix.IMPL-ELEMENT-PRIMES($elems - 1 - $index, $elems)
-    }
 
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) {
         my int $index := self.infix.IMPL-FIRST-TESTED-OPERAND($elems, :called);
@@ -2408,10 +2365,6 @@ class RakuAST::MetaInfix::Sequence
 
     method IMPL-CALLS-OPERATOR() { True }
 
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { self.infix.IMPL-OPERAND-PRIMES($index, $elems) }
-
-    method IMPL-ELEMENT-PRIMES(int $index, int $elems) { self.infix.IMPL-ELEMENT-PRIMES($index, $elems) }
-
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) {
         self.infix.IMPL-FIRST-TESTED-OPERAND($elems, :called)
     }
@@ -2456,7 +2409,6 @@ class RakuAST::MetaInfix::Sequence
 # A cross meta-operator.
 class RakuAST::MetaInfix::Cross
   is RakuAST::MetaInfix
-  does RakuAST::MetaInfix::Elementwise
 {
     has RakuAST::Infixish $.infix;
 
@@ -2558,7 +2510,6 @@ class RakuAST::MetaInfix::Cross
 # A zip meta-operator.
 class RakuAST::MetaInfix::Zip
   is RakuAST::MetaInfix
-  does RakuAST::MetaInfix::Elementwise
 {
     has RakuAST::Infixish $.infix;
 
@@ -2660,7 +2611,6 @@ class RakuAST::MetaInfix::Zip
 # An infix hyper operator.
 class RakuAST::MetaInfix::Hyper
   is RakuAST::MetaInfix
-  does RakuAST::MetaInfix::Elementwise
 {
     has RakuAST::Infixish $.infix;
     has Bool $.dwim-left;
@@ -2849,10 +2799,9 @@ role RakuAST::WhateverApplicable
         return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
 
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
-        my int $elems := nqp::elems(@operands);
         my int $index := 0;
         for @operands {
-            my int $primes := self.IMPL-OPERAND-PRIMES($index++, $elems);
+            my int $primes := self.IMPL-OPERAND-PRIMES($index++);
             if nqp::bitand_i($primes, 1) {
                 return True if nqp::istype($_, RakuAST::Term::Whatever)
                             || nqp::istype($_, RakuAST::Term::HyperWhatever)
@@ -2866,15 +2815,14 @@ role RakuAST::WhateverApplicable
         False
     }
 
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { self.operator.IMPL-PRIMES }
+    method IMPL-OPERAND-PRIMES(int $index) { self.operator.IMPL-PRIMES }
 
     method IMPL-REPLACE-PRIME-OPERANDS() {
         my int $index := 0;
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
-        my int $elems := nqp::elems(@operands);
         for @operands {
             my $operand := $_;
-            my int $primes := self.IMPL-OPERAND-PRIMES($index, $elems);
+            my int $primes := self.IMPL-OPERAND-PRIMES($index);
             if nqp::bitand_i($primes, 1)
             && (nqp::istype($_, RakuAST::Term::Whatever) || nqp::istype($_, RakuAST::Term::HyperWhatever)) {
                 my $argument := RakuAST::WhateverCode::Argument.new;
@@ -3009,7 +2957,7 @@ class RakuAST::ApplyInfix
 
     method operands() { $!args.IMPL-UNWRAP-LIST($!args.args) }
     method operator() { $!infix }
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { $!infix.IMPL-OPERAND-PRIMES($index, $elems) }
+    method IMPL-OPERAND-PRIMES(int $index) { $!infix.IMPL-OPERAND-PRIMES($index) }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-MAYBE-PRIME($resolver, $context);
@@ -3324,7 +3272,7 @@ class RakuAST::ApplyListInfix
     }
 
     method operator() { $!infix }
-    method IMPL-OPERAND-PRIMES(int $index, int $elems) { $!infix.IMPL-OPERAND-PRIMES($index, $elems) }
+    method IMPL-OPERAND-PRIMES(int $index) { $!infix.IMPL-OPERAND-PRIMES($index) }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @operands;

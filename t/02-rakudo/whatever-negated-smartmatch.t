@@ -23,11 +23,16 @@ todo 'the legacy frontend primes a WhateverCode right of !~~ beside a Whatever',
 }
 is-deeply (1..6).grep(* % 2 [!~~] 0).List, (1, 3, 5), 'a WhateverCode left of [!~~] primes';
 is (5 !~~ *)(41), True, 'a Whatever right of !~~ primes';
-todo 'the legacy frontend primes a WhateverCode matcher of a bracketed or meta !~~', 6
+todo 'the legacy frontend primes a WhateverCode matcher of a bracketed !~~', 1
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 is-deeply (5 [!~~] *.succ), False, 'a WhateverCode right of [!~~] is the matcher';
-is-deeply (5 Z!~~ *.succ).List, (False,), 'a WhateverCode right of Z!~~ is the matcher';
-is-deeply (5 X!~~ *.succ).List, (False,), 'a WhateverCode right of X!~~ is the matcher';
-is-deeply (5 »!~~» *.succ), False, 'a WhateverCode right of »!~~» is the matcher';
-is-deeply (*.succ R!~~ 5), False, 'a WhateverCode left of R!~~ is the matcher';
-is-deeply (try 5 S!~~ *.succ), False, 'a WhateverCode right of S!~~ is the matcher';
+is-deeply (5 Z!~~ *.succ)(41).List, (True,), 'Z!~~ primes a WhateverCode right side';
+is-deeply (5 X!~~ *.succ)(41).List, (True,), 'X!~~ primes a WhateverCode right side';
+is (5 »!~~» *.succ)(41), True, '»!~~» primes a WhateverCode right side';
+is (*.succ R!~~ 5)(41), True, 'R!~~ primes a WhateverCode left side';
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is (5 S!~~ *.succ)(41), True, 'S!~~ primes a WhateverCode right side';
+}
+else {
+    skip 'the legacy frontend cannot run a sequenced operator', 1;
+}

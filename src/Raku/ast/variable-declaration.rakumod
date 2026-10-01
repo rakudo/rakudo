@@ -1294,7 +1294,7 @@ class RakuAST::VarDeclaration::Simple
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
             if $!desigilname.is-multi-part
-                && !nqp::istype($!desigilname.root-part, RakuAST::Name::Part::Empty) {
+                && !nqp::istype($!desigilname.root-part, RakuAST::Name::Part::EmptyEdge) {
                 # A qualified name anchors at its leading package: the
                 # lexically visible one when there is one, GLOBAL
                 # otherwise, never the package of the enclosing scope.

@@ -3048,7 +3048,7 @@ class RakuAST::Statement::Require
                 my $qast := QAST::Op.new(:op<call>, :name('&infix:<,>'));
                 my @parts := nqp::clone($!module-name.IMPL-UNWRAP-LIST($!module-name.parts));
                 # The leading `::` of `::('Foo')::('Bar')` is an empty part.
-                nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+                nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
                 for @parts {
                     $qast.push: $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, Mu, 0)
                 }

@@ -431,7 +431,7 @@ class RakuAST::Resolver {
         nqp::die('Empty name lookup not possible as a constant')
             if $constant.is-empty;
         my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
-        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
 
         my $root := @parts.shift;
         # Only CORE, GLOBAL and EXPORT roots get special treatment here; any
@@ -439,7 +439,7 @@ class RakuAST::Resolver {
         # not final: the code generation of an unresolved name falls back to
         # a run time lookup, which is where pseudo-package roots and symbols
         # only present in GLOBAL's stash are found, as in the legacy frontend.
-        if nqp::istype($root, RakuAST::Name::Part::Empty) {
+        if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
             return Nil;
         }
         elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
@@ -452,7 +452,7 @@ class RakuAST::Resolver {
         if ($name eq 'CORE') {
             return Nil unless @parts;  # bare CORE has nothing to resolve
             $root := nqp::shift(@parts);
-            if nqp::istype($root, RakuAST::Name::Part::Empty) {
+            if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
                 return Nil;
             }
             elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {

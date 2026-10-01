@@ -64,7 +64,7 @@ subtest 'Simple lexical enum' => {
         expression => RakuAST::Call::Name.new(
           name => RakuAST::Name.new(
             RakuAST::Name::Part::Simple.new("MY"),
-            RakuAST::Name::Part::Empty
+            RakuAST::Name::Part::EmptyEdge
           )
         )
       )
@@ -217,8 +217,8 @@ subtest 'Anonymous enum (enum ::)' => {
     my $ast := RakuAST::Type::Enum.new(
       scope => 'my',
       name  => RakuAST::Name.new(
-        RakuAST::Name::Part::Empty.new,
-        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::EmptyEdge.new,
+        RakuAST::Name::Part::EmptyEdge.new,
       ),
       term => RakuAST::QuotedString.new(
         segments   => (RakuAST::StrLiteral.new("a b c"),),

@@ -59,12 +59,12 @@ class RakuAST::Name
     method root-part() {
         nqp::die("Can't get root-part of empty name") unless nqp::elems($!parts);
         my $root := $!parts[0];
-        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::Empty);
+        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::EmptyEdge);
         $root
     }
 
     method is-multi-part() {
-        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Empty))
+        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
     method is-identifier() {
@@ -76,7 +76,7 @@ class RakuAST::Name
                 && nqp::index($parts[0].name, '::') == -1
         )
         || nqp::elems($parts) == 2 && (
-            nqp::istype($parts[0], RakuAST::Name::Part::Empty)
+            nqp::istype($parts[0], RakuAST::Name::Part::EmptyEdge)
             && (
                 nqp::istype($parts[1], RakuAST::Name::Part::Simple)
                 || nqp::istype($parts[1], RakuAST::Name::Part::Expression)
@@ -119,7 +119,7 @@ class RakuAST::Name
 
     method is-package-lookup() {
         nqp::elems($!parts)
-          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::Empty)
+          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::EmptyEdge)
     }
 
     method base-name() {
@@ -139,7 +139,7 @@ class RakuAST::Name
     }
 
     method indirect-lookup-part() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+        nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
             ?? $!parts[1]
             !! $!parts[0]
     }
@@ -232,7 +232,7 @@ class RakuAST::Name
             if nqp::istype($_, RakuAST::Name::Part::Simple) {
                 nqp::push_s($canon-parts, $_.name);
             }
-            elsif nqp::istype($_, RakuAST::Name::Part::Empty) {
+            elsif nqp::istype($_, RakuAST::Name::Part::EmptyEdge) {
                 nqp::push_s($canon-parts, '') unless $first;
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
@@ -259,11 +259,11 @@ class RakuAST::Name
 
     method is-pseudo-package() {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
-        || nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+        || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
     method is-package-search() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+        nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
     method qualified-with(RakuAST::Name $target) {
@@ -314,7 +314,7 @@ class RakuAST::Name
 
     method IMPL-LOOKUP-PARTS() {
         my @parts := nqp::clone($!parts);
-        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
         if nqp::elems(@parts) && nqp::elems($!colonpairs) {
             my $final := nqp::pop(@parts);
             $final := RakuAST::Name.from-identifier($final.name);
@@ -391,7 +391,7 @@ class RakuAST::Name
         my @parts   := self.IMPL-LOOKUP-PARTS;
         # A trailing `::` designates the package itself and adds no lookup chunk,
         # so drop the empty final part.
-        nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::Empty);
+        nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::EmptyEdge);
         my $final   := @parts[nqp::elems(@parts) - 1];
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $result  := QAST::Op.new(
@@ -549,7 +549,7 @@ class RakuAST::Name::Part::Expression
 }
 
 # An empty name part, implying .WHO
-class RakuAST::Name::Part::Empty
+class RakuAST::Name::Part::EmptyEdge
   is RakuAST::Name::Part
 {
     method new() {

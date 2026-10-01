@@ -1518,11 +1518,11 @@ augment class RakuAST::Name::Part {
 
 #- Name::Part-------------------------------------------------------------------
 
-    multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
+    multi method raku(RakuAST::Name::Part::EmptyEdge:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Name::Part::Empty:D: --> Str:D) {
+    multi method raku(RakuAST::Name::Part::EmptyEdge:D: --> Str:D) {
         self.^name ~ '.new'
     }
 

@@ -230,8 +230,8 @@ subtest 'Anonymous subset (subset ::)' => {
     my $two-ast := RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.new(
-        RakuAST::Name::Part::Empty.new,
-        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::EmptyEdge.new,
+        RakuAST::Name::Part::EmptyEdge.new,
       ),
       of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Str")
@@ -250,7 +250,7 @@ subtest 'Anonymous subset (subset ::)' => {
     # RakuAST API. The grammar always emits two empty parts for `::`.
     my $single := EVAL RakuAST::Type::Subset.new(
       scope => 'my',
-      name  => RakuAST::Name.new(RakuAST::Name::Part::Empty.new),
+      name  => RakuAST::Name.new(RakuAST::Name::Part::EmptyEdge.new),
       of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
         ),

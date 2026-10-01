@@ -1072,7 +1072,7 @@ class RakuAST::Var::Package
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name(RakuAST::Name.new($!name.root-part))
-            unless $!name.is-empty || nqp::istype($!name.root-part, RakuAST::Name::Part::Empty);
+            unless $!name.is-empty || nqp::istype($!name.root-part, RakuAST::Name::Part::EmptyEdge);
         if $resolved {
             self.set-resolution($resolved);
         }

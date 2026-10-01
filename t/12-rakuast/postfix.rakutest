@@ -873,7 +873,7 @@ subtest 'A number with a qualified method call keeps its parentheses' => {
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.new(
-          RakuAST::Name::Part::Empty.new,
+          RakuAST::Name::Part::EmptyEdge.new,
           RakuAST::Name::Part::Simple.new('Str'),
           RakuAST::Name::Part::Simple.new('abs')
         )

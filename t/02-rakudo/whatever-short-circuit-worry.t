@@ -2,7 +2,7 @@ use Test;
 use nqp;
 use MONKEY-SEE-NO-EVAL;
 
-plan 36;
+plan 38;
 
 todo 'the legacy frontend does not worry about an unprimed first operand', 22
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
@@ -45,15 +45,15 @@ throws-like ｢use fatal; my &f = (*.succ) || 0｣, X::Whatever::ShortCircuit,
 throws-like ｢use fatal; my &f = *.succ [||] 0｣, X::Whatever::ShortCircuit,
     :what<WhateverCode>, :operator<||>,
     'a WhateverCode left of [||] draws a worry';
-throws-like ｢use fatal; my &f = *.succ S|| 0｣, X::Whatever::ShortCircuit,
-    :what<WhateverCode>, :operator<||>,
-    'a WhateverCode left of S|| draws a worry';
-throws-like ｢use fatal; my &f = 0 R|| *.succ｣, X::Whatever::ShortCircuit,
-    :what<WhateverCode>, :operator<||>,
-    'a WhateverCode right of R|| draws a worry, as || tests it first';
-throws-like ｢use fatal; my $x = (0 Randthen *.succ)｣, X::Whatever::ShortCircuit,
-    :what<WhateverCode>, :operator<andthen>,
-    'a WhateverCode right of Randthen draws a worry, as andthen tests it first';
+throws-like ｢use fatal; my $x = (*) S|| 0｣, X::Whatever::ShortCircuit,
+    :what<Whatever>, :operator<||>,
+    'a parenthesized Whatever left of S|| draws a worry';
+throws-like ｢use fatal; my $x = 0 R|| (*)｣, X::Whatever::ShortCircuit,
+    :what<Whatever>, :operator<||>,
+    'a parenthesized Whatever right of R|| draws a worry, as || tests it first';
+throws-like ｢use fatal; my $x = (0 Randthen (*))｣, X::Whatever::ShortCircuit,
+    :what<Whatever>, :operator<andthen>,
+    'a parenthesized Whatever right of Randthen draws a worry, as andthen tests it first';
 throws-like ｢use fatal; my &f = * > 0 && * < 9｣, X::Whatever::ShortCircuit,
     message => { .contains('WhateverCode') && .contains('&&') },
     'the worry names the WhateverCode and the operator';
@@ -75,14 +75,20 @@ eval-lives-ok ｢use fatal; my &f = 0 ^^ *.succ｣,
     'a WhateverCode right of ^^ draws no worry';
 eval-lives-ok ｢use fatal; my $x = (42 andthen *.succ)｣,
     'a WhateverCode right of andthen draws no worry';
-eval-lives-ok ｢use fatal; my &f = *.succ R|| 0｣,
-    'a WhateverCode left of R|| draws no worry, as || tests it last';
+eval-lives-ok ｢use fatal; my $x = (*) R|| 0｣,
+    'a parenthesized Whatever left of R|| draws no worry, as || only returns it';
+eval-lives-ok ｢use fatal; my &f = 0 R|| *.succ｣,
+    'a WhateverCode right of R|| draws no worry, as R|| primes it';
+todo 'the legacy frontend cannot run a sequenced operator', 1
+    unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+eval-lives-ok ｢use fatal; my &f = *.succ S|| 0｣,
+    'a WhateverCode left of S|| draws no worry, as S|| primes it';
 eval-lives-ok ｢use fatal; my &f = *.succ !&& 1｣,
     'a WhateverCode left of !&& draws no worry, as !&& primes it';
 eval-lives-ok ｢use fatal; my &f = *.succ Z|| 0｣,
     'a WhateverCode left of Z|| draws no worry, as Z|| primes it';
-eval-lives-ok ｢use fatal; sub infix:<||>($a, $b) { $b }; my $x = 0 R|| *.succ｣,
-    'a WhateverCode right of R|| draws no worry when R|| calls a || declared in scope';
+eval-lives-ok ｢use fatal; sub infix:<||>($a, $b) { $b }; my $x = 0 R|| (*)｣,
+    'a parenthesized Whatever right of R|| draws no worry when R|| calls a || declared in scope';
 
 # A double closure sorry covers a WhateverCode that a short-circuit operator
 # in the block tests first.

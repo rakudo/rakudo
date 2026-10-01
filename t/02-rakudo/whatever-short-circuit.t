@@ -2,7 +2,7 @@ use Test;
 use nqp;
 use MONKEY-SEE-NO-EVAL;
 
-plan 130;
+plan 142;
 
 # A short-circuit operator takes a Whatever operand as a value.
 
@@ -78,8 +78,9 @@ is-deeply (1 ^^ *.succ), Nil,
         'and between two WhateverCodes returns the right one rather than priming both';
 }
 
-# The meta-op forms of andthen, orelse, and notandthen call a WhateverCode
-# operand with the other operand as the plain operator does.
+# The reduce forms of andthen and orelse call a WhateverCode with the value
+# before it, and the zip and cross forms call each WhateverCode element of
+# a list operand.
 is ([andthen] 42, *.succ), 43,
     '[andthen] calls a WhateverCode with the value before it';
 is-deeply ([\andthen] 42, *.succ).List, (42, 43),
@@ -90,30 +91,11 @@ is-deeply ((1, 2) Zandthen (*.succ, *.pred)).List, (2, 1),
     'Zandthen calls each WhateverCode element with its left element';
 is-deeply ((1, 2) Xandthen (*.succ, *.pred)).List, (2, 0, 3, 1),
     'Xandthen calls each WhateverCode element with each left element';
-todo 'the legacy frontend primes a WhateverCode operand of a zip, hyper, or reverse andthen', 5
-    unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
-is-deeply (42 Zandthen *.succ).List, (43,),
-    'Zandthen calls a WhateverCode operand with the left element';
-is (42 »andthen« *.succ), 43,
-    '»andthen« calls a WhateverCode operand with the left side';
-is (*.succ Randthen 42), 43,
-    'Randthen calls a WhateverCode left side with its defined right side';
-is-deeply (*.succ ZRandthen 42).List, (43,),
-    'ZRandthen calls a WhateverCode left operand with the right element';
-is (*.succ »Randthen« 42), 43,
-    '»Randthen« calls a WhateverCode left operand with the right side';
 
-# The reverse and assign forms take a Whatever or WhateverCode operand as a
-# value, like the plain operator.
-is (*.succ R// 1), 1,
-    'R// returns its defined right side over a WhateverCode left side';
-is-deeply (*.succ R^^ 1), Nil,
-    'R^^ of a WhateverCode left side and a true right side is Nil';
-is ((*.succ) R^^ 0)(41), 42,
-    'R^^ returns a parenthesized WhateverCode left side as is';
-todo 'the legacy frontend primes a Whatever operand of R^^ and leaks a thunk from [\R^^]', 2
+# The reduce forms, and the assign forms of a plain short-circuit operator,
+# take a WhateverCode operand as a value like the plain operator.
+todo 'the legacy frontend leaks a thunk from [\R^^]', 1
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
-isa-ok (* R^^ 0), Whatever, 'R^^ returns a Whatever left side as ^^ does';
 isa-ok ([\R^^] *.succ, 0)[0], WhateverCode, '[\R^^] yields a WhateverCode first operand as is';
 todo 'the legacy frontend primes a WhateverCode operand of these forms', 4
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
@@ -138,7 +120,8 @@ todo 'the legacy frontend primes a WhateverCode operand of these forms', 4
     isa-ok $x, WhateverCode, 'xor= assigns a WhateverCode right side to a false left side';
 }
 
-# An assignment meta-op assigns a WhateverCode right side as a value.
+# The assign form of a plain short-circuit operator assigns a Whatever or
+# WhateverCode right side as a value.
 {
     my $x;
     $x //= *.succ;
@@ -186,7 +169,7 @@ todo 'the legacy frontend primes a WhateverCode operand of these forms', 4
     %h<k> //= *.succ;
     is %h<k>(41), 42, '//= assigns a WhateverCode right side to an undefined hash element';
 }
-todo 'the legacy frontend primes a Whatever operand of ^^= and xor=, and cannot compile a hyper or zip assign', 5
+todo 'the legacy frontend primes a Whatever operand of ^^= and xor=', 2
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 {
     my $x = 0;
@@ -198,15 +181,21 @@ todo 'the legacy frontend primes a Whatever operand of ^^= and xor=, and cannot 
     $x xor= *;
     isa-ok $x, Whatever, 'xor= assigns a Whatever right side to a false left side';
 }
-isa-ok (try EVAL ｢my @a = Any, 1; @a »//=» *; @a[0]｣), Whatever,
-    '»//=» assigns a Whatever right side to an undefined element';
-isa-ok (try EVAL ｢my @a = Any, 1; @a »//=» *.succ; @a[0]｣), WhateverCode,
-    '»//=» assigns a WhateverCode right side to an undefined element';
-is (try EVAL ｢my @a = 1; @a Z&&= *.succ; @a[0](41)｣), 42,
-    'Z&&= assigns a WhateverCode right side to a true element';
 
-# A negated short-circuit yields a Bool, so it primes a Whatever or
-# WhateverCode operand.
+# A meta-operator other than the assign form of a plain short-circuit operator
+# primes a Whatever or WhateverCode operand, whatever the operator it wraps
+# does with it.
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is-deeply EVAL(｢my @a = Any, 1; (@a »//=» *)(5); @a｣), [5, 1],
+        '»//=» primes a Whatever right side';
+    is-deeply EVAL(｢my @a = Any, 1; (@a »//=» *.succ)(41); @a｣), [42, 1],
+        '»//=» primes a WhateverCode right side';
+    is EVAL(｢my @a = 1; (@a Z&&= *.succ)(41); @a[0]｣), 42,
+        'Z&&= primes a WhateverCode right side';
+}
+else {
+    skip 'the legacy frontend cannot compile a hyper or zip assign', 3;
+}
 is (0 !^^ *.succ)(41), False, '!^^ primes a WhateverCode operand';
 is (0 !^^ (*.succ))(41), False, '!^^ primes a parenthesized WhateverCode operand';
 is (*.succ !and 1)(0), False, '!and primes a WhateverCode operand';
@@ -215,17 +204,42 @@ todo 'the legacy frontend takes a WhateverCode right of a negated && as a value'
 isa-ok (1 !&& *.succ), WhateverCode, '!&& primes a WhateverCode right side';
 is-deeply (1, 0, 2, "").grep(* !^^ True).List, (1, 2), '!^^ primes a Whatever operand';
 is-deeply (1, 0, 2, "").grep(* !&& True).List, (0, ""), '!&& primes a Whatever operand';
-
-# Under a zip, cross, or hyper, a short-circuit operator primes like any other
-# operator, except for a WhateverCode that andthen, orelse, or notandthen calls
-# with the other operand.
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is (*.succ R// 1)(41), 1, 'R// primes a WhateverCode left side';
+}
+else {
+    skip 'the legacy frontend does not prime a WhateverCode operand of R//', 1;
+}
+todo 'the legacy frontend does not prime a WhateverCode operand of R^^', 2
+    unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+isa-ok (*.succ R^^ 1), WhateverCode, 'R^^ primes a WhateverCode left side';
+isa-ok ((*.succ) R^^ 1), WhateverCode, 'R^^ primes a parenthesized WhateverCode left side';
+is (* R^^ 0)(5), 5, 'R^^ primes a Whatever left side';
+is (*.succ Randthen 1)(41), 42, 'Randthen primes a WhateverCode left side';
+is (1 Randthen *.succ)(41), 1, 'Randthen primes a WhateverCode right side';
+is (1 Randthen 2 Randthen *.succ)(41), 1, 'Randthen of three operands primes a WhateverCode last operand';
+is (*.succ Rnotandthen Any)(41), 42, 'Rnotandthen primes a WhateverCode left side';
 is-deeply (1 Z&& *.succ)(41).List, (42,), 'Z&& primes a WhateverCode operand';
-is-deeply (*.succ Zandthen 42)(41).List, (42,), 'Zandthen primes a WhateverCode on its left';
-is-deeply (5 ZRandthen *.succ)(41).List, (5,), 'ZRandthen primes a WhateverCode on its right, which andthen tests';
-is (5 »Randthen« *.succ)(41), 5, '»Randthen« primes a WhateverCode on its right, which andthen tests';
-throws-like ｢sub ($a where {* < 5 Zandthen 1}) { }｣,
-    X::Syntax::Malformed, :what{.contains: 'closure'},
-    'a WhateverCode left of a Zandthen in a where block is a double closure';
+is-deeply (1 Zandthen *.succ)(41).List, (42,), 'Zandthen primes a WhateverCode right side';
+is-deeply (*.succ Zandthen 1)(41).List, (1,), 'Zandthen primes a WhateverCode left side';
+is-deeply (1 Xandthen *.succ)(41).List, (42,), 'Xandthen primes a WhateverCode right side';
+is (1 »andthen« *.succ)(41), 42, '»andthen« primes a WhateverCode right side';
+is-deeply (*.succ ZRandthen 1)(41).List, (42,), 'ZRandthen primes a WhateverCode left side';
+is-deeply (5 ZRandthen *.succ)(41).List, (5,), 'ZRandthen primes a WhateverCode right side';
+is (*.succ »Randthen« 1)(41), 42, '»Randthen« primes a WhateverCode left side';
+is (5 »Randthen« *.succ)(41), 5, '»Randthen« primes a WhateverCode right side';
+is-deeply (42 Zorelse *.succ)(1).List, (42,), 'Zorelse primes a WhateverCode right side';
+is-deeply (Any Znotandthen *.succ)(41).List, (42,), 'Znotandthen primes a WhateverCode right side';
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is (1 S&& *)(5), 5, 'S&& primes a Whatever operand';
+    is (1 S|| *.succ)(41), 1, 'S|| primes a WhateverCode right side';
+    is (*.succ S|| 5)(-1), 5, 'S|| primes a WhateverCode left side';
+    is (1 Sandthen *.succ)(41), 42, 'Sandthen primes a WhateverCode right side';
+    is (Any Sorelse *.succ)(41), 42, 'Sorelse primes a WhateverCode right side';
+}
+else {
+    skip 'the legacy frontend cannot run a sequenced operator', 5;
+}
 is-deeply (1 X&& *.succ)(41).List, (42,), 'X&& primes a WhateverCode operand';
 is (1 »&&« *.succ)(41), 42, '»&&« primes a WhateverCode operand';
 is-deeply (Any Z// *.succ)(41).List, (42,), 'Z// primes a WhateverCode operand';
@@ -276,22 +290,25 @@ throws-like ｢sub ($a where {* < 5 [&&] * > 9}) { }｣,
 throws-like ｢sub ($a where {* < 5 !and 1}) { }｣,
     X::Syntax::Malformed, :what{.contains: 'closure'},
     'a WhateverCode under a negated and in a where block is a double closure';
-throws-like ｢sub ($a where {1 Rand * > 9}) { }｣,
+throws-like ｢sub ($a where {* < 5 Zandthen 1}) { }｣,
     X::Syntax::Malformed, :what{.contains: 'closure'},
-    'a WhateverCode that a reversed and tests first in a where block is a double closure';
-throws-like ｢sub ($a where {1 Randthen 2 Randthen * < 5}) { }｣,
-    X::Syntax::Malformed, :what{.contains: 'closure'},
-    'a WhateverCode that a reversed andthen of three operands tests first in a where block is a double closure';
-todo 'the legacy frontend does not look through a sequenced reversed and', 1
+    'a WhateverCode left of a Zandthen in a where block is a double closure';
+eval-lives-ok ｢no worries; my $x = {(* > 9 and 1) Rand 1}()｣,
+    'a WhateverCode deciding the operand a reversed and returns in a block called in place is no double closure';
+todo 'the legacy frontend only looks at a leading and, or, &&, ||, or ternary condition', 24
     unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
-throws-like ｢sub ($a where {* > 9 SRand 1}) { }｣,
+throws-like ｢say {1 Rand (* > 9 and 1)}()｣,
     X::Syntax::Malformed, :what{.contains: 'closure'},
-    'a WhateverCode that a sequenced reversed and can return in a where block is a double closure';
-throws-like ｢say {* > 9 R[Rand] 1}()｣,
+    'a WhateverCode deciding the operand a reversed and tests first in a block called in place is a double closure';
+throws-like ｢say {1 Randthen 2 Randthen (* < 5 and 1)}()｣,
     X::Syntax::Malformed, :what{.contains: 'closure'},
-    'a WhateverCode that a doubly reversed and tests first in a block called in place is a double closure';
-todo 'the legacy frontend only looks at a leading and, or, &&, ||, or ternary condition', 20
-    unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+    'a WhateverCode deciding the operand a reversed andthen of three operands tests first in a block called in place is a double closure';
+throws-like ｢sub ($a where {(* > 9 and 1) SRand 1}) { }｣,
+    X::Syntax::Malformed, :what{.contains: 'closure'},
+    'a WhateverCode deciding an operand a sequenced reversed and can return in a where block is a double closure';
+throws-like ｢say {(* > 9 and 1) R[Rand] 1}()｣,
+    X::Syntax::Malformed, :what{.contains: 'closure'},
+    'a WhateverCode deciding the operand a doubly reversed and tests first in a block called in place is a double closure';
 throws-like ｢sub ($a where { ($_ < 0 or * > 10).Bool }) { }｣,
     X::Syntax::Malformed, :what{.contains: 'closure'},
     'a WhateverCode under a .Bool call in a where block is a double closure';

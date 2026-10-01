@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 32;
+plan 41;
 
 sub stderr-of(Str $code) {
     run($*EXECUTABLE.absolute, '-e', $code, :err).err.slurp(:close)
@@ -167,5 +167,51 @@ ok  useless-of($bracketed-comma-err, 'constant integer 2'),
 
 nok useless-lines(stderr-of 'my @a = 1,2; my @b = 3,4; sub f { @a X[+=] @b; 42 }; f()').elems,
     'a sunk `X[+=]` produces no useless-use subjects';
+
+# `tr///` assigns its result to the topic, so it has an effect in sink
+# context. `TR///` only gives back a changed copy, so discarding it is useless.
+
+nok useless-lines(stderr-of 'sub f { $_ = "abc"; tr/a/x/; 42 }; f()').elems,
+    'a sunk `tr///` is not a useless-use subject';
+
+nok useless-lines(stderr-of 'sub f { $_ = "abc"; tr:d/a//; 42 }; f()').elems,
+    'a sunk `tr///` with an adverb is not a useless-use subject';
+
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    ok useless-of(stderr-of('sub f { $_ = "abc"; TR/a/x/; 42 }; f()'), 'TR/a/x/'),
+        'a sunk `TR///` is a useless-use subject';
+}
+else {
+    skip 'the legacy frontend does not warn about a sunk `TR///`';
+}
+
+# A named term is a call to its `term:<...>` routine. The setting's terms
+# have no effect beyond their result, but a user-defined term may be called
+# for its effects.
+
+nok useless-lines(stderr-of 'sub term:<foo> { 1 }; sub f { foo; 42 }; f()').elems,
+    'a sunk user-defined term is not a useless-use subject';
+
+nok useless-lines(stderr-of 'my &term:<foo> = { 1 }; sub f { foo; 42 }; f()').elems,
+    'a sunk term held in a `my &term:<...>` variable is not a useless-use subject';
+
+nok useless-lines(
+        stderr-of 'module M { sub term:<foo> is export { 1 } }; import M; sub f { foo; 42 }; f()'
+    ).elems,
+    'a sunk imported term is not a useless-use subject';
+
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    nok useless-lines(stderr-of 'sub term:<now> { 1 }; sub f { now; 42 }; f()').elems,
+        'a sunk user-defined term named like a setting term is not a useless-use subject';
+
+    nok useless-lines(stderr-of 'sub f { now; 42 }; sub term:<now> { 1 }; f()').elems,
+        'a sunk term whose user-defined routine is declared later is not a useless-use subject';
+}
+else {
+    skip 'the legacy frontend warns about a sunk `now` by name', 2;
+}
+
+ok useless-lines(stderr-of 'sub f { now; 42 }; f()').elems,
+    'a sunk `now` is a useless-use subject';
 
 # vim: expandtab shiftwidth=4

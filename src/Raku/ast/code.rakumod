@@ -5656,6 +5656,13 @@ class RakuAST::Transliteration
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         Nil
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A tr/// assigns its result to $_, while a TR/// only gives back a
+        # changed copy, so only a sunk TR/// is useless.
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk && !$!destructive;
+    }
 }
 
 # Thunk handle for substitution replacement.

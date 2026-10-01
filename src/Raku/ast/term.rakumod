@@ -337,6 +337,24 @@ class RakuAST::Term::Named
         Nil
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A term routine declared later in the scope is hoisted to its start,
+        # so adopt it over an earlier `External` resolution.
+        if self.is-resolved && nqp::istype(self.resolution, RakuAST::Declaration::External) {
+            my $lexical := $resolver.resolve-term($!name);
+            if $lexical && !nqp::istype($lexical, RakuAST::Declaration::External) {
+                self.set-resolution($lexical);
+            }
+        }
+
+        # The setting's terms have no effect beyond their result. A
+        # user-defined term is a call like any other and may be made for its
+        # effects.
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk && self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::Declaration::External::Setting);
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) );
         $!args.IMPL-ADD-QAST-ARGS($context, $call);

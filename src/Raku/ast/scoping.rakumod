@@ -2085,7 +2085,7 @@ role RakuAST::PackageInstaller {
         else {
             my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
             $final := nqp::pop(@parts).name;
-            nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+            nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
             my $first-read := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 

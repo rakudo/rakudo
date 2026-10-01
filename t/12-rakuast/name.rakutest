@@ -35,19 +35,19 @@ subtest "name from identifier parts" => {
 subtest "name from different parts" => {
     $_ := RakuAST::Name.new(
       RakuAST::Name::Part::Simple.new("Foo"),
-      RakuAST::Name::Part::Empty
+      RakuAST::Name::Part::EmptyEdge
     );
     isa-ok $_, RakuAST::Name, '.new constructs a name';
     nok .is-identifier, 'the element is NOT considered an identifier';
     is-deeply .parts.elems, 2, 'Has two parts';
     isa-ok .parts[0], RakuAST::Name::Part::Simple, 'first part is simple';
-    isa-ok .parts[1], RakuAST::Name::Part::Empty, 'second part is empty';
+    isa-ok .parts[1], RakuAST::Name::Part::EmptyEdge, 'second part is empty';
     is-deeply .parts[0].name, 'Foo', 'part 1 has expected name';
     is-deeply .DEPARSE, 'Foo::', 'deparses in an expected way';
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Name.new(
   RakuAST::Name::Part::Simple.new("Foo"),
-  RakuAST::Name::Part::Empty
+  RakuAST::Name::Part::EmptyEdge
 )
 CODE
 }
@@ -128,7 +128,7 @@ subtest "indirect name lookup" => {
     # ::("Int")
     $_ := RakuAST::Term::Name.new(
       RakuAST::Name.new(
-        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::EmptyEdge.new,
         RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new("Int"))
       )
     );
@@ -136,7 +136,7 @@ subtest "indirect name lookup" => {
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Term::Name.new(
   RakuAST::Name.new(
-    RakuAST::Name::Part::Empty.new,
+    RakuAST::Name::Part::EmptyEdge.new,
     RakuAST::Name::Part::Expression.new(
       RakuAST::StrLiteral.new("Int")
     )

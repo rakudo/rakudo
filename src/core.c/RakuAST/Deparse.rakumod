@@ -1851,7 +1851,7 @@ CODE
                 if nqp::istype($_,RakuAST::Name::Part::Expression) {
                     '(' ~ self.deparse(.expr) ~ ')'
                 }
-                elsif nqp::istype($_,RakuAST::Name::Part::Empty) {
+                elsif nqp::istype($_,RakuAST::Name::Part::EmptyEdge) {
                     ''
                 }
                 else {

@@ -84,7 +84,7 @@ class RakuAST::Term::Name
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $name := $!name;
         if $name.is-pseudo-package
-            ?? nqp::istype($name.first-part, RakuAST::Name::Part::Empty) && $name.base-name.is-empty && $name.has-colonpairs
+            ?? nqp::istype($name.first-part, RakuAST::Name::Part::EmptyEdge) && $name.base-name.is-empty && $name.has-colonpairs
             !! ! $name.is-package-lookup && ! $name.is-indirect-lookup && ! self.is-resolved
         {
             self.add-sorry:

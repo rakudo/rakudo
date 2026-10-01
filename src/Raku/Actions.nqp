@@ -4784,7 +4784,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 @parts.push(Nodify('Name::Part::Simple').new(~$<identifier>));
             }
             elsif $<morename> {
-                @parts.push(Nodify('Name::Part::Empty').new);
+                @parts.push(Nodify('Name::Part::EmptyEdge').new);
             }
             for $<morename> {
                 @parts.push($_.ast);
@@ -4806,7 +4806,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make Nodify('Name::Part::Expression').new($ast);
         }
         else {
-            make Nodify('Name::Part::Empty');
+            make Nodify('Name::Part::EmptyEdge');
         }
     }
 

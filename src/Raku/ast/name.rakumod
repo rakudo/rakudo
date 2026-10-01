@@ -414,7 +414,7 @@ class RakuAST::Name
 }
 
 # Marker role for a part of a name.
-role RakuAST::Name::Part {
+class RakuAST::Name::Part {
     method is-pseudo-package() {
         False
     }
@@ -428,7 +428,9 @@ role RakuAST::Name::Part {
 }
 
 # A simple name part, wrapping a string name.
-class RakuAST::Name::Part::Simple does RakuAST::Name::Part {
+class RakuAST::Name::Part::Simple
+  is RakuAST::Name::Part
+{
     has str $.name;
 
     method new(Str $name) {
@@ -493,7 +495,9 @@ class RakuAST::Name::Part::Simple does RakuAST::Name::Part {
     }
 }
 
-class RakuAST::Name::Part::Expression does RakuAST::Name::Part {
+class RakuAST::Name::Part::Expression
+  is RakuAST::Name::Part
+{
     has RakuAST::Expression $.expr;
 
     method new(RakuAST::Expression $expr) {
@@ -545,7 +549,9 @@ class RakuAST::Name::Part::Expression does RakuAST::Name::Part {
 }
 
 # An empty name part, implying .WHO
-class RakuAST::Name::Part::Empty does RakuAST::Name::Part {
+class RakuAST::Name::Part::Empty
+  is RakuAST::Name::Part
+{
     method new() {
         nqp::create(self);
     }

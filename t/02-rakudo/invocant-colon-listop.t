@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 21;
+plan 23;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -74,6 +74,12 @@ todo 'the legacy frontend takes the enclosing listop invocant colon inside call 
   unless $rakuast;
 throws-like q[sub f(*@a) { @a }; say &f("abc": 1)], X::Comp,
     'colon inside call arguments is not the enclosing listop invocant colon';
+
+is-deeply EVAL(q[my class A { method f(|c) { c } }; sub f(|) { }; f(A: 1; 2)]), \((1,), (2,)),
+    'invocant colon in the first of several semicolon separated argument lists makes a method call';
+
+is-deeply EVAL(q[my class A { method f(|c) { c } }; sub f(|) { }; f(A: 1, 2; 3)]), \((1, 2), (3,)),
+    'comma separated arguments after an invocant colon are not nested in an extra list';
 
 todo 'the legacy frontend allows an invocant colon after a semicolon' unless $rakuast;
 throws-like q[comb("x"; "abc": 2)], X::Comp,

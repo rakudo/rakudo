@@ -31,6 +31,16 @@ class RakuAST::ArgList
         nqp::bindattr($obj, RakuAST::ArgList, '$!args', []);
         my @args := nqp::clone(self.IMPL-UNWRAP-LIST($colon-apply.operands));
         nqp::bindattr($obj, RakuAST::ArgList, '$!invocant', nqp::shift(@args));
+
+        # The arguments after the colon arrive as one comma list
+        if nqp::elems(@args) == 1 {
+            my $arg := @args[0];
+            if nqp::istype($arg, RakuAST::ApplyListInfix)
+              && nqp::istype($arg.infix, RakuAST::Infix)
+              && $arg.infix.operator eq ',' {
+                @args := self.IMPL-UNWRAP-LIST($arg.operands);
+            }
+        }
         for @args {
             $obj.push: $_;
         }
@@ -45,6 +55,11 @@ class RakuAST::ArgList
 
     method replace-args(List @args) {
         nqp::bindattr(self, RakuAST::ArgList, '$!args', self.IMPL-UNWRAP-LIST(@args));
+        Nil
+    }
+
+    method set-invocant(RakuAST::Expression $invocant) {
+        nqp::bindattr(self, RakuAST::ArgList, '$!invocant', $invocant);
         Nil
     }
 

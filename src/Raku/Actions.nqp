@@ -2809,19 +2809,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.SET-NODE-ORIGIN($<identifier>, $name);
         if (my $invocant := $args.invocant) {
             # Indirect method call syntax, e.g. key($pair:)
-            if $args.arity == 1 {
-                my $arg := $args.IMPL-UNWRAP-LIST($args.args)[0];
-                if nqp::istype($arg, Nodify('ApplyListInfix')) && nqp::istype($arg.infix, Nodify('Infix')) && $arg.infix.operator eq ',' {
-                    # Need to unpack the actual argument list:
-                    # ArgList  ⎡$o: 1, 2⎤
-                    #   Var::Lexical 【$o】  ⎡$o⎤
-                    #   ApplyListInfix  ⎡,⎤
-                    #     Infix 【,】  ⎡,⎤
-                    #     IntLiteral  ⎡1⎤
-                    #     IntLiteral  ⎡2⎤
-                    $args.replace-args($arg.operands);
-                }
-            }
             self.attach: $/, Nodify('ApplyPostfix').new(
                 operand => $invocant,
                 postfix => Nodify('Call::Method').new(:$name, :$args)
@@ -2875,19 +2862,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $args := $args.ast;
                 if $args.invocant -> $invocant {
                     # Indirect method call syntax, e.g. new Int: 1
-                    if $args.arity == 1 {
-                        my $arg := $args.IMPL-UNWRAP-LIST($args.args)[0];
-                        if nqp::istype($arg, Nodify('ApplyListInfix')) && nqp::istype($arg.infix, Nodify('Infix')) && $arg.infix.operator eq ',' {
-                            # Need to unpack the actual argument list:
-                            # ArgList  ⎡$o: 1, 2⎤
-                            #   Var::Lexical 【$o】  ⎡$o⎤
-                            #   ApplyListInfix  ⎡,⎤
-                            #     Infix 【,】  ⎡,⎤
-                            #     IntLiteral  ⎡1⎤
-                            #     IntLiteral  ⎡2⎤
-                            $args.replace-args($arg.operands);
-                        }
-                    }
                     self.attach: $/, Nodify('ApplyPostfix').new(
                         operand => $invocant,
                         postfix => Nodify('Call::Method').new(:$name, :$args)
@@ -4745,6 +4719,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $semi   := Nodify('SemiList').new($stmt).to-begin-time($R, $context);
                 my $parens := Nodify('Circumfix::Parentheses').new($semi).to-begin-time($R, $context);
                 $ast.push($parens);
+            }
+            if $<arglist>[0].ast.invocant -> $invocant {
+                $ast.set-invocant($invocant);
             }
             self.attach: $/, $ast
         }

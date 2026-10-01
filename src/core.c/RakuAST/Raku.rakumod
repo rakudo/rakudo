@@ -1500,32 +1500,16 @@ augment class RakuAST::Node {
 # as such needs separate handling to prevent it from bleeding into the normal
 # .raku handling
 
-augment class RakuAST::Name::Part {
-    proto method raku(RakuAST::Name::Part:) {
-        CATCH {
-            when X::Multi::NoMatch {
-                die "No .raku method implemented for {self.^name} objects yet";
-            }
-        }
-        if nqp::istype($*INDENT,Failure) {
-            my $*INDENT = "";
-            {*}
-        }
-        else {
-            {*}
-        }
-    }
+#- Name::Part::Empty -----------------------------------------------------------
 
-#- Name::Part-------------------------------------------------------------------
-
-    multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
-        self.^name
-    }
-
+augment class RakuAST::Name::Part::Empty {
     multi method raku(RakuAST::Name::Part::Empty:D: --> Str:D) {
         self.^name ~ '.new'
     }
+}
 
+#- Name::Part::Expression ------------------------------------------------------
+augment class RakuAST::Name::Part::Expression {
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {
         my str @parts = self.^name ~ '.new(';
         RakuAST::Node::indent();
@@ -1535,7 +1519,10 @@ augment class RakuAST::Name::Part {
 
         @parts.join("\n")
     }
+}
 
+#- Name::Part::Simple ----------------------------------------------------------
+augment class RakuAST::Name::Part::Simple {
     multi method raku(RakuAST::Name::Part::Simple:D: --> Str:D) {
         self.^name ~ '.new(' ~ self.name.raku ~ ')';
     }

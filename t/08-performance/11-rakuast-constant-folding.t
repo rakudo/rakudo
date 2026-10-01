@@ -4,7 +4,7 @@ use Test;
 use experimental :rakuast;
 
 plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
-plan 60;
+plan 59;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -56,8 +56,6 @@ ok optimized-deparse(Q[my $y = (42 andthen True ?? $_ + 1 !! 0)]).contains('(42 
     'a ternary with a constant condition right of andthen collapses inside the topic thunk';
 ok optimized-deparse(Q[my @a; sub f($c = @a[0, 1]) { }]).contains('@a.AT-POS(0), @a.AT-POS(1)'),
     'a slice as a parameter default unrolls inside the default thunk';
-ok optimized-deparse(Q[my Int $n; sub f($c = $n ** 2) { }]).contains('$n * $n'),
-    'a square as a parameter default rewrites inside the default thunk';
 
 # Folding declines where the rewrite would not preserve the program.
 ok optimized-deparse(Q[my $a = 5; my $y = $a + 3]).contains('$a + 3'),

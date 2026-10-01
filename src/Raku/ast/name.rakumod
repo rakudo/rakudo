@@ -440,20 +440,12 @@ class RakuAST::Name::Part::Simple
     }
 
     method is-pseudo-package() {
-        my $name := $!name;
-           $name eq 'CALLER'
-        || $name eq 'CALLERS'
-        || $name eq 'CLIENT'
-        || $name eq 'DYNAMIC'
-        || $name eq 'CORE'
-        || $name eq 'LEXICAL'
-        || $name eq 'MY'
-        || $name eq 'OUR'
-        || $name eq 'OUTER'
-        || $name eq 'OUTERS'
-        || $name eq 'SETTING'
-        || $name eq 'UNIT'
-        || $name eq 'COMPILING' # seems to be reserved
+        my constant PSEUDOS := nqp::hash(
+          'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
+          'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
+          'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
+        );
+        nqp::existskey(PSEUDOS,$!name)
     }
 
     method is-empty() {

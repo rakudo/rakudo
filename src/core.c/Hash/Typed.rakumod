@@ -10,26 +10,33 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
 
     method ASSIGN-KEY(::?CLASS:D: Mu \key, Mu \assignval) is raw {
         my \storage  := nqp::getattr(self, Map, '$!storage');
-        my \which    := key.Str;
-        my \existing := nqp::atkey(storage,which);
+        my \dkey     := nqp::decont(key);
+        my str $which = nqp::istype(dkey,Str) && nqp::isconcrete(dkey)
+          ?? nqp::unbox_s(dkey)
+          !! dkey.Str;
+        my \existing := nqp::atkey(storage,$which);
         nqp::if(
           nqp::isnull(existing),
-          nqp::stmts(
-            ((my \scalar := nqp::p6scalarfromdesc(    # assign before
-              nqp::getattr(self,Hash,'$!descriptor')  # binding to get
-            )) = assignval),                          # type check
-            nqp::bindkey(storage,which,scalar)
+          nqp::bindkey(storage,$which,
+            nqp::p6assign(
+              nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor')),
+              assignval
+            )
           ),
-          (existing = assignval)
+          nqp::if(
+            nqp::iscont(existing),
+            nqp::p6assign(existing,assignval),
+            nqp::p6store(existing,assignval)
+          )
         )
     }
 
     method BIND-KEY(Mu \key, TValue \value) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key.Str,
-          value
-        )
+        my \dkey := nqp::decont(key);
+        my str $which = nqp::istype(dkey,Str) && nqp::isconcrete(dkey)
+          ?? nqp::unbox_s(dkey)
+          !! dkey.Str;
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$which,value)
     }
 
     method is-generic {

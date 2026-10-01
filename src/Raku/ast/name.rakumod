@@ -68,19 +68,20 @@ class RakuAST::Name
     }
 
     method is-identifier() {
-        nqp::elems($!parts) == 1 && (
-            nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
-            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
-                && $!parts[0].has-compile-time-name
-                && nqp::index($!parts[0].name, '::') == -1
+        my $parts := $!parts;
+        nqp::elems($parts) == 1 && (
+            nqp::istype($parts[0], RakuAST::Name::Part::Simple)
+            || nqp::istype($parts[0], RakuAST::Name::Part::Expression)
+                && $parts[0].has-compile-time-name
+                && nqp::index($parts[0].name, '::') == -1
         )
-        || nqp::elems($!parts) == 2 && (
-            nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+        || nqp::elems($parts) == 2 && (
+            nqp::istype($parts[0], RakuAST::Name::Part::Empty)
             && (
-                nqp::istype($!parts[1], RakuAST::Name::Part::Simple)
-                || nqp::istype($!parts[1], RakuAST::Name::Part::Expression)
-                    && $!parts[1].has-compile-time-name
-                    && nqp::index($!parts[1].name, '::') == -1
+                nqp::istype($parts[1], RakuAST::Name::Part::Simple)
+                || nqp::istype($parts[1], RakuAST::Name::Part::Expression)
+                    && $parts[1].has-compile-time-name
+                    && nqp::index($parts[1].name, '::') == -1
             )
         )
     }

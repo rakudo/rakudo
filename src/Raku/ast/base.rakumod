@@ -1037,7 +1037,9 @@ class RakuAST::Node {
         elsif nqp::istype($expr, RakuAST::ApplyPostfix) {
             $expr.IMPL-SET-NATIVE-INCDEC(0);
             my $postfix := $expr.postfix;
-            $postfix.IMPL-SET-CALLSTATIC(0) if nqp::istype($postfix, RakuAST::Postfix);
+            $postfix.IMPL-SET-CALLSTATIC(0)
+                if nqp::istype($postfix, RakuAST::Postfix)
+                || nqp::istype($postfix, RakuAST::Postfix::Literal);
             if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex) {
                 $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null);
                 $postfix.IMPL-SET-DIRECT-POS(0);
@@ -1549,15 +1551,19 @@ class RakuAST::Node {
     }
 
     # Mark a postfix operator whose lexical is bound once for a static callee
-    # lookup at code generation.
+    # lookup at code generation. A literal postfix goes by its routine's name.
     method IMPL-MARK-STATIC-POSTFIX(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
         my $postfix := $expr.postfix;
-        return Nil unless nqp::istype($postfix, RakuAST::Postfix)
+        my int $literal := nqp::istype($postfix, RakuAST::Postfix::Literal);
+        return Nil unless ($literal || nqp::istype($postfix, RakuAST::Postfix))
             && $postfix.is-resolved;
+        my $resolution := $postfix.resolution;
+        my $name := $literal
+            ?? $resolution.lexical-name
+            !! '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator);
         $postfix.IMPL-SET-CALLSTATIC(
-            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
-                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator)) ?? 1 !! 0);
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $name) ?? 1 !! 0);
         Nil
     }
 

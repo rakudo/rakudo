@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 112;
+plan 123;
 
 # A call to a named setting routine compiles its callee lookup as a static
 # one, which the VM may resolve a single time. So does a call to a routine
@@ -140,6 +140,11 @@ qast-is 'my $x = 1; my $y = $x++', -> \v {
     and not qast-op-named(v, 'call', '&postfix:<++>')
 }, 'a setting postfix compiles to a static callee lookup';
 
+qast-is 'my $x = 2; my $y = $x³', -> \v {
+        qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+    and not qast-op-named(v, 'call', '&postfix:<ⁿ>')
+}, 'a setting superscript power compiles to a static callee lookup';
+
 qast-is '{ my sub prefix:<neg>(\a) { return 0 }; my $x = 1; neg $x }', :full, -> \v {
     not qast-op-named(v, 'callstatic', '&prefix:<neg>')
 }, 'a nested user prefix keeps the plain callee lookup';
@@ -147,6 +152,10 @@ qast-is '{ my sub prefix:<neg>(\a) { return 0 }; my $x = 1; neg $x }', :full, ->
 qast-is '{ my sub infix:<mul>(\a, \b) { return 3 }; my $x = 1; my $y = 2; $x mul $y }', :full, -> \v {
     not qast-op-named(v, 'callstatic', '&infix:<mul>')
 }, 'a nested user infix keeps the plain callee lookup';
+
+qast-is '{ my sub postfix:<ⁿ>(\a, \b) { 42 }; my $x = 2; $x³ }', :full, -> \v {
+    not qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+}, 'a superscript power resolving to a nested user postfix keeps the plain callee lookup';
 
 qast-is 'my &prefix:<-> = sub ($a) { 99 }; my $x = 5; my $y = -$x', -> \v {
     not qast-op-named(v, 'callstatic', '&prefix:<->')
@@ -310,15 +319,36 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     qast-is '"ab" ~~ /(a)/; my $x = $0; sub postcircumfix:<[ ]>(\a, \i) { 2 }', -> \v {
         not qast-op-named(v, 'callstatic', '&postcircumfix:<[ ]>')
     }, 'a positional capture variable shadowed by a later routine keeps the plain callee lookup';
+    qast-is 'my $x = 2; my $y = $x³; sub postfix:<ⁿ>(\a, \b) { 42 }', -> \v {
+        not qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+    }, 'a superscript power shadowed by a later routine keeps the plain callee lookup';
     qast-is 'use soft; my $x = 1; my $a = [$x, 2]', -> \v {
         not qast-op-named(v, 'callstatic', '&circumfix:<[ ]>')
     }, 'an array composer under the soft pragma keeps the plain callee lookup';
     qast-is 'use soft; my $x = 1; my $y = 2; my $z = $x R- $y', -> \v {
         not qast-op-named(v, 'callstatic', '&infix:<->')
     }, 'the operator beneath a reverse meta-op under the soft pragma keeps the plain callee lookup';
+    qast-is 'use soft; my $x = 2; my $y = $x³', -> \v {
+        not qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+    }, 'a superscript power under the soft pragma keeps the plain callee lookup';
+    qast-is 'sub c() { my $x = 2; $x³ }; BEGIN c();', :full, -> \v {
+        qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+    }, 'control: a superscript power marked ahead of the unit compiles to a static callee lookup';
+    qast-is 'sub c() { my $x = 2; $x³ }; BEGIN c(); use soft;', :full, -> \v {
+        not qast-op-named(v, 'callstatic', '&postfix:<ⁿ>')
+    }, 'a superscript power marked ahead of the unit drops the mark under a later soft pragma';
+    # The legacy frontend has no vulgar fraction postfix.
+    qast-is 'my $x = 2; my $y = $x½', -> \v {
+            qast-op-named(v, 'callstatic', '&infix:<+>')
+        and not qast-op-named(v, 'call', '&infix:<+>')
+    }, 'a vulgar fraction postfix compiles to a static callee lookup';
+    qast-is 'my $x = 2; my $y = $x½; sub infix:<+>($a, $b) { 42 }', -> \v {
+        not qast-op-named(v, 'callstatic', '&infix:<+>')
+    }, 'a vulgar fraction postfix shadowed by a later routine keeps the plain callee lookup';
+    is EVAL(q[my $x = 2; $x½]), 2.5, 'a vulgar fraction postfix through a static lookup computes the sum';
 }
 else {
-    skip 'the soft shape is specific to the RakuAST frontend', 12;
+    skip 'these cases are specific to the RakuAST frontend', 19;
 }
 
 # A routine marked soft promises late rebinding, so a wrapper
@@ -417,6 +447,10 @@ my $step-me = 5;
 my $stepped = $step-me++;
 is $stepped, 5, 'a postfix increment through a static lookup yields the original value';
 is $step-me, 6, 'a postfix increment through a static lookup steps the variable';
+my $cube-me = 2;
+is $cube-me³, 8, 'a superscript power through a static lookup computes the power';
+my @powers = (1, 2).map: -> $k { my sub postfix:<ⁿ>(\a, \b) { $k }; my $v = 5; $v² };
+is-deeply @powers, [1, 2], 'a superscript power calls the closure of a nested user postfix bound for each entry';
 sub infix:<rt-mul>($a, $b) { $a * $b }
 is 2 rt-mul 3, 6, 'a user infix declared in the outermost scope computes through a static lookup';
 sub prefix:<rt-neg>($a) { 0 - $a }

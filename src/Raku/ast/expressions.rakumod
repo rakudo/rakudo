@@ -4042,11 +4042,19 @@ class RakuAST::Postfix::Literal
         $obj
     }
 
+    # Set by the optimize pass when the resolved routine's lexical is bound
+    # once, so code generation emits a static callee lookup.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Postfix::Literal, '$!callstatic', $on)
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         $context.ensure-sc($!value);
         QAST::Op.new:
-            :op('call'), :$name,
+            :op($!callstatic ?? 'callstatic' !! 'call'), :$name,
             $operand-qast,
             QAST::WVal.new( :value($!value) )
     }

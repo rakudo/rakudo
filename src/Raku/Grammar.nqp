@@ -2123,8 +2123,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # The EXPR method implements an operator precedence parsing algorithm.
     # One needs a stack for that and there's not a neat way to express it
     # within the rule language.
-    method EXPR(str $preclim = '') {
+    method EXPR(str $preclim = '', int $invocant-ok = 0) {
         my $*LEFTSIGIL := '';
+        my $*INVOCANT_OK := $invocant-ok;
         my int $noinfix := $preclim eq 'y=';
 
         my $here    := self.new-cursor;
@@ -2265,6 +2266,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                       if $op1 ne $op2 && $op1 ne ':';
                 }
             }
+
+            # A comma ends the first argument, the only one a call can take as its invocant
+            $*INVOCANT_OK := 0 if $inprec eq 'g=';
 
             nqp::push(@opstack, $infix); # The Shift
             $here.set-pos($pos);
@@ -5371,25 +5375,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Argument lists and captures
 
-    token args($*INVOCANT_OK = 0) {
+    token args($invocant-ok = 0) {
         :my $*INVOCANT;
         :my $*GOAL := '';
         :my $*ADVERB-AS-INFIX := 0;
         :dba('argument list')
         [
-          | '(' ~ ')' <semiarglist>             # keep these two lines
-          | <.unspace> '(' ~ ')' <semiarglist>  # separate for performance
-          | [ \s <arglist> ]
+          | '(' ~ ')' <semiarglist($invocant-ok)>             # keep these two lines
+          | <.unspace> '(' ~ ')' <semiarglist($invocant-ok)>  # separate for performance
+          | [ \s <arglist($invocant-ok)> ]
           | <?>
         ]
     }
 
-    token semiarglist {
-        <arglist>+ % ';'
+    token semiarglist($invocant-ok = 0) {
+        <arglist($invocant-ok)> [ ';' <arglist> ]*
         <.ws>
     }
 
-    token arglist {
+    token arglist($invocant-ok = 0) {
         :my $*GOAL := 'endargs';
         :my $*QSIGIL := '';
         <.ws>
@@ -5397,7 +5401,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | <?stdstopper>
 
-          | <EXPR('e=')>
+          | <EXPR('e=', $invocant-ok)>
             {
                 sub handle-any-named($ast) {
                     $ast.set-key(self.named2str($ast.key))

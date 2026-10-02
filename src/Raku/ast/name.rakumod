@@ -461,7 +461,7 @@ class RakuAST::Name::Part::Simple
           'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
           'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
         );
-        nqp::existskey(PSEUDOS, $!name)
+        nqp::existskey(PSEUDOS,$!name)
     }
 
     method is-empty(--> Bool) {

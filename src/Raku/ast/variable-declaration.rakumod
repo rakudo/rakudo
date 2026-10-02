@@ -1097,13 +1097,13 @@ class RakuAST::VarDeclaration::Simple
 
     method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     method is-attribute(--> Bool) {
-        my str $scope := self.scope;
-        $scope eq 'has' || $scope eq 'HAS'
+        my constant SCOPES := nqp::hash('has', 1, 'HAS', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # Only an attribute has a meta-object that can carry documentation
@@ -2655,8 +2655,8 @@ class RakuAST::VarDeclaration::Signature
 
     method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # A list declaration such as `my (::T, $x) := ...` binds its type captures

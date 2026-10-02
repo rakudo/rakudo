@@ -855,8 +855,8 @@ role RakuAST::Declaration {
 
     # Tests if this is a lexical declaration (`my` or `state` scope).
     method is-lexical(--> Bool) {
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state'
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # Tests if this declaration should be gathered as a lexical declaration.

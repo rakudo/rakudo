@@ -167,26 +167,9 @@ class RakuAST::Type::Simple
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        if !self.is-resolved {
-            # Try again at runtime
-            if $!name.is-multi-part {
-                if $!lexical {
-                    return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
-                }
-                else {
-                    # No other choice than to do a runtime lookup in GLOBAL
-                    my $name := RakuAST::Name.new(
-                        RakuAST::Name::Part::Simple.new('GLOBAL'),
-                        |$!name.IMPL-UNWRAP-LIST($!name.parts)
-                    );
-                    return $name.IMPL-QAST-PACKAGE-LOOKUP($context, Mu, :global-fallback);
-                }
-            }
-            else {
-                QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
-            }
-        }
-        else {
+        my $name := $!name;
+
+        if self.is-resolved {
             my $value := self.resolution.compile-time-value;
             if RakuAST::IMPL::Archetypes.generic($value) {
                 # If the resolved type is a nested package inside a parametric
@@ -196,9 +179,9 @@ class RakuAST::Type::Simple
                 # concretization per specialization, so method bodies that
                 # reference the nested package see the specialization's copy.
                 if !nqp::isnull_s($!ins-lexical-name) && $!ins-lexical-name ne '' {
-                    QAST::Var.new( :name($!ins-lexical-name), :scope('lexical') )
+                    QAST::Var.new(:name($!ins-lexical-name), :scope<lexical>)
                 }
-                elsif $!name.is-multi-part
+                elsif $name.is-multi-part
                   && RakuAST::Package.IMPL-IS-INSTANTIATION-REGISTRABLE($value) {
                     # Multi-part generic names whose Type::Simple.IMPL-EXPR-QAST
                     # fires before PERFORM-CHECK had a chance to stash the
@@ -211,25 +194,29 @@ class RakuAST::Type::Simple
                     # queued so would not have a matching `!INS_OF_*` lexical.
                     QAST::Var.new(
                         :name('!INS_OF_' ~ $value.HOW.name($value)),
-                        :scope('lexical')
+                        :scope<lexical>
                     )
                 }
-                elsif $!name.is-multi-part && $!lexical {
+                elsif $name.is-multi-part && $!lexical {
                     # For multi-part names, canonicalize is 'S::G' but only the
                     # first part is a real lexical; walk into its stash instead.
                     # Also serves as the fallback for parametric multi-part
                     # generics that the registrable-filter excluded above.
-                    $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                    $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                      $context, $!package, :lexical($!lexical), :global-fallback
+                    )
                 }
                 else {
-                    QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+                    QAST::Var.new(:name($name.canonicalize), :scope<lexical>)
                 }
             }
-            elsif $!name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            elsif $name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
                 # Package stub could be replaced later, thus we need to look it up at runtime.
-                $!name.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :lexical($!lexical), :global-fallback);
+                $name.IMPL-QAST-PACKAGE-LOOKUP(
+                  $context, $!package, :lexical($!lexical), :global-fallback
+                )
             }
-            elsif $!name.canonicalize eq 'GLOBAL' {
+            elsif $name.canonicalize eq 'GLOBAL' {
                 # We must always look up GLOBAL at runtime. Otherwise we'd e.g. use the setting's
                 # GLOBAL in EVAL.
                 QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
@@ -238,6 +225,27 @@ class RakuAST::Type::Simple
                 $context.ensure-sc($value);
                 QAST::WVal.new( :$value )
             }
+        }
+
+        # Try again at runtime
+        elsif $name.is-multi-part {
+            if $!lexical {
+                $name.IMPL-QAST-PACKAGE-LOOKUP(
+                  $context, $!package, :lexical($!lexical), :global-fallback
+                )
+            }
+            else {
+                # No other choice than to do a runtime lookup in GLOBAL
+                RakuAST::Name.new(
+                  RakuAST::Name::Part::Simple.new('GLOBAL'),
+                  |$name.IMPL-UNWRAP-LIST($name.parts)
+                ).IMPL-QAST-PACKAGE-LOOKUP($context, Mu, :global-fallback)
+            }
+        }
+
+        # Just a variable access
+        else {
+            QAST::Var.new(:name($name.canonicalize), :scope<lexical>)
         }
     }
 

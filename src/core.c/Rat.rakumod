@@ -273,35 +273,43 @@ multi sub infix:<**>(Rational:D $a, Int:D $b) {
     my $nu;
     my $de;
     nqp::if(
-      nqp::isge_I($b,0),
-      nqp::if( # if we got Inf
-        nqp::istype(
-          ($nu := nqp::pow_I($a.numerator,$b,Num,Int)),
-          Num
-        ),
-        X::Numeric::Overflow.new.Failure,
+      nqp::iseq_I($b,2),
+      CREATE_RATIONAL_FROM_INTS(
+        nqp::mul_I(($nu := $a.numerator),$nu,Int),
+        nqp::mul_I(($de := $a.denominator),$de,Int),
+        $a, $b
+      ),
+      nqp::if(
+        nqp::isge_I($b,0),
         nqp::if( # if we got Inf
           nqp::istype(
-            ($de := nqp::pow_I($a.denominator,$b,Num,Int)),
+            ($nu := nqp::pow_I($a.numerator,$b,Num,Int)),
             Num
           ),
           X::Numeric::Overflow.new.Failure,
-          CREATE_RATIONAL_FROM_INTS($nu, $de, $a, $b)
-        )
-      ),
-      nqp::if( # if we got Inf
-        nqp::istype(
-          ($nu := nqp::pow_I($a.numerator,nqp::neg_I($b,Int),Num,Int)),
-          Num
+          nqp::if( # if we got Inf
+            nqp::istype(
+              ($de := nqp::pow_I($a.denominator,$b,Num,Int)),
+              Num
+            ),
+            X::Numeric::Overflow.new.Failure,
+            CREATE_RATIONAL_FROM_INTS($nu, $de, $a, $b)
+          )
         ),
-        X::Numeric::Underflow.new.Failure,
         nqp::if( # if we got Inf
           nqp::istype(
-            ($de := nqp::pow_I($a.denominator,nqp::neg_I($b,Int),Num,Int)),
+            ($nu := nqp::pow_I($a.numerator,nqp::neg_I($b,Int),Num,Int)),
             Num
           ),
           X::Numeric::Underflow.new.Failure,
-          CREATE_RATIONAL_FROM_INTS($de, $nu, $a, $b)
+          nqp::if( # if we got Inf
+            nqp::istype(
+              ($de := nqp::pow_I($a.denominator,nqp::neg_I($b,Int),Num,Int)),
+              Num
+            ),
+            X::Numeric::Underflow.new.Failure,
+            CREATE_RATIONAL_FROM_INTS($de, $nu, $a, $b)
+          )
         )
       )
     )

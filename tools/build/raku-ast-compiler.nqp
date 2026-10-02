@@ -83,7 +83,7 @@ grammar RakuASTParser {
         | $<brace>='{' {} <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
         | $<brckt>='[' {} <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
         | <?[\s#]> <ws>
-        || $<other>=[<-[{}()\[\]'"\s\w$/]>+] # don't include in LTM as it'd win too much
+        || $<other>=[<-[{}()\[\]'"\s\w$/#]>+] # don't include in LTM as it'd win too much
         )*
     }
 
@@ -193,12 +193,46 @@ class Parameter does Node {
 class NQPCode does Node {
     has $!body;
     has $!is-stub;
+    has $!statements;
+    has $!declared;
     method body() { $!body }
     method is-stub() { $!is-stub }
     method Str() { $!body }
+
+    # The variables the code declares outside of any block.
+    method declared() { $!declared }
+
+    # The code before the last statement and that statement, when it is an
+    # expression that can be wrapped in parens and every statement before it
+    # is a my declaration, or NQPMu when the code has to run as a block.
+    method split() {
+        my int $last := nqp::elems($!statements) - 1;
+        $last := $last - 1 while $last >= 0 && $!statements[$last]<first> eq '';
+        return NQPMu if $last < 0 || $!statements[$last]<blocked>;
+        my int $i := -1;
+        while ++$i < $last {
+            my $first := $!statements[$i]<first>;
+            return NQPMu if $first ne '' && $first ne 'my';
+        }
+        my $statement := $!statements[$last];
+        my $prefix := nqp::substr($!body, 0, $statement<start>);
+        my $final := nqp::substr($!body, $statement<start>, $statement<end> - $statement<start>);
+        # A ; or { inside another token may be a misread, such as a division
+        # taken for a regex, and a block before the last statement may hide a
+        # CATCH, which must not cover the check, so such code runs as a block.
+        return NQPMu if nqp::index($final, ';') >= 0 || nqp::index($final, '{') >= 0
+          || nqp::index($prefix, '{') >= 0;
+        [$prefix, $final]
+    }
 }
 
 # AST-building actions
+
+# The words of the statement modifiers. A statement control always takes a
+# block, whose braces already mark it.
+my constant STATEMENT-WORDS := nqp::hash(
+  'if', 1, 'unless', 1, 'while', 1, 'until', 1, 'for', 1
+);
 
 class RakuASTActions {
     method attach($/, $node) {
@@ -291,54 +325,98 @@ class RakuASTActions {
     method nqp-code($/) {
         my @chunks;
         my @code;
+        # Each statement at this level records its first token, whether a
+        # block or statement modifier keeps it from being wrapped in parens,
+        # and where its code starts and ends.
+        my $statement := nqp::hash('first', '', 'blocked', 0);
+        my @statements := [$statement];
+        my @declared;
+        my int $declaring := 0;
+        my str $previous := '';
+        my int $length := 0;
         my @tokens := $/[0];
         my int $n := nqp::elems(@tokens);
         my int $i := -1;
         while ++$i < $n {
             my $/ := @tokens[$i];
-            nqp::push(@code, ~$/) unless $<ws>;
+            my str $chunk;
             if $<name> {
                 # Rewrite `self` into `$SELF` and True/False into TRUE/FALSE.
                 my $name := ~$<name>;
                 if $name eq 'self' {
-                    @chunks.push('$SELF');
+                    $chunk := '$SELF';
                 }
                 elsif $name eq 'True' || $name eq 'False' {
-                    @chunks.push(nqp::uc($name));
+                    $chunk := nqp::uc($name);
                 }
                 else {
-                    @chunks.push($name);
+                    # A method, named argument, sub or hash key of that name is
+                    # not a modifier.
+                    $statement<blocked> := 1
+                      if nqp::existskey(STATEMENT-WORDS, $name) && !($previous ~~ / <[.!:&<]> $ /);
+                    $chunk := $name;
                 }
+                $declaring := 1 if $name eq 'my' || $name eq 'our' || $name eq 'state';
             }
             elsif $<attribute> {
                 my $name := ~$<attribute>;
                 if %*ATTRS{$name} -> $attr {
-                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*PACKAGE-NAME, '$name')");
+                    $chunk := "nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*PACKAGE-NAME, '$name')";
                 }
                 else {
                     $/.panic("No such attribute $name in $*PACKAGE-NAME");
                 }
             }
-            elsif $<string> {
-                @chunks.push($<string>.ast);
+            elsif $<variable> {
+                $chunk := ~$/;
+                @declared.push($chunk) if $declaring;
             }
-            elsif $<paren> {
-               @chunks.push('(' ~ $<nqp-code>.ast ~ ')');
+            elsif $<string> {
+                $chunk := $<string>.ast;
+            }
+            elsif $<paren> || $<brckt> {
+                my $inner := $<nqp-code>.ast;
+                @declared.push($_) for $inner.declared;
+                $chunk := $<paren>
+                  ?? '(' ~ $inner ~ ')'
+                  !! '[' ~ $inner ~ ']';
             }
             elsif $<brace> {
-               @chunks.push('{' ~ $<nqp-code>.ast ~ '}');
-            }
-            elsif $<brckt> {
-               @chunks.push('[' ~ $<nqp-code>.ast ~ ']');
+                $statement<blocked> := 1;
+                $chunk := '{' ~ $<nqp-code>.ast ~ '}';
             }
             else {
-                @chunks.push(~$/);
+                $chunk := ~$/;
             }
+            unless $<ws> {
+                $declaring := 0 unless $<name>;
+                nqp::push(@code, ~$/);
+                # Each ; ends a statement, and what follows it starts one.
+                my int $at := $length;
+                for $<other> ?? nqp::split(';', $chunk) !! [$chunk] -> $piece {
+                    if $at > $length {
+                        $statement<end> := $at - 1;
+                        $statement := nqp::hash('first', '', 'blocked', 0);
+                        @statements.push($statement);
+                    }
+                    if $statement<first> eq '' && $piece ne '' {
+                        $statement<first> := $piece;
+                        $statement<start> := $at;
+                    }
+                    $at := $at + nqp::chars($piece) + 1;
+                }
+                $previous := $chunk;
+            }
+            @chunks.push($chunk);
+            $length := $length + nqp::chars($chunk);
         }
+        $statement<end> := $length;
+
         # A body of just ... is a stub, which a role requires the class
         # doing it to provide.
         my $is-stub := nqp::elems(@code) == 1 && @code[0] eq '...';
-        self.attach($/, NQPCode.new(:body(nqp::join("", @chunks)), :$is-stub));
+        self.attach($/, NQPCode.new(:body(nqp::join("", @chunks)), :$is-stub,
+          :statements(@statements), :declared(@declared)));
     }
 
     method string($/) {
@@ -746,23 +824,41 @@ sub emit-method($package, $method) {
         if ~$method.body ~~ / <!after <[\w$.-]>> 'return' <!before <[\w-]>> / {
             nqp::die("Method $package-name.$name declares a return type, so it cannot use return (" ~ $*CU.filename ~ ")");
         }
-        # A body that is one expression is checked in place. Any other body
-        # runs as a block to give it a value, and taking that closure keeps
-        # the method from being inlined. The closing paren goes on its own
-        # line so a trailing comment in the body cannot swallow it.
-        my $expression := !(~$method.body ~~ / <[;{]> /);
-        my $open  := $expression ?? '(' !! '{';
-        my $close := $expression ?? ')' !! '}()';
+        # A body that cannot be split runs as a block to give it a value, and
+        # taking that closure keeps the method from being inlined. The closing
+        # paren goes on its own line so a trailing comment cannot swallow it.
+        my $code := $method.body;
+        # The declarations share the scope of the generated code, so one that
+        # reuses a name the generated code declares needs the block.
+        my %taken := nqp::hash('$SELF', 1, '$SELF_CONT', 1, '$RESULT', 1);
+        %taken{$_.name} := 1 for @parameters;
+        my $split := $code.split;
+        for $code.declared {
+            $split := NQPMu if nqp::existskey(%taken, $_);
+        }
+        my $before := '';
+        my $value;
+        my $open;
+        my $close;
+        if nqp::isconcrete($split) {
+            $before := $split[0];
+            $value  := $split[1];
+            $open   := '(';
+            $close  := ')';
+        }
+        else {
+            note("The checked body of $package-name.$name runs as a block, so it cannot be inlined");
+            $value := ~$code;
+            $open  := '{';
+            $close := '}()';
+        }
+        say("#line " ~ $code.line ~ " " ~ $*CU.filename);
         if $returns eq 'Bool' {
-            say("        ReturnCheck.bool($open");
-            say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
-            say("        " ~ $method.body);
+            say("        {$before}ReturnCheck.bool($open$value");
             say("        $close, '$name')");
         }
         else {
-            say("        my \$RESULT := $open");
-            say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
-            say("        " ~ $method.body);
+            say("        {$before}my \$RESULT := $open$value");
             say("        $close;");
             say("        " ~ type-check-expr($returns, '$RESULT')
                 ~ " || ReturnCheck.failure(\$RESULT, $returns, '$name');");

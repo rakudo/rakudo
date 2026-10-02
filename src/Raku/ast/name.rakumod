@@ -65,16 +65,16 @@ class RakuAST::Name
           !! nqp::die("Can't get root-part of empty name")
     }
 
-    method is-multi-part() {
+    method is-multi-part(--> Bool) {
         nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
-    method is-identifier() {
+    method is-identifier(--> Bool) {
         my $parts := $!parts;
         nqp::elems($parts) == 1 && (
             nqp::istype($parts[0], RakuAST::Name::Part::Simple)
             || nqp::istype($parts[0], RakuAST::Name::Part::Expression)
-                && $parts[0].has-compile-time-name
+                && ?$parts[0].has-compile-time-name
                 && nqp::index($parts[0].name, '::') == -1
         )
         || nqp::elems($parts) == 2 && (
@@ -82,7 +82,7 @@ class RakuAST::Name
             && (
                 nqp::istype($parts[1], RakuAST::Name::Part::Simple)
                 || nqp::istype($parts[1], RakuAST::Name::Part::Expression)
-                    && $parts[1].has-compile-time-name
+                    && ?$parts[1].has-compile-time-name
                     && nqp::index($parts[1].name, '::') == -1
             )
         )
@@ -120,9 +120,9 @@ class RakuAST::Name
           !! ''
     }
 
-    method is-package-lookup() {
-        nqp::elems(my $parts := $!parts)
-          && nqp::istype($parts[nqp::elems($parts) - 1],RakuAST::Name::Part::EmptyEdge)
+    method is-package-lookup(--> Bool) {
+        nqp::elems($!parts)
+          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::EmptyEdge)
     }
 
     method base-name() {
@@ -137,6 +137,7 @@ class RakuAST::Name
         for $!parts {
             return True if nqp::istype($_, RakuAST::Name::Part::Expression);
         }
+        False
     }
 
     method indirect-lookup-part() {
@@ -269,12 +270,12 @@ class RakuAST::Name
         $name
     }
 
-    method is-pseudo-package() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
+    method is-pseudo-package(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && ?$!parts[0].is-pseudo-package
         || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
-    method is-package-search() {
+    method is-package-search(--> Bool) {
         nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
@@ -293,7 +294,7 @@ class RakuAST::Name
         }
     }
 
-    method is-global-lookup() {
+    method is-global-lookup(--> Bool) {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL'
     }
 
@@ -453,13 +454,13 @@ class RakuAST::Name::Part::Simple
         $obj
     }
 
-    method is-pseudo-package() {
+    method is-pseudo-package(--> Bool) {
         my constant PSEUDOS := nqp::hash(
           'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
           'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
           'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
         );
-        nqp::hllboolfor(nqp::existskey(PSEUDOS,$!name),"Raku")
+        nqp::existskey(PSEUDOS, $!name)
     }
 
     method is-empty(--> Bool) {
@@ -538,7 +539,7 @@ class RakuAST::Name::Part::Expression
         $visitor($!expr);
     }
 
-    method has-compile-time-name() {
+    method has-compile-time-name(--> Bool) {
         nqp::defined(try $!expr.literalize)
     }
 

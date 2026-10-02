@@ -820,8 +820,8 @@ class RakuAST::StatementList
         }
     }
 
-    method is-empty() {
-        nqp::elems(self.code-statements) == 0 ?? True !! False
+    method is-empty(--> Bool) {
+        nqp::not_i(nqp::elems(self.code-statements))
     }
 
     method has-compile-time-value(--> Bool) {

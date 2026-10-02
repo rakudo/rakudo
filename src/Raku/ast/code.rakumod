@@ -139,7 +139,9 @@ role RakuAST::Code
     method set-immediate-block-user-body() {
         nqp::bindattr_i(self, RakuAST::Code, '$!immediate-block-user-body', 1);
     }
-    method is-immediate-block-user-body(--> Bool) { $!immediate-block-user-body }
+    method is-immediate-block-user-body(--> Bool) {
+        $!immediate-block-user-body
+    }
 
     # Ensure this block declares the implicit `&?BLOCK` lexical, bound to its
     # own code object. A reference to `&?BLOCK` requests this on the innermost
@@ -3707,8 +3709,10 @@ class RakuAST::Routine
     }
 
     method is-lexical(--> Bool) {
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'
+        my constant SCOPES := nqp::hash(
+          'my', 1, 'state', 1, 'our', 1, 'unit', 1
+        );
+        nqp::existskey(SCOPES,self.scope)
     }
 
     method is-simple-lexical-declaration(--> Bool) {

@@ -721,10 +721,9 @@ class RakuAST::Resolver {
     }
 
     # Check if a name is known (declared) at all.
-    method is-name-known(RakuAST::Name $Rname) {
-        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname.base-name))
-          ?? True
-          !! False
+    method is-name-known(RakuAST::Name $Rname --> Bool) {
+        $Rname.is-pseudo-package
+          || nqp::isconcrete(self.resolve-name($Rname.base-name))
     }
 
     # Build an exception object for a check-time exception.

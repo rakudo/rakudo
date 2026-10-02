@@ -17,11 +17,11 @@ class RakuAST::Name
         $obj
     }
 
-    method from-identifier(Str $identifier, List :$colonpairs) {
-        self.new(RakuAST::Name::Part::Simple.new($identifier), :$colonpairs)
+    method from-identifier(Str $identifier) {
+        self.new(RakuAST::Name::Part::Simple.new($identifier))
     }
 
-    method from-identifier-parts(*@identifiers, List :$colonpairs) {
+    method from-identifier-parts(*@identifiers) {
         my @parts;
         for @identifiers {
             unless nqp::istype($_, Str) || nqp::isstr($_) {
@@ -29,7 +29,7 @@ class RakuAST::Name
             }
             @parts.push(RakuAST::Name::Part::Simple.new($_));
         }
-        self.new(|@parts, :$colonpairs)
+        self.new(|@parts)
     }
 
     method add-colonpair(RakuAST::ColonPairish $pair) {

@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 12;
+plan 11;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -72,20 +72,6 @@ RakuAST::Name.new(
 CODE
 }
 
-subtest "name from identifier parts with colonpairs" => {
-    $_ := RakuAST::Name.from-identifier-parts('Foo','Bar',
-      colonpairs => (RakuAST::ColonPair::True.new('x'),)
-    );
-    is-deeply .colonpairs.elems, 1, 'Has one colonpair';
-    is-deeply .DEPARSE, 'Foo::Bar:x', 'deparses in an expected way';
-    is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
-RakuAST::Name.from-identifier-parts("Foo","Bar", colonpairs => (
-  RakuAST::ColonPair::True.new("x"),
-))
-CODE
-    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE, 'round trips through .raku';
-}
-
 subtest "name from colonpairs only" => {
     $_ := RakuAST::Name.new(
       colonpairs => (RakuAST::ColonPair::True.new('x'),)
@@ -110,7 +96,8 @@ subtest "a name only takes what can be part of a name" => {
       X::TypeCheck::Binding::Parameter,
       'a node that cannot be part of a name is refused';
     throws-like {
-        RakuAST::Name.from-identifier('foo',
+        RakuAST::Name.new(
+          RakuAST::Name::Part::Simple.new('foo'),
           :colonpairs((RakuAST::IntLiteral.new(42),)))
     }, X::TypeCheck::Binding::Parameter,
       'such a node is refused when the name is constructed as well';
@@ -171,7 +158,8 @@ subtest "indirect name lookup as a term" => {
 
 subtest "name with a colonpair holding an expression" => {
     # Foo:ver($v)
-    $_ := RakuAST::Name.from-identifier('Foo',
+    $_ := RakuAST::Name.new(
+      RakuAST::Name::Part::Simple.new("Foo"),
       colonpairs => (
         RakuAST::ColonPair::Value.new(
           key   => 'ver',
@@ -208,7 +196,8 @@ subtest "name parts say whether they are empty" => {
 subtest "a name says whether it has colonpairs" => {
     is-deeply RakuAST::Name.from-identifier('foo').has-colonpairs, False,
       'a plain name has no colonpairs';
-    is-deeply RakuAST::Name.from-identifier('foo',
+    is-deeply RakuAST::Name.new(
+      RakuAST::Name::Part::Simple.new('foo'),
       colonpairs => (RakuAST::ColonPair::True.new('bar'),)
     ).has-colonpairs, True, 'a name with an adverb has colonpairs';
 }

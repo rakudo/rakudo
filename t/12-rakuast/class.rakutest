@@ -2246,7 +2246,8 @@ subtest 'A class whose version, auth and api need evaluation' => {
     # }
     ast RakuAST::Class.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('ComputedClass',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ComputedClass'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -2333,7 +2334,8 @@ subtest 'A class with a literal version and an auth that needs evaluation' => {
     # my class MixedVersionClass:ver<1.2>:auth("x" ~ "y") { }
     ast RakuAST::Class.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('MixedVersionClass',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('MixedVersionClass'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -2380,7 +2382,8 @@ subtest 'A module whose auth needs evaluation' => {
     # my module ComputedModule:auth("x" ~ "y") { }
     ast RakuAST::Module.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('ComputedModule',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ComputedModule'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'auth',
@@ -2428,7 +2431,8 @@ subtest 'A class whose version is computed in a scope of its own' => {
     my constant V = v3;
     ast RakuAST::Class.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('ScopedVersionClass',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ScopedVersionClass'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -2517,7 +2521,8 @@ subtest 'A class whose version dies when it is evaluated' => {
     # my class BoomClass:ver(die("boom")) { }
     ast RakuAST::Class.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('BoomClass',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('BoomClass'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',

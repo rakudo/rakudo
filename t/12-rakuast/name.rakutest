@@ -8,6 +8,7 @@ subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
     isa-ok $_, RakuAST::Name, '.from-identifier constructs a name';
     ok .is-identifier, 'The element is considered an identifier';
+    is-deeply .is-indirect-lookup, False, 'The element is not an indirect lookup';
     is-deeply .parts.elems, 1, 'Has one part';
     isa-ok .parts[0], RakuAST::Name::Part::Simple, 'Name has a single part';
     is-deeply .parts[0].name, 'foo', 'Part has expected name';
@@ -120,6 +121,7 @@ subtest "indirect name lookup" => {
       )
     );
     is-deeply .DEPARSE, '::("Int")', 'deparses the lookup as written';
+    is-deeply .name.is-indirect-lookup, True, 'the name is an indirect lookup';
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Term::Name.new(
   RakuAST::Name.new(
@@ -200,6 +202,35 @@ subtest "a name says whether it has colonpairs" => {
       RakuAST::Name::Part::Simple.new('foo'),
       colonpairs => (RakuAST::ColonPair::True.new('bar'),)
     ).has-colonpairs, True, 'a name with an adverb has colonpairs';
+}
+
+subtest "name predicates return a Bool" => {
+    my $foo     := RakuAST::Name.from-identifier('foo');
+    my $foo-bar := RakuAST::Name.from-identifier-parts('Foo', 'Bar');
+    is-deeply $foo.is-identifier, True, 'a single part name is an identifier';
+    is-deeply $foo-bar.is-identifier, False, 'a two part name is not an identifier';
+    is-deeply $foo-bar.is-multi-part, True, 'a two part name is multi part';
+    is-deeply $foo.is-package-lookup, False, 'a plain name is not a package lookup';
+    is-deeply $foo.is-package-search, False, 'a plain name is not a package search';
+    is-deeply $foo.is-global-lookup, False, 'a plain name is not a GLOBAL lookup';
+    is-deeply $foo.is-pseudo-package, False, 'a plain name is not a pseudo package';
+    is-deeply RakuAST::Name.from-identifier('OUTER').is-pseudo-package, True,
+      'OUTER is a pseudo package';
+    is-deeply RakuAST::Name::Part::Simple.new('OUTER').is-pseudo-package, True,
+      'an OUTER part is a pseudo package';
+    is-deeply RakuAST::Name::Part::Simple.new('foo').is-pseudo-package, False,
+      'a plain part is not a pseudo package';
+    is-deeply RakuAST::Name.new(
+      RakuAST::Name::Part::Simple.new('Foo'), RakuAST::Name::Part::EmptyEdge.new
+    ).is-package-lookup, True, 'Foo:: is a package lookup';
+    is-deeply RakuAST::Name.new(
+      RakuAST::Name::Part::EmptyEdge.new, RakuAST::Name::Part::Simple.new('Foo')
+    ).is-package-search, True, '::Foo is a package search';
+    is-deeply RakuAST::Name.from-identifier-parts('GLOBAL', 'Foo').is-global-lookup, True,
+      'GLOBAL::Foo is a GLOBAL lookup';
+    is-deeply RakuAST::Name::Part::Expression.new(
+      RakuAST::StrLiteral.new('foo')
+    ).has-compile-time-name, True, 'a literal expression part has a compile time name';
 }
 
 # vim: expandtab shiftwidth=4

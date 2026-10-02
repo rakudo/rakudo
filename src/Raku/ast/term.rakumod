@@ -465,9 +465,7 @@ class RakuAST::WhateverCode::Argument
         nqp::bindattr_i(self, RakuAST::WhateverCode::Argument, '$!hyper', 1);
     }
 
-    method is-hyper() {
-        $!hyper ?? True !! False
-    }
+    method is-hyper(--> Bool) { $!hyper }
 
     method set-name(RakuAST::Name $name) {
         nqp::bindattr(self, RakuAST::WhateverCode::Argument, '$!name', $name);

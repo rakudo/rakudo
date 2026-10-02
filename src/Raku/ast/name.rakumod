@@ -64,7 +64,9 @@ class RakuAST::Name
     }
 
     method is-multi-part(--> Bool) {
-        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
+        nqp::elems($!parts) > 1
+          && !(nqp::elems($!parts) == 2
+                 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
     method is-identifier(--> Bool) {
@@ -274,8 +276,9 @@ class RakuAST::Name
     }
 
     method is-pseudo-package(--> Bool) {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && ?$!parts[0].is-pseudo-package
-        || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].is-pseudo-package
+               || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
     method is-package-search(--> Bool) {
@@ -298,7 +301,8 @@ class RakuAST::Name
     }
 
     method is-global-lookup(--> Bool) {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL'
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].name eq 'GLOBAL'
     }
 
     method contains-pseudo-package-illegal-for-declaration() {

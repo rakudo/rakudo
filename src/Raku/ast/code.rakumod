@@ -139,7 +139,9 @@ role RakuAST::Code
     method set-immediate-block-user-body() {
         nqp::bindattr_i(self, RakuAST::Code, '$!immediate-block-user-body', 1);
     }
-    method is-immediate-block-user-body(--> Bool) { $!immediate-block-user-body }
+    method is-immediate-block-user-body(--> Bool) {
+        $!immediate-block-user-body
+    }
 
     # Ensure this block declares the implicit `&?BLOCK` lexical, bound to its
     # own code object. A reference to `&?BLOCK` requests this on the innermost

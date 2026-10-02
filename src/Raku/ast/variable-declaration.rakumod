@@ -1095,13 +1095,13 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
     }
 
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
     }
 
-    method is-attribute() {
+    method is-attribute(--> Bool) {
         my str $scope := self.scope;
         $scope eq 'has' || $scope eq 'HAS'
     }
@@ -2653,7 +2653,7 @@ class RakuAST::VarDeclaration::Signature
         False
     }
 
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our'

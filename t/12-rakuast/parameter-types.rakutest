@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25; # Do not change this file to done-testing
+plan 26; # Do not change this file to done-testing
 
 # The node methods are generated from declarations that look like Raku
 # signatures. These tests cover what the declared parameter and return
@@ -351,6 +351,96 @@ subtest 'A Bool return passes the Bool type object through' => {
       'no implicit topic reads back as False';
     ok RakuAST::Block.new(:required-topic).implicit-topic === True,
       'a required implicit topic reads back as True';
+}
+
+subtest 'Node predicates return a Bool' => {
+    plan 38;
+    my $foo := RakuAST::Name.from-identifier('foo');
+    my $call := RakuAST::Call::Name.new(name => $foo);
+    is-deeply $call.needs-resolution, True, 'a named call needs resolution';
+    is-deeply $call.needs-sink-call, True, 'a named call needs a sink call';
+    is-deeply RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::Infix.new('does'),
+      right => RakuAST::IntLiteral.new(2)
+    ).needs-sink-call, False, 'an impure infix does not need a sink call';
+    is-deeply RakuAST::StatementList.new.has-compile-time-value, False,
+      'an empty statement list has no compile time value';
+    is-deeply RakuAST::Statement::Expression.new(
+      expression         => RakuAST::IntLiteral.new(1),
+      condition-modifier => RakuAST::StatementModifier::If.new(RakuAST::IntLiteral.new(1))
+    ).has-compile-time-value, False, 'a conditional statement has no compile time value';
+    is-deeply RakuAST::Block.new.has-phaser('ENTER'), False, 'a new block has no ENTER phaser';
+    is-deeply RakuAST::Block.new.is-immediate-block-user-body, False,
+      'a new block is not an immediate block user body';
+    my $sub := RakuAST::Sub.new(name => $foo);
+    is-deeply $sub.is-lexical, True, 'a named sub is lexical';
+    is-deeply $sub.is-stub, False, 'a sub without a body is not a stub';
+    is-deeply $sub.is-simple-lexical-declaration, True,
+      'a named sub is a simple lexical declaration';
+    my $var := RakuAST::VarDeclaration::Simple.new(sigil => '$', desigilname => $foo);
+    is-deeply $var.is-lexical, True, 'a my variable is lexical';
+    is-deeply $var.is-attribute, False, 'a my variable is not an attribute';
+    is-deeply RakuAST::Parameter.new.is-declared-optional, False,
+      'a parameter is not declared optional by default';
+    is-deeply RakuAST::Parameter.new.is-declared-required, False,
+      'a parameter is not declared required by default';
+    is-deeply RakuAST::ParameterTarget::Var.new(name => '$x').can-be-resolved, True,
+      'a parameter variable can be resolved';
+    is-deeply RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')).is-native, True,
+      'int is a native type';
+    is-deeply RakuAST::Postcircumfix::ArrayIndex.new(
+      index => RakuAST::SemiList.new
+    ).is-multislice, False, 'an empty index is not a multislice';
+    is-deeply RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')).is-known-to-be(Int),
+      False, 'an unresolved type is not known to be a type';
+    is-deeply RakuAST::ArgList.new(RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2)).has-args,
+      True, 'an argument list of two arguments has arguments';
+    is-deeply RakuAST::Call::NameAsMethod.new(name => $foo).needs-resolution, True,
+      'a named method call by name needs resolution';
+    is-deeply RakuAST::Call::NameAsMethod.new(name => RakuAST::Name.new(
+      RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new('foo'))
+    )).needs-resolution, False, 'an indirect method call by name needs no resolution';
+    is-deeply RakuAST::Package.new(name => $foo).is-lexical, False,
+      'a package is not lexical by default';
+    is-deeply RakuAST::Package.new(name => $foo, scope => 'my').is-lexical, True,
+      'a my scoped package is lexical';
+    is-deeply RakuAST::VarDeclaration::Signature.new(signature => RakuAST::Signature.new).is-lexical,
+      True, 'a signature declaration is lexical';
+    my $stub := RakuAST::Blockoid.new(RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(expression => RakuAST::Stub::Fail.new)
+    ));
+    is-deeply RakuAST::Sub.new(name => $foo, body => $stub).is-stub, True,
+      'a sub with a stub body is a stub';
+    is-deeply RakuAST::Method.new(name => $foo, body => $stub).is-stub, True,
+      'a method with a stub body is a stub';
+    is-deeply RakuAST::Method.new(name => $foo).is-stub, False,
+      'a method without a body is not a stub';
+    is-deeply RakuAST::Parameter.new(:optional).is-declared-optional, True,
+      'an optional parameter is declared optional';
+    is-deeply RakuAST::Parameter.new(:!optional).is-declared-required, True,
+      'a required parameter is declared required';
+    my $block := RakuAST::Block.new;
+    $block.set-immediate-block-user-body;
+    is-deeply $block.is-immediate-block-user-body, True,
+      'a block can be marked as an immediate block user body';
+    my $int := RakuAST::Declaration::External::Constant.new(
+      lexical-name => 'Int', compile-time-value => Int
+    );
+    is-deeply $int.is-stub, False, 'a constant declaration is not a stub';
+    is-deeply RakuAST::Declaration::External::Package.new(
+      lexical-name => 'Int', compile-time-value => Int
+    ).can-have-methods, True, 'a class declaration can have methods';
+    my $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'));
+    $type.set-resolution($int);
+    is-deeply $type.is-known-to-be(Int), True, 'Int is known to be an Int';
+    is-deeply $type.is-known-to-be(Str), False, 'Int is not known to be a Str';
+    is-deeply $type.is-known-to-be-exactly(Int), True, 'Int is known to be exactly Int';
+    is-deeply $type.is-known-to-be-exactly(Cool), False, 'Int is not known to be exactly Cool';
+    is-deeply $type.is-coercive, False, 'Int is not a coercive type';
+    my $term := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('Int'));
+    $term.set-resolution($int);
+    is-deeply $term.has-compile-time-value, True, 'a resolved type name has a compile time value';
 }
 
 # vim: expandtab shiftwidth=4

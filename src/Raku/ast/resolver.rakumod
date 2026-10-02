@@ -902,7 +902,7 @@ class RakuAST::Resolver {
         nqp::push($!sorries, $exception);
         Nil
     }
-    method has-sorries() { nqp::elems($!sorries) > 0 }
+    method has-sorries(--> Bool) { nqp::elems($!sorries) > 0 }
 
     # Add a worry check-time problem produced by the compiler.
     method add-worry(Any $exception) {
@@ -912,7 +912,7 @@ class RakuAST::Resolver {
         }
         Nil
     }
-    method has-worries() { nqp::elems($!worries) > 0 }
+    method has-worries(--> Bool) { nqp::elems($!worries) > 0 }
 
     # Panic with the specified exception. This immediately throws it,
     # incorporating any sorries and worries.

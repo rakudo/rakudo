@@ -2294,7 +2294,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     # Can be resolved if the parameter is not anonymous
-    method can-be-resolved() {
+    method can-be-resolved(--> Bool) {
         !(nqp::defined($!declaration) && nqp::istype($!declaration,RakuAST::VarDeclaration::Anonymous))
     }
 

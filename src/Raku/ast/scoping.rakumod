@@ -854,7 +854,7 @@ role RakuAST::Declaration {
     }
 
     # Tests if this is a lexical declaration (`my` or `state` scope).
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state'
     }
@@ -975,7 +975,7 @@ role RakuAST::Declaration::Mergeable {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.return-type.HOW;
         my $name := $how.HOW.name($how);
-        $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
+        ($name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW') ?? True !! False
     }
 
     method merge(RakuAST::Declaration $other, RakuAST::Resolver :$resolver!) {

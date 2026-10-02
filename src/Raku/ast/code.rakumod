@@ -1914,7 +1914,7 @@ role RakuAST::ScopePhaser {
         $block[0].push($phaser-block);
     }
 
-    method has-phaser(str $phaser-name) {
+    method has-phaser(str $phaser-name --> Bool) {
         # TOOD: Also check '$!phasers' hash on the meta-object
         nqp::elems(nqp::getattr(self, RakuAST::ScopePhaser, '$!' ~ $phaser-name) // []) > 0
     }
@@ -3708,13 +3708,13 @@ class RakuAST::Routine
         self.name.canonicalize
     }
 
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'
     }
 
-    method is-simple-lexical-declaration() {
-        self.is-lexical && self.multiness ne 'multi' && self.multiness ne 'proto'
+    method is-simple-lexical-declaration(--> Bool) {
+        ?self.is-lexical && self.multiness ne 'multi' && self.multiness ne 'proto'
     }
 
     method generate-lookup() {

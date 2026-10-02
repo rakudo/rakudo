@@ -9,20 +9,20 @@ class RakuAST::Type
         if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return nqp::istype($resolution.compile-time-value, $type);
+                return nqp::istype($resolution.compile-time-value, $type) ?? True !! False;
             }
         }
-        0
+        False
     }
     method is-known-to-be-exactly(Mu $type) {
         nqp::die('Expected a type object') if nqp::isconcrete($type);
         if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return $resolution.compile-time-value =:= $type;
+                return $resolution.compile-time-value =:= $type ?? True !! False;
             }
         }
-        0
+        False
     }
 
     method dba() { 'type' }
@@ -255,9 +255,9 @@ class RakuAST::Type::Simple
         nqp::lc($name) eq $name
     }
 
-    method is-coercive() {
+    method is-coercive(--> Bool) {
         my $type := self.resolution.compile-time-value;
-        $type.HOW.archetypes($type).coercive
+        ?$type.HOW.archetypes($type).coercive
     }
 
     method visit-children(Code $visitor) {

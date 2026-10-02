@@ -342,6 +342,13 @@ class RakuAST::Call::Name
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }
 
+    # A call reports the name it calls, not the lexical of the routine.
+    method IMPL-HEREDOC-SYMBOL(str $name) {
+        nqp::eqat($name, '&', 0) && nqp::substr($name, 1) eq $!name.canonicalize
+          ?? nqp::substr($name, 1)
+          !! $name
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!block',
             $resolver.find-attach-target('block'));
@@ -362,6 +369,10 @@ class RakuAST::Call::Name
                 !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
+        }
+        elsif $!name.is-identifier {
+            # A type or a term the heredoc body may not use parses as a call.
+            self.IMPL-NOTE-HEREDOC-REFUSAL($resolver, $!name.canonicalize);
         }
         elsif $!name.is-package-lookup {
             my $name := $!name.base-name;

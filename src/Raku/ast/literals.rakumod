@@ -574,6 +574,9 @@ class RakuAST::QuotedString
                 );
             }
             elsif $_ eq 'heredoc' {
+                # The block being formed is formed again once the body arrives.
+                $*IMPL-AWAITED-HEREDOC := 1
+                  unless nqp::isnull(nqp::getlexdyn('$*IMPL-AWAITED-HEREDOC'));
                 $qast := QAST::Op.new(
                     :op('die_s'), QAST::SVal.new( :value("Premature heredoc consumption") )
                 );
@@ -626,6 +629,7 @@ class RakuAST::Heredoc
 {
     has Str $!stop;
     has int $!indent;
+    has Str $!pending-delimiter;
 
     # The origin of the body, from its first line to the end of the
     # terminator line. The origin of the heredoc covers its introducer.
@@ -671,7 +675,63 @@ class RakuAST::Heredoc
         nqp::bindattr_i(self, RakuAST::Heredoc, '$!indent', $indent);
     }
 
+    # A heredoc the parser queued holds only its delimiter until its body is
+    # attached, so it has no value to fold. Code compiled from it before then
+    # dies when run.
+    method literal-value(:$force, :$stringify) {
+        nqp::isconcrete($!pending-delimiter)
+          ?? Nil
+          !! nqp::findmethod(RakuAST::QuotedString, 'literal-value')(
+               self, :$force, :$stringify)
+    }
+
+    # Marks the heredoc as awaiting its body and returns its delimiter, or
+    # Nil when the delimiter has no literal value.
+    method IMPL-AWAIT-BODY() {
+        my $delimiter := nqp::findmethod(RakuAST::QuotedString, 'literal-value')(self);
+        nqp::bindattr(self, RakuAST::Heredoc, '$!pending-delimiter', $delimiter)
+          if nqp::isconcrete($delimiter);
+        $delimiter
+    }
+    method IMPL-AWAITS-BODY() { nqp::isconcrete($!pending-delimiter) ?? True !! False }
+    method IMPL-PENDING-DELIMITER() { $!pending-delimiter }
+
+    # The first heredoc awaiting its body in code that runs with the node.
+    # A closure or a WhateverCode runs later, so its code is skipped, unless
+    # it is the block of a statement prefix such as do.
+    method IMPL-AWAITING-IN(Mu $node, Mu $parent?) {
+        return $node if nqp::istype($node, RakuAST::Heredoc) && $node.IMPL-AWAITS-BODY;
+        return Mu if nqp::istype($node, RakuAST::Expression) && $node.IMPL-PRIMED
+          || (nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine))
+          && !nqp::istype($parent, RakuAST::StatementPrefix);
+        my $found := Mu;
+        $node.visit-children(-> $child {
+            $found := RakuAST::Heredoc.IMPL-AWAITING-IN($child, $node)
+              unless nqp::isconcrete($found);
+        }) if nqp::can($node, 'visit-children');
+        $found
+    }
+
+    # Whether a heredoc awaiting its body is anywhere in the node.
+    method IMPL-AWAITING-ANYWHERE-IN(Mu $node) {
+        return True if nqp::istype($node, RakuAST::Heredoc) && $node.IMPL-AWAITS-BODY;
+        my $found := False;
+        $node.visit-children(-> $child {
+            $found := RakuAST::Heredoc.IMPL-AWAITING-ANYWHERE-IN($child) unless $found;
+        }) if nqp::can($node, 'visit-children');
+        $found
+    }
+
+    # Dies for code that needs the value before the body arrives, located at
+    # the heredoc while compiling.
+    method IMPL-PREMATURE() {
+        self.IMPL-THROW-IF-COMPILING('X::Comp::AdHoc',
+          :payload('Premature heredoc consumption'));
+        nqp::die('Premature heredoc consumption');
+    }
+
     method trim() {
+        nqp::bindattr(self, RakuAST::Heredoc, '$!pending-delimiter', Str);
         # Remove heredoc postprocessor to defuse the "Premature heredoc consumption" error
         my $processors := nqp::getattr(self, RakuAST::QuotedString, '$!processors');
         my $new_processors := [];

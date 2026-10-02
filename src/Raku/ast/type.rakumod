@@ -649,6 +649,9 @@ class RakuAST::Type::Parameterized
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        # An argument that needs a heredoc awaiting its body has no value yet.
+        my $heredoc := RakuAST::Heredoc.IMPL-AWAITING-IN($!args);
+        $heredoc.IMPL-PREMATURE if nqp::isconcrete($heredoc);
         if !$!args.args {
             self.base-type.compile-time-value
         }

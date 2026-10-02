@@ -127,9 +127,14 @@ class RakuAST::Exception::TooComplex {
     method set-name($name) {
         nqp::bindattr(self, RakuAST::Exception::TooComplex, '$!name', $name);
     }
+    # The text shown when nothing converts this into a typed error.
+    method message() {
+        "Colon pair value '" ~ ($!name // '') ~ "' too complex to use in name"
+    }
     method throw() {
         my $ex := nqp::newexception();
         nqp::setpayload($ex, self);
+        nqp::setmessage($ex, self.message);
         nqp::throw($ex);
     }
 }
@@ -160,7 +165,9 @@ class RakuAST::Circumfix::ArrayComposer
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
                     unless nqp::istype($_, RakuAST::Statement::Expression);
                 RakuAST::Exception::TooComplex.new.throw unless nqp::can($_.expression, 'literal-value');
-                nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
+                my $value := $_.expression.literal-value;
+                RakuAST::Exception::TooComplex.new.throw unless nqp::isconcrete($value);
+                nqp::push(@parts, "'" ~ $value ~ "'");
             }
             @parts ?? '[' ~ nqp::join('; ', @parts) ~ ']' !! '<>'
         }

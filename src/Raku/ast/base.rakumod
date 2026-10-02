@@ -82,6 +82,26 @@ class RakuAST::Node {
         Nil
     }
 
+    # Locates an exception that has no line yet. One that already has a line,
+    # such as from an EVAL, keeps it, as does a group of located errors.
+    method IMPL-LOCATE-UNLOCATED-EXCEPTION(Mu $exception) {
+        self.IMPL-LOCATE-EXCEPTION($exception)
+          unless nqp::can($exception, 'sorrows')
+          || nqp::can($exception, 'line') && nqp::isconcrete($exception.line);
+        Nil
+    }
+
+    # While compiling, throws the typed error located at this node.
+    method IMPL-THROW-IF-COMPILING(Str $type-name, *%opts) {
+        my $resolver := nqp::getlexdyn('$*R');
+        if nqp::isconcrete($resolver) {
+            my $ex := $resolver.build-exception($type-name, |%opts);
+            self.IMPL-LOCATE-EXCEPTION($ex);
+            $ex.throw;
+        }
+        Nil
+    }
+
     # Find the narrowest key origin node for an original position
     method locate-node(int $pos, Int $to?, :$key) {
         return Nil unless nqp::isconcrete($!origin)
@@ -209,7 +229,9 @@ class RakuAST::Node {
                 $resolver.add-node-with-check-time-problems(self) if self.has-check-time-problems;
             }
         }
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+        # A name a heredoc body may not use is reported as such instead.
+        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved
+          && !self.IMPL-HEREDOC-REPORT($resolver) && self.needs-resolution {
             $resolver.add-node-unresolved-after-check-time(self);
         }
 
@@ -4520,7 +4542,7 @@ class RakuAST::Node {
 
         # Handle any execution error appropriately
         CATCH {
-            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver, $code);
         }
 
         # Can interprete, so do that
@@ -4566,8 +4588,14 @@ class RakuAST::Node {
         self.IMPL-BOX-VM-VALUE($result)
     }
 
-    method IMPL-BEGIN-TIME-FAILURE(Mu $exception, RakuAST::Resolver $resolver) {
+    method IMPL-BEGIN-TIME-FAILURE(Mu $exception, RakuAST::Resolver $resolver, Mu $code?) {
         my $ex := $resolver.convert-exception($exception);
+
+        # A node evaluating code before it has an origin, such as a package
+        # applying its traits, locates the error at that code instead.
+        $code.IMPL-LOCATE-UNLOCATED-EXCEPTION($ex)
+          if nqp::isconcrete($code)
+          && !(nqp::isconcrete(self) && nqp::isconcrete(self.origin));
 
         # Can handle it properly
         if nqp::istype(self,RakuAST::CheckTime) {
@@ -4577,7 +4605,7 @@ class RakuAST::Node {
 
         # Alas, need to rethrow wil line info if possible
         else {
-            self.IMPL-LOCATE-EXCEPTION($ex);
+            self.IMPL-LOCATE-UNLOCATED-EXCEPTION($ex);
             $ex.rethrow;
         }
     }
@@ -4806,7 +4834,8 @@ class RakuAST::Node {
                    RakuAST::Node $callee,
                 RakuAST::ArgList $args,
                RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
+      RakuAST::IMPL::QASTContext $context,
+                   RakuAST::Node :$locus
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
         my $*BEGIN-TIME-LOOKUP :=
@@ -4839,6 +4868,10 @@ class RakuAST::Node {
               :postfix(RakuAST::Call::Term.new(:$args)),
               :operand($callee)
             );
+            # The call has no origin of its own, so an error in it reports at
+            # the locus.
+            $call.set-origin($locus.origin)
+              if nqp::isconcrete($locus) && nqp::isconcrete($locus.origin);
             $call.to-begin-time($resolver, $context);
             self.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context)
         }

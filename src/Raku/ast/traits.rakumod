@@ -169,7 +169,8 @@ class RakuAST::Trait
               self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0],
               $args,
               $resolver,
-              $context
+              $context,
+              :locus(self)
             );
             self.mark-applied;
         }

@@ -1409,12 +1409,7 @@ class RakuAST::VarDeclaration::Simple
                   # and the attribute's value to compute the default, so a
                   # default whose value is a code object takes the method
                   # path below to be stored as a value.
-                  && !nqp::isinvokable($expression.maybe-compile-time-value)
-                  # A heredoc's body is spliced in at the end of the line, after
-                  # this attribute has begun. Reading its value now would capture
-                  # the placeholder, so leave it to the method path, which compiles
-                  # the expression once the body is present.
-                  && !nqp::istype($expression, RakuAST::Heredoc) {
+                  && !nqp::isinvokable($expression.maybe-compile-time-value) {
                     # Only a concrete default known at compile time becomes the
                     # build value directly. A default that is a type object would
                     # leave the build not concrete. Then the attribute is not
@@ -3041,6 +3036,7 @@ class RakuAST::VarDeclaration::Signature
             }
         }
         elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
+            $!signature.IMPL-BIND-LITERAL-DEFAULTS;
             my $signature := $!signature.meta-object;
             $context.ensure-sc($signature);
             my $init-qast := $!initializer.IMPL-TO-QAST($context);
@@ -4187,6 +4183,7 @@ class RakuAST::VarDeclaration::Placeholder
     has Bool $!already-declared;
     has RakuAST::Node $!owner;
     has RakuAST::VarDeclaration::Simple $!lowering-declaration;
+    has int $!refused;
 
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
@@ -4213,6 +4210,16 @@ class RakuAST::VarDeclaration::Placeholder
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $owner := $resolver.find-attach-target('block');
         my $method := $resolver.find-attach-target('method');
+        # A heredoc body written after the closing brace of a block cannot add
+        # a parameter to it. A %_ in a method is the method's own slurpy, so it
+        # adds nothing.
+        if $resolver.IMPL-HEREDOC-SCOPE-CLOSED($owner)
+          && !(self.lexical-name eq '%_' && ($method || $owner.IMPL-IS-IN-METHOD)) {
+            nqp::bindattr_i(self, RakuAST::VarDeclaration::Placeholder, '$!refused', 1);
+            self.add-sorry: $resolver.build-exception: 'X::Placeholder::Mainline',
+              placeholder => self.declared-name;
+            return Nil;
+        }
         if $owner {
             nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!owner', $owner);
             $owner.add-placeholder-parameter(self);
@@ -4225,6 +4232,7 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        return True if $!refused;
         my $block := $resolver.find-attach-target('block');
         my $name := self.declared-name;
         my $lexical-name := self.lexical-name;

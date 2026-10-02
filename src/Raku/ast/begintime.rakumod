@@ -18,6 +18,7 @@ role RakuAST::BeginTime {
         unless $!begin-performed {
             my $*BEGIN-TIME-LOOKUP :=
               RakuAST::Node.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
+            my $*IMPL-LOOKUP-NODE := self;
             self.PERFORM-BEGIN($resolver, $context);
             self.IMPL-MARK-BEGIN-PERFORMED;
         }

@@ -1016,7 +1016,19 @@ class RakuAST::Role
         # See Package.IMPL-COMPOSE; $resolver/$context are mandatory and
         # the first meta-object access fills the cache.
         self.meta-object(:$resolver, :$context);
-        self.body.IMPL-FINISH-ROLE-BODY($resolver, $context);
+        # The body compiles here ahead of the unit, so a heredoc in it that
+        # awaits its text holds that back until the line ends.
+        my $body := self.body;
+        if $resolver.IMPL-HEREDOCS-AWAITING-BODY
+          && RakuAST::Heredoc.IMPL-AWAITING-ANYWHERE-IN($body) {
+            my $at-close := $resolver.clone;
+            $resolver.IMPL-AFTER-HEREDOC-BODIES(-> {
+                $body.IMPL-FINISH-ROLE-BODY($at-close, $context)
+            });
+        }
+        else {
+            $body.IMPL-FINISH-ROLE-BODY($resolver, $context);
+        }
     }
 }
 

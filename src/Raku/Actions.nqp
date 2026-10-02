@@ -1464,6 +1464,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $Pragma.IS-PRAGMA($name) {
             $ast := $Pragma.new(:$name, :$argument);
+            self.SET-NODE-ORIGIN($/, $ast);
             $ast.ensure-begin-performed($*R, $*CU.context);
         }
 
@@ -4495,7 +4496,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $<value> {
             $returns := $<value>.ast;
-            unless $returns.has-compile-time-value {
+            # A heredoc has no value until its body is parsed at the end of the line.
+            unless $returns.has-compile-time-value
+              || nqp::istype($returns, Nodify('Heredoc')) && $returns.IMPL-AWAITS-BODY {
                 $<value>.panic:
                   'Return value after --> may only be a type or a constant';
             }
@@ -4554,6 +4557,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if nqp::defined($value) {  # not Nil
                     $parameter.set-type($type-constraint.ast-type);
                     $parameter.set-value($value);
+                }
+                elsif nqp::istype($type-constraint, Nodify('Heredoc'))
+                  && $type-constraint.IMPL-AWAITS-BODY {
+                    $_.panic('Premature heredoc consumption');
                 }
                 else {
                     nqp::die("Could not get a literal value of a quoted string as a parameter");

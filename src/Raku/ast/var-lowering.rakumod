@@ -26,6 +26,7 @@ class RakuAST::IMPL::VarLoweringFrame {
     has Mu $!deferred-uses;
     has str $!implicit-slurpy-id;
     has int $!makes-calls;
+    has Mu $!names-reached;
 
     method new(RakuAST::Node $node, int $is-scope) {
         my $obj := nqp::create(self);
@@ -112,6 +113,19 @@ class RakuAST::IMPL::VarLoweringFrame {
         Nil
     }
     method implicit-slurpy-id() { $!implicit-slurpy-id }
+
+    # A use inside this frame that resolved past it is emitted by name, so the
+    # backend binds it to the innermost declaration of that name. A
+    # declaration this frame makes after the use can be that one.
+    method note-name-reached(str $name) {
+        nqp::bindattr(self, RakuAST::IMPL::VarLoweringFrame, '$!names-reached',
+            nqp::hash()) unless nqp::isconcrete($!names-reached);
+        nqp::bindkey($!names-reached, $name, 1);
+        Nil
+    }
+    method name-reached(str $name) {
+        nqp::isconcrete($!names-reached) && nqp::existskey($!names-reached, $name)
+    }
 
     method add-deferred(str $id) {
         nqp::push($!deferred-uses, $id);
@@ -1245,12 +1259,22 @@ class RakuAST::IMPL::VarLowering {
             my $declaration := $resolution.IMPL-LOWERING-DECLARATION;
             $resolution := $declaration if nqp::isconcrete($declaration);
         }
-        self.IMPL-REGISTER-USE-ID(~nqp::objectid($resolution));
+        self.IMPL-REGISTER-USE-ID(~nqp::objectid($resolution), $resolution);
     }
 
-    method IMPL-REGISTER-USE-ID(str $id) {
+    # The name a use notes on each frame it reaches past. A callable is never
+    # lowered, so its name is left out.
+    method IMPL-NAME-REACHED-BY(Mu $resolution) {
+        return '' if nqp::istype($resolution, RakuAST::Code)
+          || !nqp::can($resolution, 'lexical-name');
+        my $name := $resolution.lexical-name;
+        nqp::isconcrete($name) && !nqp::eqat($name, '&', 0) ?? $name !! ''
+    }
+
+    method IMPL-REGISTER-USE-ID(str $id, Mu $resolution?) {
         my int $top := nqp::elems($!frames) - 1;
         my int $i := $top + 1;
+        my str $name;
         while --$i >= 0 {
             my $frame := nqp::atpos($!frames, $i);
             my $record := $frame.record-for-id($id);
@@ -1280,6 +1304,9 @@ class RakuAST::IMPL::VarLowering {
                 $frame.mark-implicit-used($implicit);
                 return Nil;
             }
+            $name := self.IMPL-NAME-REACHED-BY($resolution)
+              if $i == $top && nqp::isconcrete($resolution);
+            $frame.note-name-reached($name) if $name;
         }
         Nil
     }
@@ -1413,6 +1440,9 @@ class RakuAST::IMPL::VarLowering {
             }
             if $declined eq '' && nqp::existskey($record, 'captured') {
                 $declined := 'captured';
+            }
+            if $declined eq '' && $frame.name-reached($decl.lexical-name) {
+                $declined := 'reached-by-name';
             }
             nqp::bindkey($record, 'final', $declined);
             if $declined eq '' {

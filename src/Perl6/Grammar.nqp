@@ -209,8 +209,11 @@ role STD {
         }
     }
 
-    token cheat_heredoc {
-        <?{ nqp::elems($*W.herestub_queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+    token cheat_heredoc($closer?) {
+        <?{ nqp::elems($*W.herestub_queue) }> \h*
+        $<closer>=[ <?{ nqp::isconcrete($closer) }> $closer | <!{ nqp::isconcrete($closer) }> <[ ; } ]> ]
+        [ <?{ $<closer> eq '}' }> \h* ';' ]?
+        \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $grammar) {
@@ -1107,7 +1110,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             { $*CURPAD := $*W.pop_lexpad() }
-            [<.cheat_heredoc> || '}']
+            [<.cheat_heredoc('}')> || '}']
             <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
@@ -1329,7 +1332,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name>
             [
-            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
+            || <.spacey> <arglist> <.cheat_heredoc(';')>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     my $oldmain := %*LANG<MAIN>;
                     $*W.do_pragma_or_load_module($/,1);
@@ -1486,7 +1489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc(';')>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -3063,7 +3066,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         || <.missing: "initializer on constant declaration">
         ]
 
-        <.cheat_heredoc>?
+        <.cheat_heredoc(';')>?
     }
 
     proto token initializer { <...> }

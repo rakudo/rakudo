@@ -3,7 +3,7 @@ use Test;
 use Test::Helpers;
 use nqp;
 
-plan 49;
+plan 50;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -106,6 +106,15 @@ is-run-repl "''\n", "\n", 'an empty string gives back one blank line';
 
 is-run-repl "}\n", /'===SORRY!===' .* 'Unexpected closing bracket'/,
     'syntax error gives a compile-time error';
+
+if $rakuast {
+    is-run-repl «'my &f = sub (--> q:to/END/) { }; say 1'  'say "next"'»,
+      /'Premature heredoc consumption' .* 'next'/,
+      'a heredoc needed while compiling is reported without waiting for more input';
+}
+else {
+    skip 'the legacy frontend does not report this while compiling';
+}
 
 is-run-repl "}\nsay 42", {
     .match: /'===SORRY!===' .* 'Unexpected closing bracket' .* '42'/

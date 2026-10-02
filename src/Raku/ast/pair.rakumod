@@ -391,6 +391,10 @@ class RakuAST::ColonPair::Value
     # be interpreted so IMPL-QUOTE-VALUE can render the same `<a b>`
     # canonical form as `:foo<a b>`.
     method canonicalize() {
+        # A name cannot wait for a heredoc body at the end of the line.
+        RakuAST::Exception::TooComplex.new.throw
+          if !$!has-cached-value
+          && nqp::isconcrete(RakuAST::Heredoc.IMPL-AWAITING-IN($!value));
         my $value := self.IMPL-INTERPRETED-VALUE-OR-NIL;
         self.key ~ (
             $!has-cached-value && nqp::isconcrete($value)

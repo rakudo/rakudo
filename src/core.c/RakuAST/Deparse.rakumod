@@ -1703,6 +1703,13 @@ CODE
 
     multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
         my @processors = $ast.processors;
+
+        # a heredoc whose body has not arrived yet only has its opener
+        if $ast.IMPL-AWAITS-BODY {
+            my $delimiter := $ast.IMPL-PENDING-DELIMITER;
+            my ($open, $close) = self.delimiters-for($delimiter);
+            return self.multiple-processors($delimiter, @processors, :$open, :$close);
+        }
         @processors.push('heredoc');
 
         # the text is indented with the whitespace of the stop marker, a

@@ -13,6 +13,7 @@ role RakuAST::ParseTime {
 
     method ensure-parse-performed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!parse-performed {
+            my $*IMPL-LOOKUP-NODE := self;
             self.PERFORM-PARSE($resolver, $context);
             nqp::bindattr_i(self, RakuAST::ParseTime, '$!parse-performed', 1);
         }

@@ -118,6 +118,9 @@ role RakuAST::Code
     has int $!dynamically-compiled;
     has str $!begin-cache-blocktype;
     has Mu $!begin-cache-expression;
+    # Set when the early block holds a heredoc that awaited its body, so the
+    # block is formed again for the unit even when it is not optimized.
+    has int $!begin-cache-awaited-heredoc;
 
     # A control-flow statement (if/unless/with/without/while/until/loop) runs
     # its branch inline, so `&?BLOCK` inside it means the enclosing real block,
@@ -312,7 +315,8 @@ role RakuAST::Code
     # The re-formation runs only between a unit's optimize walk and that
     # unit's emission, never inside a dynamic compilation.
     method IMPL-MAYBE-REBUILD-BEGIN-TIME-CACHED-BLOCK(RakuAST::IMPL::QASTContext $context) {
-        if $!begin-time-cached && $context.optimize-performed
+        if $!begin-time-cached
+            && ($context.optimize-performed || $!begin-cache-awaited-heredoc)
             && self.IMPL-REBUILD-ELIGIBLE
             && !nqp::ifnull(nqp::getlexdyn('$*IMPL-COMPILE-DYNAMICALLY'), 0) {
             self.IMPL-REBUILD-BEGIN-TIME-CACHED-BLOCK($context);
@@ -322,12 +326,15 @@ role RakuAST::Code
 
     method IMPL-FINISH-CODE-OBJECT(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
+        my $*IMPL-AWAITED-HEREDOC := 0;
         my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression);
         self.IMPL-LINK-META-OBJECT($context, $block);
         nqp::bindattr(self, RakuAST::Code, '$!qast-block', $block);
         if nqp::ifnull(nqp::getlexdyn('$*IMPL-COMPILE-DYNAMICALLY'), 0) {
             nqp::bindattr_i(self, RakuAST::Code, '$!begin-time-cached', 1);
             nqp::bindattr_i(self, RakuAST::Code, '$!dynamically-compiled', 1);
+            nqp::bindattr_i(self, RakuAST::Code, '$!begin-cache-awaited-heredoc', 1)
+              if $*IMPL-AWAITED-HEREDOC;
             if self.IMPL-REBUILD-ELIGIBLE {
                 nqp::bindattr_s(self, RakuAST::Code, '$!begin-cache-blocktype', $blocktype);
                 nqp::bindattr(self, RakuAST::Code, '$!begin-cache-expression', $expression);

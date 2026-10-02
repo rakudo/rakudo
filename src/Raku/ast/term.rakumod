@@ -86,6 +86,7 @@ class RakuAST::Term::Name
         if $name.is-pseudo-package
             ?? nqp::istype($name.first-part, RakuAST::Name::Part::EmptyEdge) && $name.base-name.is-empty && $name.has-colonpairs
             !! ! $name.is-package-lookup && ! $name.is-indirect-lookup && ! self.is-resolved
+              && ! self.IMPL-HEREDOC-REPORT($resolver)
         {
             self.add-sorry:
                 $resolver.build-exception: 'X::NoSuchSymbol', :symbol($!name.canonicalize);

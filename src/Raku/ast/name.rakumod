@@ -24,10 +24,9 @@ class RakuAST::Name
     method from-identifier-parts(*@identifiers, List :$colonpairs) {
         my @parts;
         for @identifiers {
-            unless nqp::istype($_, Str) || nqp::isstr($_) {
-                nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
-            }
-            @parts.push(RakuAST::Name::Part::Simple.new($_));
+            nqp::istype($_,Str) || nqp::isstr($_)
+              ?? @parts.push(RakuAST::Name::Part::Simple.new($_))
+              !! nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
         }
         self.new(|@parts, :$colonpairs)
     }
@@ -57,10 +56,13 @@ class RakuAST::Name
     }
 
     method root-part() {
-        nqp::die("Can't get root-part of empty name") unless nqp::elems($!parts);
-        my $root := $!parts[0];
-        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::EmptyEdge);
-        $root
+        my $parts := $!parts;
+        nqp::elems($parts)
+          ?? $parts[
+               nqp::elems($parts) > 1
+                 && nqp::istype($parts[0], RakuAST::Name::Part::EmptyEdge)
+             ]
+          !! nqp::die("Can't get root-part of empty name")
     }
 
     method is-multi-part(--> Bool) {
@@ -116,7 +118,8 @@ class RakuAST::Name
         nqp::isconcrete(self)
           && nqp::elems($!parts) == 1
           && nqp::istype((my $obj := $!parts[0]),RakuAST::Name::Part::Simple)
-          && $obj.name
+          ?? $obj.name
+          !! ''
     }
 
     method is-package-lookup(--> Bool) {
@@ -128,9 +131,7 @@ class RakuAST::Name
         my @parts := nqp::clone($!parts);
         @parts.pop if self.is-package-lookup;
         my $name := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $name.add-colonpair($_);
-        }
+        $name.set-colonpairs(nqp::clone($!colonpairs)) if $!colonpairs;
         $name
     }
 
@@ -142,9 +143,7 @@ class RakuAST::Name
     }
 
     method indirect-lookup-part() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
-            ?? $!parts[1]
-            !! $!parts[0]
+        nqp::atpos($!parts,nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
     method has-colonpairs(--> Bool) {
@@ -167,31 +166,29 @@ class RakuAST::Name
 
     method without-colonpair($key) {
         my @parts := nqp::clone($!parts);
-        my $type := RakuAST::Name.new(|@parts);
+        my $name  := RakuAST::Name.new(|@parts);
         for $!colonpairs {
-            $type.add-colonpair($_) if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
+            $name.add-colonpair($_) if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
         }
-        $type
+        $name
     }
 
     method without-colonpairs() {
         my @parts := nqp::clone($!parts);
-        my $type := RakuAST::Name.new(|@parts);
+        my $name  := RakuAST::Name.new(|@parts);
         for $!colonpairs {
-            $type.add-colonpair($_)
+            $name.add-colonpair($_)
               unless nqp::istype($_, RakuAST::ColonPair);
         }
-        $type
+        $name
     }
 
     method without-first-part() {
         my @parts := nqp::clone($!parts);
         @parts.shift;
-        my $type := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $type.add-colonpair($_)
-        }
-        $type
+        my $name := RakuAST::Name.new(|@parts);
+        $name.set-colonpairs(nqp::clone($!colonpairs));
+        $name
     }
 
     method visit-children(Code $visitor) {
@@ -320,9 +317,11 @@ class RakuAST::Name
     }
 
     method IMPL-IS-NQP-OP() {
-        nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
-            ?? $!parts[1].name
-            !! ''
+        nqp::elems(my $parts := $!parts) == 2
+          && nqp::istype($parts[0], RakuAST::Name::Part::Simple)
+          && $parts[0].name eq 'nqp'
+          ?? $parts[1].name
+          !! ''
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

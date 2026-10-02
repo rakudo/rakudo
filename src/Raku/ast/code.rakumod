@@ -139,7 +139,9 @@ role RakuAST::Code
     method set-immediate-block-user-body() {
         nqp::bindattr_i(self, RakuAST::Code, '$!immediate-block-user-body', 1);
     }
-    method is-immediate-block-user-body() { $!immediate-block-user-body }
+    method is-immediate-block-user-body(--> Bool) {
+        $!immediate-block-user-body
+    }
 
     # Ensure this block declares the implicit `&?BLOCK` lexical, bound to its
     # own code object. A reference to `&?BLOCK` requests this on the innermost
@@ -3807,7 +3809,7 @@ class RakuAST::Sub
         $signature ?? $signature.provides-return-value !! False
     }
 
-    method is-stub() {
+    method is-stub(--> Bool) {
         my @code := self.body.statement-list.code-statements;
         nqp::elems(@code) == 1
             && nqp::istype(@code[0], RakuAST::Statement::Expression)
@@ -4295,7 +4297,7 @@ class RakuAST::Method
         $signature ?? $signature.provides-return-value !! False
     }
 
-    method is-stub() {
+    method is-stub(--> Bool) {
         my @code := self.body.statement-list.code-statements;
         nqp::elems(@code) == 1
             && nqp::istype(@code[0], RakuAST::Statement::Expression)

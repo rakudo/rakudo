@@ -63,11 +63,13 @@ class RakuAST::Name
         $root
     }
 
-    method is-multi-part() {
-        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
+    method is-multi-part(--> Bool) {
+        nqp::elems($!parts) > 1
+          && !(nqp::elems($!parts) == 2
+                 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
-    method is-identifier() {
+    method is-identifier(--> Bool) {
         my $parts := $!parts;
         nqp::elems($parts) == 1 && (
             nqp::istype($parts[0], RakuAST::Name::Part::Simple)
@@ -117,7 +119,7 @@ class RakuAST::Name
           && $obj.name
     }
 
-    method is-package-lookup() {
+    method is-package-lookup(--> Bool) {
         nqp::elems($!parts)
           && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::EmptyEdge)
     }
@@ -136,6 +138,7 @@ class RakuAST::Name
         for $!parts {
             return True if nqp::istype($_, RakuAST::Name::Part::Expression);
         }
+        False
     }
 
     method indirect-lookup-part() {
@@ -272,12 +275,13 @@ class RakuAST::Name
         $name
     }
 
-    method is-pseudo-package() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
-        || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
+    method is-pseudo-package(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].is-pseudo-package
+               || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
-    method is-package-search() {
+    method is-package-search(--> Bool) {
         nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
@@ -296,8 +300,9 @@ class RakuAST::Name
         }
     }
 
-    method is-global-lookup() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL'
+    method is-global-lookup(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].name eq 'GLOBAL'
     }
 
     method contains-pseudo-package-illegal-for-declaration() {

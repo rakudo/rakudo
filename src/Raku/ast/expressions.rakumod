@@ -4133,7 +4133,7 @@ class RakuAST::Postcircumfix
 class RakuAST::Postcircumfix::Index
   is RakuAST::Postcircumfix
 {
-    method is-multislice() {
+    method is-multislice(--> Bool) {
         my $statements := self.index.code-statements;
         nqp::elems($statements) > 1
         || nqp::elems(self.IMPL-UNWRAP-LIST(self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))))

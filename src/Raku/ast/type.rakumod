@@ -250,7 +250,7 @@ class RakuAST::Type::Simple
     }
 
     # This probably needs a better heuristic or be implemented as an attribute
-    method is-native() {
+    method is-native(--> Bool) {
         my str $name := $!name.canonicalize;
         nqp::lc($name) eq $name
     }

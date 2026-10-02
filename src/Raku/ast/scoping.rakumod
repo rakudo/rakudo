@@ -1296,9 +1296,7 @@ role RakuAST::Lookup {
 
     method needs-resolution() { True }
 
-    method is-resolved() {
-        nqp::isconcrete($!resolution) ?? True !! False
-    }
+    method is-resolved(--> Bool) { nqp::isconcrete($!resolution) }
 
     method resolution() {
         if nqp::isconcrete($!resolution) {

@@ -3201,7 +3201,7 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
     }
 
-    method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
+    method needs-sink-call(--> Bool) { ?$!infix.is-pure || ?$!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     # The interpreter passes no adverbs, so an application with one is
     # compiled.
@@ -4031,11 +4031,19 @@ class RakuAST::Postfix::Literal
         $obj
     }
 
+    # Set by the optimize pass when the resolved routine's lexical is bound
+    # once, so code generation emits a static callee lookup.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Postfix::Literal, '$!callstatic', $on)
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         $context.ensure-sc($!value);
         QAST::Op.new:
-            :op('call'), :$name,
+            :op($!callstatic ?? 'callstatic' !! 'call'), :$name,
             $operand-qast,
             QAST::WVal.new( :value($!value) )
     }
@@ -4114,7 +4122,7 @@ class RakuAST::Postcircumfix
 class RakuAST::Postcircumfix::Index
   is RakuAST::Postcircumfix
 {
-    method is-multislice() {
+    method is-multislice(--> Bool) {
         my $statements := self.index.code-statements;
         nqp::elems($statements) > 1
         || nqp::elems(self.IMPL-UNWRAP-LIST(self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))))

@@ -139,7 +139,7 @@ role RakuAST::Code
     method set-immediate-block-user-body() {
         nqp::bindattr_i(self, RakuAST::Code, '$!immediate-block-user-body', 1);
     }
-    method is-immediate-block-user-body() { $!immediate-block-user-body }
+    method is-immediate-block-user-body(--> Bool) { $!immediate-block-user-body }
 
     # Ensure this block declares the implicit `&?BLOCK` lexical, bound to its
     # own code object. A reference to `&?BLOCK` requests this on the innermost
@@ -1912,7 +1912,7 @@ role RakuAST::ScopePhaser {
         $block[0].push($phaser-block);
     }
 
-    method has-phaser(str $phaser-name) {
+    method has-phaser(str $phaser-name --> Bool) {
         # TOOD: Also check '$!phasers' hash on the meta-object
         nqp::elems(nqp::getattr(self, RakuAST::ScopePhaser, '$!' ~ $phaser-name) // []) > 0
     }
@@ -3713,8 +3713,8 @@ class RakuAST::Routine
         nqp::existskey(SCOPES,self.scope)
     }
 
-    method is-simple-lexical-declaration() {
-        self.is-lexical && self.multiness ne 'multi' && self.multiness ne 'proto'
+    method is-simple-lexical-declaration(--> Bool) {
+        ?self.is-lexical && self.multiness ne 'multi' && self.multiness ne 'proto'
     }
 
     method generate-lookup() {
@@ -3809,7 +3809,7 @@ class RakuAST::Sub
         $signature ?? $signature.provides-return-value !! False
     }
 
-    method is-stub() {
+    method is-stub(--> Bool) {
         my @code := self.body.statement-list.code-statements;
         nqp::elems(@code) == 1
             && nqp::istype(@code[0], RakuAST::Statement::Expression)
@@ -4297,7 +4297,7 @@ class RakuAST::Method
         $signature ?? $signature.provides-return-value !! False
     }
 
-    method is-stub() {
+    method is-stub(--> Bool) {
         my @code := self.body.statement-list.code-statements;
         nqp::elems(@code) == 1
             && nqp::istype(@code[0], RakuAST::Statement::Expression)

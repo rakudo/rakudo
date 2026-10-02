@@ -863,10 +863,6 @@ class RakuAST::Node {
                 $result := self.IMPL-COLLAPSE-DEAD-BRANCH($resolver, $expr);
             }
 
-            if $apply-infix && $result =:= $expr {
-                $result := self.IMPL-REWRITE-SQUARE($resolver, $expr);
-            }
-
             if $apply-postfix && $result =:= $expr {
                 $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
             }
@@ -1059,7 +1055,9 @@ class RakuAST::Node {
         elsif nqp::istype($expr, RakuAST::ApplyPostfix) {
             $expr.IMPL-SET-NATIVE-INCDEC(0);
             my $postfix := $expr.postfix;
-            $postfix.IMPL-SET-CALLSTATIC(0) if nqp::istype($postfix, RakuAST::Postfix);
+            $postfix.IMPL-SET-CALLSTATIC(0)
+                if nqp::istype($postfix, RakuAST::Postfix)
+                || nqp::istype($postfix, RakuAST::Postfix::Literal);
             if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex) {
                 $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null);
                 $postfix.IMPL-SET-DIRECT-POS(0);
@@ -1571,15 +1569,19 @@ class RakuAST::Node {
     }
 
     # Mark a postfix operator whose lexical is bound once for a static callee
-    # lookup at code generation.
+    # lookup at code generation. A literal postfix goes by its routine's name.
     method IMPL-MARK-STATIC-POSTFIX(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
         my $postfix := $expr.postfix;
-        return Nil unless nqp::istype($postfix, RakuAST::Postfix)
+        my int $literal := nqp::istype($postfix, RakuAST::Postfix::Literal);
+        return Nil unless ($literal || nqp::istype($postfix, RakuAST::Postfix))
             && $postfix.is-resolved;
+        my $resolution := $postfix.resolution;
+        my $name := $literal
+            ?? $resolution.lexical-name
+            !! '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator);
         $postfix.IMPL-SET-CALLSTATIC(
-            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
-                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator)) ?? 1 !! 0);
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $name) ?? 1 !! 0);
         Nil
     }
 
@@ -3812,65 +3814,6 @@ class RakuAST::Node {
         $infix.IMPL-SET-TYPEMATCH($type,
             nqp::istype($type, $Junction) ?? nqp::null() !! $Junction);
         $expr
-    }
-
-    # Squaring by the core power operator becomes a multiply of the operand
-    # with itself: the power routine handles any exponent, bottoming out in a
-    # bignum power or libm pow, where the multiply is a single operation.
-    # Only a plain resolved variable qualifies, so no side effect is
-    # duplicated, and only one whose type rules out a Junction: a junction
-    # squares each eigenstate, but autothreads over both sides of a multiply,
-    # which builds a different junction. A native can never hold one; a boxed
-    # variable qualifies when its declared type and Junction are unrelated.
-    # The multiply emitted must itself be the core one in the node's scope.
-    # The soft pragma turns the rewrite off, since it bypasses the power
-    # routine that wrapping relies on.
-    method IMPL-REWRITE-SQUARE(RakuAST::Resolver $resolver, Mu $expr) {
-        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
-        CATCH {
-            return $expr;
-        }
-
-        return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
-        my $infix := $expr.infix;
-        return $expr unless nqp::istype($infix, RakuAST::Infix)
-            && $infix.is-resolved
-            && $infix.operator eq '**';
-
-        # An exponent that is the literal integer 2.
-        my $right := $expr.right;
-        return $expr unless nqp::istype($right, RakuAST::IntLiteral);
-        my $exp := $right.compile-time-value;
-        return $expr if nqp::isbig_I($exp);
-        return $expr unless nqp::iseq_i(nqp::unbox_i($exp), 2);
-
-        # A plain resolved variable whose type rules out a Junction.
-        my $left := $expr.left;
-        return $expr unless nqp::istype($left, RakuAST::Var::Lexical)
-            && $left.is-resolved;
-        my $type := $left.return-type;
-        unless nqp::objprimspec($type) {
-            my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
-            return $expr if nqp::isnull($Junction);
-            return $expr if $type =:= Mu;
-            return $expr unless nqp::can($type.HOW, 'archetypes')
-                && !$type.HOW.archetypes($type).generic;
-            return $expr if nqp::istype($type, $Junction)
-                || nqp::istype($Junction, $type);
-        }
-
-        return $expr if self.IMPL-IN-SOFT-SCOPE($resolver);
-        return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
-        my $mul := $resolver.resolve-lexical('&infix:<*>');
-        return $expr unless nqp::isconcrete($mul)
-            && nqp::istype($mul, RakuAST::Declaration::External::Setting);
-
-        my $mul-op := RakuAST::Infix.new('*');
-        $mul-op.set-resolution($mul);
-        my $product := RakuAST::ApplyInfix.new(
-            :left($left), :infix($mul-op), :right($left));
-        $product.set-origin($expr.origin) if nqp::isconcrete($expr.origin);
-        $product
     }
 
     # A slice of a plain variable by literal integer indexes becomes the

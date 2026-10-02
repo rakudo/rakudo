@@ -228,7 +228,7 @@ class OperatorProperties {
     }
 
     # Return whether given operator name is reserved
-    method is-reserved-operator(str $operator) {
+    method is-reserved-operator(str $operator --> Bool) {
         nqp::existskey(self.reserved-operators-lookup,$operator)
     }
 

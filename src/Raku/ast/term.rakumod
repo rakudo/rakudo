@@ -31,11 +31,11 @@ class RakuAST::Term::Name
 
     # Folding must agree with IMPL-EXPR-QAST on which names may use their
     # resolution: only a leading-:: package search, and not ::GLOBAL.
-    method has-compile-time-value() {
-        self.is-resolved
-          && self.resolution.has-compile-time-value
+    method has-compile-time-value(--> Bool) {
+        ?self.is-resolved
+          && ?self.resolution.has-compile-time-value
           && (!$!name.is-pseudo-package
-               || $!name.is-package-search
+               || ?$!name.is-package-search
                     && !$!name.without-first-part.is-global-lookup)
     }
 

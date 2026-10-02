@@ -407,16 +407,31 @@ multi sub infix:<%>(int $a, num $b) {
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
 multi sub infix:<**>(Num:D $a, Num:D $b) {
-    nqp::p6box_n(nqp::pow_n($a,$b))
+    # A square is a single multiply, which is cheaper than pow and rounds
+    # correctly where pow may be off in the last place.
+    nqp::p6box_n(nqp::iseq_n($b,2e0) ?? nqp::mul_n($a,$a) !! nqp::pow_n($a,$b))
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
         !! X::Numeric::Underflow.new.Failure
 }
 multi sub infix:<**>(num $a, num $b) {
-    nqp::pow_n($a, $b)
+    (nqp::iseq_n($b,2e0) ?? nqp::mul_n($a,$a) !! nqp::pow_n($a,$b))
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
         !! X::Numeric::Underflow.new.Failure
+}
+# A Num to an Int power skips the Bridge, and a nonzero square multiplies
+# directly. A subclass on either side bridges as Real ** Real does.
+multi sub infix:<**>(Num:D $a, Int:D $b) {
+    nqp::eqaddr(nqp::what($a),Num) && nqp::eqaddr(nqp::what($b),Int)
+      ?? (nqp::iseq_I($b,2) && nqp::isne_n((my num $square = nqp::mul_n($a,$a)),0e0)
+           ?? nqp::p6box_n($square)
+           !! $a ** nqp::p6box_n(nqp::tonum_I($b)))
+      !! BRIDGED_POWER($a,$b)
+}
+# Out of line so the candidate above stays small enough to inline.
+sub BRIDGED_POWER(\a, \b) is hidden-from-backtrace is implementation-detail {
+    a.Bridge ** b.Bridge
 }
 
 # Here we sort NaN in with string "NaN"

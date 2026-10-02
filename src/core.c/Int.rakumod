@@ -413,7 +413,11 @@ multi sub infix:<%%>(uint $a, uint $b --> Bool:D) {
 }
 
 multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
-    nqp::isge_I($b,0) ?? $a.power-up($b) !! $a.power-down($b)
+    nqp::iseq_I($b,2)
+      ?? nqp::mul_I($a,$a,Int)
+      !! nqp::isge_I($b,0)
+        ?? $a.power-up($b)
+        !! $a.power-down($b)
 }
 multi sub infix:<**>( int $a,  int $b --> int)  { nqp::pow_i($a, $b) }
 multi sub infix:<**>(uint $a, uint $b --> uint) { nqp::pow_i($a, $b) }

@@ -17,18 +17,18 @@ class RakuAST::Name
         $obj
     }
 
-    method from-identifier(Str $identifier, List :$colonpairs) {
-        self.new(RakuAST::Name::Part::Simple.new($identifier), :$colonpairs)
+    method from-identifier(Str $identifier) {
+        self.new(RakuAST::Name::Part::Simple.new($identifier))
     }
 
-    method from-identifier-parts(*@identifiers, List :$colonpairs) {
+    method from-identifier-parts(*@identifiers) {
         my @parts;
         for @identifiers {
             nqp::istype($_,Str) || nqp::isstr($_)
               ?? @parts.push(RakuAST::Name::Part::Simple.new($_))
               !! nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
         }
-        self.new(|@parts, :$colonpairs)
+        self.new(|@parts)
     }
 
     method add-colonpair(RakuAST::ColonPairish $pair) {

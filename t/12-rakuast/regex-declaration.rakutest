@@ -120,7 +120,8 @@ subtest 'Token declaration with a sym colonpair' => {
     # my token t:sym<a> { a+ }
     ast RakuAST::TokenDeclaration.new(
       scope => "my",
-      name  => RakuAST::Name.from-identifier("t",
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new("t"),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => "sym",
@@ -147,7 +148,8 @@ subtest 'Token declaration matching its sym' => {
     # my token t:sym<a> { <sym> }
     ast RakuAST::TokenDeclaration.new(
       scope => "my",
-      name  => RakuAST::Name.from-identifier("t",
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new("t"),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => "sym",

@@ -479,7 +479,8 @@ subtest 'A sub with an operator name' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
-          name => RakuAST::Name.from-identifier('infix',
+          name => RakuAST::Name.new(
+            RakuAST::Name::Part::Simple.new('infix'),
             colonpairs => (
               RakuAST::QuotedString.new(
                 segments   => [RakuAST::StrLiteral.new('+++')],

@@ -311,7 +311,8 @@ subtest 'a role with a version in its name' => {
     # }
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('TestVersioned',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('TestVersioned'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -363,7 +364,8 @@ subtest 'a role with a version that needs evaluation' => {
     my $v = v1;
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('TestVersionedVar',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('TestVersionedVar'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -397,7 +399,8 @@ subtest 'A role whose version, auth and api need evaluation' => {
     # }
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('ComputedRole',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ComputedRole'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -506,7 +509,8 @@ subtest 'A parameterized role whose version needs evaluation' => {
     # }
     ast RakuAST::Role.new(
       scope            => 'my',
-      name             => RakuAST::Name.from-identifier('ComputedParameterized',
+      name             => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ComputedParameterized'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -576,7 +580,8 @@ subtest 'A role with a literal version and an auth from $?DISTRIBUTION' => {
     # my role DistributionAuth:ver<0.1>:auth($?DISTRIBUTION.meta<auth>) { }
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('DistributionAuth',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('DistributionAuth'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -635,7 +640,8 @@ subtest 'A role whose version names a constant its body redeclares' => {
     my constant V = v3;
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('ScopedVersionRole',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('ScopedVersionRole'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',
@@ -702,7 +708,8 @@ subtest 'A role whose version dies when it is evaluated' => {
     # my role BoomRole:ver(die("boom")) { }
     ast RakuAST::Role.new(
       scope => 'my',
-      name  => RakuAST::Name.from-identifier('BoomRole',
+      name  => RakuAST::Name.new(
+        RakuAST::Name::Part::Simple.new('BoomRole'),
         colonpairs => (
           RakuAST::ColonPair::Value.new(
             key   => 'ver',

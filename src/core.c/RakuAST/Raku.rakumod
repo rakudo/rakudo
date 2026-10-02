@@ -605,7 +605,9 @@ augment class RakuAST::Node {
         my @parts      := self.parts;
         my $colonpairs := self.colonpairs;
 
-        if @parts && nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+        if @parts
+          && nqp::istype(@parts.are, RakuAST::Name::Part::Simple)
+          && !$colonpairs.elems {
             my str $args = @parts.map(*.name.raku).join(',');
             $args ~= ', colonpairs => ' ~ rakufy($colonpairs) if $colonpairs;
             self.^name ~ (@parts.elems == 1

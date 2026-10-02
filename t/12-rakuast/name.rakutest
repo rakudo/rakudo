@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 10;
+plan 12;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
@@ -182,6 +182,35 @@ subtest "name with a colonpair holding an expression" => {
     is-deeply .DEPARSE, 'Foo:ver($v)', 'deparses the value in parens';
     is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
       'round trips through .raku';
+}
+
+subtest "name parts say whether they are empty" => {
+    my &literal = { RakuAST::Name::Part::Expression.new(RakuAST::StrLiteral.new($_)) }
+    is-deeply RakuAST::Name::Part::Simple.new('').is-empty, True,
+      'a simple part with an empty name is empty';
+    is-deeply RakuAST::Name::Part::Simple.new('foo').is-empty, False,
+      'a simple part with a name is not empty';
+    is-deeply literal('').is-empty, True,
+      'an expression part for an empty string is empty';
+    is-deeply literal('foo').is-empty, False,
+      'an expression part for a string is not empty';
+    is-deeply RakuAST::Name::Part::Expression.new(
+      RakuAST::Var::Lexical.new('$foo')
+    ).is-empty, False, 'an expression part not known at compile time is not empty';
+    is-deeply RakuAST::Name.new(literal('')).is-empty, True,
+      'a name of one empty expression part is empty';
+    is-deeply RakuAST::Name.new.is-empty, True,
+      'a name without parts is empty';
+    is-deeply RakuAST::Name.from-identifier-parts('Foo', 'Bar').is-empty, False,
+      'a name of two parts is not empty';
+}
+
+subtest "a name says whether it has colonpairs" => {
+    is-deeply RakuAST::Name.from-identifier('foo').has-colonpairs, False,
+      'a plain name has no colonpairs';
+    is-deeply RakuAST::Name.from-identifier('foo',
+      colonpairs => (RakuAST::ColonPair::True.new('bar'),)
+    ).has-colonpairs, True, 'a name with an adverb has colonpairs';
 }
 
 # vim: expandtab shiftwidth=4

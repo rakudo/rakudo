@@ -86,17 +86,17 @@ class RakuAST::Name
         )
     }
 
-    method is-empty() {
+    method is-empty(--> Bool) {
         nqp::elems($!parts) == 0 || (nqp::elems($!parts) == 1 && $!parts[0].is-empty)
     }
 
-    method is-anonymous() {
+    method is-anonymous(--> Bool) {
         nqp::elems($!parts) == 2 && $!parts[0].is-empty && $!parts[1].is-empty # name is just '::'
     }
 
     # True when this name denotes a symbol that gets installed in a
     # scope.
-    method is-installable() {
+    method is-installable(--> Bool) {
         !self.is-empty && !self.is-anonymous
     }
 
@@ -144,8 +144,8 @@ class RakuAST::Name
             !! $!parts[0]
     }
 
-    method has-colonpairs() {
-        nqp::hllboolfor(nqp::elems($!colonpairs), 'Raku')
+    method has-colonpairs(--> Bool) {
+        nqp::elems($!colonpairs)
     }
 
     method has-colonpair($key) {
@@ -437,7 +437,7 @@ class RakuAST::Name::Part {
     method visit-children(Code $visitor) {
     }
 
-    method is-empty() { # returns Bool
+    method is-empty(--> Bool) {
         nqp::die("is-empty not implemented on " ~ self.HOW.name(self));
     }
 }
@@ -463,8 +463,8 @@ class RakuAST::Name::Part::Simple
         nqp::hllboolfor(nqp::existskey(PSEUDOS,$!name),"Raku")
     }
 
-    method is-empty() {
-        nqp::hllboolfor(nqp::iseq_s($!name,''),"Raku")
+    method is-empty(--> Bool) {
+        $!name eq ''
     }
 
     # The final part's stash key carries its sigil and, for a variable like
@@ -547,13 +547,10 @@ class RakuAST::Name::Part::Expression
         $!expr.literalize // nqp::die('Name ' ~ $!expr.DEPARSE ~ ' is not compile-time known')
     }
 
-    method is-empty() {
-        nqp::hllboolfor(
-          (my $name := try $!expr.literalize)
-            && (nqp::istype($name,Str) || nqp::isstr($name))
-            && $name eq '',
-          "Raku"
-        )
+    method is-empty(--> Bool) {
+        nqp::defined(my $name := try $!expr.literalize)
+          && (nqp::istype($name, Str) || nqp::isstr($name))
+          && $name eq ''
     }
 }
 

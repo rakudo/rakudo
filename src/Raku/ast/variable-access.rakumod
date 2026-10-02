@@ -1080,7 +1080,8 @@ class RakuAST::Var::Package
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if !self.is-resolved && !$!name.is-installable {
+        # An indirect name is looked up at runtime, even when it is empty.
+        if !self.is-resolved && !$!name.is-installable && !$!name.is-indirect-lookup {
             my $name := $!name.canonicalize;
             self.add-sorry:
                 $resolver.build-exception: 'X::Undeclared', :symbol($!sigil ~ $!twigil ~ $name),

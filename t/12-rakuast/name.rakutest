@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 11;
+plan 12;
 
 subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');

@@ -454,13 +454,13 @@ class RakuAST::Name::Part::Simple
         $obj
     }
 
-    method is-pseudo-package() {
+    method is-pseudo-package(--> Bool) {
         my constant PSEUDOS := nqp::hash(
           'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
           'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
           'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
         );
-        nqp::hllboolfor(nqp::existskey(PSEUDOS,$!name),"Raku")
+        nqp::existskey(PSEUDOS,$!name)
     }
 
     method is-empty(--> Bool) {

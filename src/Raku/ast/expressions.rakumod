@@ -431,19 +431,12 @@ class RakuAST::Infix
     # A pure operator's sink call rides on this classification, so an impure
     # operator whose result is a lazy producer must also be listed in
     # IMPL-RESULT-NEEDS-ITERATION to keep being sunk.
-    method is-pure() {
+    method is-pure(--> Bool) {
         my constant NP := nqp::hash(
-          ':=',   False,
-          '≔',    False,
-          '~~',   False,
-          'does', False,
-          '⚛=',   False,
-          '⚛+=',  False,
-          '⚛-=',  False,
-          '⚛−=',  False,
-          'xx',   False,
+          ':=', 1, '≔', 1, '~~', 1, 'does', 1, '⚛=', 1,
+          '⚛+=', 1, '⚛-=', 1, '⚛−=', 1, 'xx', 1
         );
-        nqp::atkey(NP,$!operator) // True
+        nqp::not_i(nqp::existskey(NP,$!operator))
     }
 
     # `A xx *` returns a lazy Seq, so a sunk result must be iterated to run its
@@ -457,12 +450,11 @@ class RakuAST::Infix
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands, Bool :$meta) {
-        if (
-               $!operator eq 'xx'     || $!operator eq 'andthen'
-            || $!operator eq 'orelse' || $!operator eq 'notandthen'
-            || $!operator eq 'with'   || $!operator eq 'without'
-            || $meta
-        ) {
+        my constant THUNKERS := nqp::hash(
+          'xx', 1, 'andthen', 1, 'orelse', 1, 'notandthen', 1,
+          'with', 1, 'without', 1
+        );
+        if nqp::existskey(THUNKERS,$!operator) || $meta {
             my $thunky := self.properties.thunky;
             my int $i;
             for @operands {
@@ -3623,14 +3615,11 @@ class RakuAST::Prefix
         OperatorProperties.prefix($!operator)
     }
 
-    method is-pure() {
+    method is-pure(--> Bool) {
         my constant NP := nqp::hash(
-          '--',  False,
-          '++',  False,
-          '--⚛', False,
-          '++⚛', False,
+          '--',  1, '++', 1, '--⚛', 1, '++⚛', 1
         );
-        nqp::atkey(NP,$!operator) // True
+        nqp::not_i(nqp::existskey(NP,$!operator))
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

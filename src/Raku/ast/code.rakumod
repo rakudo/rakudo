@@ -3706,9 +3706,11 @@ class RakuAST::Routine
         self.name.canonicalize
     }
 
-    method is-lexical() {
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'
+    method is-lexical(--> Bool) {
+        my constant SCOPES := nqp::hash(
+          'my', 1, 'state', 1, 'our', 1, 'unit', 1
+        );
+        nqp::existskey(SCOPES,self.scope)
     }
 
     method is-simple-lexical-declaration() {

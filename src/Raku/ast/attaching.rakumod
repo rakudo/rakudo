@@ -42,7 +42,7 @@ class RakuAST::Declaration::External::Package
         self.compile-time-value
     }
 
-    method can-have-methods() {
+    method can-have-methods(--> Bool) {
         nqp::istype(self.compile-time-value.HOW, Perl6::Metamodel::MethodContainer)
     }
 

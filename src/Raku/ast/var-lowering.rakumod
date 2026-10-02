@@ -42,7 +42,7 @@ class RakuAST::IMPL::VarLoweringFrame {
     }
 
     method node() { $!node }
-    method is-scope() { $!is-scope }
+    method is-scope(--> Bool) { $!is-scope }
     # Poisoning a frame says its lexicals stay addressable by name, %_
     # among them. A construct that reaches the lexicals without being
     # able to name %_ poisons the frame except for the slurpy hash,
@@ -57,7 +57,7 @@ class RakuAST::IMPL::VarLoweringFrame {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!poisoned', 1);
         Nil
     }
-    method is-poisoned() { $!poisoned }
+    method is-poisoned(--> Bool) { $!poisoned }
     method slurpy-reachable() { $!slurpy-reachable }
 
     method note-call() {
@@ -91,7 +91,7 @@ class RakuAST::IMPL::VarLoweringFrame {
         Nil
     }
     method flatten-arg() { $!flatten-arg }
-    method is-flatten-candidate() { $!flatten-candidate }
+    method is-flatten-candidate(--> Bool) { $!flatten-candidate }
     method block-flatten() {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!flatten-blocked', 1);
         Nil
@@ -101,7 +101,7 @@ class RakuAST::IMPL::VarLoweringFrame {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!flatten-loop-body', 1);
         Nil
     }
-    method is-flatten-loop-body() { $!flatten-loop-body }
+    method is-flatten-loop-body(--> Bool) { $!flatten-loop-body }
     method note-loop-finished() {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!loop-finished', 1);
         Nil

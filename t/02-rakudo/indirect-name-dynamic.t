@@ -1,6 +1,6 @@
 use Test;
 
-plan 6;
+plan 11;
 
 # An indirect name `::(expr)` whose expression is not compile-time known, e.g.
 # one mentioning a dynamic variable, resolves at runtime rather than dying.
@@ -17,6 +17,16 @@ is ::("Num").^name, 'Num', 'indirect lookup through a literal string';
 
 # An empty indirect name is the empty symbol, which does not exist.
 throws-like { ::("") }, X::NoSuchSymbol, 'an empty indirect name has no symbol';
+throws-like { EVAL q[$::("")] }, X::NoSuchSymbol,
+    'an empty indirect scalar name has no symbol';
+throws-like { EVAL q[@::("")] }, X::NoSuchSymbol,
+    'an empty indirect array name has no symbol';
+throws-like { EVAL q[%::("")] }, X::NoSuchSymbol,
+    'an empty indirect hash name has no symbol';
+throws-like { EVAL q[&::("")] }, X::NoSuchSymbol,
+    'an empty indirect code name has no symbol';
+throws-like { EVAL q[%::] }, X::Undeclared,
+    'a sigil with an empty package name is not declared';
 
 # require uses the same indirect-name resolution path.
 lives-ok {

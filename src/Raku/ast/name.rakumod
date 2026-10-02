@@ -549,7 +549,7 @@ class RakuAST::Name::Part::Expression
 
     method is-empty() {
         nqp::hllboolfor(
-          (my $name := try $!expr.literalize)
+          nqp::defined(my $name := try $!expr.literalize)
             && (nqp::istype($name,Str) || nqp::isstr($name))
             && $name eq '',
           "Raku"
